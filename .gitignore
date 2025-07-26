@@ -12,14 +12,16 @@
 # -o option
 *.out
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
+# Dependency directories
+vendor/
+node_modules/
 
 # Go workspace file
 go.work
 
 # Env file
-.env
+.env*
+*.env
 
 # Python
 __pycache__/
@@ -35,3 +37,7 @@ pip-wheel-metadata/
 
 # VSCode
 .vscode/
+
+# Build output
+/build
+/dist

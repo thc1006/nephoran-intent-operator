@@ -22,6 +22,8 @@ class TelecomRAGPipeline:
     
     def _setup_vector_store(self, config: Dict) -> Weaviate:
         """Initialize Weaviate vector database."""
+        # In a real implementation, you would connect to a running Weaviate instance.
+        # For this example, we are assuming the index already exists.
         return Weaviate.from_existing_index(
             embedding=self.embeddings,
             index_name="telecom_knowledge",
@@ -59,7 +61,7 @@ Answer:""",
             chain_type_kwargs={"prompt": prompt},
             return_source_documents=True
         )
-    
+
     def _calculate_confidence(self, result: Dict[str, Any]) -> float:
         """Calculate confidence score based on the retrieval results."""
         # This is a placeholder implementation. A more sophisticated approach

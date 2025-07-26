@@ -1,19 +1,3 @@
-/*
-Copyright 2025.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package main
 
 import (
@@ -31,29 +15,42 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	nephoranv1alpha1 "nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
 )
 
 var (
-	kubeconfig string
+	kubeconfig    string
 	ragServiceURL string
+	namespace     string
 )
 
 func main() {
 	flag.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig file")
 	flag.StringVar(&ragServiceURL, "rag-service-url", "http://localhost:5001/process_intent", "URL of the RAG service")
+	flag.StringVar(&namespace, "namespace", "default", "The namespace to create the NetworkIntent in")
+	opts := zap.Options{
+		Development: true,
+	}
+	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+	setupLog := ctrl.Log.WithName("setup")
+
 	http.HandleFunc("/intent", handleIntentRequest)
-	fmt.Println("Starting server on :8080")
+	http.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) })
+	setupLog.Info("starting server", "addr", ":8080")
 	if err := http.ListenAndServe(":8080", nil); err != nil {
-		fmt.Fprintf(os.Stderr, "error starting server: %s\n", err)
+		setupLog.Error(err, "problem running server")
 		os.Exit(1)
 	}
 }
 
 func handleIntentRequest(w http.ResponseWriter, r *http.Request) {
+	logger := log.FromContext(r.Context())
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST method is accepted", http.StatusMethodNotAllowed)
 		return
@@ -61,6 +58,7 @@ func handleIntentRequest(w http.ResponseWriter, r *http.Request) {
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
+		logger.Error(err, "Error reading request body")
 		http.Error(w, "Error reading request body", http.StatusInternalServerError)
 		return
 	}
@@ -69,23 +67,29 @@ func handleIntentRequest(w http.ResponseWriter, r *http.Request) {
 		Intent string `json:"intent"`
 	}
 	if err := json.Unmarshal(body, &requestData); err != nil {
+		logger.Error(err, "Error parsing JSON request body")
 		http.Error(w, "Error parsing JSON request body", http.StatusBadRequest)
 		return
 	}
 
+	logger.Info("Received intent", "intent", requestData.Intent)
+
 	// Call the RAG service
 	ragResponse, err := callRAGService(requestData.Intent)
 	if err != nil {
+		logger.Error(err, "Error calling RAG service")
 		http.Error(w, fmt.Sprintf("Error calling RAG service: %v", err), http.StatusInternalServerError)
 		return
 	}
 
 	// Create the NetworkIntent resource
 	if err := createNetworkIntent(ragResponse); err != nil {
+		logger.Error(err, "Error creating NetworkIntent")
 		http.Error(w, fmt.Sprintf("Error creating NetworkIntent: %v", err), http.StatusInternalServerError)
 		return
 	}
 
+	logger.Info("NetworkIntent created successfully")
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte("NetworkIntent created successfully"))
 }
@@ -103,7 +107,8 @@ func callRAGService(intent string) (map[string]interface{}, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("RAG service returned non-OK status: %d", resp.StatusCode)
+		body, _ := ioutil.ReadAll(resp.Body)
+		return nil, fmt.Errorf("RAG service returned non-OK status: %d, body: %s", resp.StatusCode, string(body))
 	}
 
 	var ragResponse map[string]interface{}
@@ -120,43 +125,53 @@ func createNetworkIntent(ragResponse map[string]interface{}) error {
 		return err
 	}
 
-	// Create a REST client
 	nephoranv1alpha1.AddToScheme(scheme.Scheme)
 	crdConfig := *config
 	crdConfig.ContentConfig.GroupVersion = &nephoranv1alpha1.GroupVersion
 	crdConfig.APIPath = "/apis"
 	crdConfig.NegotiatedSerializer = serializer.NewCodecFactory(scheme.Scheme)
 	crdConfig.UserAgent = rest.DefaultKubernetesUserAgent()
-	
+
 	restClient, err := rest.RESTClientFor(&crdConfig)
 	if err != nil {
 		return err
 	}
 
-	// Create the NetworkIntent object
-	intent := &nephoranv1alpha1.NetworkIntent{}
-	intent.APIVersion = "nephoran.com/v1alpha1"
-	intent.Kind = "NetworkIntent"
-	intent.Name = "my-network-intent" // This should be generated dynamically
-	intent.Spec.Intent = ragResponse["intent"].(string)
-	
+	intentName, ok := ragResponse["name"].(string)
+	if !ok {
+		// Fallback to a generated name if not provided by the LLM
+		intentName = fmt.Sprintf("intent-%d", os.Getpid())
+	}
+
 	params, err := json.Marshal(ragResponse)
 	if err != nil {
 		return err
 	}
-	intent.Spec.Parameters.Raw = params
 
+	intent := &nephoranv1alpha1.NetworkIntent{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "nephoran.com/v1alpha1",
+			Kind:       "NetworkIntent",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      intentName,
+			Namespace: namespace,
+		},
+		Spec: nephoranv1alpha1.NetworkIntentSpec{
+			Intent: ragResponse["intent"].(string),
+			Parameters: runtime.RawExtension{
+				Raw: params,
+			},
+		},
+	}
 
-	// Create the resource
 	result := &nephoranv1alpha1.NetworkIntent{}
-	err = restClient.Post().
-		Namespace("default").
+	return restClient.Post().
+		Namespace(namespace).
 		Resource("networkintents").
 		Body(intent).
 		Do(context.Background()).
 		Into(result)
-
-	return err
 }
 
 func getKubeConfig(kubeconfigPath string) (*rest.Config, error) {

@@ -21,9 +21,6 @@ ENV PATH="/usr/local/go/bin:${PATH}"
 # Copy application source
 COPY . .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements-rag.txt
-
 # Set up a non-root user
 RUN useradd -ms /bin/bash vscode
 USER vscode
@@ -31,4 +28,3 @@ WORKDIR /home/vscode/workspace
 
 # Default command
 CMD ["sleep", "infinity"]
-

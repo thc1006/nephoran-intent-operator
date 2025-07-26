@@ -1,19 +1,3 @@
-/*
-Copyright 2025.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controllers
 
 import (
@@ -54,12 +38,9 @@ type NetworkIntentReconciler struct {
 //+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/finalizers,verbs=update
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
 func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// 1. Fetch the NetworkIntent resource.
 	intent := &nephoranv1alpha1.NetworkIntent{}
 	if err := r.Get(ctx, req.NamespacedName, intent); err != nil {
 		if errors.IsNotFound(err) {
@@ -70,14 +51,12 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	// Set the initial status
 	meta.SetStatusCondition(&intent.Status.Conditions, metav1.Condition{Type: typeAvailableNetworkIntent, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Starting reconciliation"})
 	if err := r.Status().Update(ctx, intent); err != nil {
 		logger.Error(err, "Failed to update NetworkIntent status")
 		return ctrl.Result{}, err
 	}
 
-	// 2. Unmarshal the parameters into our structured type.
 	var deploymentIntent NetworkFunctionDeploymentIntent
 	if err := json.Unmarshal(intent.Spec.Parameters.Raw, &deploymentIntent); err != nil {
 		logger.Error(err, "Failed to unmarshal intent parameters")
@@ -88,20 +67,17 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	// 3. Check if the intent type is what we expect.
 	if deploymentIntent.Type != "NetworkFunctionDeployment" {
 		logger.Info("Intent type is not NetworkFunctionDeployment, ignoring", "type", deploymentIntent.Type)
 		return ctrl.Result{}, nil
 	}
 
-	// 4. Generate the desired Deployment object.
 	deployment := r.deploymentForIntent(&deploymentIntent)
 	if err := ctrl.SetControllerReference(intent, deployment, r.Scheme); err != nil {
 		logger.Error(err, "Failed to set controller reference on Deployment")
 		return ctrl.Result{}, err
 	}
 
-	// 5. Create or update the Deployment.
 	found := &appsv1.Deployment{}
 	err := r.Get(ctx, types.NamespacedName{Name: deployment.Name, Namespace: deployment.Namespace}, found)
 	if err != nil && errors.IsNotFound(err) {
@@ -115,7 +91,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 			return ctrl.Result{}, err
 		}
-		// Deployment created successfully - return and requeue
 		meta.SetStatusCondition(&intent.Status.Conditions, metav1.Condition{Type: typeAvailableNetworkIntent, Status: metav1.ConditionFalse, Reason: "Creating", Message: "Deployment created successfully"})
 		if err := r.Status().Update(ctx, intent); err != nil {
 			logger.Error(err, "Failed to update NetworkIntent status")
@@ -126,7 +101,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	// 6. Handle updates
 	if !reflect.DeepEqual(deployment.Spec, found.Spec) {
 		found.Spec = deployment.Spec
 		logger.Info("Updating Deployment", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
@@ -137,7 +111,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}
 
-	// 7. Update the status of the NetworkIntent resource based on the Deployment status.
 	if found.Status.AvailableReplicas == *found.Spec.Replicas {
 		meta.SetStatusCondition(&intent.Status.Conditions, metav1.Condition{Type: typeAvailableNetworkIntent, Status: metav1.ConditionTrue, Reason: "Ready", Message: "Deployment is ready"})
 	} else {
@@ -153,7 +126,6 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return ctrl.Result{}, nil
 }
 
-// deploymentForIntent generates a Deployment object from a NetworkFunctionDeploymentIntent.
 func (r *NetworkIntentReconciler) deploymentForIntent(intent *NetworkFunctionDeploymentIntent) *appsv1.Deployment {
 	replicas := int32(intent.Spec.Replicas)
 	labels := map[string]string{"app": intent.Name}
@@ -193,7 +165,6 @@ func (r *NetworkIntentReconciler) deploymentForIntent(intent *NetworkFunctionDep
 	}
 }
 
-// SetupWithManager sets up the controller with the Manager.
 func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1alpha1.NetworkIntent{}).

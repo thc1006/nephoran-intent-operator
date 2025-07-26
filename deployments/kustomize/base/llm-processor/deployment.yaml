@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-processor
+  labels:
+    app: llm-processor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llm-processor
+  template:
+    metadata:
+      labels:
+        app: llm-processor
+    spec:
+      containers:
+      - name: llm-processor
+        image: nephoran-intent-operator/llm-processor:latest
+        command: ["/llm-processor"]
+        args:
+        - "--rag-service-url=http://rag-api:5001/process_intent"
+        - "--namespace=$(POD_NAMESPACE)"
+        ports:
+        - containerPort: 8080
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20

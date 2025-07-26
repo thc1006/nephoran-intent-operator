@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephio-bridge
+  labels:
+    app: nephio-bridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nephio-bridge
+  template:
+    metadata:
+      labels:
+        app: nephio-bridge
+    spec:
+      serviceAccountName: nephio-bridge-sa
+      containers:
+      - name: nephio-bridge
+        image: nephoran-intent-operator/nephio-bridge:latest
+        command: ["/nephio-bridge"]
+        ports:
+        - containerPort: 8081
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20

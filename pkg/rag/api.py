@@ -1,29 +1,44 @@
 from flask import Flask, request, jsonify
 from telecom_pipeline import TelecomRAGPipeline
 import os
+import logging
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
 
-# This is a placeholder for the actual configuration.
-# In a production environment, this should be loaded from a secure source.
+# In a production environment, this should be loaded from a secure source
+# like a Kubernetes secret or a vault.
 config = {
     "weaviate_url": os.environ.get("WEAVIATE_URL", "http://localhost:8080"),
     "openai_api_key": os.environ.get("OPENAI_API_KEY")
 }
 
 # Initialize the RAG pipeline
-try:
-    rag_pipeline = TelecomRAGPipeline(config)
-except Exception as e:
-    # If the pipeline fails to initialize (e.g., missing API key),
-    # we'll log the error and exit.
-    app.logger.error(f"Failed to initialize TelecomRAGPipeline: {e}")
-    rag_pipeline = None
+rag_pipeline = None
+if not config.get("openai_api_key"):
+    app.logger.warning("OPENAI_API_KEY environment variable not set. RAG pipeline will not be initialized.")
+else:
+    try:
+        rag_pipeline = TelecomRAGPipeline(config)
+        app.logger.info("TelecomRAGPipeline initialized successfully.")
+    except Exception as e:
+        app.logger.error(f"Failed to initialize TelecomRAGPipeline: {e}")
+
+@app.route('/healthz', methods=['GET'])
+def healthz():
+    return jsonify({"status": "ok"})
+
+@app.route('/readyz', methods=['GET'])
+def readyz():
+    if rag_pipeline:
+        return jsonify({"status": "ready"})
+    else:
+        return jsonify({"status": "not_ready"}), 503
 
 @app.route('/process_intent', methods=['POST'])
 def process_intent():
     if not rag_pipeline:
-        return jsonify({"error": "RAG pipeline not initialized"}), 500
+        return jsonify({"error": "RAG pipeline not initialized"}), 503
 
     data = request.get_json()
     if not data or 'intent' not in data:
