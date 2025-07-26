@@ -16,12 +16,12 @@ spec:
       serviceAccountName: nephio-bridge-sa
       containers:
       - name: nephio-bridge
-        image: localhost:5000/nephio-bridge:latest
-        imagePullPolicy: IfNotPresent
+        image: thc1006/nephoran-nephio-bridge:latest
+        imagePullPolicy: Always
         args:
         - "--git-repo-url=file:///deployment-repo"
         - "--git-branch=main"
-        - "--ssh-key-path=/dev/null" # Not needed for local file-based repo
+        - "--ssh-key-path=/dev/null"
         volumeMounts:
         - name: deployment-repo
           mountPath: /deployment-repo
