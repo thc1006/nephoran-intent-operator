@@ -3,7 +3,13 @@ APP_NAME := telecom-llm-automation
 VERSION := $(shell git describe --tags --always --dirty)
 REGISTRY ?= gcr.io/your-project
 
-.PHONY: help setup-dev build-all deploy-dev test-integration
+.PHONY: help setup-dev build-all deploy-dev test-integration lint
+
+lint: ## Run linters
+	@echo "--- Running Linters ---"
+	golangci-lint run ./...
+	flake8 pkg/rag/
+
 
 help:
 	@echo "Makefile for the LLM-Enhanced Nephio R5 and O-RAN Network Automation System"

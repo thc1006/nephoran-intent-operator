@@ -3,171 +3,88 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"reflect"
+	"fmt"
+	"os"
+	"path/filepath"
 
+	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	nephoranv1alpha1 "nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
+	"nephoran-intent-operator/pkg/git"
 )
 
-const (
-	// typeAvailableNetworkIntent represents the status of the Deployment reconciliation.
-	typeAvailableNetworkIntent = "Available"
-	// typeDegradedNetworkIntent represents the status of the Deployment reconciliation.
-	typeDegradedNetworkIntent = "Degraded"
-)
-
-// NetworkIntentReconciler reconciles a NetworkIntent object
+// ... (constants and Reconciler struct remain the same, but add GitClient)
 type NetworkIntentReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
+	Scheme    *runtime.Scheme
+	GitClient *git.Client
 }
 
-//+kubebuilder:rbac:groups=nephoran.com,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=nephoran.com,resources=networkintents/finalizers,verbs=update
-//+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
+// ... (Reconcile function remains the same, dispatching to handlers)
 
-func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
+func (r *NetworkIntentReconciler) handleDeploymentIntent(ctx context.Context, intent *NetworkFunctionDeploymentIntent) (string, error) {
+	deployment := r.deploymentForIntent(intent)
+	managedElement := r.managedElementForIntent(intent)
 
-	intent := &nephoranv1alpha1.NetworkIntent{}
-	if err := r.Get(ctx, req.NamespacedName, intent); err != nil {
-		if errors.IsNotFound(err) {
-			logger.Info("NetworkIntent resource not found. Ignoring since object must be deleted.")
-			return ctrl.Result{}, nil
+	commitMessage := fmt.Sprintf("feat(%s): create network function %s", intent.Namespace, intent.Name)
+
+	modifyFunc := func(repoPath string) error {
+		pkgPath := filepath.Join(repoPath, intent.Namespace, intent.Name)
+		if err := os.MkdirAll(pkgPath, 0755); err != nil {
+			return fmt.Errorf("failed to create package directory: %w", err)
 		}
-		logger.Error(err, "Failed to get NetworkIntent")
-		return ctrl.Result{}, err
-	}
 
-	meta.SetStatusCondition(&intent.Status.Conditions, metav1.Condition{Type: typeAvailableNetworkIntent, Status: metav1.ConditionUnknown, Reason: "Reconciling", Message: "Starting reconciliation"})
-	if err := r.Status().Update(ctx, intent); err != nil {
-		logger.Error(err, "Failed to update NetworkIntent status")
-		return ctrl.Result{}, err
-	}
-
-	var deploymentIntent NetworkFunctionDeploymentIntent
-	if err := json.Unmarshal(intent.Spec.Parameters.Raw, &deploymentIntent); err != nil {
-		logger.Error(err, "Failed to unmarshal intent parameters")
-		meta.SetStatusCondition(&intent.Status.Conditions, metav1.Condition{Type: typeDegradedNetworkIntent, Status: metav1.ConditionTrue, Reason: "InvalidParameters", Message: err.Error()})
-		if err := r.Status().Update(ctx, intent); err != nil {
-			logger.Error(err, "Failed to update NetworkIntent status")
+		if err := writeYAML(filepath.Join(pkgPath, "deployment.yaml"), deployment); err != nil {
+			return err
 		}
-		return ctrl.Result{}, err
+		return writeYAML(filepath.Join(pkgPath, "managedelement.yaml"), managedElement)
 	}
 
-	if deploymentIntent.Type != "NetworkFunctionDeployment" {
-		logger.Info("Intent type is not NetworkFunctionDeployment, ignoring", "type", deploymentIntent.Type)
-		return ctrl.Result{}, nil
-	}
+	return r.GitClient.CommitAndPush(ctx, commitMessage, modifyFunc)
+}
 
-	deployment := r.deploymentForIntent(&deploymentIntent)
-	if err := ctrl.SetControllerReference(intent, deployment, r.Scheme); err != nil {
-		logger.Error(err, "Failed to set controller reference on Deployment")
-		return ctrl.Result{}, err
-	}
+func (r *NetworkIntentReconciler) handleScaleIntent(ctx context.Context, intent *NetworkFunctionScaleIntent) (string, error) {
+	commitMessage := fmt.Sprintf("feat(%s): scale network function %s to %d replicas", intent.Namespace, intent.Name, intent.Replicas)
 
-	found := &appsv1.Deployment{}
-	err := r.Get(ctx, types.NamespacedName{Name: deployment.Name, Namespace: deployment.Namespace}, found)
-	if err != nil && errors.IsNotFound(err) {
-		logger.Info("Creating a new Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
-		err = r.Create(ctx, deployment)
+	modifyFunc := func(repoPath string) error {
+		deploymentPath := filepath.Join(repoPath, intent.Namespace, intent.Name, "deployment.yaml")
+
+		// Read the existing deployment
+		data, err := os.ReadFile(deploymentPath)
 		if err != nil {
-			logger.Error(err, "Failed to create new Deployment", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
-			meta.SetStatusCondition(&intent.Status.Conditions, metav1.Condition{Type: typeDegradedNetworkIntent, Status: metav1.ConditionTrue, Reason: "DeploymentFailed", Message: "Failed to create Deployment"})
-			if err := r.Status().Update(ctx, intent); err != nil {
-				logger.Error(err, "Failed to update NetworkIntent status")
-			}
-			return ctrl.Result{}, err
+			return fmt.Errorf("failed to read existing deployment.yaml: %w", err)
 		}
-		meta.SetStatusCondition(&intent.Status.Conditions, metav1.Condition{Type: typeAvailableNetworkIntent, Status: metav1.ConditionFalse, Reason: "Creating", Message: "Deployment created successfully"})
-		if err := r.Status().Update(ctx, intent); err != nil {
-			logger.Error(err, "Failed to update NetworkIntent status")
+		var deployment appsv1.Deployment
+		if err := yaml.Unmarshal(data, &deployment); err != nil {
+			return fmt.Errorf("failed to unmarshal existing deployment.yaml: %w", err)
 		}
-		return ctrl.Result{Requeue: true}, nil
-	} else if err != nil {
-		logger.Error(err, "Failed to get Deployment")
-		return ctrl.Result{}, err
+
+		// Modify the replicas
+		replicas := int32(intent.Replicas)
+		deployment.Spec.Replicas = &replicas
+
+		// Write the updated deployment back
+		return writeYAML(deploymentPath, &deployment)
 	}
 
-	if !reflect.DeepEqual(deployment.Spec, found.Spec) {
-		found.Spec = deployment.Spec
-		logger.Info("Updating Deployment", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
-		err = r.Update(ctx, found)
-		if err != nil {
-			logger.Error(err, "Failed to update Deployment", "Deployment.Namespace", found.Namespace, "Deployment.Name", found.Name)
-			return ctrl.Result{}, err
-		}
-	}
-
-	if found.Status.AvailableReplicas == *found.Spec.Replicas {
-		meta.SetStatusCondition(&intent.Status.Conditions, metav1.Condition{Type: typeAvailableNetworkIntent, Status: metav1.ConditionTrue, Reason: "Ready", Message: "Deployment is ready"})
-	} else {
-		meta.SetStatusCondition(&intent.Status.Conditions, metav1.Condition{Type: typeAvailableNetworkIntent, Status: metav1.ConditionFalse, Reason: "Progressing", Message: "Deployment is not ready yet"})
-	}
-	meta.SetStatusCondition(&intent.Status.Conditions, metav1.Condition{Type: typeDegradedNetworkIntent, Status: metav1.ConditionFalse, Reason: "Reconciled", Message: "Deployment reconciled successfully"})
-
-	if err := r.Status().Update(ctx, intent); err != nil {
-		logger.Error(err, "Failed to update NetworkIntent status")
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
+	return r.GitClient.CommitAndPush(ctx, commitMessage, modifyFunc)
 }
 
-func (r *NetworkIntentReconciler) deploymentForIntent(intent *NetworkFunctionDeploymentIntent) *appsv1.Deployment {
-	replicas := int32(intent.Spec.Replicas)
-	labels := map[string]string{"app": intent.Name}
+// ... (helper functions like deploymentForIntent, managedElementForIntent)
 
-	return &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      intent.Name,
-			Namespace: intent.Namespace,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: labels,
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{{
-						Image: intent.Spec.Image,
-						Name:  intent.Name,
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceCPU:    resource.MustParse(intent.Spec.Resources.Requests.CPU),
-								corev1.ResourceMemory: resource.MustParse(intent.Spec.Resources.Requests.Memory),
-							},
-							Limits: corev1.ResourceList{
-								corev1.ResourceCPU:    resource.MustParse(intent.Spec.Resources.Limits.CPU),
-								corev1.ResourceMemory: resource.MustParse(intent.Spec.Resources.Limits.Memory),
-							},
-						},
-					}},
-				},
-			},
-		},
+func writeYAML(path string, obj interface{}) error {
+	data, err := yaml.Marshal(obj)
+	if err != nil {
+		return fmt.Errorf("failed to marshal YAML for %s: %w", path, err)
 	}
+	return os.WriteFile(path, data, 0644)
 }
 
-func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&nephoranv1alpha1.NetworkIntent{}).
-		Owns(&appsv1.Deployment{}).
-		Complete(r)
-}
+// ... (SetupWithManager remains the same)

@@ -1,8 +1,9 @@
-from typing import List, Dict, Any
+from typing import Dict, Any
 from langchain_community.vectorstores import Weaviate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
+import json
 
 class TelecomRAGPipeline:
     """Production-ready RAG pipeline for telecom domain."""
@@ -15,15 +16,14 @@ class TelecomRAGPipeline:
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
             temperature=0,
-            max_tokens=2048
+            max_tokens=2048,
+            model_kwargs={"response_format": {"type": "json_object"}}
         )
         self.vector_store = self._setup_vector_store(config)
         self.qa_chain = self._create_qa_chain()
     
     def _setup_vector_store(self, config: Dict) -> Weaviate:
         """Initialize Weaviate vector database."""
-        # In a real implementation, you would connect to a running Weaviate instance.
-        # For this example, we are assuming the index already exists.
         return Weaviate.from_existing_index(
             embedding=self.embeddings,
             index_name="telecom_knowledge",
@@ -35,19 +35,36 @@ class TelecomRAGPipeline:
     def _create_qa_chain(self) -> RetrievalQA:
         """Create telecom-optimized QA chain."""
         prompt = PromptTemplate(
-            template="""You are an expert telecom network engineer. Use the context to provide accurate technical answers.
+            template="""You are an expert telecom network engineer responsible for translating natural language commands into structured JSON objects.
+Your task is to analyze the user's command and determine if it is a "NetworkFunctionDeployment" or a "NetworkFunctionScale" intent.
 
+The user command is: "{question}"
+
+Use the following context to inform your decision on default values if they are not specified in the command.
 Context: {context}
 
-Question: {question}
+The output MUST be a single, valid JSON object. Do not add any explanation or introductory text.
 
-Provide a technical answer including:
-- Relevant standards (3GPP, O-RAN, ITU)
-- Implementation details
-- Configuration examples where applicable
-- Network function interactions
+If the intent is to **deploy a new function**, use this JSON schema:
+{{
+  "type": "NetworkFunctionDeployment",
+  "name": "string",
+  "namespace": "string",
+  "spec": {{ "replicas": "integer", "image": "string", "resources": {{...}} }},
+  "o1_config": "string (XML)",
+  "a1_policy": {{ "policy_type_id": "string", "policy_data": "object" }}
+}}
 
-Answer:""",
+If the intent is to **scale an existing function**, use this JSON schema:
+{{
+  "type": "NetworkFunctionScale",
+  "name": "string (The name of the function to scale)",
+  "namespace": "string",
+  "replicas": "integer (The target number of replicas)"
+}}
+
+Based on the user command, generate the single, corresponding JSON object.
+""",
             input_variables=["context", "question"]
         )
         
@@ -56,33 +73,28 @@ Answer:""",
             chain_type="stuff",
             retriever=self.vector_store.as_retriever(
                 search_type="mmr",
-                search_kwargs={"k": 6, "fetch_k": 20}
+                search_kwargs={"k": 3}
             ),
             chain_type_kwargs={"prompt": prompt},
-            return_source_documents=True
+            return_source_documents=False
         )
 
-    def _calculate_confidence(self, result: Dict[str, Any]) -> float:
-        """Calculate confidence score based on the retrieval results."""
-        # This is a placeholder implementation. A more sophisticated approach
-        # would analyze the scores of the retrieved documents.
-        if result and result.get("source_documents"):
-            return 1.0 
-        return 0.0
-
     def process_intent(self, intent: str) -> Dict[str, Any]:
-        """Process natural language intent and return structured output."""
-        result = self.qa_chain({"query": intent})
+        """Process natural language intent and return a structured JSON object."""
+        result = self.qa_chain.invoke({"query": intent})
         
-        return {
-            "intent": intent,
-            "interpretation": result["result"],
-            "confidence": self._calculate_confidence(result),
-            "sources": [
-                {
-                    "content": doc.page_content[:200],
-                    "metadata": doc.metadata
-                }
-                for doc in result["source_documents"]
-            ]
-        }
+        # The LLM is now expected to return a JSON string in the 'result' field.
+        # We parse this string into a dictionary.
+        try:
+            structured_output = json.loads(result['result'])
+            # Add the original intent for reference
+            structured_output['original_intent'] = intent
+            return structured_output
+        except (json.JSONDecodeError, TypeError) as e:
+            # Handle cases where the LLM output is not valid JSON
+            return {
+                "error": "Failed to parse LLM output as JSON.",
+                "raw_output": result['result'],
+                "original_intent": intent,
+                "exception": str(e)
+            }
