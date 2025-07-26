@@ -1,0 +1,4 @@
+langchain-community
+langchain-openai
+weaviate-client
+Flask

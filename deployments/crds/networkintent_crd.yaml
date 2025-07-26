@@ -1,0 +1,68 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  # name must be in the format <plural>.<group>
+  name: networkintents.nephoran.com
+spec:
+  # group name to use for REST API: /apis/<group>/<version>
+  group: nephoran.com
+  # list of versions supported by this CustomResourceDefinition
+  versions:
+    - name: v1alpha1
+      # Each version can be enabled/disabled by Served flag.
+      served: true
+      # One and only one version must be marked as the storage version.
+      storage: true
+      schema:
+        # schema used for validation, pruning, and defaulting
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                intent:
+                  type: string
+                  description: "The original natural language intent from the user."
+                parameters:
+                  type: object
+                  description: "Structured parameters translated from the intent by the LLM."
+                  # This allows for flexible, unstructured data from the LLM.
+                  # The controller will be responsible for validating this structure.
+                  x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              properties:
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                        description: "Type of condition."
+                      status:
+                        type: string
+                        description: "Status of the condition, one of True, False, Unknown."
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                        description: "The last time this condition transitioned from one status to another."
+                      reason:
+                        type: string
+                        description: "A unique, machine-readable reason for the condition's last transition."
+                      message:
+                        type: string
+                        description: "A human-readable message indicating details about the last transition."
+  # either Namespaced or Cluster
+  scope: Namespaced
+  names:
+    # plural name to be used in the URL: /apis/<group>/<version>/<plural>
+    plural: networkintents
+    # singular name to be used as an alias on the CLI and for display
+    singular: networkintent
+    # kind is normally the CamelCased singular type. Your resource manifests use this.
+    kind: NetworkIntent
+    # shortNames allow shorter string to match your resource on the CLI
+    shortNames:
+    - ni
