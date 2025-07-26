@@ -16,7 +16,8 @@ config = {
 # Initialize the RAG pipeline
 rag_pipeline = None
 if not config.get("openai_api_key"):
-    app.logger.warning("OPENAI_API_KEY environment variable not set. RAG pipeline will not be initialized.")
+    msg = "OPENAI_API_KEY not set. RAG will not be initialized."
+    app.logger.warning(msg)
 else:
     try:
         rag_pipeline = TelecomRAGPipeline(config)
@@ -24,9 +25,11 @@ else:
     except Exception as e:
         app.logger.error(f"Failed to initialize TelecomRAGPipeline: {e}")
 
+
 @app.route('/healthz', methods=['GET'])
 def healthz():
     return jsonify({"status": "ok"})
+
 
 @app.route('/readyz', methods=['GET'])
 def readyz():
@@ -34,6 +37,7 @@ def readyz():
         return jsonify({"status": "ready"})
     else:
         return jsonify({"status": "not_ready"}), 503
+
 
 @app.route('/process_intent', methods=['POST'])
 def process_intent():
@@ -51,6 +55,7 @@ def process_intent():
     except Exception as e:
         app.logger.error(f"Error processing intent: {e}")
         return jsonify({"error": "Failed to process intent"}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5001)

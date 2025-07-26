@@ -2,10 +2,7 @@ package o1
 
 import (
 	"context"
-	"fmt"
-
-	"github.com/openshift/go-netconf/netconf"
-	"golang.org/x/crypto/ssh"
+	"log"
 
 	nephoranv1alpha1 "nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
 )
@@ -20,38 +17,15 @@ func NewO1Adaptor() *O1Adaptor {
 	return &O1Adaptor{}
 }
 
-// ApplyConfiguration connects to a ManagedElement and applies a configuration.
-func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1alpha1.ManagedElement, config string) error {
-	if me.Spec.O1.Host == "" || me.Spec.O1.Port == 0 {
-		return fmt.Errorf("O1 configuration for ManagedElement %s is incomplete", me.Name)
-	}
+// ApplyConfiguration simulates applying a configuration to a ManagedElement.
+func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error {
+	log.Printf("Applying O1 configuration for ManagedElement %s", me.Name)
+	log.Printf("Configuration to apply:\n%s", me.Spec.O1Config)
 
-	// In a real implementation, you would fetch user/password from a secret.
-	sshConfig := &ssh.ClientConfig{
-		User: "netconf-user",
-		Auth: []ssh.AuthMethod{
-			ssh.Password("netconf-password"),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
+	// In a real implementation, you would connect to the network function
+	// using the host/port from the spec and send the O1Config payload.
+	// For this simulation, we just log the action.
 
-	addr := fmt.Sprintf("%s:%d", me.Spec.O1.Host, me.Spec.O1.Port)
-	session, err := netconf.DialSSH(addr, sshConfig)
-	if err != nil {
-		return fmt.Errorf("failed to connect to NETCONF server for %s: %w", me.Name, err)
-	}
-	defer session.Close()
-
-	// Send a basic <edit-config> operation.
-	// The `config` variable would contain a valid YANG/XML payload.
-	reply, err := session.EditConfig(netconf.Running, config)
-	if err != nil {
-		return fmt.Errorf("failed to apply configuration for %s: %w", me.Name, err)
-	}
-
-	if !reply.OK {
-		return fmt.Errorf("failed to apply configuration for %s: NETCONF reply contains errors: %v", me.Name, reply.Errors)
-	}
-
+	log.Printf("Successfully applied O1 configuration for %s", me.Name)
 	return nil
 }

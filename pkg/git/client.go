@@ -1,9 +1,9 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/go-git/go-git/v5"

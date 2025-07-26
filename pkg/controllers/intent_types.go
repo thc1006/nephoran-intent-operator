@@ -1,18 +1,42 @@
 package controllers
 
-import "k8s.io/apimachinery/pkg/runtime"
+import (
+	"encoding/json"
+)
 
-// ... (NetworkFunctionDeployment structs remain the same) ...
+// StructuredIntent is the general structure returned by the LLM processor.
+type StructuredIntent struct {
+	Type string          `json:"type"`
+	Data json.RawMessage `json:"data"`
+}
 
-// NetworkFunctionScaleIntent defines the structured parameters for scaling a network function.
+// NetworkFunctionDeploymentIntent represents the detailed intent for deploying a new network function.
+type NetworkFunctionDeploymentIntent struct {
+	Type      string                `json:"type"`
+	Name      string                `json:"name"`
+	Namespace string                `json:"namespace"`
+	Spec      DeploymentSpec        `json:"spec"`
+	O1Config  string                `json:"o1_config"`
+	A1Policy  A1Policy              `json:"a1_policy"`
+}
+
+// DeploymentSpec defines the specifications for the Kubernetes Deployment.
+type DeploymentSpec struct {
+	Replicas  int                    `json:"replicas"`
+	Image     string                 `json:"image"`
+	Resources map[string]interface{} `json:"resources"`
+}
+
+// A1Policy defines the structure for an A1 policy.
+type A1Policy struct {
+	PolicyTypeID string                 `json:"policy_type_id"`
+	PolicyData   map[string]interface{} `json:"policy_data"`
+}
+
+// NetworkFunctionScaleIntent represents the detailed intent for scaling an existing network function.
 type NetworkFunctionScaleIntent struct {
 	Type      string `json:"type"`
 	Name      string `json:"name"`
 	Namespace string `json:"namespace"`
 	Replicas  int    `json:"replicas"`
-}
-
-// GenericIntent is used to unmarshal the 'type' field to determine the intent.
-type GenericIntent struct {
-	Type string `json:"type"`
 }

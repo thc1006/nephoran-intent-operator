@@ -1,0 +1,7 @@
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: deploy-upf-central
+  namespace: default
+spec:
+  intent: "I need to deploy a new UPF in the central region for our enterprise customers."

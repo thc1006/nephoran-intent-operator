@@ -5,9 +5,10 @@ from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 import json
 
+
 class TelecomRAGPipeline:
     """Production-ready RAG pipeline for telecom domain."""
-    
+
     def __init__(self, config: Dict[str, Any]):
         self.embeddings = OpenAIEmbeddings(
             model="text-embedding-3-large",
@@ -21,7 +22,7 @@ class TelecomRAGPipeline:
         )
         self.vector_store = self._setup_vector_store(config)
         self.qa_chain = self._create_qa_chain()
-    
+
     def _setup_vector_store(self, config: Dict) -> Weaviate:
         """Initialize Weaviate vector database."""
         return Weaviate.from_existing_index(
@@ -31,19 +32,23 @@ class TelecomRAGPipeline:
             weaviate_url=config["weaviate_url"],
             additional_headers={"X-OpenAI-Api-Key": config["openai_api_key"]}
         )
-    
+
     def _create_qa_chain(self) -> RetrievalQA:
         """Create telecom-optimized QA chain."""
-        prompt = PromptTemplate(
-            template="""You are an expert telecom network engineer responsible for translating natural language commands into structured JSON objects.
-Your task is to analyze the user's command and determine if it is a "NetworkFunctionDeployment" or a "NetworkFunctionScale" intent.
+        template = """
+You are an expert telecom network engineer responsible for translating
+natural language commands into structured JSON objects.
+Your task is to analyze the user's command and determine if it is a
+"NetworkFunctionDeployment" or a "NetworkFunctionScale" intent.
 
 The user command is: "{question}"
 
-Use the following context to inform your decision on default values if they are not specified in the command.
+Use the following context to inform your decision on default values if they
+are not specified in the command.
 Context: {context}
 
-The output MUST be a single, valid JSON object. Do not add any explanation or introductory text.
+The output MUST be a single, valid JSON object. Do not add any explanation
+or introductory text.
 
 If the intent is to **deploy a new function**, use this JSON schema:
 {{
@@ -64,10 +69,12 @@ If the intent is to **scale an existing function**, use this JSON schema:
 }}
 
 Based on the user command, generate the single, corresponding JSON object.
-""",
+"""
+        prompt = PromptTemplate(
+            template=template,
             input_variables=["context", "question"]
         )
-        
+
         return RetrievalQA.from_chain_type(
             llm=self.llm,
             chain_type="stuff",
@@ -80,18 +87,14 @@ Based on the user command, generate the single, corresponding JSON object.
         )
 
     def process_intent(self, intent: str) -> Dict[str, Any]:
-        """Process natural language intent and return a structured JSON object."""
+        """Process user intent and return a structured JSON object."""
         result = self.qa_chain.invoke({"query": intent})
-        
-        # The LLM is now expected to return a JSON string in the 'result' field.
-        # We parse this string into a dictionary.
+
         try:
             structured_output = json.loads(result['result'])
-            # Add the original intent for reference
             structured_output['original_intent'] = intent
             return structured_output
         except (json.JSONDecodeError, TypeError) as e:
-            # Handle cases where the LLM output is not valid JSON
             return {
                 "error": "Failed to parse LLM output as JSON.",
                 "raw_output": result['result'],

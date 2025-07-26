@@ -1,9 +1,8 @@
 package main
 
 import (
-	"flag"
-	"io/ioutil"
 	"os"
+	"flag"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
@@ -11,7 +10,6 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"nephoran-intent-operator/pkg/controllers"
@@ -30,19 +28,42 @@ func init() {
 }
 
 func main() {
-	// ... (flag parsing remains the same)
+	var metricsAddr string
+	var enableLeaderElection bool
+	var probeAddr string
+	var sshKeyPath string
+	var gitRepoURL string
+	var gitBranch string
 
-	sshKey, err := ioutil.ReadFile(sshKeyPath)
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.BoolVar(&enableLeaderElection, "leader-elect", false, "Enable leader election for controller manager.")
+	flag.StringVar(&sshKeyPath, "ssh-key-path", "/etc/git-secret/ssh", "Path to the SSH private key for Git authentication.")
+	flag.StringVar(&gitRepoURL, "git-repo-url", "", "The URL of the Git repository to push manifests to.")
+	flag.StringVar(&gitBranch, "git-branch", "main", "The branch of the Git repository to push manifests to.")
+	opts := zap.Options{
+		Development: true,
+	}
+	opts.BindFlags(flag.CommandLine)
+	flag.Parse()
+
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	sshKey, err := os.ReadFile(sshKeyPath)
 	if err != nil {
 		setupLog.Error(err, "unable to read SSH private key")
 		os.Exit(1)
 	}
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		// ... (manager options)
+		Scheme:                 scheme,
+		HealthProbeBindAddress: probeAddr,
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "f9e38f23.nephoran.io",
 	})
 	if err != nil {
-		// ... (error handling)
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
 	}
 
 	gitClient := git.NewClient(gitRepoURL, gitBranch, string(sshKey))
@@ -56,5 +77,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	// ... (health checks and manager start)
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
 }

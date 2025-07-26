@@ -10,12 +10,9 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"nephoran-intent-operator/pkg/controllers"
-	"nephoran-intent-operator/pkg/oran/a1"
-	"nephoran-intent-operator/pkg/oran/o1"
 	nephoranv1alpha1 "nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
 )
 
@@ -30,24 +27,42 @@ func init() {
 }
 
 func main() {
-	// ... (flag parsing)
+	var metricsAddr string
+	var enableLeaderElection bool
+	var probeAddr string
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.BoolVar(&enableLeaderElection, "leader-elect", false, "Enable leader election for controller manager.")
+	opts := zap.Options{
+		Development: true,
+	}
+	opts.BindFlags(flag.CommandLine)
+	flag.Parse()
+
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		// ... (manager options)
+		Scheme:                 scheme,
+		HealthProbeBindAddress: probeAddr,
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "oran-adaptor.nephoran.io",
 	})
 	if err != nil {
-		// ... (error handling)
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
 	}
 
 	if err = (&controllers.OranAdaptorReconciler{
 		Client:    mgr.GetClient(),
 		Scheme:    mgr.GetScheme(),
-		O1Adaptor: o1.NewO1Adaptor(),
-		A1Adaptor: a1.NewA1Adaptor(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "OranAdaptor")
 		os.Exit(1)
 	}
 
-	// ... (health checks and manager start)
+	setupLog.Info("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		setupLog.Error(err, "problem running manager")
+		os.Exit(1)
+	}
 }
