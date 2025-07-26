@@ -12,12 +12,12 @@ type StructuredIntent struct {
 
 // NetworkFunctionDeploymentIntent represents the detailed intent for deploying a new network function.
 type NetworkFunctionDeploymentIntent struct {
-	Type      string                `json:"type"`
-	Name      string                `json:"name"`
-	Namespace string                `json:"namespace"`
-	Spec      DeploymentSpec        `json:"spec"`
-	O1Config  string                `json:"o1_config"`
-	A1Policy  A1Policy              `json:"a1_policy"`
+	Type      string         `json:"type"`
+	Name      string         `json:"name"`
+	Namespace string         `json:"namespace"`
+	Spec      DeploymentSpec `json:"spec"`
+	O1Config  string         `json:"o1_config"`
+	A1Policy  A1Policy       `json:"a1_policy"`
 }
 
 // DeploymentSpec defines the specifications for the Kubernetes Deployment.

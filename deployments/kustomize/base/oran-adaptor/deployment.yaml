@@ -17,7 +17,7 @@ spec:
       serviceAccountName: oran-adaptor-sa
       containers:
       - name: oran-adaptor
-        image: nephoran-intent-operator/oran-adaptor:latest
+        image: thc1006/nephoran-oran-adaptor:latest
         command: ["/oran-adaptor"]
         ports:
         - containerPort: 8082

@@ -18,10 +18,6 @@ spec:
       - name: nephio-bridge
         image: thc1006/nephoran-nephio-bridge:latest
         imagePullPolicy: Always
-        args:
-        - "--git-repo-url=file:///deployment-repo"
-        - "--git-branch=main"
-        - "--ssh-key-path=/dev/null"
         volumeMounts:
         - name: deployment-repo
           mountPath: /deployment-repo

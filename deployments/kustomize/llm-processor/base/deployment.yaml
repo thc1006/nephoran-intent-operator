@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: llm-processor
-        image: nephoran-intent-operator/llm-processor:latest
+        image: thc1006/nephoran-llm-processor:latest
         command: ["/llm-processor"]
         args: ["--rag-service-url=http://rag-api:5001/process_intent"]
         ports:

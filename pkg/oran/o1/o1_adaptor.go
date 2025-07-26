@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
+	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // O1Adaptor is responsible for handling O1 interface communications.

@@ -17,7 +17,7 @@ spec:
       serviceAccountName: nephio-bridge-sa
       containers:
       - name: nephio-bridge
-        image: nephoran-intent-operator/nephio-bridge:latest
+        image: thc1006/nephoran-nephio-bridge:latest
         command: ["/nephio-bridge"]
         args:
         - "--git-repo-url=$(GIT_REPO_URL)"
