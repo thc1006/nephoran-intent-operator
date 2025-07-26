@@ -2,7 +2,5 @@ apiVersion: kpt.dev/v1
 kind: Kptfile
 metadata:
   name: ric-plt
-  annotations:
-    config.kubernetes.io/local-config: "true"
 info:
-  description: "Kpt package for the O-RAN SC Near-Real-Time RIC platform."
+  description: "Kpt package for the O-RAN Software Community Near-Real-Time RIC platform."

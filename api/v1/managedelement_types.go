@@ -1,4 +1,4 @@
-package v1alpha1
+package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +21,9 @@ type ManagedElementStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 
 // ManagedElement is the Schema for the managedelements API
 type ManagedElement struct {

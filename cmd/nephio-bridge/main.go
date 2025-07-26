@@ -86,7 +86,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Wait for the E2NodeSet CRD to be established before setting up controllers
 	if err := waitForCRD(mgr.GetConfig(), "e2nodesets.nephoran.com"); err != nil {
 		setupLog.Error(err, "failed to wait for E2NodeSet CRD")
 		os.Exit(1)
@@ -96,7 +95,7 @@ func main() {
 	gitBranch := os.Getenv("GIT_BRANCH")
 	sshKey := os.Getenv("SSH_KEY")
 
-	gitClient := git.NewClient(gitRepoURL, gitBranch, sshKey)
+	gitClient := git.NewClient(gitRepoURL, gitBranch, string(sshKey))
 
 	if err := gitClient.InitRepo(); err != nil {
 		setupLog.Error(err, "failed to initialize deployment repository")

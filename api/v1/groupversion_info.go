@@ -1,7 +1,7 @@
 // Package v1alpha1 contains API Schema definitions for the nephoran v1alpha1 API group
 // +kubebuilder:object:generate=true
 // +groupName=nephoran.com
-package v1alpha1
+package v1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
