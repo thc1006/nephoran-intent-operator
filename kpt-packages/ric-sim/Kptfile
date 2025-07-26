@@ -1,0 +1,8 @@
+apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: ric-sim
+  annotations:
+    config.kubernetes.io/local-config: "true"
+info:
+  description: "Kpt package for the O-RAN E2 Node simulator (ric-sim)."

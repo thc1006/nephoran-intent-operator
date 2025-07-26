@@ -1,7 +1,10 @@
 # Build configuration
 APP_NAME := telecom-llm-automation
 VERSION := $(shell git describe --tags --always --dirty)
-REGISTRY ?= gcr.io/your-project
+REGISTRY ?= us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran
+IMAGES = \
+  $(REGISTRY)/llm-processor \
+  $(REGISTRY)/nephio-bridge
 
 .PHONY: help setup-dev build-all deploy-dev test-integration lint
 
