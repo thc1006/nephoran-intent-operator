@@ -30,7 +30,7 @@ jobs:
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.2
 
       - name: Run Go linter
-        run: golangci-lint run ./...
+        run: golangci-lint run ./... --timeout=5m
 
       - name: Run Python linter
         run: flake8 pkg/rag/
