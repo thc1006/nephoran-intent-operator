@@ -24,7 +24,7 @@ set -eo pipefail
 
 # --- Configuration ---
 # Replace with your GCP Project ID and Artifact Registry location.
-GCP_PROJECT_ID="your-gcp-project-id"
+GCP_PROJECT_ID="poised-elf-466913-q2"
 GCP_REGION="us-central1"
 AR_REPO="nephoran"
 
@@ -93,8 +93,10 @@ push_images() {
     docker push "${remote_image}"
 
     # Update kustomization with the new image tag
+    # The image name in the kustomization.yaml is the full remote path.
+    image_in_kustomization="${AR_URL}/${image_name}"
     echo "Updating kustomization for ${image_name}..."
-    kustomize edit set image "${AR_URL}/${image_name}=${remote_image}" --autodetect-image-name "${KUSTOMIZE_DIR}"
+    (cd "${KUSTOMIZE_DIR}" && kustomize edit set image "${image_in_kustomization}=${remote_image}")
   done
 }
 
@@ -123,7 +125,7 @@ elif [[ "$ENV" == "local" ]]; then
   echo "Skipping image push for local deployment."
   # For local, we just need to set the tag. The name is already set in the overlay.
   for image_name in "${!IMAGES[@]}"; do
-    kustomize edit set image "${image_name}=${image_name}:${IMAGE_TAG}" "${KUSTOMIZE_DIR}"
+    (cd "${KUSTOMIZE_DIR}" && kustomize edit set image "${image_name}=${image_name}:${IMAGE_TAG}")
   done
 else
   echo "Error: Invalid environment '${ENV}'. Use 'local' or 'remote'."
