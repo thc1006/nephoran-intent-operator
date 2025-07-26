@@ -14,8 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	nephoranv1alpha1 "nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
-	"nephoran-intent-operator/pkg/git"
+	nephoranv1alpha1 "github.com/nephoran/nephoran-intent-operator/api/v1alpha1"
+	"github.com/nephoran/nephoran-intent-operator/pkg/git"
 )
 
 // MockGitClient is a mock implementation of the GitClient for testing.

@@ -16,8 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1alpha1 "nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
-	"nephoran-intent-operator/pkg/git"
+	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 )
 
 // NetworkIntentReconciler reconciles a NetworkIntent object

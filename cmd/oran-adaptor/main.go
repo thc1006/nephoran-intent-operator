@@ -12,8 +12,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"nephoran-intent-operator/pkg/controllers"
-	nephoranv1alpha1 "nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
+	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 )
 
 var (
@@ -53,8 +53,8 @@ func main() {
 	}
 
 	if err = (&controllers.OranAdaptorReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
+		Client: mgr.GetClient(),
+		Scheme: mgr.GetScheme(),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "OranAdaptor")
 		os.Exit(1)

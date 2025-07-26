@@ -1,0 +1,47 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: # kpt-merge: /clusters.infra.nephio.org
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+    internal.kpt.dev/upstream-identifier: 'apiextensions.k8s.io|CustomResourceDefinition|default|clusters.infra.nephio.org'
+  creationTimestamp: null
+  name: clusters.infra.nephio.org
+spec:
+  group: infra.nephio.org
+  names:
+    kind: Cluster
+    listKind: ClusterList
+    plural: clusters
+    singular: cluster
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Cluster is the Schema for the clusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          repositoryRef:
+            description: RepositoryRef identifies the deployment repository for this cluster
+            properties:
+              name:
+                description: Name is unique within a namespace to reference a repository resource.
+                type: string
+              namespace:
+                description: Namespace defines the space within which the repository name must be unique.
+                type: string
+            required:
+            - name
+            type: object
+        required:
+        - repositoryRef
+        type: object
+    served: true
+    storage: true

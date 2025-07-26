@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -52,6 +53,22 @@ func (c *Client) CommitAndPush(ctx context.Context, commitMessage string, modify
 	// Call the user-provided function to make file changes
 	if err := modify(dir); err != nil {
 		return "", fmt.Errorf("modification function failed: %w", err)
+	}
+
+	// After modification, search for and remove any nested .git directories
+	// to prevent "gitlinks" issues when adding sub-directories that are also git repos.
+	err = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		// Check if it's a .git directory and not the root .git directory of our clone
+		if info.IsDir() && info.Name() == ".git" && path != filepath.Join(dir, ".git") {
+			return os.RemoveAll(path)
+		}
+		return nil
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to clean up nested .git directories: %w", err)
 	}
 
 	w, err := repo.Worktree()

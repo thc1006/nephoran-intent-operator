@@ -31,7 +31,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	nephoranv1alpha1 "nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
+	nephoranv1alpha1 "github.com/nephoran/nephoran-intent-operator/api/v1alpha1"
 	//+kubebuilder:scaffold:imports
 )
 

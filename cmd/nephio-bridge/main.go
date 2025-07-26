@@ -12,9 +12,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"nephoran-intent-operator/pkg/controllers"
-	"nephoran-intent-operator/pkg/git"
-	nephoranv1alpha1 "nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/pkg/apis/nephoran/v1alpha1"
 )
 
 var (
