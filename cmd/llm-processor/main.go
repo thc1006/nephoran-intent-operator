@@ -497,10 +497,8 @@ func (p *IntentProcessor) setIntelligentDefaults(response *NetworkIntentResponse
 	
 	// Set default replicas for deployment if not specified
 	if intentType == "NetworkFunctionDeployment" {
-		if spec, ok := response.Spec.(map[string]interface{}); ok {
-			if _, exists := spec["replicas"]; !exists {
-				spec["replicas"] = 1 // Default to 1 replica
-			}
+		if _, exists := response.Spec["replicas"]; !exists {
+			response.Spec["replicas"] = 1 // Default to 1 replica
 		}
 	}
 	
@@ -510,8 +508,8 @@ func (p *IntentProcessor) setIntelligentDefaults(response *NetworkIntentResponse
 
 // setResourceDefaults sets appropriate resource limits based on NF type
 func (p *IntentProcessor) setResourceDefaults(response *NetworkIntentResponse) {
-	spec, ok := response.Spec.(map[string]interface{})
-	if !ok {
+	spec := response.Spec
+	if spec == nil {
 		return
 	}
 	
