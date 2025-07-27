@@ -23,10 +23,10 @@ func NewTelecomPromptEngine() *TelecomPromptEngine {
 		systemPrompts: make(map[string]string),
 		examples:      make(map[string][]PromptExample),
 	}
-	
+
 	engine.initializeSystemPrompts()
 	engine.initializeExamples()
-	
+
 	return engine
 }
 
@@ -382,22 +382,22 @@ func (t *TelecomPromptEngine) selectRelevantExamples(intentType, userIntent stri
 
 		// Define scoring keywords
 		keywords := map[string]int{
-			"upf":        10,
-			"amf":        10,
-			"smf":        10,
-			"ric":        10,
-			"near-rt":    8,
-			"edge":       8,
-			"mec":        8,
-			"gpu":        6,
-			"video":      6,
-			"scale":      8,
-			"replicas":   8,
-			"high":       4,
+			"upf":          10,
+			"amf":          10,
+			"smf":          10,
+			"ric":          10,
+			"near-rt":      8,
+			"edge":         8,
+			"mec":          8,
+			"gpu":          6,
+			"video":        6,
+			"scale":        8,
+			"replicas":     8,
+			"high":         4,
 			"availability": 4,
-			"processing": 4,
-			"core":       5,
-			"network":    3,
+			"processing":   4,
+			"core":         5,
+			"network":      3,
 		}
 
 		for keyword, weight := range keywords {
@@ -499,10 +499,46 @@ func (t *TelecomPromptEngine) ExtractParameters(intent string) map[string]interf
 	}
 
 	// Extract memory resources
-	memRegex := regexp.MustCompile(`(\d+)\s*([GM])i?B?\s+memory`)
+	memRegex := regexp.MustCompile(`(\d+)\s*([gm])i?b?\s*(memory|ram)`)
 	if matches := memRegex.FindStringSubmatch(lowerIntent); len(matches) > 2 {
 		unit := "Mi"
-		if strings.ToUpper(matches[2]) == "G" {
+		if matches[2] == "g" {
+			unit = "Gi"
+		}
+		params["memory"] = matches[1] + unit
+	}
+
+	// Also try alternative memory patterns
+	memRegex2 := regexp.MustCompile(`(\d+)\s*gb\s+memory`)
+	if matches := memRegex2.FindStringSubmatch(lowerIntent); len(matches) > 1 {
+		params["memory"] = matches[1] + "Gi"
+	}
+
+	// Handle "set memory to XMB" pattern
+	memRegex3 := regexp.MustCompile(`memory\s+to\s+(\d+)\s*([gm])i?b?`)
+	if matches := memRegex3.FindStringSubmatch(lowerIntent); len(matches) > 2 {
+		unit := "Mi"
+		if matches[2] == "g" {
+			unit = "Gi"
+		}
+		params["memory"] = matches[1] + unit
+	}
+
+	// Handle "increase memory to XGB" pattern
+	memRegex4 := regexp.MustCompile(`increase\s+memory\s+to\s+(\d+)\s*([gm])i?b?`)
+	if matches := memRegex4.FindStringSubmatch(lowerIntent); len(matches) > 2 {
+		unit := "Mi"
+		if matches[2] == "g" {
+			unit = "Gi"
+		}
+		params["memory"] = matches[1] + unit
+	}
+
+	// Handle "allocate XGB memory" pattern
+	memRegex5 := regexp.MustCompile(`allocate\s+(\d+)\s*([gm])i?b?\s+memory`)
+	if matches := memRegex5.FindStringSubmatch(lowerIntent); len(matches) > 2 {
+		unit := "Mi"
+		if matches[2] == "g" {
 			unit = "Gi"
 		}
 		params["memory"] = matches[1] + unit

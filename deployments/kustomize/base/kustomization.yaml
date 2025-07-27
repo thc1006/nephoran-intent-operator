@@ -5,3 +5,7 @@ resources:
 - nephio-bridge
 - oran-adaptor
 - rag-api
+- ../../crds/nephoran.com_networkintents.yaml
+- ../../crds/nephoran.com_managedelements.yaml
+- ../../crds/nephoran.com_e2nodesets.yaml
+- ../../../config/rbac/e2nodeset_admin.yaml

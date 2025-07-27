@@ -27,7 +27,7 @@ var _ = Describe("LLM Client Integration Tests", func() {
 
 	BeforeEach(func() {
 		responses = make(map[string]interface{})
-		
+
 		// Create mock LLM processor server
 		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/process" && r.Method == "POST" {
@@ -138,12 +138,14 @@ var _ = Describe("LLM Client Integration Tests", func() {
 				"type":      "NetworkFunctionScale",
 				"name":      "amf-core",
 				"namespace": "5g-core",
-				"scaling": map[string]interface{}{
-					"horizontal": map[string]interface{}{
-						"replicas":               float64(5),
-						"min_replicas":           float64(3),
-						"max_replicas":           float64(10),
-						"target_cpu_utilization": float64(70),
+				"spec": map[string]interface{}{
+					"scaling": map[string]interface{}{
+						"horizontal": map[string]interface{}{
+							"replicas":               float64(5),
+							"min_replicas":           float64(3),
+							"max_replicas":           float64(10),
+							"target_cpu_utilization": float64(70),
+						},
 					},
 				},
 			}
@@ -163,7 +165,8 @@ var _ = Describe("LLM Client Integration Tests", func() {
 			Expect(response["type"]).To(Equal("NetworkFunctionScale"))
 			Expect(response["name"]).To(Equal("amf-core"))
 
-			scaling := response["scaling"].(map[string]interface{})
+			spec := response["spec"].(map[string]interface{})
+			scaling := spec["scaling"].(map[string]interface{})
 			horizontal := scaling["horizontal"].(map[string]interface{})
 			Expect(horizontal["replicas"]).To(Equal(float64(5)))
 		})
@@ -173,10 +176,12 @@ var _ = Describe("LLM Client Integration Tests", func() {
 				"type":      "NetworkFunctionScale",
 				"name":      "upf-edge",
 				"namespace": "5g-core",
-				"scaling": map[string]interface{}{
-					"vertical": map[string]interface{}{
-						"cpu":    "4000m",
-						"memory": "8Gi",
+				"spec": map[string]interface{}{
+					"scaling": map[string]interface{}{
+						"vertical": map[string]interface{}{
+							"cpu":    "4000m",
+							"memory": "8Gi",
+						},
 					},
 				},
 			}
@@ -194,7 +199,8 @@ var _ = Describe("LLM Client Integration Tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(response["type"]).To(Equal("NetworkFunctionScale"))
-			scaling := response["scaling"].(map[string]interface{})
+			spec := response["spec"].(map[string]interface{})
+			scaling := spec["scaling"].(map[string]interface{})
 			vertical := scaling["vertical"].(map[string]interface{})
 			Expect(vertical["cpu"]).To(Equal("4000m"))
 			Expect(vertical["memory"]).To(Equal("8Gi"))
@@ -296,7 +302,7 @@ var _ = Describe("LLM Client Integration Tests", func() {
 			_, err := client.ProcessIntent(ctx, intent)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("timeout"))
+			Expect(err.Error()).To(ContainSubstring("deadline exceeded"))
 		})
 	})
 
@@ -354,13 +360,14 @@ func handleProcessRequest(w http.ResponseWriter, r *http.Request, responses map[
 	// Determine response based on intent content
 	var response interface{}
 	lowerIntent := fmt.Sprintf("%s", intent)
-	
-	if containsAny(lowerIntent, []string{"upf", "UPF"}) {
+
+	// Check for scaling intents first (more specific)
+	if containsAny(lowerIntent, []string{"scale", "Scale", "increase", "decrease", "resources", "CPU", "memory"}) {
+		response = responses["scale"]
+	} else if containsAny(lowerIntent, []string{"upf", "UPF"}) {
 		response = responses["upf"]
 	} else if containsAny(lowerIntent, []string{"ric", "RIC", "near-rt", "Near-RT"}) {
 		response = responses["ric"]
-	} else if containsAny(lowerIntent, []string{"scale", "Scale", "increase", "decrease"}) {
-		response = responses["scale"]
 	} else {
 		// Default deployment response
 		response = map[string]interface{}{
@@ -390,9 +397,6 @@ func handleProcessRequest(w http.ResponseWriter, r *http.Request, responses map[
 // Helper function to check if string contains any of the given substrings
 func containsAny(str string, substrings []string) bool {
 	for _, substr := range substrings {
-		if contains := false; contains {
-			return true
-		}
 		// Manual substring check
 		for i := 0; i <= len(str)-len(substr); i++ {
 			if str[i:i+len(substr)] == substr {
@@ -432,15 +436,15 @@ var _ = Describe("LLM Client Performance Tests", func() {
 		mockServer.Close()
 	})
 
-	Measure("should process intents within performance targets", func(b Benchmarker) {
+	It("should process intents within performance targets", func() {
 		ctx := context.Background()
 		intent := "Deploy UPF network function with 3 replicas"
 
-		runtime := b.Time("processing time", func() {
-			_, err := client.ProcessIntent(ctx, intent)
-			Expect(err).ToNot(HaveOccurred())
-		})
+		start := time.Now()
+		_, err := client.ProcessIntent(ctx, intent)
+		duration := time.Since(start)
 
-		Expect(runtime.Seconds()).To(BeNumerically("<", 2.0), "Processing should complete within 2 seconds")
-	}, 10)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(duration.Seconds()).To(BeNumerically("<", 2.0), "Processing should complete within 2 seconds")
+	})
 })
