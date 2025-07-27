@@ -403,7 +403,7 @@ var _ = Describe("Performance Benchmarks", func() {
 		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Simulate some processing time
 			time.Sleep(10 * time.Millisecond)
-			
+
 			response := map[string]interface{}{
 				"type":      "NetworkFunctionDeployment",
 				"name":      "benchmark-nf",
@@ -476,7 +476,7 @@ var _ = Describe("Performance Benchmarks", func() {
 		close(results)
 
 		duration := time.Since(start)
-		
+
 		// Collect results
 		var errors []error
 		for err := range results {
@@ -541,11 +541,11 @@ var _ = Describe("Performance Benchmarks", func() {
 		finalRequests := finalBaseMetrics.RequestsTotal
 
 		requestsProcessed := finalRequests - initialRequests
-		
+
 		fmt.Printf("Processed %d requests\n", requestsProcessed)
 		fmt.Printf("Cache hits: %d\n", finalBaseMetrics.CacheHits)
 		fmt.Printf("Cache misses: %d\n", finalBaseMetrics.CacheMisses)
-		
+
 		if finalBaseMetrics.CacheHits+finalBaseMetrics.CacheMisses > 0 {
 			hitRatio := float64(finalBaseMetrics.CacheHits) / float64(finalBaseMetrics.CacheHits+finalBaseMetrics.CacheMisses)
 			fmt.Printf("Cache hit ratio: %.2f%%\n", hitRatio*100)
