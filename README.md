@@ -1,100 +1,158 @@
-# LLM-Enhanced Nephio R5 and O-RAN Network Automation System
+# Nephoran Intent Operator
 
-This project is an LLM-Enhanced Nephio R5 and O-RAN Network Automation System. It integrates a Large Language Model with Nephio's intent-based automation to provide a natural language interface for managing and orchestrating telecommunications network functions.
+The Nephoran Intent Operator is a cloud-native orchestration system designed to manage O-RAN compliant network functions using a Large Language Model (LLM) as the primary control interface. It leverages the GitOps principles of [Nephio](https://nephio.org/) to translate high-level, natural language intents into concrete, declarative Kubernetes configurations.
 
-## Project Architecture
+This project serves as a proof-of-concept for autonomous network operations, where an LLM can drive the scale-out and scale-in of O-RAN E2 Nodes (simulated Network Functions) in response to high-level goals.
 
-The system is composed of several key layers that work together to translate natural language commands into network configurations.
+## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           Operator Interface Layer                          │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  Web UI / CLI / REST API                    Natural Language Intent Input   │
-└─────────────────────────┬───────────────────────────────────────────────────┘
-                          │
-┌─────────────────────────▼───────────────────────────────────────────────────┐
-│                        LLM/RAG Processing Layer                            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌──────────────────┐  ┌─────────────────────────────┐ │
-│  │   Mistral-8x22B │  │  Haystack RAG    │  │   Telco-RAG Optimization   │ │
-│  │   Inference     │  │  Framework       │  │   - Technical Glossaries   │ │
-│  │   Engine        │  │  - Vector DB     │  │   - Query Enhancement      │ │
-│  │                 │  │  - Semantic      │  │   - Document Router        │ │
-│  │                 │  │    Retrieval     │  │                             │ │
-│  └─────────────────┘  └──────────────────┘  └─────────────────────────────┘ │
-└─────────────────────────┬───────────────────────────────────────────────────┘
-                          │ Intent Translation & Validation
-┌─────────────────────────▼───────────────────────────────────────────────────┐
-│                      Nephio R5 Control Plane                              │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌──────────────────┐  ┌─────────────────────────────┐ │
-│  │  Porch Package  │  │   ConfigSync/    │  │    Nephio Controllers      │ │
-│  │  Orchestration  │  │   ArgoCD GitOps  │  │    - Intent Reconciliation │ │
-│  │  - API Server   │  │   - Multi-cluster│  │    - Policy Enforcement    │ │
-│  │  - Function     │  │   - Drift Detect │  │    - Resource Management   │ │
-│  │    Runtime      │  │                  │  │                             │ │
-│  └─────────────────┘  └──────────────────┘  └─────────────────────────────┘ │
-└─────────────────────────┬───────────────────────────────────────────────────┘
-                          │ KRM Generation & Git Synchronization
-┌─────────────────────────▼───────────────────────────────────────────────────┐
-│                       O-RAN Interface Bridge Layer                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌──────────────────┐  ┌─────────────────────────────┐ │
-│  │  SMO Adaptor    │  │  RIC Integration │  │    Interface Controllers    │ │
-│  │  - A1 Interface │  │  - Non-RT RIC    │  │    - O1 (FCAPS Mgmt)       │ │
-│  │  - R1 Interface │  │  - Near-RT RIC   │  │    - O2 (Cloud Infra)      │ │
-│  │  - Policy Mgmt  │  │  - xApp/rApp     │  │    - E2 (RAN Control)      │ │
-│  │                 │  │    Orchestration │  │                             │ │
-│  └─────────────────┘  └──────────────────┘  └─────────────────────────────┘ │
-└─────────────────────────┬───────────────────────────────────────────────────┘
-                          │ Network Function Control & Monitoring
-┌─────────────────────────▼───────────────────────────────────────────────────┐
-│                    Network Function Orchestration                          │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  ┌─────────────────┐  ┌──────────────────┐  ┌─────────────────────────────┐ │
-│  │   5G Core NFs   │  │   O-RAN Network  │  │    Network Slice Manager    │ │
-│  │   - UPF, SMF    │  │   Functions      │  │    - Dynamic Allocation    │ │
-│  │   - AMF, NSSF   │  │   - O-DU, O-CU   │  │    - QoS Management        │ │
-│  │   - Custom NFs  │  │   - Near-RT RIC  │  │    - SLA Enforcement       │ │
-│  └─────────────────┘  └──────────────────┘  └─────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────┘
+The system is composed of several key components that work together in a GitOps workflow:
+
+```mermaid
+graph TD
+    subgraph "Control & Intent Layer"
+        LLM("Large Language Model")
+        ControlRepo("Git Repository (High-Level Intent)")
+    end
+
+    subgraph "SMO / Non-RT RIC (Nephoran Implementation)"
+        NephioBridge("Nephio Bridge Controller (E2NodeSet Controller)")
+        DeploymentRepo("Git Repository (KRM Manifests)")
+    end
+
+    subgraph "O-RAN Components (Running on Kubernetes)"
+        NearRtRic("O-RAN Near-RT RIC (ric-plt)")
+        E2Sim("E2 Node Simulators (ric-sim)")
+    end
+
+    LLM -- "1. Pushes High-Level Intent (YAML)" --> ControlRepo
+    NephioBridge -- "2. Watches for E2NodeSet CRs" --> ControlRepo
+    NephioBridge -- "3. Generates KRM for E2 Simulators" --> DeploymentRepo
+    subgraph "Nephio"
+        NephioEngine("Nephio Engine")
+    end
+    NephioEngine -- "4. Watches for KRM in" --> DeploymentRepo
+    NephioEngine -- "5. Deploys & Scales O-RAN Components" --> NearRtRic
+    NephioEngine -- "5. Deploys & Scales O-RAN Components" --> E2Sim
+
+    NearRtRic -- "E2 Interface" --> E2Sim
 ```
 
-### Data Flow
+1.  **LLM Intent**: An LLM interprets a high-level goal (e.g., "scale up RAN capacity") and translates it into a declarative Kubernetes custom resource (`E2NodeSet`). This resource is pushed to a `control` Git repository.
+2.  **Nephio Bridge Controller**: This custom controller (the core of this project) watches the `control` repository. When it sees a new or modified `E2NodeSet` resource, it acts as the bridge to the orchestration layer.
+3.  **KRM Generation**: The controller uses Kpt packages (based on official O-RAN specifications) to generate the detailed Kubernetes Resource Model (KRM) YAML manifests required to achieve the desired state (e.g., manifests for 5 E2 Node simulators).
+4.  **GitOps Hand-off**: The generated manifests are committed to a `deployment` Git repository.
+5.  **Nephio Orchestration**: The Nephio engine monitors the `deployment` repository and uses the manifests to declaratively deploy and manage the O-RAN components in the Kubernetes cluster.
 
-1.  **Operator Input:** A network operator provides a natural language command via a CLI, Web UI, or REST API.
-2.  **LLM/RAG Processing:** The command is sent to the LLM/RAG Processing Layer, which uses a telecom-optimized RAG framework to understand the intent and translate it into a structured format.
-3.  **Nephio Control Plane:** The structured intent is passed to the Nephio R5 Control Plane, which generates the necessary Kubernetes Resource Model (KRM) packages.
-4.  **GitOps Sync:** The KRM packages are committed to a Git repository, and a GitOps tool (like ArgoCD or FluxCD) synchronizes them with the cluster.
-5.  **O-RAN Interface Bridge:** The O-RAN Interface Bridge Layer watches for the KRM resources and translates them into the appropriate O-RAN interface calls (A1, O1, O2, etc.).
-6.  **Network Function Orchestration:** The O-RAN components then orchestrate the network functions as specified in the intent.
+## Deployment Guide
 
-## Getting Started
-
-This project uses a development container to provide a consistent and reproducible development environment.
+This project supports two primary deployment environments: `local` for development and `remote` for a cloud-based setup.
 
 ### Prerequisites
 
-*   Docker
-*   VS Code with the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
+*   [Docker](https://www.docker.com/)
+*   [kubectl](https://kubernetes.io/docs/tasks/tools/)
+*   [kustomize](https://kustomize.io/)
+*   A running Kubernetes cluster (e.g., [kind](https://kind.sigs.k8s.io/), [Minikube](https://minikube.sigs.k8s.io/docs/start/))
 
-### Setup
+### Local Deployment
 
-1.  Clone this repository.
-2.  Open the repository in VS Code.
-3.  When prompted, click "Reopen in Container". This will build the development container and install all the necessary dependencies.
-4.  Once the container is running, open a terminal in VS Code and run the following command to set up the project:
+The `local` deployment is designed for development and testing on a local machine. It builds the container images and loads them directly into your local Kubernetes cluster's node, using an `imagePullPolicy` of `Never`.
 
-    ```bash
-    make setup-dev
+**Steps:**
+
+1.  **Ensure your local Kubernetes cluster is running.**
+2.  **Run the deployment script:**
+    ```shell
+    ./deploy.sh local
+    ```
+This script will build all container images, load them into your cluster, and deploy all necessary components using the Kustomize overlay at `deployments/kustomize/overlays/local`.
+
+### Remote Deployment (Google Kubernetes Engine)
+
+The `remote` deployment is configured for a GKE cluster using Google Artifact Registry for image storage.
+
+**Steps:**
+
+1.  **Configure GCP Settings:**
+    Update the following variables in the `deploy.sh` script with your GCP project details:
+    *   `GCP_PROJECT_ID`
+    *   `GCP_REGION`
+    *   `AR_REPO` (your Artifact Registry repository name)
+
+2.  **Update Kustomization:**
+    In `deployments/kustomize/overlays/remote/kustomization.yaml`, replace the placeholder `your-gcp-project` with your actual `GCP_PROJECT_ID`.
+
+3.  **Grant Artifact Registry Permissions:**
+    The GKE nodes' service account needs permission to pull images. Grant the `Artifact Registry Reader` role to it.
+    ```shell
+    # Replace with your actual GCP Project ID and GKE Node Service Account
+    GCP_PROJECT_ID="your-gcp-project-id"
+    GKE_NODE_SA="your-node-sa-email@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
+
+    gcloud projects add-iam-policy-binding "${GCP_PROJECT_ID}" \
+      --member="serviceAccount:${GKE_NODE_SA}" \
+      --role="roles/artifactregistry.reader"
     ```
 
-### Development Workflow
+4.  **Create Image Pull Secret:**
+    Authenticate Docker with Artifact Registry and then create a Kubernetes secret named `nephoran-regcred` from your local configuration.
+    ```shell
+    # Authenticate Docker
+    gcloud auth configure-docker us-central1-docker.pkg.dev
 
-The `Makefile` provides several targets to streamline the development process:
+    # Create the secret
+    kubectl create secret generic nephoran-regcred \
+      --from-file=.dockerconfigjson=${HOME}/.docker/config.json \
+      --type=kubernetes.io/dockerconfigjson
+    ```
 
-*   `make setup-dev`: Sets up the development environment by installing Go and Python dependencies.
-*   `make build-all`: Builds all the service binaries.
-*   `make deploy-dev`: Deploys all the components to the development environment using Kustomize.
-*   `make test-integration`: Runs all integration tests.
+5.  **Run the deployment script:**
+    ```shell
+    ./deploy.sh remote
+    ```
+This will build the images, push them to your Artifact Registry, and deploy the operator using the `remote` Kustomize overlay.
+
+## Usage Example
+
+Once the operator is deployed, you can control the number of simulated E2 Nodes by creating or modifying an `E2NodeSet` custom resource.
+
+1.  **Create an Intent File:**
+    Create a YAML file named `my-e2-nodes.yaml`:
+    ```yaml
+    apiVersion: nephoran.com/v1
+    kind: E2NodeSet
+    metadata:
+      name: simulated-gnbs
+      namespace: default
+    spec:
+      replicas: 3 # The desired number of E2 node simulators
+    ```
+
+2.  **Apply the Intent:**
+    ```shell
+    kubectl apply -f my-e2-nodes.yaml
+    ```
+
+The `nephio-bridge` controller will detect this resource and commit the corresponding manifests for three `ric-sim` deployments to the `deployment-repo`. Nephio will then apply these manifests to the cluster.
+
+## Development
+
+This project uses a `Makefile` to streamline common development tasks.
+
+*   **Build all binaries:**
+    ```shell
+    make build-all
+    ```
+*   **Run linters:**
+    ```shell
+    make lint
+    ```
+*   **Run tests:**
+    ```shell
+    make test-integration
+    ```
+*   **Generate code (after modifying API types):**
+    ```shell
+    make generate
+    ```
