@@ -2,6 +2,8 @@ package llm
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -34,7 +36,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 	Context("Intent Preprocessing", func() {
 		It("should normalize network function names", func() {
 			preprocessor := NewIntentPreprocessor()
-			
+
 			testCases := []struct {
 				input    string
 				expected string
@@ -53,7 +55,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 
 		It("should handle empty intents", func() {
 			preprocessor := NewIntentPreprocessor()
-			
+
 			_, err := preprocessor.Preprocess("")
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("empty intent"))
@@ -61,7 +63,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 
 		It("should normalize whitespace", func() {
 			preprocessor := NewIntentPreprocessor()
-			
+
 			result, err := preprocessor.Preprocess("Deploy    UPF   with   multiple   spaces")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(Equal("Deploy User Plane Function with multiple spaces"))
@@ -71,7 +73,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 	Context("Intent Classification", func() {
 		It("should classify deployment intents correctly", func() {
 			classifier := NewIntentClassifier()
-			
+
 			testCases := []struct {
 				intent     string
 				expected   string
@@ -93,7 +95,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 
 		It("should classify scaling intents correctly", func() {
 			classifier := NewIntentClassifier()
-			
+
 			testCases := []struct {
 				intent   string
 				expected string
@@ -113,10 +115,10 @@ var _ = Describe("Processing Pipeline Tests", func() {
 
 		It("should detect network functions", func() {
 			classifier := NewIntentClassifier()
-			
+
 			testCases := []struct {
-				intent          string
-				expectedNF      string
+				intent     string
+				expectedNF string
 			}{
 				{"Deploy User Plane Function", "UPF"},
 				{"Setup Access and Mobility Management", "AMF"},
@@ -133,7 +135,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 
 		It("should determine operation types", func() {
 			classifier := NewIntentClassifier()
-			
+
 			testCases := []struct {
 				intent            string
 				expectedOperation string
@@ -152,7 +154,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 
 		It("should assign priority levels", func() {
 			classifier := NewIntentClassifier()
-			
+
 			testCases := []struct {
 				intent           string
 				expectedPriority string
@@ -174,7 +176,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 	Context("Input Validation", func() {
 		It("should validate intent length", func() {
 			validator := NewInputValidator("strict")
-			
+
 			// Too short
 			result := validator.Validate("short")
 			Expect(result.Valid).To(BeFalse())
@@ -187,7 +189,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 
 		It("should detect malicious content", func() {
 			validator := NewInputValidator("strict")
-			
+
 			maliciousIntents := []string{
 				"Deploy UPF; DROP TABLE users;",
 				"SELECT * FROM secrets UNION ALL",
@@ -210,7 +212,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 
 		It("should calculate validation scores", func() {
 			validator := NewInputValidator("normal")
-			
+
 			// Perfect intent
 			result := validator.Validate("Deploy UPF network function with high availability in core network")
 			Expect(result.Score).To(Equal(1.0))
@@ -224,7 +226,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 	Context("Context Enrichment", func() {
 		It("should enrich with network topology", func() {
 			enricher := NewContextEnricher()
-			
+
 			ctx := &ProcessingContext{
 				RequestID: "test-123",
 				Intent:    "Deploy UPF in edge location",
@@ -244,7 +246,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 
 		It("should enrich with deployment context", func() {
 			enricher := NewContextEnricher()
-			
+
 			ctx := &ProcessingContext{
 				RequestID: "test-456",
 				Intent:    "Scale AMF to 5 replicas",
@@ -263,7 +265,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 
 		It("should cache enrichment data", func() {
 			enricher := NewContextEnricher()
-			
+
 			ctx := &ProcessingContext{
 				RequestID: "test-cache",
 				Intent:    "Deploy UPF",
@@ -294,7 +296,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 	Context("Response Transformation", func() {
 		It("should transform deployment responses", func() {
 			transformer := NewResponseTransformer()
-			
+
 			response := map[string]interface{}{
 				"type":      "NetworkFunctionDeployment",
 				"name":      "test-upf",
@@ -316,7 +318,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 
 		It("should transform scaling responses", func() {
 			transformer := NewResponseTransformer()
-			
+
 			response := map[string]interface{}{
 				"type":      "NetworkFunctionScale",
 				"name":      "test-amf",
@@ -343,7 +345,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 	Context("Response Postprocessing", func() {
 		It("should add processing metadata", func() {
 			postprocessor := NewResponsePostprocessor()
-			
+
 			response := map[string]interface{}{
 				"type": "NetworkFunctionDeployment",
 				"name": "test-nf",
@@ -353,8 +355,8 @@ var _ = Describe("Processing Pipeline Tests", func() {
 				RequestID: "test-post-123",
 				Intent:    "Deploy test NF",
 				Classification: ClassificationResult{
-					IntentType:  "NetworkFunctionDeployment",
-					Confidence:  0.95,
+					IntentType: "NetworkFunctionDeployment",
+					Confidence: 0.95,
 				},
 				ProcessingStart: time.Now().Add(-100 * time.Millisecond),
 			}
@@ -440,7 +442,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 	Context("Telecom Knowledge Base", func() {
 		It("should provide network function specifications", func() {
 			kb := NewTelecomKnowledgeBase()
-			
+
 			spec, found := kb.GetNetworkFunctionSpec("UPF")
 			Expect(found).To(BeTrue())
 			Expect(spec.Name).To(Equal("User Plane Function"))
@@ -452,7 +454,7 @@ var _ = Describe("Processing Pipeline Tests", func() {
 
 		It("should handle unknown network functions", func() {
 			kb := NewTelecomKnowledgeBase()
-			
+
 			_, found := kb.GetNetworkFunctionSpec("UNKNOWN_NF")
 			Expect(found).To(BeFalse())
 		})

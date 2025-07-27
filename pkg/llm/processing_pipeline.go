@@ -2,11 +2,9 @@ package llm
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -14,41 +12,41 @@ import (
 
 // ProcessingPipeline orchestrates the complete intent processing workflow
 type ProcessingPipeline struct {
-	preprocessor    *IntentPreprocessor
-	classifier      *IntentClassifier
-	enricher        *ContextEnricher
-	validator       *InputValidator
-	transformer     *ResponseTransformer
-	postprocessor   *ResponsePostprocessor
-	logger          *slog.Logger
-	metrics         *PipelineMetrics
-	config          PipelineConfig
+	preprocessor  *IntentPreprocessor
+	classifier    *IntentClassifier
+	enricher      *ContextEnricher
+	validator     *InputValidator
+	transformer   *ResponseTransformer
+	postprocessor *ResponsePostprocessor
+	logger        *slog.Logger
+	metrics       *PipelineMetrics
+	config        PipelineConfig
 }
 
 // PipelineConfig contains configuration for the processing pipeline
 type PipelineConfig struct {
-	EnablePreprocessing   bool
-	EnableContextEnrichment bool
+	EnablePreprocessing          bool
+	EnableContextEnrichment      bool
 	EnableResponseTransformation bool
-	EnablePostprocessing  bool
-	MaxProcessingTime     time.Duration
-	ValidationStrictness  string // "strict", "normal", "relaxed"
-	CacheEnabled         bool
-	AsyncProcessing      bool
+	EnablePostprocessing         bool
+	MaxProcessingTime            time.Duration
+	ValidationStrictness         string // "strict", "normal", "relaxed"
+	CacheEnabled                 bool
+	AsyncProcessing              bool
 }
 
 // PipelineMetrics tracks processing pipeline performance
 type PipelineMetrics struct {
-	TotalRequests        int64
-	SuccessfulRequests   int64
-	FailedRequests       int64
-	ValidationFailures   int64
-	PreprocessingTime    time.Duration
-	ClassificationTime   time.Duration
-	EnrichmentTime       time.Duration
-	TransformationTime   time.Duration
-	PostprocessingTime   time.Duration
-	mutex                sync.RWMutex
+	TotalRequests      int64
+	SuccessfulRequests int64
+	FailedRequests     int64
+	ValidationFailures int64
+	PreprocessingTime  time.Duration
+	ClassificationTime time.Duration
+	EnrichmentTime     time.Duration
+	TransformationTime time.Duration
+	PostprocessingTime time.Duration
+	mutex              sync.RWMutex
 }
 
 // IntentPreprocessor cleans and normalizes intent text
@@ -60,9 +58,9 @@ type IntentPreprocessor struct {
 
 // IntentClassifier determines intent types and confidence scores
 type IntentClassifier struct {
-	rules      []ClassificationRule
-	mlModel    MLClassifier // Interface for ML-based classification
-	logger     *slog.Logger
+	rules   []ClassificationRule
+	mlModel MLClassifier // Interface for ML-based classification
+	logger  *slog.Logger
 }
 
 type ClassificationRule struct {
@@ -73,12 +71,12 @@ type ClassificationRule struct {
 }
 
 type ClassificationResult struct {
-	IntentType       string  `json:"intent_type"`
-	Confidence       float64 `json:"confidence"`
-	SubCategory      string  `json:"sub_category,omitempty"`
-	NetworkFunction  string  `json:"network_function,omitempty"`
-	OperationType    string  `json:"operation_type,omitempty"`
-	Priority         string  `json:"priority,omitempty"`
+	IntentType      string  `json:"intent_type"`
+	Confidence      float64 `json:"confidence"`
+	SubCategory     string  `json:"sub_category,omitempty"`
+	NetworkFunction string  `json:"network_function,omitempty"`
+	OperationType   string  `json:"operation_type,omitempty"`
+	Priority        string  `json:"priority,omitempty"`
 }
 
 // MLClassifier interface for machine learning-based classification
@@ -89,9 +87,9 @@ type MLClassifier interface {
 }
 
 type TrainingExample struct {
-	Intent     string `json:"intent"`
-	Label      string `json:"label"`
-	Metadata   map[string]interface{} `json:"metadata"`
+	Intent   string                 `json:"intent"`
+	Label    string                 `json:"label"`
+	Metadata map[string]interface{} `json:"metadata"`
 }
 
 // ContextEnricher adds context information to the processing
@@ -103,58 +101,58 @@ type ContextEnricher struct {
 }
 
 type EnrichmentContext struct {
-	NetworkTopology   *NetworkTopology `json:"network_topology,omitempty"`
+	NetworkTopology   *NetworkTopology   `json:"network_topology,omitempty"`
 	DeploymentContext *DeploymentContext `json:"deployment_context,omitempty"`
-	PolicyContext     *PolicyContext   `json:"policy_context,omitempty"`
-	HistoricalData    *HistoricalData  `json:"historical_data,omitempty"`
-	Timestamp         time.Time        `json:"timestamp"`
+	PolicyContext     *PolicyContext     `json:"policy_context,omitempty"`
+	HistoricalData    *HistoricalData    `json:"historical_data,omitempty"`
+	Timestamp         time.Time          `json:"timestamp"`
 }
 
 type NetworkTopology struct {
-	Region          string            `json:"region"`
-	AvailabilityZone string           `json:"availability_zone"`
-	NetworkSlices   []NetworkSlice    `json:"network_slices"`
-	Constraints     map[string]string `json:"constraints"`
+	Region           string            `json:"region"`
+	AvailabilityZone string            `json:"availability_zone"`
+	NetworkSlices    []NetworkSlice    `json:"network_slices"`
+	Constraints      map[string]string `json:"constraints"`
 }
 
 type NetworkSlice struct {
-	ID          string `json:"id"`
-	Type        string `json:"type"` // eMBB, URLLC, mMTC
-	Status      string `json:"status"`
-	Capacity    int    `json:"capacity"`
+	ID          string  `json:"id"`
+	Type        string  `json:"type"` // eMBB, URLLC, mMTC
+	Status      string  `json:"status"`
+	Capacity    int     `json:"capacity"`
 	Utilization float64 `json:"utilization"`
 }
 
 type DeploymentContext struct {
-	Environment      string            `json:"environment"` // dev, staging, prod
-	Cluster          string            `json:"cluster"`
-	Namespace        string            `json:"namespace"`
-	ExistingWorkloads []WorkloadInfo   `json:"existing_workloads"`
-	ResourceQuotas   map[string]string `json:"resource_quotas"`
+	Environment       string            `json:"environment"` // dev, staging, prod
+	Cluster           string            `json:"cluster"`
+	Namespace         string            `json:"namespace"`
+	ExistingWorkloads []WorkloadInfo    `json:"existing_workloads"`
+	ResourceQuotas    map[string]string `json:"resource_quotas"`
 }
 
 type WorkloadInfo struct {
-	Name         string            `json:"name"`
-	Type         string            `json:"type"`
-	Status       string            `json:"status"`
-	Resources    map[string]string `json:"resources"`
-	Labels       map[string]string `json:"labels"`
+	Name      string            `json:"name"`
+	Type      string            `json:"type"`
+	Status    string            `json:"status"`
+	Resources map[string]string `json:"resources"`
+	Labels    map[string]string `json:"labels"`
 }
 
 type PolicyContext struct {
-	SecurityPolicies    []Policy `json:"security_policies"`
-	ResourcePolicies    []Policy `json:"resource_policies"`
-	NetworkPolicies     []Policy `json:"network_policies"`
+	SecurityPolicies       []Policy `json:"security_policies"`
+	ResourcePolicies       []Policy `json:"resource_policies"`
+	NetworkPolicies        []Policy `json:"network_policies"`
 	ComplianceRequirements []string `json:"compliance_requirements"`
 }
 
 type Policy struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	Rules       []PolicyRule          `json:"rules"`
-	Metadata    map[string]interface{} `json:"metadata"`
-	Enabled     bool                  `json:"enabled"`
+	ID       string                 `json:"id"`
+	Name     string                 `json:"name"`
+	Type     string                 `json:"type"`
+	Rules    []PolicyRule           `json:"rules"`
+	Metadata map[string]interface{} `json:"metadata"`
+	Enabled  bool                   `json:"enabled"`
 }
 
 type PolicyRule struct {
@@ -170,26 +168,26 @@ type HistoricalData struct {
 }
 
 type HistoricalIntent struct {
-	Intent      string    `json:"intent"`
-	Outcome     string    `json:"outcome"`
-	Timestamp   time.Time `json:"timestamp"`
+	Intent      string             `json:"intent"`
+	Outcome     string             `json:"outcome"`
+	Timestamp   time.Time          `json:"timestamp"`
 	Performance map[string]float64 `json:"performance"`
 }
 
 // InputValidator provides comprehensive input validation
 type InputValidator struct {
-	rules           []ValidationRule
+	rules            []ValidationRule
 	customValidators map[string]func(string) error
-	strictMode      bool
-	logger          *slog.Logger
+	strictMode       bool
+	logger           *slog.Logger
 }
 
 type ValidationRule struct {
-	Name        string
-	Pattern     *regexp.Regexp
-	Required    bool
+	Name         string
+	Pattern      *regexp.Regexp
+	Required     bool
 	ErrorMessage string
-	Severity    string // "error", "warning", "info"
+	Severity     string // "error", "warning", "info"
 }
 
 type ValidationResult struct {
@@ -200,9 +198,9 @@ type ValidationResult struct {
 }
 
 type ValidationError struct {
-	Field   string `json:"field"`
-	Message string `json:"message"`
-	Code    string `json:"code"`
+	Field    string `json:"field"`
+	Message  string `json:"message"`
+	Code     string `json:"code"`
 	Severity string `json:"severity"`
 }
 
@@ -223,19 +221,19 @@ type ResponsePostprocessor struct {
 type PostprocessingFunc func(map[string]interface{}, *ProcessingContext) (map[string]interface{}, error)
 
 type ProcessingContext struct {
-	RequestID       string                 `json:"request_id"`
-	Intent          string                 `json:"intent"`
-	Classification  ClassificationResult   `json:"classification"`
-	EnrichmentData  *EnrichmentContext     `json:"enrichment_data"`
-	ValidationResult *ValidationResult     `json:"validation_result"`
-	ProcessingStart time.Time              `json:"processing_start"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	RequestID        string                 `json:"request_id"`
+	Intent           string                 `json:"intent"`
+	Classification   ClassificationResult   `json:"classification"`
+	EnrichmentData   *EnrichmentContext     `json:"enrichment_data"`
+	ValidationResult *ValidationResult      `json:"validation_result"`
+	ProcessingStart  time.Time              `json:"processing_start"`
+	Metadata         map[string]interface{} `json:"metadata"`
 }
 
 // NewProcessingPipeline creates a new processing pipeline
 func NewProcessingPipeline(config PipelineConfig) *ProcessingPipeline {
 	logger := slog.Default().With("component", "processing-pipeline")
-	
+
 	return &ProcessingPipeline{
 		preprocessor:  NewIntentPreprocessor(),
 		classifier:    NewIntentClassifier(),
@@ -257,7 +255,7 @@ func NewPipelineMetrics() *PipelineMetrics {
 // ProcessIntent processes an intent through the complete pipeline
 func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, metadata map[string]interface{}) (*ProcessingResult, error) {
 	start := time.Now()
-	
+
 	// Create processing context
 	processingCtx := &ProcessingContext{
 		RequestID:       generateRequestID(),
@@ -265,16 +263,16 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 		ProcessingStart: start,
 		Metadata:        metadata,
 	}
-	
+
 	pp.logger.Info("Starting intent processing",
 		slog.String("request_id", processingCtx.RequestID),
 		slog.String("intent", intent),
 	)
-	
+
 	defer func() {
 		pp.updateMetrics(time.Since(start), true)
 	}()
-	
+
 	// Step 1: Preprocessing
 	if pp.config.EnablePreprocessing {
 		preprocessStart := time.Now()
@@ -285,7 +283,7 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 		processingCtx.Intent = preprocessedIntent
 		pp.metrics.PreprocessingTime += time.Since(preprocessStart)
 	}
-	
+
 	// Step 2: Classification
 	classifyStart := time.Now()
 	classification, err := pp.classifier.Classify(processingCtx.Intent)
@@ -294,16 +292,16 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 	}
 	processingCtx.Classification = classification
 	pp.metrics.ClassificationTime += time.Since(classifyStart)
-	
+
 	// Step 3: Validation
 	validationResult := pp.validator.Validate(processingCtx.Intent)
 	processingCtx.ValidationResult = &validationResult
-	
+
 	if !validationResult.Valid && pp.config.ValidationStrictness == "strict" {
 		pp.metrics.ValidationFailures++
 		return nil, fmt.Errorf("validation failed: %v", validationResult.Errors)
 	}
-	
+
 	// Step 4: Context Enrichment
 	if pp.config.EnableContextEnrichment {
 		enrichStart := time.Now()
@@ -315,20 +313,20 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 		}
 		pp.metrics.EnrichmentTime += time.Since(enrichStart)
 	}
-	
+
 	result := &ProcessingResult{
 		ProcessingContext: processingCtx,
 		ProcessingTime:    time.Since(start),
-		Success:          true,
+		Success:           true,
 	}
-	
+
 	pp.logger.Info("Intent processing completed",
 		slog.String("request_id", processingCtx.RequestID),
 		slog.String("intent_type", classification.IntentType),
 		slog.Float64("confidence", classification.Confidence),
 		slog.Duration("processing_time", result.ProcessingTime),
 	)
-	
+
 	return result, nil
 }
 
@@ -344,12 +342,12 @@ func (pp *ProcessingPipeline) TransformResponse(response map[string]interface{},
 	if !pp.config.EnableResponseTransformation {
 		return response, nil
 	}
-	
+
 	transformStart := time.Now()
 	defer func() {
 		pp.metrics.TransformationTime += time.Since(transformStart)
 	}()
-	
+
 	return pp.transformer.Transform(response, context.Classification.IntentType)
 }
 
@@ -358,12 +356,12 @@ func (pp *ProcessingPipeline) PostprocessResponse(response map[string]interface{
 	if !pp.config.EnablePostprocessing {
 		return response, nil
 	}
-	
+
 	postprocessStart := time.Now()
 	defer func() {
 		pp.metrics.PostprocessingTime += time.Since(postprocessStart)
 	}()
-	
+
 	return pp.postprocessor.Postprocess(response, context)
 }
 
@@ -371,7 +369,7 @@ func (pp *ProcessingPipeline) PostprocessResponse(response map[string]interface{
 func (pp *ProcessingPipeline) updateMetrics(processingTime time.Duration, success bool) {
 	pp.metrics.mutex.Lock()
 	defer pp.metrics.mutex.Unlock()
-	
+
 	pp.metrics.TotalRequests++
 	if success {
 		pp.metrics.SuccessfulRequests++
@@ -391,11 +389,11 @@ func (pp *ProcessingPipeline) GetMetrics() PipelineMetrics {
 func NewIntentPreprocessor() *IntentPreprocessor {
 	return &IntentPreprocessor{
 		normalizationRules: map[string]string{
-			"(?i)\\bupf\\b":          "User Plane Function",
-			"(?i)\\bamf\\b":          "Access and Mobility Management Function",
-			"(?i)\\bsmf\\b":          "Session Management Function",
+			"(?i)\\bupf\\b":         "User Plane Function",
+			"(?i)\\bamf\\b":         "Access and Mobility Management Function",
+			"(?i)\\bsmf\\b":         "Session Management Function",
 			"(?i)\\bnear-rt\\s+ric": "Near Real-Time RAN Intelligent Controller",
-			"(?i)\\bo-ran\\b":        "Open Radio Access Network",
+			"(?i)\\bo-ran\\b":       "Open Radio Access Network",
 		},
 		stopWords: []string{"the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "by"},
 		logger:    slog.Default().With("component", "preprocessor"),
@@ -407,23 +405,23 @@ func (ip *IntentPreprocessor) Preprocess(intent string) (string, error) {
 	if strings.TrimSpace(intent) == "" {
 		return "", fmt.Errorf("empty intent")
 	}
-	
+
 	// Apply normalization rules
 	result := intent
 	for pattern, replacement := range ip.normalizationRules {
 		re := regexp.MustCompile(pattern)
 		result = re.ReplaceAllString(result, replacement)
 	}
-	
+
 	// Remove extra whitespace
 	result = regexp.MustCompile(`\s+`).ReplaceAllString(result, " ")
 	result = strings.TrimSpace(result)
-	
+
 	ip.logger.Debug("Preprocessed intent",
 		slog.String("original", intent),
 		slog.String("processed", result),
 	)
-	
+
 	return result, nil
 }
 
@@ -432,10 +430,10 @@ func NewIntentClassifier() *IntentClassifier {
 	classifier := &IntentClassifier{
 		logger: slog.Default().With("component", "classifier"),
 	}
-	
+
 	// Initialize classification rules
 	classifier.initializeRules()
-	
+
 	return classifier
 }
 
@@ -472,12 +470,12 @@ func (ic *IntentClassifier) initializeRules() {
 // Classify determines the intent type and confidence
 func (ic *IntentClassifier) Classify(intent string) (ClassificationResult, error) {
 	lowerIntent := strings.ToLower(intent)
-	
+
 	result := ClassificationResult{
 		IntentType: "Unknown",
 		Confidence: 0.0,
 	}
-	
+
 	// Apply rule-based classification
 	maxConfidence := 0.0
 	for _, rule := range ic.rules {
@@ -489,25 +487,25 @@ func (ic *IntentClassifier) Classify(intent string) (ClassificationResult, error
 			}
 		}
 	}
-	
+
 	// Detect network function
 	nfPatterns := map[string]string{
-		"upf|user plane function":                    "UPF",
-		"amf|access and mobility management":         "AMF",
-		"smf|session management":                     "SMF",
-		"pcf|policy control":                         "PCF",
-		"near-rt ric|near real-time ric":           "Near-RT-RIC",
-		"o-du|distributed unit":                     "O-DU",
-		"o-cu|central unit":                         "O-CU",
+		"upf|user plane function":            "UPF",
+		"amf|access and mobility management": "AMF",
+		"smf|session management":             "SMF",
+		"pcf|policy control":                 "PCF",
+		"near-rt ric|near real-time ric":     "Near-RT-RIC",
+		"o-du|distributed unit":              "O-DU",
+		"o-cu|central unit":                  "O-CU",
 	}
-	
+
 	for pattern, nf := range nfPatterns {
 		if matched, _ := regexp.MatchString("(?i)"+pattern, lowerIntent); matched {
 			result.NetworkFunction = nf
 			break
 		}
 	}
-	
+
 	// Detect operation type
 	if regexp.MustCompile(`(?i)\b(high availability|ha|redundan)\b`).MatchString(lowerIntent) {
 		result.OperationType = "HighAvailability"
@@ -516,7 +514,7 @@ func (ic *IntentClassifier) Classify(intent string) (ClassificationResult, error
 	} else if regexp.MustCompile(`(?i)\b(core|central)\b`).MatchString(lowerIntent) {
 		result.OperationType = "CoreDeployment"
 	}
-	
+
 	// Determine priority
 	if regexp.MustCompile(`(?i)\b(urgent|critical|emergency)\b`).MatchString(lowerIntent) {
 		result.Priority = "High"
@@ -525,14 +523,14 @@ func (ic *IntentClassifier) Classify(intent string) (ClassificationResult, error
 	} else {
 		result.Priority = "Medium"
 	}
-	
+
 	ic.logger.Debug("Intent classified",
 		slog.String("intent", intent),
 		slog.String("type", result.IntentType),
 		slog.Float64("confidence", result.Confidence),
 		slog.String("network_function", result.NetworkFunction),
 	)
-	
+
 	return result, nil
 }
 
@@ -549,36 +547,36 @@ func NewContextEnricher() *ContextEnricher {
 func (ce *ContextEnricher) Enrich(ctx context.Context, processingCtx *ProcessingContext) (*EnrichmentContext, error) {
 	// Check cache first
 	cacheKey := fmt.Sprintf("%s:%s", processingCtx.Classification.IntentType, processingCtx.Classification.NetworkFunction)
-	
+
 	ce.mutex.RLock()
 	if cached, exists := ce.contextCache[cacheKey]; exists {
 		ce.mutex.RUnlock()
 		return cached, nil
 	}
 	ce.mutex.RUnlock()
-	
+
 	// Build enrichment context
 	enrichment := &EnrichmentContext{
 		Timestamp: time.Now(),
 	}
-	
+
 	// Add network topology
 	enrichment.NetworkTopology = ce.buildNetworkTopology(processingCtx)
-	
+
 	// Add deployment context
 	enrichment.DeploymentContext = ce.buildDeploymentContext(processingCtx)
-	
+
 	// Add policy context
 	enrichment.PolicyContext = ce.buildPolicyContext(processingCtx)
-	
+
 	// Add historical data
 	enrichment.HistoricalData = ce.buildHistoricalData(processingCtx)
-	
+
 	// Cache the result
 	ce.mutex.Lock()
 	ce.contextCache[cacheKey] = enrichment
 	ce.mutex.Unlock()
-	
+
 	return enrichment, nil
 }
 
@@ -593,7 +591,7 @@ func (ce *ContextEnricher) buildNetworkTopology(ctx *ProcessingContext) *Network
 			{ID: "slice-urllc-001", Type: "URLLC", Status: "active", Capacity: 500, Utilization: 0.30},
 		},
 		Constraints: map[string]string{
-			"latency": "< 10ms",
+			"latency":   "< 10ms",
 			"bandwidth": "> 1Gbps",
 		},
 	}
@@ -637,7 +635,7 @@ func (ce *ContextEnricher) buildHistoricalData(ctx *ProcessingContext) *Historic
 		},
 		PerformanceMetrics: map[string]float64{
 			"average_deployment_time": 45.5,
-			"success_rate":           0.95,
+			"success_rate":            0.95,
 		},
 		SuccessRates: map[string]float64{
 			"UPF_deployment": 0.98,
@@ -653,7 +651,7 @@ func NewInputValidator(strictness string) *InputValidator {
 		strictMode:       strictness == "strict",
 		logger:           slog.Default().With("component", "validator"),
 	}
-	
+
 	validator.initializeRules()
 	return validator
 }
@@ -691,7 +689,7 @@ func (iv *InputValidator) Validate(intent string) ValidationResult {
 		Valid: true,
 		Score: 1.0,
 	}
-	
+
 	for _, rule := range iv.rules {
 		if rule.Required && !rule.Pattern.MatchString(intent) {
 			error := ValidationError{
@@ -700,7 +698,7 @@ func (iv *InputValidator) Validate(intent string) ValidationResult {
 				Code:     rule.Name,
 				Severity: rule.Severity,
 			}
-			
+
 			if rule.Severity == "error" {
 				result.Errors = append(result.Errors, error)
 				result.Valid = false
@@ -711,7 +709,7 @@ func (iv *InputValidator) Validate(intent string) ValidationResult {
 			}
 		}
 	}
-	
+
 	return result
 }
 
@@ -721,7 +719,7 @@ func NewResponseTransformer() *ResponseTransformer {
 		transformers: make(map[string]TransformationFunc),
 		logger:       slog.Default().With("component", "transformer"),
 	}
-	
+
 	transformer.initializeTransformers()
 	return transformer
 }
@@ -747,7 +745,7 @@ func (rt *ResponseTransformer) transformDeploymentResponse(response map[string]i
 		metadata["deployment_strategy"] = "RollingUpdate"
 		metadata["min_ready_seconds"] = 10
 	}
-	
+
 	return response, nil
 }
 
@@ -760,7 +758,7 @@ func (rt *ResponseTransformer) transformScaleResponse(response map[string]interf
 			scaling["cooldown_period"] = "5m"
 		}
 	}
-	
+
 	return response, nil
 }
 
@@ -770,7 +768,7 @@ func NewResponsePostprocessor() *ResponsePostprocessor {
 		enrichers: make(map[string]PostprocessingFunc),
 		logger:    slog.Default().With("component", "postprocessor"),
 	}
-	
+
 	postprocessor.initializeEnrichers()
 	return postprocessor
 }
@@ -791,7 +789,7 @@ func (rp *ResponsePostprocessor) Postprocess(response map[string]interface{}, co
 			return response, err
 		}
 	}
-	
+
 	return response, nil
 }
 
@@ -805,7 +803,7 @@ func (rp *ResponsePostprocessor) addMetadataEnrichment(response map[string]inter
 		"network_function": context.Classification.NetworkFunction,
 		"processed_at":     time.Now().Format(time.RFC3339),
 	}
-	
+
 	response["processing_metadata"] = processingMetadata
 	return response, nil
 }
@@ -818,35 +816,35 @@ func (rp *ResponsePostprocessor) addValidationEnrichment(response map[string]int
 			"score": context.ValidationResult.Score,
 		}
 	}
-	
+
 	return response, nil
 }
 
 // addTrackingEnrichment adds tracking information
 func (rp *ResponsePostprocessor) addTrackingEnrichment(response map[string]interface{}, context *ProcessingContext) (map[string]interface{}, error) {
 	response["tracking"] = map[string]interface{}{
-		"trace_id":   context.RequestID,
-		"timestamp":  time.Now().Format(time.RFC3339),
-		"version":    "v1.0.0",
+		"trace_id":  context.RequestID,
+		"timestamp": time.Now().Format(time.RFC3339),
+		"version":   "v1.0.0",
 	}
-	
+
 	return response, nil
 }
 
 // TelecomKnowledgeBase provides domain-specific knowledge
 type TelecomKnowledgeBase struct {
-	networkFunctions map[string]NetworkFunctionSpec
+	networkFunctions   map[string]NetworkFunctionSpec
 	deploymentPatterns map[string]DeploymentPattern
-	mutex sync.RWMutex
+	mutex              sync.RWMutex
 }
 
 type NetworkFunctionSpec struct {
-	Name            string            `json:"name"`
-	Type            string            `json:"type"`
+	Name             string            `json:"name"`
+	Type             string            `json:"type"`
 	DefaultResources map[string]string `json:"default_resources"`
-	RequiredPorts   []PortSpec        `json:"required_ports"`
-	Dependencies    []string          `json:"dependencies"`
-	Constraints     []string          `json:"constraints"`
+	RequiredPorts    []PortSpec        `json:"required_ports"`
+	Dependencies     []string          `json:"dependencies"`
+	Constraints      []string          `json:"constraints"`
 }
 
 type PortSpec struct {
@@ -857,10 +855,10 @@ type PortSpec struct {
 }
 
 type DeploymentPattern struct {
-	Name         string            `json:"name"`
-	Description  string            `json:"description"`
+	Name         string                 `json:"name"`
+	Description  string                 `json:"description"`
 	Template     map[string]interface{} `json:"template"`
-	Requirements []string          `json:"requirements"`
+	Requirements []string               `json:"requirements"`
 }
 
 // NewTelecomKnowledgeBase creates a new knowledge base
@@ -869,7 +867,7 @@ func NewTelecomKnowledgeBase() *TelecomKnowledgeBase {
 		networkFunctions:   make(map[string]NetworkFunctionSpec),
 		deploymentPatterns: make(map[string]DeploymentPattern),
 	}
-	
+
 	kb.initializeKnowledgeBase()
 	return kb
 }
@@ -891,7 +889,7 @@ func (kb *TelecomKnowledgeBase) initializeKnowledgeBase() {
 		Dependencies: []string{"AMF", "SMF"},
 		Constraints:  []string{"high-performance-networking", "sr-iov"},
 	}
-	
+
 	kb.networkFunctions["AMF"] = NetworkFunctionSpec{
 		Name: "Access and Mobility Management Function",
 		Type: "5G Core",
@@ -911,7 +909,7 @@ func (kb *TelecomKnowledgeBase) initializeKnowledgeBase() {
 func (kb *TelecomKnowledgeBase) GetNetworkFunctionSpec(name string) (NetworkFunctionSpec, bool) {
 	kb.mutex.RLock()
 	defer kb.mutex.RUnlock()
-	
+
 	spec, exists := kb.networkFunctions[name]
 	return spec, exists
 }

@@ -17,20 +17,20 @@ import (
 
 // Client is a client for the LLM processor.
 type Client struct {
-	httpClient    *http.Client
-	url           string
-	promptEngine  *TelecomPromptEngine
-	retryConfig   RetryConfig
-	validator     *ResponseValidator
-	apiKey        string
-	modelName     string
-	maxTokens     int
-	backendType   string
-	logger        *slog.Logger
-	metrics       *ClientMetrics
-	mutex         sync.RWMutex
-	cache         *ResponseCache
-	fallbackURLs  []string
+	httpClient   *http.Client
+	url          string
+	promptEngine *TelecomPromptEngine
+	retryConfig  RetryConfig
+	validator    *ResponseValidator
+	apiKey       string
+	modelName    string
+	maxTokens    int
+	backendType  string
+	logger       *slog.Logger
+	metrics      *ClientMetrics
+	mutex        sync.RWMutex
+	cache        *ResponseCache
+	fallbackURLs []string
 }
 
 // RetryConfig defines retry behavior
@@ -44,14 +44,14 @@ type RetryConfig struct {
 
 // ClientMetrics tracks client performance metrics
 type ClientMetrics struct {
-	RequestsTotal     int64
-	RequestsSuccess   int64
-	RequestsFailure   int64
-	TotalLatency      time.Duration
-	CacheHits         int64
-	CacheMisses       int64
-	RetryAttempts     int64
-	FallbackAttempts  int64
+	RequestsTotal    int64
+	RequestsSuccess  int64
+	RequestsFailure  int64
+	TotalLatency     time.Duration
+	CacheHits        int64
+	CacheMisses      int64
+	RetryAttempts    int64
+	FallbackAttempts int64
 	mutex            sync.RWMutex
 }
 
@@ -121,8 +121,8 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 	logger := slog.Default().With("component", "llm-client")
 
 	return &Client{
-		httpClient: httpClient,
-		url:        url,
+		httpClient:   httpClient,
+		url:          url,
 		promptEngine: NewTelecomPromptEngine(),
 		retryConfig: RetryConfig{
 			MaxRetries:    3,
@@ -131,14 +131,14 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 			JitterEnabled: true,
 			BackoffFactor: 2.0,
 		},
-		validator:   NewResponseValidator(),
-		apiKey:      config.APIKey,
-		modelName:   config.ModelName,
-		maxTokens:   config.MaxTokens,
-		backendType: config.BackendType,
-		logger:      logger,
-		metrics:     NewClientMetrics(),
-		cache:       NewResponseCache(5*time.Minute, 1000),
+		validator:    NewResponseValidator(),
+		apiKey:       config.APIKey,
+		modelName:    config.ModelName,
+		maxTokens:    config.MaxTokens,
+		backendType:  config.BackendType,
+		logger:       logger,
+		metrics:      NewClientMetrics(),
+		cache:        NewResponseCache(5*time.Minute, 1000),
 		fallbackURLs: []string{}, // Can be configured for redundancy
 	}
 }
@@ -155,10 +155,10 @@ func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
 		ttl:     ttl,
 		maxSize: maxSize,
 	}
-	
+
 	// Start cleanup routine
 	go cache.cleanup()
-	
+
 	return cache
 }
 
@@ -166,7 +166,7 @@ func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
 func (c *ResponseCache) cleanup() {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
-	
+
 	for range ticker.C {
 		c.mutex.Lock()
 		now := time.Now()
@@ -183,16 +183,16 @@ func (c *ResponseCache) cleanup() {
 func (c *ResponseCache) Get(key string) (string, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	
+
 	entry, exists := c.entries[key]
 	if !exists {
 		return "", false
 	}
-	
+
 	if time.Since(entry.Timestamp) > c.ttl {
 		return "", false
 	}
-	
+
 	entry.HitCount++
 	return entry.Response, true
 }
@@ -201,7 +201,7 @@ func (c *ResponseCache) Get(key string) (string, bool) {
 func (c *ResponseCache) Set(key, response string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	// Evict oldest entries if cache is full
 	if len(c.entries) >= c.maxSize {
 		oldest := time.Now()
@@ -216,7 +216,7 @@ func (c *ResponseCache) Set(key, response string) {
 			delete(c.entries, oldestKey)
 		}
 	}
-	
+
 	c.entries[key] = &CacheEntry{
 		Response:  response,
 		Timestamp: time.Now(),
@@ -235,7 +235,7 @@ func (c *Client) GetMetrics() ClientMetrics {
 func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit bool, retryCount int) {
 	c.metrics.mutex.Lock()
 	defer c.metrics.mutex.Unlock()
-	
+
 	c.metrics.RequestsTotal++
 	if success {
 		c.metrics.RequestsSuccess++
@@ -243,13 +243,13 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 		c.metrics.RequestsFailure++
 	}
 	c.metrics.TotalLatency += latency
-	
+
 	if cacheHit {
 		c.metrics.CacheHits++
 	} else {
 		c.metrics.CacheMisses++
 	}
-	
+
 	c.metrics.RetryAttempts += int64(retryCount)
 }
 
@@ -270,7 +270,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	var success bool
 	var cacheHit bool
 	var retryCount int
-	
+
 	defer func() {
 		c.updateMetrics(success, time.Since(start), cacheHit, retryCount)
 	}()
@@ -290,7 +290,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	// Process with enhanced logic
 	// Classify intent to determine processing approach
 	intentType := c.classifyIntent(intent)
-	
+
 	// Pre-process intent with parameter extraction
 	extractedParams := c.promptEngine.ExtractParameters(intent)
 
@@ -302,7 +302,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		retryCount++
 		return processErr
 	})
-	
+
 	if err != nil {
 		// Try fallback URLs if available
 		if len(c.fallbackURLs) > 0 {
@@ -311,49 +311,49 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 				c.metrics.mutex.Lock()
 				c.metrics.FallbackAttempts++
 				c.metrics.mutex.Unlock()
-				
+
 				originalURL := c.url
 				c.url = fallbackURL
-				
+
 				fallbackErr := c.retryWithExponentialBackoff(ctx, func() error {
 					var processErr error
 					result, processErr = c.processWithLLMBackend(ctx, intent, intentType, extractedParams)
 					return processErr
 				})
-				
+
 				c.url = originalURL // Restore original URL
-				
+
 				if fallbackErr == nil {
 					c.logger.Info("Fallback URL succeeded", slog.String("fallback_url", fallbackURL))
 					break
 				}
-				
+
 				c.logger.Warn("Fallback URL failed", slog.String("fallback_url", fallbackURL), slog.String("error", fallbackErr.Error()))
 			}
 		}
-		
+
 		if result == "" {
 			return "", fmt.Errorf("failed to process intent after retries and fallbacks: %w", err)
 		}
 	}
-	
+
 	// Validate the response
 	if err := c.validator.ValidateResponse([]byte(result)); err != nil {
 		c.logger.Error("Response validation failed", slog.String("error", err.Error()), slog.String("response", result))
 		return "", fmt.Errorf("response validation failed: %w", err)
 	}
-	
+
 	// Cache successful response
 	c.cache.Set(cacheKey, result)
 	c.logger.Debug("Response cached", slog.String("cache_key", cacheKey))
-	
+
 	success = true
-	c.logger.Info("Intent processed successfully", 
+	c.logger.Info("Intent processed successfully",
 		slog.String("intent_type", intentType),
 		slog.Duration("processing_time", time.Since(start)),
 		slog.Int("retry_count", retryCount),
 	)
-	
+
 	return result, nil
 }
 
@@ -373,22 +373,22 @@ func (c *Client) SetFallbackURLs(urls []string) {
 // classifyIntent determines the type of network intent
 func (c *Client) classifyIntent(intent string) string {
 	lowerIntent := strings.ToLower(intent)
-	
+
 	scaleIndicators := []string{"scale", "increase", "decrease", "replicas", "instances", "resize"}
 	deployIndicators := []string{"deploy", "create", "setup", "configure", "install", "provision"}
-	
+
 	for _, indicator := range scaleIndicators {
 		if strings.Contains(lowerIntent, indicator) {
 			return "NetworkFunctionScale"
 		}
 	}
-	
+
 	for _, indicator := range deployIndicators {
 		if strings.Contains(lowerIntent, indicator) {
 			return "NetworkFunctionDeployment"
 		}
 	}
-	
+
 	return "NetworkFunctionDeployment" // Default
 }
 
@@ -522,15 +522,15 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func() error) error {
 	var lastErr error
 	delay := c.retryConfig.BaseDelay
-	
+
 	for attempt := 0; attempt <= c.retryConfig.MaxRetries; attempt++ {
 		if attempt > 0 {
-			c.logger.Debug("Retrying operation", 
+			c.logger.Debug("Retrying operation",
 				slog.Int("attempt", attempt),
 				slog.Duration("delay", delay),
 				slog.String("last_error", lastErr.Error()),
 			)
-			
+
 			// Wait before retry
 			select {
 			case <-ctx.Done():
@@ -548,7 +548,7 @@ func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func
 				}
 			}
 		}
-		
+
 		lastErr = operation()
 		if lastErr == nil {
 			if attempt > 0 {
@@ -556,15 +556,15 @@ func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func
 			}
 			return nil // Success
 		}
-		
+
 		// Check if error is retryable
 		if !c.isRetryableError(lastErr) {
 			c.logger.Debug("Error is not retryable", slog.String("error", lastErr.Error()))
 			return lastErr
 		}
 	}
-	
-	c.logger.Error("Operation failed after all retries", 
+
+	c.logger.Error("Operation failed after all retries",
 		slog.Int("max_retries", c.retryConfig.MaxRetries),
 		slog.String("final_error", lastErr.Error()),
 	)
@@ -574,7 +574,7 @@ func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func
 // isRetryableError determines if an error warrants a retry
 func (c *Client) isRetryableError(err error) bool {
 	errorStr := strings.ToLower(err.Error())
-	
+
 	// Network-related errors are typically retryable
 	retryablePatterns := []string{
 		"connection refused",
@@ -585,13 +585,13 @@ func (c *Client) isRetryableError(err error) bool {
 		"bad gateway",
 		"circuit breaker",
 	}
-	
+
 	for _, pattern := range retryablePatterns {
 		if strings.Contains(errorStr, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -601,14 +601,14 @@ func (v *ResponseValidator) ValidateResponse(responseBody []byte) error {
 	if err := json.Unmarshal(responseBody, &response); err != nil {
 		return fmt.Errorf("invalid JSON response: %w", err)
 	}
-	
+
 	// Check required fields
 	for field := range v.requiredFields {
 		if _, exists := response[field]; !exists {
 			return fmt.Errorf("missing required field: %s", field)
 		}
 	}
-	
+
 	// Validate type field
 	if responseType, ok := response["type"].(string); ok {
 		validTypes := []string{"NetworkFunctionDeployment", "NetworkFunctionScale"}
@@ -625,7 +625,7 @@ func (v *ResponseValidator) ValidateResponse(responseBody []byte) error {
 	} else {
 		return fmt.Errorf("type field must be a string")
 	}
-	
+
 	// Validate name field format (Kubernetes naming)
 	if name, ok := response["name"].(string); ok {
 		if !isValidKubernetesName(name) {
@@ -634,7 +634,7 @@ func (v *ResponseValidator) ValidateResponse(responseBody []byte) error {
 	} else {
 		return fmt.Errorf("name field must be a string")
 	}
-	
+
 	// Validate namespace field format
 	if namespace, ok := response["namespace"].(string); ok {
 		if !isValidKubernetesName(namespace) {
@@ -643,7 +643,7 @@ func (v *ResponseValidator) ValidateResponse(responseBody []byte) error {
 	} else {
 		return fmt.Errorf("namespace field must be a string")
 	}
-	
+
 	// Validate spec field structure
 	if spec, ok := response["spec"].(map[string]interface{}); ok {
 		if responseType := response["type"].(string); responseType == "NetworkFunctionDeployment" {
@@ -654,7 +654,7 @@ func (v *ResponseValidator) ValidateResponse(responseBody []byte) error {
 	} else {
 		return fmt.Errorf("spec field must be an object")
 	}
-	
+
 	return nil
 }
 
@@ -667,7 +667,7 @@ func (v *ResponseValidator) validateDeploymentSpec(spec map[string]interface{}) 
 			return fmt.Errorf("missing required deployment spec field: %s", field)
 		}
 	}
-	
+
 	// Validate replicas
 	if replicas, ok := spec["replicas"].(float64); ok {
 		if replicas < 1 || replicas > 100 {
@@ -676,7 +676,7 @@ func (v *ResponseValidator) validateDeploymentSpec(spec map[string]interface{}) 
 	} else {
 		return fmt.Errorf("replicas must be a number")
 	}
-	
+
 	// Validate image
 	if image, ok := spec["image"].(string); ok {
 		if image == "" {
@@ -685,7 +685,7 @@ func (v *ResponseValidator) validateDeploymentSpec(spec map[string]interface{}) 
 	} else {
 		return fmt.Errorf("image must be a string")
 	}
-	
+
 	return nil
 }
 
@@ -694,7 +694,7 @@ func (v *ResponseValidator) validateScaleSpec(spec map[string]interface{}) error
 	// For scaling, we need at least one scaling parameter
 	hasHorizontal := false
 	hasVertical := false
-	
+
 	if scaling, ok := spec["scaling"].(map[string]interface{}); ok {
 		if horizontal, exists := scaling["horizontal"]; exists {
 			hasHorizontal = true
@@ -710,7 +710,7 @@ func (v *ResponseValidator) validateScaleSpec(spec map[string]interface{}) error
 				}
 			}
 		}
-		
+
 		if vertical, exists := scaling["vertical"]; exists {
 			hasVertical = true
 			if v, ok := vertical.(map[string]interface{}); ok {
@@ -724,7 +724,7 @@ func (v *ResponseValidator) validateScaleSpec(spec map[string]interface{}) error
 						return fmt.Errorf("vertical scaling CPU must be a string")
 					}
 				}
-				
+
 				// Validate memory format if present
 				if memory, exists := v["memory"]; exists {
 					if memStr, ok := memory.(string); ok {
@@ -738,11 +738,11 @@ func (v *ResponseValidator) validateScaleSpec(spec map[string]interface{}) error
 			}
 		}
 	}
-	
+
 	if !hasHorizontal && !hasVertical {
 		return fmt.Errorf("scaling spec must include either horizontal or vertical scaling parameters")
 	}
-	
+
 	return nil
 }
 
@@ -751,7 +751,7 @@ func isValidKubernetesName(name string) bool {
 	if len(name) == 0 || len(name) > 253 {
 		return false
 	}
-	
+
 	// Kubernetes names must match DNS subdomain format
 	for i, r := range name {
 		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' || r == '.') {
@@ -764,7 +764,7 @@ func isValidKubernetesName(name string) bool {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -773,7 +773,7 @@ func isValidCPUFormat(cpu string) bool {
 	if cpu == "" {
 		return false
 	}
-	
+
 	if strings.HasSuffix(cpu, "m") {
 		// Millicores format
 		cpuValue := strings.TrimSuffix(cpu, "m")
@@ -799,9 +799,9 @@ func isValidMemoryFormat(memory string) bool {
 	if memory == "" {
 		return false
 	}
-	
+
 	validSuffixes := []string{"Ki", "Mi", "Gi", "Ti", "Pi", "Ei", "K", "M", "G", "T", "P", "E"}
-	
+
 	for _, suffix := range validSuffixes {
 		if strings.HasSuffix(memory, suffix) {
 			memoryValue := strings.TrimSuffix(memory, suffix)
@@ -813,6 +813,6 @@ func isValidMemoryFormat(memory string) bool {
 			return len(memoryValue) > 0
 		}
 	}
-	
+
 	return false
 }
