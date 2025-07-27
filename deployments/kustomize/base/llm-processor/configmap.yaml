@@ -5,9 +5,18 @@ metadata:
   labels:
     app: llm-processor
     component: ai-processing
+    version: v2.0.0
+    app.kubernetes.io/name: llm-processor
+    app.kubernetes.io/component: ai-processing
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    nephoran.com/config-version: "v2.0.0"
+    nephoran.com/last-updated: "2025-01-27"
 data:
-  # Mistral API Configuration
+  # Enhanced API Configuration
   mistral_api_url: "http://mistral-inference.ai-models.svc.cluster.local:8080/v1/chat/completions"
+  openai_api_url: "https://api.openai.com/v1/chat/completions"
+  rag_api_url: "http://rag-api.default.svc.cluster.local:5001/process_intent"
   
   # Model Configuration
   models.yaml: |

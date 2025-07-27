@@ -5,12 +5,18 @@ metadata:
   labels:
     app: llm-processor
     component: ai-processing
-    version: v1.0.0
+    version: v2.0.0
+    app.kubernetes.io/name: llm-processor
+    app.kubernetes.io/component: ai-processing
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/version: v2.0.0
   annotations:
-    deployment.kubernetes.io/revision: "1"
+    deployment.kubernetes.io/revision: "2"
     nephoran.com/component: "llm-processor"
+    nephoran.com/enhanced: "true"
+    config.kubernetes.io/depends-on: "v1/Secret/llm-credentials,v1/ConfigMap/llm-processor-config"
 spec:
-  replicas: 2
+  replicas: 3
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -40,8 +46,8 @@ spec:
           type: RuntimeDefault
       containers:
       - name: llm-processor
-        image: gcr.io/your-project/llm-processor:v1.0.0
-        imagePullPolicy: IfNotPresent
+        image: ghcr.io/thc1006/nephoran-intent-operator/llm-processor:v2.0.0
+        imagePullPolicy: Always
         ports:
         - name: http
           containerPort: 8080
@@ -56,9 +62,21 @@ spec:
         - name: LOG_LEVEL
           value: "info"
         - name: SERVICE_VERSION
-          value: "v1.0.0"
+          value: "v2.0.0"
         - name: GRACEFUL_SHUTDOWN_TIMEOUT
           value: "30s"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
         
         # LLM Configuration
         - name: LLM_BACKEND_TYPE
@@ -69,6 +87,28 @@ spec:
           value: "60s"
         - name: LLM_MAX_TOKENS
           value: "2048"
+        
+        # Enhanced Security Configuration
+        - name: API_KEY_REQUIRED
+          value: "false"
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: llm-credentials
+              key: api_key
+              optional: true
+        
+        # CORS Configuration
+        - name: CORS_ENABLED
+          value: "true"
+        - name: ALLOWED_ORIGINS
+          value: "https://*.nephoran.com,https://localhost:3000"
+        
+        # Request Logging
+        - name: REQUEST_LOG_ENABLED
+          value: "true"
+        - name: REQUEST_LOG_LEVEL
+          value: "info"
         
         # Mistral Configuration
         - name: MISTRAL_API_URL
@@ -125,7 +165,15 @@ spec:
         - name: METRICS_ENABLED
           value: "true"
         - name: TRACING_ENABLED
-          value: "false"
+          value: "true"
+        - name: JAEGER_ENDPOINT
+          value: "http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
+        
+        # Git Information (injected at build time)
+        - name: GIT_COMMIT
+          value: "$(GIT_COMMIT)"
+        - name: GIT_BRANCH
+          value: "$(GIT_BRANCH)"
         
         # Health Checks
         livenessProbe:
@@ -133,6 +181,9 @@ spec:
             path: /healthz
             port: http
             scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-liveness-probe"
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -144,6 +195,9 @@ spec:
             path: /readyz
             port: http
             scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-readiness-probe"
           initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 3
@@ -156,6 +210,9 @@ spec:
             path: /healthz
             port: http
             scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-startup-probe"
           initialDelaySeconds: 10
           periodSeconds: 5
           timeoutSeconds: 3
@@ -165,13 +222,13 @@ spec:
         # Resource Requirements
         resources:
           requests:
-            cpu: 200m
-            memory: 256Mi
+            cpu: 500m
+            memory: 512Mi
             ephemeral-storage: 1Gi
           limits:
-            cpu: 1000m
-            memory: 512Mi
-            ephemeral-storage: 2Gi
+            cpu: 2000m
+            memory: 2Gi
+            ephemeral-storage: 4Gi
         
         # Security Context
         securityContext:

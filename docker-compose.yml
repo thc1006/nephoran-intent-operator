@@ -1,0 +1,389 @@
+# Docker Compose for Nephoran Intent Operator
+# Production-ready local development and testing environment
+version: '3.8'
+
+# Define custom networks for service isolation
+networks:
+  nephoran-frontend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+  nephoran-backend:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/24
+  nephoran-ai:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/24
+
+# Named volumes for data persistence
+volumes:
+  rag-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  logs-data:
+    driver: local
+
+# Service definitions
+services:
+  # LLM Processor Service
+  llm-processor:
+    build:
+      context: .
+      dockerfile: cmd/llm-processor/Dockerfile
+      args:
+        BUILD_DATE: ${BUILD_DATE:-2025-01-20T00:00:00Z}
+        VCS_REF: ${VCS_REF:-dev}
+        VERSION: ${VERSION:-v2.0.0}
+    image: ghcr.io/thc1006/nephoran-intent-operator/llm-processor:${VERSION:-v2.0.0}
+    container_name: nephoran-llm-processor
+    restart: unless-stopped
+    
+    # Security configuration
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    user: "65532:65532"
+    cap_drop:
+      - ALL
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # Network configuration
+    networks:
+      - nephoran-frontend
+      - nephoran-ai
+    ports:
+      - "8080:8080"
+    
+    # Environment configuration
+    environment:
+      - PORT=8080
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - METRICS_ENABLED=true
+      - TRACING_ENABLED=true
+      - REQUEST_TIMEOUT=30s
+      - GRACEFUL_SHUTDOWN_TIMEOUT=30s
+      
+      # LLM Configuration
+      - LLM_BACKEND_TYPE=${LLM_BACKEND_TYPE:-openai}
+      - LLM_MODEL_NAME=${LLM_MODEL_NAME:-gpt-4o-mini}
+      - LLM_TIMEOUT=60s
+      - LLM_MAX_TOKENS=2048
+      
+      # RAG Configuration
+      - RAG_API_URL=http://rag-api:5001/process_intent
+      - RAG_TIMEOUT=30s
+      - RAG_ENABLED=true
+      
+      # Circuit Breaker
+      - CIRCUIT_BREAKER_ENABLED=true
+      - CIRCUIT_BREAKER_THRESHOLD=5
+      - CIRCUIT_BREAKER_TIMEOUT=60s
+      
+      # Rate Limiting
+      - RATE_LIMIT_REQUESTS_PER_MINUTE=60
+      - RATE_LIMIT_BURST=10
+      
+      # Monitoring
+      - JAEGER_ENDPOINT=http://jaeger:14268/api/traces
+    
+    # Secret management (use external secrets in production)
+    env_file:
+      - .env.llm-processor
+    
+    # Health checks
+    healthcheck:
+      test: ["CMD", "/llm-processor", "--health-check"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    
+    # Temporary filesystems for security
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+      - /var/run:noexec,nosuid,size=50m
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service,version"
+    labels:
+      - "service=llm-processor"
+      - "version=${VERSION:-v2.0.0}"
+      - "component=ai-processing"
+    
+    # Dependencies
+    depends_on:
+      rag-api:
+        condition: service_healthy
+      jaeger:
+        condition: service_started
+
+  # RAG API Service
+  rag-api:
+    build:
+      context: ./pkg/rag
+      dockerfile: Dockerfile
+    image: nephoran-rag-api:${VERSION:-v2.0.0}
+    container_name: nephoran-rag-api
+    restart: unless-stopped
+    
+    # Security configuration
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    user: "1000:1000"
+    cap_drop:
+      - ALL
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    
+    # Network configuration
+    networks:
+      - nephoran-ai
+      - nephoran-backend
+    ports:
+      - "5001:5001"
+    
+    # Environment configuration
+    environment:
+      - FLASK_ENV=production
+      - PORT=5001
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - VECTOR_STORE_PATH=/data/vectors
+      - KNOWLEDGE_BASE_PATH=/data/knowledge
+    
+    # Volume mounts
+    volumes:
+      - rag-data:/data:rw
+      - ./knowledge_base:/data/knowledge:ro
+    
+    # Health checks
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    
+    # Temporary filesystems
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    labels:
+      - "service=rag-api"
+      - "version=${VERSION:-v2.0.0}"
+      - "component=ai-backend"
+
+  # Nephio Bridge Service
+  nephio-bridge:
+    build:
+      context: .
+      dockerfile: cmd/nephio-bridge/Dockerfile
+    image: ghcr.io/thc1006/nephoran-intent-operator/nephio-bridge:${VERSION:-v2.0.0}
+    container_name: nephoran-nephio-bridge
+    restart: unless-stopped
+    
+    # Security configuration
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    user: "65532:65532"
+    cap_drop:
+      - ALL
+    
+    # Network configuration
+    networks:
+      - nephoran-frontend
+      - nephoran-backend
+    ports:
+      - "8081:8081"
+    
+    # Environment configuration
+    environment:
+      - PORT=8081
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LLM_PROCESSOR_URL=http://llm-processor:8080
+    
+    # Health checks
+    healthcheck:
+      test: ["CMD", "/nephio-bridge", "--health-check"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    
+    # Temporary filesystems
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    
+    # Dependencies
+    depends_on:
+      llm-processor:
+        condition: service_healthy
+
+  # ORAN Adaptor Service
+  oran-adaptor:
+    build:
+      context: .
+      dockerfile: cmd/oran-adaptor/Dockerfile
+    image: ghcr.io/thc1006/nephoran-intent-operator/oran-adaptor:${VERSION:-v2.0.0}
+    container_name: nephoran-oran-adaptor
+    restart: unless-stopped
+    
+    # Security configuration
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    user: "65532:65532"
+    cap_drop:
+      - ALL
+    
+    # Network configuration
+    networks:
+      - nephoran-backend
+    ports:
+      - "8082:8082"
+    
+    # Environment configuration
+    environment:
+      - PORT=8082
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    
+    # Health checks
+    healthcheck:
+      test: ["CMD", "/oran-adaptor", "--health-check"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    
+    # Temporary filesystems
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+
+  # Monitoring Services
+  prometheus:
+    image: prom/prometheus:v2.48.1
+    container_name: nephoran-prometheus
+    restart: unless-stopped
+    
+    # Security configuration
+    security_opt:
+      - no-new-privileges:true
+    user: "nobody"
+    
+    # Network configuration
+    networks:
+      - nephoran-frontend
+      - nephoran-backend
+    ports:
+      - "9090:9090"
+    
+    # Configuration
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    
+    # Health checks
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: nephoran-grafana
+    restart: unless-stopped
+    
+    # Security configuration
+    security_opt:
+      - no-new-privileges:true
+    user: "472"
+    
+    # Network configuration
+    networks:
+      - nephoran-frontend
+    ports:
+      - "3000:3000"
+    
+    # Environment configuration
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+      - GF_SECURITY_DISABLE_BRUTE_FORCE_LOGIN_PROTECTION=false
+    
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    
+    depends_on:
+      - prometheus
+
+  # Distributed Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.51
+    container_name: nephoran-jaeger
+    restart: unless-stopped
+    
+    # Security configuration
+    security_opt:
+      - no-new-privileges:true
+    
+    # Network configuration
+    networks:
+      - nephoran-frontend
+      - nephoran-ai
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    
+    # Environment configuration
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true

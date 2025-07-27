@@ -3,11 +3,15 @@ package llm
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
+	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -18,13 +22,51 @@ type Client struct {
 	promptEngine  *TelecomPromptEngine
 	retryConfig   RetryConfig
 	validator     *ResponseValidator
+	apiKey        string
+	modelName     string
+	maxTokens     int
+	backendType   string
+	logger        *slog.Logger
+	metrics       *ClientMetrics
+	mutex         sync.RWMutex
+	cache         *ResponseCache
+	fallbackURLs  []string
 }
 
 // RetryConfig defines retry behavior
 type RetryConfig struct {
-	MaxRetries int
-	BaseDelay  time.Duration
-	MaxDelay   time.Duration
+	MaxRetries    int
+	BaseDelay     time.Duration
+	MaxDelay      time.Duration
+	JitterEnabled bool
+	BackoffFactor float64
+}
+
+// ClientMetrics tracks client performance metrics
+type ClientMetrics struct {
+	RequestsTotal     int64
+	RequestsSuccess   int64
+	RequestsFailure   int64
+	TotalLatency      time.Duration
+	CacheHits         int64
+	CacheMisses       int64
+	RetryAttempts     int64
+	FallbackAttempts  int64
+	mutex            sync.RWMutex
+}
+
+// ResponseCache provides simple in-memory caching
+type ResponseCache struct {
+	entries map[string]*CacheEntry
+	mutex   sync.RWMutex
+	ttl     time.Duration
+	maxSize int
+}
+
+type CacheEntry struct {
+	Response  string
+	Timestamp time.Time
+	HitCount  int64
 }
 
 // ResponseValidator validates LLM responses
@@ -34,19 +76,181 @@ type ResponseValidator struct {
 
 // NewClient creates a new LLM client with enhanced capabilities.
 func NewClient(url string) *Client {
-	return &Client{
-		httpClient: &http.Client{
-			Timeout: 60 * time.Second,
+	return NewClientWithConfig(url, ClientConfig{
+		APIKey:      "",
+		ModelName:   "gpt-4o-mini",
+		MaxTokens:   2048,
+		BackendType: "openai",
+		Timeout:     60 * time.Second,
+	})
+}
+
+// ClientConfig holds configuration for LLM client
+type ClientConfig struct {
+	APIKey      string
+	ModelName   string
+	MaxTokens   int
+	BackendType string
+	Timeout     time.Duration
+}
+
+// NewClientWithConfig creates a new LLM client with specific configuration
+func NewClientWithConfig(url string, config ClientConfig) *Client {
+	// Create HTTP client with enhanced configuration
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   10,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig: &tls.Config{
+			MinVersion: tls.VersionTLS12,
 		},
-		url:          url,
+	}
+
+	httpClient := &http.Client{
+		Timeout:   config.Timeout,
+		Transport: transport,
+	}
+
+	// Initialize logger
+	logger := slog.Default().With("component", "llm-client")
+
+	return &Client{
+		httpClient: httpClient,
+		url:        url,
 		promptEngine: NewTelecomPromptEngine(),
 		retryConfig: RetryConfig{
-			MaxRetries: 3,
-			BaseDelay:  time.Second,
-			MaxDelay:   30 * time.Second,
+			MaxRetries:    3,
+			BaseDelay:     time.Second,
+			MaxDelay:      30 * time.Second,
+			JitterEnabled: true,
+			BackoffFactor: 2.0,
 		},
-		validator: NewResponseValidator(),
+		validator:   NewResponseValidator(),
+		apiKey:      config.APIKey,
+		modelName:   config.ModelName,
+		maxTokens:   config.MaxTokens,
+		backendType: config.BackendType,
+		logger:      logger,
+		metrics:     NewClientMetrics(),
+		cache:       NewResponseCache(5*time.Minute, 1000),
+		fallbackURLs: []string{}, // Can be configured for redundancy
 	}
+}
+
+// NewClientMetrics creates a new metrics tracker
+func NewClientMetrics() *ClientMetrics {
+	return &ClientMetrics{}
+}
+
+// NewResponseCache creates a new response cache
+func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
+	cache := &ResponseCache{
+		entries: make(map[string]*CacheEntry),
+		ttl:     ttl,
+		maxSize: maxSize,
+	}
+	
+	// Start cleanup routine
+	go cache.cleanup()
+	
+	return cache
+}
+
+// cleanup removes expired cache entries
+func (c *ResponseCache) cleanup() {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+	
+	for range ticker.C {
+		c.mutex.Lock()
+		now := time.Now()
+		for key, entry := range c.entries {
+			if now.Sub(entry.Timestamp) > c.ttl {
+				delete(c.entries, key)
+			}
+		}
+		c.mutex.Unlock()
+	}
+}
+
+// Get retrieves a cached response
+func (c *ResponseCache) Get(key string) (string, bool) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	
+	entry, exists := c.entries[key]
+	if !exists {
+		return "", false
+	}
+	
+	if time.Since(entry.Timestamp) > c.ttl {
+		return "", false
+	}
+	
+	entry.HitCount++
+	return entry.Response, true
+}
+
+// Set stores a response in cache
+func (c *ResponseCache) Set(key, response string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	
+	// Evict oldest entries if cache is full
+	if len(c.entries) >= c.maxSize {
+		oldest := time.Now()
+		oldestKey := ""
+		for k, v := range c.entries {
+			if v.Timestamp.Before(oldest) {
+				oldest = v.Timestamp
+				oldestKey = k
+			}
+		}
+		if oldestKey != "" {
+			delete(c.entries, oldestKey)
+		}
+	}
+	
+	c.entries[key] = &CacheEntry{
+		Response:  response,
+		Timestamp: time.Now(),
+		HitCount:  0,
+	}
+}
+
+// GetMetrics returns current client metrics
+func (c *Client) GetMetrics() ClientMetrics {
+	c.metrics.mutex.RLock()
+	defer c.metrics.mutex.RUnlock()
+	return *c.metrics
+}
+
+// updateMetrics updates client metrics
+func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit bool, retryCount int) {
+	c.metrics.mutex.Lock()
+	defer c.metrics.mutex.Unlock()
+	
+	c.metrics.RequestsTotal++
+	if success {
+		c.metrics.RequestsSuccess++
+	} else {
+		c.metrics.RequestsFailure++
+	}
+	c.metrics.TotalLatency += latency
+	
+	if cacheHit {
+		c.metrics.CacheHits++
+	} else {
+		c.metrics.CacheMisses++
+	}
+	
+	c.metrics.RetryAttempts += int64(retryCount)
 }
 
 // NewResponseValidator creates a new response validator
@@ -62,35 +266,108 @@ func NewResponseValidator() *ResponseValidator {
 }
 
 func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	start := time.Now()
+	var success bool
+	var cacheHit bool
+	var retryCount int
+	
+	defer func() {
+		c.updateMetrics(success, time.Since(start), cacheHit, retryCount)
+	}()
+
+	c.logger.Debug("Processing intent", slog.String("intent", intent), slog.String("backend", c.backendType))
+
+	// Check cache first
+	cacheKey := c.generateCacheKey(intent)
+	if cached, found := c.cache.Get(cacheKey); found {
+		c.logger.Debug("Cache hit for intent", slog.String("cache_key", cacheKey))
+		cacheHit = true
+		success = true
+		return cached, nil
+	}
+	cacheHit = false
+
+	// Process with enhanced logic
 	// Classify intent to determine processing approach
 	intentType := c.classifyIntent(intent)
 	
 	// Pre-process intent with parameter extraction
 	extractedParams := c.promptEngine.ExtractParameters(intent)
-	
-	req := map[string]interface{}{
-		"spec": map[string]string{
-			"intent": intent,
-		},
-		"metadata": map[string]interface{}{
-			"intent_type":      intentType,
-			"extracted_params": extractedParams,
-		},
-	}
 
-	// Process with retry logic
+	// Process with retry logic using appropriate backend
 	var result string
 	err := c.retryWithExponentialBackoff(ctx, func() error {
 		var processErr error
-		result, processErr = c.processWithValidation(ctx, req)
+		result, processErr = c.processWithLLMBackend(ctx, intent, intentType, extractedParams)
+		retryCount++
 		return processErr
 	})
 	
 	if err != nil {
-		return "", fmt.Errorf("failed to process intent after retries: %w", err)
+		// Try fallback URLs if available
+		if len(c.fallbackURLs) > 0 {
+			c.logger.Warn("Primary URL failed, trying fallback URLs", slog.String("error", err.Error()))
+			for _, fallbackURL := range c.fallbackURLs {
+				c.metrics.mutex.Lock()
+				c.metrics.FallbackAttempts++
+				c.metrics.mutex.Unlock()
+				
+				originalURL := c.url
+				c.url = fallbackURL
+				
+				fallbackErr := c.retryWithExponentialBackoff(ctx, func() error {
+					var processErr error
+					result, processErr = c.processWithLLMBackend(ctx, intent, intentType, extractedParams)
+					return processErr
+				})
+				
+				c.url = originalURL // Restore original URL
+				
+				if fallbackErr == nil {
+					c.logger.Info("Fallback URL succeeded", slog.String("fallback_url", fallbackURL))
+					break
+				}
+				
+				c.logger.Warn("Fallback URL failed", slog.String("fallback_url", fallbackURL), slog.String("error", fallbackErr.Error()))
+			}
+		}
+		
+		if result == "" {
+			return "", fmt.Errorf("failed to process intent after retries and fallbacks: %w", err)
+		}
 	}
 	
+	// Validate the response
+	if err := c.validator.ValidateResponse([]byte(result)); err != nil {
+		c.logger.Error("Response validation failed", slog.String("error", err.Error()), slog.String("response", result))
+		return "", fmt.Errorf("response validation failed: %w", err)
+	}
+	
+	// Cache successful response
+	c.cache.Set(cacheKey, result)
+	c.logger.Debug("Response cached", slog.String("cache_key", cacheKey))
+	
+	success = true
+	c.logger.Info("Intent processed successfully", 
+		slog.String("intent_type", intentType),
+		slog.Duration("processing_time", time.Since(start)),
+		slog.Int("retry_count", retryCount),
+	)
+	
 	return result, nil
+}
+
+// generateCacheKey creates a cache key for the given intent
+func (c *Client) generateCacheKey(intent string) string {
+	// Simple hash-based cache key (in production, consider using a proper hash function)
+	return fmt.Sprintf("%s:%s:%s", c.backendType, c.modelName, intent)
+}
+
+// SetFallbackURLs configures fallback URLs for redundancy
+func (c *Client) SetFallbackURLs(urls []string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.fallbackURLs = urls
 }
 
 // classifyIntent determines the type of network intent
@@ -115,8 +392,95 @@ func (c *Client) classifyIntent(intent string) string {
 	return "NetworkFunctionDeployment" // Default
 }
 
-// processWithValidation handles the core processing with validation
-func (c *Client) processWithValidation(ctx context.Context, req map[string]interface{}) (string, error) {
+// processWithLLMBackend handles processing with different LLM backends
+func (c *Client) processWithLLMBackend(ctx context.Context, intent, intentType string, extractedParams map[string]interface{}) (string, error) {
+	// Generate appropriate prompt based on intent type
+	systemPrompt := c.promptEngine.GeneratePrompt(intentType, intent)
+
+	// Create request based on backend type
+	switch c.backendType {
+	case "openai", "mistral":
+		return c.processWithChatCompletion(ctx, systemPrompt, intent)
+	case "rag":
+		return c.processWithRAGAPI(ctx, intent)
+	default:
+		// Default to OpenAI-compatible API
+		return c.processWithChatCompletion(ctx, systemPrompt, intent)
+	}
+}
+
+// processWithChatCompletion handles OpenAI/Mistral-style chat completions
+func (c *Client) processWithChatCompletion(ctx context.Context, systemPrompt, intent string) (string, error) {
+	requestBody := map[string]interface{}{
+		"model": c.modelName,
+		"messages": []map[string]string{
+			{"role": "system", "content": systemPrompt},
+			{"role": "user", "content": intent},
+		},
+		"max_tokens":      c.maxTokens,
+		"temperature":     0.0,
+		"response_format": map[string]string{"type": "json_object"},
+	}
+
+	reqBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.url, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("User-Agent", "nephoran-intent-operator/v1.0.0")
+	if c.apiKey != "" {
+		httpReq.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
+
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return "", fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("LLM API returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	// Parse response based on backend type
+	var chatResp struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+
+	if err := json.Unmarshal(respBody, &chatResp); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	if len(chatResp.Choices) == 0 {
+		return "", fmt.Errorf("no choices in response")
+	}
+
+	return chatResp.Choices[0].Message.Content, nil
+}
+
+// processWithRAGAPI handles RAG API requests
+func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, error) {
+	req := map[string]interface{}{
+		"spec": map[string]string{
+			"intent": intent,
+		},
+	}
+
 	reqBody, err := json.Marshal(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal request: %w", err)
@@ -145,34 +509,40 @@ func (c *Client) processWithValidation(ctx context.Context, req map[string]inter
 		var errorResp map[string]interface{}
 		if json.Unmarshal(respBody, &errorResp) == nil {
 			if errorMsg, ok := errorResp["error"].(string); ok {
-				return "", fmt.Errorf("LLM processor error (%d): %s", resp.StatusCode, errorMsg)
+				return "", fmt.Errorf("RAG API error (%d): %s", resp.StatusCode, errorMsg)
 			}
 		}
-		return "", fmt.Errorf("LLM processor returned status %d: %s", resp.StatusCode, string(respBody))
-	}
-
-	// Validate response structure
-	if err := c.validator.ValidateResponse(respBody); err != nil {
-		return "", fmt.Errorf("response validation failed: %w", err)
+		return "", fmt.Errorf("RAG API returned status %d: %s", resp.StatusCode, string(respBody))
 	}
 
 	return string(respBody), nil
 }
 
-// retryWithExponentialBackoff implements retry logic with exponential backoff
+// retryWithExponentialBackoff implements retry logic with exponential backoff and jitter
 func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func() error) error {
 	var lastErr error
 	delay := c.retryConfig.BaseDelay
 	
 	for attempt := 0; attempt <= c.retryConfig.MaxRetries; attempt++ {
 		if attempt > 0 {
+			c.logger.Debug("Retrying operation", 
+				slog.Int("attempt", attempt),
+				slog.Duration("delay", delay),
+				slog.String("last_error", lastErr.Error()),
+			)
+			
 			// Wait before retry
 			select {
 			case <-ctx.Done():
 				return ctx.Err()
 			case <-time.After(delay):
-				// Exponential backoff with jitter
-				delay = time.Duration(float64(delay) * 1.5)
+				// Exponential backoff with optional jitter
+				delay = time.Duration(float64(delay) * c.retryConfig.BackoffFactor)
+				if c.retryConfig.JitterEnabled {
+					// Add jitter (±25% of delay)
+					jitter := time.Duration(float64(delay) * 0.25 * (2.0*float64(time.Now().UnixNano()%1000)/1000.0 - 1.0))
+					delay += jitter
+				}
 				if delay > c.retryConfig.MaxDelay {
 					delay = c.retryConfig.MaxDelay
 				}
@@ -181,15 +551,23 @@ func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func
 		
 		lastErr = operation()
 		if lastErr == nil {
+			if attempt > 0 {
+				c.logger.Info("Operation succeeded after retry", slog.Int("attempts", attempt+1))
+			}
 			return nil // Success
 		}
 		
 		// Check if error is retryable
 		if !c.isRetryableError(lastErr) {
+			c.logger.Debug("Error is not retryable", slog.String("error", lastErr.Error()))
 			return lastErr
 		}
 	}
 	
+	c.logger.Error("Operation failed after all retries", 
+		slog.Int("max_retries", c.retryConfig.MaxRetries),
+		slog.String("final_error", lastErr.Error()),
+	)
 	return fmt.Errorf("operation failed after %d retries: %w", c.retryConfig.MaxRetries, lastErr)
 }
 
