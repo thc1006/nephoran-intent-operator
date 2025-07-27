@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,16 +21,19 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 var (
 	config     *Config
 	processor  *IntentProcessor
+	logger     *slog.Logger
 	startTime  = time.Now()
 	healthMux  sync.RWMutex
 	healthy    = true
 	readyMux   sync.RWMutex
 	ready      = false
+	requestID  int64
 )
 
 // Configuration structure
@@ -77,6 +82,16 @@ type Config struct {
 	MetricsEnabled bool
 	TracingEnabled bool
 	JaegerEndpoint string
+
+	// Security
+	APIKeyRequired bool
+	APIKey         string
+	CORSEnabled    bool
+	AllowedOrigins []string
+
+	// Request Logging
+	RequestLogEnabled bool
+	RequestLogLevel   string
 }
 
 // Request/Response structures
@@ -226,9 +241,35 @@ type IntentProcessor struct {
 	httpClient      *http.Client
 	circuitBreaker  *CircuitBreaker
 	intentValidator *IntentValidator
+	llmClient       llm.ClientInterface
+	promptEngine    *llm.TelecomPromptEngine
 }
 
 func NewIntentProcessor(cfg *Config) *IntentProcessor {
+	// Determine LLM backend URL and configuration
+	llmURL := cfg.OpenAIAPIURL
+	apiKey := cfg.OpenAIAPIKey
+	backendType := "openai"
+	
+	if cfg.LLMBackendType == "mistral" && cfg.MistralAPIURL != "" {
+		llmURL = cfg.MistralAPIURL
+		apiKey = cfg.MistralAPIKey
+		backendType = "mistral"
+	} else if cfg.RAGEnabled && cfg.RAGAPIURL != "" {
+		llmURL = cfg.RAGAPIURL
+		apiKey = ""
+		backendType = "rag"
+	}
+
+	// Create LLM client with proper configuration
+	llmClient := llm.NewClientWithConfig(llmURL, llm.ClientConfig{
+		APIKey:      apiKey,
+		ModelName:   cfg.LLMModelName,
+		MaxTokens:   cfg.LLMMaxTokens,
+		BackendType: backendType,
+		Timeout:     cfg.LLMTimeout,
+	})
+
 	return &IntentProcessor{
 		config:     cfg,
 		httpClient: &http.Client{Timeout: cfg.LLMTimeout},
@@ -237,6 +278,8 @@ func NewIntentProcessor(cfg *Config) *IntentProcessor {
 			cfg.CircuitBreakerTimeout,
 		),
 		intentValidator: NewIntentValidator(),
+		llmClient:       llmClient,
+		promptEngine:    llm.NewTelecomPromptEngine(),
 	}
 }
 
@@ -285,14 +328,17 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, req *NetworkIntentR
 		return nil, fmt.Errorf("validation failed: %w", err)
 	}
 
-	// Classify intent type
+	// Classify intent type using enhanced classification
 	intentType := p.classifyIntent(req.Spec.Intent)
+
+	// Extract parameters using prompt engineering
+	extractedParams := p.promptEngine.ExtractParameters(req.Spec.Intent)
 
 	// Process with circuit breaker
 	var response *NetworkIntentResponse
 	err := p.circuitBreaker.Call(func() error {
 		var processErr error
-		response, processErr = p.processWithLLM(ctx, req, intentType)
+		response, processErr = p.processWithEnhancedLLM(ctx, req, intentType, extractedParams)
 		return processErr
 	})
 
@@ -304,7 +350,7 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, req *NetworkIntentR
 	// Add processing metadata
 	response.ProcessingMetadata = ProcessingMetadata{
 		ModelUsed:        p.config.LLMModelName,
-		ConfidenceScore:  0.95, // This would come from actual LLM response
+		ConfidenceScore:  p.calculateConfidenceScore(req.Spec.Intent, extractedParams),
 		ProcessingTimeMS: time.Since(startTime).Milliseconds(),
 	}
 	response.Timestamp = time.Now().Format(time.RFC3339)
@@ -334,6 +380,237 @@ func (p *IntentProcessor) classifyIntent(intent string) string {
 	return "NetworkFunctionDeployment" // Default
 }
 
+// processWithEnhancedLLM uses the enhanced LLM client with telecom-specific prompts
+func (p *IntentProcessor) processWithEnhancedLLM(ctx context.Context, req *NetworkIntentRequest, intentType string, extractedParams map[string]interface{}) (*NetworkIntentResponse, error) {
+	// Use the enhanced LLM client which handles fallbacks and retries internally
+	responseJSON, err := p.llmClient.ProcessIntent(ctx, req.Spec.Intent)
+	if err != nil {
+		return nil, fmt.Errorf("LLM processing failed: %w", err)
+	}
+
+	// Parse the JSON response
+	var response NetworkIntentResponse
+	if err := json.Unmarshal([]byte(responseJSON), &response); err != nil {
+		return nil, fmt.Errorf("failed to parse LLM response: %w", err)
+	}
+
+	// Enrich response with extracted parameters if LLM didn't capture them
+	p.enrichResponseWithExtractedParams(&response, extractedParams)
+
+	// Set defaults based on intent type and network function
+	p.setIntelligentDefaults(&response, intentType)
+
+	return &response, nil
+}
+
+// calculateConfidenceScore determines confidence based on parameter extraction success
+func (p *IntentProcessor) calculateConfidenceScore(intent string, extractedParams map[string]interface{}) float64 {
+	baseScore := 0.7 // Base confidence
+	
+	// Increase confidence based on extracted parameters
+	if len(extractedParams) > 0 {
+		baseScore += 0.1
+	}
+	
+	// Check for specific network function mentions
+	lowerIntent := strings.ToLower(intent)
+	nfKeywords := []string{"upf", "amf", "smf", "pcf", "ric", "o-du", "o-cu"}
+	for _, keyword := range nfKeywords {
+		if strings.Contains(lowerIntent, keyword) {
+			baseScore += 0.1
+			break
+		}
+	}
+	
+	// Check for clear action words
+	actionKeywords := []string{"deploy", "scale", "create", "configure", "setup"}
+	for _, keyword := range actionKeywords {
+		if strings.Contains(lowerIntent, keyword) {
+			baseScore += 0.05
+			break
+		}
+	}
+	
+	// Cap at 1.0
+	if baseScore > 1.0 {
+		baseScore = 1.0
+	}
+	
+	return baseScore
+}
+
+// enrichResponseWithExtractedParams fills in missing parameters from extraction
+func (p *IntentProcessor) enrichResponseWithExtractedParams(response *NetworkIntentResponse, extractedParams map[string]interface{}) {
+	if response.Spec == nil {
+		response.Spec = make(map[string]interface{})
+	}
+	
+	// Add extracted replicas if not present
+	if _, exists := response.Spec["replicas"]; !exists {
+		if replicas, ok := extractedParams["replicas"]; ok {
+			if replicaStr, ok := replicas.(string); ok {
+				if replicaInt, err := strconv.Atoi(replicaStr); err == nil {
+					response.Spec["replicas"] = replicaInt
+				}
+			}
+		}
+	}
+	
+	// Add extracted resources if not present
+	if resources, exists := response.Spec["resources"].(map[string]interface{}); exists {
+		if requests, ok := resources["requests"].(map[string]interface{}); ok {
+			if cpu, exists := extractedParams["cpu"]; exists && requests["cpu"] == nil {
+				requests["cpu"] = cpu
+			}
+			if memory, exists := extractedParams["memory"]; exists && requests["memory"] == nil {
+				requests["memory"] = memory
+			}
+		}
+	}
+	
+	// Set namespace from extraction if not present
+	if response.Namespace == "" {
+		if namespace, ok := extractedParams["namespace"].(string); ok {
+			response.Namespace = namespace
+		}
+	}
+}
+
+// setIntelligentDefaults applies telecom-specific defaults based on context
+func (p *IntentProcessor) setIntelligentDefaults(response *NetworkIntentResponse, intentType string) {
+	// Set default namespace if not specified
+	if response.Namespace == "" {
+		response.Namespace = "default"
+		
+		// Use intelligent namespace selection based on network function
+		if nf, ok := response.Spec["network_function"].(string); ok {
+			switch nf {
+			case "upf", "amf", "smf", "pcf", "nssf":
+				response.Namespace = "5g-core"
+			case "near-rt-ric", "o-du", "o-cu":
+				response.Namespace = "o-ran"
+			default:
+				response.Namespace = "5g-core"
+			}
+		}
+	}
+	
+	// Set default replicas for deployment if not specified
+	if intentType == "NetworkFunctionDeployment" {
+		if spec, ok := response.Spec.(map[string]interface{}); ok {
+			if _, exists := spec["replicas"]; !exists {
+				spec["replicas"] = 1 // Default to 1 replica
+			}
+		}
+	}
+	
+	// Set intelligent resource defaults based on network function type
+	p.setResourceDefaults(response)
+}
+
+// setResourceDefaults sets appropriate resource limits based on NF type
+func (p *IntentProcessor) setResourceDefaults(response *NetworkIntentResponse) {
+	spec, ok := response.Spec.(map[string]interface{})
+	if !ok {
+		return
+	}
+	
+	resources, ok := spec["resources"].(map[string]interface{})
+	if !ok {
+		resources = make(map[string]interface{})
+		spec["resources"] = resources
+	}
+	
+	requests, ok := resources["requests"].(map[string]interface{})
+	if !ok {
+		requests = make(map[string]interface{})
+		resources["requests"] = requests
+	}
+	
+	limits, ok := resources["limits"].(map[string]interface{})
+	if !ok {
+		limits = make(map[string]interface{})
+		resources["limits"] = limits
+	}
+	
+	// Set defaults based on network function type if detected
+	if nf, exists := spec["network_function"].(string); exists {
+		switch nf {
+		case "upf":
+			// UPF needs more resources for packet processing
+			if requests["cpu"] == nil {
+				requests["cpu"] = "2000m"
+			}
+			if requests["memory"] == nil {
+				requests["memory"] = "4Gi"
+			}
+			if limits["cpu"] == nil {
+				limits["cpu"] = "4000m"
+			}
+			if limits["memory"] == nil {
+				limits["memory"] = "8Gi"
+			}
+		case "amf", "smf":
+			// Control plane functions need moderate resources
+			if requests["cpu"] == nil {
+				requests["cpu"] = "500m"
+			}
+			if requests["memory"] == nil {
+				requests["memory"] = "1Gi"
+			}
+			if limits["cpu"] == nil {
+				limits["cpu"] = "1000m"
+			}
+			if limits["memory"] == nil {
+				limits["memory"] = "2Gi"
+			}
+		case "near-rt-ric":
+			// Near-RT RIC needs resources for real-time processing
+			if requests["cpu"] == nil {
+				requests["cpu"] = "1000m"
+			}
+			if requests["memory"] == nil {
+				requests["memory"] = "2Gi"
+			}
+			if limits["cpu"] == nil {
+				limits["cpu"] = "2000m"
+			}
+			if limits["memory"] == nil {
+				limits["memory"] = "4Gi"
+			}
+		default:
+			// Generic defaults
+			if requests["cpu"] == nil {
+				requests["cpu"] = "100m"
+			}
+			if requests["memory"] == nil {
+				requests["memory"] = "256Mi"
+			}
+			if limits["cpu"] == nil {
+				limits["cpu"] = "500m"
+			}
+			if limits["memory"] == nil {
+				limits["memory"] = "512Mi"
+			}
+		}
+	} else {
+		// No specific NF detected, use generic defaults
+		if requests["cpu"] == nil {
+			requests["cpu"] = "100m"
+		}
+		if requests["memory"] == nil {
+			requests["memory"] = "256Mi"
+		}
+		if limits["cpu"] == nil {
+			limits["cpu"] = "500m"
+		}
+		if limits["memory"] == nil {
+			limits["memory"] = "512Mi"
+		}
+	}
+}
+
+// Legacy method maintained for backward compatibility
 func (p *IntentProcessor) processWithLLM(ctx context.Context, req *NetworkIntentRequest, intentType string) (*NetworkIntentResponse, error) {
 	// Try primary model (Mistral) first, fallback to OpenAI
 	if p.config.LLMBackendType == "mistral" && p.config.MistralAPIURL != "" {
@@ -563,6 +840,86 @@ Output MUST be valid JSON matching this schema:`
 }
 
 // HTTP handlers
+// chainMiddleware applies multiple middleware functions to a handler
+func chainMiddleware(h http.HandlerFunc, middlewares ...func(http.HandlerFunc) http.HandlerFunc) http.HandlerFunc {
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		h = middlewares[i](h)
+	}
+	return h
+}
+
+// infoHandler provides detailed service information
+func infoHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeErrorResponse(w, "Only GET method is allowed", "METHOD_NOT_ALLOWED", "", http.StatusMethodNotAllowed, nil)
+		return
+	}
+
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	info := map[string]interface{}{
+		"service": map[string]interface{}{
+			"name":          "LLM Processor",
+			"version":       config.ServiceVersion,
+			"build_time":    startTime.Format(time.RFC3339),
+			"uptime":        time.Since(startTime).String(),
+			"uptime_seconds": int64(time.Since(startTime).Seconds()),
+		},
+		"configuration": map[string]interface{}{
+			"llm_backend":       config.LLMBackendType,
+			"llm_model":         config.LLMModelName,
+			"rag_enabled":       config.RAGEnabled,
+			"metrics_enabled":   config.MetricsEnabled,
+			"tracing_enabled":   config.TracingEnabled,
+			"cors_enabled":      config.CORSEnabled,
+			"api_key_required": config.APIKeyRequired,
+		},
+		"runtime": map[string]interface{}{
+			"go_version":      runtime.Version(),
+			"go_os":           runtime.GOOS,
+			"go_arch":         runtime.GOARCH,
+			"cpu_count":       runtime.NumCPU(),
+			"goroutines":      runtime.NumGoroutine(),
+			"memory_alloc":    bToMb(m.Alloc),
+			"memory_total":    bToMb(m.TotalAlloc),
+			"memory_sys":      bToMb(m.Sys),
+			"gc_runs":         m.NumGC,
+		},
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(info)
+}
+
+// versionHandler provides version information
+func versionHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeErrorResponse(w, "Only GET method is allowed", "METHOD_NOT_ALLOWED", "", http.StatusMethodNotAllowed, nil)
+		return
+	}
+
+	versionInfo := map[string]interface{}{
+		"version":     config.ServiceVersion,
+		"build_time":  startTime.Format(time.RFC3339),
+		"go_version":  runtime.Version(),
+		"git_commit":  getEnvOrDefault("GIT_COMMIT", "unknown"),
+		"git_branch":  getEnvOrDefault("GIT_BRANCH", "unknown"),
+		"timestamp":   time.Now().Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(versionInfo)
+}
+
+// bToMb converts bytes to megabytes
+func bToMb(b uint64) uint64 {
+	return b / 1024 / 1024
+}
+
 func processHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := time.Now()
 	defer func() {
@@ -575,9 +932,24 @@ func processHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get request ID from context
+	requestID := r.Context().Value("request_id")
+	if requestID == nil {
+		requestID = "unknown"
+	}
+
+	logger.Debug("Processing intent request",
+		slog.String("request_id", requestID.(string)),
+		slog.String("content_type", r.Header.Get("Content-Type")),
+	)
+
 	var req NetworkIntentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		requestsTotal.WithLabelValues(r.Method, "400").Inc()
+		logger.Error("Failed to decode request body",
+			slog.String("request_id", requestID.(string)),
+			slog.String("error", err.Error()),
+		)
 		writeErrorResponse(w, "Invalid request body", "INVALID_REQUEST", "", http.StatusBadRequest, map[string]string{
 			"stage": "validation",
 			"details": err.Error(),
@@ -585,17 +957,38 @@ func processHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	logger.Info("Processing intent",
+		slog.String("request_id", requestID.(string)),
+		slog.String("intent", req.Spec.Intent),
+		slog.String("namespace", req.Metadata.Namespace),
+	)
+
 	response, err := processor.ProcessIntent(r.Context(), &req)
 	if err != nil {
 		requestsTotal.WithLabelValues(r.Method, "500").Inc()
+		logger.Error("Intent processing failed",
+			slog.String("request_id", requestID.(string)),
+			slog.String("error", err.Error()),
+			slog.String("intent", req.Spec.Intent),
+		)
 		writeErrorResponse(w, err.Error(), "PROCESSING_FAILED", req.Spec.Intent, http.StatusInternalServerError, map[string]string{
 			"stage": "llm_processing",
+			"request_id": requestID.(string),
 		})
 		return
 	}
 
 	requestsTotal.WithLabelValues(r.Method, "200").Inc()
+	logger.Info("Intent processed successfully",
+		slog.String("request_id", requestID.(string)),
+		slog.String("response_type", response.Type),
+		slog.String("response_name", response.Name),
+		slog.Float64("confidence_score", response.ProcessingMetadata.ConfidenceScore),
+		slog.Int64("processing_time_ms", response.ProcessingMetadata.ProcessingTimeMS),
+	)
+
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Request-ID", requestID.(string))
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
 }
@@ -679,6 +1072,14 @@ func writeErrorResponse(w http.ResponseWriter, message, code, originalIntent str
 
 	if statusCode == http.StatusTooManyRequests {
 		response.RetryAfterSeconds = 60
+		w.Header().Set("Retry-After", "60")
+	}
+
+	// Add request ID if available
+	if details != nil {
+		if requestID, exists := details["request_id"]; exists {
+			w.Header().Set("X-Request-ID", requestID)
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -762,6 +1163,16 @@ func loadConfig() *Config {
 		MetricsEnabled: getEnvBool("METRICS_ENABLED", true),
 		TracingEnabled: getEnvBool("TRACING_ENABLED", false),
 		JaegerEndpoint: getEnvOrDefault("JAEGER_ENDPOINT", ""),
+
+	// Security
+	APIKeyRequired: getEnvBool("API_KEY_REQUIRED", false),
+	APIKey:         os.Getenv("API_KEY"),
+	CORSEnabled:    getEnvBool("CORS_ENABLED", true),
+	AllowedOrigins: getEnvStringSlice("ALLOWED_ORIGINS", []string{"*"}),
+
+	// Request Logging
+	RequestLogEnabled: getEnvBool("REQUEST_LOG_ENABLED", true),
+	RequestLogLevel:   getEnvOrDefault("REQUEST_LOG_LEVEL", "info"),
 	}
 }
 
@@ -799,6 +1210,252 @@ func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
 	return defaultValue
 }
 
+func getEnvStringSlice(key string, defaultValue []string) []string {
+	if value := os.Getenv(key); value != "" {
+		return strings.Split(value, ",")
+	}
+	return defaultValue
+}
+
+// initLogger initializes structured logging
+func initLogger(logLevel string) *slog.Logger {
+	level := slog.LevelInfo
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		level = slog.LevelDebug
+	case "info":
+		level = slog.LevelInfo
+	case "warn", "warning":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	}
+
+	opts := &slog.HandlerOptions{
+		Level: level,
+		AddSource: true,
+	}
+
+	return slog.New(slog.NewJSONHandler(os.Stdout, opts))
+}
+
+// Middleware for request logging
+func loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		requestID := fmt.Sprintf("req-%d", time.Now().UnixNano())
+		
+		// Add request ID to context
+		ctx := context.WithValue(r.Context(), "request_id", requestID)
+		r = r.WithContext(ctx)
+		
+		// Create custom response writer to capture status code
+		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		
+		logger.Info("Request started",
+			slog.String("request_id", requestID),
+			slog.String("method", r.Method),
+			slog.String("path", r.URL.Path),
+			slog.String("remote_addr", r.RemoteAddr),
+			slog.String("user_agent", r.UserAgent()),
+		)
+		
+		next.ServeHTTP(wrapped, r)
+		
+		duration := time.Since(start)
+		logger.Info("Request completed",
+			slog.String("request_id", requestID),
+			slog.Int("status_code", wrapped.statusCode),
+			slog.Duration("duration", duration),
+			slog.Int64("duration_ms", duration.Milliseconds()),
+		)
+	}
+}
+
+// responseWriter wraps http.ResponseWriter to capture status code
+type responseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.statusCode = code
+	rw.ResponseWriter.WriteHeader(code)
+}
+
+// CORS middleware
+func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if config.CORSEnabled {
+			origin := r.Header.Get("Origin")
+			allowed := false
+			
+			for _, allowedOrigin := range config.AllowedOrigins {
+				if allowedOrigin == "*" || allowedOrigin == origin {
+					allowed = true
+					break
+				}
+			}
+			
+			if allowed {
+				w.Header().Set("Access-Control-Allow-Origin", origin)
+				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+				w.Header().Set("Access-Control-Max-Age", "86400")
+			}
+			
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+		}
+		
+		next.ServeHTTP(w, r)
+	}
+}
+
+// Authentication middleware
+func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if config.APIKeyRequired {
+			apiKey := r.Header.Get("X-API-Key")
+			if apiKey == "" {
+				apiKey = r.Header.Get("Authorization")
+				if strings.HasPrefix(apiKey, "Bearer ") {
+					apiKey = strings.TrimPrefix(apiKey, "Bearer ")
+				}
+			}
+			
+			if apiKey != config.APIKey {
+				logger.Warn("Unauthorized request",
+					slog.String("path", r.URL.Path),
+					slog.String("remote_addr", r.RemoteAddr),
+				)
+				writeErrorResponse(w, "Unauthorized", "UNAUTHORIZED", "", http.StatusUnauthorized, nil)
+				return
+			}
+		}
+		
+		next.ServeHTTP(w, r)
+	}
+}
+
+// Rate limiting middleware (simple in-memory implementation)
+type rateLimiter struct {
+	clients map[string]*clientLimiter
+	mutex   sync.RWMutex
+}
+
+type clientLimiter struct {
+	lastSeen time.Time
+	count    int
+}
+
+func newRateLimiter() *rateLimiter {
+	rl := &rateLimiter{
+		clients: make(map[string]*clientLimiter),
+	}
+	
+	// Cleanup routine
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		
+		for range ticker.C {
+			rl.cleanup()
+		}
+	}()
+	
+	return rl
+}
+
+func (rl *rateLimiter) cleanup() {
+	rl.mutex.Lock()
+	defer rl.mutex.Unlock()
+	
+	now := time.Now()
+	for ip, limiter := range rl.clients {
+		if now.Sub(limiter.lastSeen) > time.Hour {
+			delete(rl.clients, ip)
+		}
+	}
+}
+
+func (rl *rateLimiter) allow(ip string, limit int) bool {
+	rl.mutex.Lock()
+	defer rl.mutex.Unlock()
+	
+	now := time.Now()
+	limiter, exists := rl.clients[ip]
+	
+	if !exists {
+		rl.clients[ip] = &clientLimiter{
+			lastSeen: now,
+			count:    1,
+		}
+		return true
+	}
+	
+	// Reset count if more than a minute has passed
+	if now.Sub(limiter.lastSeen) > time.Minute {
+		limiter.count = 1
+		limiter.lastSeen = now
+		return true
+	}
+	
+	limiter.lastSeen = now
+	if limiter.count >= limit {
+		return false
+	}
+	
+	limiter.count++
+	return true
+}
+
+var globalRateLimiter = newRateLimiter()
+
+func rateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if config.RateLimitRPM > 0 {
+			clientIP := getClientIP(r)
+			
+			if !globalRateLimiter.allow(clientIP, config.RateLimitRPM) {
+				logger.Warn("Rate limit exceeded",
+					slog.String("client_ip", clientIP),
+					slog.String("path", r.URL.Path),
+				)
+				writeErrorResponse(w, "Rate limit exceeded", "RATE_LIMIT_EXCEEDED", "", http.StatusTooManyRequests, map[string]string{
+					"retry_after": "60",
+				})
+				return
+			}
+		}
+		
+		next.ServeHTTP(w, r)
+	}
+}
+
+func getClientIP(r *http.Request) string {
+	// Check X-Forwarded-For header
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		parts := strings.Split(xff, ",")
+		return strings.TrimSpace(parts[0])
+	}
+	
+	// Check X-Real-IP header
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return xri
+	}
+	
+	// Use remote address
+	if strings.Contains(r.RemoteAddr, ":") {
+		host, _, _ := strings.Cut(r.RemoteAddr, ":")
+		return host
+	}
+	
+	return r.RemoteAddr
+}
+
 func init() {
 	// Register Prometheus metrics
 	prometheus.MustRegister(requestsTotal)
@@ -811,13 +1468,19 @@ func main() {
 	// Load configuration
 	config = loadConfig()
 
+	// Initialize structured logging
+	logger = initLogger(config.LogLevel)
+	slog.SetDefault(logger)
+
 	// Initialize intent processor
 	processor = NewIntentProcessor(config)
 
-	// Set up HTTP routes
-	http.HandleFunc("/process", processHandler)
-	http.HandleFunc("/healthz", healthzHandler)
-	http.HandleFunc("/readyz", readyzHandler)
+	// Set up HTTP routes with middleware
+	http.HandleFunc("/process", chainMiddleware(processHandler, loggingMiddleware, corsMiddleware, authMiddleware, rateLimitMiddleware))
+	http.HandleFunc("/healthz", chainMiddleware(healthzHandler, loggingMiddleware, corsMiddleware))
+	http.HandleFunc("/readyz", chainMiddleware(readyzHandler, loggingMiddleware, corsMiddleware))
+	http.HandleFunc("/info", chainMiddleware(infoHandler, loggingMiddleware, corsMiddleware))
+	http.HandleFunc("/version", chainMiddleware(versionHandler, loggingMiddleware, corsMiddleware))
 
 	if config.MetricsEnabled {
 		http.Handle("/metrics", promhttp.Handler())
@@ -840,7 +1503,7 @@ func main() {
 		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 		<-sigChan
 
-		log.Println("Shutting down gracefully...")
+		logger.Info("Received shutdown signal, starting graceful shutdown")
 
 		// Mark as not ready and unhealthy
 		readyMux.Lock()
@@ -856,18 +1519,28 @@ func main() {
 		defer cancel()
 
 		if err := server.Shutdown(ctx); err != nil {
-			log.Printf("Server forced to shutdown: %v", err)
+			logger.Error("Server forced to shutdown", slog.String("error", err.Error()))
+		} else {
+			logger.Info("Server shutdown completed successfully")
 		}
 	}()
 
-	log.Printf("Starting LLM Processor server on :%s", config.Port)
-	log.Printf("Service version: %s", config.ServiceVersion)
-	log.Printf("LLM Backend: %s", config.LLMBackendType)
-	log.Printf("RAG API: %s (enabled: %v)", config.RAGAPIURL, config.RAGEnabled)
+	logger.Info("Starting LLM Processor server",
+		slog.String("port", config.Port),
+		slog.String("version", config.ServiceVersion),
+		slog.String("llm_backend", config.LLMBackendType),
+		slog.String("llm_model", config.LLMModelName),
+		slog.String("rag_api", config.RAGAPIURL),
+		slog.Bool("rag_enabled", config.RAGEnabled),
+		slog.Bool("metrics_enabled", config.MetricsEnabled),
+		slog.Bool("cors_enabled", config.CORSEnabled),
+		slog.Bool("api_key_required", config.APIKeyRequired),
+	)
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("Failed to start server: %v", err)
+		logger.Error("Failed to start server", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
-	log.Println("Server stopped")
+	logger.Info("Server stopped successfully")
 }

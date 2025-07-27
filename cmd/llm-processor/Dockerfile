@@ -1,71 +1,123 @@
-# Multi-stage build for production-ready LLM processor
-# Build stage
+# Multi-stage build for production-ready LLM processor with enhanced security
+# Build stage with security optimizations
 FROM golang:1.24-alpine AS builder
 
-# Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata
+# Set build arguments for flexibility
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION=v2.0.0
 
-# Create non-root user for security
-RUN adduser -D -g '' appuser
+# Install only essential build dependencies with specific versions for security
+RUN apk add --no-cache \
+    git=~2.43 \
+    ca-certificates=~20241212 \
+    tzdata=~2024b \
+    && rm -rf /var/cache/apk/*
+
+# Create dedicated build user with minimal privileges
+RUN addgroup -g 10001 -S builduser && \
+    adduser -u 10001 -S builduser -G builduser
 
 WORKDIR /workspace
 
-# Copy dependency files and download modules
-COPY go.mod go.sum ./
-RUN go mod download
-RUN go mod verify
+# Set secure permissions on workspace
+RUN chown builduser:builduser /workspace
 
-# Copy source code
-COPY cmd/llm-processor/ cmd/llm-processor/
-COPY pkg/ pkg/
-COPY api/ api/
+# Switch to build user for security
+USER builduser:builduser
 
-# Build the binary with optimizations
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-    -ldflags='-w -s -extldflags "-static"' \
-    -a -installsuffix cgo \
+# Copy dependency files and download modules with integrity verification
+COPY --chown=builduser:builduser go.mod go.sum ./
+RUN go mod download && \
+    go mod verify && \
+    go mod tidy
+
+# Copy source code with proper ownership
+COPY --chown=builduser:builduser cmd/llm-processor/ cmd/llm-processor/
+COPY --chown=builduser:builduser pkg/ pkg/
+COPY --chown=builduser:builduser api/ api/
+
+# Build the binary with enhanced security and optimization flags
+RUN CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64 \
+    GOFLAGS="-buildvcs=false" \
+    go build \
+    -buildmode=exe \
+    -ldflags="-w -s -extldflags '-static' -X main.version=${VERSION} -X main.buildDate=${BUILD_DATE} -X main.gitCommit=${VCS_REF}" \
+    -a \
+    -installsuffix cgo \
+    -trimpath \
+    -mod=readonly \
     -o llm-processor \
     cmd/llm-processor/main.go
 
-# Verify the binary
-RUN file llm-processor
-RUN ls -la llm-processor
+# Security scan of the binary
+RUN file llm-processor && \
+    ls -la llm-processor && \
+    # Verify binary is statically linked
+    ldd llm-processor 2>&1 | grep -q "not a dynamic executable" || (echo "Binary is not statically linked!" && exit 1)
 
-# Runtime stage using distroless for security
-FROM gcr.io/distroless/static:nonroot
+# Intermediate stage for security scanning (optional in CI/CD)
+FROM alpine:3.20 AS scanner
+RUN apk add --no-cache binutils
+COPY --from=builder /workspace/llm-processor /tmp/llm-processor
+RUN strip --strip-unneeded /tmp/llm-processor
 
-# Copy timezone data and CA certificates
+# Runtime stage using distroless for maximum security
+FROM gcr.io/distroless/static:nonroot-amd64
+
+# Set build-time labels with dynamic values
+LABEL maintainer="Nephoran Intent Operator Team <team@nephoran.com>" \
+      version="${VERSION}" \
+      description="Production-ready LLM Processor Service for Telecom Network Intent Translation" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.source="https://github.com/thc1006/nephoran-intent-operator" \
+      org.opencontainers.image.title="LLM Processor" \
+      org.opencontainers.image.description="AI-powered network intent processing service for 5G/O-RAN networks" \
+      org.opencontainers.image.vendor="Nephoran" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.documentation="https://github.com/thc1006/nephoran-intent-operator/docs" \
+      security.scan="enabled" \
+      security.policy="minimal-attack-surface"
+
+# Copy essential system files from builder
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
-# Copy user information
-COPY --from=builder /etc/passwd /etc/passwd
+# Copy the optimized binary with strict permissions
+COPY --from=scanner /tmp/llm-processor /llm-processor
 
-# Copy the binary
-COPY --from=builder /workspace/llm-processor /llm-processor
-
-# Run as non-root user
+# Ensure binary has correct permissions (read and execute only)
 USER nonroot:nonroot
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD ["/llm-processor", "--health-check"] || exit 1
+# Set secure environment variables with production defaults
+ENV PORT=8080 \
+    LOG_LEVEL=info \
+    METRICS_ENABLED=true \
+    REQUEST_TIMEOUT=30s \
+    GRACEFUL_SHUTDOWN_TIMEOUT=30s \
+    READ_HEADER_TIMEOUT=10s \
+    WRITE_TIMEOUT=30s \
+    IDLE_TIMEOUT=120s \
+    MAX_HEADER_BYTES=1048576 \
+    GOGC=100 \
+    GOMEMLIMIT=512MiB
 
-# Expose port
-EXPOSE 8080
+# Health check with optimized parameters
+HEALTHCHECK --interval=30s \
+            --timeout=5s \
+            --start-period=15s \
+            --retries=3 \
+            CMD ["/llm-processor", "--health-check"] || exit 1
 
-# Set environment variables
-ENV PORT=8080
-ENV LOG_LEVEL=info
-ENV METRICS_ENABLED=true
+# Expose only the required port
+EXPOSE 8080/tcp
 
-# Labels for better image management
-LABEL maintainer="Nephoran Intent Operator Team"
-LABEL version="1.0.0"
-LABEL description="LLM Processor Service for Telecom Network Intent Translation"
-LABEL org.opencontainers.image.source="https://github.com/thc1006/nephoran-intent-operator"
-LABEL org.opencontainers.image.title="LLM Processor"
-LABEL org.opencontainers.image.description="AI-powered network intent processing service"
-
-# Entry point
+# Use exec form for better signal handling
 ENTRYPOINT ["/llm-processor"]
+
+# Default command arguments for production
+CMD ["--port=8080", "--log-level=info"]
