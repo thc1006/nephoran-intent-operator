@@ -1,0 +1,7 @@
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: test-intent
+  namespace: default
+spec:
+  intent: "Deploy a 5G core network with UPF scaling capabilities"

@@ -36,6 +36,38 @@ type NetworkIntentStatus struct {
 	// Conditions represent the latest available observations of an object's state
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	
+	// Phase represents the current phase of the NetworkIntent processing
+	// +optional
+	Phase string `json:"phase,omitempty"`
+	
+	// ProcessingStartTime indicates when the intent processing started
+	// +optional
+	ProcessingStartTime *metav1.Time `json:"processingStartTime,omitempty"`
+	
+	// ProcessingCompletionTime indicates when the intent processing completed
+	// +optional
+	ProcessingCompletionTime *metav1.Time `json:"processingCompletionTime,omitempty"`
+	
+	// DeploymentStartTime indicates when the GitOps deployment started
+	// +optional
+	DeploymentStartTime *metav1.Time `json:"deploymentStartTime,omitempty"`
+	
+	// DeploymentCompletionTime indicates when the GitOps deployment completed
+	// +optional
+	DeploymentCompletionTime *metav1.Time `json:"deploymentCompletionTime,omitempty"`
+	
+	// GitCommitHash represents the commit hash of the deployed configuration
+	// +optional
+	GitCommitHash string `json:"gitCommitHash,omitempty"`
+	
+	// LastRetryTime indicates the last time a retry was attempted
+	// +optional
+	LastRetryTime *metav1.Time `json:"lastRetryTime,omitempty"`
+	
+	// ObservedGeneration reflects the generation of the most recently observed NetworkIntent
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -13,7 +13,7 @@ import (
 
 // ClientInterface defines the interface for a Git client.
 type ClientInterface interface {
-	CommitAndPush(files map[string]string, message string) error
+	CommitAndPush(files map[string]string, message string) (string, error)
 	InitRepo() error
 }
 
@@ -50,27 +50,28 @@ func (c *Client) InitRepo() error {
 }
 
 // CommitAndPush writes files, commits them, and pushes to the remote repository.
-func (c *Client) CommitAndPush(files map[string]string, message string) error {
+// Returns the commit hash of the created commit.
+func (c *Client) CommitAndPush(files map[string]string, message string) (string, error) {
 	r, err := git.PlainOpen(c.RepoPath)
 	if err != nil {
-		return fmt.Errorf("failed to open repo: %w", err)
+		return "", fmt.Errorf("failed to open repo: %w", err)
 	}
 
 	w, err := r.Worktree()
 	if err != nil {
-		return fmt.Errorf("failed to get worktree: %w", err)
+		return "", fmt.Errorf("failed to get worktree: %w", err)
 	}
 
 	for path, content := range files {
 		fullPath := filepath.Join(c.RepoPath, path)
 		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
-			return fmt.Errorf("failed to create directory for %s: %w", path, err)
+			return "", fmt.Errorf("failed to create directory for %s: %w", path, err)
 		}
 		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
-			return fmt.Errorf("failed to write file %s: %w", path, err)
+			return "", fmt.Errorf("failed to write file %s: %w", path, err)
 		}
 		if _, err := w.Add(path); err != nil {
-			return fmt.Errorf("failed to add file %s: %w", path, err)
+			return "", fmt.Errorf("failed to add file %s: %w", path, err)
 		}
 	}
 
@@ -82,17 +83,17 @@ func (c *Client) CommitAndPush(files map[string]string, message string) error {
 		},
 	})
 	if err != nil {
-		return fmt.Errorf("failed to commit: %w", err)
+		return "", fmt.Errorf("failed to commit: %w", err)
 	}
 
-	_, err = r.CommitObject(commit)
+	commitObj, err := r.CommitObject(commit)
 	if err != nil {
-		return fmt.Errorf("failed to get commit object: %w", err)
+		return "", fmt.Errorf("failed to get commit object: %w", err)
 	}
 
 	auth, err := ssh.NewPublicKeys("git", []byte(c.SshKey), "")
 	if err != nil {
-		return fmt.Errorf("failed to create ssh auth: %w", err)
+		return "", fmt.Errorf("failed to create ssh auth: %w", err)
 	}
 
 	err = r.Push(&git.PushOptions{
@@ -100,8 +101,8 @@ func (c *Client) CommitAndPush(files map[string]string, message string) error {
 		Auth:       auth,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to push: %w", err)
+		return "", fmt.Errorf("failed to push: %w", err)
 	}
 
-	return nil
+	return commitObj.Hash.String(), nil
 }

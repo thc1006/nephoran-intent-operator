@@ -1,0 +1,15 @@
+apiVersion: nephoran.com/v1alpha1
+kind: E2NodeSet
+metadata:
+  name: sample-e2nodeset
+  namespace: default
+spec:
+  replicas: 3
+---
+apiVersion: nephoran.com/v1alpha1
+kind: E2NodeSet
+metadata:
+  name: scaled-e2nodeset
+  namespace: default
+spec:
+  replicas: 5

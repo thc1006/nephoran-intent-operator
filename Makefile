@@ -1,6 +1,15 @@
 # Build configuration
 APP_NAME := telecom-llm-automation
-VERSION := $(shell git describe --tags --always --dirty)
+# Cross-platform version detection
+ifeq ($(OS),Windows_NT)
+    VERSION := $(shell git describe --tags --always --dirty 2>nul || echo "dev")
+    GOOS := windows
+    GOBIN_DIR := bin
+else
+    VERSION := $(shell git describe --tags --always --dirty)
+    GOOS := $(shell go env GOOS)
+    GOBIN_DIR := bin
+endif
 REGISTRY ?= us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran
 IMAGES = \
   $(REGISTRY)/llm-processor \
@@ -31,7 +40,11 @@ help:
 setup-dev: ## Set up development environment
 	@echo "--- Setting up development environment ---"
 	go mod tidy
+ifeq ($(OS),Windows_NT)
+	python -m pip install -r requirements-rag.txt
+else
 	pip3 install -r requirements-rag.txt
+endif
 
 build-all: ## Build all components
 	@echo "--- Building all components ---"
@@ -49,9 +62,15 @@ test-integration: ## Run integration tests
 	@echo "--- Running integration tests ---"
 	@echo "--- Setting up envtest ---"
 	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+ifeq ($(OS),Windows_NT)
+	$(shell go env GOPATH)\bin\setup-envtest.exe use 1.29.0 --bin-dir $(shell go env GOPATH)\bin
+	set KUBEBUILDER_ASSETS=$(shell $(shell go env GOPATH)\bin\setup-envtest.exe use 1.29.0 --bin-dir $(shell go env GOPATH)\bin -p path) && go test -v ./pkg/controllers/...
+	-python -m pytest
+else
 	$(shell go env GOPATH)/bin/setup-envtest use 1.29.0 --bin-dir $(shell go env GOPATH)/bin
 	KUBEBUILDER_ASSETS=$(shell $(shell go env GOPATH)/bin/setup-envtest use 1.29.0 --bin-dir $(shell go env GOPATH)/bin -p path) go test -v ./pkg/controllers/...
 	-python3 -m pytest
+endif
 
 # TODO: Add build targets for each service (e.g., build-llm-processor)
 .PHONY: build-llm-processor build-nephio-bridge build-oran-adaptor docker-build docker-push populate-kb
@@ -72,16 +91,32 @@ docker-push: ## Push docker images to the registry
 
 populate-kb: ## Populate the Weaviate knowledge base
 	@echo "--- Populating Knowledge Base ---"
+ifeq ($(OS),Windows_NT)
+	set OPENAI_API_KEY=$(OPENAI_API_KEY) && set WEAVIATE_URL=$(WEAVIATE_URL) && python scripts/populate_vector_store.py
+else
 	OPENAI_API_KEY=$(OPENAI_API_KEY) WEAVIATE_URL=$(WEAVIATE_URL) python3 scripts/populate_vector_store.py
+endif
 
 build-llm-processor:
 	@echo "Building llm-processor..."
+ifeq ($(OS),Windows_NT)
+	go build -o bin\llm-processor.exe cmd\llm-processor\main.go
+else
 	go build -o bin/llm-processor cmd/llm-processor/main.go
+endif
 
 build-nephio-bridge:
 	@echo "Building nephio-bridge..."
+ifeq ($(OS),Windows_NT)
+	go build -o bin\nephio-bridge.exe cmd\nephio-bridge\main.go
+else
 	go build -o bin/nephio-bridge cmd/nephio-bridge/main.go
+endif
 
 build-oran-adaptor:
 	@echo "Building oran-adaptor..."
+ifeq ($(OS),Windows_NT)
+	go build -o bin\oran-adaptor.exe cmd\oran-adaptor\main.go
+else
 	go build -o bin/oran-adaptor cmd/oran-adaptor/main.go
+endif
