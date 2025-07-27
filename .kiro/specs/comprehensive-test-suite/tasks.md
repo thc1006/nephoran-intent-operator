@@ -23,6 +23,12 @@
   - Implement Windows-compatible path handling for CRD loading
   - _Requirements: 5.1, 5.2, 5.3, 6.2_
 
+- [x] 1.4 Create requirements document
+  - Create comprehensive requirements document based on design and current implementation needs
+  - Define acceptance criteria for all test categories
+  - Establish clear requirements for cross-platform compatibility and performance
+  - _Requirements: 6.3, 6.4_
+
 - [ ] 2. Implement comprehensive E2NodeSet controller tests
   - Create `pkg/controllers/e2nodeset_controller_test.go` with complete controller testing
   - Test reconcile loop behavior, scaling operations, and status updates
@@ -47,8 +53,8 @@
   - Verify proper error logging and event recording
   - _Requirements: 1.3, 1.5_
 
-- [ ] 3. Enhance NetworkIntent controller tests
-  - Enhance existing `pkg/controllers/networkintent_controller_test.go` with comprehensive test coverage
+- [ ] 3. Implement comprehensive NetworkIntent controller tests
+  - Replace basic mock in `pkg/controllers/networkintent_controller_test.go` with comprehensive test coverage
   - Add tests for LLM processing, GitOps integration, and retry mechanisms
   - Test condition management and status updates throughout processing lifecycle
   - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5_
