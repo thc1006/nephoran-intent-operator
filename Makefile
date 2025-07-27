@@ -10,7 +10,7 @@ IMAGES = \
 
 generate: ## Generate code
 	@echo "--- Generating Code ---"
-	controller-gen object:headerFile=hack/boilerplate.go.txt paths="./..."
+	controller-gen object:headerFile=hack/boilerplate.go.txt paths="github.com/thc1006/nephoran-intent-operator/api/v1"
 
 lint: ## Run linters
 	@echo "--- Running Linters ---"
@@ -41,14 +41,16 @@ build-all: ## Build all components
 
 deploy-dev: ## Deploy to development environment
 	@echo "--- Deploying to development environment ---"
-	kustomize build deployments/kustomize/dev | kubectl apply -f -
+	kustomize build deployments/kustomize/overlays/dev | kubectl apply -f -
 	kubectl apply -f deployments/crds/networkintent_crd.yaml
 	kubectl apply -f deployments/crds/managedelement_crd.yaml
 
 test-integration: ## Run integration tests
 	@echo "--- Running integration tests ---"
-	@echo "--- SKIPPING GO TESTS DUE TO ENVTEST SETUP ISSUES ---"
-	# KUBEBUILDER_ASSETS=$(HOME)/.cache/kubebuilder-envtest/k8s/1.29.0-linux-amd64 go test -v ./...
+	@echo "--- Setting up envtest ---"
+	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+	$(shell go env GOPATH)/bin/setup-envtest use 1.29.0 --bin-dir $(shell go env GOPATH)/bin
+	KUBEBUILDER_ASSETS=$(shell $(shell go env GOPATH)/bin/setup-envtest use 1.29.0 --bin-dir $(shell go env GOPATH)/bin -p path) go test -v ./pkg/controllers/...
 	-python3 -m pytest
 
 # TODO: Add build targets for each service (e.g., build-llm-processor)

@@ -14,7 +14,13 @@ import (
 
 var (
 	ragAPIURL string
+	config    *Config
 )
+
+type Config struct {
+	RAGAPIURL string
+	Port      string
+}
 
 // Defines the structure of the incoming request from the controller
 type networkIntentRequest struct {
@@ -29,17 +35,36 @@ type ragAPIRequest struct {
 }
 
 func main() {
-	ragAPIURL = os.Getenv("RAG_API_URL")
-	if ragAPIURL == "" {
-		// Default to the Kubernetes service name for the RAG API
-		ragAPIURL = "http://rag-api.default.svc.cluster.local:5001/process_intent"
+	// Load configuration from environment variables
+	config = &Config{
+		RAGAPIURL: getEnvOrDefault("RAG_API_URL", "http://rag-api.default.svc.cluster.local:5001/process_intent"),
+		Port:      getEnvOrDefault("PORT", "8080"),
 	}
+	
+	ragAPIURL = config.RAGAPIURL
 
 	http.HandleFunc("/process", processHandler)
-	log.Println("Starting LLM Processor server on :8080")
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	http.HandleFunc("/healthz", healthzHandler)
+	
+	log.Printf("Starting LLM Processor server on :%s", config.Port)
+	log.Printf("RAG API URL: %s", config.RAGAPIURL)
+	
+	if err := http.ListenAndServe(":"+config.Port, nil); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+func healthzHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status": "ok"}`))
 }
 
 func processHandler(w http.ResponseWriter, r *http.Request) {

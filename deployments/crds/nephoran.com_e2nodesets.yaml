@@ -14,7 +14,7 @@ spec:
     singular: e2nodeset
   scope: Namespaced
   versions:
-  - name: v1
+  - name: v1alpha1
     schema:
       openAPIV3Schema:
         description: E2NodeSet is the Schema for the e2nodesets API

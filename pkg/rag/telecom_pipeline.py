@@ -4,34 +4,46 @@ from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 import json
+import time
 
 
 class TelecomRAGPipeline:
     """Production-ready RAG pipeline for telecom domain."""
 
     def __init__(self, config: Dict[str, Any]):
-        self.embeddings = OpenAIEmbeddings(
-            model="text-embedding-3-large",
-            dimensions=3072
-        )
-        self.llm = ChatOpenAI(
-            model="gpt-4o-mini",
-            temperature=0,
-            max_tokens=2048,
-            model_kwargs={"response_format": {"type": "json_object"}}
-        )
-        self.vector_store = self._setup_vector_store(config)
-        self.qa_chain = self._create_qa_chain()
+        if not config.get("openai_api_key"):
+            raise ValueError("OpenAI API key is required")
+        
+        try:
+            self.embeddings = OpenAIEmbeddings(
+                model="text-embedding-3-large",
+                dimensions=3072,
+                openai_api_key=config["openai_api_key"]
+            )
+            self.llm = ChatOpenAI(
+                model="gpt-4o-mini",
+                temperature=0,
+                max_tokens=2048,
+                model_kwargs={"response_format": {"type": "json_object"}},
+                openai_api_key=config["openai_api_key"]
+            )
+            self.vector_store = self._setup_vector_store(config)
+            self.qa_chain = self._create_qa_chain()
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize RAG pipeline: {e}")
 
     def _setup_vector_store(self, config: Dict) -> Weaviate:
         """Initialize Weaviate vector database."""
-        return Weaviate.from_existing_index(
-            embedding=self.embeddings,
-            index_name="telecom_knowledge",
-            text_key="content",
-            weaviate_url=config["weaviate_url"],
-            additional_headers={"X-OpenAI-Api-Key": config["openai_api_key"]}
-        )
+        try:
+            return Weaviate.from_existing_index(
+                embedding=self.embeddings,
+                index_name="telecom_knowledge",
+                text_key="content",
+                weaviate_url=config["weaviate_url"],
+                additional_headers={"X-OpenAI-Api-Key": config["openai_api_key"]}
+            )
+        except Exception as e:
+            raise ConnectionError(f"Failed to connect to Weaviate at {config.get('weaviate_url', 'unknown')}: {e}")
 
     def _create_qa_chain(self) -> RetrievalQA:
         """Create telecom-optimized QA chain."""
@@ -88,16 +100,73 @@ Based on the user command, generate the single, corresponding JSON object.
 
     def process_intent(self, intent: str) -> Dict[str, Any]:
         """Process user intent and return a structured JSON object."""
-        result = self.qa_chain.invoke({"query": intent})
-
+        if not intent or not intent.strip():
+            return {
+                "error": "Empty intent provided",
+                "original_intent": intent
+            }
+        
         try:
-            structured_output = json.loads(result['result'])
+            result = self.qa_chain.invoke({"query": intent})
+            
+            # Extract the result text
+            result_text = result.get('result', '')
+            if not result_text:
+                return {
+                    "error": "Empty response from LLM",
+                    "original_intent": intent
+                }
+            
+            # Parse the JSON response
+            structured_output = json.loads(result_text)
+            
+            # Add metadata
             structured_output['original_intent'] = intent
+            structured_output['timestamp'] = json.dumps(time.time())
+            
+            # Validate the response structure
+            if not self._validate_response_structure(structured_output):
+                return {
+                    "error": "Invalid response structure from LLM",
+                    "raw_output": result_text,
+                    "original_intent": intent
+                }
+            
             return structured_output
+            
         except (json.JSONDecodeError, TypeError) as e:
             return {
-                "error": "Failed to parse LLM output as JSON.",
-                "raw_output": result['result'],
+                "error": "Failed to parse LLM output as JSON",
+                "raw_output": result.get('result', ''),
                 "original_intent": intent,
                 "exception": str(e)
             }
+        except Exception as e:
+            return {
+                "error": "Unexpected error during intent processing",
+                "original_intent": intent,
+                "exception": str(e)
+            }
+    
+    def _validate_response_structure(self, response: Dict[str, Any]) -> bool:
+        """Validate that the response has the expected structure."""
+        if not isinstance(response, dict):
+            return False
+        
+        # Check for required 'type' field
+        if 'type' not in response:
+            return False
+        
+        response_type = response['type']
+        
+        # Validate NetworkFunctionDeployment structure
+        if response_type == "NetworkFunctionDeployment":
+            required_fields = ['name', 'namespace', 'spec']
+            return all(field in response for field in required_fields)
+        
+        # Validate NetworkFunctionScale structure
+        elif response_type == "NetworkFunctionScale":
+            required_fields = ['name', 'namespace', 'replicas']
+            return all(field in response for field in required_fields)
+        
+        return False

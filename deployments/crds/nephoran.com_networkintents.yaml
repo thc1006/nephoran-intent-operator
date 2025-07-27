@@ -14,7 +14,7 @@ spec:
     singular: networkintent
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - name: v1
     schema:
       openAPIV3Schema:
         description: NetworkIntent is the Schema for the networkintents API
