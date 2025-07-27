@@ -6,7 +6,11 @@ IMAGES = \
   $(REGISTRY)/llm-processor \
   $(REGISTRY)/nephio-bridge
 
-.PHONY: help setup-dev build-all deploy-dev test-integration lint
+.PHONY: help setup-dev build-all deploy-dev test-integration lint generate
+
+generate: ## Generate code
+	@echo "--- Generating Code ---"
+	controller-gen object:headerFile=hack/boilerplate.go.txt paths="./..."
 
 lint: ## Run linters
 	@echo "--- Running Linters ---"

@@ -1,82 +1,77 @@
 name: CI/CD Pipeline
 
-on:  workflow_dispatch:
-  # schedule:
-  #   - cron: '0 0 * * *' # daily
+on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
 jobs:
-  lint:
-    name: Lint Code
+  lint-and-test:
+    name: Lint and Test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.24'
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
-          pip install flake8
-          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.2
+          go install golang.org/x/tools/cmd/goimports@latest
+          go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
 
-      - name: Run Go linter
-        run: golangci-lint run ./... --timeout=5m
+      - name: Check Go Formatting and Imports
+        run: |
+          goimports -l .
+          # The following command will exit with an error if any files are not formatted.
+          test -z "$(goimports -l .)"
 
-      - name: Run Python linter
-        run: flake8 pkg/rag/
+      - name: Run Go Vet
+        run: go vet ./...
 
-  test:
-    name: Run Tests
-    needs: lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Generate Code and Check for Diffs
+        run: |
+          make generate
+          # The following command will exit with an error if 'make generate' produced changes.
+          git diff --exit-code
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.21'
-      
-      - name: Run Go tests
+      - name: Run Go Tests
         run: go test -v ./...
-
-      # Add Python tests here if any are created
 
   build-and-push:
     name: Build and Push Docker Images
-    needs: test
-    if: github.ref == 'refs/heads/main'
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [llm-processor, nephio-bridge, oran-adaptor, rag-api]
+        service:
+          - name: nephoran-llm-processor
+            dockerfile: cmd/llm-processor/Dockerfile
+          - name: nephoran-nephio-bridge
+            dockerfile: cmd/nephio-bridge/Dockerfile
+          - name: nephoran-oran-adaptor
+            dockerfile: cmd/oran-adaptor/Dockerfile
+          - name: nephoran-rag-api
+            dockerfile: pkg/rag/Dockerfile
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./.devcontainer/Dockerfile # Assuming a single Dockerfile for all
+          file: ${{ matrix.service.dockerfile }}
           push: true
-          tags: your-dockerhub-username/${{ matrix.service }}:latest
+          tags: thc1006/${{ matrix.service.name }}:latest
