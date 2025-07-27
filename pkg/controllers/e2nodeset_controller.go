@@ -116,12 +116,12 @@ func (r *E2NodeSetReconciler) createE2Node(ctx context.Context, e2nodeSet *nepho
 			Labels:    r.getE2NodeLabels(e2nodeSet),
 		},
 		Data: map[string]string{
-			"nodeId":     fmt.Sprintf("%s-node-%d", e2nodeSet.Name, index),
-			"nodeType":   "simulated-gnb",
-			"status":     "active",
-			"created":    time.Now().Format(time.RFC3339),
-			"e2nodeSet":  e2nodeSet.Name,
-			"index":      fmt.Sprintf("%d", index),
+			"nodeId":    fmt.Sprintf("%s-node-%d", e2nodeSet.Name, index),
+			"nodeType":  "simulated-gnb",
+			"status":    "active",
+			"created":   time.Now().Format(time.RFC3339),
+			"e2nodeSet": e2nodeSet.Name,
+			"index":     fmt.Sprintf("%d", index),
 		},
 	}
 
@@ -148,9 +148,9 @@ func (r *E2NodeSetReconciler) deleteE2Node(ctx context.Context, e2nodeSet *nepho
 // getE2NodeLabels returns the labels used to identify E2 nodes belonging to this E2NodeSet
 func (r *E2NodeSetReconciler) getE2NodeLabels(e2nodeSet *nephoranv1.E2NodeSet) map[string]string {
 	return map[string]string{
-		"app":                    "e2node",
-		"e2nodeset":              e2nodeSet.Name,
-		"nephoran.com/component": "simulated-gnb",
+		"app":                     "e2node",
+		"e2nodeset":               e2nodeSet.Name,
+		"nephoran.com/component":  "simulated-gnb",
 		"nephoran.com/managed-by": "e2nodeset-controller",
 	}
 }

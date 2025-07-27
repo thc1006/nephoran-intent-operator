@@ -40,11 +40,11 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 	if err, exists := m.errors[intent]; exists {
 		return "", err
 	}
-	
+
 	if response, exists := m.responses[intent]; exists {
 		return response, nil
 	}
-	
+
 	// Default mock response for UPF deployment
 	if intent == "Deploy UPF network function with 3 replicas" {
 		return `{
@@ -68,7 +68,7 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 			}
 		}`, nil
 	}
-	
+
 	// Default mock response for scaling
 	if intent == "Scale AMF to 5 replicas" {
 		return `{
@@ -84,7 +84,7 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (strin
 			}
 		}`, nil
 	}
-	
+
 	return "", fmt.Errorf("no mock response configured for intent: %s", intent)
 }
 
@@ -125,7 +125,7 @@ func TestLLMProcessorIntegration(t *testing.T) {
 
 	t.Run("Test NetworkFunction Deployment Processing", func(t *testing.T) {
 		intent := "Deploy UPF network function with 3 replicas"
-		
+
 		req := &NetworkIntentRequest{
 			Spec: struct {
 				Intent string `json:"intent"`
@@ -153,13 +153,13 @@ func TestLLMProcessorIntegration(t *testing.T) {
 		assert.Equal(t, "upf-deployment", response.Name)
 		assert.Equal(t, "5g-core", response.Namespace)
 		assert.Equal(t, intent, response.OriginalIntent)
-		
+
 		// Verify spec contains expected fields
 		spec, ok := response.Spec.(map[string]interface{})
 		require.True(t, ok)
 		assert.Equal(t, float64(3), spec["replicas"])
 		assert.Equal(t, "registry.5g.local/upf:latest", spec["image"])
-		
+
 		// Verify processing metadata
 		assert.Equal(t, config.LLMModelName, response.ProcessingMetadata.ModelUsed)
 		assert.Greater(t, response.ProcessingMetadata.ConfidenceScore, 0.0)
@@ -168,7 +168,7 @@ func TestLLMProcessorIntegration(t *testing.T) {
 
 	t.Run("Test NetworkFunction Scaling Processing", func(t *testing.T) {
 		intent := "Scale AMF to 5 replicas"
-		
+
 		req := &NetworkIntentRequest{
 			Spec: struct {
 				Intent string `json:"intent"`
@@ -229,7 +229,7 @@ func TestLLMProcessorIntegration(t *testing.T) {
 	t.Run("Test Parameter Extraction", func(t *testing.T) {
 		intent := "Deploy UPF with 5 replicas and 4GB memory"
 		extractedParams := processor.promptEngine.ExtractParameters(intent)
-		
+
 		assert.Contains(t, extractedParams, "replicas")
 		assert.Equal(t, "5", extractedParams["replicas"])
 		assert.Contains(t, extractedParams, "memory")
@@ -240,14 +240,14 @@ func TestLLMProcessorIntegration(t *testing.T) {
 func TestHTTPEndpoints(t *testing.T) {
 	// Setup test server
 	config = &Config{
-		Port:             "8080",
-		ServiceVersion:   "test-v1.0.0",
-		LLMBackendType:   "openai",
-		LLMModelName:     "gpt-4o-mini",
-		MetricsEnabled:   true,
-		CircuitBreakerEnabled: true,
+		Port:                    "8080",
+		ServiceVersion:          "test-v1.0.0",
+		LLMBackendType:          "openai",
+		LLMModelName:            "gpt-4o-mini",
+		MetricsEnabled:          true,
+		CircuitBreakerEnabled:   true,
 		CircuitBreakerThreshold: 5,
-		CircuitBreakerTimeout: 60 * time.Second,
+		CircuitBreakerTimeout:   60 * time.Second,
 	}
 
 	processor = NewIntentProcessor(config)
@@ -273,7 +273,7 @@ func TestHTTPEndpoints(t *testing.T) {
 		processHandler(w, httpReq)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		
+
 		var response NetworkIntentResponse
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
@@ -287,7 +287,7 @@ func TestHTTPEndpoints(t *testing.T) {
 		healthzHandler(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		
+
 		var response HealthResponse
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
@@ -302,7 +302,7 @@ func TestHTTPEndpoints(t *testing.T) {
 		readyzHandler(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		
+
 		var response ReadinessResponse
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		require.NoError(t, err)
@@ -335,7 +335,7 @@ func TestHTTPEndpoints(t *testing.T) {
 		processHandler(w, httpReq)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		
+
 		var errorResp ErrorResponse
 		err := json.Unmarshal(w.Body.Bytes(), &errorResp)
 		require.NoError(t, err)
@@ -401,9 +401,9 @@ func TestTelecomPromptEngineIntegration(t *testing.T) {
 	t.Run("Test UPF Intent Processing", func(t *testing.T) {
 		intent := "Deploy UPF network function with high availability for 5G core"
 		intentType := "NetworkFunctionDeployment"
-		
+
 		prompt := engine.GeneratePrompt(intentType, intent)
-		
+
 		assert.Contains(t, prompt, "UPF")
 		assert.Contains(t, prompt, "User Plane Function")
 		assert.Contains(t, prompt, "packet routing")
@@ -413,9 +413,9 @@ func TestTelecomPromptEngineIntegration(t *testing.T) {
 	t.Run("Test Near-RT RIC Intent Processing", func(t *testing.T) {
 		intent := "Setup Near-RT RIC with xApp support for intelligent network optimization"
 		intentType := "NetworkFunctionDeployment"
-		
+
 		prompt := engine.GeneratePrompt(intentType, intent)
-		
+
 		assert.Contains(t, prompt, "Near-RT RIC")
 		assert.Contains(t, prompt, "xApp")
 		assert.Contains(t, prompt, "E2 interface")
@@ -424,7 +424,7 @@ func TestTelecomPromptEngineIntegration(t *testing.T) {
 	t.Run("Test Parameter Extraction", func(t *testing.T) {
 		intent := "Deploy UPF with 3 replicas, 4 CPU cores, and 8GB memory in 5g-core namespace"
 		params := engine.ExtractParameters(intent)
-		
+
 		assert.Equal(t, "3", params["replicas"])
 		assert.Equal(t, "4000m", params["cpu"])
 		assert.Equal(t, "8Gi", params["memory"])
@@ -444,7 +444,7 @@ func TestTelecomPromptEngineIntegration(t *testing.T) {
 
 		for _, tc := range testCases {
 			params := engine.ExtractParameters(tc.intent)
-			assert.Equal(t, tc.expectedFunction, params["network_function"], 
+			assert.Equal(t, tc.expectedFunction, params["network_function"],
 				"Failed for intent: %s", tc.intent)
 		}
 	})
@@ -452,13 +452,13 @@ func TestTelecomPromptEngineIntegration(t *testing.T) {
 
 func BenchmarkIntentProcessing(b *testing.B) {
 	config := &Config{
-		LLMBackendType: "openai",
-		LLMModelName:   "gpt-4o-mini",
-		LLMTimeout:     30 * time.Second,
-		LLMMaxTokens:   2048,
-		CircuitBreakerEnabled: true,
+		LLMBackendType:          "openai",
+		LLMModelName:            "gpt-4o-mini",
+		LLMTimeout:              30 * time.Second,
+		LLMMaxTokens:            2048,
+		CircuitBreakerEnabled:   true,
 		CircuitBreakerThreshold: 10,
-		CircuitBreakerTimeout: 60 * time.Second,
+		CircuitBreakerTimeout:   60 * time.Second,
 	}
 
 	processor := NewIntentProcessor(config)

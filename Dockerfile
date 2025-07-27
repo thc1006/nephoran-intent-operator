@@ -10,12 +10,12 @@ ARG VCS_REF
 ARG VERSION=v2.0.0
 ARG SERVICE
 
-# Install essential build dependencies with version pinning
+# Install essential build dependencies
 RUN apk add --no-cache \
-    git=~2.43 \
-    ca-certificates=~20241212 \
-    tzdata=~2024b \
-    make=~4.4 \
+    git \
+    ca-certificates \
+    tzdata \
+    make \
     && rm -rf /var/cache/apk/* \
     && apk update && apk upgrade
 

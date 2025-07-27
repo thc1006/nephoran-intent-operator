@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -14,7 +13,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 func TestE2E(t *testing.T) {
@@ -503,8 +501,8 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 					expectedReplicas: float64(5),
 				},
 				{
-					intent:         "Scale AMF to 4 CPU cores",
-					expectedCPU:    "4000m",
+					intent:      "Scale AMF to 4 CPU cores",
+					expectedCPU: "4000m",
 				},
 				{
 					intent:         "Allocate 8GB memory for SMF",
