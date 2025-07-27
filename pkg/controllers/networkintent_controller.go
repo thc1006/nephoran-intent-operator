@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,13 +27,13 @@ type NetworkIntentReconciler struct {
 	LLMProcessorURL string
 	HTTPClient      *http.Client
 	EventRecorder   record.EventRecorder
-	
+
 	// Configuration for retry and GitOps
-	MaxRetries      int
-	RetryDelay      time.Duration
-	GitRepoURL      string
-	GitBranch       string
-	GitDeployPath   string
+	MaxRetries    int
+	RetryDelay    time.Duration
+	GitRepoURL    string
+	GitBranch     string
+	GitDeployPath string
 }
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
@@ -58,13 +58,13 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if r.RetryDelay == 0 {
 		r.RetryDelay = time.Second * 30
 	}
-	
+
 	// Update observed generation
 	networkIntent.Status.ObservedGeneration = networkIntent.Generation
 
 	// Check if intent has already been processed successfully
-	if isConditionTrue(networkIntent.Status.Conditions, "Processed") && 
-	   isConditionTrue(networkIntent.Status.Conditions, "Deployed") {
+	if isConditionTrue(networkIntent.Status.Conditions, "Processed") &&
+		isConditionTrue(networkIntent.Status.Conditions, "Deployed") {
 		logger.Info("NetworkIntent already processed and deployed", "intent", networkIntent.Spec.Intent)
 		return ctrl.Result{}, nil
 	}
@@ -80,7 +80,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				logger.Error(err, "failed to update NetworkIntent status")
 			}
 		}
-		
+
 		result, err := r.processIntentWithRetry(ctx, &networkIntent)
 		if err != nil {
 			return result, err
@@ -91,8 +91,8 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Step 2: Deploy using GitOps if processing succeeded
-	if isConditionTrue(networkIntent.Status.Conditions, "Processed") && 
-	   !isConditionTrue(networkIntent.Status.Conditions, "Deployed") {
+	if isConditionTrue(networkIntent.Status.Conditions, "Processed") &&
+		!isConditionTrue(networkIntent.Status.Conditions, "Deployed") {
 		// Set phase and start time for deployment if not already set
 		if networkIntent.Status.Phase != "Deploying" {
 			networkIntent.Status.Phase = "Deploying"
@@ -102,7 +102,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				logger.Error(err, "failed to update NetworkIntent status")
 			}
 		}
-		
+
 		result, err := r.deployViaGitOps(ctx, &networkIntent)
 		if err != nil {
 			return result, err
@@ -119,14 +119,14 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			logger.Error(err, "failed to update NetworkIntent final status")
 		}
 	}
-	
+
 	logger.Info("NetworkIntent fully processed and deployed", "intent", networkIntent.Spec.Intent)
 	return ctrl.Result{}, nil
 }
 
 func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	
+
 	if r.LLMClient == nil {
 		logger.Error(fmt.Errorf("LLM client is nil"), "LLM client not configured")
 		r.recordEvent(networkIntent, "Warning", "LLMClientNotConfigured", "LLM client is not configured")
@@ -135,7 +135,7 @@ func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, ne
 
 	// Get current retry count from annotations
 	retryCount := getRetryCount(networkIntent, "llm-processing")
-	
+
 	if retryCount >= r.MaxRetries {
 		// Max retries reached, mark as failed
 		condition := metav1.Condition{
@@ -146,13 +146,13 @@ func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, ne
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		if err := r.Status().Update(ctx, networkIntent); err != nil {
 			logger.Error(err, "failed to update NetworkIntent status")
 			return ctrl.Result{}, err
 		}
-		
-		r.recordEvent(networkIntent, "Warning", "LLMProcessingFailed", 
+
+		r.recordEvent(networkIntent, "Warning", "LLMProcessingFailed",
 			fmt.Sprintf("Failed to process intent after %d retries", r.MaxRetries))
 		return ctrl.Result{}, nil
 	}
@@ -161,10 +161,10 @@ func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, ne
 	processedResult, err := r.LLMClient.ProcessIntent(ctx, networkIntent.Spec.Intent)
 	if err != nil {
 		logger.Error(err, "failed to process intent with LLM", "retry", retryCount+1)
-		
+
 		// Increment retry count
 		setRetryCount(networkIntent, "llm-processing", retryCount+1)
-		
+
 		// Update status with retry information
 		now := metav1.Now()
 		networkIntent.Status.LastRetryTime = &now
@@ -176,14 +176,14 @@ func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, ne
 			LastTransitionTime: now,
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		if updateErr := r.Status().Update(ctx, networkIntent); updateErr != nil {
 			logger.Error(updateErr, "failed to update NetworkIntent status")
 		}
-		
-		r.recordEvent(networkIntent, "Warning", "LLMProcessingRetry", 
+
+		r.recordEvent(networkIntent, "Warning", "LLMProcessingRetry",
 			fmt.Sprintf("LLM processing failed, retry %d/%d: %v", retryCount+1, r.MaxRetries, err))
-		
+
 		return ctrl.Result{RequeueAfter: r.RetryDelay}, nil
 	}
 
@@ -191,10 +191,10 @@ func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, ne
 	var parameters map[string]interface{}
 	if err := json.Unmarshal([]byte(processedResult), &parameters); err != nil {
 		logger.Error(err, "failed to parse LLM response")
-		
+
 		// Increment retry count for parsing failure
 		setRetryCount(networkIntent, "llm-processing", retryCount+1)
-		
+
 		condition := metav1.Condition{
 			Type:               "Processed",
 			Status:             metav1.ConditionFalse,
@@ -203,14 +203,14 @@ func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, ne
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		if updateErr := r.Status().Update(ctx, networkIntent); updateErr != nil {
 			logger.Error(updateErr, "failed to update NetworkIntent status")
 		}
-		
-		r.recordEvent(networkIntent, "Warning", "LLMResponseParsingFailed", 
+
+		r.recordEvent(networkIntent, "Warning", "LLMResponseParsingFailed",
 			fmt.Sprintf("Failed to parse LLM response: %v", err))
-		
+
 		return ctrl.Result{RequeueAfter: r.RetryDelay}, nil
 	}
 
@@ -235,7 +235,7 @@ func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, ne
 		LastTransitionTime: now,
 	}
 	updateCondition(&networkIntent.Status.Conditions, condition)
-	
+
 	if err := r.Status().Update(ctx, networkIntent); err != nil {
 		logger.Error(err, "failed to update NetworkIntent status")
 		return ctrl.Result{}, err
@@ -243,13 +243,13 @@ func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, ne
 
 	r.recordEvent(networkIntent, "Normal", "LLMProcessingSucceeded", "Intent successfully processed by LLM")
 	logger.Info("NetworkIntent processed successfully", "intent", networkIntent.Spec.Intent)
-	
+
 	return ctrl.Result{}, nil
 }
 
 func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	
+
 	if r.GitClient == nil {
 		logger.Error(fmt.Errorf("Git client is nil"), "Git client not configured")
 		r.recordEvent(networkIntent, "Warning", "GitClientNotConfigured", "Git client is not configured")
@@ -258,7 +258,7 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 
 	// Get current retry count from annotations
 	retryCount := getRetryCount(networkIntent, "git-deployment")
-	
+
 	if retryCount >= r.MaxRetries {
 		// Max retries reached, mark as failed
 		condition := metav1.Condition{
@@ -269,13 +269,13 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		if err := r.Status().Update(ctx, networkIntent); err != nil {
 			logger.Error(err, "failed to update NetworkIntent status")
 			return ctrl.Result{}, err
 		}
-		
-		r.recordEvent(networkIntent, "Warning", "GitDeploymentFailed", 
+
+		r.recordEvent(networkIntent, "Warning", "GitDeploymentFailed",
 			fmt.Sprintf("Failed to deploy via GitOps after %d retries", r.MaxRetries))
 		return ctrl.Result{}, nil
 	}
@@ -284,10 +284,10 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 	deploymentFiles, err := r.generateDeploymentFiles(networkIntent)
 	if err != nil {
 		logger.Error(err, "failed to generate deployment files")
-		
+
 		// Increment retry count
 		setRetryCount(networkIntent, "git-deployment", retryCount+1)
-		
+
 		condition := metav1.Condition{
 			Type:               "Deployed",
 			Status:             metav1.ConditionFalse,
@@ -296,24 +296,24 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		if updateErr := r.Status().Update(ctx, networkIntent); updateErr != nil {
 			logger.Error(updateErr, "failed to update NetworkIntent status")
 		}
-		
-		r.recordEvent(networkIntent, "Warning", "DeploymentFileGenerationFailed", 
+
+		r.recordEvent(networkIntent, "Warning", "DeploymentFileGenerationFailed",
 			fmt.Sprintf("Failed to generate deployment files: %v", err))
-		
+
 		return ctrl.Result{RequeueAfter: r.RetryDelay}, nil
 	}
 
 	// Initialize Git repository
 	if err := r.GitClient.InitRepo(); err != nil {
 		logger.Error(err, "failed to initialize git repository")
-		
+
 		// Increment retry count
 		setRetryCount(networkIntent, "git-deployment", retryCount+1)
-		
+
 		condition := metav1.Condition{
 			Type:               "Deployed",
 			Status:             metav1.ConditionFalse,
@@ -322,28 +322,28 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		if updateErr := r.Status().Update(ctx, networkIntent); updateErr != nil {
 			logger.Error(updateErr, "failed to update NetworkIntent status")
 		}
-		
-		r.recordEvent(networkIntent, "Warning", "GitRepoInitializationFailed", 
+
+		r.recordEvent(networkIntent, "Warning", "GitRepoInitializationFailed",
 			fmt.Sprintf("Failed to initialize git repository: %v", err))
-		
+
 		return ctrl.Result{RequeueAfter: r.RetryDelay}, nil
 	}
 
 	// Commit and push the deployment files
-	commitMessage := fmt.Sprintf("Deploy NetworkIntent: %s/%s\n\nIntent: %s", 
+	commitMessage := fmt.Sprintf("Deploy NetworkIntent: %s/%s\n\nIntent: %s",
 		networkIntent.Namespace, networkIntent.Name, networkIntent.Spec.Intent)
-	
+
 	commitHash, err := r.GitClient.CommitAndPush(deploymentFiles, commitMessage)
 	if err != nil {
 		logger.Error(err, "failed to commit and push deployment files")
-		
+
 		// Increment retry count
 		setRetryCount(networkIntent, "git-deployment", retryCount+1)
-		
+
 		now := metav1.Now()
 		networkIntent.Status.LastRetryTime = &now
 		condition := metav1.Condition{
@@ -354,14 +354,14 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 			LastTransitionTime: now,
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		if updateErr := r.Status().Update(ctx, networkIntent); updateErr != nil {
 			logger.Error(updateErr, "failed to update NetworkIntent status")
 		}
-		
-		r.recordEvent(networkIntent, "Warning", "GitCommitPushFailed", 
+
+		r.recordEvent(networkIntent, "Warning", "GitCommitPushFailed",
 			fmt.Sprintf("Failed to commit and push deployment files: %v", err))
-		
+
 		return ctrl.Result{RequeueAfter: r.RetryDelay}, nil
 	}
 
@@ -378,7 +378,7 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 		LastTransitionTime: now,
 	}
 	updateCondition(&networkIntent.Status.Conditions, condition)
-	
+
 	if err := r.Status().Update(ctx, networkIntent); err != nil {
 		logger.Error(err, "failed to update NetworkIntent status")
 		return ctrl.Result{}, err
@@ -386,13 +386,13 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 
 	r.recordEvent(networkIntent, "Normal", "GitDeploymentSucceeded", "Configuration successfully deployed via GitOps")
 	logger.Info("NetworkIntent deployed successfully via GitOps", "intent", networkIntent.Spec.Intent)
-	
+
 	return ctrl.Result{}, nil
 }
 
 func (r *NetworkIntentReconciler) generateDeploymentFiles(networkIntent *nephoranv1.NetworkIntent) (map[string]string, error) {
 	files := make(map[string]string)
-	
+
 	// Parse the processed parameters
 	var parameters map[string]interface{}
 	if len(networkIntent.Spec.Parameters.Raw) > 0 {
@@ -400,13 +400,13 @@ func (r *NetworkIntentReconciler) generateDeploymentFiles(networkIntent *nephora
 			return nil, fmt.Errorf("failed to parse parameters: %w", err)
 		}
 	}
-	
+
 	// Set default deployment path if not configured
 	deployPath := r.GitDeployPath
 	if deployPath == "" {
 		deployPath = "networkintents"
 	}
-	
+
 	// Generate Kubernetes manifests based on parameters
 	// This is a basic example - you would customize this based on your specific requirements
 	manifest := map[string]interface{}{
@@ -423,16 +423,16 @@ func (r *NetworkIntentReconciler) generateDeploymentFiles(networkIntent *nephora
 		},
 		"data": parameters,
 	}
-	
+
 	manifestYAML, err := json.Marshal(manifest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal manifest: %w", err)
 	}
-	
+
 	// Create file path in deployment repository
 	filePath := fmt.Sprintf("%s/%s/%s-configmap.json", deployPath, networkIntent.Namespace, networkIntent.Name)
 	files[filePath] = string(manifestYAML)
-	
+
 	return files, nil
 }
 
@@ -461,7 +461,7 @@ func getRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) in
 	if networkIntent.Annotations == nil {
 		return 0
 	}
-	
+
 	key := fmt.Sprintf("nephoran.com/%s-retry-count", operation)
 	if countStr, exists := networkIntent.Annotations[key]; exists {
 		if count, err := fmt.Sscanf(countStr, "%d", new(int)); err == nil && count == 1 {
@@ -477,7 +477,7 @@ func setRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string, co
 	if networkIntent.Annotations == nil {
 		networkIntent.Annotations = make(map[string]string)
 	}
-	
+
 	key := fmt.Sprintf("nephoran.com/%s-retry-count", operation)
 	networkIntent.Annotations[key] = fmt.Sprintf("%d", count)
 }
@@ -486,7 +486,7 @@ func clearRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) 
 	if networkIntent.Annotations == nil {
 		return
 	}
-	
+
 	key := fmt.Sprintf("nephoran.com/%s-retry-count", operation)
 	delete(networkIntent.Annotations, key)
 }

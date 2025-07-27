@@ -52,7 +52,7 @@ func main() {
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	setupLog.Info("Starting with configuration", 
+	setupLog.Info("Starting with configuration",
 		"llm-processor-url", cfg.LLMProcessorURL,
 		"rag-api-url", cfg.RAGAPIURLInternal,
 		"git-repo-url", cfg.GitRepoURL,

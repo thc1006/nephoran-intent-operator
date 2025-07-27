@@ -25,15 +25,15 @@ import (
 )
 
 var (
-	config     *Config
-	processor  *IntentProcessor
-	logger     *slog.Logger
-	startTime  = time.Now()
-	healthMux  sync.RWMutex
-	healthy    = true
-	readyMux   sync.RWMutex
-	ready      = false
-	requestID  int64
+	config    *Config
+	processor *IntentProcessor
+	logger    *slog.Logger
+	startTime = time.Now()
+	healthMux sync.RWMutex
+	healthy   = true
+	readyMux  sync.RWMutex
+	ready     = false
+	requestID int64
 )
 
 // Configuration structure
@@ -60,19 +60,19 @@ type Config struct {
 	OpenAIAPIKey string
 
 	// RAG API Configuration
-	RAGAPIURL    string
-	RAGTimeout   time.Duration
-	RAGEnabled   bool
+	RAGAPIURL  string
+	RAGTimeout time.Duration
+	RAGEnabled bool
 
 	// Circuit Breaker Configuration
-	CircuitBreakerEnabled    bool
-	CircuitBreakerThreshold  int
-	CircuitBreakerTimeout    time.Duration
+	CircuitBreakerEnabled   bool
+	CircuitBreakerThreshold int
+	CircuitBreakerTimeout   time.Duration
 
 	// Retry Configuration
-	MaxRetries    int
-	RetryDelay    time.Duration
-	RetryBackoff  string
+	MaxRetries   int
+	RetryDelay   time.Duration
+	RetryBackoff string
 
 	// Rate Limiting
 	RateLimitRPM   int
@@ -108,15 +108,15 @@ type NetworkIntentRequest struct {
 }
 
 type NetworkIntentResponse struct {
-	Type                string                 `json:"type"`
-	Name                string                 `json:"name"`
-	Namespace           string                 `json:"namespace"`
-	Spec                map[string]interface{} `json:"spec"`
-	O1Config            string                 `json:"o1_config,omitempty"`
-	A1Policy            map[string]interface{} `json:"a1_policy,omitempty"`
-	OriginalIntent      string                 `json:"original_intent"`
-	Timestamp           string                 `json:"timestamp"`
-	ProcessingMetadata  ProcessingMetadata     `json:"processing_metadata"`
+	Type               string                 `json:"type"`
+	Name               string                 `json:"name"`
+	Namespace          string                 `json:"namespace"`
+	Spec               map[string]interface{} `json:"spec"`
+	O1Config           string                 `json:"o1_config,omitempty"`
+	A1Policy           map[string]interface{} `json:"a1_policy,omitempty"`
+	OriginalIntent     string                 `json:"original_intent"`
+	Timestamp          string                 `json:"timestamp"`
+	ProcessingMetadata ProcessingMetadata     `json:"processing_metadata"`
 }
 
 type ProcessingMetadata struct {
@@ -126,12 +126,12 @@ type ProcessingMetadata struct {
 }
 
 type ErrorResponse struct {
-	Error            string            `json:"error"`
-	ErrorCode        string            `json:"error_code"`
-	OriginalIntent   string            `json:"original_intent"`
-	Timestamp        string            `json:"timestamp"`
-	RetryAfterSeconds int              `json:"retry_after_seconds,omitempty"`
-	Details          map[string]string `json:"details,omitempty"`
+	Error             string            `json:"error"`
+	ErrorCode         string            `json:"error_code"`
+	OriginalIntent    string            `json:"original_intent"`
+	Timestamp         string            `json:"timestamp"`
+	RetryAfterSeconds int               `json:"retry_after_seconds,omitempty"`
+	Details           map[string]string `json:"details,omitempty"`
 }
 
 type HealthResponse struct {
@@ -185,12 +185,12 @@ var (
 
 // Circuit Breaker implementation
 type CircuitBreaker struct {
-	failures  int
+	failures    int
 	lastFailure time.Time
-	state     string // "closed", "open", "half-open"
-	threshold int
-	timeout   time.Duration
-	mutex     sync.RWMutex
+	state       string // "closed", "open", "half-open"
+	threshold   int
+	timeout     time.Duration
+	mutex       sync.RWMutex
 }
 
 func NewCircuitBreaker(threshold int, timeout time.Duration) *CircuitBreaker {
@@ -250,7 +250,7 @@ func NewIntentProcessor(cfg *Config) *IntentProcessor {
 	llmURL := cfg.OpenAIAPIURL
 	apiKey := cfg.OpenAIAPIKey
 	backendType := "openai"
-	
+
 	if cfg.LLMBackendType == "mistral" && cfg.MistralAPIURL != "" {
 		llmURL = cfg.MistralAPIURL
 		apiKey = cfg.MistralAPIKey
@@ -406,12 +406,12 @@ func (p *IntentProcessor) processWithEnhancedLLM(ctx context.Context, req *Netwo
 // calculateConfidenceScore determines confidence based on parameter extraction success
 func (p *IntentProcessor) calculateConfidenceScore(intent string, extractedParams map[string]interface{}) float64 {
 	baseScore := 0.7 // Base confidence
-	
+
 	// Increase confidence based on extracted parameters
 	if len(extractedParams) > 0 {
 		baseScore += 0.1
 	}
-	
+
 	// Check for specific network function mentions
 	lowerIntent := strings.ToLower(intent)
 	nfKeywords := []string{"upf", "amf", "smf", "pcf", "ric", "o-du", "o-cu"}
@@ -421,7 +421,7 @@ func (p *IntentProcessor) calculateConfidenceScore(intent string, extractedParam
 			break
 		}
 	}
-	
+
 	// Check for clear action words
 	actionKeywords := []string{"deploy", "scale", "create", "configure", "setup"}
 	for _, keyword := range actionKeywords {
@@ -430,12 +430,12 @@ func (p *IntentProcessor) calculateConfidenceScore(intent string, extractedParam
 			break
 		}
 	}
-	
+
 	// Cap at 1.0
 	if baseScore > 1.0 {
 		baseScore = 1.0
 	}
-	
+
 	return baseScore
 }
 
@@ -444,7 +444,7 @@ func (p *IntentProcessor) enrichResponseWithExtractedParams(response *NetworkInt
 	if response.Spec == nil {
 		response.Spec = make(map[string]interface{})
 	}
-	
+
 	// Add extracted replicas if not present
 	if _, exists := response.Spec["replicas"]; !exists {
 		if replicas, ok := extractedParams["replicas"]; ok {
@@ -455,7 +455,7 @@ func (p *IntentProcessor) enrichResponseWithExtractedParams(response *NetworkInt
 			}
 		}
 	}
-	
+
 	// Add extracted resources if not present
 	if resources, exists := response.Spec["resources"].(map[string]interface{}); exists {
 		if requests, ok := resources["requests"].(map[string]interface{}); ok {
@@ -467,7 +467,7 @@ func (p *IntentProcessor) enrichResponseWithExtractedParams(response *NetworkInt
 			}
 		}
 	}
-	
+
 	// Set namespace from extraction if not present
 	if response.Namespace == "" {
 		if namespace, ok := extractedParams["namespace"].(string); ok {
@@ -481,7 +481,7 @@ func (p *IntentProcessor) setIntelligentDefaults(response *NetworkIntentResponse
 	// Set default namespace if not specified
 	if response.Namespace == "" {
 		response.Namespace = "default"
-		
+
 		// Use intelligent namespace selection based on network function
 		if nf, ok := response.Spec["network_function"].(string); ok {
 			switch nf {
@@ -494,14 +494,14 @@ func (p *IntentProcessor) setIntelligentDefaults(response *NetworkIntentResponse
 			}
 		}
 	}
-	
+
 	// Set default replicas for deployment if not specified
 	if intentType == "NetworkFunctionDeployment" {
 		if _, exists := response.Spec["replicas"]; !exists {
 			response.Spec["replicas"] = 1 // Default to 1 replica
 		}
 	}
-	
+
 	// Set intelligent resource defaults based on network function type
 	p.setResourceDefaults(response)
 }
@@ -512,25 +512,25 @@ func (p *IntentProcessor) setResourceDefaults(response *NetworkIntentResponse) {
 	if spec == nil {
 		return
 	}
-	
+
 	resources, ok := spec["resources"].(map[string]interface{})
 	if !ok {
 		resources = make(map[string]interface{})
 		spec["resources"] = resources
 	}
-	
+
 	requests, ok := resources["requests"].(map[string]interface{})
 	if !ok {
 		requests = make(map[string]interface{})
 		resources["requests"] = requests
 	}
-	
+
 	limits, ok := resources["limits"].(map[string]interface{})
 	if !ok {
 		limits = make(map[string]interface{})
 		resources["limits"] = limits
 	}
-	
+
 	// Set defaults based on network function type if detected
 	if nf, exists := spec["network_function"].(string); exists {
 		switch nf {
@@ -629,7 +629,7 @@ func (p *IntentProcessor) processWithLLM(ctx context.Context, req *NetworkIntent
 
 func (p *IntentProcessor) callMistralAPI(ctx context.Context, req *NetworkIntentRequest, intentType string) (*NetworkIntentResponse, error) {
 	systemPrompt := p.buildSystemPrompt(intentType)
-	
+
 	requestBody := map[string]interface{}{
 		"model": p.config.LLMModelName,
 		"messages": []map[string]string{
@@ -732,7 +732,7 @@ func (p *IntentProcessor) callRAGAPI(ctx context.Context, req *NetworkIntentRequ
 
 func (p *IntentProcessor) callOpenAIAPI(ctx context.Context, req *NetworkIntentRequest, intentType string) (*NetworkIntentResponse, error) {
 	systemPrompt := p.buildSystemPrompt(intentType)
-	
+
 	requestBody := map[string]interface{}{
 		"model": p.config.LLMModelName,
 		"messages": []map[string]string{
@@ -858,31 +858,31 @@ func infoHandler(w http.ResponseWriter, r *http.Request) {
 
 	info := map[string]interface{}{
 		"service": map[string]interface{}{
-			"name":          "LLM Processor",
-			"version":       config.ServiceVersion,
-			"build_time":    startTime.Format(time.RFC3339),
-			"uptime":        time.Since(startTime).String(),
+			"name":           "LLM Processor",
+			"version":        config.ServiceVersion,
+			"build_time":     startTime.Format(time.RFC3339),
+			"uptime":         time.Since(startTime).String(),
 			"uptime_seconds": int64(time.Since(startTime).Seconds()),
 		},
 		"configuration": map[string]interface{}{
-			"llm_backend":       config.LLMBackendType,
-			"llm_model":         config.LLMModelName,
-			"rag_enabled":       config.RAGEnabled,
-			"metrics_enabled":   config.MetricsEnabled,
-			"tracing_enabled":   config.TracingEnabled,
-			"cors_enabled":      config.CORSEnabled,
+			"llm_backend":      config.LLMBackendType,
+			"llm_model":        config.LLMModelName,
+			"rag_enabled":      config.RAGEnabled,
+			"metrics_enabled":  config.MetricsEnabled,
+			"tracing_enabled":  config.TracingEnabled,
+			"cors_enabled":     config.CORSEnabled,
 			"api_key_required": config.APIKeyRequired,
 		},
 		"runtime": map[string]interface{}{
-			"go_version":      runtime.Version(),
-			"go_os":           runtime.GOOS,
-			"go_arch":         runtime.GOARCH,
-			"cpu_count":       runtime.NumCPU(),
-			"goroutines":      runtime.NumGoroutine(),
-			"memory_alloc":    bToMb(m.Alloc),
-			"memory_total":    bToMb(m.TotalAlloc),
-			"memory_sys":      bToMb(m.Sys),
-			"gc_runs":         m.NumGC,
+			"go_version":   runtime.Version(),
+			"go_os":        runtime.GOOS,
+			"go_arch":      runtime.GOARCH,
+			"cpu_count":    runtime.NumCPU(),
+			"goroutines":   runtime.NumGoroutine(),
+			"memory_alloc": bToMb(m.Alloc),
+			"memory_total": bToMb(m.TotalAlloc),
+			"memory_sys":   bToMb(m.Sys),
+			"gc_runs":      m.NumGC,
 		},
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
@@ -900,12 +900,12 @@ func versionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	versionInfo := map[string]interface{}{
-		"version":     config.ServiceVersion,
-		"build_time":  startTime.Format(time.RFC3339),
-		"go_version":  runtime.Version(),
-		"git_commit":  getEnvOrDefault("GIT_COMMIT", "unknown"),
-		"git_branch":  getEnvOrDefault("GIT_BRANCH", "unknown"),
-		"timestamp":   time.Now().Format(time.RFC3339),
+		"version":    config.ServiceVersion,
+		"build_time": startTime.Format(time.RFC3339),
+		"go_version": runtime.Version(),
+		"git_commit": getEnvOrDefault("GIT_COMMIT", "unknown"),
+		"git_branch": getEnvOrDefault("GIT_BRANCH", "unknown"),
+		"timestamp":  time.Now().Format(time.RFC3339),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -949,7 +949,7 @@ func processHandler(w http.ResponseWriter, r *http.Request) {
 			slog.String("error", err.Error()),
 		)
 		writeErrorResponse(w, "Invalid request body", "INVALID_REQUEST", "", http.StatusBadRequest, map[string]string{
-			"stage": "validation",
+			"stage":   "validation",
 			"details": err.Error(),
 		})
 		return
@@ -970,7 +970,7 @@ func processHandler(w http.ResponseWriter, r *http.Request) {
 			slog.String("intent", req.Spec.Intent),
 		)
 		writeErrorResponse(w, err.Error(), "PROCESSING_FAILED", req.Spec.Intent, http.StatusInternalServerError, map[string]string{
-			"stage": "llm_processing",
+			"stage":      "llm_processing",
 			"request_id": requestID.(string),
 		})
 		return
@@ -1162,15 +1162,15 @@ func loadConfig() *Config {
 		TracingEnabled: getEnvBool("TRACING_ENABLED", false),
 		JaegerEndpoint: getEnvOrDefault("JAEGER_ENDPOINT", ""),
 
-	// Security
-	APIKeyRequired: getEnvBool("API_KEY_REQUIRED", false),
-	APIKey:         os.Getenv("API_KEY"),
-	CORSEnabled:    getEnvBool("CORS_ENABLED", true),
-	AllowedOrigins: getEnvStringSlice("ALLOWED_ORIGINS", []string{"*"}),
+		// Security
+		APIKeyRequired: getEnvBool("API_KEY_REQUIRED", false),
+		APIKey:         os.Getenv("API_KEY"),
+		CORSEnabled:    getEnvBool("CORS_ENABLED", true),
+		AllowedOrigins: getEnvStringSlice("ALLOWED_ORIGINS", []string{"*"}),
 
-	// Request Logging
-	RequestLogEnabled: getEnvBool("REQUEST_LOG_ENABLED", true),
-	RequestLogLevel:   getEnvOrDefault("REQUEST_LOG_LEVEL", "info"),
+		// Request Logging
+		RequestLogEnabled: getEnvBool("REQUEST_LOG_ENABLED", true),
+		RequestLogLevel:   getEnvOrDefault("REQUEST_LOG_LEVEL", "info"),
 	}
 }
 
@@ -1230,7 +1230,7 @@ func initLogger(logLevel string) *slog.Logger {
 	}
 
 	opts := &slog.HandlerOptions{
-		Level: level,
+		Level:     level,
 		AddSource: true,
 	}
 
@@ -1242,14 +1242,14 @@ func loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		requestID := fmt.Sprintf("req-%d", time.Now().UnixNano())
-		
+
 		// Add request ID to context
 		ctx := context.WithValue(r.Context(), "request_id", requestID)
 		r = r.WithContext(ctx)
-		
+
 		// Create custom response writer to capture status code
 		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-		
+
 		logger.Info("Request started",
 			slog.String("request_id", requestID),
 			slog.String("method", r.Method),
@@ -1257,9 +1257,9 @@ func loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			slog.String("remote_addr", r.RemoteAddr),
 			slog.String("user_agent", r.UserAgent()),
 		)
-		
+
 		next.ServeHTTP(wrapped, r)
-		
+
 		duration := time.Since(start)
 		logger.Info("Request completed",
 			slog.String("request_id", requestID),
@@ -1287,27 +1287,27 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		if config.CORSEnabled {
 			origin := r.Header.Get("Origin")
 			allowed := false
-			
+
 			for _, allowedOrigin := range config.AllowedOrigins {
 				if allowedOrigin == "*" || allowedOrigin == origin {
 					allowed = true
 					break
 				}
 			}
-			
+
 			if allowed {
 				w.Header().Set("Access-Control-Allow-Origin", origin)
 				w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 				w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 				w.Header().Set("Access-Control-Max-Age", "86400")
 			}
-			
+
 			if r.Method == "OPTIONS" {
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}
 		}
-		
+
 		next.ServeHTTP(w, r)
 	}
 }
@@ -1323,7 +1323,7 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 					apiKey = strings.TrimPrefix(apiKey, "Bearer ")
 				}
 			}
-			
+
 			if apiKey != config.APIKey {
 				logger.Warn("Unauthorized request",
 					slog.String("path", r.URL.Path),
@@ -1333,7 +1333,7 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 		}
-		
+
 		next.ServeHTTP(w, r)
 	}
 }
@@ -1353,24 +1353,24 @@ func newRateLimiter() *rateLimiter {
 	rl := &rateLimiter{
 		clients: make(map[string]*clientLimiter),
 	}
-	
+
 	// Cleanup routine
 	go func() {
 		ticker := time.NewTicker(time.Minute)
 		defer ticker.Stop()
-		
+
 		for range ticker.C {
 			rl.cleanup()
 		}
 	}()
-	
+
 	return rl
 }
 
 func (rl *rateLimiter) cleanup() {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
-	
+
 	now := time.Now()
 	for ip, limiter := range rl.clients {
 		if now.Sub(limiter.lastSeen) > time.Hour {
@@ -1382,10 +1382,10 @@ func (rl *rateLimiter) cleanup() {
 func (rl *rateLimiter) allow(ip string, limit int) bool {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
-	
+
 	now := time.Now()
 	limiter, exists := rl.clients[ip]
-	
+
 	if !exists {
 		rl.clients[ip] = &clientLimiter{
 			lastSeen: now,
@@ -1393,19 +1393,19 @@ func (rl *rateLimiter) allow(ip string, limit int) bool {
 		}
 		return true
 	}
-	
+
 	// Reset count if more than a minute has passed
 	if now.Sub(limiter.lastSeen) > time.Minute {
 		limiter.count = 1
 		limiter.lastSeen = now
 		return true
 	}
-	
+
 	limiter.lastSeen = now
 	if limiter.count >= limit {
 		return false
 	}
-	
+
 	limiter.count++
 	return true
 }
@@ -1416,7 +1416,7 @@ func rateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if config.RateLimitRPM > 0 {
 			clientIP := getClientIP(r)
-			
+
 			if !globalRateLimiter.allow(clientIP, config.RateLimitRPM) {
 				logger.Warn("Rate limit exceeded",
 					slog.String("client_ip", clientIP),
@@ -1428,7 +1428,7 @@ func rateLimitMiddleware(next http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 		}
-		
+
 		next.ServeHTTP(w, r)
 	}
 }
@@ -1439,18 +1439,18 @@ func getClientIP(r *http.Request) string {
 		parts := strings.Split(xff, ",")
 		return strings.TrimSpace(parts[0])
 	}
-	
+
 	// Check X-Real-IP header
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		return xri
 	}
-	
+
 	// Use remote address
 	if strings.Contains(r.RemoteAddr, ":") {
 		host, _, _ := strings.Cut(r.RemoteAddr, ":")
 		return host
 	}
-	
+
 	return r.RemoteAddr
 }
 

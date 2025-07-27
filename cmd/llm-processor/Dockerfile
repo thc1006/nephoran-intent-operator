@@ -7,11 +7,11 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION=v2.0.0
 
-# Install only essential build dependencies with specific versions for security
+# Install only essential build dependencies
 RUN apk add --no-cache \
-    git=~2.43 \
-    ca-certificates=~20241212 \
-    tzdata=~2024b \
+    git \
+    ca-certificates \
+    tzdata \
     && rm -rf /var/cache/apk/*
 
 # Create dedicated build user with minimal privileges

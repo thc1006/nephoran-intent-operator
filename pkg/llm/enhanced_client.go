@@ -40,29 +40,29 @@ const (
 
 // RateLimiter implements token bucket rate limiting
 type RateLimiter struct {
-	tokens    int64
-	maxTokens int64
+	tokens     int64
+	maxTokens  int64
 	refillRate int64
 	lastRefill time.Time
-	mutex     sync.Mutex
+	mutex      sync.Mutex
 }
 
 // HealthChecker monitors the health of LLM backends
 type HealthChecker struct {
-	client         *Client
-	checkInterval  time.Duration
-	timeout        time.Duration
-	healthStatus   map[string]BackendHealth
-	mutex          sync.RWMutex
-	stopChan       chan bool
+	client        *Client
+	checkInterval time.Duration
+	timeout       time.Duration
+	healthStatus  map[string]BackendHealth
+	mutex         sync.RWMutex
+	stopChan      chan bool
 }
 
 type BackendHealth struct {
-	Status      string    `json:"status"`
-	LastCheck   time.Time `json:"last_check"`
+	Status       string        `json:"status"`
+	LastCheck    time.Time     `json:"last_check"`
 	ResponseTime time.Duration `json:"response_time"`
-	ErrorCount  int64     `json:"error_count"`
-	Available   bool      `json:"available"`
+	ErrorCount   int64         `json:"error_count"`
+	Available    bool          `json:"available"`
 }
 
 // EnhancedClientConfig extends ClientConfig with additional options
@@ -79,7 +79,7 @@ type EnhancedClientConfig struct {
 // NewEnhancedClient creates a new enhanced LLM client
 func NewEnhancedClient(url string, config EnhancedClientConfig) *EnhancedClient {
 	baseClient := NewClientWithConfig(url, config.ClientConfig)
-	
+
 	enhanced := &EnhancedClient{
 		Client: baseClient,
 		circuitBreaker: NewCircuitBreaker(
@@ -96,10 +96,10 @@ func NewEnhancedClient(url string, config EnhancedClientConfig) *EnhancedClient 
 			config.HealthCheckTimeout,
 		),
 	}
-	
+
 	// Start health checking
 	enhanced.healthChecker.Start()
-	
+
 	return enhanced
 }
 
@@ -116,31 +116,31 @@ func NewCircuitBreaker(threshold int64, timeout time.Duration) *CircuitBreaker {
 func (cb *CircuitBreaker) Call(operation func() error) error {
 	cb.mutex.Lock()
 	defer cb.mutex.Unlock()
-	
+
 	// Check if circuit should transition from open to half-open
 	if cb.state == CircuitOpen && time.Since(cb.lastFailure) > cb.timeout {
 		cb.state = CircuitHalfOpen
 		cb.failures = 0
 	}
-	
+
 	// If circuit is open, reject immediately
 	if cb.state == CircuitOpen {
 		return fmt.Errorf("circuit breaker is open")
 	}
-	
+
 	// Execute operation
 	err := operation()
 	if err != nil {
 		cb.failures++
 		cb.lastFailure = time.Now()
-		
+
 		// Open circuit if threshold exceeded
 		if cb.failures >= cb.threshold {
 			cb.state = CircuitOpen
 		}
 		return err
 	}
-	
+
 	// Success - reset failures and close circuit
 	cb.failures = 0
 	cb.state = CircuitClosed
@@ -168,20 +168,20 @@ func NewRateLimiter(maxTokens, refillRate int64) *RateLimiter {
 func (rl *RateLimiter) Allow() bool {
 	rl.mutex.Lock()
 	defer rl.mutex.Unlock()
-	
+
 	now := time.Now()
 	elapsed := now.Sub(rl.lastRefill)
-	
+
 	// Refill tokens based on elapsed time
 	tokensToAdd := int64(elapsed.Seconds()) * rl.refillRate
 	rl.tokens = min(rl.maxTokens, rl.tokens+tokensToAdd)
 	rl.lastRefill = now
-	
+
 	if rl.tokens > 0 {
 		rl.tokens--
 		return true
 	}
-	
+
 	return false
 }
 
@@ -225,7 +225,7 @@ func (hc *HealthChecker) Stop() {
 func (hc *HealthChecker) run() {
 	ticker := time.NewTicker(hc.checkInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -239,22 +239,22 @@ func (hc *HealthChecker) run() {
 // checkHealth performs a health check on the LLM backend
 func (hc *HealthChecker) checkHealth() {
 	start := time.Now()
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), hc.timeout)
 	defer cancel()
-	
+
 	// Simple health check using a minimal intent
 	_, err := hc.client.ProcessIntent(ctx, "health check")
-	
+
 	responseTime := time.Since(start)
-	
+
 	hc.mutex.Lock()
 	defer hc.mutex.Unlock()
-	
+
 	health := hc.healthStatus[hc.client.url]
 	health.LastCheck = time.Now()
 	health.ResponseTime = responseTime
-	
+
 	if err != nil {
 		health.ErrorCount++
 		health.Available = false
@@ -263,7 +263,7 @@ func (hc *HealthChecker) checkHealth() {
 		health.Available = true
 		health.Status = "healthy"
 	}
-	
+
 	hc.healthStatus[hc.client.url] = health
 }
 
@@ -271,7 +271,7 @@ func (hc *HealthChecker) checkHealth() {
 func (hc *HealthChecker) GetHealth() map[string]BackendHealth {
 	hc.mutex.RLock()
 	defer hc.mutex.RUnlock()
-	
+
 	result := make(map[string]BackendHealth)
 	for k, v := range hc.healthStatus {
 		result[k] = v
@@ -285,7 +285,7 @@ func (ec *EnhancedClient) ProcessIntentWithEnhancements(ctx context.Context, int
 	if !ec.rateLimiter.Allow() {
 		return "", fmt.Errorf("rate limit exceeded")
 	}
-	
+
 	// Use circuit breaker
 	var result string
 	err := ec.circuitBreaker.Call(func() error {
@@ -293,14 +293,14 @@ func (ec *EnhancedClient) ProcessIntentWithEnhancements(ctx context.Context, int
 		result, processErr = ec.Client.ProcessIntent(ctx, intent)
 		return processErr
 	})
-	
+
 	return result, err
 }
 
 // GetEnhancedMetrics returns comprehensive metrics including circuit breaker and rate limiter status
 func (ec *EnhancedClient) GetEnhancedMetrics() map[string]interface{} {
 	baseMetrics := ec.Client.GetMetrics()
-	
+
 	return map[string]interface{}{
 		"base_metrics": baseMetrics,
 		"circuit_breaker": map[string]interface{}{
@@ -315,7 +315,7 @@ func (ec *EnhancedClient) GetEnhancedMetrics() map[string]interface{} {
 
 // CacheManager provides advanced caching functionality
 type CacheManager struct {
-	cache           *ResponseCache
+	cache              *ResponseCache
 	compressionEnabled bool
 	encryptionEnabled  bool
 	encryptionKey      []byte
@@ -337,12 +337,12 @@ func (cm *CacheManager) GetWithMetadata(key string) (string, map[string]interfac
 	if !found {
 		return "", nil, false
 	}
-	
+
 	metadata := map[string]interface{}{
-		"cached": true,
+		"cached":    true,
 		"timestamp": time.Now(),
 	}
-	
+
 	return response, metadata, true
 }
 
@@ -359,21 +359,21 @@ func (cm *CacheManager) InvalidateByPattern(pattern string) int {
 	count := 0
 	cm.cache.mutex.Lock()
 	defer cm.cache.mutex.Unlock()
-	
+
 	for key := range cm.cache.entries {
 		if strings.Contains(key, pattern) {
 			delete(cm.cache.entries, key)
 			count++
 		}
 	}
-	
+
 	return count
 }
 
 // ResponseEnhancer provides response enhancement and validation
 type ResponseEnhancer struct {
-	logger         *slog.Logger
-	validator      *ResponseValidator
+	logger          *slog.Logger
+	validator       *ResponseValidator
 	enrichmentRules map[string]func(map[string]interface{}) map[string]interface{}
 }
 
@@ -393,25 +393,25 @@ func (re *ResponseEnhancer) EnhanceResponse(responseJSON string, intentType stri
 	if err := json.Unmarshal([]byte(responseJSON), &response); err != nil {
 		return "", fmt.Errorf("failed to parse response: %w", err)
 	}
-	
+
 	// Apply enrichment rules
 	if enrichmentFunc, exists := re.enrichmentRules[intentType]; exists {
 		response = enrichmentFunc(response)
 	}
-	
+
 	// Add default enrichments
 	response = re.addDefaultEnrichments(response)
-	
+
 	// Validate enhanced response
 	enhancedJSON, err := json.Marshal(response)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal enhanced response: %w", err)
 	}
-	
+
 	if err := re.validator.ValidateResponse(enhancedJSON); err != nil {
 		return "", fmt.Errorf("enhanced response validation failed: %w", err)
 	}
-	
+
 	return string(enhancedJSON), nil
 }
 
@@ -420,17 +420,17 @@ func (re *ResponseEnhancer) addDefaultEnrichments(response map[string]interface{
 	// Add processing metadata if not present
 	if _, exists := response["processing_metadata"]; !exists {
 		response["processing_metadata"] = map[string]interface{}{
-			"enhanced": true,
+			"enhanced":    true,
 			"enhanced_at": time.Now().Format(time.RFC3339),
 		}
 	}
-	
+
 	// Add response ID for tracking
 	if _, exists := response["response_id"]; !exists {
 		hash := sha256.Sum256([]byte(fmt.Sprintf("%v", response)))
 		response["response_id"] = hex.EncodeToString(hash[:])[:16]
 	}
-	
+
 	return response
 }
 
@@ -446,11 +446,11 @@ type RequestContextManager struct {
 }
 
 type RequestContext struct {
-	ID        string    `json:"id"`
-	Intent    string    `json:"intent"`
-	StartTime time.Time `json:"start_time"`
-	UserID    string    `json:"user_id,omitempty"`
-	SessionID string    `json:"session_id,omitempty"`
+	ID        string                 `json:"id"`
+	Intent    string                 `json:"intent"`
+	StartTime time.Time              `json:"start_time"`
+	UserID    string                 `json:"user_id,omitempty"`
+	SessionID string                 `json:"session_id,omitempty"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -471,11 +471,11 @@ func (rcm *RequestContextManager) CreateContext(intent, userID, sessionID string
 		SessionID: sessionID,
 		Metadata:  make(map[string]interface{}),
 	}
-	
+
 	rcm.mutex.Lock()
 	defer rcm.mutex.Unlock()
 	rcm.activeRequests[ctx.ID] = ctx
-	
+
 	return ctx
 }
 
@@ -498,12 +498,12 @@ func (rcm *RequestContextManager) CompleteContext(id string) {
 func (rcm *RequestContextManager) GetActiveRequests() []RequestContext {
 	rcm.mutex.RLock()
 	defer rcm.mutex.RUnlock()
-	
+
 	requests := make([]RequestContext, 0, len(rcm.activeRequests))
 	for _, ctx := range rcm.activeRequests {
 		requests = append(requests, *ctx)
 	}
-	
+
 	return requests
 }
 

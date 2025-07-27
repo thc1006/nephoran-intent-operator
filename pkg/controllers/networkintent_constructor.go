@@ -15,10 +15,10 @@ import (
 
 // NetworkIntentReconcilerConfig holds the configuration for creating a NetworkIntentReconciler
 type NetworkIntentReconcilerConfig struct {
-	Client          client.Client
-	Scheme          *runtime.Scheme
-	EventRecorder   record.EventRecorder
-	Config          *config.Config
+	Client        client.Client
+	Scheme        *runtime.Scheme
+	EventRecorder record.EventRecorder
+	Config        *config.Config
 }
 
 // NewNetworkIntentReconciler creates a new NetworkIntentReconciler with proper initialization
@@ -52,11 +52,11 @@ func NewNetworkIntentReconciler(config NetworkIntentReconcilerConfig) *NetworkIn
 		LLMProcessorURL: config.Config.LLMProcessorURL,
 		HTTPClient:      httpClient,
 		EventRecorder:   config.EventRecorder,
-		
+
 		// Retry configuration
-		MaxRetries:    3,
-		RetryDelay:    time.Second * 30,
-		
+		MaxRetries: 3,
+		RetryDelay: time.Second * 30,
+
 		// GitOps configuration
 		GitRepoURL:    config.Config.GitRepoURL,
 		GitBranch:     config.Config.GitBranch,
