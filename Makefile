@@ -30,11 +30,30 @@ lint: ## Run linters
 help:
 	@echo "Makefile for the LLM-Enhanced Nephio R5 and O-RAN Network Automation System"
 	@echo ""
-	@echo "Usage:"
+	@echo "Development Commands:"
 	@echo "  make setup-dev         Set up the development environment (install dependencies)"
 	@echo "  make build-all         Build all service binaries"
-	@echo "  make deploy-dev        Deploy all components to the development environment"
 	@echo "  make test-integration  Run all integration tests"
+	@echo "  make lint              Run code linters"
+	@echo "  make generate          Generate Kubernetes code"
+	@echo ""
+	@echo "Deployment Commands:"
+	@echo "  make deploy-dev        Deploy all components to the development environment"
+	@echo "  make docker-build      Build all Docker images"
+	@echo "  make docker-push       Push Docker images to registry"
+	@echo ""
+	@echo "RAG System Commands:"
+	@echo "  make deploy-rag        Deploy complete RAG system with Weaviate"
+	@echo "  make cleanup-rag       Remove RAG system deployment"
+	@echo "  make verify-rag        Verify RAG system health"
+	@echo "  make populate-kb-enhanced  Populate knowledge base with enhanced pipeline"
+	@echo "  make rag-status        Show RAG system component status"
+	@echo "  make rag-logs          Show RAG system logs"
+	@echo ""
+	@echo "Environment Variables:"
+	@echo "  OPENAI_API_KEY         Required for RAG system deployment"
+	@echo "  WEAVIATE_URL           Weaviate connection URL (default: http://localhost:8080)"
+	@echo "  REGISTRY               Docker registry for images"
 	@echo ""
 
 setup-dev: ## Set up development environment
@@ -89,13 +108,48 @@ docker-push: ## Push docker images to the registry
 	docker push $(REGISTRY)/oran-adaptor:$(VERSION)
 	docker push $(REGISTRY)/rag-api:$(VERSION)
 
-populate-kb: ## Populate the Weaviate knowledge base
-	@echo "--- Populating Knowledge Base ---"
+populate-kb: ## Populate the Weaviate knowledge base (legacy)
+	@echo "--- Populating Knowledge Base (Legacy) ---"
 ifeq ($(OS),Windows_NT)
 	set OPENAI_API_KEY=$(OPENAI_API_KEY) && set WEAVIATE_URL=$(WEAVIATE_URL) && python scripts/populate_vector_store.py
 else
 	OPENAI_API_KEY=$(OPENAI_API_KEY) WEAVIATE_URL=$(WEAVIATE_URL) python3 scripts/populate_vector_store.py
 endif
+
+populate-kb-enhanced: ## Populate with enhanced RAG pipeline
+	@echo "--- Populating Knowledge Base (Enhanced) ---"
+ifeq ($(OS),Windows_NT)
+	set OPENAI_API_KEY=$(OPENAI_API_KEY) && set WEAVIATE_URL=$(WEAVIATE_URL) && python scripts/populate_vector_store_enhanced.py knowledge_base/
+else
+	OPENAI_API_KEY=$(OPENAI_API_KEY) WEAVIATE_URL=$(WEAVIATE_URL) python3 scripts/populate_vector_store_enhanced.py knowledge_base/
+endif
+
+deploy-rag: ## Deploy complete RAG system
+	@echo "--- Deploying RAG System ---"
+	@if [ -z "$(OPENAI_API_KEY)" ]; then \
+		echo "Error: OPENAI_API_KEY environment variable is required"; \
+		exit 1; \
+	fi
+	OPENAI_API_KEY=$(OPENAI_API_KEY) ./scripts/deploy-rag-system.sh deploy
+
+cleanup-rag: ## Cleanup RAG system deployment
+	@echo "--- Cleaning up RAG System ---"
+	./scripts/deploy-rag-system.sh cleanup
+
+verify-rag: ## Verify RAG system deployment
+	@echo "--- Verifying RAG System ---"
+	./scripts/deploy-rag-system.sh verify
+
+rag-logs: ## Show RAG system logs
+	@echo "--- RAG System Logs ---"
+	kubectl logs -f deployment/weaviate --tail=50 || true
+	kubectl logs -f deployment/rag-api --tail=50 || true
+
+rag-status: ## Show RAG system status
+	@echo "--- RAG System Status ---"
+	kubectl get pods -l component=vectordb
+	kubectl get pods -l app=rag-api
+	kubectl get svc weaviate rag-api
 
 build-llm-processor:
 	@echo "Building llm-processor..."

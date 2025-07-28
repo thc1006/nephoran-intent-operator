@@ -17,6 +17,7 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 )
 
 type NetworkIntentReconciler struct {
@@ -27,6 +28,8 @@ type NetworkIntentReconciler struct {
 	LLMProcessorURL string
 	HTTPClient      *http.Client
 	EventRecorder   record.EventRecorder
+	PackageGen      *nephio.PackageGenerator
+	UseNephioPorch  bool
 
 	// Configuration for retry and GitOps
 	MaxRetries    int
@@ -281,7 +284,19 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 	}
 
 	// Generate deployment files from processed parameters
-	deploymentFiles, err := r.generateDeploymentFiles(networkIntent)
+	var deploymentFiles map[string]string
+	var err error
+	
+	if r.UseNephioPorch && r.PackageGen != nil {
+		// Use Nephio package generator for KRM package generation
+		logger.Info("generating Nephio KRM package")
+		deploymentFiles, err = r.PackageGen.GeneratePackage(networkIntent)
+	} else {
+		// Use legacy deployment file generation
+		logger.Info("using legacy deployment file generation")
+		deploymentFiles, err = r.generateDeploymentFiles(networkIntent)
+	}
+	
 	if err != nil {
 		logger.Error(err, "failed to generate deployment files")
 

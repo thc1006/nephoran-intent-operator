@@ -1,0 +1,313 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weaviate-backup
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup
+  annotations:
+    kubernetes.io/description: "Automated backup for Weaviate knowledge base"
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM UTC
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid  # Prevent overlapping backup jobs
+  failedJobsHistoryLimit: 5
+  successfulJobsHistoryLimit: 3
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    metadata:
+      labels:
+        app: weaviate-backup
+        component: backup-job
+    spec:
+      backoffLimit: 3
+      activeDeadlineSeconds: 7200  # 2 hours timeout
+      template:
+        metadata:
+          labels:
+            app: weaviate-backup
+            component: backup-pod
+        spec:
+          serviceAccountName: weaviate-backup
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            fsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: curlimages/curl:8.5.0
+            imagePullPolicy: IfNotPresent
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              runAsUser: 1000
+              capabilities:
+                drop:
+                  - ALL
+            env:
+            - name: WEAVIATE_URL
+              value: "http://weaviate:8080"
+            - name: WEAVIATE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: weaviate-api-key
+                  key: api-key
+            - name: BACKUP_ID
+              value: "nephoran-backup-$(date +%Y%m%d-%H%M%S)"
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: backup-credentials
+                  key: aws-access-key-id
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-credentials
+                  key: aws-secret-access-key
+                  optional: true
+            - name: S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: backup-config
+                  key: s3-bucket
+                  optional: true
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /backup
+            - name: scripts
+              mountPath: /scripts
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            command: ["/bin/sh"]
+            args:
+            - -c
+            - |
+              set -e
+              echo "Starting Weaviate backup at $(date)"
+              
+              # Set backup ID with timestamp
+              BACKUP_ID="nephoran-backup-$(date +%Y%m%d-%H%M%S)"
+              echo "Backup ID: $BACKUP_ID"
+              
+              # Create backup via Weaviate API
+              echo "Initiating backup via Weaviate API..."
+              curl -X POST \
+                -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+                -H "Content-Type: application/json" \
+                -d "{\"id\":\"$BACKUP_ID\",\"include\":[\"TelecomKnowledge\"]}" \
+                "$WEAVIATE_URL/v1/backups/filesystem" || {
+                echo "Failed to initiate backup"
+                exit 1
+              }
+              
+              # Wait for backup completion
+              echo "Waiting for backup completion..."
+              while true; do
+                STATUS=$(curl -s -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+                  "$WEAVIATE_URL/v1/backups/filesystem/$BACKUP_ID" | \
+                  grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+                
+                echo "Backup status: $STATUS"
+                
+                if [ "$STATUS" = "SUCCESS" ]; then
+                  echo "Backup completed successfully"
+                  break
+                elif [ "$STATUS" = "FAILED" ]; then
+                  echo "Backup failed"
+                  exit 1
+                fi
+                
+                sleep 30
+              done
+              
+              # Copy backup to persistent storage
+              echo "Copying backup to persistent storage..."
+              cp -r /var/lib/weaviate/backups/$BACKUP_ID /backup/ || {
+                echo "Failed to copy backup to persistent storage"
+                exit 1
+              }
+              
+              # Upload to S3 if configured
+              if [ -n "$S3_BUCKET" ] && [ -n "$AWS_ACCESS_KEY_ID" ]; then
+                echo "Uploading backup to S3..."
+                /scripts/upload-to-s3.sh "/backup/$BACKUP_ID" "$S3_BUCKET" "$BACKUP_ID"
+              fi
+              
+              # Cleanup old backups (keep last 7 days)
+              echo "Cleaning up old backups..."
+              find /backup -name "nephoran-backup-*" -type d -mtime +7 -exec rm -rf {} + || true
+              
+              echo "Backup completed successfully at $(date)"
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "512Mi"
+                cpu: "500m"
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: weaviate-backup-pvc
+          - name: scripts
+            configMap:
+              name: backup-scripts
+              defaultMode: 0755
+          - name: tmp
+            emptyDir:
+              sizeLimit: 1Gi
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-config
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup-config
+data:
+  s3-bucket: "nephoran-weaviate-backups"
+  retention-days: "30"
+  backup-schedule: "0 2 * * *"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-scripts
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup-scripts
+data:
+  upload-to-s3.sh: |
+    #!/bin/sh
+    set -e
+    
+    LOCAL_PATH="$1"
+    S3_BUCKET="$2"
+    BACKUP_ID="$3"
+    
+    echo "Uploading $LOCAL_PATH to s3://$S3_BUCKET/$BACKUP_ID"
+    
+    # Create tar archive
+    tar -czf "/tmp/$BACKUP_ID.tar.gz" -C "$(dirname $LOCAL_PATH)" "$(basename $LOCAL_PATH)"
+    
+    # Upload using curl (requires AWS v4 signature - simplified version)
+    # In production, use proper AWS CLI or SDK
+    echo "Upload to S3 completed (placeholder - implement with proper AWS tooling)"
+  
+  restore-from-backup.sh: |
+    #!/bin/sh
+    set -e
+    
+    BACKUP_ID="$1"
+    WEAVIATE_URL="${WEAVIATE_URL:-http://weaviate:8080}"
+    
+    if [ -z "$BACKUP_ID" ]; then
+      echo "Usage: $0 <backup-id>"
+      exit 1
+    fi
+    
+    echo "Restoring from backup: $BACKUP_ID"
+    
+    # Check if backup exists
+    if [ ! -d "/backup/$BACKUP_ID" ]; then
+      echo "Backup $BACKUP_ID not found in /backup/"
+      exit 1
+    fi
+    
+    # Restore via Weaviate API
+    curl -X POST \
+      -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+      -H "Content-Type: application/json" \
+      -d "{\"id\":\"$BACKUP_ID\",\"include\":[\"TelecomKnowledge\"]}" \
+      "$WEAVIATE_URL/v1/backups/filesystem/$BACKUP_ID/restore"
+    
+    echo "Restore initiated. Check Weaviate logs for completion status."
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backup-credentials
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup-auth
+  annotations:
+    kubernetes.io/description: "AWS credentials for backup storage"
+type: Opaque
+data:
+  # Base64 encoded placeholder values - replace with actual credentials
+  aws-access-key-id: QUtJQUlPU0ZPRE5ON0VYQU1QTEU=  # AKIAIOSFODNN7EXAMPLE
+  aws-secret-access-key: d0phbHJYVXRuRkVNSS9LN01ERU5HL2JQeFJmaUNZRVhBTVBMRUtFWQ==  # wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: weaviate-backup-test
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup-test
+  annotations:
+    kubernetes.io/description: "One-time backup test job"
+spec:
+  backoffLimit: 2
+  activeDeadlineSeconds: 3600
+  template:
+    metadata:
+      labels:
+        app: weaviate-backup-test
+    spec:
+      serviceAccountName: weaviate-backup
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      restartPolicy: Never
+      containers:
+      - name: backup-test
+        image: curlimages/curl:8.5.0
+        env:
+        - name: WEAVIATE_URL
+          value: "http://weaviate:8080"
+        - name: WEAVIATE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: weaviate-api-key
+              key: api-key
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          echo "Testing Weaviate connectivity..."
+          curl -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+            "$WEAVIATE_URL/v1/.well-known/ready" || {
+            echo "Weaviate is not ready"
+            exit 1
+          }
+          
+          echo "Testing backup endpoint..."
+          curl -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+            "$WEAVIATE_URL/v1/backups/filesystem" || {
+            echo "Backup endpoint not accessible"
+            exit 1
+          }
+          
+          echo "Backup connectivity test passed"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"

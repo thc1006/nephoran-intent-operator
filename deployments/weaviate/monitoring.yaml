@@ -1,0 +1,466 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: weaviate-metrics
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: monitoring
+    tier: "observability"
+  annotations:
+    kubernetes.io/description: "ServiceMonitor for comprehensive Weaviate metrics collection"
+spec:
+  selector:
+    matchLabels:
+      app: weaviate
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 15s
+    scrapeTimeout: 10s
+    honorLabels: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'weaviate_.*'
+      targetLabel: __name__
+      replacement: '${1}'
+    - sourceLabels: [pod]
+      targetLabel: instance
+      replacement: '${1}'
+  - port: http
+    path: /v1/meta
+    interval: 60s
+    scrapeTimeout: 15s
+    honorLabels: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'weaviate_meta_.*'
+      targetLabel: __name__
+      replacement: '${1}'
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: weaviate-alerts
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: alerting
+    tier: "observability"
+  annotations:
+    kubernetes.io/description: "Comprehensive alerting rules for Weaviate cluster monitoring"
+spec:
+  groups:
+  - name: weaviate.availability
+    interval: 30s
+    rules:
+    - alert: WeaviateDown
+      expr: up{job="weaviate"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        service: weaviate
+        component: availability
+        tier: database
+      annotations:
+        summary: "Weaviate instance is down"
+        description: "Weaviate instance {{ $labels.instance }} has been down for more than 2 minutes"
+        runbook_url: "https://docs.weaviate.io/troubleshooting"
+        dashboard_url: "https://grafana.nephoran.io/d/weaviate/weaviate-overview"
+    
+    - alert: WeaviateClusterUnhealthy
+      expr: count(up{job="weaviate"} == 1) < 2
+      for: 5m
+      labels:
+        severity: critical
+        service: weaviate
+        component: cluster
+        tier: database
+      annotations:
+        summary: "Weaviate cluster is unhealthy"
+        description: "Less than 2 Weaviate instances are available. Current count: {{ $value }}"
+        runbook_url: "https://docs.weaviate.io/cluster-management"
+        dashboard_url: "https://grafana.nephoran.io/d/weaviate-cluster/weaviate-cluster-health"
+
+  - name: weaviate.performance
+    interval: 30s
+    rules:
+    - alert: WeaviateHighMemoryUsage
+      expr: (container_memory_usage_bytes{pod=~"weaviate-.*"} / container_spec_memory_limit_bytes{pod=~"weaviate-.*"}) > 0.85
+      for: 10m
+      labels:
+        severity: warning
+        service: weaviate
+        component: performance
+        tier: database
+      annotations:
+        summary: "Weaviate high memory usage"
+        description: "Weaviate pod {{ $labels.pod }} memory usage is {{ $value | humanizePercentage }} for more than 10 minutes"
+        runbook_url: "https://docs.weaviate.io/performance-tuning#memory"
+        dashboard_url: "https://grafana.nephoran.io/d/weaviate-resources/weaviate-resource-usage"
+    
+    - alert: WeaviateVeryHighMemoryUsage
+      expr: (container_memory_usage_bytes{pod=~"weaviate-.*"} / container_spec_memory_limit_bytes{pod=~"weaviate-.*"}) > 0.95
+      for: 5m
+      labels:
+        severity: critical
+        service: weaviate
+        component: performance
+        tier: database
+      annotations:
+        summary: "Weaviate very high memory usage"
+        description: "Weaviate pod {{ $labels.pod }} memory usage is {{ $value | humanizePercentage }} - approaching OOM"
+        runbook_url: "https://docs.weaviate.io/performance-tuning#memory"
+        dashboard_url: "https://grafana.nephoran.io/d/weaviate-resources/weaviate-resource-usage"
+    
+    - alert: WeaviateHighCPUUsage
+      expr: (rate(container_cpu_usage_seconds_total{pod=~"weaviate-.*"}[5m]) / container_spec_cpu_quota{pod=~"weaviate-.*"} * container_spec_cpu_period{pod=~"weaviate-.*"}) > 0.8
+      for: 15m
+      labels:
+        severity: warning
+        service: weaviate
+        component: performance
+        tier: database
+      annotations:
+        summary: "Weaviate high CPU usage"
+        description: "Weaviate pod {{ $labels.pod }} CPU usage is {{ $value | humanizePercentage }} for more than 15 minutes"
+        runbook_url: "https://docs.weaviate.io/performance-tuning#cpu"
+        dashboard_url: "https://grafana.nephoran.io/d/weaviate-resources/weaviate-resource-usage"
+    
+    - alert: WeaviateHighQueryLatency
+      expr: histogram_quantile(0.95, rate(weaviate_query_duration_seconds_bucket[5m])) > 1.0
+      for: 10m
+      labels:
+        severity: warning
+        service: weaviate
+        component: performance
+        tier: database
+      annotations:
+        summary: "Weaviate high query latency"
+        description: "95th percentile query latency is {{ $value }}s for more than 10 minutes"
+        runbook_url: "https://docs.weaviate.io/performance-tuning#queries"
+        dashboard_url: "https://grafana.nephoran.io/d/weaviate-performance/weaviate-query-performance"
+        
+    - alert: WeaviateHighIndexingLatency
+      expr: histogram_quantile(0.95, rate(weaviate_indexing_duration_seconds_bucket[5m])) > 5.0
+      for: 15m
+      labels:
+        severity: warning
+        service: weaviate
+        component: indexing
+        tier: database
+      annotations:
+        summary: "Weaviate high indexing latency"
+        description: "95th percentile indexing latency is {{ $value }}s for more than 15 minutes"
+        runbook_url: "https://docs.weaviate.io/performance-tuning#indexing"
+        dashboard_url: "https://grafana.nephoran.io/d/weaviate-indexing/weaviate-indexing-performance"
+
+  - name: weaviate.storage
+    interval: 60s
+    rules:
+    - alert: WeaviateHighDiskUsage
+      expr: (kubelet_volume_stats_used_bytes{persistentvolumeclaim=~"weaviate-pvc.*"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~"weaviate-pvc.*"}) > 0.8
+      for: 5m
+      labels:
+        severity: warning
+        service: weaviate
+        component: storage
+        tier: database
+      annotations:
+        summary: "Weaviate high disk usage"
+        description: "Weaviate persistent volume {{ $labels.persistentvolumeclaim }} usage is {{ $value | humanizePercentage }}"
+        runbook_url: "https://docs.weaviate.io/storage-management"
+        dashboard_url: "https://grafana.nephoran.io/d/weaviate-storage/weaviate-storage-usage"
+    
+    - alert: WeaviateVeryHighDiskUsage
+      expr: (kubelet_volume_stats_used_bytes{persistentvolumeclaim=~"weaviate-pvc.*"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~"weaviate-pvc.*"}) > 0.9
+      for: 5m
+      labels:
+        severity: critical
+        service: weaviate
+        component: storage
+        tier: database
+      annotations:
+        summary: "Weaviate very high disk usage"
+        description: "Weaviate persistent volume {{ $labels.persistentvolumeclaim }} usage is {{ $value | humanizePercentage }} - approaching full"
+        runbook_url: "https://docs.weaviate.io/storage-management"
+        dashboard_url: "https://grafana.nephoran.io/d/weaviate-storage/weaviate-storage-usage"
+
+  - name: weaviate.backup
+    interval: 300s
+    rules:
+    - alert: WeaviateBackupFailed
+      expr: increase(kube_job_status_failed{job_name=~"weaviate-backup.*"}[1h]) > 0
+      for: 0m
+      labels:
+        severity: warning
+        service: weaviate
+        component: backup
+        tier: operations
+      annotations:
+        summary: "Weaviate backup job failed"
+        description: "Backup job {{ $labels.job_name }} has failed"
+        runbook_url: "https://docs.weaviate.io/backup-troubleshooting"
+        dashboard_url: "https://grafana.nephoran.io/d/weaviate-backup/weaviate-backup-status"
+    
+    - alert: WeaviateBackupMissing
+      expr: time() - kube_job_status_completion_time{job_name=~"weaviate-backup.*"} > 86400 * 2
+      for: 0m
+      labels:
+        severity: warning
+        service: weaviate
+        component: backup
+        tier: operations
+      annotations:
+        summary: "Weaviate backup is overdue"
+        description: "No successful backup for over 2 days. Last successful backup: {{ $labels.job_name }}"
+        runbook_url: "https://docs.weaviate.io/backup-troubleshooting"
+        dashboard_url: "https://grafana.nephoran.io/d/weaviate-backup/weaviate-backup-status"
+
+  - name: weaviate.telecom
+    interval: 60s
+    rules:
+    - alert: WeaviateTelecomKnowledgebaseEmpty
+      expr: weaviate_object_count{class_name="TelecomKnowledge"} == 0
+      for: 5m
+      labels:
+        severity: critical
+        service: weaviate
+        component: telecom-data
+        tier: application
+      annotations:
+        summary: "Telecom knowledge base is empty"
+        description: "TelecomKnowledge class has no objects - RAG system may not function properly"
+        runbook_url: "https://docs.nephoran.io/knowledge-base-management"
+        dashboard_url: "https://grafana.nephoran.io/d/nephoran-rag/nephoran-rag-overview"
+    
+    - alert: WeaviateTelecomKnowledgebaseLow
+      expr: weaviate_object_count{class_name="TelecomKnowledge"} < 1000
+      for: 10m
+      labels:
+        severity: warning
+        service: weaviate
+        component: telecom-data
+        tier: application
+      annotations:
+        summary: "Telecom knowledge base has few objects"
+        description: "TelecomKnowledge class has only {{ $value }} objects - consider refreshing knowledge base"
+        runbook_url: "https://docs.nephoran.io/knowledge-base-management"
+        dashboard_url: "https://grafana.nephoran.io/d/nephoran-rag/nephoran-rag-overview"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: weaviate-dashboard
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: monitoring
+    grafana_dashboard: "true"
+  annotations:
+    grafana.com/dashboard: "true"
+    kubernetes.io/description: "Grafana dashboard configuration for Weaviate monitoring"
+data:
+  weaviate-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "weaviate-overview",
+        "title": "Weaviate Vector Database - Nephoran RAG System",
+        "description": "Comprehensive monitoring dashboard for Weaviate cluster in Nephoran Intent Operator",
+        "tags": ["weaviate", "rag", "nephoran", "telecom", "vector-database"],
+        "style": "dark",
+        "timezone": "UTC",
+        "editable": false,
+        "graphTooltip": 1,
+        "panels": [
+          {
+            "id": 1,
+            "title": "Cluster Health Overview",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "count(up{job=\"weaviate\"} == 1)",
+                "legendFormat": "Healthy Instances"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 1},
+                    {"color": "green", "value": 2}
+                  ]
+                },
+                "min": 0,
+                "max": 10,
+                "unit": "short"
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Total Vector Objects",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(weaviate_object_count{class_name=\"TelecomKnowledge\"})",
+                "legendFormat": "Telecom Knowledge Objects"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short",
+                "decimals": 0
+              }
+            }
+          },
+          {
+            "id": 3,
+            "title": "Query Rate",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(rate(weaviate_queries_total[5m]))",
+                "legendFormat": "Queries/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "reqps",
+                "decimals": 2
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Query Latency P95",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(weaviate_query_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "95th Percentile"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 0.5},
+                    {"color": "red", "value": 1.0}
+                  ]
+                },
+                "unit": "s",
+                "decimals": 3
+              }
+            }
+          },
+          {
+            "id": 5,
+            "title": "Memory Usage by Pod",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+            "targets": [
+              {
+                "expr": "container_memory_usage_bytes{pod=~\"weaviate-.*\"} / 1024 / 1024 / 1024",
+                "legendFormat": "{{ pod }} Memory Usage (GB)"
+              },
+              {
+                "expr": "container_spec_memory_limit_bytes{pod=~\"weaviate-.*\"} / 1024 / 1024 / 1024",
+                "legendFormat": "{{ pod }} Memory Limit (GB)"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Memory (GB)",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "CPU Usage by Pod",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{pod=~\"weaviate-.*\"}[5m]) * 100",
+                "legendFormat": "{{ pod }} CPU Usage (%)"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "CPU (%)",
+                "min": 0,
+                "max": 400
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "title": "Storage Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+            "targets": [
+              {
+                "expr": "kubelet_volume_stats_used_bytes{persistentvolumeclaim=~\"weaviate-.*\"} / 1024 / 1024 / 1024",
+                "legendFormat": "{{ persistentvolumeclaim }} Used (GB)"
+              },
+              {
+                "expr": "kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~\"weaviate-.*\"} / 1024 / 1024 / 1024",
+                "legendFormat": "{{ persistentvolumeclaim }} Capacity (GB)"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Storage (GB)",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "title": "Backup Status",
+            "type": "table",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+            "targets": [
+              {
+                "expr": "kube_job_status_completion_time{job_name=~\"weaviate-backup.*\"}",
+                "legendFormat": "{{ job_name }}",
+                "format": "table"
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {},
+                  "indexByName": {},
+                  "renameByName": {
+                    "job_name": "Backup Job",
+                    "Value": "Last Completion Time"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s",
+        "schemaVersion": 30,
+        "version": 1
+      }
+    }

@@ -1,0 +1,279 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: nephoran-system
+  labels:
+    app: prometheus
+    component: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'nephoran-cluster'
+        environment: 'production'
+    
+    rule_files:
+      - "/etc/prometheus/rules/*.yml"
+    
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              - alertmanager:9093
+    
+    scrape_configs:
+      # Nephoran Intent Operator controllers
+      - job_name: 'nephoran-controllers'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: nephio-bridge|llm-processor|oran-adaptor
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+        scrape_interval: 15s
+        metrics_path: /metrics
+    
+      # RAG API service
+      - job_name: 'rag-api'
+        kubernetes_sd_configs:
+          - role: service
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_app]
+            action: keep
+            regex: rag-api
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: kubernetes_service_name
+        scrape_interval: 30s
+        metrics_path: /metrics
+    
+      # Weaviate vector database
+      - job_name: 'weaviate'
+        kubernetes_sd_configs:
+          - role: service
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_app]
+            action: keep
+            regex: weaviate
+          - source_labels: [__address__]
+            action: replace
+            regex: ([^:]+):.*
+            replacement: $1:2112
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: kubernetes_service_name
+        scrape_interval: 30s
+        metrics_path: /metrics
+    
+      # Kubernetes API server metrics
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - default
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+        scrape_interval: 30s
+    
+      # Kubernetes nodes
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics
+        scrape_interval: 30s
+    
+      # cAdvisor for container metrics
+      - job_name: 'kubernetes-cadvisor'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+        scrape_interval: 30s
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'container_(network_receive_bytes_total|network_transmit_bytes_total|fs_reads_bytes_total|fs_writes_bytes_total|memory_usage_bytes|spec_memory_limit_bytes|cpu_usage_seconds_total|spec_cpu_quota)'
+            action: keep
+
+  # Alerting rules
+  nephoran-rules.yml: |
+    groups:
+      - name: nephoran.intent.rules
+        rules:
+          - alert: HighNetworkIntentFailureRate
+            expr: rate(nephoran_networkintent_retries_total[5m]) > 0.1
+            for: 2m
+            labels:
+              severity: warning
+              component: networkintent-controller
+            annotations:
+              summary: "High NetworkIntent failure rate"
+              description: "NetworkIntent failure rate is {{ $value }} failures per second"
+          
+          - alert: NetworkIntentProcessingStuck
+            expr: nephoran_networkintent_status{status="processing"} > 0 and time() - nephoran_networkintent_status > 300
+            for: 5m
+            labels:
+              severity: critical
+              component: networkintent-controller
+            annotations:
+              summary: "NetworkIntent processing stuck"
+              description: "NetworkIntent {{ $labels.name }} has been processing for over 5 minutes"
+          
+          - alert: LLMServiceDown
+            expr: up{job="rag-api"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              component: llm-service
+            annotations:
+              summary: "LLM service is down"
+              description: "RAG API service is not responding"
+          
+          - alert: HighLLMLatency
+            expr: histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m])) > 30
+            for: 3m
+            labels:
+              severity: warning
+              component: llm-service
+            annotations:
+              summary: "High LLM processing latency"
+              description: "95th percentile LLM latency is {{ $value }} seconds"
+      
+      - name: nephoran.oran.rules
+        rules:
+          - alert: ORANInterfaceDown
+            expr: nephoran_oran_connection_status == 0
+            for: 2m
+            labels:
+              severity: critical
+              component: oran-interface
+            annotations:
+              summary: "O-RAN interface connection down"
+              description: "{{ $labels.interface }} interface to {{ $labels.endpoint }} is down"
+          
+          - alert: HighORANErrorRate
+            expr: rate(nephoran_oran_interface_errors_total[5m]) > 0.05
+            for: 3m
+            labels:
+              severity: warning
+              component: oran-interface
+            annotations:
+              summary: "High O-RAN interface error rate"
+              description: "{{ $labels.interface }} interface error rate is {{ $value }} errors per second"
+      
+      - name: nephoran.system.rules
+        rules:
+          - alert: ControllerUnhealthy
+            expr: nephoran_controller_health_status == 0
+            for: 1m
+            labels:
+              severity: critical
+              component: controller
+            annotations:
+              summary: "Controller unhealthy"
+              description: "Controller {{ $labels.controller }} component {{ $labels.component }} is unhealthy"
+          
+          - alert: HighMemoryUsage
+            expr: nephoran_resource_utilization{resource_type="memory",unit="percent"} > 85
+            for: 5m
+            labels:
+              severity: warning
+              component: system
+            annotations:
+              summary: "High memory usage"
+              description: "Memory usage is {{ $value }}%"
+          
+          - alert: WeaviateDown
+            expr: up{job="weaviate"} == 0
+            for: 1m
+            labels:
+              severity: critical
+              component: vector-database
+            annotations:
+              summary: "Weaviate vector database is down"
+              description: "Weaviate service is not responding"
