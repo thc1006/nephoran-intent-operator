@@ -1,0 +1,425 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weaviate
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: vectordb
+    part-of: nephoran-rag
+    version: "v1.28.1"
+    tier: "database"
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    kubernetes.io/change-cause: "Production-ready Weaviate deployment with telecom optimizations"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: weaviate
+  template:
+    metadata:
+      labels:
+        app: weaviate
+        component: vectordb
+        version: "v1.28.1"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "2112"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: weaviate
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: weaviate
+        image: semitechnologies/weaviate:1.28.1
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false  # Weaviate needs write access to data directory
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+              - ALL
+            add:
+              - NET_BIND_SERVICE
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 2112
+          name: metrics
+          protocol: TCP
+        - containerPort: 7000
+          name: gossip
+          protocol: TCP
+        - containerPort: 7001
+          name: data
+          protocol: TCP
+        env:
+        - name: QUERY_DEFAULTS_LIMIT
+          value: "50"
+        - name: QUERY_MAXIMUM_RESULTS
+          value: "10000"
+        - name: AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED
+          value: "false"
+        - name: AUTHENTICATION_APIKEY_ENABLED
+          value: "true"
+        - name: AUTHENTICATION_APIKEY_ALLOWED_KEYS
+          valueFrom:
+            secretKeyRef:
+              name: weaviate-api-key
+              key: api-key
+        - name: AUTHENTICATION_APIKEY_USERS
+          value: "nephoran-rag-user"
+        - name: PERSISTENCE_DATA_PATH
+          value: "/var/lib/weaviate"
+        - name: DEFAULT_VECTORIZER_MODULE
+          value: "text2vec-openai"
+        - name: ENABLE_MODULES
+          value: "text2vec-openai,generative-openai,qna-openai,sum-transformers,ref2vec-centroid"
+        - name: CLUSTER_HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: CLUSTER_GOSSIP_BIND_PORT
+          value: "7000"
+        - name: CLUSTER_DATA_BIND_PORT
+          value: "7001"
+        - name: OPENAI_APIKEY
+          valueFrom:
+            secretKeyRef:
+              name: openai-api-key
+              key: api-key
+        - name: TRACK_VECTOR_DIMENSIONS
+          value: "true"
+        - name: INDEXING_CLEANUP_INTERVAL_SECONDS
+          value: "300"
+        - name: VECTOR_CACHE_MAX_OBJECTS
+          value: "1000000"
+        - name: BACKUP_FILESYSTEM_PATH
+          value: "/var/lib/weaviate/backups"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: LOG_FORMAT
+          value: "json"
+        - name: PROMETHEUS_MONITORING_ENABLED
+          value: "true"
+        - name: PROMETHEUS_MONITORING_GROUP
+          value: "true"
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "1000m"
+            ephemeral-storage: "10Gi"
+          limits:
+            memory: "16Gi"
+            cpu: "4000m"
+            ephemeral-storage: "50Gi"
+        volumeMounts:
+        - name: weaviate-data
+          mountPath: /var/lib/weaviate
+        - name: weaviate-backup
+          mountPath: /var/lib/weaviate/backups
+        - name: weaviate-config
+          mountPath: /etc/weaviate
+          readOnly: true
+        - name: tmp-volume
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /v1/.well-known/live
+            port: 8080
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer $(AUTHENTICATION_APIKEY_ALLOWED_KEYS)"
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: /v1/.well-known/ready
+            port: 8080
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer $(AUTHENTICATION_APIKEY_ALLOWED_KEYS)"
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        startupProbe:
+          httpGet:
+            path: /v1/.well-known/live
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+      volumes:
+      - name: weaviate-data
+        persistentVolumeClaim:
+          claimName: weaviate-pvc
+      - name: weaviate-backup
+        persistentVolumeClaim:
+          claimName: weaviate-backup-pvc
+      - name: weaviate-config
+        configMap:
+          name: weaviate-config
+          defaultMode: 420
+      - name: tmp-volume
+        emptyDir:
+          sizeLimit: 1Gi
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - weaviate
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weaviate
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: vectordb
+    part-of: nephoran-rag
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "2112"
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 2112
+    targetPort: 2112
+    protocol: TCP
+    name: metrics
+  - port: 7000
+    targetPort: 7000
+    protocol: TCP
+    name: gossip
+  - port: 7001
+    targetPort: 7001
+    protocol: TCP
+    name: data
+  selector:
+    app: weaviate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weaviate-headless
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: vectordb
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 7000
+    targetPort: 7000
+    protocol: TCP
+    name: gossip
+  - port: 7001
+    targetPort: 7001
+    protocol: TCP
+    name: data
+  selector:
+    app: weaviate
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: weaviate-pvc
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: storage
+    tier: "primary"
+  annotations:
+    volume.beta.kubernetes.io/storage-provisioner: "kubernetes.io/aws-ebs"
+    volume.kubernetes.io/storage-resizer: "kubernetes.io/aws-ebs"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Gi
+  storageClassName: "fast-ssd"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: weaviate-backup-pvc
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup-storage
+    tier: "backup"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 200Gi
+  storageClassName: "standard"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: weaviate-api-key
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: auth
+  annotations:
+    kubernetes.io/description: "API key for Weaviate authentication"
+type: Opaque
+data:
+  api-key: bmVwaG9yYW4tcmFnLWtleS1wcm9kdWN0aW9u  # Base64 encoded "nephoran-rag-key-production"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: weaviate-config
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: config
+data:
+  weaviate.conf: |
+    # Weaviate configuration for telecom domain optimization
+    query_defaults:
+      limit: 50
+    query_maximum_results: 10000
+    
+    # Performance tuning for telecom workloads
+    indexing:
+      cleanup_interval_seconds: 300
+      vector_cache_max_objects: 1000000
+    
+    # Authentication configuration
+    authentication:
+      anonymous_access:
+        enabled: false
+      apikey:
+        enabled: true
+        
+    # Backup configuration
+    backup:
+      filesystem:
+        path: "/var/lib/weaviate/backups"
+        
+    # Monitoring configuration
+    monitoring:
+      enabled: true
+      port: 2112
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: weaviate-hpa
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: autoscaler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: weaviate
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 600
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 120
+      - type: Pods
+        value: 1
+        periodSeconds: 120
+      selectPolicy: Min
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: weaviate
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: auth
+  annotations:
+    kubernetes.io/description: "Service account for Weaviate pods"
+automountServiceAccountToken: false
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: weaviate-pdb
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: availability
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: weaviate

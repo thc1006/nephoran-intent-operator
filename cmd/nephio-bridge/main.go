@@ -17,6 +17,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 )
 
 var (
@@ -76,6 +77,19 @@ func main() {
 	llmClient := llm.NewClient(cfg.LLMProcessorURL)
 	gitClient := git.NewClient(cfg.GitRepoURL, "main", cfg.GitToken)
 
+	// Initialize Nephio package generator if enabled
+	var packageGen *nephio.PackageGenerator
+	useNephioPorch := os.Getenv("USE_NEPHIO_PORCH") == "true"
+	if useNephioPorch {
+		var err error
+		packageGen, err = nephio.NewPackageGenerator()
+		if err != nil {
+			setupLog.Error(err, "unable to create package generator")
+			os.Exit(1)
+		}
+		setupLog.Info("Nephio Porch integration enabled")
+	}
+
 	// Setup NetworkIntent controller
 	if err = (&controllers.NetworkIntentReconciler{
 		Client:          mgr.GetClient(),
@@ -83,6 +97,8 @@ func main() {
 		GitClient:       gitClient,
 		LLMClient:       llmClient,
 		LLMProcessorURL: cfg.LLMProcessorURL,
+		PackageGen:      packageGen,
+		UseNephioPorch:  useNephioPorch,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "NetworkIntent")
 		os.Exit(1)

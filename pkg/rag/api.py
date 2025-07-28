@@ -1,29 +1,66 @@
 from flask import Flask, request, jsonify
 from telecom_pipeline import TelecomRAGPipeline
+from enhanced_pipeline import EnhancedTelecomRAGPipeline
+from document_processor import DocumentProcessor
 import os
 import logging
+import time
+from pathlib import Path
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
-# In a production environment, this should be loaded from a secure source
-# like a Kubernetes secret or a vault.
+# Enhanced configuration with production-ready settings
 config = {
-    "weaviate_url": os.environ.get("WEAVIATE_URL", "http://localhost:8080"),
-    "openai_api_key": os.environ.get("OPENAI_API_KEY")
+    "weaviate_url": os.environ.get("WEAVIATE_URL", "http://weaviate:8080"),
+    "openai_api_key": os.environ.get("OPENAI_API_KEY"),
+    "model": os.environ.get("OPENAI_MODEL", "gpt-4o-mini"),
+    "cache_max_size": int(os.environ.get("CACHE_MAX_SIZE", "1000")),
+    "cache_ttl_seconds": int(os.environ.get("CACHE_TTL_SECONDS", "3600")),
+    "chunk_size": int(os.environ.get("CHUNK_SIZE", "1000")),
+    "chunk_overlap": int(os.environ.get("CHUNK_OVERLAP", "200")),
+    "max_concurrent_files": int(os.environ.get("MAX_CONCURRENT_FILES", "5")),
+    "knowledge_base_path": os.environ.get("KNOWLEDGE_BASE_PATH", "/app/knowledge_base")
 }
 
-# Initialize the RAG pipeline
+# Initialize the enhanced RAG pipeline
 rag_pipeline = None
+document_processor = None
+
 if not config.get("openai_api_key"):
     msg = "OPENAI_API_KEY not set. RAG will not be initialized."
     app.logger.warning(msg)
 else:
     try:
-        rag_pipeline = TelecomRAGPipeline(config)
-        app.logger.info("TelecomRAGPipeline initialized successfully.")
+        # Initialize enhanced pipeline
+        rag_pipeline = EnhancedTelecomRAGPipeline(config)
+        document_processor = DocumentProcessor(config)
+        app.logger.info("Enhanced TelecomRAGPipeline initialized successfully.")
+        
+        # Auto-populate knowledge base if directory exists
+        kb_path = Path(config["knowledge_base_path"])
+        if kb_path.exists() and kb_path.is_dir():
+            app.logger.info(f"Found knowledge base directory: {kb_path}")
+            try:
+                documents, metrics = document_processor.process_directory(kb_path)
+                if documents:
+                    success = rag_pipeline.add_knowledge_documents(documents)
+                    if success:
+                        app.logger.info(f"Populated knowledge base with {metrics.total_chunks} chunks "
+                                      f"from {metrics.processed_documents} documents")
+                    else:
+                        app.logger.warning("Failed to populate knowledge base")
+            except Exception as e:
+                app.logger.error(f"Error populating knowledge base: {e}")
+                
     except Exception as e:
-        app.logger.error(f"Failed to initialize TelecomRAGPipeline: {e}")
+        app.logger.error(f"Failed to initialize Enhanced RAG Pipeline: {e}")
+        # Fallback to basic pipeline
+        try:
+            rag_pipeline = TelecomRAGPipeline(config)
+            app.logger.info("Fallback: Basic TelecomRAGPipeline initialized.")
+        except Exception as fallback_error:
+            app.logger.error(f"Failed to initialize fallback pipeline: {fallback_error}")
 
 
 @app.route('/healthz', methods=['GET'])
@@ -34,9 +71,20 @@ def healthz():
 @app.route('/readyz', methods=['GET'])
 def readyz():
     if rag_pipeline:
-        return jsonify({"status": "ready"})
+        try:
+            # Check if enhanced pipeline is available
+            if hasattr(rag_pipeline, 'get_health_status'):
+                health = rag_pipeline.get_health_status()
+                return jsonify({
+                    "status": "ready" if health["status"] == "healthy" else "not_ready",
+                    "health": health
+                }), 200 if health["status"] == "healthy" else 503
+            else:
+                return jsonify({"status": "ready"}), 200
+        except Exception as e:
+            return jsonify({"status": "not_ready", "error": str(e)}), 503
     else:
-        return jsonify({"status": "not_ready"}), 503
+        return jsonify({"status": "not_ready", "error": "Pipeline not initialized"}), 503
 
 
 @app.route('/process_intent', methods=['POST'])
@@ -49,12 +97,155 @@ def process_intent():
         return jsonify({"error": "Missing 'intent' in request body"}), 400
 
     intent = data['intent']
+    intent_id = data.get('intent_id')  # Optional intent ID for tracking
+    
     try:
-        result = rag_pipeline.process_intent(intent)
-        return jsonify(result)
+        # Use enhanced pipeline if available
+        if hasattr(rag_pipeline, 'process_intent_async'):
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                result = loop.run_until_complete(
+                    rag_pipeline.process_intent_async(intent, intent_id)
+                )
+                # Convert dataclass to dict for JSON serialization
+                if hasattr(result, '__dict__'):
+                    result_dict = result.__dict__.copy()
+                    if 'metrics' in result_dict and hasattr(result_dict['metrics'], '__dict__'):
+                        result_dict['metrics'] = result_dict['metrics'].__dict__
+                    return jsonify(result_dict)
+                else:
+                    return jsonify(result)
+            finally:
+                loop.close()
+        else:
+            # Fallback to basic pipeline
+            result = rag_pipeline.process_intent(intent)
+            return jsonify(result)
+            
     except Exception as e:
         app.logger.error(f"Error processing intent: {e}")
-        return jsonify({"error": "Failed to process intent"}), 500
+        return jsonify({
+            "error": "Failed to process intent",
+            "intent_id": intent_id,
+            "original_intent": intent,
+            "exception": str(e)
+        }), 500
+
+
+@app.route('/knowledge/upload', methods=['POST'])
+def upload_knowledge():
+    """Upload and process knowledge documents"""
+    if not document_processor or not rag_pipeline:
+        return jsonify({"error": "Document processor not available"}), 503
+    
+    try:
+        files = request.files.getlist('files')
+        if not files:
+            return jsonify({"error": "No files provided"}), 400
+        
+        # Process uploaded files
+        documents = []
+        for file in files:
+            if file.filename:
+                # Save temporary file
+                temp_path = Path(f"/tmp/{file.filename}")
+                file.save(temp_path)
+                
+                try:
+                    # Detect and process document
+                    doc_type = document_processor.detect_document_type(temp_path)
+                    document = document_processor.load_document(temp_path, doc_type)
+                    
+                    if document:
+                        processed_docs = document_processor.process_document(document)
+                        documents.extend(processed_docs)
+                finally:
+                    # Clean up temporary file
+                    if temp_path.exists():
+                        temp_path.unlink()
+        
+        # Add to knowledge base
+        if documents:
+            success = rag_pipeline.add_knowledge_documents(documents)
+            return jsonify({
+                "status": "success" if success else "failed",
+                "documents_processed": len(documents),
+                "chunks_created": len(documents)
+            })
+        else:
+            return jsonify({"error": "No valid documents processed"}), 400
+            
+    except Exception as e:
+        app.logger.error(f"Error uploading knowledge: {e}")
+        return jsonify({"error": f"Failed to upload knowledge: {e}"}), 500
+
+
+@app.route('/stats', methods=['GET'])
+def get_stats():
+    """Get system statistics and metrics"""
+    try:
+        stats = {
+            "timestamp": time.time(),
+            "config": {
+                "model": config.get("model"),
+                "weaviate_url": config.get("weaviate_url"),
+                "cache_enabled": config.get("cache_max_size", 0) > 0,
+                "knowledge_base_path": config.get("knowledge_base_path")
+            }
+        }
+        
+        # Add enhanced pipeline stats
+        if hasattr(rag_pipeline, 'get_health_status'):
+            stats["health"] = rag_pipeline.get_health_status()
+        
+        # Add document processor stats
+        if document_processor:
+            stats["document_processor"] = document_processor.get_processing_stats()
+        
+        return jsonify(stats)
+        
+    except Exception as e:
+        app.logger.error(f"Error getting stats: {e}")
+        return jsonify({"error": f"Failed to get stats: {e}"}), 500
+
+
+@app.route('/knowledge/populate', methods=['POST'])
+def populate_knowledge():
+    """Manually trigger knowledge base population"""
+    if not document_processor or not rag_pipeline:
+        return jsonify({"error": "Services not available"}), 503
+    
+    try:
+        data = request.get_json() or {}
+        kb_path = Path(data.get("path", config["knowledge_base_path"]))
+        
+        if not kb_path.exists():
+            return jsonify({"error": f"Knowledge base path does not exist: {kb_path}"}), 400
+        
+        # Process directory
+        documents, metrics = document_processor.process_directory(kb_path)
+        
+        if documents:
+            success = rag_pipeline.add_knowledge_documents(documents)
+            return jsonify({
+                "status": "success" if success else "failed",
+                "metrics": {
+                    "total_documents": metrics.total_documents,
+                    "processed_documents": metrics.processed_documents,
+                    "failed_documents": metrics.failed_documents,
+                    "total_chunks": metrics.total_chunks,
+                    "processing_time_seconds": metrics.processing_time_seconds,
+                    "keywords_extracted": metrics.keywords_extracted
+                }
+            })
+        else:
+            return jsonify({"error": "No documents found to process"}), 400
+            
+    except Exception as e:
+        app.logger.error(f"Error populating knowledge: {e}")
+        return jsonify({"error": f"Failed to populate knowledge: {e}"}), 500
 
 
 if __name__ == '__main__':

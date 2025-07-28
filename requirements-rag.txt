@@ -1,5 +1,32 @@
+# Core framework dependencies
 flask==3.0.3
 langchain==0.2.0
+langchain-community==0.2.0
+langchain-openai==0.1.8
 weaviate-client==4.6.1
 openai==1.30.1
 gunicorn==22.0.0
+
+# Document processing dependencies
+pypdf==4.2.0
+unstructured==0.14.5
+python-magic==0.4.27
+PyYAML==6.0.1
+
+# Text processing and NLP
+nltk==3.8.1
+
+# Data validation and serialization
+pydantic==2.7.1
+
+# Monitoring and logging
+prometheus-client==0.20.0
+
+# Security and authentication
+cryptography==42.0.8
+
+# Development and testing dependencies (optional)
+pytest==8.2.2
+pytest-asyncio==0.23.7
+black==24.4.2
+flake8==7.0.0
