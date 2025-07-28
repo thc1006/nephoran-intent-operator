@@ -1,0 +1,2446 @@
+openapi: 3.0.3
+info:
+  title: Nephoran Intent Operator RAG Services API
+  description: |
+    Complete OpenAPI specification for the Nephoran Intent Operator's Retrieval-Augmented Generation (RAG) services, 
+    including Weaviate vector database operations, intent processing, and knowledge base management for telecommunications domain.
+    
+    This API provides semantic search capabilities for 3GPP and O-RAN specifications, intent pattern matching for 
+    network operations, and comprehensive knowledge management for telecommunications infrastructure.
+    
+    ## Key Features
+    - **Semantic Search**: Vector-based similarity search across telecom specifications
+    - **Hybrid Search**: Combined keyword and vector search with optimized ranking
+    - **Intent Processing**: Natural language intent recognition and parameter extraction
+    - **Knowledge Management**: CRUD operations for telecommunications knowledge base
+    - **Cross-Reference Queries**: Multi-class queries across knowledge, intents, and network functions
+    - **Batch Operations**: Bulk processing for large-scale operations
+    
+    ## Authentication
+    All endpoints require Bearer token authentication using the `Authorization` header.
+    
+    ## Rate Limits
+    - Standard endpoints: 100 requests/minute
+    - Batch operations: 10 requests/minute
+    - Search operations: 200 requests/minute
+    
+  version: 1.0.0
+  contact:
+    name: Nephoran Team
+    email: support@nephoran.io
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://api.nephoran.io/v1
+    description: Production server
+  - url: https://staging-api.nephoran.io/v1
+    description: Staging server
+  - url: http://localhost:8080/v1
+    description: Development server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Knowledge Search
+    description: Semantic and hybrid search operations for telecommunications knowledge
+  - name: Intent Processing
+    description: Natural language intent recognition and processing
+  - name: Knowledge Management
+    description: CRUD operations for knowledge base content
+  - name: Network Functions
+    description: Network function definitions and configurations
+  - name: Batch Operations
+    description: Bulk processing and batch operations
+  - name: Analytics
+    description: Analytics and reporting endpoints
+  - name: System
+    description: System health and metadata endpoints
+
+paths:
+  # Knowledge Search Endpoints
+  /search/semantic:
+    post:
+      tags:
+        - Knowledge Search
+      summary: Semantic Vector Search
+      description: |
+        Perform semantic vector search across the telecommunications knowledge base using natural language queries.
+        
+        This endpoint uses advanced vector embeddings to find semantically similar content, making it ideal for:
+        - Finding relevant procedures based on natural language descriptions
+        - Discovering related specifications and standards
+        - Locating network function documentation
+        
+        **Performance**: Typically responds in 100-300ms for standard queries.
+      operationId: semanticSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SemanticSearchRequest'
+            examples:
+              basic_search:
+                summary: Basic semantic search
+                value:
+                  query: "AMF registration procedure"
+                  limit: 10
+                  certainty: 0.7
+              filtered_search:
+                summary: Filtered semantic search
+                value:
+                  query: "network slicing configuration"
+                  limit: 15
+                  certainty: 0.75
+                  filters:
+                    source: ["3GPP"]
+                    networkFunctions: ["AMF", "NSSF"]
+                    minConfidence: 0.8
+              advanced_search:
+                summary: Advanced search with context
+                value:
+                  query: "authentication procedure for eMBB"
+                  limit: 20
+                  certainty: 0.8
+                  filters:
+                    source: ["3GPP"]
+                    useCase: ["eMBB"]
+                    release: ["Rel-17"]
+                  includeMetadata: true
+                  explain: true
+      responses:
+        '200':
+          description: Successful semantic search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+              examples:
+                successful_search:
+                  summary: Successful search with results
+                  value:
+                    query: "AMF registration procedure"
+                    searchType: "semantic"
+                    totalResults: 156
+                    results:
+                      - id: "550e8400-e29b-41d4-a716-446655440000"
+                        title: "AMF Registration Management Procedures"
+                        content: "The AMF (Access and Mobility Management Function) handles registration procedures..."
+                        source: "3GPP"
+                        specification: "TS 23.501"
+                        release: "Rel-17"
+                        networkFunctions: ["AMF"]
+                        confidence: 0.95
+                        certainty: 0.87
+                        relevanceScore: 0.92
+                    executionTime: 147
+                    searchStatistics:
+                      documentsScanned: 1250000
+                      vectorsComputed: 156
+                      filterApplied: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /search/hybrid:
+    post:
+      tags:
+        - Knowledge Search
+      summary: Hybrid Search
+      description: |
+        Perform hybrid search combining keyword (BM25) and semantic vector search with optimized ranking.
+        
+        Hybrid search is ideal for:
+        - Technical queries requiring exact term matching
+        - Balancing precision and recall
+        - Queries mixing specific terminology with natural language
+        
+        The `alpha` parameter controls the balance between keyword (1.0) and vector (0.0) search.
+      operationId: hybridSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HybridSearchRequest'
+            examples:
+              balanced_search:
+                summary: Balanced hybrid search
+                value:
+                  query: "SMF session management procedure"
+                  alpha: 0.7
+                  limit: 10
+              keyword_focused:
+                summary: Keyword-focused search
+                value:
+                  query: "TS 23.501 clause 4.2.3"
+                  alpha: 0.9
+                  limit: 5
+              semantic_focused:
+                summary: Semantic-focused search
+                value:
+                  query: "how to configure quality of service"
+                  alpha: 0.3
+                  limit: 15
+      responses:
+        '200':
+          description: Successful hybrid search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /search/cross-reference:
+    post:
+      tags:
+        - Knowledge Search
+      summary: Cross-Reference Search
+      description: |
+        Perform cross-reference search across multiple schema classes (Knowledge, Intents, Network Functions).
+        
+        This endpoint provides comprehensive analysis by finding related:
+        - Knowledge documents
+        - Intent patterns
+        - Network function definitions
+        - Cross-class relationships
+      operationId: crossReferenceSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrossReferenceSearchRequest'
+      responses:
+        '200':
+          description: Successful cross-reference search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrossReferenceResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Intent Processing Endpoints
+  /intents/match:
+    post:
+      tags:
+        - Intent Processing
+      summary: Match Intent Patterns
+      description: |
+        Match user input against predefined intent patterns and extract parameters.
+        
+        This endpoint analyzes natural language input to:
+        - Identify the user's intent (deployment, scaling, configuration)
+        - Extract relevant parameters (network functions, replicas, etc.)
+        - Provide confidence scores for matches
+        - Suggest actionable next steps
+      operationId: matchIntentPatterns
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntentMatchRequest'
+            examples:
+              deployment_intent:
+                summary: Network function deployment intent
+                value:
+                  userInput: "Deploy AMF with 3 replicas in production namespace"
+                  confidenceThreshold: 0.7
+                  extractParameters: true
+              scaling_intent:
+                summary: Scaling intent
+                value:
+                  userInput: "Scale SMF to 5 instances for high throughput"
+                  confidenceThreshold: 0.8
+                  extractParameters: true
+              configuration_intent:
+                summary: Configuration intent
+                value:
+                  userInput: "Configure UPF for URLLC with low latency"
+                  confidenceThreshold: 0.75
+                  extractParameters: true
+                  includeRelatedKnowledge: true
+      responses:
+        '200':
+          description: Successful intent pattern matching
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentMatchResponse'
+              examples:
+                successful_match:
+                  summary: Successful intent match
+                  value:
+                    userInput: "Deploy AMF with 3 replicas in production namespace"
+                    matchedPatterns:
+                      - pattern: "Deploy {networkFunction} with {replicas} replicas in {namespace} namespace"
+                        intentType: "NetworkFunctionDeployment"
+                        confidence: 0.94
+                        matchScore: 0.91
+                        extractedParameters:
+                          networkFunction: "AMF"
+                          replicas: "3"
+                          namespace: "production"
+                        requiredParameters: ["networkFunction", "replicas", "namespace"]
+                    bestMatch:
+                      pattern: "Deploy {networkFunction} with {replicas} replicas in {namespace} namespace"
+                      intentType: "NetworkFunctionDeployment"
+                      confidence: 0.94
+                    recommendedActions:
+                      - "Validate AMF deployment requirements"
+                      - "Check production namespace capacity"
+                      - "Review scaling policies"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /intents/execute:
+    post:
+      tags:
+        - Intent Processing
+      summary: Execute Intent Action
+      description: |
+        Convert matched intent into executable action configuration.
+        
+        This endpoint takes the output from intent matching and generates:
+        - Kubernetes deployment specifications
+        - Configuration templates
+        - Resource requirements
+        - Validation checks
+      operationId: executeIntentAction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntentExecutionRequest'
+      responses:
+        '200':
+          description: Successful intent execution configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentExecutionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Knowledge Management Endpoints
+  /knowledge:
+    get:
+      tags:
+        - Knowledge Management
+      summary: List Knowledge Documents
+      description: Get paginated list of knowledge documents with optional filtering
+      operationId: listKnowledgeDocuments
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of documents to return
+          schema:
+            type: integer
+            default: 25
+            minimum: 1
+            maximum: 100
+        - name: offset
+          in: query
+          description: Number of documents to skip
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: source
+          in: query
+          description: Filter by source
+          schema:
+            type: string
+            enum: ["3GPP", "O-RAN", "ETSI", "ITU-T", "Custom"]
+        - name: category
+          in: query
+          description: Filter by category
+          schema:
+            type: string
+            enum: ["Architecture", "Procedures", "Interfaces", "Management", "Security"]
+        - name: networkFunction
+          in: query
+          description: Filter by network function
+          schema:
+            type: string
+        - name: minConfidence
+          in: query
+          description: Minimum confidence threshold
+          schema:
+            type: number
+            minimum: 0.0
+            maximum: 1.0
+      responses:
+        '200':
+          description: Successful knowledge document listing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Knowledge Management
+      summary: Create Knowledge Document
+      description: Create a new knowledge document in the telecommunications knowledge base
+      operationId: createKnowledgeDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelecomKnowledge'
+      responses:
+        '201':
+          description: Knowledge document created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeCreateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Document already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /knowledge/{documentId}:
+    get:
+      tags:
+        - Knowledge Management
+      summary: Get Knowledge Document
+      description: Retrieve a specific knowledge document by ID
+      operationId: getKnowledgeDocument
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          description: Unique identifier for the knowledge document
+          schema:
+            type: string
+            format: uuid
+        - name: includeMetadata
+          in: query
+          description: Include additional metadata in response
+          schema:
+            type: boolean
+            default: false
+        - name: includeRelated
+          in: query
+          description: Include related documents and cross-references
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Knowledge document retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      tags:
+        - Knowledge Management
+      summary: Update Knowledge Document
+      description: Update an existing knowledge document
+      operationId: updateKnowledgeDocument
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          description: Unique identifier for the knowledge document
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelecomKnowledge'
+      responses:
+        '200':
+          description: Knowledge document updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeUpdateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Knowledge Management
+      summary: Delete Knowledge Document
+      description: Delete a knowledge document from the knowledge base
+      operationId: deleteKnowledgeDocument
+      parameters:
+        - name: documentId
+          in: path
+          required: true
+          description: Unique identifier for the knowledge document
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Knowledge document deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Network Functions Endpoints
+  /network-functions:
+    get:
+      tags:
+        - Network Functions
+      summary: List Network Functions
+      description: Get list of available network function definitions
+      operationId: listNetworkFunctions
+      parameters:
+        - name: category
+          in: query
+          description: Filter by network function category
+          schema:
+            type: string
+            enum: ["Core", "RAN", "Management", "Edge"]
+        - name: vendor
+          in: query
+          description: Filter by vendor
+          schema:
+            type: string
+        - name: release
+          in: query
+          description: Filter by supported release
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful network functions listing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkFunctionListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    post:
+      tags:
+        - Network Functions
+      summary: Create Network Function Definition
+      description: Create a new network function definition
+      operationId: createNetworkFunction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkFunction'
+      responses:
+        '201':
+          description: Network function created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkFunctionCreateResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Network function already exists
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /network-functions/{functionName}:
+    get:
+      tags:
+        - Network Functions
+      summary: Get Network Function Details
+      description: Retrieve detailed information about a specific network function
+      operationId: getNetworkFunction
+      parameters:
+        - name: functionName
+          in: path
+          required: true
+          description: Name of the network function (e.g., AMF, SMF, UPF)
+          schema:
+            type: string
+        - name: includeDeploymentOptions
+          in: query
+          description: Include deployment configuration options
+          schema:
+            type: boolean
+            default: true
+        - name: includeInterfaces
+          in: query
+          description: Include interface specifications
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Network function details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkFunctionDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Batch Operations Endpoints
+  /batch/knowledge:
+    post:
+      tags:
+        - Batch Operations
+      summary: Bulk Knowledge Import
+      description: |
+        Import multiple knowledge documents in a single batch operation.
+        
+        This endpoint supports:
+        - Bulk document creation with validation
+        - Automatic deduplication based on content hash
+        - Progress tracking and error reporting
+        - Configurable batch size and retry logic
+        
+        **Rate Limits**: Maximum 1000 documents per request, 10 requests per minute.
+      operationId: bulkImportKnowledge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkKnowledgeImportRequest'
+      responses:
+        '202':
+          description: Bulk import accepted and processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkOperationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: Payload too large
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /batch/search:
+    post:
+      tags:
+        - Batch Operations
+      summary: Batch Search Operations
+      description: Execute multiple search queries in parallel for improved performance
+      operationId: batchSearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchSearchRequest'
+      responses:
+        '200':
+          description: Successful batch search execution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: Too many queries in batch
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /batch/status/{operationId}:
+    get:
+      tags:
+        - Batch Operations
+      summary: Get Batch Operation Status
+      description: Check the status of a long-running batch operation
+      operationId: getBatchOperationStatus
+      parameters:
+        - name: operationId
+          in: path
+          required: true
+          description: Unique identifier for the batch operation
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Batch operation status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchOperationStatus'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Analytics Endpoints
+  /analytics/search-statistics:
+    get:
+      tags:
+        - Analytics
+      summary: Get Search Analytics
+      description: Retrieve search analytics and usage statistics
+      operationId: getSearchAnalytics
+      parameters:
+        - name: startDate
+          in: query
+          description: Start date for analytics period (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          description: End date for analytics period (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: groupBy
+          in: query
+          description: Group analytics by time period
+          schema:
+            type: string
+            enum: ["hour", "day", "week", "month"]
+            default: "day"
+      responses:
+        '200':
+          description: Search analytics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchAnalyticsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /analytics/knowledge-insights:
+    get:
+      tags:
+        - Analytics
+      summary: Get Knowledge Base Insights
+      description: Retrieve insights about knowledge base content and usage patterns
+      operationId: getKnowledgeInsights
+      responses:
+        '200':
+          description: Knowledge insights retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeInsightsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # System Endpoints
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health Check
+      description: Check the health status of the RAG services
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /metrics:
+    get:
+      tags:
+        - System
+      summary: System Metrics
+      description: Retrieve system performance and usage metrics
+      operationId: getSystemMetrics
+      responses:
+        '200':
+          description: System metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemMetricsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /schema:
+    get:
+      tags:
+        - System
+      summary: Get Schema Information
+      description: Retrieve information about the current knowledge base schema
+      operationId: getSchemaInfo
+      responses:
+        '200':
+          description: Schema information retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SchemaInfoResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for API authentication
+
+  schemas:
+    # Core Data Models
+    TelecomKnowledge:
+      type: object
+      required:
+        - content
+        - title
+        - source
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the knowledge document
+          readOnly: true
+        content:
+          type: string
+          description: Main document content (vectorized for semantic search)
+          minLength: 10
+          maxLength: 50000
+        title:
+          type: string
+          description: Document title
+          minLength: 1
+          maxLength: 500
+        source:
+          type: string
+          enum: ["3GPP", "O-RAN", "ETSI", "ITU-T", "Custom"]
+          description: Source organization or standard body
+        specification:
+          type: string
+          description: Specification identifier (e.g., "TS 23.501")
+          pattern: '^[A-Z]{2,4}\s[\d\.]+$'
+        version:
+          type: string
+          description: Specification version
+        release:
+          type: string
+          description: 3GPP Release or O-RAN version
+        category:
+          type: string
+          enum: ["Architecture", "Procedures", "Interfaces", "Management", "Security"]
+          description: Document category
+        domain:
+          type: string
+          enum: ["Core", "RAN", "Transport", "Edge", "Management"]
+          description: Technology domain
+        technicalLevel:
+          type: string
+          enum: ["Basic", "Intermediate", "Advanced", "Expert"]
+          description: Technical complexity level
+          default: "Intermediate"
+        keywords:
+          type: array
+          items:
+            type: string
+          description: Technical keywords for enhanced searchability
+          maxItems: 20
+        networkFunctions:
+          type: array
+          items:
+            type: string
+          description: Referenced network functions
+          example: ["AMF", "SMF", "UPF"]
+        interfaces:
+          type: array
+          items:
+            type: string
+          description: Referenced interfaces
+          example: ["N1", "N2", "N8", "N11"]
+        procedures:
+          type: array
+          items:
+            type: string
+          description: Referenced procedures
+          example: ["Registration", "Authentication", "Mobility"]
+        useCase:
+          type: string
+          enum: ["eMBB", "URLLC", "mMTC", "Private", "General"]
+          description: Primary use case
+          default: "General"
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: Content priority (1-10, 10 = highest)
+          default: 5
+        confidence:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Content quality confidence score
+          default: 0.8
+        documentUrl:
+          type: string
+          format: uri
+          description: Source document URL
+        chunkIndex:
+          type: integer
+          minimum: 0
+          description: Chunk sequence number for large documents
+        totalChunks:
+          type: integer
+          minimum: 1
+          description: Total number of chunks in document
+        language:
+          type: string
+          description: Content language (ISO 639-1 code)
+          default: "en"
+        lastUpdated:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          readOnly: true
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          readOnly: true
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional metadata fields
+
+    IntentPattern:
+      type: object
+      required:
+        - pattern
+        - intentType
+        - parameters
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        pattern:
+          type: string
+          description: Template pattern for intent matching
+          example: "Deploy {networkFunction} with {replicas} replicas"
+        intentType:
+          type: string
+          enum: ["NetworkFunctionDeployment", "NetworkFunctionScale", "NetworkSliceConfiguration", "PolicyConfiguration"]
+          description: Type of intent this pattern represents
+        parameters:
+          type: array
+          items:
+            type: string
+          description: Expected parameters for this intent
+          example: ["networkFunction", "replicas", "namespace"]
+        examples:
+          type: array
+          items:
+            type: string
+          description: Example phrases that match this pattern
+        confidence:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Pattern confidence threshold
+          default: 0.7
+        accuracy:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Historical accuracy of this pattern
+          readOnly: true
+        frequency:
+          type: integer
+          minimum: 0
+          description: Usage frequency
+          readOnly: true
+        successRate:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Success rate for this pattern
+          readOnly: true
+        lastUsed:
+          type: string
+          format: date-time
+          description: Last usage timestamp
+          readOnly: true
+        userFeedback:
+          type: number
+          minimum: 0.0
+          maximum: 10.0
+          description: Average user feedback score
+          readOnly: true
+
+    NetworkFunction:
+      type: object
+      required:
+        - name
+        - description
+        - category
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          description: Network function name
+          example: "AMF"
+        description:
+          type: string
+          description: Detailed description of the network function
+        category:
+          type: string
+          enum: ["Core", "RAN", "Management", "Edge"]
+          description: Network function category
+        version:
+          type: string
+          description: Network function version
+        vendor:
+          type: string
+          description: Vendor name
+        deploymentOptions:
+          type: array
+          items:
+            type: string
+          description: Supported deployment patterns
+          example: ["standalone", "container", "vm"]
+        resourceRequirements:
+          type: string
+          description: Resource specifications
+          example: "CPU: 2 cores, Memory: 4GB, Storage: 20GB"
+        scalingOptions:
+          type: string
+          description: Scaling capabilities
+          example: "horizontal, vertical"
+        configurationTemplates:
+          type: array
+          items:
+            type: string
+          description: Available configuration templates
+        healthChecks:
+          type: array
+          items:
+            type: string
+          description: Health check endpoints
+        standardsCompliance:
+          type: array
+          items:
+            type: string
+          description: Applicable standards
+          example: ["3GPP TS 23.501", "3GPP TS 29.518"]
+        interfaces:
+          type: array
+          items:
+            type: string
+          description: Supported interfaces
+          example: ["N1", "N2", "N8", "N11", "N12", "N14", "N15"]
+        supportedReleases:
+          type: array
+          items:
+            type: string
+          description: Compatible 3GPP/O-RAN releases
+          example: ["Rel-15", "Rel-16", "Rel-17"]
+        certificationLevel:
+          type: string
+          enum: ["None", "Basic", "Certified", "Premium"]
+          description: Certification status
+        operationalStatus:
+          type: string
+          enum: ["Active", "Deprecated", "Development"]
+          description: Current operational status
+          default: "Active"
+
+    # Request/Response Models
+    SemanticSearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Natural language search query
+          minLength: 1
+          maxLength: 1000
+          example: "AMF registration procedure"
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 10
+          description: Maximum number of results to return
+        certainty:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.7
+          description: Minimum similarity threshold
+        filters:
+          $ref: '#/components/schemas/SearchFilters'
+        includeMetadata:
+          type: boolean
+          default: false
+          description: Include additional metadata in results
+        explain:
+          type: boolean
+          default: false
+          description: Include explanation of search results
+
+    HybridSearchRequest:
+      allOf:
+        - $ref: '#/components/schemas/SemanticSearchRequest'
+        - type: object
+          properties:
+            alpha:
+              type: number
+              minimum: 0.0
+              maximum: 1.0
+              default: 0.7
+              description: Balance between keyword (1.0) and vector (0.0) search
+            properties:
+              type: array
+              items:
+                type: string
+              description: Specific properties to search within
+              example: ["content", "title", "networkFunctions"]
+
+    CrossReferenceSearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Domain or topic to analyze
+          example: "network slicing and QoS management"
+        analysisDepth:
+          type: string
+          enum: ["basic", "standard", "deep"]
+          default: "standard"
+          description: Level of cross-reference analysis to perform
+        includeStatistics:
+          type: boolean
+          default: true
+          description: Include aggregate statistics
+        includeInsights:
+          type: boolean
+          default: true
+          description: Include generated insights
+        includeRecommendations:
+          type: boolean
+          default: true
+          description: Include actionable recommendations
+
+    IntentMatchRequest:
+      type: object
+      required:
+        - userInput
+      properties:
+        userInput:
+          type: string
+          description: User's natural language input
+          minLength: 1
+          maxLength: 2000
+          example: "Deploy AMF with 3 replicas in production namespace"
+        confidenceThreshold:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.7
+          description: Minimum confidence for pattern matching
+        extractParameters:
+          type: boolean
+          default: true
+          description: Extract parameters from user input
+        includeRelatedKnowledge:
+          type: boolean
+          default: false
+          description: Include related knowledge documents
+        maxPatterns:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 10
+          description: Maximum number of patterns to return
+
+    IntentExecutionRequest:
+      type: object
+      required:
+        - matchedIntent
+      properties:
+        matchedIntent:
+          $ref: '#/components/schemas/IntentMatchResponse'
+        executionContext:
+          type: object
+          description: Additional context for execution
+          properties:
+            environment:
+              type: string
+              enum: ["development", "staging", "production"]
+            dryRun:
+              type: boolean
+              default: false
+            validateOnly:
+              type: boolean
+              default: false
+
+    SearchFilters:
+      type: object
+      properties:
+        source:
+          type: array
+          items:
+            type: string
+            enum: ["3GPP", "O-RAN", "ETSI", "ITU-T", "Custom"]
+          description: Filter by source organizations
+        category:
+          type: array
+          items:
+            type: string
+            enum: ["Architecture", "Procedures", "Interfaces", "Management", "Security"]
+          description: Filter by document category
+        networkFunctions:
+          type: array
+          items:
+            type: string
+          description: Filter by network functions
+          example: ["AMF", "SMF", "UPF"]
+        useCase:
+          type: array
+          items:
+            type: string
+            enum: ["eMBB", "URLLC", "mMTC", "Private", "General"]
+          description: Filter by use case
+        release:
+          type: array
+          items:
+            type: string
+          description: Filter by 3GPP/O-RAN release
+          example: ["Rel-16", "Rel-17"]
+        minConfidence:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Minimum confidence threshold
+        minPriority:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: Minimum priority level
+        dateRange:
+          type: object
+          properties:
+            start:
+              type: string
+              format: date-time
+            end:
+              type: string
+              format: date-time
+        technicalLevel:
+          type: array
+          items:
+            type: string
+            enum: ["Basic", "Intermediate", "Advanced", "Expert"]
+          description: Filter by technical complexity level
+
+    # Response Models
+    SearchResponse:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Original search query
+        searchType:
+          type: string
+          enum: ["semantic", "hybrid", "keyword"]
+          description: Type of search performed
+        totalResults:
+          type: integer
+          description: Total number of matching documents
+        results:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/TelecomKnowledge'
+              - type: object
+                properties:
+                  certainty:
+                    type: number
+                    description: Similarity certainty score
+                  distance:
+                    type: number
+                    description: Vector distance
+                  score:
+                    type: number
+                    description: Hybrid search score
+                  relevanceScore:
+                    type: number
+                    description: Custom relevance score
+                  explanation:
+                    type: string
+                    description: Explanation of result relevance
+        executionTime:
+          type: integer
+          description: Query execution time in milliseconds
+        searchStatistics:
+          type: object
+          properties:
+            documentsScanned:
+              type: integer
+            vectorsComputed:
+              type: integer
+            filterApplied:
+              type: boolean
+            cacheHit:
+              type: boolean
+
+    CrossReferenceResponse:
+      type: object
+      properties:
+        query:
+          type: string
+        analysisDepth:
+          type: string
+        knowledgeDocuments:
+          type: array
+          items:
+            $ref: '#/components/schemas/TelecomKnowledge'
+        intentPatterns:
+          type: array
+          items:
+            $ref: '#/components/schemas/IntentPattern'
+        networkFunctions:
+          type: array
+          items:
+            $ref: '#/components/schemas/NetworkFunction'
+        statistics:
+          type: object
+          properties:
+            totalKnowledgeDocs:
+              type: integer
+            totalIntentPatterns:
+              type: integer
+            totalNetworkFunctions:
+              type: integer
+            knowledgeSources:
+              type: object
+              additionalProperties:
+                type: integer
+            intentTypes:
+              type: object
+              additionalProperties:
+                type: integer
+            nfCategories:
+              type: object
+              additionalProperties:
+                type: integer
+        insights:
+          type: array
+          items:
+            type: string
+          description: Generated insights from analysis
+        recommendations:
+          type: array
+          items:
+            type: string
+          description: Actionable recommendations
+
+    IntentMatchResponse:
+      type: object
+      properties:
+        userInput:
+          type: string
+          description: Original user input
+        matchedPatterns:
+          type: array
+          items:
+            type: object
+            properties:
+              pattern:
+                type: string
+              intentType:
+                type: string
+              confidence:
+                type: number
+              matchScore:
+                type: number
+              extractedParameters:
+                type: object
+                additionalProperties:
+                  type: string
+              requiredParameters:
+                type: array
+                items:
+                  type: string
+              examples:
+                type: array
+                items:
+                  type: string
+        bestMatch:
+          type: object
+          properties:
+            pattern:
+              type: string
+            intentType:
+              type: string
+            confidence:
+              type: number
+            matchScore:
+              type: number
+            extractedParameters:
+              type: object
+              additionalProperties:
+                type: string
+        relatedKnowledge:
+          type: array
+          items:
+            $ref: '#/components/schemas/TelecomKnowledge'
+        recommendedActions:
+          type: array
+          items:
+            type: string
+
+    IntentExecutionResponse:
+      type: object
+      properties:
+        originalIntent:
+          type: string
+        matchedPattern:
+          type: string
+        action:
+          type: object
+          properties:
+            actionType:
+              type: string
+              enum: ["deploy", "scale", "configure", "delete"]
+            resource:
+              type: string
+            spec:
+              type: object
+              additionalProperties: true
+        executionPlan:
+          type: array
+          items:
+            type: object
+            properties:
+              step:
+                type: integer
+              description:
+                type: string
+              command:
+                type: string
+              validation:
+                type: string
+        confidence:
+          type: number
+        networkFunctionDetails:
+          $ref: '#/components/schemas/NetworkFunction'
+        estimatedDuration:
+          type: string
+          description: Estimated execution time
+        prerequisites:
+          type: array
+          items:
+            type: string
+
+    # List and Detail Response Models
+    KnowledgeListResponse:
+      type: object
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/TelecomKnowledge'
+        totalCount:
+          type: integer
+          description: Total number of documents matching filters
+        limit:
+          type: integer
+        offset:
+          type: integer
+        hasMore:
+          type: boolean
+          description: Whether more results are available
+        filters:
+          $ref: '#/components/schemas/SearchFilters'
+
+    KnowledgeDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/TelecomKnowledge'
+        - type: object
+          properties:
+            relatedDocuments:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  title:
+                    type: string
+                  similarity:
+                    type: number
+            relatedIntents:
+              type: array
+              items:
+                $ref: '#/components/schemas/IntentPattern'
+            relatedNetworkFunctions:
+              type: array
+              items:
+                $ref: '#/components/schemas/NetworkFunction'
+            usageStatistics:
+              type: object
+              properties:
+                viewCount:
+                  type: integer
+                searchAppearances:
+                  type: integer
+                lastAccessed:
+                  type: string
+                  format: date-time
+
+    KnowledgeCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: ["created", "processing", "indexed"]
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        processingTime:
+          type: integer
+          description: Processing time in milliseconds
+
+    KnowledgeUpdateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: ["updated", "reprocessing", "reindexed"]
+        message:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        changes:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              oldValue:
+                type: string
+              newValue:
+                type: string
+
+    NetworkFunctionListResponse:
+      type: object
+      properties:
+        networkFunctions:
+          type: array
+          items:
+            $ref: '#/components/schemas/NetworkFunction'
+        totalCount:
+          type: integer
+        categories:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Count by category
+        vendors:
+          type: object
+          additionalProperties:
+            type: integer
+          description: Count by vendor
+
+    NetworkFunctionDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/NetworkFunction'
+        - type: object
+          properties:
+            detailedConfiguration:
+              type: object
+              additionalProperties: true
+            compatibilityMatrix:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+            deploymentExamples:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  description:
+                    type: string
+                  configuration:
+                    type: object
+            relatedKnowledge:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  title:
+                    type: string
+                  relevance:
+                    type: number
+
+    NetworkFunctionCreateResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: ["created", "validating", "active"]
+        message:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    # Batch Operation Models
+    BulkKnowledgeImportRequest:
+      type: object
+      required:
+        - documents
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/TelecomKnowledge'
+          minItems: 1
+          maxItems: 1000
+        batchSize:
+          type: integer
+          minimum: 10
+          maximum: 100
+          default: 50
+          description: Number of documents to process per batch
+        validateOnly:
+          type: boolean
+          default: false
+          description: Only validate documents without importing
+        skipDuplicates:
+          type: boolean
+          default: true
+          description: Skip documents that already exist
+        overwriteExisting:
+          type: boolean
+          default: false
+          description: Overwrite existing documents
+
+    BulkOperationResponse:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+          description: Unique identifier for tracking the operation
+        status:
+          type: string
+          enum: ["accepted", "processing", "completed", "failed"]
+        totalDocuments:
+          type: integer
+        processedDocuments:
+          type: integer
+        successfulDocuments:
+          type: integer
+        failedDocuments:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              documentIndex:
+                type: integer
+              error:
+                type: string
+              details:
+                type: string
+        startedAt:
+          type: string
+          format: date-time
+        estimatedCompletion:
+          type: string
+          format: date-time
+        progressUrl:
+          type: string
+          format: uri
+          description: URL to check operation progress
+
+    BatchSearchRequest:
+      type: object
+      required:
+        - queries
+      properties:
+        queries:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Unique identifier for this query
+              query:
+                type: string
+              searchType:
+                type: string
+                enum: ["semantic", "hybrid", "keyword"]
+                default: "hybrid"
+              parameters:
+                type: object
+                description: Search-specific parameters
+          minItems: 1
+          maxItems: 50
+        parallel:
+          type: boolean
+          default: true
+          description: Execute queries in parallel
+
+    BatchSearchResponse:
+      type: object
+      properties:
+        results:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/SearchResponse'
+          description: Results keyed by query ID
+        totalQueries:
+          type: integer
+        successfulQueries:
+          type: integer
+        failedQueries:
+          type: integer
+        totalExecutionTime:
+          type: integer
+          description: Total execution time in milliseconds
+        averageQueryTime:
+          type: integer
+          description: Average query time in milliseconds
+
+    BatchOperationStatus:
+      type: object
+      properties:
+        operationId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: ["pending", "processing", "completed", "failed", "cancelled"]
+        progress:
+          type: object
+          properties:
+            totalItems:
+              type: integer
+            processedItems:
+              type: integer
+            successfulItems:
+              type: integer
+            failedItems:
+              type: integer
+            percentComplete:
+              type: number
+              minimum: 0
+              maximum: 100
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        estimatedCompletion:
+          type: string
+          format: date-time
+        currentStage:
+          type: string
+          description: Current processing stage
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              item:
+                type: string
+              error:
+                type: string
+              recoverable:
+                type: boolean
+        result:
+          type: object
+          description: Final result when operation is completed
+
+    # Analytics Models
+    SearchAnalyticsResponse:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            startDate:
+              type: string
+              format: date-time
+            endDate:
+              type: string
+              format: date-time
+            groupBy:
+              type: string
+        totalSearches:
+          type: integer
+        uniqueUsers:
+          type: integer
+        averageResponseTime:
+          type: number
+          description: Average response time in milliseconds
+        searchTypes:
+          type: object
+          properties:
+            semantic:
+              type: integer
+            hybrid:
+              type: integer
+            keyword:
+              type: integer
+        topQueries:
+          type: array
+          items:
+            type: object
+            properties:
+              query:
+                type: string
+              count:
+                type: integer
+              averageResults:
+                type: number
+        performanceMetrics:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              totalQueries:
+                type: integer
+              averageLatency:
+                type: number
+              cacheHitRate:
+                type: number
+        errorRates:
+          type: object
+          properties:
+            totalErrors:
+              type: integer
+            errorRate:
+              type: number
+            commonErrors:
+              type: object
+              additionalProperties:
+                type: integer
+
+    KnowledgeInsightsResponse:
+      type: object
+      properties:
+        totalDocuments:
+          type: integer
+        documentsBySource:
+          type: object
+          additionalProperties:
+            type: integer
+        documentsByCategory:
+          type: object
+          additionalProperties:
+            type: integer
+        averageConfidence:
+          type: number
+        contentQualityDistribution:
+          type: object
+          properties:
+            high:
+              type: integer
+              description: Documents with confidence > 0.8
+            medium:
+              type: integer
+              description: Documents with confidence 0.5-0.8
+            low:
+              type: integer
+              description: Documents with confidence < 0.5
+        networkFunctionCoverage:
+          type: object
+          additionalProperties:
+            type: integer
+        recentUpdates:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              documentsAdded:
+                type: integer
+              documentsUpdated:
+                type: integer
+        gapsAnalysis:
+          type: array
+          items:
+            type: object
+            properties:
+              area:
+                type: string
+              missingTopics:
+                type: array
+                items:
+                  type: string
+              recommendedSources:
+                type: array
+                items:
+                  type: string
+        usagePatterns:
+          type: object
+          properties:
+            mostSearchedTopics:
+              type: array
+              items:
+                type: string  
+            leastAccessedDocuments:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  title:
+                    type: string
+                  lastAccessed:
+                    type: string
+                    format: date-time
+
+    # System Models
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: ["healthy", "degraded", "unhealthy"]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        services:
+          type: object
+          properties:
+            weaviate:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: ["up", "down", "degraded"]
+                responseTime:
+                  type: number
+                  description: Response time in milliseconds
+                details:
+                  type: string
+            vectorizer:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: ["up", "down", "degraded"]
+                provider:
+                  type: string
+                details:
+                  type: string
+            database:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: ["up", "down", "degraded"]
+                connections:
+                  type: integer
+                details:
+                  type: string
+        checks:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              status:
+                type: string
+                enum: ["pass", "fail", "warn"]
+              message:
+                type: string
+              duration:
+                type: number
+                description: Check duration in milliseconds
+
+    SystemMetricsResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        uptime:
+          type: integer
+          description: System uptime in seconds
+        performance:
+          type: object
+          properties:
+            averageQueryTime:
+              type: number
+              description: Average query response time in milliseconds
+            queryThroughput:
+              type: number
+              description: Queries per second
+            cacheHitRate:
+              type: number
+              description: Cache hit rate percentage
+            errorRate:
+              type: number
+              description: Error rate percentage
+        resources:
+          type: object
+          properties:
+            cpuUsage:
+              type: number
+              description: CPU usage percentage
+            memoryUsage:
+              type: number
+              description: Memory usage percentage
+            diskUsage:
+              type: number
+              description: Disk usage percentage
+            networkIO:
+              type: object
+              properties:
+                bytesIn:
+                  type: integer
+                bytesOut:
+                  type: integer
+        database:
+          type: object
+          properties:
+            totalDocuments:
+              type: integer
+            indexSize:
+              type: integer
+              description: Index size in bytes
+            queryVolume:
+              type: integer
+              description: Queries in last hour
+            connectionPool:
+              type: object
+              properties:
+                active:
+                  type: integer
+                idle:
+                  type: integer
+                max:
+                  type: integer
+        rateLimits:
+          type: object
+          properties:
+            standardEndpoints:
+              type: object
+              properties:
+                limit:
+                  type: integer
+                remaining:
+                  type: integer
+                resetTime:
+                  type: string
+                  format: date-time
+            searchEndpoints:
+              type: object
+              properties:
+                limit:
+                  type: integer
+                remaining:
+                  type: integer
+                resetTime:
+                  type: string
+                  format: date-time
+
+    SchemaInfoResponse:
+      type: object
+      properties:
+        version:
+          type: string
+          description: Schema version
+        classes:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              objectCount:
+                type: integer
+              properties:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    dataType:
+                      type: array
+                      items:
+                        type: string
+                    description:
+                      type: string
+                    indexed:
+                      type: boolean
+                    vectorized:
+                      type: boolean
+              vectorizer:
+                type: string
+              indexConfig:
+                type: object
+        statistics:
+          type: object
+          properties:
+            totalObjects:
+              type: integer
+            totalClasses:
+              type: integer
+            indexSize:
+              type: integer
+              description: Total index size in bytes
+            lastUpdated:
+              type: string
+              format: date-time
+        capabilities:
+          type: object
+          properties:
+            semanticSearch:
+              type: boolean
+            hybridSearch:
+              type: boolean
+            multiTenancy:
+              type: boolean
+            crossReferences:
+              type: boolean
+            batchOperations:
+              type: boolean
+
+    # Error Models
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type identifier
+        message:
+          type: string
+          description: Human-readable error message
+        details:
+          type: string
+          description: Additional error details
+        code:
+          type: integer
+          description: Internal error code
+        timestamp:
+          type: string
+          format: date-time
+        traceId:
+          type: string
+          description: Request trace identifier for debugging
+        suggestions:
+          type: array
+          items:
+            type: string
+          description: Suggested actions to resolve the error
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters or request format
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_query:
+              summary: Invalid search query
+              value:
+                error: "INVALID_QUERY"
+                message: "Search query cannot be empty"
+                code: 4001
+                timestamp: "2024-01-15T10:30:00Z"
+                suggestions:
+                  - "Provide a non-empty search query"
+                  - "Check query format and parameters"
+            invalid_filter:
+              summary: Invalid filter parameters
+              value:
+                error: "INVALID_FILTER"
+                message: "Invalid source filter value: 'InvalidSource'"
+                code: 4002
+                timestamp: "2024-01-15T10:30:00Z"
+                suggestions:
+                  - "Use valid source values: 3GPP, O-RAN, ETSI, ITU-T, Custom"
+
+    Unauthorized:
+      description: Unauthorized - invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missing_token:
+              summary: Missing authentication token
+              value:
+                error: "UNAUTHORIZED"
+                message: "Authentication token is required"
+                code: 4011
+                timestamp: "2024-01-15T10:30:00Z"
+                suggestions:
+                  - "Include Bearer token in Authorization header"
+                  - "Verify token is valid and not expired"
+            invalid_token:
+              summary: Invalid authentication token
+              value:
+                error: "INVALID_TOKEN"
+                message: "Authentication token is invalid or expired"
+                code: 4012
+                timestamp: "2024-01-15T10:30:00Z"
+                suggestions:
+                  - "Obtain a new authentication token"
+                  - "Check token format and encoding"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            document_not_found:
+              summary: Knowledge document not found
+              value:
+                error: "DOCUMENT_NOT_FOUND"
+                message: "Knowledge document with ID '550e8400-e29b-41d4-a716-446655440000' not found"
+                code: 4041
+                timestamp: "2024-01-15T10:30:00Z"
+                suggestions:
+                  - "Verify the document ID is correct"
+                  - "Check if document exists in knowledge base"
+
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            rate_limit_exceeded:
+              summary: API rate limit exceeded
+              value:
+                error: "RATE_LIMIT_EXCEEDED"
+                message: "API rate limit exceeded: 100 requests per minute"
+                code: 4291
+                timestamp: "2024-01-15T10:30:00Z"
+                details: "Rate limit will reset at 2024-01-15T10:31:00Z"
+                suggestions:
+                  - "Reduce request frequency"
+                  - "Implement exponential backoff"
+                  - "Consider batch operations for bulk requests"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            database_error:
+              summary: Database connection error
+              value:
+                error: "DATABASE_ERROR"
+                message: "Unable to connect to vector database"
+                code: 5001
+                timestamp: "2024-01-15T10:30:00Z"
+                traceId: "req_123456789"
+                suggestions:
+                  - "Try again in a few moments"
+                  - "Contact support if problem persists"
+            vectorizer_error:
+              summary: Vectorizer service error
+              value:
+                error: "VECTORIZER_ERROR"
+                message: "Embedding generation failed"
+                code: 5002
+                timestamp: "2024-01-15T10:30:00Z"
+                traceId: "req_123456790"
+                suggestions:
+                  - "Retry the request"
+                  - "Check query content for unsupported characters"
+
+  parameters:
+    DocumentId:
+      name: documentId
+      in: path
+      required: true
+      description: Unique identifier for the knowledge document
+      schema:
+        type: string
+        format: uuid
+      example: "550e8400-e29b-41d4-a716-446655440000"
+
+    Limit:
+      name: limit
+      in: query
+      description: Maximum number of items to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+
+    Offset:
+      name: offset
+      in: query
+      description: Number of items to skip for pagination
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+
+    IncludeMetadata:
+      name: includeMetadata
+      in: query
+      description: Include additional metadata in response
+      schema:
+        type: boolean
+        default: false

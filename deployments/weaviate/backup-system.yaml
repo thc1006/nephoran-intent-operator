@@ -1,0 +1,801 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: weaviate-backup-config
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup
+data:
+  backup-script.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Weaviate Backup Script for Production Environment
+    # Supports multiple backup types and destinations
+    
+    # Configuration from environment variables
+    WEAVIATE_HOST=${WEAVIATE_HOST:-"weaviate.nephoran-system.svc.cluster.local:8080"}
+    WEAVIATE_API_KEY=${WEAVIATE_API_KEY:-""}
+    BACKUP_TYPE=${BACKUP_TYPE:-"full"}
+    BACKUP_DESTINATION=${BACKUP_DESTINATION:-"s3"}
+    S3_BUCKET=${S3_BUCKET:-"nephoran-weaviate-backups"}
+    S3_PREFIX=${S3_PREFIX:-"production"}
+    RETENTION_DAYS=${RETENTION_DAYS:-"30"}
+    
+    # Logging function
+    log() {
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a /var/log/weaviate-backup.log
+    }
+    
+    # Error handling
+    handle_error() {
+        log "ERROR: Backup failed at line $1"
+        exit 1
+    }
+    trap 'handle_error $LINENO' ERR
+    
+    # Validate prerequisites
+    validate_environment() {
+        log "Validating backup environment..."
+        
+        if [ -z "$WEAVIATE_API_KEY" ]; then
+            log "ERROR: WEAVIATE_API_KEY not set"
+            exit 1
+        fi
+        
+        # Test Weaviate connectivity
+        if ! curl -f -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+                "http://$WEAVIATE_HOST/v1/.well-known/ready" > /dev/null 2>&1; then
+            log "ERROR: Cannot connect to Weaviate at $WEAVIATE_HOST"
+            exit 1
+        fi
+        
+        # Check available disk space
+        AVAILABLE_SPACE=$(df /tmp | tail -1 | awk '{print $4}')
+        if [ "$AVAILABLE_SPACE" -lt 10485760 ]; then  # 10GB in KB
+            log "WARNING: Less than 10GB available space for backup"
+        fi
+        
+        log "Environment validation completed"
+    }
+    
+    # Create backup
+    create_backup() {
+        local backup_id="backup-$(date +%Y%m%d-%H%M%S)"
+        local backup_path="/tmp/$backup_id"
+        
+        log "Starting $BACKUP_TYPE backup with ID: $backup_id"
+        
+        # Create backup directory
+        mkdir -p "$backup_path"
+        
+        # Backup Weaviate data using Weaviate's backup API
+        log "Creating Weaviate backup..."
+        
+        # Get all classes for backup
+        local classes=$(curl -s -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+            "http://$WEAVIATE_HOST/v1/schema" | \
+            jq -r '.classes[]?.class // empty' | tr '\n' ',' | sed 's/,$//')
+        
+        if [ -z "$classes" ]; then
+            log "WARNING: No classes found to backup"
+            return 0
+        fi
+        
+        log "Backing up classes: $classes"
+        
+        # Create backup via Weaviate API
+        local backup_request=$(cat <<EOF
+    {
+        "id": "$backup_id",
+        "include": ["$classes"]
+    }
+    EOF
+        )
+        
+        # Initiate backup
+        curl -X POST \
+            -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$backup_request" \
+            "http://$WEAVIATE_HOST/v1/backups/filesystem" || {
+                log "ERROR: Failed to initiate backup"
+                return 1
+            }
+        
+        # Wait for backup completion
+        log "Waiting for backup completion..."
+        local max_wait=1800  # 30 minutes
+        local wait_time=0
+        
+        while [ $wait_time -lt $max_wait ]; do
+            local status=$(curl -s -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+                "http://$WEAVIATE_HOST/v1/backups/filesystem/$backup_id" | \
+                jq -r '.status')
+            
+            case "$status" in
+                "SUCCESS")
+                    log "Backup completed successfully"
+                    break
+                    ;;
+                "FAILED")
+                    log "ERROR: Backup failed"
+                    return 1
+                    ;;
+                "STARTED"|"TRANSFERRING")
+                    log "Backup in progress... ($status)"
+                    sleep 30
+                    wait_time=$((wait_time + 30))
+                    ;;
+                *)
+                    log "Unknown backup status: $status"
+                    sleep 30
+                    wait_time=$((wait_time + 30))
+                    ;;
+            esac
+        done
+        
+        if [ $wait_time -ge $max_wait ]; then
+            log "ERROR: Backup timed out after $max_wait seconds"
+            return 1
+        fi
+        
+        echo "$backup_id"
+    }
+    
+    # Upload backup to S3
+    upload_to_s3() {
+        local backup_id="$1"
+        local backup_path="/var/lib/weaviate/backups/$backup_id"
+        
+        log "Uploading backup $backup_id to S3..."
+        
+        # Create compressed archive
+        local archive_name="${backup_id}.tar.gz"
+        local archive_path="/tmp/$archive_name"
+        
+        tar -czf "$archive_path" -C "/var/lib/weaviate/backups" "$backup_id"
+        
+        # Upload to S3
+        aws s3 cp "$archive_path" "s3://$S3_BUCKET/$S3_PREFIX/$archive_name" \
+            --storage-class STANDARD_IA \
+            --metadata "backup-type=$BACKUP_TYPE,created=$(date -Iseconds)" || {
+                log "ERROR: Failed to upload backup to S3"
+                return 1
+            }
+        
+        # Cleanup local files
+        rm -f "$archive_path"
+        rm -rf "$backup_path"
+        
+        log "Backup uploaded successfully to s3://$S3_BUCKET/$S3_PREFIX/$archive_name"
+    }
+    
+    # Cleanup old backups
+    cleanup_old_backups() {
+        log "Cleaning up backups older than $RETENTION_DAYS days..."
+        
+        # S3 cleanup
+        local cutoff_date=$(date -d "$RETENTION_DAYS days ago" +%Y-%m-%d)
+        
+        aws s3api list-objects-v2 \
+            --bucket "$S3_BUCKET" \
+            --prefix "$S3_PREFIX/" \
+            --query "Contents[?LastModified<='$cutoff_date'].Key" \
+            --output text | \
+        while read -r key; do
+            if [ -n "$key" ]; then
+                log "Deleting old backup: $key"
+                aws s3 rm "s3://$S3_BUCKET/$key"
+            fi
+        done
+        
+        # Local cleanup
+        find /var/lib/weaviate/backups -type d -mtime +$RETENTION_DAYS -exec rm -rf {} + 2>/dev/null || true
+        
+        log "Cleanup completed"
+    }
+    
+    # Validate backup integrity
+    validate_backup() {
+        local backup_id="$1"
+        
+        log "Validating backup integrity for $backup_id..."
+        
+        # Download and verify backup from S3
+        local archive_name="${backup_id}.tar.gz"
+        local temp_path="/tmp/validate-$backup_id"
+        
+        mkdir -p "$temp_path"
+        
+        # Download backup
+        aws s3 cp "s3://$S3_BUCKET/$S3_PREFIX/$archive_name" "$temp_path/" || {
+            log "ERROR: Failed to download backup for validation"
+            return 1
+        }
+        
+        # Extract and verify
+        tar -tzf "$temp_path/$archive_name" > /dev/null || {
+            log "ERROR: Backup archive is corrupted"
+            rm -rf "$temp_path"
+            return 1
+        }
+        
+        # Cleanup
+        rm -rf "$temp_path"
+        
+        log "Backup validation completed successfully"
+    }
+    
+    # Send notification
+    send_notification() {
+        local status="$1"
+        local backup_id="$2"
+        local message="$3"
+        
+        # Send to webhook if configured
+        if [ -n "${WEBHOOK_URL:-}" ]; then
+            curl -X POST "$WEBHOOK_URL" \
+                -H "Content-Type: application/json" \
+                -d "{
+                    \"status\": \"$status\",
+                    \"backup_id\": \"$backup_id\",
+                    \"message\": \"$message\",
+                    \"timestamp\": \"$(date -Iseconds)\",
+                    \"cluster\": \"${CLUSTER_NAME:-production}\"
+                }" || log "WARNING: Failed to send webhook notification"
+        fi
+        
+        # Send to Slack if configured
+        if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+            local color="good"
+            [ "$status" != "success" ] && color="danger"
+            
+            curl -X POST "$SLACK_WEBHOOK_URL" \
+                -H "Content-Type: application/json" \
+                -d "{
+                    \"attachments\": [{
+                        \"color\": \"$color\",
+                        \"title\": \"Weaviate Backup $status\",
+                        \"fields\": [
+                            {\"title\": \"Backup ID\", \"value\": \"$backup_id\", \"short\": true},
+                            {\"title\": \"Status\", \"value\": \"$status\", \"short\": true},
+                            {\"title\": \"Message\", \"value\": \"$message\", \"short\": false}
+                        ],
+                        \"ts\": $(date +%s)
+                    }]
+                }" || log "WARNING: Failed to send Slack notification"
+        fi
+    }
+    
+    # Main execution
+    main() {
+        log "=== Weaviate Backup Process Started ==="
+        
+        validate_environment
+        
+        local backup_id
+        backup_id=$(create_backup)
+        
+        if [ $? -eq 0 ] && [ -n "$backup_id" ]; then
+            upload_to_s3 "$backup_id"
+            validate_backup "$backup_id"
+            cleanup_old_backups
+            
+            send_notification "success" "$backup_id" "Backup completed successfully"
+            log "=== Backup Process Completed Successfully ==="
+        else
+            send_notification "failed" "${backup_id:-unknown}" "Backup process failed"
+            log "=== Backup Process Failed ==="
+            exit 1
+        fi
+    }
+    
+    # Execute main function
+    main "$@"
+
+  restore-script.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Weaviate Restore Script for Production Environment
+    
+    # Configuration
+    WEAVIATE_HOST=${WEAVIATE_HOST:-"weaviate.nephoran-system.svc.cluster.local:8080"}
+    WEAVIATE_API_KEY=${WEAVIATE_API_KEY:-""}
+    S3_BUCKET=${S3_BUCKET:-"nephoran-weaviate-backups"}
+    S3_PREFIX=${S3_PREFIX:-"production"}
+    BACKUP_ID=${BACKUP_ID:-""}
+    
+    # Logging
+    log() {
+        echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a /var/log/weaviate-restore.log
+    }
+    
+    # Error handling
+    handle_error() {
+        log "ERROR: Restore failed at line $1"
+        exit 1
+    }
+    trap 'handle_error $LINENO' ERR
+    
+    # Usage
+    usage() {
+        echo "Usage: $0 --backup-id <backup_id> [--dry-run]"
+        echo "       $0 --list-backups"
+        exit 1
+    }
+    
+    # List available backups
+    list_backups() {
+        log "Listing available backups..."
+        
+        aws s3 ls "s3://$S3_BUCKET/$S3_PREFIX/" | \
+        grep '\.tar\.gz$' | \
+        awk '{print $4}' | \
+        sed 's/\.tar\.gz$//' | \
+        sort -r | \
+        head -20
+    }
+    
+    # Download and extract backup
+    download_backup() {
+        local backup_id="$1"
+        local restore_path="/tmp/restore-$backup_id"
+        
+        log "Downloading backup $backup_id..."
+        
+        mkdir -p "$restore_path"
+        
+        # Download from S3
+        aws s3 cp "s3://$S3_BUCKET/$S3_PREFIX/${backup_id}.tar.gz" \
+            "$restore_path/" || {
+                log "ERROR: Failed to download backup"
+                return 1
+            }
+        
+        # Extract
+        tar -xzf "$restore_path/${backup_id}.tar.gz" \
+            -C "$restore_path" || {
+                log "ERROR: Failed to extract backup"
+                return 1
+            }
+        
+        echo "$restore_path"
+    }
+    
+    # Restore Weaviate data
+    restore_weaviate() {
+        local backup_id="$1"
+        local restore_path="$2"
+        
+        log "Restoring Weaviate data from backup $backup_id..."
+        
+        # Copy backup to Weaviate backup directory
+        cp -r "$restore_path/$backup_id" "/var/lib/weaviate/backups/"
+        
+        # Create restore request
+        local restore_request=$(cat <<EOF
+    {
+        "id": "$backup_id"
+    }
+    EOF
+        )
+        
+        # Initiate restore
+        curl -X POST \
+            -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+            -H "Content-Type: application/json" \
+            -d "$restore_request" \
+            "http://$WEAVIATE_HOST/v1/backups/filesystem/$backup_id/restore" || {
+                log "ERROR: Failed to initiate restore"
+                return 1
+            }
+        
+        # Wait for restore completion
+        log "Waiting for restore completion..."
+        local max_wait=1800  # 30 minutes
+        local wait_time=0
+        
+        while [ $wait_time -lt $max_wait ]; do
+            local status=$(curl -s -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+                "http://$WEAVIATE_HOST/v1/backups/filesystem/$backup_id/restore" | \
+                jq -r '.status')
+            
+            case "$status" in
+                "SUCCESS")
+                    log "Restore completed successfully"
+                    break
+                    ;;
+                "FAILED")
+                    log "ERROR: Restore failed"
+                    return 1
+                    ;;
+                "STARTED"|"TRANSFERRING")
+                    log "Restore in progress... ($status)"
+                    sleep 30
+                    wait_time=$((wait_time + 30))
+                    ;;
+                *)
+                    log "Unknown restore status: $status"
+                    sleep 30
+                    wait_time=$((wait_time + 30))
+                    ;;
+            esac
+        done
+        
+        if [ $wait_time -ge $max_wait ]; then
+            log "ERROR: Restore timed out after $max_wait seconds"
+            return 1
+        fi
+    }
+    
+    # Main execution
+    main() {
+        case "${1:-}" in
+            --list-backups)
+                list_backups
+                ;;
+            --backup-id)
+                if [ -z "${2:-}" ]; then
+                    usage
+                fi
+                BACKUP_ID="$2"
+                
+                log "=== Weaviate Restore Process Started ==="
+                log "Backup ID: $BACKUP_ID"
+                
+                local restore_path
+                restore_path=$(download_backup "$BACKUP_ID")
+                
+                if [ "${3:-}" = "--dry-run" ]; then
+                    log "DRY RUN: Would restore from $restore_path"
+                    log "Backup contents:"
+                    ls -la "$restore_path/$BACKUP_ID" || true
+                else
+                    restore_weaviate "$BACKUP_ID" "$restore_path"
+                    log "=== Restore Process Completed Successfully ==="
+                fi
+                
+                # Cleanup
+                rm -rf "$restore_path"
+                ;;
+            *)
+                usage
+                ;;
+        esac
+    }
+    
+    main "$@"
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weaviate-hourly-backup
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup
+    schedule: hourly
+spec:
+  # Every hour
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: weaviate-backup
+            backup-type: hourly
+        spec:
+          serviceAccountName: weaviate-backup
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: amazon/aws-cli:2.15.0
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/bash
+            - /scripts/backup-script.sh
+            env:
+            - name: BACKUP_TYPE
+              value: "hourly"
+            - name: RETENTION_DAYS
+              value: "1"
+            - name: WEAVIATE_HOST
+              value: "weaviate.nephoran-system.svc.cluster.local:8080"
+            - name: WEAVIATE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: weaviate-api-key
+                  key: api-key
+            - name: S3_BUCKET
+              value: "nephoran-weaviate-backups"
+            - name: S3_PREFIX
+              value: "production/hourly"
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+            - name: CLUSTER_NAME
+              value: "nephoran-production"
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+              readOnly: true
+            - name: weaviate-backup-volume
+              mountPath: /var/lib/weaviate/backups
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "200m"
+              limits:
+                memory: "2Gi"
+                cpu: "1000m"
+          volumes:
+          - name: backup-scripts
+            configMap:
+              name: weaviate-backup-config
+              defaultMode: 0755
+          - name: weaviate-backup-volume
+            persistentVolumeClaim:
+              claimName: weaviate-backup-pvc
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weaviate-daily-backup
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup
+    schedule: daily
+spec:
+  # Daily at 2 AM
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 600
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: weaviate-backup
+            backup-type: daily
+        spec:
+          serviceAccountName: weaviate-backup
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: amazon/aws-cli:2.15.0
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/bash
+            - /scripts/backup-script.sh
+            env:
+            - name: BACKUP_TYPE
+              value: "daily"
+            - name: RETENTION_DAYS
+              value: "30"
+            - name: WEAVIATE_HOST
+              value: "weaviate.nephoran-system.svc.cluster.local:8080"
+            - name: WEAVIATE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: weaviate-api-key
+                  key: api-key
+            - name: S3_BUCKET
+              value: "nephoran-weaviate-backups"
+            - name: S3_PREFIX
+              value: "production/daily"
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+            - name: CLUSTER_NAME
+              value: "nephoran-production"
+            - name: WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backup-notifications
+                  key: webhook-url
+                  optional: true
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backup-notifications
+                  key: slack-webhook-url
+                  optional: true
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+              readOnly: true
+            - name: weaviate-backup-volume
+              mountPath: /var/lib/weaviate/backups
+            resources:
+              requests:
+                memory: "1Gi"
+                cpu: "500m"
+              limits:
+                memory: "4Gi"
+                cpu: "2000m"
+          volumes:
+          - name: backup-scripts
+            configMap:
+              name: weaviate-backup-config
+              defaultMode: 0755
+          - name: weaviate-backup-volume
+            persistentVolumeClaim:
+              claimName: weaviate-backup-pvc
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weaviate-weekly-backup
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup
+    schedule: weekly
+spec:
+  # Weekly on Sunday at 2 AM
+  schedule: "0 2 * * 0"
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 1200
+  successfulJobsHistoryLimit: 4
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: weaviate-backup
+            backup-type: weekly
+        spec:
+          serviceAccountName: weaviate-backup
+          restartPolicy: OnFailure
+          containers:
+          - name: backup
+            image: amazon/aws-cli:2.15.0
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/bash
+            - /scripts/backup-script.sh
+            env:
+            - name: BACKUP_TYPE
+              value: "weekly"
+            - name: RETENTION_DAYS
+              value: "84"
+            - name: WEAVIATE_HOST
+              value: "weaviate.nephoran-system.svc.cluster.local:8080"
+            - name: WEAVIATE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: weaviate-api-key
+                  key: api-key
+            - name: S3_BUCKET
+              value: "nephoran-weaviate-backups"
+            - name: S3_PREFIX
+              value: "production/weekly"
+            - name: AWS_DEFAULT_REGION
+              value: "us-east-1"
+            - name: CLUSTER_NAME
+              value: "nephoran-production"
+            - name: WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backup-notifications
+                  key: webhook-url
+                  optional: true
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: backup-notifications
+                  key: slack-webhook-url
+                  optional: true
+            volumeMounts:
+            - name: backup-scripts
+              mountPath: /scripts
+              readOnly: true
+            - name: weaviate-backup-volume
+              mountPath: /var/lib/weaviate/backups
+            resources:
+              requests:
+                memory: "2Gi"
+                cpu: "1000m"
+              limits:
+                memory: "8Gi"
+                cpu: "4000m"
+          volumes:
+          - name: backup-scripts
+            configMap:
+              name: weaviate-backup-config
+              defaultMode: 0755
+          - name: weaviate-backup-volume
+            persistentVolumeClaim:
+              claimName: weaviate-backup-pvc
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: backup-notifications
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup
+type: Opaque
+data:
+  # Base64 encoded webhook URLs - replace with actual values
+  webhook-url: ""  # Optional: webhook for backup notifications
+  slack-webhook-url: ""  # Optional: Slack webhook for notifications
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: weaviate-backup-validation
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup-validation
+spec:
+  template:
+    metadata:
+      labels:
+        app: weaviate-backup-validation
+    spec:
+      serviceAccountName: weaviate-backup
+      restartPolicy: OnFailure
+      containers:
+      - name: validate
+        image: amazon/aws-cli:2.15.0
+        imagePullPolicy: IfNotPresent
+        command:
+        - /bin/bash
+        - -c
+        - |
+          echo "=== Backup Validation Test ==="
+          
+          # Test backup script execution
+          /scripts/backup-script.sh --help || echo "Backup script test failed"
+          
+          # Test restore script
+          /scripts/restore-script.sh --list-backups || echo "Restore script test failed"
+          
+          # Test S3 connectivity
+          aws s3 ls s3://nephoran-weaviate-backups/production/ || echo "S3 connectivity test failed"
+          
+          echo "=== Validation Complete ==="
+        env:
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+        - name: S3_BUCKET
+          value: "nephoran-weaviate-backups"
+        - name: WEAVIATE_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: weaviate-api-key
+              key: api-key
+        volumeMounts:
+        - name: backup-scripts
+          mountPath: /scripts
+          readOnly: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: backup-scripts
+        configMap:
+          name: weaviate-backup-config
+          defaultMode: 0755
