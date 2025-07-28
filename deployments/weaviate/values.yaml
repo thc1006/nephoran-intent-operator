@@ -1,11 +1,110 @@
+
+# Security hardening
+security:
+  # Pod security standards
+  podSecurity:
+    enabled: true
+    standard: "restricted"
+    enforce: true
+  # Network security
+  networkSecurity:
+    enabled: true
+    encryption:
+      inTransit: true
+      atRest: true
+    tlsVersion: "1.3"
+  # Authentication and authorization
+  auth:
+    # API key management
+    apiKey:
+      rotation:
+        enabled: true
+        interval: "90d"
+      complexity:
+        length: 32
+        characters: "alphanumeric+symbols"
+    # OAuth2 integration
+    oauth2:
+      enabled: false  # Disabled for initial deployment
+      provider: "keycloak"
+    # mTLS for service-to-service communication
+    mtls:
+      enabled: true
+      ca: "nephoran-ca"
+      autoRotation: true
+  # Vulnerability scanning
+  scanning:
+    enabled: true
+    schedule: "0 6 * * *"  # Daily at 6 AM
+    severity: "medium"     # Minimum severity to report
+  # Compliance
+  compliance:
+    enabled: true
+    standards:
+      - "SOC2"
+      - "ISO27001"
+    audit:
+      enabled: true
+      retention: "7y"
+
+# Performance tuning
+performance:
+  # JVM tuning for better memory management
+  jvm:
+    enabled: true
+    heapSize:
+      initial: "8g"
+      maximum: "24g"
+    gc:
+      algorithm: "G1GC"
+      maxPauseTime: "200ms"
+  # Networking optimizations
+  networking:
+    # Connection pooling
+    connectionPool:
+      maxConnections: 1000
+      connectionTimeout: "30s"
+      keepAlive: true
+    # Buffer sizes
+    buffers:
+      receive: "64KB"
+      send: "64KB"
+  # Disk I/O optimizations
+  storage:
+    # Async I/O for better performance
+    asyncIO: true
+    # Read-ahead optimization
+    readAhead: "2MB"
+    # Write caching
+    writeCache:
+      enabled: true
+      size: "1GB"
+  # CPU optimizations
+  cpu:
+    # NUMA awareness
+    numa: true
+    # CPU affinity
+    affinity:
+      enabled: true
+      strategy: "spread"
+
 # Weaviate Helm Chart Values for Nephoran Intent Operator
 # Production-ready configuration optimized for telecom domain knowledge
 
 # Global configuration
 global:
-  storageClass: "fast-ssd"  # Use high-performance SSD storage for production
+  # Configurable storage classes to avoid hardcoded dependencies
+  storageClass:
+    primary: "gp3"  # AWS GP3 for general purpose workloads
+    backup: "gp2"   # AWS GP2 for backup storage (cost-effective)
+    fast: "io2"     # AWS IO2 for high-performance workloads
   namespace: "nephoran-system"
   environment: "production"
+  region: "us-east-1"  # AWS region for multi-AZ deployment
+  multiAZ: true
+  encryption:
+    enabled: true
+    kmsKeyId: "alias/nephoran-weaviate-key"
   
 # Image pull secrets for private registries
 imagePullSecrets:
@@ -25,24 +124,44 @@ weaviate:
     minAvailable: 1
     maxUnavailable: 1
     
-  # Resource configuration for production workloads
+  # Resource configuration for production workloads - optimized for telecom processing
   resources:
     requests:
-      memory: "4Gi"
-      cpu: "1000m"
-      ephemeral-storage: "10Gi"
+      memory: "8Gi"   # Increased for large telecom document corpus
+      cpu: "2000m"    # 2 CPU cores minimum for vector processing
+      ephemeral-storage: "20Gi"
     limits:
-      memory: "16Gi"
-      cpu: "4000m"
-      ephemeral-storage: "50Gi"
+      memory: "32Gi"  # Maximum 32GB for large vector operations
+      cpu: "8000m"    # Up to 8 CPU cores for peak loads
+      ephemeral-storage: "100Gi"
       
   # Horizontal Pod Autoscaler configuration with custom metrics
   autoscaling:
     enabled: true
-    minReplicas: 3
+    minReplicas: 2  # Minimum for HA during maintenance
     maxReplicas: 10
-    targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 80
+    targetCPUUtilizationPercentage: 60  # Lower threshold for better response times
+    targetMemoryUtilizationPercentage: 70  # Conservative memory threshold
+    # Advanced scaling behavior for production workloads
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 180  # 3 minutes stabilization
+        policies:
+        - type: Percent
+          value: 50   # Scale up by 50% at most
+          periodSeconds: 60
+        - type: Pods
+          value: 2    # Or add 2 pods at most
+          periodSeconds: 60
+      scaleDown:
+        stabilizationWindowSeconds: 900  # 15 minutes before scaling down
+        policies:
+        - type: Percent
+          value: 10   # Scale down by 10% at most
+          periodSeconds: 300
+        - type: Pods
+          value: 1    # Or remove 1 pod at most
+          periodSeconds: 300
     # Custom metrics for telecom workloads
     customMetrics:
       - type: Pods
@@ -51,14 +170,21 @@ weaviate:
             name: weaviate_query_latency_p99
           target:
             type: AverageValue
-            averageValue: "100m"
+            averageValue: "500m"  # 500ms max latency
       - type: Pods
         pods:
           metric:
-            name: weaviate_vector_index_size
+            name: weaviate_concurrent_queries
           target:
             type: AverageValue
-            averageValue: "1000000"
+            averageValue: "50"    # 50 concurrent queries per pod
+      - type: Pods
+        pods:
+          metric:
+            name: weaviate_vector_index_memory_usage
+          target:
+            type: AverageValue
+            averageValue: "20Gi"  # Memory usage threshold
     
   # Environment variables for Weaviate configuration
   env:
@@ -69,11 +195,22 @@ weaviate:
     PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
     DEFAULT_VECTORIZER_MODULE: "text2vec-openai"
     # Enhanced module configuration for telecom domain
-    ENABLE_MODULES: "text2vec-openai,generative-openai,qna-openai,sum-transformers,ref2vec-centroid"
-    # Performance optimizations
+    ENABLE_MODULES: "text2vec-openai,generative-openai,qna-openai,sum-transformers,ref2vec-centroid,text2vec-transformers,reranker-transformers"
+    # Performance optimizations for telecom workloads
     TRACK_VECTOR_DIMENSIONS: "true"
-    INDEXING_CLEANUP_INTERVAL_SECONDS: "300"
-    VECTOR_CACHE_MAX_OBJECTS: "1000000"
+    INDEXING_CLEANUP_INTERVAL_SECONDS: "180"  # More frequent cleanup for active workloads
+    VECTOR_CACHE_MAX_OBJECTS: "2000000"       # Increased cache for telecom documents
+    # Advanced indexing configuration
+    HNSW_MAX_CONNECTIONS: "32"               # Optimized for high-dimensional vectors
+    HNSW_EF_CONSTRUCTION: "256"              # Higher quality index construction
+    HNSW_EF: "64"                            # Balanced search vs speed
+    # Memory management
+    MEMORY_WARNING_PERCENTAGE: "80"          # Warn at 80% memory usage
+    MEMORY_LIMIT_PERCENTAGE: "90"            # Limit at 90% memory usage
+    # Query optimization
+    QUERY_NESTED_CROSS_REFERENCE_LIMIT: "10000"
+    QUERY_SLOW_LOG_ENABLED: "true"
+    QUERY_SLOW_LOG_THRESHOLD: "1s"
     # Backup configuration
     BACKUP_FILESYSTEM_PATH: "/var/lib/weaviate/backups"
     # Logging configuration
@@ -87,20 +224,37 @@ weaviate:
   # Persistence configuration for knowledge base storage
   persistence:
     enabled: true
-    size: 500Gi  # Large storage for comprehensive telecom documentation corpus
-    storageClass: "fast-ssd"  # High-performance SSD storage
+    size: 1Ti  # 1TB for comprehensive telecom documentation corpus
+    storageClass: ""  # Will be set dynamically based on cloud provider
     accessModes:
       - ReadWriteOnce
     annotations:
-      volume.beta.kubernetes.io/storage-provisioner: "kubernetes.io/aws-ebs"
-      volume.kubernetes.io/storage-resizer: "kubernetes.io/aws-ebs"
+      volume.beta.kubernetes.io/storage-provisioner: "ebs.cse.aws.com"  # Updated CSI driver
+      volume.kubernetes.io/storage-resizer: "ebs.cse.aws.com"
+    # Multi-tier storage configuration
+    tiers:
+      hot:
+        enabled: true
+        size: 500Gi
+        storageClass: "gp3-encrypted"  # Fast access for active data
+        iops: 10000
+        throughput: 250  # MB/s
+      warm:
+        enabled: true
+        size: 500Gi
+        storageClass: "gp2-encrypted"  # Standard access for less active data
     # Backup persistence for disaster recovery
     backup:
       enabled: true
-      size: 200Gi
-      storageClass: "standard"
+      size: 500Gi  # Increased backup storage
+      storageClass: "sc1-encrypted"  # Cold HDD for cost-effective backup
       accessModes:
         - ReadWriteOnce
+      # Snapshot configuration
+      snapshots:
+        enabled: true
+        schedule: "0 */6 * * *"  # Every 6 hours
+        retention: "7d"  # Keep snapshots for 7 days
     
   # Service configuration
   service:
@@ -153,9 +307,44 @@ weaviate:
 # Backup configuration for data protection
 backup:
   enabled: true
-  schedule: "0 2 * * *"  # Daily at 2 AM
-  retention: "30d"
-  storageClass: "standard"
+  # Multiple backup schedules for different retention policies
+  schedules:
+    hourly:
+      enabled: true
+      schedule: "0 * * * *"  # Every hour
+      retention: "24h"
+      storageClass: "gp3-encrypted"
+    daily:
+      enabled: true
+      schedule: "0 2 * * *"  # Daily at 2 AM
+      retention: "30d"
+      storageClass: "gp2-encrypted"
+    weekly:
+      enabled: true
+      schedule: "0 2 * * 0"  # Weekly on Sunday
+      retention: "12w"
+      storageClass: "sc1-encrypted"
+    monthly:
+      enabled: true
+      schedule: "0 2 1 * *"  # Monthly on 1st
+      retention: "12m"
+      storageClass: "sc1-encrypted"
+  # Cross-region backup for disaster recovery
+  crossRegion:
+    enabled: true
+    targetRegion: "us-west-2"
+    retention: "1y"
+  # Backup validation and testing
+  validation:
+    enabled: true
+    schedule: "0 4 * * 1"  # Weekly validation on Monday
+  # Compression and encryption
+  compression:
+    enabled: true
+    algorithm: "gzip"
+  encryption:
+    enabled: true
+    kmsKeyId: "alias/nephoran-backup-key"
   
 # Vector database optimization for telecom domain
 vectorizer:
@@ -163,30 +352,197 @@ vectorizer:
     model: "text-embedding-3-large"
     dimensions: 3072
     tokenLimit: 8192
+    # Rate limiting and batching
+    rateLimiting:
+      enabled: true
+      requestsPerMinute: 3000  # Adjust based on OpenAI tier
+      tokensPerMinute: 1000000
+    batching:
+      enabled: true
+      batchSize: 100
+      maxWaitTime: "500ms"
+  # Hybrid vectorization for better telecom domain coverage
+  transformers:
+    enabled: true
+    model: "sentence-transformers/all-mpnet-base-v2"
+    dimensions: 768
+    # Local inference for sensitive data
+    inference:
+      local: true
+      gpuAcceleration: false  # CPU-only for cost optimization
+  # Custom vectorization for telecom-specific terms
+  custom:
+    enabled: true
+    telecomVectorizer:
+      model: "custom/telecom-embeddings-v1"
+      dimensions: 512
+      specialization: "3gpp-oran-terminology"
     
 # Schema configuration for telecom knowledge
 schema:
-  autoSchema: true
+  autoSchema: false  # Use explicit schema for production consistency
+  validation:
+    enabled: true
+    strict: true
   classes:
     - name: "TelecomKnowledge"
-      description: "Telecommunications domain knowledge base"
+      description: "Comprehensive telecommunications domain knowledge base"
       vectorizer: "text2vec-openai"
+      moduleConfig:
+        "text2vec-openai":
+          model: "text-embedding-3-large"
+          dimensions: 3072
+          type: "text"
       properties:
         - name: "content"
           dataType: ["text"]
-          description: "Document content"
+          description: "Full document content with telecom terminology"
+          indexFilterable: true
+          indexSearchable: true
+        - name: "title"
+          dataType: ["text"]
+          description: "Document or section title"
+          indexFilterable: true
+          indexSearchable: true
         - name: "source"
           dataType: ["text"]
-          description: "Document source (3GPP, O-RAN, etc.)"
+          description: "Document source organization (3GPP, O-RAN, ETSI, ITU, etc.)"
+          indexFilterable: true
         - name: "category"
           dataType: ["text"]
-          description: "Knowledge category"
+          description: "Knowledge category (RAN, Core, Transport, Management, etc.)"
+          indexFilterable: true
+        - name: "subcategory"
+          dataType: ["text"]
+          description: "Detailed subcategory for fine-grained classification"
+          indexFilterable: true
         - name: "version"
           dataType: ["text"]
-          description: "Specification version"
+          description: "Specification version (e.g., Rel-17, v1.5.0)"
+          indexFilterable: true
+        - name: "workingGroup"
+          dataType: ["text"]
+          description: "Working group responsible (e.g., RAN1, SA2, O-RAN WG1)"
+          indexFilterable: true
         - name: "timestamp"
           dataType: ["date"]
           description: "Last updated timestamp"
+          indexFilterable: true
+        - name: "keywords"
+          dataType: ["text[]"]
+          description: "Extracted telecom keywords and terminology"
+          indexFilterable: true
+        - name: "confidence"
+          dataType: ["number"]
+          description: "Content quality and relevance confidence score"
+          indexFilterable: true
+        - name: "language"
+          dataType: ["text"]
+          description: "Document language (ISO 639-1 code)"
+          indexFilterable: true
+        - name: "documentType"
+          dataType: ["text"]
+          description: "Type of document (specification, report, presentation, etc.)"
+          indexFilterable: true
+        - name: "networkFunction"
+          dataType: ["text[]"]
+          description: "Related network functions (gNB, AMF, SMF, UPF, etc.)"
+          indexFilterable: true
+        - name: "technology"
+          dataType: ["text[]"]
+          description: "Related technologies (5G, 4G, O-RAN, vRAN, etc.)"
+          indexFilterable: true
+        - name: "useCase"
+          dataType: ["text[]"]
+          description: "Applicable use cases (eMBB, URLLC, mMTC, etc.)"
+          indexFilterable: true
+        - name: "crossReferences"
+          dataType: ["TelecomKnowledge"]
+          description: "References to related telecom knowledge"
+    
+    - name: "IntentPatterns"
+      description: "Intent processing patterns and templates for telecom operations"
+      vectorizer: "text2vec-openai"
+      moduleConfig:
+        "text2vec-openai":
+          model: "text-embedding-3-large"
+          dimensions: 3072
+          type: "text"
+      properties:
+        - name: "pattern"
+          dataType: ["text"]
+          description: "Intent pattern template"
+          indexFilterable: true
+          indexSearchable: true
+        - name: "category"
+          dataType: ["text"]
+          description: "Intent category (configuration, optimization, troubleshooting)"
+          indexFilterable: true
+        - name: "networkDomain"
+          dataType: ["text"]
+          description: "Target network domain (RAN, Core, Transport)"
+          indexFilterable: true
+        - name: "parameters"
+          dataType: ["text[]"]
+          description: "Required and optional parameters"
+          indexFilterable: true
+        - name: "examples"
+          dataType: ["text[]"]
+          description: "Example intent statements"
+          indexSearchable: true
+        - name: "confidence"
+          dataType: ["number"]
+          description: "Pattern matching confidence threshold"
+          indexFilterable: true
+        - name: "relatedKnowledge"
+          dataType: ["TelecomKnowledge"]
+          description: "Related knowledge base entries"
+    
+    - name: "NetworkFunctions"
+      description: "Network function definitions and operational knowledge"
+      vectorizer: "text2vec-openai"
+      moduleConfig:
+        "text2vec-openai":
+          model: "text-embedding-3-large"
+          dimensions: 3072
+          type: "text"
+      properties:
+        - name: "name"
+          dataType: ["text"]
+          description: "Network function name (e.g., gNB, AMF, SMF)"
+          indexFilterable: true
+          indexSearchable: true
+        - name: "description"
+          dataType: ["text"]
+          description: "Detailed functional description"
+          indexSearchable: true
+        - name: "interfaces"
+          dataType: ["text[]"]
+          description: "Standard interfaces (e.g., N1, N2, N3, Xn, F1)"
+          indexFilterable: true
+        - name: "procedures"
+          dataType: ["text[]"]
+          description: "Key procedures and workflows"
+          indexSearchable: true
+        - name: "parameters"
+          dataType: ["text[]"]
+          description: "Configurable parameters and their ranges"
+          indexFilterable: true
+        - name: "kpis"
+          dataType: ["text[]"]
+          description: "Key Performance Indicators"
+          indexFilterable: true
+        - name: "domain"
+          dataType: ["text"]
+          description: "Network domain (RAN, Core, Transport, Management)"
+          indexFilterable: true
+        - name: "vendor"
+          dataType: ["text"]
+          description: "Vendor-specific implementation details"
+          indexFilterable: true
+        - name: "relatedFunctions"
+          dataType: ["NetworkFunctions"]
+          description: "Related network functions"
           
 # Network policies for security
 networkPolicy:
@@ -195,20 +551,218 @@ networkPolicy:
     - Ingress
     - Egress
   ingress:
+    # Allow traffic from nephoran components
     - from:
         - namespaceSelector:
             matchLabels:
-              name: default
+              name: "nephoran-system"
         - podSelector:
             matchLabels:
-              app: rag-api
+              app: "llm-processor"
       ports:
         - protocol: TCP
           port: 8080
+        - protocol: TCP
+          port: 2112  # Metrics
+    # Allow traffic from monitoring namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: "monitoring"
+        - podSelector:
+            matchLabels:
+              app: "prometheus"
+      ports:
+        - protocol: TCP
+          port: 2112
+    # Allow inter-Weaviate cluster communication
+    - from:
+        - podSelector:
+            matchLabels:
+              app: "weaviate"
+      ports:
+        - protocol: TCP
+          port: 7000  # Gossip
+        - protocol: TCP
+          port: 7001  # Data
   egress:
-    - to: []  # Allow all outbound traffic for OpenAI API calls
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow HTTPS for OpenAI API and external services
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow HTTP for internal services
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: "nephoran-system"
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8080
+    # Allow backup services
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: "backup-system"
       ports:
         - protocol: TCP
           port: 443
         - protocol: TCP
           port: 80
+
+# Multi-tenancy configuration for data isolation
+multiTenancy:
+  enabled: true
+  # Tenant configurations
+  tenants:
+    - name: "production"
+      description: "Production tenant for live telecom operations"
+      resources:
+        memory: "16Gi"
+        cpu: "4"
+      storageQuota: "500Gi"
+      autoScaling:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 5
+    - name: "staging"
+      description: "Staging tenant for testing and validation"
+      resources:
+        memory: "8Gi"
+        cpu: "2"
+      storageQuota: "200Gi"
+      autoScaling:
+        enabled: true
+        minReplicas: 1
+        maxReplicas: 3
+    - name: "development"
+      description: "Development tenant for testing new features"
+      resources:
+        memory: "4Gi"
+        cpu: "1"
+      storageQuota: "100Gi"
+      autoScaling:
+        enabled: false
+        replicas: 1
+  # Access control per tenant
+  accessControl:
+    enabled: true
+    defaultPolicy: "deny"
+    rbac:
+      enabled: true
+
+# Advanced search configuration
+search:
+  # Hybrid search combining vector and keyword search
+  hybrid:
+    enabled: true
+    # BM25 configuration for keyword search
+    bm25:
+      enabled: true
+      k1: 1.2  # Term frequency saturation parameter
+      b: 0.75  # Length normalization parameter
+    # Fusion algorithm for combining results
+    fusion:
+      algorithm: "reciprocalRankFusion"  # RRF algorithm
+      weights:
+        vector: 0.7   # 70% weight for vector similarity
+        keyword: 0.3  # 30% weight for keyword matching
+  # Query optimization
+  optimization:
+    enabled: true
+    # Query expansion using telecom terminology
+    expansion:
+      enabled: true
+      synonyms: true
+      acronyms: true
+    # Result reranking
+    reranking:
+      enabled: true
+      model: "cross-encoder/ms-marco-MiniLM-L-12-v2"
+      topK: 100  # Rerank top 100 results
+  # Search analytics
+  analytics:
+    enabled: true
+    logQueries: true
+    trackLatency: true
+    exportMetrics: true
+
+# Disaster recovery configuration
+disasterRecovery:
+  enabled: true
+  # Geographic distribution
+  multiRegion:
+    enabled: true
+    primaryRegion: "us-east-1"
+    secondaryRegions:
+      - "us-west-2"
+      - "eu-west-1"
+  # Replication configuration
+  replication:
+    enabled: true
+    mode: "async"  # Asynchronous replication for performance
+    lag: "1m"      # Maximum acceptable replication lag
+  # Failover configuration
+  failover:
+    enabled: true
+    automatic: true
+    healthCheckInterval: "30s"
+    failoverThreshold: 3  # Consecutive health check failures
+  # Recovery procedures
+  recovery:
+    rto: "15m"  # Recovery Time Objective
+    rpo: "5m"   # Recovery Point Objective
+    validationEnabled: true
+
+# Observability and monitoring
+observability:
+  # Logging configuration
+  logging:
+    level: "info"
+    format: "json"
+    structured: true
+    # Log aggregation
+    aggregation:
+      enabled: true
+      endpoint: "https://logs.nephoran.com/api/v1/logs"
+  # Metrics configuration
+  metrics:
+    enabled: true
+    interval: "15s"
+    retention: "30d"
+    # Custom metrics for telecom operations
+    custom:
+      enabled: true
+      telecomMetrics:
+        - "weaviate_telecom_query_latency"
+        - "weaviate_telecom_index_size"
+        - "weaviate_telecom_document_count"
+        - "weaviate_telecom_accuracy_score"
+  # Tracing configuration
+  tracing:
+    enabled: true
+    jaeger:
+      endpoint: "http://jaeger-collector:14268/api/traces"
+    samplingRate: 0.1  # Sample 10% of traces
+  # Alerting configuration
+  alerting:
+    enabled: true
+    rules:
+      - name: "HighQueryLatency"
+        condition: "weaviate_query_latency_p99 > 1000"
+        severity: "warning"
+      - name: "LowAccuracy"
+        condition: "weaviate_telecom_accuracy_score < 0.8"
+        severity: "critical"
+      - name: "HighMemoryUsage"
+        condition: "weaviate_memory_usage > 0.9"
+        severity: "warning"

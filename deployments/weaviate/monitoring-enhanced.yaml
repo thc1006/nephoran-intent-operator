@@ -1,0 +1,752 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: weaviate-monitor
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: monitoring
+    tier: production
+spec:
+  selector:
+    matchLabels:
+      app: weaviate
+  endpoints:
+  - port: metrics
+    interval: 15s  # More frequent scraping for production
+    path: /metrics
+    scrapeTimeout: 10s
+    honorLabels: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: weaviate_(.*)
+      targetLabel: __name__
+      replacement: ${1}
+  - port: http
+    interval: 30s
+    path: /v1/.well-known/ready
+    scrapeTimeout: 5s
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: probe_(.*)
+      targetLabel: __name__
+      replacement: weaviate_${1}
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: weaviate-alerts
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: alerting
+    tier: production
+spec:
+  groups:
+  - name: weaviate.availability
+    interval: 30s
+    rules:
+    - alert: WeaviateDown
+      expr: up{job="weaviate"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate instance is down"
+        description: "Weaviate instance {{ $labels.instance }} has been down for more than 1 minute."
+        runbook_url: "https://runbooks.nephoran.com/weaviate/down"
+        dashboard_url: "https://grafana.nephoran.com/d/weaviate/weaviate-overview"
+    
+    - alert: WeaviateClusterUnhealthy
+      expr: (count(up{job="weaviate"} == 1) / count(up{job="weaviate"})) < 0.67
+      for: 2m
+      labels:
+        severity: critical
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate cluster is unhealthy"
+        description: "Less than 67% of Weaviate instances are available. Current availability: {{ $value | humanizePercentage }}"
+        runbook_url: "https://runbooks.nephoran.com/weaviate/cluster-unhealthy"
+    
+    - alert: WeaviateReadinessCheckFailing
+      expr: probe_success{job="weaviate-readiness"} == 0
+      for: 2m
+      labels:
+        severity: warning
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate readiness check failing"
+        description: "Weaviate instance {{ $labels.instance }} readiness check has been failing for more than 2 minutes."
+
+  - name: weaviate.performance
+    interval: 30s
+    rules:
+    - alert: WeaviateHighMemoryUsage
+      expr: (container_memory_working_set_bytes{pod=~"weaviate-.*"} / container_spec_memory_limit_bytes{pod=~"weaviate-.*"}) > 0.85
+      for: 5m
+      labels:
+        severity: warning
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate high memory usage"
+        description: "Weaviate instance {{ $labels.pod }} memory usage is above 85% for more than 5 minutes. Current: {{ $value | humanizePercentage }}"
+        runbook_url: "https://runbooks.nephoran.com/weaviate/high-memory"
+    
+    - alert: WeaviateCriticalMemoryUsage
+      expr: (container_memory_working_set_bytes{pod=~"weaviate-.*"} / container_spec_memory_limit_bytes{pod=~"weaviate-.*"}) > 0.95
+      for: 1m
+      labels:
+        severity: critical
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate critical memory usage"
+        description: "Weaviate instance {{ $labels.pod }} memory usage is above 95%. Immediate action required. Current: {{ $value | humanizePercentage }}"
+        runbook_url: "https://runbooks.nephoran.com/weaviate/critical-memory"
+    
+    - alert: WeaviateHighCPUUsage
+      expr: rate(container_cpu_usage_seconds_total{pod=~"weaviate-.*"}[5m]) > 0.8
+      for: 10m
+      labels:
+        severity: warning
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate high CPU usage"
+        description: "Weaviate instance {{ $labels.pod }} CPU usage is above 80% for more than 10 minutes. Current: {{ $value | humanizePercentage }}"
+    
+    - alert: WeaviateQueryLatencyHigh
+      expr: histogram_quantile(0.95, rate(weaviate_query_duration_seconds_bucket[5m])) > 1.0
+      for: 5m
+      labels:
+        severity: warning
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate query latency is high"
+        description: "95th percentile query latency is above 1 second for more than 5 minutes. Current: {{ $value }}s"
+        runbook_url: "https://runbooks.nephoran.com/weaviate/high-latency"
+    
+    - alert: WeaviateQueryLatencyCritical
+      expr: histogram_quantile(0.95, rate(weaviate_query_duration_seconds_bucket[5m])) > 5.0
+      for: 2m
+      labels:
+        severity: critical
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate query latency is critical"
+        description: "95th percentile query latency is above 5 seconds. Immediate attention required. Current: {{ $value }}s"
+    
+    - alert: WeaviateHighQueryRate
+      expr: rate(weaviate_queries_total[5m]) > 1000
+      for: 5m
+      labels:
+        severity: warning
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate experiencing high query rate"
+        description: "Query rate is above 1000 queries per second for more than 5 minutes. Current: {{ $value }}"
+    
+    - alert: WeaviateQueryErrorRate
+      expr: (rate(weaviate_queries_errors_total[5m]) / rate(weaviate_queries_total[5m])) > 0.05
+      for: 3m
+      labels:
+        severity: warning
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate query error rate is high"
+        description: "Query error rate is above 5% for more than 3 minutes. Current: {{ $value | humanizePercentage }}"
+        runbook_url: "https://runbooks.nephoran.com/weaviate/high-error-rate"
+
+  - name: weaviate.storage
+    interval: 60s
+    rules:
+    - alert: WeaviateDiskSpaceLow
+      expr: (kubelet_volume_stats_available_bytes{persistentvolumeclaim=~"weaviate-.*"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~"weaviate-.*"}) < 0.15
+      for: 5m
+      labels:
+        severity: warning
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate disk space is low"
+        description: "Disk space for {{ $labels.persistentvolumeclaim }} is below 15%. Current: {{ $value | humanizePercentage }}"
+        runbook_url: "https://runbooks.nephoran.com/weaviate/low-disk-space"
+    
+    - alert: WeaviateDiskSpaceCritical
+      expr: (kubelet_volume_stats_available_bytes{persistentvolumeclaim=~"weaviate-.*"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim=~"weaviate-.*"}) < 0.05
+      for: 1m
+      labels:
+        severity: critical
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate disk space is critical"
+        description: "Disk space for {{ $labels.persistentvolumeclaim }} is below 5%. Immediate action required. Current: {{ $value | humanizePercentage }}"
+        runbook_url: "https://runbooks.nephoran.com/weaviate/critical-disk-space"
+    
+    - alert: WeaviateVectorIndexSize
+      expr: weaviate_vector_index_size_bytes > 50 * 1024 * 1024 * 1024  # 50GB
+      for: 10m
+      labels:
+        severity: info
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate vector index size is large"
+        description: "Vector index size is above 50GB. Consider optimization. Current: {{ $value | humanizeBytes }}"
+    
+    - alert: WeaviateBackupFailed
+      expr: increase(weaviate_backup_failures_total[1h]) > 0
+      for: 1m
+      labels:
+        severity: warning
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate backup failed"
+        description: "Weaviate backup has failed in the last hour. Check backup logs."
+        runbook_url: "https://runbooks.nephoran.com/weaviate/backup-failed"
+
+  - name: weaviate.cluster
+    interval: 60s
+    rules:
+    - alert: WeaviateNodeLeft
+      expr: changes(weaviate_cluster_nodes_total[10m]) < 0
+      for: 1m
+      labels:
+        severity: warning
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate node left the cluster"
+        description: "A Weaviate node has left the cluster in the last 10 minutes."
+    
+    - alert: WeaviateClusterSplit
+      expr: weaviate_cluster_leader_elections_total > 3
+      for: 5m
+      labels:
+        severity: critical
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate cluster experiencing split-brain"
+        description: "Multiple leader elections detected, indicating possible cluster split-brain scenario."
+        runbook_url: "https://runbooks.nephoran.com/weaviate/split-brain"
+    
+    - alert: WeaviateGossipLatencyHigh
+      expr: histogram_quantile(0.95, rate(weaviate_gossip_latency_seconds_bucket[5m])) > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate gossip latency is high"
+        description: "95th percentile gossip latency is above 100ms. This may indicate network issues."
+
+  - name: weaviate.telecom
+    interval: 60s
+    rules:
+    - alert: WeaviateTelecomAccuracyLow
+      expr: weaviate_telecom_accuracy_score < 0.8
+      for: 10m
+      labels:
+        severity: warning
+        service: weaviate
+        team: ai-ml
+      annotations:
+        summary: "Weaviate telecom accuracy is low"
+        description: "Telecom knowledge accuracy score is below 80%. Current: {{ $value }}"
+        runbook_url: "https://runbooks.nephoran.com/weaviate/low-accuracy"
+    
+    - alert: WeaviateTelecomDocumentStale
+      expr: (time() - weaviate_telecom_last_document_update) > 7 * 24 * 3600  # 7 days
+      for: 1h
+      labels:
+        severity: warning
+        service: weaviate
+        team: ai-ml
+      annotations:
+        summary: "Weaviate telecom documents are stale"
+        description: "No new telecom documents have been added in the last 7 days."
+    
+    - alert: WeaviateOpenAIAPIErrors
+      expr: rate(weaviate_openai_api_errors_total[5m]) > 0.1
+      for: 3m
+      labels:
+        severity: warning
+        service: weaviate
+        team: platform
+      annotations:
+        summary: "Weaviate OpenAI API errors"
+        description: "OpenAI API error rate is above 0.1 errors per second. Check API connectivity and quotas."
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: weaviate-grafana-dashboards
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: monitoring
+    grafana_dashboard: "1"
+data:
+  weaviate-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Weaviate Overview",
+        "tags": ["weaviate", "telecom", "vector-db"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Cluster Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "count(up{job=\"weaviate\"} == 1)",
+                "legendFormat": "Healthy Nodes"
+              },
+              {
+                "expr": "count(up{job=\"weaviate\"})",
+                "legendFormat": "Total Nodes"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 1},
+                    {"color": "green", "value": 2}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Query Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(weaviate_queries_total[5m])",
+                "legendFormat": "{{instance}}"
+              }
+            ],
+            "yAxes": [
+              {"label": "Queries/sec", "min": 0}
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Query Latency",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, rate(weaviate_query_duration_seconds_bucket[5m]))",
+                "legendFormat": "p50"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(weaviate_query_duration_seconds_bucket[5m]))",
+                "legendFormat": "p95"
+              },
+              {
+                "expr": "histogram_quantile(0.99, rate(weaviate_query_duration_seconds_bucket[5m]))",
+                "legendFormat": "p99"
+              }
+            ],
+            "yAxes": [
+              {"label": "Seconds", "min": 0}
+            ],
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Memory Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "container_memory_working_set_bytes{pod=~\"weaviate-.*\"} / 1024 / 1024 / 1024",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "yAxes": [
+              {"label": "GB", "min": 0}
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "CPU Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{pod=~\"weaviate-.*\"}[5m]) * 100",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "yAxes": [
+              {"label": "Percent", "min": 0, "max": 100}
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "Vector Index Size",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "weaviate_vector_index_size_bytes / 1024 / 1024 / 1024",
+                "legendFormat": "{{class}}"
+              }
+            ],
+            "yAxes": [
+              {"label": "GB", "min": 0}
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "Object Count",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "weaviate_object_count_total",
+                "legendFormat": "Total Objects"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 16}
+          },
+          {
+            "id": 8,
+            "title": "Telecom Accuracy Score",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "weaviate_telecom_accuracy_score",
+                "legendFormat": "Accuracy"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "min": 0,
+                "max": 1,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 0.7},
+                    {"color": "green", "value": 0.85}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 16}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
+
+  weaviate-telecom.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Weaviate Telecom Domain",
+        "tags": ["weaviate", "telecom", "rag", "ai"],
+        "style": "dark",
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Document Count by Source",
+            "type": "piechart",
+            "targets": [
+              {
+                "expr": "weaviate_telecom_documents_by_source",
+                "legendFormat": "{{source}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Query Categories",
+            "type": "bargauge",
+            "targets": [
+              {
+                "expr": "rate(weaviate_telecom_queries_by_category[5m])",
+                "legendFormat": "{{category}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "RAG Query Success Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(weaviate_rag_queries_success_total[5m]) / rate(weaviate_rag_queries_total[5m])",
+                "legendFormat": "Success Rate"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 0.9},
+                    {"color": "green", "value": 0.95}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Vector Similarity Distribution",
+            "type": "histogram",
+            "targets": [
+              {
+                "expr": "weaviate_vector_similarity_score_bucket",
+                "legendFormat": "Similarity Score"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 18, "x": 6, "y": 8}
+          },
+          {
+            "id": 5,
+            "title": "Embedding Generation Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(weaviate_embedding_generation_total[5m])",
+                "legendFormat": "OpenAI Embeddings"
+              },
+              {
+                "expr": "rate(weaviate_embedding_generation_errors_total[5m])",
+                "legendFormat": "Embedding Errors"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Knowledge Base Freshness",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "time() - weaviate_telecom_last_document_update",
+                "legendFormat": "Hours Since Last Update"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s",
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 86400},
+                    {"color": "red", "value": 604800}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 16}
+          }
+        ],
+        "time": {
+          "from": "now-6h",
+          "to": "now"
+        },
+        "refresh": "1m"
+      }
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: weaviate-alertmanager-config
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: alerting
+data:
+  alertmanager.yml: |
+    global:
+      slack_api_url: '${SLACK_API_URL}'
+      smtp_smarthost: '${SMTP_HOST}:587'
+      smtp_from: 'alerts@nephoran.com'
+    
+    route:
+      group_by: ['alertname', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'default'
+      routes:
+      - match:
+          severity: critical
+        receiver: 'critical-alerts'
+        group_wait: 10s
+        group_interval: 2m
+        repeat_interval: 1h
+      - match:
+          service: weaviate
+          severity: warning
+        receiver: 'weaviate-warnings'
+      - match:
+          team: ai-ml
+        receiver: 'ai-ml-team'
+    
+    receivers:
+    - name: 'default'
+      webhook_configs:
+      - url: '${WEBHOOK_URL}'
+        send_resolved: true
+    
+    - name: 'critical-alerts'
+      slack_configs:
+      - channel: '#alerts-critical'
+        title: 'Critical Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Severity:* {{ .Labels.severity }}
+          *Service:* {{ .Labels.service }}
+          *Description:* {{ .Annotations.description }}
+          {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+        send_resolved: true
+      email_configs:
+      - to: 'oncall@nephoran.com'
+        subject: 'CRITICAL: Weaviate Alert - {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Severity: {{ .Labels.severity }}
+          Service: {{ .Labels.service }}
+          Description: {{ .Annotations.description }}
+          {{ if .Annotations.runbook_url }}Runbook: {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+    
+    - name: 'weaviate-warnings'
+      slack_configs:
+      - channel: '#weaviate-alerts'
+        title: 'Weaviate Warning: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+          {{ end }}
+        send_resolved: true
+    
+    - name: 'ai-ml-team'
+      slack_configs:
+      - channel: '#ai-ml-alerts'
+        title: 'AI/ML Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Service:* {{ .Labels.service }}
+          *Description:* {{ .Annotations.description }}
+          {{ end }}
+        send_resolved: true
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weaviate-health-check
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: health-check
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: health-check
+            image: curlimages/curl:8.5.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              
+              # Check Weaviate health endpoints
+              echo "Checking Weaviate health..."
+              
+              # Ready check
+              curl -f -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+                "http://weaviate.nephoran-system.svc.cluster.local:8080/v1/.well-known/ready" || \
+                { echo "Readiness check failed"; exit 1; }
+              
+              # Live check
+              curl -f -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+                "http://weaviate.nephoran-system.svc.cluster.local:8080/v1/.well-known/live" || \
+                { echo "Liveness check failed"; exit 1; }
+              
+              # Schema check
+              curl -f -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+                "http://weaviate.nephoran-system.svc.cluster.local:8080/v1/schema" || \
+                { echo "Schema check failed"; exit 1; }
+              
+              # Simple query check
+              curl -f -H "Authorization: Bearer $WEAVIATE_API_KEY" \
+                -H "Content-Type: application/json" \
+                -d '{"query": "{Get{TelecomKnowledge(limit: 1){content}}}"}' \
+                "http://weaviate.nephoran-system.svc.cluster.local:8080/v1/graphql" || \
+                { echo "Query check failed"; exit 1; }
+              
+              echo "All health checks passed"
+            env:
+            - name: WEAVIATE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: weaviate-api-key
+                  key: api-key
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "50m"
+              limits:
+                memory: "128Mi"
+                cpu: "100m"

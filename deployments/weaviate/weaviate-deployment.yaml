@@ -270,15 +270,16 @@ metadata:
     component: storage
     tier: "primary"
   annotations:
-    volume.beta.kubernetes.io/storage-provisioner: "kubernetes.io/aws-ebs"
-    volume.kubernetes.io/storage-resizer: "kubernetes.io/aws-ebs"
+    volume.beta.kubernetes.io/storage-provisioner: "ebs.csi.aws.com"
+    volume.kubernetes.io/storage-resizer: "ebs.csi.aws.com"
+    volume.kubernetes.io/encrypted: "true"
 spec:
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 500Gi
-  storageClassName: "fast-ssd"
+  storageClassName: "gp3-encrypted"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -295,7 +296,7 @@ spec:
   resources:
     requests:
       storage: 200Gi
-  storageClassName: "standard"
+  storageClassName: "gp2-encrypted"
 ---
 apiVersion: v1
 kind: Secret
