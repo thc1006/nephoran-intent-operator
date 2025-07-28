@@ -4,4 +4,4 @@ metadata:
   name: test-intent
   namespace: default
 spec:
-  intent: "Deploy a 5G core network with UPF scaling capabilities"
+  intent: "Deploy 3 E2 nodes for testing network connectivity"
