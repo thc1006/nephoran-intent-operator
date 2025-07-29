@@ -13,18 +13,25 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 var (
-	config    *Config
-	processor *IntentProcessor
-	logger    *slog.Logger
-	startTime = time.Now()
-	healthMux sync.RWMutex
-	healthy   = true
-	readyMux  sync.RWMutex
-	ready     = false
-	requestID int64
+	config              *Config
+	processor           *IntentProcessor
+	streamingProcessor  *llm.StreamingProcessor
+	circuitBreakerMgr   *llm.CircuitBreakerManager
+	tokenManager        *llm.TokenManager
+	contextBuilder      *llm.ContextBuilder
+	relevanceScorer     *llm.RelevanceScorer
+	promptBuilder       *llm.RAGAwarePromptBuilder
+	logger              *slog.Logger
+	startTime           = time.Now()
+	healthMux           sync.RWMutex
+	healthy             = true
+	readyMux            sync.RWMutex
+	ready               = false
+	requestID           int64
 )
 
 // Configuration structure
@@ -46,6 +53,16 @@ type Config struct {
 	RAGAPIURL    string
 	RAGTimeout   time.Duration
 	RAGEnabled   bool
+	
+	// Streaming Configuration
+	StreamingEnabled     bool
+	MaxConcurrentStreams int
+	StreamTimeout        time.Duration
+	
+	// Context Management
+	EnableContextBuilder bool
+	MaxContextTokens     int
+	ContextTTL          time.Duration
 
 	// Security Configuration
 	APIKeyRequired bool
@@ -96,10 +113,12 @@ type HealthResponse struct {
 	Timestamp string `json:"timestamp"`
 }
 
-// IntentProcessor handles the LLM processing logic
+// IntentProcessor handles the LLM processing logic with RAG enhancement
 type IntentProcessor struct {
-	llmClient *llm.Client
-	logger    *slog.Logger
+	llmClient          *llm.Client
+	ragEnhancedClient  *llm.RAGEnhancedProcessor
+	circuitBreaker     *llm.CircuitBreaker
+	logger             *slog.Logger
 }
 
 func main() {
@@ -111,19 +130,10 @@ func main() {
 	// Load configuration
 	config = loadConfig()
 
-	// Initialize LLM client
-	llmClient := llm.NewClientWithConfig(config.RAGAPIURL, llm.ClientConfig{
-		APIKey:      config.LLMAPIKey,
-		ModelName:   config.LLMModelName,
-		MaxTokens:   config.LLMMaxTokens,
-		BackendType: config.LLMBackendType,
-		Timeout:     config.LLMTimeout,
-	})
-
-	// Initialize processor
-	processor = &IntentProcessor{
-		llmClient: llmClient,
-		logger:    logger,
+	// Initialize components
+	if err := initializeComponents(); err != nil {
+		logger.Error("Failed to initialize components", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	logger.Info("Starting LLM Processor service",
@@ -142,9 +152,18 @@ func main() {
 
 	// Main processing endpoint
 	mux.HandleFunc("/process", processIntentHandler)
+	
+	// Streaming endpoint
+	if config.StreamingEnabled {
+		mux.HandleFunc("/stream", streamingHandler)
+	}
 
 	// Status endpoint
 	mux.HandleFunc("/status", statusHandler)
+	
+	// Metrics endpoints
+	mux.HandleFunc("/metrics", metricsHandler)
+	mux.HandleFunc("/circuit-breaker/status", circuitBreakerStatusHandler)
 
 	server := &http.Server{
 		Addr:         ":" + config.Port,
@@ -187,6 +206,63 @@ func main() {
 	logger.Info("Server exited")
 }
 
+// initializeComponents initializes all the RAG-enhanced components
+func initializeComponents() error {
+	// Initialize token manager
+	tokenManager = llm.NewTokenManager()
+	
+	// Initialize circuit breaker manager
+	circuitBreakerMgr = llm.NewCircuitBreakerManager(nil)
+	
+	// Initialize base LLM client
+	llmClient := llm.NewClientWithConfig(config.RAGAPIURL, llm.ClientConfig{
+		APIKey:      config.LLMAPIKey,
+		ModelName:   config.LLMModelName,
+		MaxTokens:   config.LLMMaxTokens,
+		BackendType: config.LLMBackendType,
+		Timeout:     config.LLMTimeout,
+	})
+	
+	// Initialize relevance scorer (without embeddings for now)
+	relevanceScorer = llm.NewRelevanceScorer(nil, nil)
+	
+	// Initialize context builder
+	if config.EnableContextBuilder {
+		contextBuilder = llm.NewContextBuilder(tokenManager, relevanceScorer, nil)
+	}
+	
+	// Initialize prompt builder
+	promptBuilder = llm.NewRAGAwarePromptBuilder(tokenManager, nil)
+	
+	// Initialize RAG-enhanced processor if RAG is enabled
+	var ragEnhanced *llm.RAGEnhancedProcessor
+	if config.RAGEnabled {
+		// For now, we'll create a basic RAG enhanced processor
+		// In production, you would initialize with actual RAG service and Weaviate client
+		ragEnhanced = llm.NewRAGEnhancedProcessor(*llmClient, nil, nil, nil)
+	}
+	
+	// Initialize streaming processor if enabled
+	if config.StreamingEnabled {
+		streamingConfig := &llm.StreamingConfig{
+			MaxConcurrentStreams: config.MaxConcurrentStreams,
+			StreamTimeout:       config.StreamTimeout,
+		}
+		streamingProcessor = llm.NewStreamingProcessor(*llmClient, tokenManager, streamingConfig)
+	}
+	
+	// Initialize main processor with circuit breaker
+	circuitBreaker := circuitBreakerMgr.GetOrCreate("llm-processor", nil)
+	processor = &IntentProcessor{
+		llmClient:         llmClient,
+		ragEnhancedClient: ragEnhanced,
+		circuitBreaker:    circuitBreaker,
+		logger:           logger,
+	}
+	
+	return nil
+}
+
 func loadConfig() *Config {
 	return &Config{
 		Port:             getEnv("PORT", "8080"),
@@ -203,6 +279,14 @@ func loadConfig() *Config {
 		RAGAPIURL:  getEnv("RAG_API_URL", "http://rag-api:5001"),
 		RAGTimeout: parseDuration(getEnv("RAG_TIMEOUT", "30s")),
 		RAGEnabled: parseBool(getEnv("RAG_ENABLED", "true")),
+		
+		StreamingEnabled:     parseBool(getEnv("STREAMING_ENABLED", "true")),
+		MaxConcurrentStreams: parseInt(getEnv("MAX_CONCURRENT_STREAMS", "100")),
+		StreamTimeout:        parseDuration(getEnv("STREAM_TIMEOUT", "5m")),
+		
+		EnableContextBuilder: parseBool(getEnv("ENABLE_CONTEXT_BUILDER", "true")),
+		MaxContextTokens:     parseInt(getEnv("MAX_CONTEXT_TOKENS", "6000")),
+		ContextTTL:          parseDuration(getEnv("CONTEXT_TTL", "5m")),
 
 		APIKeyRequired: parseBool(getEnv("API_KEY_REQUIRED", "false")),
 		APIKey:         getEnv("API_KEY", ""),
@@ -347,14 +431,29 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
-	p.logger.Debug("Processing intent with LLM client", slog.String("intent", intent))
+	p.logger.Debug("Processing intent with enhanced client", slog.String("intent", intent))
 
-	result, err := p.llmClient.ProcessIntent(ctx, intent)
+	// Use circuit breaker for fault tolerance
+	operation := func(ctx context.Context) (interface{}, error) {
+		// Try RAG-enhanced processing first if available
+		if p.ragEnhancedClient != nil {
+			result, err := p.ragEnhancedClient.ProcessIntent(ctx, intent)
+			if err == nil {
+				return result, nil
+			}
+			p.logger.Warn("RAG-enhanced processing failed, falling back to base client", "error", err)
+		}
+		
+		// Fallback to base LLM client
+		return p.llmClient.ProcessIntent(ctx, intent)
+	}
+	
+	result, err := p.circuitBreaker.Execute(ctx, operation)
 	if err != nil {
 		return "", fmt.Errorf("LLM processing failed: %w", err)
 	}
 
-	return result, nil
+	return result.(string), nil
 }
 
 // Utility functions
@@ -405,4 +504,139 @@ func getReadyStatus() bool {
 	readyMux.RLock()
 	defer readyMux.RUnlock()
 	return ready
+}
+
+// streamingHandler handles Server-Sent Events streaming requests
+func streamingHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if streamingProcessor == nil {
+		http.Error(w, "Streaming not enabled", http.StatusServiceUnavailable)
+		return
+	}
+
+	var req llm.StreamingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		logger.Error("Failed to decode streaming request", slog.String("error", err.Error()))
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Query == "" {
+		http.Error(w, "Query is required", http.StatusBadRequest)
+		return
+	}
+
+	// Set defaults
+	if req.ModelName == "" {
+		req.ModelName = config.LLMModelName
+	}
+	if req.MaxTokens == 0 {
+		req.MaxTokens = config.LLMMaxTokens
+	}
+
+	logger.Info("Starting streaming request",
+		"query", req.Query,
+		"model", req.ModelName,
+		"enable_rag", req.EnableRAG,
+	)
+
+	err := streamingProcessor.HandleStreamingRequest(w, r, &req)
+	if err != nil {
+		logger.Error("Streaming request failed", slog.String("error", err.Error()))
+		// Error handling is done within HandleStreamingRequest
+	}
+}
+
+// metricsHandler provides comprehensive metrics
+func metricsHandler(w http.ResponseWriter, r *http.Request) {
+	metrics := map[string]interface{}{
+		"service": "llm-processor",
+		"version": config.ServiceVersion,
+		"uptime":  time.Since(startTime).String(),
+	}
+
+	// Add token manager metrics
+	if tokenManager != nil {
+		metrics["supported_models"] = tokenManager.GetSupportedModels()
+	}
+
+	// Add circuit breaker metrics
+	if circuitBreakerMgr != nil {
+		metrics["circuit_breakers"] = circuitBreakerMgr.GetAllStats()
+	}
+
+	// Add streaming metrics
+	if streamingProcessor != nil {
+		metrics["streaming"] = streamingProcessor.GetMetrics()
+	}
+
+	// Add context builder metrics
+	if contextBuilder != nil {
+		metrics["context_builder"] = contextBuilder.GetMetrics()
+	}
+
+	// Add relevance scorer metrics
+	if relevanceScorer != nil {
+		metrics["relevance_scorer"] = relevanceScorer.GetMetrics()
+	}
+
+	// Add prompt builder metrics
+	if promptBuilder != nil {
+		metrics["prompt_builder"] = promptBuilder.GetMetrics()
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(metrics)
+}
+
+// circuitBreakerStatusHandler provides circuit breaker status
+func circuitBreakerStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if circuitBreakerMgr == nil {
+		http.Error(w, "Circuit breaker manager not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Handle POST requests for circuit breaker operations
+	if r.Method == http.MethodPost {
+		var req struct {
+			Action string `json:"action"`
+			Name   string `json:"name"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		cb, exists := circuitBreakerMgr.Get(req.Name)
+		if !exists {
+			http.Error(w, "Circuit breaker not found", http.StatusNotFound)
+			return
+		}
+
+		switch req.Action {
+		case "reset":
+			cb.Reset()
+			logger.Info("Circuit breaker reset", "name", req.Name)
+		case "force_open":
+			cb.ForceOpen()
+			logger.Info("Circuit breaker forced open", "name", req.Name)
+		default:
+			http.Error(w, "Invalid action", http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+		return
+	}
+
+	// Handle GET requests for status
+	stats := circuitBreakerMgr.GetAllStats()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
 }

@@ -2,18 +2,19 @@
 
 ## Overview
 
-This runbook provides comprehensive operational procedures for managing the Weaviate vector database deployment in the Nephoran Intent Operator production environment.
+This runbook provides comprehensive operational procedures for managing the Weaviate vector database deployment in the Nephoran Intent Operator production environment. This runbook has been updated to include the latest production optimizations including storage class abstraction, circuit breaker patterns, automated backup validation, and key rotation procedures.
 
 ## Table of Contents
 
 1. [Deployment](#deployment)
-2. [Daily Operations](#daily-operations)
-3. [Monitoring and Alerting](#monitoring-and-alerting)
-4. [Backup and Recovery](#backup-and-recovery)
-5. [Troubleshooting](#troubleshooting)
-6. [Scaling](#scaling)
-7. [Maintenance](#maintenance)
-8. [Emergency Procedures](#emergency-procedures)
+2. [Production Optimizations](#production-optimizations)
+3. [Daily Operations](#daily-operations)
+4. [Monitoring and Alerting](#monitoring-and-alerting)
+5. [Backup and Recovery](#backup-and-recovery)
+6. [Troubleshooting](#troubleshooting)
+7. [Scaling](#scaling)
+8. [Maintenance](#maintenance)
+9. [Emergency Procedures](#emergency-procedures)
 
 ## Deployment
 
@@ -59,6 +60,128 @@ This runbook provides comprehensive operational procedures for managing the Weav
    kubectl patch secret backup-notifications -n nephoran-system \
      --type merge -p='{"data":{"webhook-url":"BASE64_ENCODED_URL"}}'
    ```
+
+## Production Optimizations
+
+### 🚀 Latest Deployment Optimizations (July 2025)
+
+The following optimizations have been implemented for production deployments:
+
+#### Storage Class Abstraction & Multi-Cloud Support
+
+**Automatic Storage Class Detection**
+```bash
+# Run before deployment to detect optimal storage classes
+cd deployments/weaviate
+./storage-class-detector.sh --output storage-override.yaml
+
+# Deploy with detected storage configuration
+kubectl apply -f weaviate-deployment.yaml
+kubectl apply -f storage-override.yaml
+```
+
+**Multi-Cloud Compatibility**
+- **AWS EKS**: Automatically detects `gp3`, `gp2`, `io1` storage classes
+- **Google GKE**: Detects `ssd`, `standard` storage classes
+- **Azure AKS**: Detects `managed-premium`, `managed` storage classes
+- **On-Premises**: Falls back to `local-path` or default storage class
+
+#### Circuit Breaker and Rate Limiting Management
+
+**Circuit Breaker Status Monitoring**
+```bash
+# Check circuit breaker status in Weaviate logs
+kubectl logs -n nephoran-system deployment/weaviate | grep -i "circuit"
+
+# Monitor rate limiting metrics
+kubectl port-forward svc/weaviate 2112:2112 -n nephoran-system
+curl http://localhost:2112/metrics | grep -i "rate_limit"
+```
+
+**Circuit Breaker Configuration**
+- **Failure Threshold**: 3 consecutive failures
+- **Timeout Duration**: 60 seconds
+- **Half-Open Recovery**: 3 successful requests required
+
+**Rate Limiting Configuration**
+- **Request Limit**: 3000 requests/minute
+- **Token Limit**: 1,000,000 tokens/minute
+- **Backoff Strategy**: Exponential with jitter
+
+#### Performance Optimization Verification
+
+**Resource Right-Sizing Verification**
+```bash
+# Verify optimized resource allocation
+kubectl describe deployment weaviate -n nephoran-system | grep -A 10 "Limits:\|Requests:"
+
+# Expected values:
+# Requests: cpu: 500m, memory: 2Gi
+# Limits: cpu: 2000m, memory: 8Gi
+```
+
+**HNSW Parameter validation**
+```bash
+# Check HNSW configuration via API
+kubectl port-forward svc/weaviate 8080:8080 -n nephoran-system &
+curl -H "Authorization: Bearer $(kubectl get secret weaviate-api-key -n nephoran-system -o jsonpath='{.data.api-key}' | base64 -d)" \
+  "http://localhost:8080/v1/schema" | jq '.classes[].vectorIndexConfig'
+
+# Expected HNSW values:
+# ef: 64, efConstruction: 128, maxConnections: 16
+```
+
+#### Automated Backup Validation
+
+**Daily Backup Validation**
+```bash
+# Run daily backup validation
+cd deployments/weaviate
+./backup-validation.sh validate
+
+# Create and validate test backup
+./backup-validation.sh test-backup
+
+# Full disaster recovery test
+./backup-validation.sh restore-test backup-20240728-120000
+```
+
+**Backup Health Monitoring**
+```bash
+# Check backup CronJob status
+kubectl get cronjobs weaviate-backup -n nephoran-system
+kubectl get jobs -n nephoran-system | grep backup
+
+# Review backup validation reports
+kubectl logs -n nephoran-system job/backup-validation-job
+```
+
+#### Automated Key Rotation
+
+**Key Rotation Status**
+```bash
+# Check key rotation status
+cd deployments/weaviate
+./key-rotation.sh check
+
+# View rotation report
+./key-rotation.sh report
+```
+
+**Emergency Key Rotation**
+```bash
+# Force immediate key rotation (emergency procedure)
+./key-rotation.sh rotate force
+
+# Verify services after rotation
+kubectl rollout status deployment/weaviate -n nephoran-system
+```
+
+**Rotation Schedule Management**
+- **Regular Rotation**: Every 90 days
+- **Warning Period**: 7 days before expiration
+- **Backup Retention**: 30 days for backup secrets
+- **Zero-Downtime**: Rolling updates with service continuity
 
 ## Daily Operations
 

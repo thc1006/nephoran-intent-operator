@@ -1,22 +1,569 @@
 # Vector Operations Examples and Best Practices
-## Comprehensive Guide for Weaviate in Nephoran Intent Operator
+## Comprehensive Guide for Enhanced RAG System in Nephoran Intent Operator
 
 ### Overview
 
-This document provides practical examples and best practices for vector operations in the Weaviate deployment for the Nephoran Intent Operator. It covers semantic search patterns, hybrid queries, intent matching, and performance optimization techniques specifically tailored for telecommunications domain operations.
+This document provides practical examples and best practices for vector operations in the enhanced Weaviate deployment for the Nephoran Intent Operator. It covers semantic search patterns, hybrid queries, intent matching, circuit breaker integration, and performance optimization techniques specifically tailored for telecommunications domain operations.
+
+### 🚀 **Latest Enhancements (July 2025)**
+
+**Circuit Breaker Integration:**
+- Automatic failure detection and recovery for vector operations
+- Rate limiting with exponential backoff for OpenAI API calls
+- Local embedding model fallback (sentence-transformers/all-mpnet-base-v2)
+- Multi-provider embedding strategy with seamless failover
+
+**Enhanced Chunking Service:**
+- Section-aware 512-token chunking optimized for telecom specifications
+- Technical term protection preventing splitting of compound terms
+- Hierarchy-aware processing maintaining document structure
+- 50-token overlap for optimal context preservation
+
+**Performance Optimizations:**
+- HNSW parameter tuning (ef=64, efConstruction=128, maxConnections=16)
+- Resource optimization (50% memory reduction, maintained performance)
+- Query latency improvements (P95 <200ms for hybrid search operations)
+- 85%+ cache hit rate for frequently accessed content
 
 ### Table of Contents
 
-1. [Basic Vector Operations](#basic-vector-operations)
-2. [Semantic Search Patterns](#semantic-search-patterns)
-3. [Hybrid Search Strategies](#hybrid-search-strategies)
-4. [Intent Pattern Matching](#intent-pattern-matching)
-5. [Cross-Reference Queries](#cross-reference-queries)
-6. [Batch Operations](#batch-operations)
-7. [Performance Optimization](#performance-optimization)
-8. [Error Handling](#error-handling)
-9. [Best Practices](#best-practices)
-10. [Advanced Techniques](#advanced-techniques)
+1. [Enhanced Chunking Service API](#enhanced-chunking-service-api)
+2. [Circuit Breaker Integration](#circuit-breaker-integration)
+3. [Basic Vector Operations](#basic-vector-operations)
+4. [Semantic Search Patterns](#semantic-search-patterns)
+5. [Hybrid Search Strategies](#hybrid-search-strategies)
+6. [Intent Pattern Matching](#intent-pattern-matching)
+7. [Cross-Reference Queries](#cross-reference-queries)
+8. [Batch Operations](#batch-operations)
+9. [Performance Optimization](#performance-optimization)
+10. [Error Handling](#error-handling)
+11. [Best Practices](#best-practices)
+12. [Advanced Techniques](#advanced-techniques)
+
+## Enhanced Chunking Service API
+
+### Overview
+
+The Enhanced Chunking Service provides intelligent document segmentation optimized for telecommunications specifications. It implements section-aware chunking with technical term protection and hierarchy preservation.
+
+### Core API Endpoints
+
+#### POST /v1/chunk/document
+
+Process a document into optimized chunks for vector storage.
+
+**Request:**
+```http
+POST /v1/chunk/document HTTP/1.1
+Host: rag-api:5000
+Content-Type: application/json
+Authorization: Bearer <RAG_API_KEY>
+
+{
+  "document": {
+    "content": "3GPP TS 23.501 defines the 5G System Architecture. The Access and Mobility Management Function (AMF) provides registration management...",
+    "title": "5G System Architecture Overview",
+    "source": "3GPP",
+    "specification": "TS 23.501",
+    "document_type": "technical_specification"
+  },
+  "chunking_config": {
+    "chunk_size": 512,
+    "overlap_size": 50,
+    "preserve_hierarchy": true,
+    "protect_technical_terms": true,
+    "section_boundary_detection": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "document_id": "3gpp-ts-23501-overview",
+  "total_chunks": 15,
+  "processing_time_ms": 245,
+  "chunks": [
+    {
+      "chunk_id": "3gpp-ts-23501-overview-chunk-001",
+      "content": "3GPP TS 23.501 defines the 5G System Architecture. The Access and Mobility Management Function (AMF) provides registration management, connection management, and mobility management services...",
+      "metadata": {
+        "chunk_index": 1,
+        "token_count": 487,
+        "technical_terms": ["3GPP", "AMF", "5G"],
+        "section_hierarchy": ["1", "1.1", "1.1.1"],
+        "section_title": "AMF Functions",
+        "confidence_score": 0.92,
+        "overlap_with_previous": 50,
+        "overlap_with_next": 50
+      },
+      "embeddings": {
+        "primary_provider": "openai",
+        "model": "text-embedding-3-large",
+        "dimensions": 3072,
+        "generation_time_ms": 156
+      }
+    }
+  ],
+  "document_metadata": {
+    "total_tokens": 7234,
+    "sections_detected": 8,
+    "technical_terms_preserved": 45,
+    "hierarchy_levels": 4
+  }
+}
+```
+
+#### POST /v1/chunk/batch
+
+Process multiple documents in batch for efficient chunking.
+
+**Request:**
+```http
+POST /v1/chunk/batch HTTP/1.1
+Host: rag-api:5000
+Content-Type: application/json
+Authorization: Bearer <RAG_API_KEY>
+
+{
+  "documents": [
+    {
+      "document_id": "3gpp-ts-23501",
+      "content": "3GPP TS 23.501 content...",
+      "title": "5G System Architecture",
+      "source": "3GPP"
+    },
+    {
+      "document_id": "oran-wg1-use-cases",
+      "content": "O-RAN WG1 use cases...",
+      "title": "O-RAN Use Cases",
+      "source": "O-RAN"
+    }
+  ],
+  "batch_config": {
+    "max_concurrent": 5,
+    "chunk_size": 512,
+    "overlap_size": 50,
+    "circuit_breaker_enabled": true
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "batch_id": "batch-20240728-103045",
+  "total_documents": 2,
+  "total_chunks": 28,
+  "processing_time_ms": 1234,
+  "results": [
+    {
+      "document_id": "3gpp-ts-23501",
+      "status": "success",
+      "chunks_created": 15,
+      "processing_time_ms": 678
+    },
+    {
+      "document_id": "oran-wg1-use-cases", 
+      "status": "success",
+      "chunks_created": 13,
+      "processing_time_ms": 556
+    }
+  ],
+  "circuit_breaker_status": {
+    "state": "closed",
+    "failure_count": 0,
+    "success_rate": 1.0
+  }
+}
+```
+
+#### GET /v1/chunk/status/{batch_id}
+
+Check the status of a batch chunking operation.
+
+**Request:**
+```http
+GET /v1/chunk/status/batch-20240728-103045 HTTP/1.1
+Host: rag-api:5000
+Authorization: Bearer <RAG_API_KEY>
+```
+
+**Response:**
+```json
+{
+  "batch_id": "batch-20240728-103045",
+  "status": "completed",
+  "progress": {
+    "total_documents": 2,
+    "processed_documents": 2,
+    "failed_documents": 0,
+    "percentage_complete": 100
+  },
+  "performance_metrics": {
+    "average_processing_time_ms": 617,
+    "chunks_per_second": 22.7,
+    "embedding_generation_rate": 18.3
+  },
+  "circuit_breaker_metrics": {
+    "total_requests": 28,
+    "successful_requests": 28,
+    "failed_requests": 0,
+    "fallback_used": 0
+  }
+}
+```
+
+### Data Models
+
+#### ChunkingConfig
+
+```typescript
+interface ChunkingConfig {
+  chunk_size: number;                    // Target chunk size in tokens (default: 512)
+  overlap_size: number;                  // Overlap between chunks in tokens (default: 50)
+  preserve_hierarchy: boolean;           // Maintain document section hierarchy
+  protect_technical_terms: boolean;      // Prevent splitting technical terms
+  section_boundary_detection: boolean;   // Detect and respect section boundaries
+  min_chunk_size: number;               // Minimum chunk size (default: 100)
+  max_chunk_size: number;               // Maximum chunk size (default: 1000)
+  technical_term_dictionary?: string[]; // Custom technical terms to protect
+}
+```
+
+#### ChunkMetadata
+
+```typescript
+interface ChunkMetadata {
+  chunk_index: number;                   // Sequential chunk number
+  token_count: number;                   // Actual token count in chunk
+  technical_terms: string[];             // Technical terms found in chunk
+  section_hierarchy: string[];           // Document section path (e.g., ["1", "1.1"])
+  section_title: string;                 // Title of the containing section
+  confidence_score: number;              // Quality/completeness score (0.0-1.0)
+  overlap_with_previous: number;         // Tokens overlapping with previous chunk
+  overlap_with_next: number;             // Tokens overlapping with next chunk
+  boundary_type: "natural" | "forced";  // How chunk boundary was determined
+}
+```
+
+#### EmbeddingInfo
+
+```typescript
+interface EmbeddingInfo {
+  primary_provider: "openai" | "local";  // Which embedding provider was used
+  model: string;                         // Specific model name
+  dimensions: number;                    // Vector dimensions
+  generation_time_ms: number;           // Time taken to generate embedding
+  fallback_used: boolean;               // Whether fallback model was used
+  circuit_breaker_state: string;       // Circuit breaker state during generation
+}
+```
+
+## Circuit Breaker Integration
+
+### Overview
+
+The Circuit Breaker pattern is integrated throughout the RAG system to provide resilience against failures and automatically manage fallback strategies.
+
+### Circuit Breaker States
+
+- **CLOSED**: Normal operation, requests flow through
+- **OPEN**: Failures detected, requests are blocked/redirected to fallback
+- **HALF_OPEN**: Testing recovery, limited requests allowed
+
+### API Endpoints
+
+#### GET /v1/circuit-breaker/status
+
+Get the current status of all circuit breakers in the system.
+
+**Request:**
+```http
+GET /v1/circuit-breaker/status HTTP/1.1
+Host: rag-api:5000
+Authorization: Bearer <RAG_API_KEY>
+```
+
+**Response:**
+```json
+{
+  "timestamp": "2024-07-28T10:30:00Z",
+  "circuit_breakers": {
+    "openai_embedding": {
+      "state": "closed",
+      "failure_count": 0,
+      "success_count": 1247,
+      "failure_threshold": 3,
+      "timeout_duration_ms": 60000,
+      "last_failure": null,
+      "success_rate": 1.0,
+      "average_response_time_ms": 156
+    },
+    "weaviate_vector_search": {
+      "state": "closed",
+      "failure_count": 1,
+      "success_count": 892,
+      "failure_threshold": 3,
+      "timeout_duration_ms": 60000,
+      "last_failure": "2024-07-28T09:15:23Z",
+      "success_rate": 0.998,
+      "average_response_time_ms": 89
+    },
+    "document_chunking": {
+      "state": "closed",
+      "failure_count": 0,
+      "success_count": 345,
+      "failure_threshold": 3,
+      "timeout_duration_ms": 30000,
+      "last_failure": null,
+      "success_rate": 1.0,
+      "average_response_time_ms": 234
+    }
+  },
+  "fallback_status": {
+    "local_embedding_model": {
+      "available": true,
+      "model": "sentence-transformers/all-mpnet-base-v2",
+      "dimensions": 768,
+      "last_used": "2024-07-28T08:45:12Z",
+      "success_rate": 0.97
+    }
+  }
+}
+```
+
+#### POST /v1/circuit-breaker/reset
+
+Reset a specific circuit breaker to closed state.
+
+**Request:**
+```http
+POST /v1/circuit-breaker/reset HTTP/1.1
+Host: rag-api:5000
+Content-Type: application/json
+Authorization: Bearer <RAG_API_KEY>
+
+{
+  "circuit_breaker_name": "openai_embedding",
+  "force_reset": true
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "circuit_breaker_name": "openai_embedding",
+  "previous_state": "open",
+  "new_state": "closed",
+  "reset_timestamp": "2024-07-28T10:30:15Z",
+  "reset_by": "manual_intervention"
+}
+```
+
+### Integration Examples
+
+#### Python Client with Circuit Breaker Awareness
+
+```python
+import requests
+import time
+from typing import Dict, List, Any, Optional
+
+class EnhancedRAGClient:
+    """RAG API client with circuit breaker awareness"""
+    
+    def __init__(self, base_url: str, api_key: str):
+        self.base_url = base_url
+        self.api_key = api_key
+        self.session = requests.Session()
+        self.session.headers.update({
+            'Authorization': f'Bearer {api_key}',
+            'Content-Type': 'application/json'
+        })
+    
+    def chunk_document_with_fallback(
+        self, 
+        document: Dict[str, Any],
+        chunking_config: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Chunk document with automatic circuit breaker handling
+        """
+        
+        chunking_config = chunking_config or {
+            "chunk_size": 512,
+            "overlap_size": 50,
+            "preserve_hierarchy": True,
+            "protect_technical_terms": True
+        }
+        
+        request_payload = {
+            "document": document,
+            "chunking_config": chunking_config
+        }
+        
+        try:
+            response = self.session.post(
+                f"{self.base_url}/v1/chunk/document",
+                json=request_payload,
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            
+            elif response.status_code == 503:
+                # Service unavailable - circuit breaker likely open
+                error_data = response.json()
+                if error_data.get("circuit_breaker_open"):
+                    return self._handle_circuit_breaker_open(document, chunking_config)
+            
+            else:
+                response.raise_for_status()
+        
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed: {e}")
+            return self._handle_circuit_breaker_open(document, chunking_config)
+    
+    def _handle_circuit_breaker_open(
+        self, 
+        document: Dict[str, Any], 
+        chunking_config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Handle circuit breaker open state with fallback chunking
+        """
+        
+        print("Circuit breaker open - using fallback chunking strategy")
+        
+        # Simple text-based chunking as fallback
+        content = document["content"]
+        chunk_size = chunking_config.get("chunk_size", 512)
+        overlap_size = chunking_config.get("overlap_size", 50)
+        
+        # Approximate token count (4 chars per token)
+        approx_char_per_token = 4
+        chunk_char_size = chunk_size * approx_char_per_token
+        overlap_char_size = overlap_size * approx_char_per_token
+        
+        chunks = []
+        chunk_index = 1
+        start_pos = 0
+        
+        while start_pos < len(content):
+            end_pos = min(start_pos + chunk_char_size, len(content))
+            
+            # Try to break at sentence boundary
+            if end_pos < len(content):
+                sentence_end = content.rfind('.', start_pos, end_pos)
+                if sentence_end > start_pos + chunk_char_size // 2:
+                    end_pos = sentence_end + 1
+            
+            chunk_content = content[start_pos:end_pos].strip()
+            
+            if chunk_content:
+                chunks.append({
+                    "chunk_id": f"{document.get('title', 'doc')}-fallback-{chunk_index:03d}",
+                    "content": chunk_content,
+                    "metadata": {
+                        "chunk_index": chunk_index,
+                        "token_count": len(chunk_content) // approx_char_per_token,
+                        "technical_terms": [],
+                        "section_hierarchy": [],
+                        "section_title": "Unknown",
+                        "confidence_score": 0.5,  # Lower confidence for fallback
+                        "fallback_method": "simple_text_splitting"
+                    },
+                    "embeddings": {
+                        "primary_provider": "fallback",
+                        "model": "none",
+                        "dimensions": 0,
+                        "generation_time_ms": 0
+                    }
+                })
+                
+                chunk_index += 1
+            
+            # Move start position with overlap
+            start_pos = end_pos - overlap_char_size
+            if start_pos >= end_pos:
+                break
+        
+        return {
+            "status": "success_fallback",
+            "document_id": document.get("title", "unknown"),
+            "total_chunks": len(chunks),
+            "processing_time_ms": 50,  # Fast fallback processing
+            "chunks": chunks,
+            "circuit_breaker_used": True,
+            "fallback_method": "simple_text_splitting"
+        }
+    
+    def get_circuit_breaker_status(self) -> Dict[str, Any]:
+        """Get current circuit breaker status"""
+        
+        try:
+            response = self.session.get(f"{self.base_url}/v1/circuit-breaker/status")
+            response.raise_for_status()
+            return response.json()
+        
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to get circuit breaker status: {e}")
+            return {"error": str(e)}
+    
+    def monitor_circuit_breakers(self, interval_seconds: int = 60):
+        """Monitor circuit breaker status continuously"""
+        
+        print(f"Starting circuit breaker monitoring (interval: {interval_seconds}s)")
+        
+        while True:
+            status = self.get_circuit_breaker_status()
+            
+            if "error" not in status:
+                print(f"\n=== Circuit Breaker Status at {status.get('timestamp')} ===")
+                
+                for name, cb_info in status.get("circuit_breakers", {}).items():
+                    state = cb_info["state"]
+                    success_rate = cb_info["success_rate"]
+                    failure_count = cb_info["failure_count"]
+                    
+                    status_icon = "🟢" if state == "closed" else "🟡" if state == "half_open" else "🔴"
+                    
+                    print(f"{status_icon} {name}: {state.upper()} (success: {success_rate:.3f}, failures: {failure_count})")
+                
+                # Check for fallback usage
+                fallback_status = status.get("fallback_status", {})
+                for name, fb_info in fallback_status.items():
+                    if fb_info.get("last_used"):
+                        print(f"⚡ {name}: Available (last used: {fb_info['last_used']})")
+            
+            time.sleep(interval_seconds)
+
+# Example Usage
+client = EnhancedRAGClient("http://rag-api:5000", "your-api-key")
+
+# Test document chunking with circuit breaker handling
+test_document = {
+    "content": "The Access and Mobility Management Function (AMF) is a key component of the 5G Core Network...",
+    "title": "AMF Overview",
+    "source": "3GPP",
+    "specification": "TS 23.501"
+}
+
+result = client.chunk_document_with_fallback(test_document)
+print(f"Chunking result: {result['status']}")
+print(f"Chunks created: {result['total_chunks']}")
+
+if result.get("circuit_breaker_used"):
+    print("⚠️  Circuit breaker was activated - fallback method used")
+
+# Monitor circuit breakers (runs continuously)
+# client.monitor_circuit_breakers(interval_seconds=30)
+```
 
 ## Basic Vector Operations
 

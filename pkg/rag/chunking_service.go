@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 	"unicode"
+	"unicode/utf8"
 )
 
 // ChunkingService provides intelligent document chunking for telecom specifications
@@ -211,10 +214,10 @@ func NewChunkingService(config *ChunkingConfig) *ChunkingService {
 // getDefaultChunkingConfig returns default configuration for the chunking service
 func getDefaultChunkingConfig() *ChunkingConfig {
 	return &ChunkingConfig{
-		ChunkSize:               1000,
-		ChunkOverlap:            200,
-		MinChunkSize:            100,
-		MaxChunkSize:            2000,
+		ChunkSize:               512,   // Optimized for telecom domain (512 tokens)
+		ChunkOverlap:            50,    // Optimized overlap (50 tokens)
+		MinChunkSize:            50,    // Smaller minimum for technical content
+		MaxChunkSize:            1024,  // Reasonable maximum
 		PreserveHierarchy:       true,
 		MaxHierarchyDepth:       10,
 		IncludeParentContext:    true,

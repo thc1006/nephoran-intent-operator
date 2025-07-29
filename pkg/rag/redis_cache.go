@@ -1,9 +1,13 @@
 package rag
 
 import (
+	"compress/gzip"
 	"context"
+	"crypto/md5"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"strings"
 	"sync"
@@ -770,4 +774,558 @@ func (rc *RedisCache) GetHealthStatus(ctx context.Context) map[string]interface{
 func (rc *RedisCache) Close() error {
 	rc.logger.Info("Closing Redis cache connection")
 	return rc.client.Close()
+}
+
+// Helper functions
+
+// hash creates a hash of the input string
+func hash(input string) []byte {
+	h := md5.New()
+	h.Write([]byte(input))
+	return h.Sum(nil)
+}
+
+// Enhanced embedding cache methods with binary encoding
+
+// SetEmbeddingBinary stores an embedding using efficient binary encoding
+func (rc *RedisCache) SetEmbeddingBinary(ctx context.Context, text, modelName string, embedding []float32) error {
+	key := rc.buildEmbeddingKey(text, modelName)
+	
+	startTime := time.Now()
+	defer func() {
+		rc.updateMetrics(func(m *RedisCacheMetrics) {
+			setTime := time.Since(startTime)
+			if m.Sets > 0 {
+				m.AverageSetTime = (m.AverageSetTime*time.Duration(m.Sets) + setTime) / time.Duration(m.Sets+1)
+			} else {
+				m.AverageSetTime = setTime
+			}
+			m.Sets++
+		})
+	}()
+
+	// Convert embedding to binary format for more efficient storage
+	binaryData, err := rc.encodeEmbeddingBinary(embedding, text, modelName)
+	if err != nil {
+		rc.updateMetrics(func(m *RedisCacheMetrics) { m.Errors++ })
+		return fmt.Errorf("failed to encode embedding: %w", err)
+	}
+
+	// Apply compression if enabled
+	if rc.config.EnableCompression {
+		binaryData, err = rc.compress(binaryData)
+		if err != nil {
+			rc.updateMetrics(func(m *RedisCacheMetrics) { m.Errors++ })
+			return fmt.Errorf("failed to compress embedding: %w", err)
+		}
+	}
+
+	if len(binaryData) > rc.config.MaxValueSize {
+		rc.logger.Warn("Compressed embedding cache entry too large", "size", len(binaryData), "max_size", rc.config.MaxValueSize)
+		return fmt.Errorf("compressed cache entry too large: %d bytes", len(binaryData))
+	}
+
+	err = rc.client.Set(ctx, key, binaryData, rc.config.EmbeddingTTL).Err()
+	if err != nil {
+		rc.updateMetrics(func(m *RedisCacheMetrics) { m.Errors++ })
+		return fmt.Errorf("failed to set binary embedding in cache: %w", err)
+	}
+
+	return nil
+}
+
+// GetEmbeddingBinary retrieves an embedding using binary decoding
+func (rc *RedisCache) GetEmbeddingBinary(ctx context.Context, text, modelName string) ([]float32, bool) {
+	key := rc.buildEmbeddingKey(text, modelName)
+	
+	startTime := time.Now()
+	defer func() {
+		rc.updateMetrics(func(m *RedisCacheMetrics) {
+			m.TotalRequests++
+			getTime := time.Since(startTime)
+			if m.TotalRequests > 0 {
+				m.AverageGetTime = (m.AverageGetTime*time.Duration(m.TotalRequests-1) + getTime) / time.Duration(m.TotalRequests)
+			} else {
+				m.AverageGetTime = getTime
+			}
+		})
+	}()
+
+	data, err := rc.client.Get(ctx, key).Bytes()
+	if err != nil {
+		if err == redis.Nil {
+			rc.updateMetrics(func(m *RedisCacheMetrics) {
+				m.Misses++
+				m.EmbeddingMisses++
+			})
+			return nil, false
+		}
+		
+		rc.logger.Error("Failed to get binary embedding from cache", "error", err, "key", key)
+		rc.updateMetrics(func(m *RedisCacheMetrics) { m.Errors++ })
+		return nil, false
+	}
+
+	// Decompress if compression was used
+	if rc.config.EnableCompression {
+		data, err = rc.decompress(data)
+		if err != nil {
+			rc.logger.Error("Failed to decompress embedding data", "error", err)
+			rc.updateMetrics(func(m *RedisCacheMetrics) { m.Errors++ })
+			return nil, false
+		}
+	}
+
+	// Decode binary data
+	embedding, err := rc.decodeEmbeddingBinary(data)
+	if err != nil {
+		rc.logger.Error("Failed to decode binary embedding", "error", err)
+		rc.updateMetrics(func(m *RedisCacheMetrics) { m.Errors++ })
+		return nil, false
+	}
+
+	rc.updateMetrics(func(m *RedisCacheMetrics) {
+		m.Hits++
+		m.EmbeddingHits++
+		m.HitRate = float64(m.Hits) / float64(m.TotalRequests)
+	})
+
+	return embedding, true
+}
+
+// encodeEmbeddingBinary encodes an embedding to binary format
+func (rc *RedisCache) encodeEmbeddingBinary(embedding []float32, text, modelName string) ([]byte, error) {
+	var buf bytes.Buffer
+	
+	// Write header
+	if err := binary.Write(&buf, binary.LittleEndian, uint32(len(embedding))); err != nil {
+		return nil, fmt.Errorf("failed to write embedding length: %w", err)
+	}
+	
+	// Write model name length and data
+	modelNameBytes := []byte(modelName)
+	if err := binary.Write(&buf, binary.LittleEndian, uint32(len(modelNameBytes))); err != nil {
+		return nil, fmt.Errorf("failed to write model name length: %w", err)
+	}
+	if _, err := buf.Write(modelNameBytes); err != nil {
+		return nil, fmt.Errorf("failed to write model name: %w", err)
+	}
+	
+	// Write timestamp
+	if err := binary.Write(&buf, binary.LittleEndian, time.Now().Unix()); err != nil {
+		return nil, fmt.Errorf("failed to write timestamp: %w", err)
+	}
+	
+	// Write embedding data
+	for _, val := range embedding {
+		if err := binary.Write(&buf, binary.LittleEndian, val); err != nil {
+			return nil, fmt.Errorf("failed to write embedding value: %w", err)
+		}
+	}
+	
+	return buf.Bytes(), nil
+}
+
+// decodeEmbeddingBinary decodes binary embedding data
+func (rc *RedisCache) decodeEmbeddingBinary(data []byte) ([]float32, error) {
+	buf := bytes.NewReader(data)
+	
+	// Read embedding length
+	var embeddingLen uint32
+	if err := binary.Read(buf, binary.LittleEndian, &embeddingLen); err != nil {
+		return nil, fmt.Errorf("failed to read embedding length: %w", err)
+	}
+	
+	// Read model name length
+	var modelNameLen uint32
+	if err := binary.Read(buf, binary.LittleEndian, &modelNameLen); err != nil {
+		return nil, fmt.Errorf("failed to read model name length: %w", err)
+	}
+	
+	// Skip model name
+	if _, err := buf.Seek(int64(modelNameLen), io.SeekCurrent); err != nil {
+		return nil, fmt.Errorf("failed to skip model name: %w", err)
+	}
+	
+	// Skip timestamp
+	if _, err := buf.Seek(8, io.SeekCurrent); err != nil {
+		return nil, fmt.Errorf("failed to skip timestamp: %w", err)
+	}
+	
+	// Read embedding data
+	embedding := make([]float32, embeddingLen)
+	for i := range embedding {
+		if err := binary.Read(buf, binary.LittleEndian, &embedding[i]); err != nil {
+			return nil, fmt.Errorf("failed to read embedding value at index %d: %w", i, err)
+		}
+	}
+	
+	return embedding, nil
+}
+
+// compress compresses data using gzip
+func (rc *RedisCache) compress(data []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	writer, err := gzip.NewWriterLevel(&buf, rc.config.CompressionLevel)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gzip writer: %w", err)
+	}
+	
+	if _, err := writer.Write(data); err != nil {
+		return nil, fmt.Errorf("failed to write compressed data: %w", err)
+	}
+	
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("failed to close gzip writer: %w", err)
+	}
+	
+	return buf.Bytes(), nil
+}
+
+// decompress decompresses gzip data
+func (rc *RedisCache) decompress(data []byte) ([]byte, error) {
+	reader, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gzip reader: %w", err)
+	}
+	defer reader.Close()
+	
+	decompressed, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read decompressed data: %w", err)
+	}
+	
+	return decompressed, nil
+}
+
+// Batch operations for better performance
+
+// SetEmbeddingsBatch stores multiple embeddings in a single Redis pipeline
+func (rc *RedisCache) SetEmbeddingsBatch(ctx context.Context, embeddings map[string]EmbeddingBatchItem) error {
+	if len(embeddings) == 0 {
+		return nil
+	}
+
+	pipe := rc.client.Pipeline()
+	defer pipe.Close()
+
+	for textHash, item := range embeddings {
+		key := rc.buildEmbeddingKey(item.Text, item.ModelName)
+		
+		var data []byte
+		var err error
+
+		if rc.config.EnableCompression {
+			// Use binary encoding for batch operations
+			binaryData, err := rc.encodeEmbeddingBinary(item.Embedding, item.Text, item.ModelName)
+			if err != nil {
+				rc.logger.Error("Failed to encode embedding in batch", "error", err, "text_hash", textHash)
+				continue
+			}
+			
+			data, err = rc.compress(binaryData)
+			if err != nil {
+				rc.logger.Error("Failed to compress embedding in batch", "error", err, "text_hash", textHash)
+				continue
+			}
+		} else {
+			// Use JSON encoding for uncompressed storage
+			entry := EmbeddingCacheEntry{
+				Text:      item.Text,
+				Embedding: item.Embedding,
+				ModelName: item.ModelName,
+				CreatedAt: time.Now(),
+			}
+			
+			data, err = json.Marshal(entry)
+			if err != nil {
+				rc.logger.Error("Failed to marshal embedding in batch", "error", err, "text_hash", textHash)
+				continue
+			}
+		}
+
+		if len(data) <= rc.config.MaxValueSize {
+			pipe.Set(ctx, key, data, rc.config.EmbeddingTTL)
+		} else {
+			rc.logger.Warn("Skipping large embedding in batch", "text_hash", textHash, "size", len(data))
+		}
+	}
+
+	// Execute batch
+	_, err := pipe.Exec(ctx)
+	if err != nil {
+		rc.updateMetrics(func(m *RedisCacheMetrics) { m.Errors++ })
+		return fmt.Errorf("failed to execute embedding batch: %w", err)
+	}
+
+	rc.updateMetrics(func(m *RedisCacheMetrics) {
+		m.Sets += int64(len(embeddings))
+	})
+
+	rc.logger.Debug("Batch embedding storage completed", "count", len(embeddings))
+	return nil
+}
+
+// EmbeddingBatchItem represents an item in a batch embedding operation
+type EmbeddingBatchItem struct {
+	Text      string    `json:"text"`
+	Embedding []float32 `json:"embedding"`
+	ModelName string    `json:"model_name"`
+}
+
+// Cache warming functions
+
+// WarmCache pre-loads frequently accessed items into cache
+func (rc *RedisCache) WarmCache(ctx context.Context, warmupConfig *CacheWarmupConfig) error {
+	rc.logger.Info("Starting cache warming", "config", warmupConfig)
+
+	// Warm up embeddings if configured
+	if warmupConfig.EmbeddingWarmup != nil {
+		if err := rc.warmEmbeddingCache(ctx, warmupConfig.EmbeddingWarmup); err != nil {
+			return fmt.Errorf("embedding cache warmup failed: %w", err)
+		}
+	}
+
+	// Warm up query results if configured
+	if warmupConfig.QueryWarmup != nil {
+		if err := rc.warmQueryCache(ctx, warmupConfig.QueryWarmup); err != nil {
+			return fmt.Errorf("query cache warmup failed: %w", err)
+		}
+	}
+
+	rc.logger.Info("Cache warming completed")
+	return nil
+}
+
+// CacheWarmupConfig configures cache warming
+type CacheWarmupConfig struct {
+	EmbeddingWarmup *EmbeddingWarmupConfig `json:"embedding_warmup"`
+	QueryWarmup     *QueryWarmupConfig     `json:"query_warmup"`
+}
+
+// EmbeddingWarmupConfig configures embedding cache warming
+type EmbeddingWarmupConfig struct {
+	CommonTexts   []string `json:"common_texts"`
+	ModelNames    []string `json:"model_names"`
+	MaxWarmupSize int      `json:"max_warmup_size"`
+}
+
+// QueryWarmupConfig configures query cache warming
+type QueryWarmupConfig struct {
+	CommonQueries []string `json:"common_queries"`
+	MaxWarmupSize int      `json:"max_warmup_size"`
+}
+
+// warmEmbeddingCache warms up the embedding cache
+func (rc *RedisCache) warmEmbeddingCache(ctx context.Context, config *EmbeddingWarmupConfig) error {
+	// In a real implementation, you would:
+	// 1. Load common texts from configuration or analytics
+	// 2. Generate embeddings for these texts
+	// 3. Store them in cache
+	
+	rc.logger.Debug("Warming embedding cache", 
+		"common_texts", len(config.CommonTexts),
+		"models", len(config.ModelNames),
+	)
+	
+	// This is a placeholder - actual implementation would generate and cache embeddings
+	return nil
+}
+
+// warmQueryCache warms up the query cache
+func (rc *RedisCache) warmQueryCache(ctx context.Context, config *QueryWarmupConfig) error {
+	// In a real implementation, you would:
+	// 1. Load common queries from configuration or analytics
+	// 2. Execute these queries
+	// 3. Store results in cache
+	
+	rc.logger.Debug("Warming query cache", "common_queries", len(config.CommonQueries))
+	
+	// This is a placeholder - actual implementation would execute and cache queries
+	return nil
+}
+
+// Cache statistics and analysis
+
+// GetCacheStatistics returns detailed cache statistics
+func (rc *RedisCache) GetCacheStatistics(ctx context.Context) (*CacheStatistics, error) {
+	stats := &CacheStatistics{
+		GeneratedAt: time.Now(),
+	}
+
+	// Get Redis info
+	info, err := rc.client.Info(ctx, "all").Result()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get Redis info: %w", err)
+	}
+
+	// Parse Redis info (simplified)
+	stats.RedisInfo = info
+
+	// Get key distribution by category
+	stats.KeyDistribution = make(map[string]int64)
+	categories := []string{"embedding", "document", "query_result", "context"}
+	
+	for _, category := range categories {
+		pattern := rc.buildKey(category, "*")
+		count, err := rc.countKeysWithPattern(ctx, pattern)
+		if err != nil {
+			rc.logger.Warn("Failed to count keys for category", "category", category, "error", err)
+			count = 0
+		}
+		stats.KeyDistribution[category] = count
+	}
+
+	// Get current metrics
+	metrics := rc.GetMetrics()
+	stats.Metrics = metrics
+
+	return stats, nil
+}
+
+// CacheStatistics holds detailed cache statistics
+type CacheStatistics struct {
+	GeneratedAt     time.Time                 `json:"generated_at"`
+	RedisInfo       string                    `json:"redis_info"`
+	KeyDistribution map[string]int64          `json:"key_distribution"`
+	Metrics         *RedisCacheMetrics        `json:"metrics"`
+}
+
+// countKeysWithPattern counts keys matching a pattern
+func (rc *RedisCache) countKeysWithPattern(ctx context.Context, pattern string) (int64, error) {
+	var cursor uint64
+	var count int64
+
+	for {
+		keys, newCursor, err := rc.client.Scan(ctx, cursor, pattern, 100).Result()
+		if err != nil {
+			return 0, err
+		}
+
+		count += int64(len(keys))
+		cursor = newCursor
+		if cursor == 0 {
+			break
+		}
+	}
+
+	return count, nil
+	}
+
+// NoOpRedisCache provides a no-operation Redis cache implementation
+type NoOpRedisCache struct{}
+
+// NewNoOpRedisCache creates a new no-op Redis cache
+func NewNoOpRedisCache() *NoOpRedisCache {
+	return &NoOpRedisCache{}
+}
+
+// Get implements RedisEmbeddingCache interface
+func (c *NoOpRedisCache) Get(key string) ([]float32, bool, error) {
+	return nil, false, nil
+}
+
+// Set implements RedisEmbeddingCache interface
+func (c *NoOpRedisCache) Set(key string, embedding []float32, ttl time.Duration) error {
+	return nil
+}
+
+// Delete implements RedisEmbeddingCache interface
+func (c *NoOpRedisCache) Delete(key string) error {
+	return nil
+}
+
+// Clear implements RedisEmbeddingCache interface
+func (c *NoOpRedisCache) Clear() error {
+	return nil
+}
+
+// Stats implements RedisEmbeddingCache interface
+func (c *NoOpRedisCache) Stats() CacheStats {
+	return CacheStats{}
+}
+
+// Close implements RedisEmbeddingCache interface
+func (c *NoOpRedisCache) Close() error {
+	return nil
+}
+
+// NewRedisEmbeddingCache creates a new Redis embedding cache
+func NewRedisEmbeddingCache(addr, password string, db int) RedisEmbeddingCache {
+	config := &RedisCacheConfig{
+		Address:       addr,
+		Password:      password,
+		Database:      db,
+		PoolSize:      10,
+		MinIdleConns:  2,
+		MaxRetries:    3,
+		DialTimeout:   5 * time.Second,
+		ReadTimeout:   3 * time.Second,
+		WriteTimeout:  3 * time.Second,
+		IdleTimeout:   5 * time.Minute,
+		DefaultTTL:    24 * time.Hour,
+		EmbeddingTTL:  24 * time.Hour,
+		KeyPrefix:     "nephoran:rag:",
+		EnableCompression: true,
+		MaxValueSize:  10 * 1024 * 1024, // 10MB
+	}
+
+	cache, err := NewRedisCache(config)
+	if err != nil {
+		slog.Default().Error("Failed to create Redis cache, using no-op", "error", err)
+		return NewNoOpRedisCache()
+	}
+
+	return &RedisEmbeddingCacheAdapter{cache: cache}
+}
+
+// RedisEmbeddingCacheAdapter adapts RedisCache to RedisEmbeddingCache interface
+type RedisEmbeddingCacheAdapter struct {
+	cache *RedisCache
+}
+
+// Get implements RedisEmbeddingCache interface
+func (a *RedisEmbeddingCacheAdapter) Get(key string) ([]float32, bool, error) {
+	entry, found := a.cache.GetEmbedding(context.Background(), key, "default")
+	if !found {
+		return nil, false, nil
+	}
+	return entry.Embedding, true, nil
+}
+
+// Set implements RedisEmbeddingCache interface
+func (a *RedisEmbeddingCacheAdapter) Set(key string, embedding []float32, ttl time.Duration) error {
+	entry := EmbeddingCacheEntry{
+		Text:      key,
+		Embedding: embedding,
+		ModelName: "default",
+		CreatedAt: time.Now(),
+	}
+	return a.cache.SetEmbedding(context.Background(), key, "default", entry)
+}
+
+// Delete implements RedisEmbeddingCache interface
+func (a *RedisEmbeddingCacheAdapter) Delete(key string) error {
+	return a.cache.DeleteEmbedding(context.Background(), key, "default")
+}
+
+// Clear implements RedisEmbeddingCache interface
+func (a *RedisEmbeddingCacheAdapter) Clear() error {
+	return a.cache.ClearCategory(context.Background(), "embedding")
+}
+
+// Stats implements RedisEmbeddingCache interface
+func (a *RedisEmbeddingCacheAdapter) Stats() CacheStats {
+	metrics := a.cache.GetMetrics()
+	return CacheStats{
+		Size:    metrics.KeyCount,
+		Hits:    metrics.EmbeddingHits,
+		Misses:  metrics.EmbeddingMisses,
+		HitRate: metrics.HitRate,
+	}
+}
+
+// Close implements RedisEmbeddingCache interface
+func (a *RedisEmbeddingCacheAdapter) Close() error {
+	return a.cache.Close()
 }

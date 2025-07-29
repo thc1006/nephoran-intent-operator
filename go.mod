@@ -13,7 +13,10 @@ require (
 	github.com/prometheus/client_golang v1.22.0
 	github.com/stretchr/testify v1.10.0
 	github.com/weaviate/weaviate-go-client/v4 v4.15.1
-	github.com/weaviate/weaviate/entities/models v1.28.1
+	github.com/go-redis/redis/v8 v8.11.5
+	github.com/ledongthuc/pdf v0.0.0-20220302013212-dc9945bd7d49
+	github.com/pdfcpu/pdfcpu v0.8.1
+	go.uber.org/zap v1.27.0
 	k8s.io/api v0.33.3
 	k8s.io/apimachinery v0.33.3
 	k8s.io/client-go v0.33.3

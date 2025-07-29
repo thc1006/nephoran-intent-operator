@@ -23,6 +23,8 @@ info:
     - Standard endpoints: 100 requests/minute
     - Batch operations: 10 requests/minute
     - Search operations: 200 requests/minute
+    - Chunking operations: 50 requests/minute
+    - Circuit breaker endpoints: 20 requests/minute
     
   version: 1.0.0
   contact:
@@ -52,6 +54,10 @@ tags:
     description: CRUD operations for knowledge base content
   - name: Network Functions
     description: Network function definitions and configurations
+  - name: Document Chunking
+    description: Enhanced document chunking and segmentation services
+  - name: Circuit Breaker
+    description: Circuit breaker status monitoring and management
   - name: Batch Operations
     description: Bulk processing and batch operations
   - name: Analytics
@@ -872,6 +878,301 @@ paths:
                 $ref: '#/components/schemas/SchemaInfoResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Document Chunking Endpoints
+  /chunk/document:
+    post:
+      tags:
+        - Document Chunking
+      summary: Chunk Single Document
+      description: |
+        Process a single document using the enhanced section-aware chunking algorithm.
+        
+        This endpoint provides:
+        - Section-aware chunking with 512 tokens per chunk and 50-token overlap
+        - Metadata extraction and preservation
+        - Circuit breaker protection for reliable processing
+        - Support for multiple document formats (text, PDF, HTML, markdown)
+        
+        **Performance**: Optimized for documents up to 100MB with sub-second processing for most text formats.
+      operationId: chunkDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChunkDocumentRequest'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Document file to process
+                chunkSize:
+                  type: integer
+                  default: 512
+                  minimum: 100
+                  maximum: 2048
+                overlap:
+                  type: integer
+                  default: 50
+                  minimum: 0
+                  maximum: 256
+                preserveFormatting:
+                  type: boolean
+                  default: true
+                includeMetadata:
+                  type: boolean
+                  default: true
+      responses:
+        '200':
+          description: Document chunked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChunkDocumentResponse'
+              examples:
+                successful_chunking:
+                  summary: Successful document chunking
+                  value:
+                    documentId: "doc_123456789"
+                    totalChunks: 47
+                    processingTime: 342
+                    chunks:
+                      - id: "chunk_1"
+                        content: "3GPP TS 23.501 defines the system architecture for the 5G System..."
+                        chunkIndex: 0
+                        tokenCount: 512
+                        metadata:
+                          section: "Introduction"
+                          subsection: "Overview"
+                          pageNumber: 1
+                      - id: "chunk_2"
+                        content: "The 5G System architecture consists of network functions..."
+                        chunkIndex: 1
+                        tokenCount: 498
+                        metadata:
+                          section: "Architecture"
+                          subsection: "Core Network Functions"
+                          pageNumber: 15
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: Document too large
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /chunk/batch:
+    post:
+      tags:
+        - Document Chunking
+      summary: Batch Document Chunking
+      description: |
+        Process multiple documents in a single batch operation with progress tracking.
+        
+        Features:
+        - Parallel processing of up to 50 documents
+        - Progress tracking and status updates
+        - Automatic retry logic with exponential backoff
+        - Circuit breaker protection for batch stability
+        - Support for mixed document formats
+      operationId: batchChunkDocuments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchChunkRequest'
+      responses:
+        '202':
+          description: Batch chunking accepted and processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchChunkResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: Too many documents in batch
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /chunk/status/{batchId}:
+    get:
+      tags:
+        - Document Chunking
+      summary: Get Batch Chunking Status
+      description: Check the status and progress of a batch chunking operation
+      operationId: getBatchChunkingStatus
+      parameters:
+        - name: batchId
+          in: path
+          required: true
+          description: Unique identifier for the batch operation
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Batch status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchChunkStatusResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  # Circuit Breaker Endpoints
+  /circuit-breaker/status:
+    get:
+      tags:
+        - Circuit Breaker
+      summary: Get Circuit Breaker Status
+      description: |
+        Retrieve the current status of all circuit breakers protecting the RAG services.
+        
+        This endpoint provides real-time information about:
+        - Circuit breaker states (CLOSED, OPEN, HALF_OPEN)
+        - Failure counts and success rates
+        - Recovery timing and thresholds
+        - Service health indicators
+        
+        **Monitoring**: Essential for operational monitoring and alerting.
+      operationId: getCircuitBreakerStatus
+      responses:
+        '200':
+          description: Circuit breaker status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CircuitBreakerStatusResponse'
+              examples:
+                healthy_status:
+                  summary: All services healthy
+                  value:
+                    timestamp: "2024-01-15T10:30:00Z"
+                    overallStatus: "HEALTHY"
+                    circuitBreakers:
+                      openai_api:
+                        state: "CLOSED"
+                        failureCount: 2
+                        successCount: 1847
+                        failureRate: 0.1
+                        lastFailure: "2024-01-15T10:25:00Z"
+                        nextRetryTime: null
+                        healthScore: 99.8
+                      weaviate_vector_db:
+                        state: "CLOSED"
+                        failureCount: 0
+                        successCount: 2156
+                        failureRate: 0.0
+                        lastFailure: null
+                        nextRetryTime: null
+                        healthScore: 100.0
+                      chunking_service:
+                        state: "CLOSED"
+                        failureCount: 1
+                        successCount: 423
+                        failureRate: 0.2
+                        lastFailure: "2024-01-15T09:45:00Z"
+                        nextRetryTime: null
+                        healthScore: 99.7
+                degraded_status:
+                  summary: Service with open circuit breaker
+                  value:
+                    timestamp: "2024-01-15T10:30:00Z"
+                    overallStatus: "DEGRADED"
+                    circuitBreakers:
+                      openai_api:
+                        state: "OPEN"
+                        failureCount: 15
+                        successCount: 1832
+                        failureRate: 8.1
+                        lastFailure: "2024-01-15T10:29:30Z"
+                        nextRetryTime: "2024-01-15T10:35:30Z"
+                        healthScore: 45.2
+                      weaviate_vector_db:
+                        state: "CLOSED"
+                        failureCount: 0
+                        successCount: 2156
+                        failureRate: 0.0
+                        lastFailure: null
+                        nextRetryTime: null
+                        healthScore: 100.0
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /circuit-breaker/reset:
+    post:
+      tags:
+        - Circuit Breaker
+      summary: Reset Circuit Breaker
+      description: |
+        Manually reset a specific circuit breaker to force it back to CLOSED state.
+        
+        **Warning**: This operation should only be used after confirming that the underlying service issues have been resolved.
+        Improper use may lead to cascading failures.
+        
+        **Security**: Requires elevated privileges for safety.
+      operationId: resetCircuitBreaker
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CircuitBreakerResetRequest'
+            examples:
+              reset_openai:
+                summary: Reset OpenAI API circuit breaker
+                value:
+                  serviceName: "openai_api"
+                  reason: "Service restored after maintenance window"
+                  operator: "ops-team@nephoran.io"
+              reset_weaviate:
+                summary: Reset Weaviate circuit breaker
+                value:
+                  serviceName: "weaviate_vector_db"
+                  reason: "Database connectivity restored"
+                  operator: "sre-team@nephoran.io"
+      responses:
+        '200':
+          description: Circuit breaker reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CircuitBreakerResetResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Insufficient privileges for circuit breaker reset
+        '404':
+          description: Circuit breaker service not found
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -2251,6 +2552,350 @@ components:
               type: boolean
             batchOperations:
               type: boolean
+
+    # Document Chunking Models
+    ChunkDocumentRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: Document content to chunk
+          minLength: 10
+          maxLength: 50000000
+        title:
+          type: string
+          description: Document title
+          maxLength: 500
+        format:
+          type: string
+          enum: ["text", "markdown", "html", "pdf"]
+          default: "text"
+          description: Input document format
+        chunkSize:
+          type: integer
+          minimum: 100
+          maximum: 2048
+          default: 512
+          description: Maximum tokens per chunk
+        overlap:
+          type: integer
+          minimum: 0
+          maximum: 256
+          default: 50
+          description: Token overlap between chunks
+        preserveFormatting:
+          type: boolean
+          default: true
+          description: Preserve original document formatting
+        includeMetadata:
+          type: boolean
+          default: true
+          description: Extract and include metadata
+        sectionAware:
+          type: boolean
+          default: true
+          description: Use section-aware chunking algorithm
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Additional document metadata
+
+    ChunkDocumentResponse:
+      type: object
+      properties:
+        documentId:
+          type: string
+          description: Generated document identifier
+        totalChunks:
+          type: integer
+          description: Total number of chunks created
+        processingTime:
+          type: integer
+          description: Processing time in milliseconds
+        chunks:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Unique chunk identifier
+              content:
+                type: string
+                description: Chunk content
+              chunkIndex:
+                type: integer
+                description: Sequential chunk index
+              tokenCount:
+                type: integer
+                description: Actual tokens in this chunk
+              startPosition:
+                type: integer
+                description: Start position in original document
+              endPosition:
+                type: integer
+                description: End position in original document
+              metadata:
+                type: object
+                properties:
+                  section:
+                    type: string
+                  subsection:
+                    type: string
+                  pageNumber:
+                    type: integer
+                  lineNumber:
+                    type: integer
+                  elementType:
+                    type: string
+                    enum: ["paragraph", "heading", "list", "table", "code"]
+                additionalProperties: true
+        statistics:
+          type: object
+          properties:
+            averageChunkSize:
+              type: number
+            actualOverlap:
+              type: number
+            sectionsIdentified:
+              type: integer
+            metadataExtracted:
+              type: integer
+
+    BatchChunkRequest:
+      type: object
+      required:
+        - documents
+      properties:
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChunkDocumentRequest'
+          minItems: 1
+          maxItems: 50
+        parallelProcessing:
+          type: boolean
+          default: true
+          description: Process documents in parallel
+        failFast:
+          type: boolean
+          default: false
+          description: Stop processing on first failure
+        notificationUrl:
+          type: string
+          format: uri
+          description: Webhook URL for completion notification
+
+    BatchChunkResponse:
+      type: object
+      properties:
+        batchId:
+          type: string
+          format: uuid
+          description: Unique batch identifier
+        status:
+          type: string
+          enum: ["accepted", "processing", "completed", "failed"]
+        totalDocuments:
+          type: integer
+        processedDocuments:
+          type: integer
+        estimatedCompletion:
+          type: string
+          format: date-time
+        statusUrl:
+          type: string
+          format: uri
+          description: URL to check batch status
+
+    BatchChunkStatusResponse:
+      type: object
+      properties:
+        batchId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: ["pending", "processing", "completed", "failed", "cancelled"]
+        progress:
+          type: object
+          properties:
+            totalDocuments:
+              type: integer
+            processedDocuments:
+              type: integer
+            successfulDocuments:
+              type: integer
+            failedDocuments:
+              type: integer
+            percentComplete:
+              type: number
+              minimum: 0
+              maximum: 100
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              documentIndex:
+                type: integer
+              documentId:
+                type: string
+              status:
+                type: string
+                enum: ["pending", "processing", "completed", "failed"]
+              totalChunks:
+                type: integer
+              processingTime:
+                type: integer
+              error:
+                type: string
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              documentIndex:
+                type: integer
+              error:
+                type: string
+              details:
+                type: string
+
+    # Circuit Breaker Models
+    CircuitBreakerStatusResponse:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        overallStatus:
+          type: string
+          enum: ["HEALTHY", "DEGRADED", "CRITICAL"]
+          description: Overall system health status
+        circuitBreakers:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              state:
+                type: string
+                enum: ["CLOSED", "OPEN", "HALF_OPEN"]
+                description: Current circuit breaker state
+              failureCount:
+                type: integer
+                description: Number of consecutive failures
+              successCount:
+                type: integer
+                description: Number of successful calls in current window
+              failureRate:
+                type: number
+                description: Failure rate percentage
+              lastFailure:
+                type: string
+                format: date-time
+                description: Timestamp of last failure
+              nextRetryTime:
+                type: string
+                format: date-time
+                description: Next retry time for OPEN state
+              healthScore:
+                type: number
+                minimum: 0
+                maximum: 100
+                description: Service health score
+              configuration:
+                type: object
+                properties:
+                  failureThreshold:
+                    type: integer
+                  recoveryTimeout:
+                    type: integer
+                    description: Recovery timeout in seconds
+                  maxRetries:
+                    type: integer
+        metrics:
+          type: object
+          properties:
+            totalRequests:
+              type: integer
+            successfulRequests:
+              type: integer
+            failedRequests:
+              type: integer
+            averageResponseTime:
+              type: number
+              description: Average response time in milliseconds
+            requestsPerMinute:
+              type: number
+
+    CircuitBreakerResetRequest:
+      type: object
+      required:
+        - serviceName
+        - reason
+        - operator
+      properties:
+        serviceName:
+          type: string
+          enum: ["openai_api", "weaviate_vector_db", "chunking_service", "embedding_service"]
+          description: Name of the service circuit breaker to reset
+        reason:
+          type: string
+          description: Reason for manual reset
+          minLength: 10
+          maxLength: 500
+        operator:
+          type: string
+          description: Email or identifier of operator performing reset
+          format: email
+        force:
+          type: boolean
+          default: false
+          description: Force reset even if service appears unhealthy
+
+    CircuitBreakerResetResponse:
+      type: object
+      properties:
+        serviceName:
+          type: string
+          description: Service that was reset
+        previousState:
+          type: string
+          enum: ["CLOSED", "OPEN", "HALF_OPEN"]
+        newState:
+          type: string
+          enum: ["CLOSED", "OPEN", "HALF_OPEN"]
+        resetAt:
+          type: string
+          format: date-time
+        operator:
+          type: string
+        reason:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+          description: Warnings about the reset operation
+        healthCheck:
+          type: object
+          properties:
+            status:
+              type: string
+              enum: ["healthy", "degraded", "unhealthy"]
+            responseTime:
+              type: number
+            details:
+              type: string
 
     # Error Models
     ErrorResponse:

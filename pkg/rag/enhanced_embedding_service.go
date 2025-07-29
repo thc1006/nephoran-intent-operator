@@ -1,0 +1,790 @@
+package rag
+
+import (
+	"bytes"
+	"context"
+	"crypto/md5"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"math"
+	"net/http"
+	"sort"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/go-redis/redis/v8"
+)
+
+// MultiProviderEmbeddingService provides intelligent embedding generation with multiple providers
+type MultiProviderEmbeddingService struct {
+	config         *EmbeddingConfig
+	logger         *slog.Logger
+	providers      map[string]EmbeddingProvider
+	loadBalancer   *LoadBalancer
+	costManager    *CostManager
+	qualityManager *QualityManager
+	cacheManager   *EmbeddingCacheManager
+	healthMonitor  *ProviderHealthMonitor
+	metrics        *EmbeddingMetrics
+	mutex          sync.RWMutex
+}
+
+// EmbeddingProvider interface for different embedding providers
+type EmbeddingProvider interface {
+	GenerateEmbeddings(ctx context.Context, texts []string) (*EmbeddingResponse, error)
+	GetModelInfo() ModelInfo
+	EstimateCost(texts []string) float64
+	IsHealthy() bool
+	GetLatency() time.Duration
+	GetName() string
+}
+
+// ModelInfo contains information about the embedding model
+type ModelInfo struct {
+	Name          string  `json:"name"`
+	Dimensions    int     `json:"dimensions"`
+	MaxTokens     int     `json:"max_tokens"`
+	CostPerToken  float64 `json:"cost_per_token"`
+	Provider      string  `json:"provider"`
+	ApiVersion    string  `json:"api_version"`
+	Capabilities  []string `json:"capabilities"`
+}
+
+// ProviderConfig holds configuration for a specific provider
+type ProviderConfig struct {
+	Name           string            `json:"name"`
+	Type           string            `json:"type"`           // "openai", "azure", "local", "huggingface"
+	APIKey         string            `json:"api_key"`
+	APIEndpoint    string            `json:"api_endpoint"`
+	ModelName      string            `json:"model_name"`
+	Priority       int               `json:"priority"`       // Higher = preferred
+	MaxConcurrency int               `json:"max_concurrency"`
+	RateLimit      int               `json:"rate_limit"`     // Requests per minute
+	CostPerToken   float64           `json:"cost_per_token"`
+	Timeout        time.Duration     `json:"timeout"`
+	Headers        map[string]string `json:"headers"`
+	Enabled        bool              `json:"enabled"`
+	
+	// Provider-specific settings
+	AzureDeployment string `json:"azure_deployment,omitempty"`
+	HuggingfaceModel string `json:"huggingface_model,omitempty"`
+	LocalModelPath   string `json:"local_model_path,omitempty"`
+}
+
+// LoadBalancer manages provider selection and load distribution
+type LoadBalancer struct {
+	strategy    string                    // "round_robin", "least_cost", "fastest", "quality"
+	providers   []string
+	currentIdx  int
+	weights     map[string]float64
+	mutex       sync.RWMutex
+}
+
+// CostManager tracks and manages embedding costs
+type CostManager struct {
+	dailySpend    map[string]float64 // date -> amount
+	monthlySpend  map[string]float64 // month -> amount
+	limits        CostLimits
+	alerts        []CostAlert
+	mutex         sync.RWMutex
+}
+
+// CostLimits defines spending limits
+type CostLimits struct {
+	DailyLimit   float64 `json:"daily_limit"`
+	MonthlyLimit float64 `json:"monthly_limit"`
+	AlertThreshold float64 `json:"alert_threshold"` // Percentage of limit
+}
+
+// CostAlert represents a cost alert
+type CostAlert struct {
+	Timestamp   time.Time `json:"timestamp"`
+	Level       string    `json:"level"`     // "warning", "critical"
+	Message     string    `json:"message"`
+	Amount      float64   `json:"amount"`
+	Limit       float64   `json:"limit"`
+}
+
+// QualityManager assesses and ensures embedding quality
+type QualityManager struct {
+	qualityTests   []QualityTest
+	minScore       float64
+	sampleSize     int
+	testHistory    []QualityResult
+	mutex          sync.RWMutex
+}
+
+// QualityTest defines a quality assessment test
+type QualityTest struct {
+	Name        string                     `json:"name"`
+	TestFunc    func([]float32) float64   `json:"-"`
+	Weight      float64                   `json:"weight"`
+	Threshold   float64                   `json:"threshold"`
+}
+
+// QualityResult holds quality assessment results
+type QualityResult struct {
+	Timestamp   time.Time            `json:"timestamp"`
+	Provider    string               `json:"provider"`
+	Model       string               `json:"model"`
+	Score       float64              `json:"score"`
+	TestScores  map[string]float64   `json:"test_scores"`
+	SampleSize  int                  `json:"sample_size"`
+}
+
+// EmbeddingCacheManager manages multi-level caching
+type EmbeddingCacheManager struct {
+	l1Cache     *LRUCache              // In-memory cache
+	l2Cache     *RedisEmbeddingCache   // Redis cache
+	l1Enabled   bool
+	l2Enabled   bool
+	metrics     *CacheMetrics
+	mutex       sync.RWMutex
+}
+
+// LRUCache implements an LRU cache for embeddings
+type LRUCache struct {
+	capacity int64
+	size     int64
+	items    map[string]*CacheNode
+	head     *CacheNode
+	tail     *CacheNode
+	mutex    sync.RWMutex
+}
+
+// CacheNode represents a node in the LRU cache
+type CacheNode struct {
+	key      string
+	value    []float32
+	prev     *CacheNode
+	next     *CacheNode
+	size     int64
+	expiry   time.Time
+}
+
+// CacheMetrics tracks cache performance
+type CacheMetrics struct {
+	L1Hits      int64   `json:"l1_hits"`
+	L1Misses    int64   `json:"l1_misses"`
+	L2Hits      int64   `json:"l2_hits"`
+	L2Misses    int64   `json:"l2_misses"`
+	L1HitRate   float64 `json:"l1_hit_rate"`
+	L2HitRate   float64 `json:"l2_hit_rate"`
+	TotalHitRate float64 `json:"total_hit_rate"`
+}
+
+// ProviderHealthMonitor monitors provider health
+type ProviderHealthMonitor struct {
+	healthChecks  map[string]*HealthStatus
+	checkInterval time.Duration
+	mutex         sync.RWMutex
+	stopChan      chan struct{}
+}
+
+// HealthStatus represents provider health status
+type HealthStatus struct {
+	IsHealthy      bool          `json:"is_healthy"`
+	LastCheck      time.Time     `json:"last_check"`
+	LastError      string        `json:"last_error,omitempty"`
+	SuccessRate    float64       `json:"success_rate"`
+	AverageLatency time.Duration `json:"average_latency"`
+	ConsecutiveFailures int      `json:"consecutive_failures"`
+}
+
+// NewMultiProviderEmbeddingService creates a new multi-provider embedding service
+func NewMultiProviderEmbeddingService(config *EmbeddingConfig) (*MultiProviderEmbeddingService, error) {
+	if config == nil {
+		config = getDefaultEmbeddingConfig()
+	}
+
+	service := &MultiProviderEmbeddingService{
+		config:    config,
+		logger:    slog.Default().With("component", "multi-provider-embedding"),
+		providers: make(map[string]EmbeddingProvider),
+		metrics:   &EmbeddingMetrics{ModelStats: make(map[string]ModelUsageStats)},
+	}
+
+	// Initialize providers
+	if err := service.initializeProviders(); err != nil {
+		return nil, fmt.Errorf("failed to initialize providers: %w", err)
+	}
+
+	// Initialize load balancer
+	service.loadBalancer = NewLoadBalancer(config.LoadBalancing, service.getProviderNames())
+
+	// Initialize cost manager
+	service.costManager = NewCostManager(CostLimits{
+		DailyLimit:     config.DailyCostLimit,
+		MonthlyLimit:   config.MonthlyCostLimit,
+		AlertThreshold: config.CostAlertThreshold,
+	})
+
+	// Initialize quality manager
+	service.qualityManager = NewQualityManager(config.MinQualityScore, config.QualityCheckSample)
+
+	// Initialize cache manager
+	var err error
+	service.cacheManager, err = NewEmbeddingCacheManager(config)
+	if err != nil {
+		service.logger.Warn("Failed to initialize cache manager", "error", err)
+	}
+
+	// Initialize health monitor
+	service.healthMonitor = NewProviderHealthMonitor(config.HealthCheckInterval)
+
+	// Start health monitoring
+	go service.healthMonitor.StartMonitoring(service.providers)
+
+	service.logger.Info("Multi-provider embedding service initialized",
+		"providers", len(service.providers),
+		"load_balancing", config.LoadBalancing,
+		"cost_tracking", config.EnableCostTracking,
+	)
+
+	return service, nil
+}
+
+// GenerateEmbeddings generates embeddings using the best available provider
+func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context, request *EmbeddingRequest) (*EmbeddingResponse, error) {
+	startTime := time.Now()
+	
+	mps.logger.Debug("Generating embeddings",
+		"texts", len(request.Texts),
+		"use_cache", request.UseCache,
+		"priority", request.Priority,
+	)
+
+	// Validate request
+	if err := mps.validateRequest(request); err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
+
+	// Check cache first if enabled
+	if request.UseCache && mps.cacheManager != nil {
+		if cachedResponse := mps.checkCache(request); cachedResponse != nil {
+			cachedResponse.ProcessingTime = time.Since(startTime)
+			mps.updateMetrics(cachedResponse, true)
+			return cachedResponse, nil
+		}
+	}
+
+	// Check cost limits
+	if mps.config.EnableCostTracking {
+		estimatedCost := mps.estimateTotalCost(request.Texts)
+		if !mps.costManager.CanAfford(estimatedCost) {
+			return nil, fmt.Errorf("request would exceed cost limits: estimated cost $%.4f", estimatedCost)
+		}
+	}
+
+	// Select best provider
+	provider, err := mps.selectProvider(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to select provider: %w", err)
+	}
+
+	// Generate embeddings
+	response, err := mps.generateWithProvider(ctx, provider, request)
+	if err != nil {
+		// Try fallback providers if enabled
+		if mps.config.FallbackEnabled {
+			response, err = mps.generateWithFallback(ctx, provider, request)
+		}
+		if err != nil {
+			mps.updateMetrics(nil, false)
+			return nil, fmt.Errorf("embedding generation failed: %w", err)
+		}
+	}
+
+	// Quality check
+	if mps.config.EnableQualityCheck && len(response.Embeddings) > 0 {
+		qualityScore := mps.qualityManager.AssessQuality(response.Embeddings[0], provider.GetName(), provider.GetModelInfo().Name)
+		if qualityScore < mps.config.MinQualityScore {
+			mps.logger.Warn("Low quality embeddings detected",
+				"provider", provider.GetName(),
+				"quality_score", qualityScore,
+				"threshold", mps.config.MinQualityScore,
+			)
+		}
+	}
+
+	// Cache the response
+	if request.UseCache && mps.cacheManager != nil {
+		mps.cacheResponse(request, response)
+	}
+
+	// Update cost tracking
+	if mps.config.EnableCostTracking {
+		mps.costManager.RecordSpending(response.TokenUsage.EstimatedCost)
+	}
+
+	// Update metrics
+	response.ProcessingTime = time.Since(startTime)
+	mps.updateMetrics(response, false)
+
+	mps.logger.Debug("Embeddings generated successfully",
+		"provider", provider.GetName(),
+		"embeddings", len(response.Embeddings),
+		"processing_time", response.ProcessingTime,
+		"cost", response.TokenUsage.EstimatedCost,
+	)
+
+	return response, nil
+}
+
+// initializeProviders initializes all configured providers
+func (mps *MultiProviderEmbeddingService) initializeProviders() error {
+	for _, providerConfig := range mps.config.Providers {
+		if !providerConfig.Enabled {
+			continue
+		}
+
+		provider, err := mps.createProvider(providerConfig)
+		if err != nil {
+			mps.logger.Error("Failed to create provider", "name", providerConfig.Name, "error", err)
+			continue
+		}
+
+		mps.providers[providerConfig.Name] = provider
+		mps.logger.Info("Provider initialized", "name", providerConfig.Name, "type", providerConfig.Type)
+	}
+
+	if len(mps.providers) == 0 {
+		return fmt.Errorf("no providers successfully initialized")
+	}
+
+	return nil
+}
+
+// createProvider creates a specific provider instance
+func (mps *MultiProviderEmbeddingService) createProvider(config ProviderConfig) (EmbeddingProvider, error) {
+	switch config.Type {
+	case "openai":
+		return NewOpenAIProvider(config)
+	case "azure":
+		return NewAzureOpenAIProvider(config)
+	case "huggingface":
+		return NewHuggingFaceProvider(config)
+	case "local":
+		return NewLocalEmbeddingProvider(config)
+	default:
+		return nil, fmt.Errorf("unsupported provider type: %s", config.Type)
+	}
+}
+
+// selectProvider selects the best provider for the request
+func (mps *MultiProviderEmbeddingService) selectProvider(request *EmbeddingRequest) (EmbeddingProvider, error) {
+	availableProviders := mps.getHealthyProviders()
+	if len(availableProviders) == 0 {
+		return nil, fmt.Errorf("no healthy providers available")
+	}
+
+	// Use load balancer to select provider
+	providerName := mps.loadBalancer.SelectProvider(availableProviders, request)
+	provider, exists := mps.providers[providerName]
+	if !exists {
+		return nil, fmt.Errorf("selected provider %s not found", providerName)
+	}
+
+	return provider, nil
+}
+
+// generateWithProvider generates embeddings using a specific provider
+func (mps *MultiProviderEmbeddingService) generateWithProvider(ctx context.Context, provider EmbeddingProvider, request *EmbeddingRequest) (*EmbeddingResponse, error) {
+	// Preprocess texts if telecom preprocessing is enabled
+	processedTexts := request.Texts
+	if mps.config.TelecomPreprocessing {
+		processedTexts = mps.preprocessTelecomTexts(request.Texts)
+	}
+
+	// Create new request with processed texts
+	processedRequest := &EmbeddingRequest{
+		Texts:     processedTexts,
+		Metadata:  request.Metadata,
+		RequestID: request.RequestID,
+		Priority:  request.Priority,
+		ChunkIDs:  request.ChunkIDs,
+		UseCache:  request.UseCache,
+	}
+
+	// Generate embeddings
+	response, err := provider.GenerateEmbeddings(ctx, processedRequest.Texts)
+	if err != nil {
+		return nil, fmt.Errorf("provider %s failed: %w", provider.GetName(), err)
+	}
+
+	// Enhance response metadata
+	response.RequestID = request.RequestID
+	response.ModelUsed = provider.GetModelInfo().Name
+
+	return response, nil
+}
+
+// generateWithFallback tries fallback providers if the primary fails
+func (mps *MultiProviderEmbeddingService) generateWithFallback(ctx context.Context, failedProvider EmbeddingProvider, request *EmbeddingRequest) (*EmbeddingResponse, error) {
+	fallbackOrder := mps.config.FallbackOrder
+	if len(fallbackOrder) == 0 {
+		// Use all healthy providers except the failed one
+		fallbackOrder = mps.getHealthyProviders()
+	}
+
+	for _, providerName := range fallbackOrder {
+		if providerName == failedProvider.GetName() {
+			continue // Skip the failed provider
+		}
+
+		provider, exists := mps.providers[providerName]
+		if !exists || !provider.IsHealthy() {
+			continue
+		}
+
+		mps.logger.Info("Trying fallback provider", "provider", providerName)
+		
+		response, err := mps.generateWithProvider(ctx, provider, request)
+		if err == nil {
+			return response, nil
+		}
+
+		mps.logger.Warn("Fallback provider failed", "provider", providerName, "error", err)
+	}
+
+	return nil, fmt.Errorf("all fallback providers failed")
+}
+
+// preprocessTelecomTexts applies telecom-specific preprocessing
+func (mps *MultiProviderEmbeddingService) preprocessTelecomTexts(texts []string) []string {
+	var processedTexts []string
+
+	for _, text := range texts {
+		processed := mps.preprocessSingleText(text)
+		processedTexts = append(processedTexts, processed)
+	}
+
+	return processedTexts
+}
+
+// preprocessSingleText preprocesses a single text for telecom content
+func (mps *MultiProviderEmbeddingService) preprocessSingleText(text string) string {
+	// Normalize telecom acronyms
+	text = mps.expandTelecomAcronyms(text)
+	
+	// Preserve technical terms
+	if mps.config.PreserveTechnicalTerms {
+		text = mps.preserveTechnicalTerms(text)
+	}
+	
+	// Apply technical term weighting
+	if mps.config.TechnicalTermWeighting > 1.0 {
+		text = mps.applyTechnicalTermWeighting(text)
+	}
+	
+	return text
+}
+
+// expandTelecomAcronyms expands common telecom acronyms
+func (mps *MultiProviderEmbeddingService) expandTelecomAcronyms(text string) string {
+	acronymMap := map[string]string{
+		"5G":     "Fifth Generation 5G",
+		"4G":     "Fourth Generation 4G",
+		"gNB":    "Next Generation NodeB gNB",
+		"eNB":    "Evolved NodeB eNB",
+		"AMF":    "Access and Mobility Management Function AMF",
+		"SMF":    "Session Management Function SMF",
+		"UPF":    "User Plane Function UPF",
+		"O-RAN":  "Open Radio Access Network O-RAN",
+		"RAN":    "Radio Access Network RAN",
+		"QoS":    "Quality of Service QoS",
+		"URLLC":  "Ultra-Reliable Low Latency Communication URLLC",
+		"eMBB":   "Enhanced Mobile Broadband eMBB",
+		"mMTC":   "Massive Machine Type Communication mMTC",
+	}
+
+	for acronym, expansion := range acronymMap {
+		text = strings.ReplaceAll(text, acronym, expansion)
+	}
+
+	return text
+}
+
+// preserveTechnicalTerms ensures technical terms are properly formatted
+func (mps *MultiProviderEmbeddingService) preserveTechnicalTerms(text string) string {
+	// Add special markers around technical terms to preserve them
+	technicalTerms := []string{
+		"MHz", "GHz", "dBm", "EIRP", "SINR", "RSRP", "RSRQ",
+		"MAC", "RLC", "PDCP", "RRC", "PHY",
+		"CN", "SA", "NSA", "EN-DC",
+		"PLMN", "IMSI", "IMEI", "SUPI", "SUCI",
+	}
+
+	for _, term := range technicalTerms {
+		text = strings.ReplaceAll(text, term, fmt.Sprintf("[TECH]%s[/TECH]", term))
+	}
+
+	return text
+}
+
+// applyTechnicalTermWeighting boosts technical terms for better embedding
+func (mps *MultiProviderEmbeddingService) applyTechnicalTermWeighting(text string) string {
+	// This would typically involve duplicating technical terms based on weighting
+	weight := int(mps.config.TechnicalTermWeighting)
+	
+	technicalTerms := []string{
+		"specification", "protocol", "interface", "procedure",
+		"frequency", "bandwidth", "power", "antenna",
+		"handover", "measurement", "configuration",
+	}
+
+	for _, term := range technicalTerms {
+		if strings.Contains(strings.ToLower(text), term) {
+			// Duplicate the term to increase its weight
+			replacement := strings.Repeat(term+" ", weight) + term
+			text = strings.ReplaceAll(strings.ToLower(text), term, replacement)
+		}
+	}
+
+	return text
+}
+
+// checkCache checks for cached embeddings
+func (mps *MultiProviderEmbeddingService) checkCache(request *EmbeddingRequest) *EmbeddingResponse {
+	if mps.cacheManager == nil {
+		return nil
+	}
+
+	var embeddings [][]float32
+	cacheHits := 0
+	cacheMisses := 0
+
+	for _, text := range request.Texts {
+		cacheKey := mps.generateCacheKey(text)
+		if embedding, found := mps.cacheManager.Get(cacheKey); found {
+			embeddings = append(embeddings, embedding)
+			cacheHits++
+		} else {
+			cacheMisses++
+			// If any text is not cached, we need to generate all embeddings
+			return nil
+		}
+	}
+
+	if len(embeddings) == len(request.Texts) {
+		return &EmbeddingResponse{
+			Embeddings:  embeddings,
+			CacheHits:   cacheHits,
+			CacheMisses: cacheMisses,
+			RequestID:   request.RequestID,
+		}
+	}
+
+	return nil
+}
+
+// cacheResponse caches the embedding response
+func (mps *MultiProviderEmbeddingService) cacheResponse(request *EmbeddingRequest, response *EmbeddingResponse) {
+	if mps.cacheManager == nil {
+		return
+	}
+
+	for i, text := range request.Texts {
+		if i < len(response.Embeddings) {
+			cacheKey := mps.generateCacheKey(text)
+			mps.cacheManager.Set(cacheKey, response.Embeddings[i], mps.config.CacheTTL)
+		}
+	}
+}
+
+// generateCacheKey generates a cache key for text
+func (mps *MultiProviderEmbeddingService) generateCacheKey(text string) string {
+	hash := md5.Sum([]byte(text))
+	return fmt.Sprintf("emb:%x", hash)
+}
+
+// estimateTotalCost estimates the total cost for the request
+func (mps *MultiProviderEmbeddingService) estimateTotalCost(texts []string) float64 {
+	if len(mps.providers) == 0 {
+		return 0
+	}
+
+	// Use the first available provider for cost estimation
+	for _, provider := range mps.providers {
+		return provider.EstimateCost(texts)
+	}
+
+	return 0
+}
+
+// validateRequest validates the embedding request
+func (mps *MultiProviderEmbeddingService) validateRequest(request *EmbeddingRequest) error {
+	if len(request.Texts) == 0 {
+		return fmt.Errorf("no texts provided")
+	}
+
+	for i, text := range request.Texts {
+		if len(text) < mps.config.MinTextLength {
+			return fmt.Errorf("text %d too short: %d characters (minimum %d)", i, len(text), mps.config.MinTextLength)
+		}
+		if len(text) > mps.config.MaxTextLength {
+			return fmt.Errorf("text %d too long: %d characters (maximum %d)", i, len(text), mps.config.MaxTextLength)
+		}
+	}
+
+	return nil
+}
+
+// getProviderNames returns list of provider names
+func (mps *MultiProviderEmbeddingService) getProviderNames() []string {
+	mps.mutex.RLock()
+	defer mps.mutex.RUnlock()
+
+	var names []string
+	for name := range mps.providers {
+		names = append(names, name)
+	}
+	return names
+}
+
+// getHealthyProviders returns list of healthy provider names
+func (mps *MultiProviderEmbeddingService) getHealthyProviders() []string {
+	mps.mutex.RLock()
+	defer mps.mutex.RUnlock()
+
+	var healthy []string
+	for name, provider := range mps.providers {
+		if provider.IsHealthy() {
+			healthy = append(healthy, name)
+		}
+	}
+	return healthy
+}
+
+// updateMetrics updates service metrics
+func (mps *MultiProviderEmbeddingService) updateMetrics(response *EmbeddingResponse, fromCache bool) {
+	mps.metrics.mutex.Lock()
+	defer mps.metrics.mutex.Unlock()
+
+	mps.metrics.TotalRequests++
+	mps.metrics.LastUpdated = time.Now()
+
+	if response != nil {
+		mps.metrics.SuccessfulRequests++
+		mps.metrics.TotalTexts += int64(len(response.Embeddings))
+		mps.metrics.TotalTokens += int64(response.TokenUsage.TotalTokens)
+		mps.metrics.TotalCost += response.TokenUsage.EstimatedCost
+
+		// Update average latency
+		if mps.metrics.SuccessfulRequests > 0 {
+			mps.metrics.AverageLatency = time.Duration(
+				(int64(mps.metrics.AverageLatency)*mps.metrics.SuccessfulRequests + int64(response.ProcessingTime)) / 
+				(mps.metrics.SuccessfulRequests + 1),
+			)
+		}
+
+		// Update cache stats
+		if fromCache {
+			mps.metrics.CacheStats.CacheHits++
+		} else {
+			mps.metrics.CacheStats.CacheMisses++
+		}
+		mps.metrics.CacheStats.TotalLookups++
+		if mps.metrics.CacheStats.TotalLookups > 0 {
+			mps.metrics.CacheStats.HitRate = float64(mps.metrics.CacheStats.CacheHits) / float64(mps.metrics.CacheStats.TotalLookups)
+		}
+
+		// Update model stats
+		if response.ModelUsed != "" {
+			stats := mps.metrics.ModelStats[response.ModelUsed]
+			stats.RequestCount++
+			stats.TokenCount += int64(response.TokenUsage.TotalTokens)
+			stats.TotalCost += response.TokenUsage.EstimatedCost
+			mps.metrics.ModelStats[response.ModelUsed] = stats
+		}
+	} else {
+		mps.metrics.FailedRequests++
+	}
+}
+
+// GetMetrics returns current service metrics
+func (mps *MultiProviderEmbeddingService) GetMetrics() *EmbeddingMetrics {
+	mps.metrics.mutex.RLock()
+	defer mps.metrics.mutex.RUnlock()
+
+	// Return a copy
+	metrics := *mps.metrics
+	metrics.ModelStats = make(map[string]ModelUsageStats)
+	for k, v := range mps.metrics.ModelStats {
+		metrics.ModelStats[k] = v
+	}
+
+	return &metrics
+}
+
+// GetCostSummary returns cost tracking summary
+func (mps *MultiProviderEmbeddingService) GetCostSummary() *CostSummary {
+	if mps.costManager == nil {
+		return nil
+	}
+	return mps.costManager.GetSummary()
+}
+
+// GetProviderStatus returns status of all providers
+func (mps *MultiProviderEmbeddingService) GetProviderStatus() map[string]*HealthStatus {
+	if mps.healthMonitor == nil {
+		return nil
+	}
+	return mps.healthMonitor.GetStatus()
+}
+
+// Close shuts down the service
+func (mps *MultiProviderEmbeddingService) Close() error {
+	if mps.healthMonitor != nil {
+		mps.healthMonitor.Stop()
+	}
+	
+	if mps.cacheManager != nil {
+		return mps.cacheManager.Close()
+	}
+	
+	return nil
+}
+
+// getDefaultEmbeddingConfig returns default embedding configuration
+func getDefaultEmbeddingConfig() *EmbeddingConfig {
+	return &EmbeddingConfig{
+		Provider:               "openai",
+		Dimensions:             1536,
+		MaxTokens:              8191,
+		BatchSize:              100,
+		MaxConcurrency:         5,
+		RequestTimeout:         30 * time.Second,
+		RetryAttempts:          3,
+		RetryDelay:             2 * time.Second,
+		RateLimit:              60,
+		TokenRateLimit:         1000000,
+		MinTextLength:          10,
+		MaxTextLength:          8000,
+		NormalizeText:          true,
+		RemoveStopWords:        false,
+		EnableCaching:          true,
+		CacheTTL:               24 * time.Hour,
+		EnableRedisCache:       true,
+		L1CacheSize:            1000,
+		L2CacheEnabled:         true,
+		FallbackEnabled:        true,
+		LoadBalancing:          "least_cost",
+		HealthCheckInterval:    5 * time.Minute,
+		EnableCostTracking:     true,
+		DailyCostLimit:         100.0,
+		MonthlyCostLimit:       2000.0,
+		CostAlertThreshold:     0.8,
+		EnableQualityCheck:     true,
+		MinQualityScore:        0.7,
+		QualityCheckSample:     10,
+		TelecomPreprocessing:   true,
+		PreserveTechnicalTerms: true,
+		TechnicalTermWeighting: 1.5,
+		EnableMetrics:          true,
+		MetricsInterval:        1 * time.Minute,
+	}
+}

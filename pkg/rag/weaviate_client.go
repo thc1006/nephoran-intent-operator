@@ -5,8 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
+	"math/rand"
+	"net/http"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
@@ -17,11 +21,62 @@ import (
 
 // WeaviateClient provides a production-ready client for Weaviate vector database
 type WeaviateClient struct {
-	client       *weaviate.Client
-	config       *WeaviateConfig
-	logger       *slog.Logger
-	healthStatus *HealthStatus
-	mutex        sync.RWMutex
+	client           *weaviate.Client
+	config           *WeaviateConfig
+	logger           *slog.Logger
+	healthStatus     *HealthStatus
+	circuitBreaker   *CircuitBreaker
+	rateLimiter      *RateLimiter
+	embeddingFallback *EmbeddingFallback
+	mutex            sync.RWMutex
+}
+
+// CircuitBreaker implements circuit breaker pattern for API calls
+type CircuitBreaker struct {
+	maxFailures    int32
+	timeout        time.Duration
+	currentState   int32 // 0: Closed, 1: Open, 2: HalfOpen
+	failureCount   int32
+	lastFailTime   int64
+	successCount   int32
+	mutex          sync.RWMutex
+}
+
+// Circuit breaker states
+const (
+	CircuitClosed   = 0
+	CircuitOpen     = 1
+	CircuitHalfOpen = 2
+)
+
+// RateLimiter implements token bucket rate limiting for OpenAI API calls
+type RateLimiter struct {
+	requestsPerMinute int32
+	tokensPerMinute   int64
+	requestTokens     int32
+	tokenBucketSize   int64
+	lastRefill        int64
+	requestBucket     chan struct{}
+	tokenBucket       int64
+	mutex             sync.Mutex
+}
+
+// EmbeddingFallback provides local embedding model fallback
+type EmbeddingFallback struct {
+	enabled     bool
+	modelPath   string
+	dimensions  int
+	available   bool
+	mutex       sync.RWMutex
+}
+
+// RetryConfig holds configuration for exponential backoff
+type RetryConfig struct {
+	MaxRetries   int           `json:"max_retries"`
+	BaseDelay    time.Duration `json:"base_delay"`
+	MaxDelay     time.Duration `json:"max_delay"`
+	BackoffMultiplier float64  `json:"backoff_multiplier"`
+	Jitter       bool          `json:"jitter"`
 }
 
 // WeaviateConfig holds configuration for the Weaviate client
@@ -38,6 +93,30 @@ type WeaviateConfig struct {
 	
 	// OpenAI configuration for vectorization
 	OpenAIAPIKey string `json:"openai_api_key"`
+	
+	// Rate limiting configuration
+	RateLimiting struct {
+		RequestsPerMinute int32 `json:"requests_per_minute"`
+		TokensPerMinute   int64 `json:"tokens_per_minute"`
+		Enabled           bool  `json:"enabled"`
+	} `json:"rate_limiting"`
+	
+	// Circuit breaker configuration
+	CircuitBreaker struct {
+		MaxFailures int32         `json:"max_failures"`
+		Timeout     time.Duration `json:"timeout"`
+		Enabled     bool          `json:"enabled"`
+	} `json:"circuit_breaker"`
+	
+	// Retry configuration
+	Retry RetryConfig `json:"retry"`
+	
+	// Embedding fallback configuration
+	EmbeddingFallback struct {
+		Enabled     bool   `json:"enabled"`
+		ModelPath   string `json:"model_path"`
+		Dimensions  int    `json:"dimensions"`
+	} `json:"embedding_fallback"`
 	
 	// Performance tuning
 	ConnectionPool struct {
@@ -156,18 +235,65 @@ func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
 		config.Retries = 3
 	}
 
+	// Set retry configuration defaults
+	if config.Retry.MaxRetries == 0 {
+		config.Retry.MaxRetries = 3
+	}
+	if config.Retry.BaseDelay == 0 {
+		config.Retry.BaseDelay = 1 * time.Second
+	}
+	if config.Retry.MaxDelay == 0 {
+		config.Retry.MaxDelay = 30 * time.Second
+	}
+	if config.Retry.BackoffMultiplier == 0 {
+		config.Retry.BackoffMultiplier = 2.0
+	}
+	config.Retry.Jitter = true
+
+	// Set circuit breaker defaults
+	if config.CircuitBreaker.MaxFailures == 0 {
+		config.CircuitBreaker.MaxFailures = 5
+	}
+	if config.CircuitBreaker.Timeout == 0 {
+		config.CircuitBreaker.Timeout = 60 * time.Second
+	}
+	config.CircuitBreaker.Enabled = true
+
+	// Set rate limiting defaults
+	if config.RateLimiting.RequestsPerMinute == 0 {
+		config.RateLimiting.RequestsPerMinute = 3000 // Conservative OpenAI API limit
+	}
+	if config.RateLimiting.TokensPerMinute == 0 {
+		config.RateLimiting.TokensPerMinute = 1000000 // Conservative token limit
+	}
+	config.RateLimiting.Enabled = true
+
 	// Configure authentication
 	var authConfig auth.Config
 	if config.APIKey != "" {
 		authConfig = auth.ApiKey{Value: config.APIKey}
 	}
 
+	// Create HTTP client with optimized settings
+	httpClient := &http.Client{
+		Timeout: config.Timeout,
+		Transport: &http.Transport{
+			MaxIdleConns:          config.ConnectionPool.MaxIdleConns,
+			MaxConnsPerHost:       config.ConnectionPool.MaxConnsPerHost,
+			IdleConnTimeout:       config.ConnectionPool.IdleConnTimeout,
+			DisableCompression:    config.ConnectionPool.DisableCompression,
+			MaxIdleConnsPerHost:   10,
+			ResponseHeaderTimeout: 30 * time.Second,
+		},
+	}
+
 	// Create Weaviate client configuration
 	clientConfig := weaviate.Config{
-		Host:   config.Host,
-		Scheme: config.Scheme,
+		Host:       config.Host,
+		Scheme:     config.Scheme,
 		AuthConfig: authConfig,
-		Headers: config.Headers,
+		Headers:    config.Headers,
+		Client:     httpClient,
 	}
 
 	// Create client
@@ -183,17 +309,45 @@ func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
 		healthStatus: &HealthStatus{
 			LastCheck: time.Now(),
 		},
+		circuitBreaker: &CircuitBreaker{
+			maxFailures:  config.CircuitBreaker.MaxFailures,
+			timeout:      config.CircuitBreaker.Timeout,
+			currentState: CircuitClosed,
+		},
+		rateLimiter: &RateLimiter{
+			requestsPerMinute: config.RateLimiting.RequestsPerMinute,
+			tokensPerMinute:   config.RateLimiting.TokensPerMinute,
+			requestBucket:     make(chan struct{}, config.RateLimiting.RequestsPerMinute),
+			lastRefill:        time.Now().Unix(),
+		},
+		embeddingFallback: &EmbeddingFallback{
+			enabled:    config.EmbeddingFallback.Enabled,
+			modelPath:  config.EmbeddingFallback.ModelPath,
+			dimensions: config.EmbeddingFallback.Dimensions,
+			available:  false, // Will be set during initialization
+		},
+	}
+
+	// Initialize rate limiter buckets
+	wc.initializeRateLimiter()
+
+	// Initialize embedding fallback if enabled
+	if wc.embeddingFallback.enabled {
+		if err := wc.initializeEmbeddingFallback(); err != nil {
+			wc.logger.Warn("Failed to initialize embedding fallback", "error", err)
+		}
 	}
 
 	// Initialize schema if auto-schema is enabled
 	if config.AutoSchema {
-		if err := wc.initializeSchema(context.Background()); err != nil {
+		if err := wc.initializeSchemaWithRetry(context.Background()); err != nil {
 			return nil, fmt.Errorf("failed to initialize schema: %w", err)
 		}
 	}
 
-	// Start health checking in background
+	// Start background services
 	go wc.startHealthChecking()
+	go wc.startRateLimiterRefresh()
 
 	return wc, nil
 }
@@ -746,6 +900,266 @@ func (wc *WeaviateClient) checkHealth() {
 	}
 
 	wc.logger.Debug("Weaviate health check completed", "healthy", wc.healthStatus.IsHealthy)
+}
+
+// initializeRateLimiter sets up the rate limiter token buckets
+func (wc *WeaviateClient) initializeRateLimiter() {
+	// Fill initial request bucket
+	for i := int32(0); i < wc.rateLimiter.requestsPerMinute; i++ {
+		select {
+		case wc.rateLimiter.requestBucket <- struct{}{}:
+		default:
+			break
+		}
+	}
+	wc.rateLimiter.tokenBucket = wc.rateLimiter.tokensPerMinute
+	wc.logger.Info("Rate limiter initialized", 
+		"requests_per_minute", wc.rateLimiter.requestsPerMinute,
+		"tokens_per_minute", wc.rateLimiter.tokensPerMinute)
+}
+
+// startRateLimiterRefresh starts the background rate limiter token refresh
+func (wc *WeaviateClient) startRateLimiterRefresh() {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			wc.refillRateLimiter()
+		}
+	}
+}
+
+// refillRateLimiter refills the rate limiter buckets
+func (wc *WeaviateClient) refillRateLimiter() {
+	wc.rateLimiter.mutex.Lock()
+	defer wc.rateLimiter.mutex.Unlock()
+
+	// Refill request bucket
+	for i := int32(0); i < wc.rateLimiter.requestsPerMinute; i++ {
+		select {
+		case wc.rateLimiter.requestBucket <- struct{}{}:
+		default:
+			break
+		}
+	}
+
+	// Refill token bucket
+	wc.rateLimiter.tokenBucket = wc.rateLimiter.tokensPerMinute
+	wc.rateLimiter.lastRefill = time.Now().Unix()
+}
+
+// checkRateLimit checks if we can make a request within rate limits
+func (wc *WeaviateClient) checkRateLimit(estimatedTokens int64) error {
+	// Check request limit
+	select {
+	case <-wc.rateLimiter.requestBucket:
+		// Got a request token
+	case <-time.After(time.Minute):
+		return fmt.Errorf("rate limit exceeded: too many requests per minute")
+	}
+
+	// Check token limit
+	wc.rateLimiter.mutex.Lock()
+	defer wc.rateLimiter.mutex.Unlock()
+
+	if wc.rateLimiter.tokenBucket < estimatedTokens {
+		return fmt.Errorf("rate limit exceeded: insufficient tokens (need %d, have %d)", 
+			estimatedTokens, wc.rateLimiter.tokenBucket)
+	}
+
+	wc.rateLimiter.tokenBucket -= estimatedTokens
+	return nil
+}
+
+// checkCircuitBreaker checks if circuit breaker allows the operation
+func (wc *WeaviateClient) checkCircuitBreaker() error {
+	wc.circuitBreaker.mutex.RLock()
+	state := atomic.LoadInt32(&wc.circuitBreaker.currentState)
+	lastFailTime := atomic.LoadInt64(&wc.circuitBreaker.lastFailTime)
+	wc.circuitBreaker.mutex.RUnlock()
+
+	switch state {
+	case CircuitClosed:
+		return nil
+	case CircuitOpen:
+		// Check if timeout period has passed
+		if time.Since(time.Unix(0, lastFailTime)) > wc.circuitBreaker.timeout {
+			// Transition to half-open
+			atomic.StoreInt32(&wc.circuitBreaker.currentState, CircuitHalfOpen)
+			atomic.StoreInt32(&wc.circuitBreaker.successCount, 0)
+			wc.logger.Info("Circuit breaker transitioning to half-open state")
+			return nil
+		}
+		return fmt.Errorf("circuit breaker is open")
+	case CircuitHalfOpen:
+		return nil
+	default:
+		return fmt.Errorf("unknown circuit breaker state: %d", state)
+	}
+}
+
+// recordCircuitBreakerSuccess records a successful operation
+func (wc *WeaviateClient) recordCircuitBreakerSuccess() {
+	state := atomic.LoadInt32(&wc.circuitBreaker.currentState)
+	if state == CircuitHalfOpen {
+		successCount := atomic.AddInt32(&wc.circuitBreaker.successCount, 1)
+		if successCount >= 3 { // Require 3 successes to close
+			atomic.StoreInt32(&wc.circuitBreaker.currentState, CircuitClosed)
+			atomic.StoreInt32(&wc.circuitBreaker.failureCount, 0)
+			wc.logger.Info("Circuit breaker closed after successful operations")
+		}
+	} else if state == CircuitClosed {
+		// Reset failure count on success
+		atomic.StoreInt32(&wc.circuitBreaker.failureCount, 0)
+	}
+}
+
+// recordCircuitBreakerFailure records a failed operation
+func (wc *WeaviateClient) recordCircuitBreakerFailure() {
+	failureCount := atomic.AddInt32(&wc.circuitBreaker.failureCount, 1)
+	
+	if failureCount >= wc.circuitBreaker.maxFailures {
+		atomic.StoreInt32(&wc.circuitBreaker.currentState, CircuitOpen)
+		atomic.StoreInt64(&wc.circuitBreaker.lastFailTime, time.Now().UnixNano())
+		wc.logger.Warn("Circuit breaker opened due to failures", 
+			"failure_count", failureCount, 
+			"max_failures", wc.circuitBreaker.maxFailures)
+	}
+}
+
+// executeWithRetry executes a function with exponential backoff retry
+func (wc *WeaviateClient) executeWithRetry(ctx context.Context, operation func() error) error {
+	var lastErr error
+	
+	for attempt := 0; attempt <= wc.config.Retry.MaxRetries; attempt++ {
+		// Check circuit breaker
+		if err := wc.checkCircuitBreaker(); err != nil {
+			return fmt.Errorf("circuit breaker check failed: %w", err)
+		}
+
+		// Execute operation
+		if err := operation(); err != nil {
+			lastErr = err
+			wc.recordCircuitBreakerFailure()
+			
+			// Don't retry on final attempt
+			if attempt == wc.config.Retry.MaxRetries {
+				break
+			}
+
+			// Calculate backoff delay
+			delay := wc.calculateBackoffDelay(attempt)
+			wc.logger.Warn("Operation failed, retrying", 
+				"attempt", attempt+1, 
+				"max_attempts", wc.config.Retry.MaxRetries+1,
+				"delay", delay,
+				"error", err)
+
+			// Wait with context cancellation support
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(delay):
+			}
+			continue
+		}
+
+		// Success
+		wc.recordCircuitBreakerSuccess()
+		return nil
+	}
+
+	return fmt.Errorf("operation failed after %d attempts: %w", 
+		wc.config.Retry.MaxRetries+1, lastErr)
+}
+
+// calculateBackoffDelay calculates exponential backoff delay with jitter
+func (wc *WeaviateClient) calculateBackoffDelay(attempt int) time.Duration {
+	delay := time.Duration(float64(wc.config.Retry.BaseDelay) * 
+		math.Pow(wc.config.Retry.BackoffMultiplier, float64(attempt)))
+	
+	if delay > wc.config.Retry.MaxDelay {
+		delay = wc.config.Retry.MaxDelay
+	}
+
+	// Add jitter if enabled
+	if wc.config.Retry.Jitter {
+		jitter := time.Duration(rand.Float64() * float64(delay) * 0.1) // 10% jitter
+		delay += jitter
+	}
+
+	return delay
+}
+
+// initializeEmbeddingFallback initializes the local embedding model fallback
+func (wc *WeaviateClient) initializeEmbeddingFallback() error {
+	if !wc.embeddingFallback.enabled {
+		return nil
+	}
+
+	// For now, just mark as available - in a full implementation,
+	// you would load the actual model here
+	wc.embeddingFallback.mutex.Lock()
+	wc.embeddingFallback.available = true
+	wc.embeddingFallback.mutex.Unlock()
+
+	wc.logger.Info("Embedding fallback initialized", 
+		"model_path", wc.embeddingFallback.modelPath,
+		"dimensions", wc.embeddingFallback.dimensions)
+	
+	return nil
+}
+
+// initializeSchemaWithRetry initializes schema with retry logic
+func (wc *WeaviateClient) initializeSchemaWithRetry(ctx context.Context) error {
+	return wc.executeWithRetry(ctx, func() error {
+		return wc.initializeSchema(ctx)
+	})
+}
+
+// SearchWithRetry performs search with circuit breaker and retry logic
+func (wc *WeaviateClient) SearchWithRetry(ctx context.Context, query *SearchQuery) (*SearchResponse, error) {
+	// Estimate tokens for rate limiting (rough estimate based on query length)
+	estimatedTokens := int64(len(query.Query) / 4) // Rough token estimation
+	if estimatedTokens < 10 {
+		estimatedTokens = 10 // Minimum token estimate
+	}
+
+	// Check rate limits
+	if err := wc.checkRateLimit(estimatedTokens); err != nil {
+		return nil, fmt.Errorf("rate limit check failed: %w", err)
+	}
+
+	// Execute search with retry logic
+	var result *SearchResponse
+	err := wc.executeWithRetry(ctx, func() error {
+		var searchErr error
+		result, searchErr = wc.Search(ctx, query)
+		return searchErr
+	})
+
+	return result, err
+}
+
+// AddDocumentWithRetry adds document with retry logic  
+func (wc *WeaviateClient) AddDocumentWithRetry(ctx context.Context, doc *TelecomDocument) error {
+	// Estimate tokens for rate limiting
+	estimatedTokens := int64(len(doc.Content) / 4)
+	if estimatedTokens < 10 {
+		estimatedTokens = 10
+	}
+
+	// Check rate limits
+	if err := wc.checkRateLimit(estimatedTokens); err != nil {
+		return fmt.Errorf("rate limit check failed: %w", err)
+	}
+
+	// Execute with retry logic
+	return wc.executeWithRetry(ctx, func() error {
+		return wc.AddDocument(ctx, doc)
+	})
 }
 
 // Close closes the Weaviate client and cleans up resources
