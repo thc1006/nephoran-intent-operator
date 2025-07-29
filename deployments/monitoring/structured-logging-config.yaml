@@ -1,0 +1,452 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: structured-logging-config
+  namespace: nephoran-system
+  labels:
+    app: logging
+    component: structured-logging
+    app.kubernetes.io/name: logging
+    app.kubernetes.io/component: structured-logging
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  fluentd.conf: |
+    <system>
+      log_level info
+    </system>
+    
+    # Input from Kubernetes containers
+    <source>
+      @type tail
+      @id in_tail_container_logs
+      path /var/log/containers/*nephoran*.log
+      pos_file /var/log/fluentd-containers.log.pos
+      tag kubernetes.*
+      read_from_head true
+      <parse>
+        @type json
+        time_format %Y-%m-%dT%H:%M:%S.%NZ
+        time_key time
+        keep_time_key true
+      </parse>
+    </source>
+    
+    # Kubernetes metadata enrichment
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+      @id filter_kube_metadata
+      kubernetes_url "#{ENV['KUBERNETES_SERVICE_HOST']}:#{ENV['KUBERNETES_SERVICE_PORT_HTTPS']}"
+      verify_ssl "#{ENV['KUBERNETES_VERIFY_SSL'] || true}"
+      ca_file "#{ENV['KUBERNETES_CA_FILE']}"
+      bearer_token_file /var/run/secrets/kubernetes.io/serviceaccount/token
+      cache_size 1000
+      watch true
+      use_journal false
+      skip_labels false
+      skip_container_metadata false
+      skip_master_url false
+      skip_namespace_metadata false
+    </filter>
+    
+    # Parse Nephoran-specific log formats
+    <filter kubernetes.**>
+      @type parser
+      @id nephoran_log_parser
+      key_name log
+      reserve_data true
+      remove_key_name_field false
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_key timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format regexp
+          expression /^(?<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\s+(?<level>\w+)\s+(?<component>\w+)\s+(?<message>.*)$/
+          time_key timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%NZ
+        </pattern>
+        <pattern>
+          format none
+        </pattern>
+      </parse>
+    </filter>
+    
+    # Add Nephoran-specific labels and metrics
+    <filter kubernetes.**>
+      @type record_transformer
+      @id nephoran_enrichment
+      enable_ruby true
+      <record>
+        nephoran_component ${record.dig("kubernetes", "labels", "app") || "unknown"}
+        nephoran_version ${record.dig("kubernetes", "labels", "version") || "unknown"}
+        nephoran_environment ${record.dig("kubernetes", "namespace_name") || "unknown"}
+        
+        # Extract structured fields from Nephoran logs
+        request_id ${record["message"] =~ /request_id=([a-f0-9-]+)/ ? $1 : nil}
+        intent_type ${record["message"] =~ /intent_type=(\w+)/ ? $1 : nil}
+        operation ${record["message"] =~ /operation=(\w+)/ ? $1 : nil}
+        duration ${record["message"] =~ /duration=([0-9.]+)/ ? $1.to_f : nil}
+        error_type ${record["message"] =~ /error_type=(\w+)/ ? $1 : nil}
+        
+        # Performance metrics extraction
+        latency_ms ${record["message"] =~ /latency=([0-9.]+)ms/ ? $1.to_f : nil}
+        throughput ${record["message"] =~ /throughput=([0-9.]+)/ ? $1.to_f : nil}
+        cache_hit ${record["message"] =~ /cache_hit=(true|false)/ ? ($1 == "true") : nil}
+        
+        # Business context
+        network_intent_id ${record["message"] =~ /network_intent_id=([a-f0-9-]+)/ ? $1 : nil}
+        e2nodeset_name ${record["message"] =~ /e2nodeset_name=(\w+)/ ? $1 : nil}
+        oran_interface ${record["message"] =~ /oran_interface=(\w+)/ ? $1 : nil}
+      </record>
+    </filter>
+    
+    # Route different log types
+    <match kubernetes.**>
+      @type copy
+      
+      # Send all logs to main storage
+      <store>
+        @type elasticsearch
+        @id out_es_main
+        host elasticsearch.nephoran-system.svc.cluster.local
+        port 9200
+        index_name nephoran-logs
+        type_name _doc
+        include_timestamp true
+        reconnect_on_error true
+        reload_on_failure true
+        reload_connections false
+        request_timeout 60s
+        <buffer>
+          @type file
+          path /var/log/fluentd-buffers/main.buffer
+          flush_mode interval
+          flush_interval 10s
+          chunk_limit_size 8m
+          queue_limit_length 32
+          retry_type exponential_backoff
+          retry_wait 1s
+          retry_max_interval 60s
+        </buffer>
+      </store>
+      
+      # Send error logs to separate index for alerting
+      <store>
+        @type elasticsearch
+        @id out_es_errors
+        host elasticsearch.nephoran-system.svc.cluster.local
+        port 9200
+        index_name nephoran-errors
+        type_name _doc
+        <filter>
+          tag kubernetes.**
+          @type grep
+          <regexp>
+            key level
+            pattern ^(ERROR|FATAL|CRITICAL)$
+          </regexp>
+        </filter>
+        <buffer>
+          @type file
+          path /var/log/fluentd-buffers/errors.buffer
+          flush_mode immediate
+          chunk_limit_size 1m
+          queue_limit_length 8
+        </buffer>
+      </store>
+      
+      # Send performance metrics to metrics store
+      <store>
+        @type prometheus
+        @id out_prometheus_metrics
+        <metric>
+          name nephoran_log_entries_total
+          type counter
+          desc Total number of log entries by component and level
+          key total
+          <labels>
+            component ${nephoran_component}
+            level ${level}
+            namespace ${kubernetes.namespace_name}
+          </labels>
+        </metric>
+        <metric>
+          name nephoran_request_duration_seconds
+          type histogram
+          desc Request duration from logs
+          key duration
+          buckets 0.1,0.5,1,2,5,10,30,60
+          <labels>
+            component ${nephoran_component}
+            operation ${operation}
+            intent_type ${intent_type}
+          </labels>
+        </metric>
+        <metric>
+          name nephoran_error_total
+          type counter
+          desc Total number of errors by type and component
+          key error_count
+          <labels>
+            component ${nephoran_component}
+            error_type ${error_type}
+            namespace ${kubernetes.namespace_name}
+          </labels>
+        </metric>
+      </store>
+      
+      # Send to alerting webhook for critical errors
+      <store>
+        @type http
+        @id out_alerting_webhook
+        endpoint http://alertmanager:9093/api/v1/alerts
+        http_method post
+        serializer json
+        <filter>
+          tag kubernetes.**
+          @type grep
+          <regexp>
+            key level
+            pattern ^(ERROR|FATAL|CRITICAL)$
+          </regexp>
+        </filter>
+        <format>
+          @type json
+        </format>
+        <buffer>
+          @type memory
+          flush_mode immediate
+          chunk_limit_size 1k
+        </buffer>
+      </store>
+    </match>
+    
+    # Metrics extraction for specific components
+    <source>
+      @type prometheus
+      bind 0.0.0.0
+      port 24231
+      metrics_path /metrics
+    </source>
+    
+    <source>
+      @type prometheus_monitor
+      <labels>
+        host ${hostname}
+        component fluentd
+      </labels>
+    </source>
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: log-analysis-rules
+  namespace: nephoran-system
+  labels:
+    app: log-analysis
+    component: structured-logging
+data:
+  analysis-rules.yml: |
+    rules:
+    # Performance anomaly detection
+    - name: "performance_anomaly"
+      description: "Detect performance anomalies from logs"
+      pattern: |
+        SELECT 
+          nephoran_component,
+          intent_type,
+          AVG(duration) as avg_duration,
+          STDDEV(duration) as stddev_duration,
+          COUNT(*) as request_count
+        FROM logs 
+        WHERE timestamp > NOW() - INTERVAL '5 minutes'
+          AND level = 'INFO'
+          AND duration IS NOT NULL
+        GROUP BY nephoran_component, intent_type
+        HAVING AVG(duration) > (
+          SELECT AVG(duration) + 2 * STDDEV(duration) 
+          FROM logs 
+          WHERE timestamp > NOW() - INTERVAL '1 hour'
+            AND nephoran_component = logs.nephoran_component
+            AND intent_type = logs.intent_type
+        )
+      alert_condition: "request_count > 10 AND avg_duration > 5.0"
+      severity: "warning"
+      action: "scale_up"
+    
+    # Error pattern detection
+    - name: "error_pattern"
+      description: "Detect recurring error patterns"
+      pattern: |
+        SELECT 
+          nephoran_component,
+          error_type,
+          COUNT(*) as error_count,
+          COUNT(DISTINCT request_id) as affected_requests
+        FROM logs 
+        WHERE timestamp > NOW() - INTERVAL '10 minutes'
+          AND level IN ('ERROR', 'FATAL')
+          AND error_type IS NOT NULL
+        GROUP BY nephoran_component, error_type
+        HAVING COUNT(*) > 5
+      alert_condition: "error_count > 10 OR affected_requests > 5"
+      severity: "critical"
+      action: "investigate"
+    
+    # Business impact detection
+    - name: "business_impact"
+      description: "Detect business-impacting events"
+      pattern: |
+        SELECT 
+          intent_type,
+          COUNT(*) as failed_intents,
+          COUNT(DISTINCT network_intent_id) as affected_intents
+        FROM logs 
+        WHERE timestamp > NOW() - INTERVAL '15 minutes'
+          AND level = 'ERROR'
+          AND network_intent_id IS NOT NULL
+        GROUP BY intent_type
+        HAVING COUNT(*) > 3
+      alert_condition: "failed_intents > 5 OR affected_intents > 3"
+      severity: "critical"
+      action: "business_escalation"
+    
+    # Security anomaly detection
+    - name: "security_anomaly"
+      description: "Detect potential security issues"
+      pattern: |
+        SELECT 
+          nephoran_component,
+          COUNT(*) as suspicious_events,
+          COUNT(DISTINCT request_id) as unique_requests
+        FROM logs 
+        WHERE timestamp > NOW() - INTERVAL '5 minutes'
+          AND (
+            message LIKE '%authentication failed%' OR
+            message LIKE '%unauthorized%' OR
+            message LIKE '%forbidden%' OR
+            message LIKE '%rate limit exceeded%'
+          )
+        GROUP BY nephoran_component
+        HAVING COUNT(*) > 10
+      alert_condition: "suspicious_events > 20 OR unique_requests > 10"
+      severity: "warning"
+      action: "security_review"
+    
+    # Resource utilization from logs
+    - name: "resource_utilization"
+      description: "Track resource utilization patterns"
+      pattern: |
+        SELECT 
+          nephoran_component,
+          AVG(CASE WHEN message LIKE '%memory%' THEN 
+            CAST(REGEXP_EXTRACT(message, r'memory=([0-9.]+)') AS FLOAT64) 
+          END) as avg_memory_mb,
+          AVG(CASE WHEN message LIKE '%cpu%' THEN 
+            CAST(REGEXP_EXTRACT(message, r'cpu=([0-9.]+)') AS FLOAT64) 
+          END) as avg_cpu_percent
+        FROM logs 
+        WHERE timestamp > NOW() - INTERVAL '5 minutes'
+          AND level = 'INFO'
+          AND (message LIKE '%memory%' OR message LIKE '%cpu%')
+        GROUP BY nephoran_component
+      alert_condition: "avg_memory_mb > 1000 OR avg_cpu_percent > 80"
+      severity: "warning"
+      action: "resource_scaling"
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd-structured-logging
+  namespace: nephoran-system
+  labels:
+    app: fluentd
+    component: structured-logging
+    app.kubernetes.io/name: fluentd
+    app.kubernetes.io/component: structured-logging
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  selector:
+    matchLabels:
+      app: fluentd
+      component: structured-logging
+  template:
+    metadata:
+      labels:
+        app: fluentd
+        component: structured-logging
+    spec:
+      serviceAccountName: fluentd
+      containers:
+      - name: fluentd
+        image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch7-1
+        env:
+        - name: FLUENT_ELASTICSEARCH_HOST
+          value: "elasticsearch.nephoran-system.svc.cluster.local"
+        - name: FLUENT_ELASTICSEARCH_PORT
+          value: "9200"
+        - name: FLUENT_ELASTICSEARCH_SCHEME
+          value: "http"
+        - name: FLUENTD_SYSTEMD_CONF
+          value: "disable"
+        - name: FLUENT_CONTAINER_TAIL_EXCLUDE_PATH
+          value: /var/log/containers/fluent*
+        - name: FLUENT_CONTAINER_TAIL_PARSER_TYPE
+          value: /^(?<time>.+) (?<stream>stdout|stderr)( (?<logtag>.))? (?<log>.*)$/
+        resources:
+          limits:
+            cpu: 200m
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        - name: fluentd-config
+          mountPath: /fluentd/etc/fluent.conf
+          subPath: fluentd.conf
+        - name: log-buffer
+          mountPath: /var/log/fluentd-buffers
+        ports:
+        - containerPort: 24231
+          name: metrics
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 24231
+          initialDelaySeconds: 60
+          periodSeconds: 60
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 24231
+          initialDelaySeconds: 30
+          periodSeconds: 30
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: fluentd-config
+        configMap:
+          name: structured-logging-config
+      - name: log-buffer
+        emptyDir: {}
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - operator: "Exists"
+        effect: "NoExecute"
+      - operator: "Exists"
+        effect: "NoSchedule"

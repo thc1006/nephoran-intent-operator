@@ -1,0 +1,611 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger-all-in-one
+  namespace: nephoran-system
+  labels:
+    app: jaeger
+    component: all-in-one
+    app.kubernetes.io/name: jaeger
+    app.kubernetes.io/component: all-in-one
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+      component: all-in-one
+  template:
+    metadata:
+      labels:
+        app: jaeger
+        component: all-in-one
+    spec:
+      containers:
+      - name: jaeger
+        image: jaegertracing/all-in-one:1.45
+        args:
+        - --memory.max-traces=50000
+        - --query.base-path=/jaeger
+        - --prometheus.server-url=http://prometheus:9090
+        - --prometheus.query.support-spanmetrics-connector=true
+        env:
+        - name: COLLECTOR_ZIPKIN_HOST_PORT
+          value: ":9411"
+        - name: COLLECTOR_OTLP_ENABLED
+          value: "true"
+        - name: METRICS_STORAGE_TYPE
+          value: prometheus
+        - name: PROMETHEUS_SERVER_URL
+          value: http://prometheus:9090
+        - name: PROMETHEUS_QUERY_SUPPORT_SPANMETRICS_CONNECTOR
+          value: "true"
+        ports:
+        - containerPort: 5775
+          protocol: UDP
+          name: zk-compact-trft
+        - containerPort: 6831
+          protocol: UDP
+          name: jg-compact-trft
+        - containerPort: 6832
+          protocol: UDP
+          name: jg-binary-trft
+        - containerPort: 5778
+          protocol: TCP
+          name: config-rest
+        - containerPort: 16686
+          protocol: TCP
+          name: query
+        - containerPort: 9411
+          protocol: TCP
+          name: zipkin
+        - containerPort: 14250
+          protocol: TCP
+          name: grpc
+        - containerPort: 14268
+          protocol: TCP
+          name: c-tchan-trft
+        - containerPort: 14269
+          protocol: TCP
+          name: admin-http
+        - containerPort: 4317
+          protocol: TCP
+          name: otlp-grpc
+        - containerPort: 4318
+          protocol: TCP
+          name: otlp-http
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 14269
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 14269
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        volumeMounts:
+        - name: jaeger-config
+          mountPath: /etc/jaeger
+        - name: jaeger-storage
+          mountPath: /tmp
+      volumes:
+      - name: jaeger-config
+        configMap:
+          name: jaeger-config
+      - name: jaeger-storage
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-query
+  namespace: nephoran-system
+  labels:
+    app: jaeger
+    component: query
+spec:
+  ports:
+  - name: query-http
+    port: 16686
+    targetPort: 16686
+    protocol: TCP
+  selector:
+    app: jaeger
+    component: all-in-one
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-collector
+  namespace: nephoran-system
+  labels:
+    app: jaeger
+    component: collector
+spec:
+  ports:
+  - name: jaeger-collector-tchannel
+    port: 14267
+    targetPort: 14267
+    protocol: TCP
+  - name: jaeger-collector-http
+    port: 14268
+    targetPort: 14268
+    protocol: TCP
+  - name: jaeger-collector-grpc
+    port: 14250
+    targetPort: 14250
+    protocol: TCP
+  - name: jaeger-collector-zipkin
+    port: 9411
+    targetPort: 9411
+    protocol: TCP
+  - name: otlp-grpc
+    port: 4317
+    targetPort: 4317
+    protocol: TCP
+  - name: otlp-http
+    port: 4318
+    targetPort: 4318
+    protocol: TCP
+  selector:
+    app: jaeger
+    component: all-in-one
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jaeger-agent
+  namespace: nephoran-system
+  labels:
+    app: jaeger
+    component: agent
+spec:
+  ports:
+  - name: agent-zipkin-thrift
+    port: 5775
+    targetPort: 5775
+    protocol: UDP
+  - name: agent-compact
+    port: 6831
+    targetPort: 6831
+    protocol: UDP
+  - name: agent-binary
+    port: 6832
+    targetPort: 6832
+    protocol: UDP
+  - name: agent-configs
+    port: 5778
+    targetPort: 5778
+    protocol: TCP
+  selector:
+    app: jaeger
+    component: all-in-one
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-config
+  namespace: nephoran-system
+  labels:
+    app: jaeger
+    component: config
+data:
+  sampling_strategies.json: |
+    {
+      "service_strategies": [
+        {
+          "service": "llm-processor",
+          "type": "probabilistic",
+          "param": 0.5,
+          "max_traces_per_second": 100,
+          "operation_strategies": [
+            {
+              "operation": "process_network_intent",
+              "type": "probabilistic",
+              "param": 1.0
+            },
+            {
+              "operation": "generate_response",
+              "type": "probabilistic",
+              "param": 0.8
+            }
+          ]
+        },
+        {
+          "service": "rag-api",
+          "type": "probabilistic",
+          "param": 0.3,
+          "max_traces_per_second": 200,
+          "operation_strategies": [
+            {
+              "operation": "document_retrieval",
+              "type": "probabilistic",
+              "param": 1.0
+            },
+            {
+              "operation": "embedding_generation",
+              "type": "probabilistic",
+              "param": 0.6
+            },
+            {
+              "operation": "context_assembly",
+              "type": "probabilistic",
+              "param": 0.8
+            }
+          ]
+        },
+        {
+          "service": "weaviate",
+          "type": "probabilistic",
+          "param": 0.2,
+          "max_traces_per_second": 150,
+          "operation_strategies": [
+            {
+              "operation": "vector_search",
+              "type": "probabilistic",
+              "param": 0.5
+            },
+            {
+              "operation": "object_insert",
+              "type": "probabilistic",
+              "param": 1.0
+            }
+          ]
+        },
+        {
+          "service": "document-processor",
+          "type": "probabilistic",
+          "param": 0.4,
+          "max_traces_per_second": 80,
+          "operation_strategies": [
+            {
+              "operation": "document_chunking",
+              "type": "probabilistic",
+              "param": 0.8
+            },
+            {
+              "operation": "document_parsing",
+              "type": "probabilistic",
+              "param": 1.0
+            }
+          ]
+        },
+        {
+          "service": "networkintent-controller",
+          "type": "probabilistic",
+          "param": 1.0,
+          "max_traces_per_second": 50
+        },
+        {
+          "service": "e2nodeset-controller",
+          "type": "probabilistic",
+          "param": 0.7,
+          "max_traces_per_second": 30
+        },
+        {
+          "service": "oran-adaptor",
+          "type": "probabilistic",
+          "param": 1.0,
+          "max_traces_per_second": 100
+        }
+      ],
+      "default_strategy": {
+        "type": "probabilistic",
+        "param": 0.1,
+        "max_traces_per_second": 50
+      },
+      "per_operation_strategies": [
+        {
+          "operation": "health_check",
+          "type": "probabilistic",
+          "param": 0.01
+        },
+        {
+          "operation": "metrics_collection",
+          "type": "probabilistic",
+          "param": 0.05
+        }
+      ]
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-tracing-config
+  namespace: nephoran-system
+  labels:
+    app: jaeger-config
+    component: tracing-config
+data:
+  tracing.yaml: |
+    # OpenTelemetry configuration for Nephoran components
+    service:
+      name: nephoran-tracing
+      version: "1.0.0"
+      
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      jaeger:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:14250
+          thrift_http:
+            endpoint: 0.0.0.0:14268
+          thrift_compact:
+            endpoint: 0.0.0.0:6831
+          thrift_binary:
+            endpoint: 0.0.0.0:6832
+      zipkin:
+        endpoint: 0.0.0.0:9411
+    
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+        send_batch_max_size: 2048
+      
+      # Add Nephoran-specific attributes
+      attributes:
+        actions:
+        - key: nephoran.version
+          value: "1.0.0"
+          action: insert
+        - key: nephoran.environment
+          from_attribute: k8s.namespace.name
+          action: insert
+        - key: nephoran.component
+          from_attribute: k8s.deployment.name
+          action: insert
+      
+      # Resource detection
+      resource:
+        detectors: [env, system, k8sattributes]
+        timeout: 5s
+        override: false
+      
+      # Memory limiter
+      memory_limiter:
+        check_interval: 1s
+        limit_mib: 512
+      
+      # Span metrics
+      spanmetrics:
+        metrics_exporter: prometheus
+        latency_histogram_buckets: [2ms, 5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 2s, 5s, 10s, 30s, 60s]
+        dimensions:
+        - name: nephoran.component
+        - name: nephoran.intent_type
+        - name: nephoran.operation
+        - name: http.method
+        - name: http.status_code
+    
+    exporters:
+      # Jaeger exporter
+      jaeger:
+        endpoint: jaeger-collector:14250
+        tls:
+          insecure: true
+      
+      # Prometheus metrics exporter
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        namespace: nephoran_tracing
+        const_labels:
+          environment: "production"
+      
+      # OTLP exporter for other backends
+      otlp:
+        endpoint: jaeger-collector:4317
+        tls:
+          insecure: true
+      
+      # Debug exporter for development
+      debug:
+        verbosity: detailed
+    
+    extensions:
+      health_check:
+        endpoint: 0.0.0.0:13133
+      pprof:
+        endpoint: 0.0.0.0:1777
+      zpages:
+        endpoint: 0.0.0.0:55679
+    
+    service:
+      extensions: [health_check, pprof, zpages]
+      pipelines:
+        traces:
+          receivers: [otlp, jaeger, zipkin]
+          processors: [memory_limiter, resource, attributes, batch]
+          exporters: [jaeger, debug]
+        
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, resource, batch]
+          exporters: [prometheus]
+      
+      telemetry:
+        logs:
+          level: "info"
+        metrics:
+          address: 0.0.0.0:8888
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  namespace: nephoran-system
+  labels:
+    app: otel-collector
+    component: tracing
+    app.kubernetes.io/name: otel-collector
+    app.kubernetes.io/component: tracing
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: otel-collector
+      component: tracing
+  template:
+    metadata:
+      labels:
+        app: otel-collector
+        component: tracing
+    spec:
+      containers:
+      - name: otel-collector
+        image: otel/opentelemetry-collector-contrib:0.78.0
+        args:
+        - --config=/etc/otel-collector-config/tracing.yaml
+        ports:
+        - containerPort: 4317
+          name: otlp-grpc
+          protocol: TCP
+        - containerPort: 4318
+          name: otlp-http
+          protocol: TCP
+        - containerPort: 14250
+          name: jaeger-grpc
+          protocol: TCP
+        - containerPort: 14268
+          name: jaeger-http
+          protocol: TCP
+        - containerPort: 9411
+          name: zipkin
+          protocol: TCP
+        - containerPort: 8889
+          name: prometheus
+          protocol: TCP
+        - containerPort: 13133
+          name: health
+          protocol: TCP
+        env:
+        - name: K8S_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: K8S_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: K8S_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: K8S_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        resources:
+          limits:
+            cpu: 300m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        volumeMounts:
+        - name: otel-collector-config
+          mountPath: /etc/otel-collector-config
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 10
+          periodSeconds: 10
+      volumes:
+      - name: otel-collector-config
+        configMap:
+          name: jaeger-tracing-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  namespace: nephoran-system
+  labels:
+    app: otel-collector
+    component: tracing
+spec:
+  ports:
+  - name: otlp-grpc
+    port: 4317
+    targetPort: 4317
+    protocol: TCP
+  - name: otlp-http
+    port: 4318
+    targetPort: 4318
+    protocol: TCP
+  - name: jaeger-grpc
+    port: 14250
+    targetPort: 14250
+    protocol: TCP
+  - name: jaeger-http
+    port: 14268
+    targetPort: 14268
+    protocol: TCP
+  - name: zipkin
+    port: 9411
+    targetPort: 9411
+    protocol: TCP
+  - name: prometheus
+    port: 8889
+    targetPort: 8889
+    protocol: TCP
+  selector:
+    app: otel-collector
+    component: tracing
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jaeger-query
+  namespace: nephoran-system
+  labels:
+    app: jaeger
+    component: query
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  tls:
+  - hosts:
+    - jaeger.nephoran.local
+    secretName: jaeger-tls
+  rules:
+  - host: jaeger.nephoran.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: jaeger-query
+            port:
+              number: 16686

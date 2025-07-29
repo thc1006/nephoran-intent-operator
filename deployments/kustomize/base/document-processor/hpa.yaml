@@ -1,0 +1,85 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: document-processor
+  labels:
+    app: document-processor
+    component: document-processing
+    app.kubernetes.io/name: document-processor
+    app.kubernetes.io/component: document-processing
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: document-processor
+  minReplicas: 1
+  maxReplicas: 15
+  metrics:
+  # CPU-based scaling for intensive document processing
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Memory-based scaling for large document handling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 85
+  # Document processing queue depth
+  - type: Pods
+    pods:
+      metric:
+        name: document_processing_queue_depth
+      target:
+        type: AverageValue
+        averageValue: "5"
+  # Document chunking operations per second
+  - type: Pods
+    pods:
+      metric:
+        name: document_chunking_ops_per_second
+      target:
+        type: AverageValue
+        averageValue: "10"
+  # Embedding generation backlog
+  - type: Pods
+    pods:
+      metric:
+        name: embedding_generation_backlog
+      target:
+        type: AverageValue
+        averageValue: "50"
+  # Document processing latency
+  - type: Pods
+    pods:
+      metric:
+        name: document_processing_latency_p95
+      target:
+        type: AverageValue
+        averageValue: "30" # 30 seconds
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600 # 10 minutes for document processing
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 120
+      - type: Pods
+        value: 1
+        periodSeconds: 120
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+      - type: Percent
+        value: 200
+        periodSeconds: 60
+      - type: Pods
+        value: 5
+        periodSeconds: 60
+      selectPolicy: Max

@@ -1,0 +1,200 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: llm-processor-scaledobject
+  namespace: nephoran-system
+  labels:
+    app: llm-processor
+    component: ai-processing
+spec:
+  scaleTargetRef:
+    name: llm-processor
+  minReplicaCount: 2
+  maxReplicaCount: 20
+  pollingInterval: 30
+  cooldownPeriod: 300
+  idleReplicaCount: 2
+  triggers:
+  # Prometheus-based scaling for LLM request queue
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: llm_request_queue_depth
+      threshold: '10'
+      query: avg(rate(nephoran_llm_request_queue_depth[5m]))
+  # Prometheus-based scaling for request rate
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: llm_requests_per_second
+      threshold: '5'
+      query: rate(nephoran_llm_requests_total[5m])
+  # Memory-based scaling
+  - type: memory
+    metadata:
+      type: Utilization
+      value: '80'
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: rag-api-scaledobject
+  namespace: nephoran-system
+  labels:
+    app: rag-api
+    component: knowledge-retrieval
+spec:
+  scaleTargetRef:
+    name: rag-api
+  minReplicaCount: 2
+  maxReplicaCount: 15
+  pollingInterval: 30
+  cooldownPeriod: 200
+  idleReplicaCount: 2
+  triggers:
+  # Prometheus-based scaling for RAG query rate
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: rag_query_rate
+      threshold: '20'
+      query: rate(rag_queries_total[5m])
+  # Prometheus-based scaling for document processing queue
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: document_processing_queue
+      threshold: '15'
+      query: avg(rag_document_processing_queue_depth)
+  # Prometheus-based scaling for embedding generation
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: embedding_generation_rate
+      threshold: '30'
+      query: rate(rag_embeddings_total[5m])
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: weaviate-scaledobject
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: vector-database
+spec:
+  scaleTargetRef:
+    name: weaviate
+  minReplicaCount: 2
+  maxReplicaCount: 8
+  pollingInterval: 60
+  cooldownPeriod: 600
+  idleReplicaCount: 2
+  triggers:
+  # Prometheus-based scaling for vector operations
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: weaviate_operations_rate
+      threshold: '100'
+      query: rate(weaviate_requests_total[5m])
+  # Prometheus-based scaling for query latency
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: weaviate_query_latency
+      threshold: '500'
+      query: histogram_quantile(0.95, rate(weaviate_request_duration_seconds_bucket[5m])) * 1000
+  # CPU-based scaling
+  - type: cpu
+    metadata:
+      type: Utilization
+      value: '70'
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: document-processor-scaledobject
+  namespace: nephoran-system
+  labels:
+    app: document-processor
+    component: document-processing
+spec:
+  scaleTargetRef:
+    name: document-processor
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  pollingInterval: 30
+  cooldownPeriod: 600
+  idleReplicaCount: 1
+  triggers:
+  # Redis queue-based scaling for document processing
+  - type: redis
+    metadata:
+      address: redis:6379
+      listName: document_processing_queue
+      listLength: '5'
+      enableTLS: 'false'
+  # Prometheus-based scaling for processing rate
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: document_processing_rate
+      threshold: '10'
+      query: rate(document_processing_ops_total[5m])
+  # Prometheus-based scaling for chunking operations
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: document_chunking_rate
+      threshold: '15'
+      query: rate(document_chunking_ops_total[5m])
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: knowledge-base-indexer
+  namespace: nephoran-system
+  labels:
+    app: knowledge-base-indexer
+    component: batch-processing
+spec:
+  jobTargetRef:
+    template:
+      metadata:
+        labels:
+          app: knowledge-base-indexer
+      spec:
+        containers:
+        - name: indexer
+          image: nephoran/knowledge-base-indexer:latest
+          env:
+          - name: WEAVIATE_URL
+            value: "http://weaviate:8080"
+          - name: REDIS_URL
+            value: "redis://redis:6379"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+        restartPolicy: OnFailure
+  pollingInterval: 300 # 5 minutes
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  triggers:
+  # Redis queue-based job scaling
+  - type: redis
+    metadata:
+      address: redis:6379
+      listName: knowledge_base_indexing_queue
+      listLength: '1'
+      enableTLS: 'false'
+  # Cron-based periodic indexing
+  - type: cron
+    metadata:
+      timezone: UTC
+      start: "0 2 * * *"  # Daily at 2 AM
+      end: "0 3 * * *"    # End at 3 AM

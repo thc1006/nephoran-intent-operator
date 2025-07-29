@@ -1,0 +1,103 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: weaviate
+  labels:
+    app: weaviate
+    component: vector-database
+    app.kubernetes.io/name: weaviate
+    app.kubernetes.io/component: vector-database
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: weaviate
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Custom metrics for query load
+  - type: Pods
+    pods:
+      metric:
+        name: weaviate_queries_per_second
+      target:
+        type: AverageValue
+        averageValue: "100"
+  # Custom metrics for vector operations
+  - type: Pods
+    pods:
+      metric:
+        name: weaviate_vector_operations_per_second
+      target:
+        type: AverageValue
+        averageValue: "50"
+  # Response time based scaling
+  - type: Pods
+    pods:
+      metric:
+        name: weaviate_response_time_p95
+      target:
+        type: AverageValue
+        averageValue: "500m" # 500ms
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 20
+        periodSeconds: 60
+      - type: Pods
+        value: 1
+        periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Max
+---
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: weaviate-hpa-metrics
+  labels:
+    app: weaviate
+    component: vector-database
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: weaviate
+  endpoints:
+  - port: monitoring
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    honorLabels: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'weaviate_.*'
+      action: keep
+    - sourceLabels: [__name__]
+      targetLabel: component
+      replacement: 'weaviate'

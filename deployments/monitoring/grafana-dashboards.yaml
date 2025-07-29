@@ -1,0 +1,659 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-rag-overview
+  namespace: nephoran-system
+  labels:
+    app: grafana
+    component: dashboards
+    grafana_dashboard: "1"
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: dashboards
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  rag-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran RAG System Overview",
+        "tags": ["nephoran", "rag", "overview"],
+        "style": "dark",
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "RAG Query Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(rag_queries_total[5m])",
+                "legendFormat": "Queries/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "red", "value": 50}
+                  ]
+                },
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Query Latency P95",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(rag_query_latency_seconds_bucket[5m]))",
+                "legendFormat": "P95 Latency"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 2},
+                    {"color": "red", "value": 5}
+                  ]
+                },
+                "unit": "s"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Document Processing Queue",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rag_document_processing_queue_depth",
+                "legendFormat": "Queue Depth"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 20},
+                    {"color": "red", "value": 50}
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Cache Hit Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rag_cache_hit_rate",
+                "legendFormat": "Hit Rate"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 0.6},
+                    {"color": "green", "value": 0.8}
+                  ]
+                },
+                "unit": "percentunit",
+                "min": 0,
+                "max": 1
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+          },
+          {
+            "id": 5,
+            "title": "Query Processing Over Time",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(rag_queries_total[5m])",
+                "legendFormat": "Query Rate"
+              },
+              {
+                "expr": "rate(rag_errors_total{component=\"query_processing\"}[5m])",
+                "legendFormat": "Error Rate"
+              }
+            ],
+            "xAxis": {
+              "show": true
+            },
+            "yAxes": [
+              {
+                "label": "Queries/sec",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 9, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "Embedding Generation Performance",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(rag_embeddings_total[5m])",
+                "legendFormat": "Embeddings/sec"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(rag_embedding_latency_seconds_bucket[5m]))",
+                "legendFormat": "P95 Latency"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Rate/Latency",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 9, "w": 12, "x": 12, "y": 8}
+          }
+        ]
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-llm-performance
+  namespace: nephoran-system
+  labels:
+    app: grafana
+    component: dashboards
+    grafana_dashboard: "1"
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: dashboards
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  llm-performance.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "LLM Processor Performance",
+        "tags": ["nephoran", "llm", "performance"],
+        "style": "dark",
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+          "from": "now-2h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 10,
+            "title": "LLM Request Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(nephoran_llm_requests_total[5m])",
+                "legendFormat": "Total Requests/sec"
+              },
+              {
+                "expr": "rate(nephoran_networkintent_llm_duration_seconds_count{status=\"success\"}[5m])",
+                "legendFormat": "Successful Requests/sec"
+              },
+              {
+                "expr": "rate(nephoran_networkintent_llm_duration_seconds_count{status=\"error\"}[5m])",
+                "legendFormat": "Failed Requests/sec"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Requests/sec",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 11,
+            "title": "LLM Processing Latency",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P50"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P95"
+              },
+              {
+                "expr": "histogram_quantile(0.99, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P99"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Seconds",
+                "show": true,
+                "logBase": 1
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 12,
+            "title": "Token Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(nephoran_llm_tokens_used_total[5m])",
+                "legendFormat": "Tokens/sec"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Tokens/sec",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 13,
+            "title": "LLM Pod Scaling",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "kube_deployment_status_replicas{deployment=\"llm-processor\"}",
+                "legendFormat": "Current Replicas"
+              },
+              {
+                "expr": "kube_deployment_spec_replicas{deployment=\"llm-processor\"}",
+                "legendFormat": "Desired Replicas"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Replicas",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 14,
+            "title": "Model Performance by Type",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "rate(nephoran_networkintent_llm_duration_seconds_count[5m])",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {},
+                  "indexByName": {},
+                  "renameByName": {
+                    "model": "Model",
+                    "status": "Status",
+                    "Value": "Requests/sec"
+                  }
+                }
+              }
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+          }
+        ]
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-weaviate-performance
+  namespace: nephoran-system
+  labels:
+    app: grafana
+    component: dashboards
+    grafana_dashboard: "1"
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: dashboards
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  weaviate-performance.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Weaviate Vector Database Performance",
+        "tags": ["nephoran", "weaviate", "vector-database"],
+        "style": "dark",
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 20,
+            "title": "Vector Operations Rate",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(weaviate_requests_total{operation=\"query\"}[5m])",
+                "legendFormat": "Queries/sec"
+              },
+              {
+                "expr": "rate(weaviate_requests_total{operation=\"insert\"}[5m])",
+                "legendFormat": "Inserts/sec"
+              },
+              {
+                "expr": "rate(weaviate_requests_total{operation=\"update\"}[5m])",
+                "legendFormat": "Updates/sec"
+              },
+              {
+                "expr": "rate(weaviate_requests_total{operation=\"delete\"}[5m])",
+                "legendFormat": "Deletes/sec"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Operations/sec",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 21,
+            "title": "Query Response Time",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, rate(weaviate_request_duration_seconds_bucket[5m])) * 1000",
+                "legendFormat": "P50 (ms)"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(weaviate_request_duration_seconds_bucket[5m])) * 1000",
+                "legendFormat": "P95 (ms)"
+              },
+              {
+                "expr": "histogram_quantile(0.99, rate(weaviate_request_duration_seconds_bucket[5m])) * 1000",
+                "legendFormat": "P99 (ms)"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Milliseconds",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 22,
+            "title": "Object Count",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "weaviate_objects_total",
+                "legendFormat": "Total Objects"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 100000},
+                    {"color": "red", "value": 1000000}
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 8}
+          },
+          {
+            "id": 23,
+            "title": "Memory Usage",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "weaviate_memory_usage_bytes",
+                "legendFormat": "Memory Usage"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Bytes",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 18, "x": 6, "y": 8}
+          },
+          {
+            "id": 24,
+            "title": "Disk Usage by Class",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "weaviate_disk_usage_bytes",
+                "legendFormat": "{{class}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Bytes",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
+          }
+        ]
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-telecom-workload
+  namespace: nephoran-system
+  labels:
+    app: grafana
+    component: dashboards
+    grafana_dashboard: "1"
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: dashboards
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  telecom-workload.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Telecom Workload Analytics",
+        "tags": ["nephoran", "telecom", "workload"],
+        "style": "dark",
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+          "from": "now-4h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 30,
+            "title": "NetworkIntent Processing",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "nephoran:networkintent_processing_rate",
+                "legendFormat": "Processing Rate"
+              },
+              {
+                "expr": "nephoran:networkintent_queue_depth",
+                "legendFormat": "Queue Depth"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Rate/Depth",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 31,
+            "title": "O-RAN Interface Load",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "nephoran:oran_interface_load",
+                "legendFormat": "{{interface}} Load"
+              },
+              {
+                "expr": "nephoran:oran_error_rate",
+                "legendFormat": "{{interface}} Error Rate"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Requests/sec",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 32,
+            "title": "E2NodeSet Scaling Activity",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "nephoran:e2nodeset_scaling_pressure",
+                "legendFormat": "Scaling Pressure"
+              },
+              {
+                "expr": "rate(nephoran_e2nodeset_scaling_events_total{direction=\"up\"}[5m])",
+                "legendFormat": "Scale Up Events"
+              },
+              {
+                "expr": "rate(nephoran_e2nodeset_scaling_events_total{direction=\"down\"}[5m])",
+                "legendFormat": "Scale Down Events"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Events/Pressure",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 33,
+            "title": "System Resource Pressure",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "nephoran:resource_pressure",
+                "legendFormat": "Overall Pressure"
+              },
+              {
+                "expr": "nephoran_resource_utilization{resource_type=\"cpu\",unit=\"percent\"} / 100",
+                "legendFormat": "CPU Utilization"
+              },
+              {
+                "expr": "nephoran_resource_utilization{resource_type=\"memory\",unit=\"percent\"} / 100",
+                "legendFormat": "Memory Utilization"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Utilization (0-1)",
+                "show": true,
+                "max": 1,
+                "min": 0
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 34,
+            "title": "Telecom Workload Intensity Score",
+            "type": "singlestat",
+            "targets": [
+              {
+                "expr": "nephoran:telecom_workload_intensity",
+                "legendFormat": "Intensity Score"
+              }
+            ],
+            "valueName": "current",
+            "colorBackground": true,
+            "thresholds": "50,100",
+            "colors": ["#56A64B", "#F2CC0C", "#C4162A"],
+            "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16}
+          },
+          {
+            "id": 35,
+            "title": "Performance Indicators",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "nephoran:llm_processing_efficiency",
+                "legendFormat": "LLM Efficiency"
+              },
+              {
+                "expr": "nephoran:rag_retrieval_efficiency",
+                "legendFormat": "RAG Efficiency"
+              },
+              {
+                "expr": "nephoran:cache_performance_index",
+                "legendFormat": "Cache Performance"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Efficiency Index",
+                "show": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 16, "x": 8, "y": 16}
+          }
+        ]
+      }
+    }
