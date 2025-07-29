@@ -175,6 +175,75 @@ spec:
         - name: GIT_BRANCH
           value: "$(GIT_BRANCH)"
         
+        # OAuth2 Authentication Configuration
+        - name: AUTH_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: oauth2-environment
+              key: AUTH_ENABLED
+        - name: REQUIRE_AUTH
+          valueFrom:
+            configMapKeyRef:
+              name: oauth2-environment
+              key: REQUIRE_AUTH
+        - name: AUTH_CONFIG_FILE
+          valueFrom:
+            configMapKeyRef:
+              name: oauth2-environment
+              key: AUTH_CONFIG_FILE
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-secrets
+              key: jwt-secret-key
+        - name: RBAC_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: oauth2-environment
+              key: RBAC_ENABLED
+        - name: DEFAULT_ROLE
+          valueFrom:
+            configMapKeyRef:
+              name: oauth2-environment
+              key: DEFAULT_ROLE
+        - name: ADMIN_USERS
+          valueFrom:
+            configMapKeyRef:
+              name: oauth2-environment
+              key: ADMIN_USERS
+        - name: OPERATOR_USERS
+          valueFrom:
+            configMapKeyRef:
+              name: oauth2-environment
+              key: OPERATOR_USERS
+        
+        # Azure AD Configuration
+        - name: AZURE_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: oauth2-environment
+              key: AZURE_ENABLED
+        - name: AZURE_CLIENT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: oauth2-environment
+              key: AZURE_CLIENT_ID
+        - name: AZURE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: oauth2-secrets
+              key: azure-client-secret
+        - name: AZURE_TENANT_ID
+          valueFrom:
+            configMapKeyRef:
+              name: oauth2-environment
+              key: AZURE_TENANT_ID
+        - name: AZURE_SCOPES
+          valueFrom:
+            configMapKeyRef:
+              name: oauth2-environment
+              key: AZURE_SCOPES
+        
         # Health Checks
         livenessProbe:
           httpGet:
@@ -249,6 +318,9 @@ spec:
         - name: var-run
           mountPath: /var/run
           readOnly: false
+        - name: oauth2-config
+          mountPath: /config
+          readOnly: true
       
       # Pod-level configurations
       restartPolicy: Always
@@ -287,3 +359,7 @@ spec:
       - name: var-run
         emptyDir:
           sizeLimit: 100Mi
+      - name: oauth2-config
+        configMap:
+          name: oauth2-config
+          defaultMode: 0444
