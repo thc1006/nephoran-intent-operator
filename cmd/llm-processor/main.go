@@ -8,10 +8,13 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
+	"github.com/gorilla/mux"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
@@ -88,6 +91,14 @@ type Config struct {
 	MaxRetries   int
 	RetryDelay   time.Duration
 	RetryBackoff string
+
+	// OAuth2 Authentication Configuration
+	AuthEnabled        bool
+	AuthConfigFile     string
+	JWTSecretKey       string
+	RequireAuth        bool
+	AdminUsers         []string
+	OperatorUsers      []string
 }
 
 // Request/Response structures
@@ -143,31 +154,77 @@ func main() {
 		slog.String("model", config.LLMModelName),
 	)
 
-	// Set up HTTP server
-	mux := http.NewServeMux()
-
-	// Health endpoints
-	mux.HandleFunc("/healthz", healthzHandler)
-	mux.HandleFunc("/readyz", readyzHandler)
-
-	// Main processing endpoint
-	mux.HandleFunc("/process", processIntentHandler)
+	// Set up HTTP server with authentication
+	router := mux.NewRouter()
 	
-	// Streaming endpoint
-	if config.StreamingEnabled {
-		mux.HandleFunc("/stream", streamingHandler)
+	// Initialize OAuth2 middleware if enabled
+	var authMiddleware *auth.AuthMiddleware
+	if config.AuthEnabled {
+		authConfig, err := auth.LoadAuthConfig()
+		if err != nil {
+			logger.Error("Failed to load auth config", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+		
+		oauth2Config, err := authConfig.ToOAuth2Config()
+		if err != nil {
+			logger.Error("Failed to create OAuth2 config", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+		
+		authMiddleware = auth.NewAuthMiddleware(oauth2Config, []byte(config.JWTSecretKey))
+		
+		// OAuth2 authentication routes
+		router.HandleFunc("/auth/login/{provider}", authMiddleware.LoginHandler).Methods("GET")
+		router.HandleFunc("/auth/callback/{provider}", authMiddleware.CallbackHandler).Methods("GET")
+		router.HandleFunc("/auth/refresh", authMiddleware.RefreshHandler).Methods("POST")
+		router.HandleFunc("/auth/logout", authMiddleware.LogoutHandler).Methods("POST")
+		router.HandleFunc("/auth/userinfo", authMiddleware.UserInfoHandler).Methods("GET")
+		
+		logger.Info("OAuth2 authentication enabled", 
+			slog.Int("providers", len(oauth2Config.Providers)))
 	}
 
-	// Status endpoint
-	mux.HandleFunc("/status", statusHandler)
-	
-	// Metrics endpoints
-	mux.HandleFunc("/metrics", metricsHandler)
-	mux.HandleFunc("/circuit-breaker/status", circuitBreakerStatusHandler)
+	// Public health endpoints (no authentication required)
+	router.HandleFunc("/healthz", healthzHandler).Methods("GET")
+	router.HandleFunc("/readyz", readyzHandler).Methods("GET")
+	router.HandleFunc("/metrics", metricsHandler).Methods("GET")
+
+	// Protected endpoints
+	if config.AuthEnabled && config.RequireAuth {
+		// Apply authentication middleware to protected routes
+		protectedRouter := router.PathPrefix("/").Subrouter()
+		protectedRouter.Use(authMiddleware.Authenticate)
+		
+		// Main processing endpoint - requires operator role
+		protectedRouter.HandleFunc("/process", processIntentHandler).Methods("POST")
+		protectedRouter.Use(authMiddleware.RequireOperator())
+		
+		// Streaming endpoint - requires operator role
+		if config.StreamingEnabled {
+			protectedRouter.HandleFunc("/stream", streamingHandler).Methods("POST")
+		}
+		
+		// Admin endpoints - requires admin role
+		adminRouter := protectedRouter.PathPrefix("/admin").Subrouter()
+		adminRouter.Use(authMiddleware.RequireAdmin())
+		adminRouter.HandleFunc("/status", statusHandler).Methods("GET")
+		adminRouter.HandleFunc("/circuit-breaker/status", circuitBreakerStatusHandler).Methods("GET")
+		
+	} else {
+		// No authentication required - direct routes
+		router.HandleFunc("/process", processIntentHandler).Methods("POST")
+		router.HandleFunc("/status", statusHandler).Methods("GET")
+		router.HandleFunc("/circuit-breaker/status", circuitBreakerStatusHandler).Methods("GET")
+		
+		if config.StreamingEnabled {
+			router.HandleFunc("/stream", streamingHandler).Methods("POST")
+		}
+	}
 
 	server := &http.Server{
 		Addr:         ":" + config.Port,
-		Handler:      mux,
+		Handler:      router,
 		ReadTimeout:  config.RequestTimeout,
 		WriteTimeout: config.RequestTimeout,
 		IdleTimeout:  2 * time.Minute,
@@ -307,6 +364,14 @@ func loadConfig() *Config {
 		MaxRetries:   parseInt(getEnv("MAX_RETRIES", "3")),
 		RetryDelay:   parseDuration(getEnv("RETRY_DELAY", "1s")),
 		RetryBackoff: getEnv("RETRY_BACKOFF", "exponential"),
+
+		// OAuth2 Authentication Configuration
+		AuthEnabled:    parseBool(getEnv("AUTH_ENABLED", "false")),
+		AuthConfigFile: getEnv("AUTH_CONFIG_FILE", ""),
+		JWTSecretKey:   getEnv("JWT_SECRET_KEY", ""),
+		RequireAuth:    parseBool(getEnv("REQUIRE_AUTH", "true")),
+		AdminUsers:     parseStringSlice(getEnv("ADMIN_USERS", "")),
+		OperatorUsers:  parseStringSlice(getEnv("OPERATOR_USERS", "")),
 	}
 }
 
@@ -486,6 +551,19 @@ func parseInt64(s string) int64 {
 
 func parseBool(s string) bool {
 	return s == "true" || s == "1"
+}
+
+func parseStringSlice(s string) []string {
+	if s == "" {
+		return []string{}
+	}
+	result := []string{}
+	for _, item := range strings.Split(s, ",") {
+		if trimmed := strings.TrimSpace(item); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
 
 func markReady(isReady bool) {
