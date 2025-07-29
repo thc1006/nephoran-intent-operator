@@ -93,11 +93,47 @@ performance:
 
 # Global configuration
 global:
-  # Configurable storage classes to avoid hardcoded dependencies
+  # Dynamic storage class detection - auto-detects cloud provider
   storageClass:
-    primary: "gp3"  # AWS GP3 for general purpose workloads
-    backup: "gp2"   # AWS GP2 for backup storage (cost-effective)
-    fast: "io2"     # AWS IO2 for high-performance workloads
+    # Auto-detection based on available storage classes in cluster
+    autoDetect: true
+    # Cloud provider preference order for auto-detection
+    preferenceOrder: ["aws", "gcp", "azure", "generic"]
+    # Provider-specific storage class mappings
+    providers:
+      aws:
+        primary: "gp3-encrypted"  # AWS GP3 for general purpose workloads
+        backup: "gp2-encrypted"   # AWS GP2 for backup storage (cost-effective)
+        fast: "io2-encrypted"     # AWS IO2 for high-performance workloads
+        validation:
+          csiDriver: "ebs.csi.aws.com"
+          features: ["encryption", "resize", "snapshot"]
+      gcp:
+        primary: "ssd-encrypted"      # GCP SSD persistent disk
+        backup: "standard-encrypted"  # GCP standard persistent disk
+        fast: "ssd-encrypted"         # GCP SSD for high-performance
+        validation:
+          csiDriver: "pd.csi.storage.gke.io"
+          features: ["encryption", "resize", "snapshot"]
+      azure:
+        primary: "managed-premium"    # Azure Premium SSD
+        backup: "managed-standard"    # Azure Standard HDD
+        fast: "managed-premium"       # Azure Premium SSD
+        validation:
+          csiDriver: "disk.csi.azure.com"
+          features: ["encryption", "resize"]
+      generic:
+        primary: "default"    # Generic default storage class
+        backup: "default"     # Generic default for backup
+        fast: "default"       # Generic default for fast access
+        validation:
+          csiDriver: ""
+          features: []
+    # Manual override for specific storage classes (takes precedence over auto-detection)
+    override:
+      primary: ""    # Set to specific storage class name to override
+      backup: ""     # Set to specific storage class name to override
+      fast: ""       # Set to specific storage class name to override
   namespace: "nephoran-system"
   environment: "production"
   region: "us-east-1"  # AWS region for multi-AZ deployment
@@ -124,15 +160,15 @@ weaviate:
     minAvailable: 1
     maxUnavailable: 1
     
-  # Resource configuration for production workloads - optimized for telecom processing
+  # Resource configuration for production workloads - optimized based on analysis
   resources:
     requests:
-      memory: "8Gi"   # Increased for large telecom document corpus
-      cpu: "2000m"    # 2 CPU cores minimum for vector processing
+      memory: "2Gi"   # Optimized from 8Gi based on usage analysis
+      cpu: "500m"     # Optimized from 2000m based on usage analysis
       ephemeral-storage: "20Gi"
     limits:
-      memory: "32Gi"  # Maximum 32GB for large vector operations
-      cpu: "8000m"    # Up to 8 CPU cores for peak loads
+      memory: "8Gi"   # Optimized from 32Gi based on usage analysis
+      cpu: "2000m"    # Optimized from 8000m based on usage analysis
       ephemeral-storage: "100Gi"
       
   # Horizontal Pod Autoscaler configuration with custom metrics
@@ -200,9 +236,9 @@ weaviate:
     TRACK_VECTOR_DIMENSIONS: "true"
     INDEXING_CLEANUP_INTERVAL_SECONDS: "180"  # More frequent cleanup for active workloads
     VECTOR_CACHE_MAX_OBJECTS: "2000000"       # Increased cache for telecom documents
-    # Advanced indexing configuration
-    HNSW_MAX_CONNECTIONS: "32"               # Optimized for high-dimensional vectors
-    HNSW_EF_CONSTRUCTION: "256"              # Higher quality index construction
+    # Advanced indexing configuration - optimized for telecom domain
+    HNSW_MAX_CONNECTIONS: "16"               # Optimized for telecom workload balance
+    HNSW_EF_CONSTRUCTION: "128"              # Balanced quality vs performance
     HNSW_EF: "64"                            # Balanced search vs speed
     # Memory management
     MEMORY_WARNING_PERCENTAGE: "80"          # Warn at 80% memory usage
@@ -225,29 +261,40 @@ weaviate:
   persistence:
     enabled: true
     size: 1Ti  # 1TB for comprehensive telecom documentation corpus
-    storageClass: ""  # Will be set dynamically based on cloud provider
+    # Dynamic storage class resolution - will use global.storageClass.providers[detected_provider].primary
+    storageClass: "{{ .Values.global.storageClass.override.primary | default .Values.global.storageClass.providers[.Values.global.detectedProvider].primary }}"
     accessModes:
       - ReadWriteOnce
     annotations:
-      volume.beta.kubernetes.io/storage-provisioner: "ebs.cse.aws.com"  # Updated CSI driver
-      volume.kubernetes.io/storage-resizer: "ebs.cse.aws.com"
-    # Multi-tier storage configuration
+      # Dynamic CSI driver detection based on cloud provider
+      volume.beta.kubernetes.io/storage-provisioner: "{{ .Values.global.storageClass.providers[.Values.global.detectedProvider].validation.csiDriver }}"
+      volume.kubernetes.io/storage-resizer: "{{ .Values.global.storageClass.providers[.Values.global.detectedProvider].validation.csiDriver }}"
+    # Multi-tier storage configuration with dynamic class resolution
     tiers:
       hot:
         enabled: true
         size: 500Gi
-        storageClass: "gp3-encrypted"  # Fast access for active data
-        iops: 10000
-        throughput: 250  # MB/s
+        storageClass: "{{ .Values.global.storageClass.override.fast | default .Values.global.storageClass.providers[.Values.global.detectedProvider].fast }}"
+        # Provider-specific performance parameters
+        performance:
+          aws:
+            iops: 10000
+            throughput: 250  # MB/s
+          gcp:
+            replicationFactor: 2
+            diskType: "pd-ssd"
+          azure:
+            diskSizeGB: 512
+            diskIOPSReadWrite: 5000
       warm:
         enabled: true
         size: 500Gi
-        storageClass: "gp2-encrypted"  # Standard access for less active data
+        storageClass: "{{ .Values.global.storageClass.override.primary | default .Values.global.storageClass.providers[.Values.global.detectedProvider].primary }}"
     # Backup persistence for disaster recovery
     backup:
       enabled: true
       size: 500Gi  # Increased backup storage
-      storageClass: "sc1-encrypted"  # Cold HDD for cost-effective backup
+      storageClass: "{{ .Values.global.storageClass.override.backup | default .Values.global.storageClass.providers[.Values.global.detectedProvider].backup }}"
       accessModes:
         - ReadWriteOnce
       # Snapshot configuration
@@ -313,22 +360,22 @@ backup:
       enabled: true
       schedule: "0 * * * *"  # Every hour
       retention: "24h"
-      storageClass: "gp3-encrypted"
+      storageClass: "{{ .Values.global.storageClass.override.fast | default .Values.global.storageClass.providers[.Values.global.detectedProvider].fast }}"
     daily:
       enabled: true
       schedule: "0 2 * * *"  # Daily at 2 AM
       retention: "30d"
-      storageClass: "gp2-encrypted"
+      storageClass: "{{ .Values.global.storageClass.override.primary | default .Values.global.storageClass.providers[.Values.global.detectedProvider].primary }}"
     weekly:
       enabled: true
       schedule: "0 2 * * 0"  # Weekly on Sunday
       retention: "12w"
-      storageClass: "sc1-encrypted"
+      storageClass: "{{ .Values.global.storageClass.override.backup | default .Values.global.storageClass.providers[.Values.global.detectedProvider].backup }}"
     monthly:
       enabled: true
       schedule: "0 2 1 * *"  # Monthly on 1st
       retention: "12m"
-      storageClass: "sc1-encrypted"
+      storageClass: "{{ .Values.global.storageClass.override.backup | default .Values.global.storageClass.providers[.Values.global.detectedProvider].backup }}"
   # Cross-region backup for disaster recovery
   crossRegion:
     enabled: true

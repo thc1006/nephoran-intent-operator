@@ -119,14 +119,33 @@ spec:
           value: "true"
         - name: PROMETHEUS_MONITORING_GROUP
           value: "true"
+        # Optimized HNSW parameters for telecom domain
+        - name: HNSW_MAX_CONNECTIONS
+          value: "16"      # Optimized for high-dimensional vectors
+        - name: HNSW_EF_CONSTRUCTION
+          value: "128"     # Higher quality index construction
+        - name: HNSW_EF
+          value: "64"      # Balanced search vs speed
+        # Memory management optimizations
+        - name: MEMORY_WARNING_PERCENTAGE
+          value: "80"      # Warn at 80% memory usage
+        - name: MEMORY_LIMIT_PERCENTAGE
+          value: "90"      # Limit at 90% memory usage
+        # Query optimization
+        - name: QUERY_NESTED_CROSS_REFERENCE_LIMIT
+          value: "10000"
+        - name: QUERY_SLOW_LOG_ENABLED
+          value: "true"
+        - name: QUERY_SLOW_LOG_THRESHOLD
+          value: "1s"
         resources:
           requests:
-            memory: "4Gi"
-            cpu: "1000m"
+            memory: "2Gi"    # Optimized from 4Gi based on analysis
+            cpu: "500m"      # Optimized from 1000m based on analysis  
             ephemeral-storage: "10Gi"
           limits:
-            memory: "16Gi"
-            cpu: "4000m"
+            memory: "8Gi"    # Optimized from 16Gi based on analysis
+            cpu: "2000m"     # Optimized from 4000m based on analysis
             ephemeral-storage: "50Gi"
         volumeMounts:
         - name: weaviate-data
@@ -145,9 +164,9 @@ spec:
             httpHeaders:
             - name: Authorization
               value: "Bearer $(AUTHENTICATION_APIKEY_ALLOWED_KEYS)"
-          initialDelaySeconds: 120
+          initialDelaySeconds: 60   # Reduced from 120s for faster recovery
           periodSeconds: 30
-          timeoutSeconds: 10
+          timeoutSeconds: 5         # Reduced from 10s for quicker detection
           failureThreshold: 3
           successThreshold: 1
         readinessProbe:
@@ -157,19 +176,22 @@ spec:
             httpHeaders:
             - name: Authorization
               value: "Bearer $(AUTHENTICATION_APIKEY_ALLOWED_KEYS)"
-          initialDelaySeconds: 60
+          initialDelaySeconds: 30   # Reduced from 60s
           periodSeconds: 10
-          timeoutSeconds: 5
+          timeoutSeconds: 3         # Reduced timeout
           failureThreshold: 3
           successThreshold: 1
         startupProbe:
           httpGet:
             path: /v1/.well-known/live
             port: 8080
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 30
+            httpHeaders:
+            - name: Authorization
+              value: "Bearer $(AUTHENTICATION_APIKEY_ALLOWED_KEYS)"
+          initialDelaySeconds: 15   # Reduced from 30s
+          periodSeconds: 5          # More frequent checks during startup
+          timeoutSeconds: 3
+          failureThreshold: 20      # Reduced from 30 to fail faster
       volumes:
       - name: weaviate-data
         persistentVolumeClaim:
@@ -279,7 +301,9 @@ spec:
   resources:
     requests:
       storage: 500Gi
-  storageClassName: "gp3-encrypted"
+  # Storage class will be dynamically determined by the storage class detection logic
+  # Run ./storage-class-detector.sh before deployment to generate appropriate values
+  storageClassName: ""  # Will be set by the storage class detection script
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -296,7 +320,9 @@ spec:
   resources:
     requests:
       storage: 200Gi
-  storageClassName: "gp2-encrypted"
+  # Storage class will be dynamically determined by the storage class detection logic
+  # Run ./storage-class-detector.sh before deployment to generate appropriate values
+  storageClassName: ""  # Will be set by the storage class detection script
 ---
 apiVersion: v1
 kind: Secret
@@ -370,13 +396,13 @@ spec:
       name: cpu
       target:
         type: Utilization
-        averageUtilization: 70
+        averageUtilization: 60  # Lower threshold for better response times
   - type: Resource
     resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 80
+        averageUtilization: 70  # Conservative memory threshold
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 300
