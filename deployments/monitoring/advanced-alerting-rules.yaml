@@ -1,0 +1,473 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: advanced-alerting-rules
+  namespace: nephoran-system
+  labels:
+    app: prometheus
+    component: alerting
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: alerting
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  advanced-rules.yml: |
+    groups:
+    - name: nephoran.performance.critical
+      interval: 30s
+      rules:
+      # Critical Performance Degradation
+      - alert: CriticalPerformanceDegradation
+        expr: |
+          (
+            (histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m])) > 60) or
+            (histogram_quantile(0.95, rate(rag_query_latency_seconds_bucket[5m])) > 10) or
+            (histogram_quantile(0.95, rate(weaviate_request_duration_seconds_bucket[5m])) > 2)
+          )
+        for: 2m
+        labels:
+          severity: critical
+          component: performance
+          team: nephoran-sre
+          runbook: "https://nephoran.docs/runbooks/performance-degradation"
+        annotations:
+          summary: "Critical performance degradation detected"
+          description: |
+            One or more components are experiencing severe performance degradation:
+            - LLM P95 latency: {{ printf "%.2f" (query "histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m]))") }}s
+            - RAG P95 latency: {{ printf "%.2f" (query "histogram_quantile(0.95, rate(rag_query_latency_seconds_bucket[5m]))") }}s  
+            - Weaviate P95 latency: {{ printf "%.2f" (query "histogram_quantile(0.95, rate(weaviate_request_duration_seconds_bucket[5m]))") }}s
+          action_required: "Immediate investigation and scaling response required"
+          impact: "High - User experience severely impacted"
+      
+      # Resource Exhaustion Alert
+      - alert: ResourceExhaustionCritical
+        expr: |
+          (
+            (nephoran_resource_utilization{resource_type="cpu",unit="percent"} > 90) or
+            (nephoran_resource_utilization{resource_type="memory",unit="percent"} > 95) or
+            (nephoran_resource_utilization{resource_type="disk",unit="percent"} > 90)
+          )
+        for: 1m
+        labels:
+          severity: critical
+          component: infrastructure
+          team: nephoran-sre
+          runbook: "https://nephoran.docs/runbooks/resource-exhaustion"
+        annotations:
+          summary: "Critical resource exhaustion detected"
+          description: |
+            System resources are critically low:
+            - CPU: {{ printf "%.1f%%" (query "nephoran_resource_utilization{resource_type=\"cpu\",unit=\"percent\"}") }}
+            - Memory: {{ printf "%.1f%%" (query "nephoran_resource_utilization{resource_type=\"memory\",unit=\"percent\"}") }}
+            - Disk: {{ printf "%.1f%%" (query "nephoran_resource_utilization{resource_type=\"disk\",unit=\"percent\"}") }}
+          action_required: "Scale up immediately or implement emergency resource management"
+          impact: "Critical - System instability imminent"
+      
+      # High Error Rate Alert
+      - alert: HighErrorRateCritical
+        expr: |
+          (
+            (rate(nephoran_networkintent_retries_total[5m]) > 0.2) or
+            (rate(nephoran_oran_interface_errors_total[5m]) / rate(nephoran_oran_interface_requests_total[5m]) > 0.1) or
+            (rate(rag_errors_total[5m]) / rate(rag_queries_total[5m]) > 0.05)
+          )
+        for: 3m
+        labels:
+          severity: critical
+          component: application
+          team: nephoran-dev
+          runbook: "https://nephoran.docs/runbooks/high-error-rate"
+        annotations:
+          summary: "Critical error rate detected"
+          description: |
+            High error rates detected across components:
+            - NetworkIntent retry rate: {{ printf "%.3f" (query "rate(nephoran_networkintent_retries_total[5m])") }}/sec
+            - O-RAN error rate: {{ printf "%.1f%%" (multiply (query "rate(nephoran_oran_interface_errors_total[5m]) / rate(nephoran_oran_interface_requests_total[5m])") 100) }}
+            - RAG error rate: {{ printf "%.1f%%" (multiply (query "rate(rag_errors_total[5m]) / rate(rag_queries_total[5m])") 100) }}
+          action_required: "Investigate root cause and implement error handling"
+          impact: "High - Service reliability compromised"
+    
+    - name: nephoran.capacity.warning
+      interval: 60s
+      rules:
+      # Queue Depth Warning
+      - alert: QueueDepthWarning
+        expr: |
+          (
+            (rag_document_processing_queue_depth > 30) or
+            (rag_embedding_queue_depth > 100) or
+            (nephoran:networkintent_queue_depth > 50)
+          )
+        for: 5m
+        labels:
+          severity: warning
+          component: capacity
+          team: nephoran-sre
+          runbook: "https://nephoran.docs/runbooks/queue-management"
+        annotations:
+          summary: "Processing queue depth warning"
+          description: |
+            Processing queues are backing up:
+            - Document processing: {{ query "rag_document_processing_queue_depth" }} items
+            - Embedding generation: {{ query "rag_embedding_queue_depth" }} items
+            - NetworkIntent: {{ query "nephoran:networkintent_queue_depth" }} items
+          action_required: "Consider scaling up processing capacity"
+          impact: "Medium - Increased processing latency"
+      
+      # Scaling Pressure Warning
+      - alert: ScalingPressureWarning
+        expr: |
+          (
+            (nephoran:e2nodeset_scaling_pressure > 3) or
+            (rate(kube_deployment_status_replicas_updated[5m]) > 0.5)
+          )
+        for: 10m
+        labels:
+          severity: warning
+          component: scaling
+          team: nephoran-sre
+          runbook: "https://nephoran.docs/runbooks/scaling-pressure"
+        annotations:
+          summary: "High scaling pressure detected"
+          description: |
+            System is under scaling pressure:
+            - E2NodeSet scaling pressure: {{ printf "%.2f" (query "nephoran:e2nodeset_scaling_pressure") }}
+            - Recent scaling events: {{ printf "%.2f" (query "rate(kube_deployment_status_replicas_updated[5m])") }}/sec
+          action_required: "Review scaling policies and capacity planning"
+          impact: "Medium - Potential capacity constraints"
+      
+      # Cache Performance Warning
+      - alert: CachePerformanceWarning
+        expr: |
+          (
+            (rag_cache_hit_rate < 0.7) or
+            (nephoran:cache_performance_index < 0.65)
+          )
+        for: 15m
+        labels:
+          severity: warning
+          component: cache
+          team: nephoran-dev
+          runbook: "https://nephoran.docs/runbooks/cache-optimization"
+        annotations:
+          summary: "Cache performance degradation"
+          description: |
+            Cache performance is suboptimal:
+            - RAG cache hit rate: {{ printf "%.1f%%" (multiply (query "rag_cache_hit_rate") 100) }}
+            - Overall cache performance index: {{ printf "%.2f" (query "nephoran:cache_performance_index") }}
+          action_required: "Review cache configuration and data patterns"
+          impact: "Medium - Increased response times and resource usage"
+    
+    - name: nephoran.telecom.business
+      interval: 120s
+      rules:
+      # Business Impact Alert
+      - alert: TelecomWorkloadImpact
+        expr: |
+          (
+            (nephoran:telecom_workload_intensity > 150) or
+            (rate(nephoran_networkintent_total[15m]) < (rate(nephoran_networkintent_total[1h] offset 1h) * 0.5))
+          )
+        for: 5m
+        labels:
+          severity: warning
+          component: business-impact
+          team: nephoran-business
+          runbook: "https://nephoran.docs/runbooks/telecom-workload"
+        annotations:
+          summary: "Telecom workload impact detected"
+          description: |
+            Telecom operations are affected:
+            - Workload intensity: {{ printf "%.1f" (query "nephoran:telecom_workload_intensity") }}
+            - NetworkIntent processing rate: {{ printf "%.3f" (query "rate(nephoran_networkintent_total[15m])") }}/sec
+            - Historical comparison: {{ printf "%.1f%%" (multiply (query "rate(nephoran_networkintent_total[15m]) / rate(nephoran_networkintent_total[1h] offset 1h)") 100) }} of normal
+          action_required: "Review business operations and system capacity"
+          impact: "Medium - Business operations affected"
+      
+      # O-RAN Interface Health
+      - alert: ORANInterfaceHealth
+        expr: |
+          (
+            (nephoran_oran_connection_status == 0) or
+            (rate(nephoran_oran_interface_errors_total[10m]) / rate(nephoran_oran_interface_requests_total[10m]) > 0.02)
+          )
+        for: 2m
+        labels:
+          severity: warning
+          component: oran-interface
+          team: nephoran-telecom
+          runbook: "https://nephoran.docs/runbooks/oran-interface"
+        annotations:
+          summary: "O-RAN interface health issue"
+          description: |
+            O-RAN interface experiencing issues:
+            - Connection status: {{ if eq (query "nephoran_oran_connection_status") 1.0 }}"Connected"{{ else }}"Disconnected"{{ end }}
+            - Error rate: {{ printf "%.2f%%" (multiply (query "rate(nephoran_oran_interface_errors_total[10m]) / rate(nephoran_oran_interface_requests_total[10m])") 100) }}
+            - Interface: {{ $labels.interface }}
+          action_required: "Check O-RAN interface connectivity and configuration"
+          impact: "High - Telecom network operations affected"
+    
+    - name: nephoran.security.monitoring
+      interval: 300s
+      rules:
+      # Anomalous Request Patterns
+      - alert: AnomalousRequestPattern
+        expr: |
+          (
+            (rate(nephoran_llm_requests_total[5m]) > (rate(nephoran_llm_requests_total[1h] offset 1h) * 3)) or
+            (rate(rag_queries_total[5m]) > (rate(rag_queries_total[1h] offset 1h) * 5))
+          )
+        for: 10m
+        labels:
+          severity: warning
+          component: security
+          team: nephoran-security
+          runbook: "https://nephoran.docs/runbooks/security-anomalies"
+        annotations:
+          summary: "Anomalous request pattern detected"
+          description: |
+            Unusual request patterns detected:
+            - Current LLM request rate: {{ printf "%.2f" (query "rate(nephoran_llm_requests_total[5m])") }}/sec
+            - Current RAG query rate: {{ printf "%.2f" (query "rate(rag_queries_total[5m])") }}/sec
+            - Historical baseline: LLM {{ printf "%.2f" (query "rate(nephoran_llm_requests_total[1h] offset 1h)") }}/sec, RAG {{ printf "%.2f" (query "rate(rag_queries_total[1h] offset 1h)") }}/sec
+          action_required: "Investigate for potential security threats or usage anomalies"
+          impact: "Medium - Potential security or capacity concern"
+      
+      # Failed Authentication Attempts
+      - alert: HighFailedAuthRate
+        expr: |
+          (
+            rate(nephoran_auth_failures_total[5m]) > 0.1
+          )
+        for: 5m
+        labels:
+          severity: warning
+          component: security
+          team: nephoran-security
+          runbook: "https://nephoran.docs/runbooks/auth-failures"
+        annotations:
+          summary: "High authentication failure rate"
+          description: |
+            High rate of authentication failures detected:
+            - Failure rate: {{ printf "%.3f" (query "rate(nephoran_auth_failures_total[5m])") }}/sec
+            - Source: {{ $labels.source }}
+          action_required: "Investigate potential brute force attacks or misconfigurations"
+          impact: "Medium - Potential security threat"
+    
+    - name: nephoran.sli.monitoring
+      interval: 60s
+      rules:
+      # Service Level Indicator - Availability
+      - record: nephoran:sli:availability
+        expr: |
+          (
+            (sum(rate(nephoran_networkintent_duration_seconds_count{status="completed"}[5m])) / 
+             sum(rate(nephoran_networkintent_duration_seconds_count[5m]))) * 100
+          )
+        labels:
+          service: networkintent
+          sli_type: availability
+      
+      # Service Level Indicator - Latency
+      - record: nephoran:sli:latency_p95
+        expr: |
+          histogram_quantile(0.95, rate(nephoran_networkintent_duration_seconds_bucket[5m]))
+        labels:
+          service: networkintent
+          sli_type: latency
+      
+      # Service Level Indicator - Error Rate
+      - record: nephoran:sli:error_rate
+        expr: |
+          (
+            (sum(rate(nephoran_networkintent_retries_total[5m])) / 
+             sum(rate(nephoran_networkintent_total[5m]))) * 100
+          )
+        labels:
+          service: networkintent
+          sli_type: error_rate
+      
+      # SLO Violation Alerts
+      - alert: SLOViolationAvailability
+        expr: nephoran:sli:availability < 99.5
+        for: 5m
+        labels:
+          severity: critical
+          component: slo
+          team: nephoran-sre
+          slo_type: availability
+        annotations:
+          summary: "SLO violation: Availability below target"
+          description: |
+            Service availability is below SLO target:
+            - Current availability: {{ printf "%.2f%%" (query "nephoran:sli:availability") }}
+            - SLO target: 99.5%
+          action_required: "Immediate action required to restore service availability"
+          impact: "Critical - SLO breach"
+      
+      - alert: SLOViolationLatency
+        expr: nephoran:sli:latency_p95 > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: slo
+          team: nephoran-sre
+          slo_type: latency
+        annotations:
+          summary: "SLO violation: Latency above target"
+          description: |
+            Service latency is above SLO target:
+            - Current P95 latency: {{ printf "%.2f" (query "nephoran:sli:latency_p95") }}s
+            - SLO target: 5s
+          action_required: "Investigate and optimize service performance"
+          impact: "Medium - SLO breach"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: nephoran-system
+  labels:
+    app: alertmanager
+    component: alerting
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/component: alerting
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'smtp.nephoran.com:587'
+      smtp_from: 'alerts@nephoran.com'
+      smtp_auth_username: 'alerts@nephoran.com'
+      smtp_auth_password: 'nephoran-alerts-password'
+      
+    route:
+      group_by: ['alertname', 'component', 'severity']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'default-receiver'
+      routes:
+      # Critical alerts go to multiple channels
+      - match:
+          severity: critical
+        receiver: 'critical-alerts'
+        group_wait: 10s
+        repeat_interval: 15m
+      
+      # Performance alerts to SRE team
+      - match:
+          component: performance
+        receiver: 'sre-team'
+        group_interval: 2m
+      
+      # Security alerts to security team
+      - match:
+          component: security
+        receiver: 'security-team'
+        group_wait: 5s
+        repeat_interval: 30m
+      
+      # Business impact alerts
+      - match:
+          component: business-impact
+        receiver: 'business-team'
+        group_interval: 10m
+      
+      # Telecom-specific alerts
+      - match:
+          team: nephoran-telecom
+        receiver: 'telecom-team'
+        group_interval: 3m
+    
+    receivers:
+    - name: 'default-receiver'
+      email_configs:
+      - to: 'nephoran-alerts@company.com'
+        subject: 'Nephoran Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          Alert: {{ .GroupLabels.alertname }}
+          Severity: {{ .GroupLabels.severity }}
+          Component: {{ .GroupLabels.component }}
+          
+          {{ range .Alerts }}
+          Summary: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Action Required: {{ .Annotations.action_required }}
+          Impact: {{ .Annotations.impact }}
+          Runbook: {{ .Annotations.runbook }}
+          {{ end }}
+    
+    - name: 'critical-alerts'
+      email_configs:
+      - to: 'nephoran-critical@company.com'
+        subject: 'CRITICAL: {{ .GroupLabels.alertname }}'
+        body: |
+          🚨 CRITICAL ALERT 🚨
+          
+          Alert: {{ .GroupLabels.alertname }}
+          Component: {{ .GroupLabels.component }}
+          
+          {{ range .Alerts }}
+          Summary: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Action Required: {{ .Annotations.action_required }}
+          Impact: {{ .Annotations.impact }}
+          Runbook: {{ .Annotations.runbook }}
+          {{ end }}
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#nephoran-critical'
+        title: 'CRITICAL: {{ .GroupLabels.alertname }}'
+        text: |
+          Alert: {{ .GroupLabels.alertname }}
+          Component: {{ .GroupLabels.component }}
+          {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+        color: 'danger'
+    
+    - name: 'sre-team'
+      email_configs:
+      - to: 'nephoran-sre@company.com'
+        subject: 'SRE Alert: {{ .GroupLabels.alertname }}'
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#nephoran-sre'
+        title: 'SRE Alert: {{ .GroupLabels.alertname }}'
+        color: 'warning'
+    
+    - name: 'security-team'
+      email_configs:
+      - to: 'nephoran-security@company.com'
+        subject: 'Security Alert: {{ .GroupLabels.alertname }}'
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#nephoran-security'
+        title: 'Security Alert: {{ .GroupLabels.alertname }}'
+        color: 'danger'
+    
+    - name: 'business-team'
+      email_configs:
+      - to: 'nephoran-business@company.com'
+        subject: 'Business Impact Alert: {{ .GroupLabels.alertname }}'
+    
+    - name: 'telecom-team'
+      email_configs:
+      - to: 'nephoran-telecom@company.com'
+        subject: 'Telecom Alert: {{ .GroupLabels.alertname }}'
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+        channel: '#nephoran-telecom'
+        title: 'Telecom Alert: {{ .GroupLabels.alertname }}'
+    
+    inhibit_rules:
+    - source_match:
+        severity: 'critical'
+      target_match:
+        severity: 'warning'
+      equal: ['alertname', 'component']
+    
+    - source_match:
+        alertname: 'ResourceExhaustionCritical'
+      target_match:
+        component: 'performance'
+      equal: ['instance']

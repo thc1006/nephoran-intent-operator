@@ -51,6 +51,14 @@ spec:
           mountPath: /etc/grafana/provisioning/dashboards
         - name: grafana-dashboards
           mountPath: /var/lib/grafana/dashboards
+        - name: rag-overview-dashboard
+          mountPath: /var/lib/grafana/dashboards/rag
+        - name: llm-performance-dashboard
+          mountPath: /var/lib/grafana/dashboards/llm
+        - name: weaviate-performance-dashboard
+          mountPath: /var/lib/grafana/dashboards/weaviate
+        - name: telecom-workload-dashboard
+          mountPath: /var/lib/grafana/dashboards/telecom
         livenessProbe:
           httpGet:
             path: /api/health
@@ -79,6 +87,18 @@ spec:
       - name: grafana-dashboards
         configMap:
           name: grafana-dashboards
+      - name: rag-overview-dashboard
+        configMap:
+          name: grafana-dashboard-rag-overview
+      - name: llm-performance-dashboard
+        configMap:
+          name: grafana-dashboard-llm-performance
+      - name: weaviate-performance-dashboard
+        configMap:
+          name: grafana-dashboard-weaviate-performance
+      - name: telecom-workload-dashboard
+        configMap:
+          name: grafana-dashboard-telecom-workload
       securityContext:
         runAsNonRoot: true
         runAsUser: 472

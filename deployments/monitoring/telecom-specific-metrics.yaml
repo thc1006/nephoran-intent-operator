@@ -1,0 +1,366 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telecom-metrics-rules
+  namespace: nephoran-system
+  labels:
+    app: prometheus
+    component: telecom-metrics
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: telecom-metrics
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  telecom-rules.yml: |
+    groups:
+    - name: nephoran.telecom.scaling
+      interval: 30s
+      rules:
+      # Network Intent Processing Rate
+      - record: nephoran:networkintent_processing_rate
+        expr: rate(nephoran_networkintent_total[5m])
+        labels:
+          scaling_metric: "true"
+          component: "networkintent"
+      
+      # Network Intent Queue Depth (calculated)
+      - record: nephoran:networkintent_queue_depth
+        expr: |
+          (
+            sum(nephoran_networkintent_status{status="pending"}) or vector(0)
+          ) + (
+            sum(nephoran_networkintent_status{status="processing"}) or vector(0)
+          )
+        labels:
+          scaling_metric: "true"
+          component: "networkintent"
+      
+      # E2NodeSet Scaling Pressure
+      - record: nephoran:e2nodeset_scaling_pressure
+        expr: |
+          (
+            rate(nephoran_e2nodeset_scaling_events_total{direction="up"}[5m]) * 2
+          ) - (
+            rate(nephoran_e2nodeset_scaling_events_total{direction="down"}[5m])
+          )
+        labels:
+          scaling_metric: "true"
+          component: "e2nodeset"
+      
+      # O-RAN Interface Load
+      - record: nephoran:oran_interface_load
+        expr: rate(nephoran_oran_interface_requests_total[5m])
+        labels:
+          scaling_metric: "true"
+          component: "oran"
+      
+      # O-RAN Error Rate
+      - record: nephoran:oran_error_rate
+        expr: |
+          rate(nephoran_oran_interface_errors_total[5m]) / 
+          rate(nephoran_oran_interface_requests_total[5m])
+        labels:
+          scaling_metric: "true"
+          component: "oran"
+      
+      # LLM Processing Efficiency
+      - record: nephoran:llm_processing_efficiency
+        expr: |
+          (
+            rate(nephoran_llm_requests_total[5m])
+          ) / (
+            avg(nephoran_llm_request_duration_seconds) or vector(1)
+          )
+        labels:
+          scaling_metric: "true"
+          component: "llm"
+      
+      # RAG Retrieval Efficiency  
+      - record: nephoran:rag_retrieval_efficiency
+        expr: |
+          (
+            rate(rag_queries_total[5m])
+          ) / (
+            histogram_quantile(0.95, rate(rag_query_latency_seconds_bucket[5m])) or vector(1)
+          )
+        labels:
+          scaling_metric: "true"
+          component: "rag"
+      
+      # Document Processing Throughput
+      - record: nephoran:document_processing_throughput
+        expr: rate(document_processing_ops_total[5m])
+        labels:
+          scaling_metric: "true"
+          component: "document_processor"
+      
+      # Embedding Generation Rate
+      - record: nephoran:embedding_generation_rate
+        expr: rate(rag_embeddings_total[5m])
+        labels:
+          scaling_metric: "true"
+          component: "embedding_service"
+      
+      # Vector Database Load
+      - record: nephoran:weaviate_load
+        expr: |
+          (
+            rate(weaviate_requests_total[5m]) * 
+            histogram_quantile(0.95, rate(weaviate_request_duration_seconds_bucket[5m]))
+          )
+        labels:
+          scaling_metric: "true"
+          component: "weaviate"
+      
+      # Cache Performance Index
+      - record: nephoran:cache_performance_index
+        expr: |
+          (
+            (rag_cache_hit_rate * 0.7) +
+            (redis_hit_rate * 0.3)
+          )
+        labels:
+          scaling_metric: "true"
+          component: "cache"
+      
+      # System Resource Pressure
+      - record: nephoran:resource_pressure
+        expr: |
+          (
+            (nephoran_resource_utilization{resource_type="cpu",unit="percent"} * 0.4) +
+            (nephoran_resource_utilization{resource_type="memory",unit="percent"} * 0.4) +
+            (nephoran_resource_utilization{resource_type="disk",unit="percent"} * 0.2)
+          ) / 100
+        labels:
+          scaling_metric: "true"
+          component: "system"
+      
+      # Telecom Workload Intensity Score
+      - record: nephoran:telecom_workload_intensity
+        expr: |
+          (
+            (nephoran:networkintent_processing_rate * 10) +
+            (nephoran:oran_interface_load * 5) +
+            (nephoran:e2nodeset_scaling_pressure * 3) +
+            (nephoran:llm_processing_efficiency / 10)
+          )
+        labels:
+          scaling_metric: "true"
+          component: "telecom_workload"
+    
+    - name: nephoran.telecom.thresholds
+      interval: 60s
+      rules:
+      # High-load threshold indicators
+      - record: nephoran:high_load_indicator
+        expr: |
+          (
+            (nephoran:networkintent_processing_rate > 0.5) or
+            (nephoran:oran_interface_load > 100) or
+            (nephoran:document_processing_throughput > 20) or
+            (nephoran:weaviate_load > 500)
+          )
+        labels:
+          alert_level: "warning"
+          component: "load_indicator"
+      
+      # Critical threshold indicators
+      - record: nephoran:critical_load_indicator
+        expr: |
+          (
+            (nephoran:networkintent_processing_rate > 1.0) or
+            (nephoran:oran_interface_load > 200) or
+            (nephoran:document_processing_throughput > 40) or
+            (nephoran:weaviate_load > 1000) or
+            (nephoran:resource_pressure > 0.9)
+          )
+        labels:
+          alert_level: "critical"
+          component: "load_indicator"
+      
+      # Performance degradation indicators
+      - record: nephoran:performance_degradation
+        expr: |
+          (
+            (histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m])) > 30) or
+            (histogram_quantile(0.95, rate(rag_query_latency_seconds_bucket[5m])) > 5) or
+            (histogram_quantile(0.95, rate(weaviate_request_duration_seconds_bucket[5m])) > 1) or
+            (nephoran:cache_performance_index < 0.6)
+          )
+        labels:
+          alert_level: "warning"
+          component: "performance"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telecom-scaling-config
+  namespace: nephoran-system
+  labels:
+    app: scaling-controller
+    component: telecom-scaling
+    app.kubernetes.io/name: scaling-controller
+    app.kubernetes.io/component: telecom-scaling
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  scaling-config.yaml: |
+    scaling_policies:
+      # Network Intent Controller Scaling
+      networkintent_controller:
+        min_replicas: 2
+        max_replicas: 10
+        target_utilization: 70
+        custom_metrics:
+          - name: networkintent_processing_rate
+            target_value: 0.8
+            weight: 0.4
+          - name: networkintent_queue_depth
+            target_value: 20
+            weight: 0.6
+        scale_up_behavior:
+          stabilization_window: 60
+          policies:
+            - type: percent
+              value: 50
+              period: 60
+        scale_down_behavior:
+          stabilization_window: 300
+          policies:
+            - type: percent
+              value: 10
+              period: 60
+      
+      # LLM Processor Scaling
+      llm_processor:
+        min_replicas: 2
+        max_replicas: 20
+        target_utilization: 75
+        custom_metrics:
+          - name: llm_processing_efficiency
+            target_value: 10
+            weight: 0.3
+          - name: llm_request_queue_depth
+            target_value: 15
+            weight: 0.7
+        scale_up_behavior:
+          stabilization_window: 30
+          policies:
+            - type: percent
+              value: 100
+              period: 60
+        scale_down_behavior:
+          stabilization_window: 600
+          policies:
+            - type: percent
+              value: 20
+              period: 120
+      
+      # RAG API Scaling
+      rag_api:
+        min_replicas: 2
+        max_replicas: 15
+        target_utilization: 70
+        custom_metrics:
+          - name: rag_retrieval_efficiency
+            target_value: 5
+            weight: 0.4
+          - name: rag_query_queue_depth
+            target_value: 25
+            weight: 0.6
+        scale_up_behavior:
+          stabilization_window: 45
+          policies:
+            - type: pods
+              value: 3
+              period: 60
+        scale_down_behavior:
+          stabilization_window: 200
+          policies:
+            - type: percent
+              value: 25
+              period: 60
+      
+      # Weaviate Scaling
+      weaviate:
+        min_replicas: 2
+        max_replicas: 8
+        target_utilization: 65
+        custom_metrics:
+          - name: weaviate_load
+            target_value: 300
+            weight: 0.5
+          - name: weaviate_objects_count
+            target_value: 1000000
+            weight: 0.2
+          - name: weaviate_response_time_p95
+            target_value: 500
+            weight: 0.3
+        scale_up_behavior:
+          stabilization_window: 120
+          policies:
+            - type: percent
+              value: 50
+              period: 120
+        scale_down_behavior:
+          stabilization_window: 600
+          policies:
+            - type: percent
+              value: 15
+              period: 180
+      
+      # Document Processor Scaling
+      document_processor:
+        min_replicas: 1
+        max_replicas: 20
+        target_utilization: 80
+        custom_metrics:
+          - name: document_processing_throughput
+            target_value: 15
+            weight: 0.6
+          - name: document_processing_queue_depth
+            target_value: 10
+            weight: 0.4
+        scale_up_behavior:
+          stabilization_window: 30
+          policies:
+            - type: pods
+              value: 5
+              period: 60
+        scale_down_behavior:
+          stabilization_window: 600
+          policies:
+            - type: percent
+              value: 10
+              period: 120
+    
+    # Global scaling constraints
+    global_constraints:
+      max_total_replicas: 100
+      resource_limits:
+        cpu: "50"
+        memory: "100Gi"
+      emergency_scaling:
+        enabled: true
+        cpu_threshold: 90
+        memory_threshold: 90
+        scale_down_factor: 0.5
+      
+    # Telecom-specific business rules
+    business_rules:
+      peak_hours:
+        start: "08:00"
+        end: "20:00"
+        timezone: "UTC"
+        scale_factor: 1.5
+      
+      maintenance_windows:
+        - start: "02:00"
+          end: "04:00"
+          timezone: "UTC"
+          scale_factor: 0.7
+          days: ["Sunday"]
+      
+      special_events:
+        enable_burst_scaling: true
+        burst_threshold: 5.0
+        burst_duration: 300
+        cooldown_period: 1800

@@ -1,0 +1,337 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-metrics-config
+  namespace: nephoran-system
+  labels:
+    app: prometheus-adapter
+    component: custom-metrics
+    app.kubernetes.io/name: prometheus-adapter
+    app.kubernetes.io/component: custom-metrics
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  config.yaml: |
+    rules:
+    # LLM Processor Metrics
+    - seriesQuery: 'nephoran_llm_requests_total{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^(.*)_total"
+        as: "llm_processor_requests_per_second"
+      metricsQuery: 'rate(<<.Series>>{<<.LabelMatchers>>}[5m])'
+    
+    - seriesQuery: 'nephoran_llm_request_duration_seconds{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^(.*)_duration_seconds"
+        as: "llm_processor_latency_p95"
+      metricsQuery: 'histogram_quantile(0.95, rate(<<.Series>>_bucket{<<.LabelMatchers>>}[5m]))'
+    
+    # RAG API Metrics
+    - seriesQuery: 'rag_queries_total{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^(.*)_total"
+        as: "rag_requests_per_second"
+      metricsQuery: 'rate(<<.Series>>{<<.LabelMatchers>>}[5m])'
+    
+    - seriesQuery: 'rag_query_latency_seconds{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^(.*)_latency_seconds"
+        as: "rag_query_latency_p95"
+      metricsQuery: 'histogram_quantile(0.95, rate(<<.Series>>_bucket{<<.LabelMatchers>>}[5m]))'
+    
+    - seriesQuery: 'rag_document_processing_queue_depth{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        as: "rag_document_processing_queue_depth"
+      metricsQuery: '<<.Series>>{<<.LabelMatchers>>}'
+    
+    - seriesQuery: 'rag_embedding_queue_depth{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        as: "rag_embedding_queue_depth"
+      metricsQuery: '<<.Series>>{<<.LabelMatchers>>}'
+    
+    # Weaviate Metrics  
+    - seriesQuery: 'weaviate_requests_total{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^(.*)_total"
+        as: "weaviate_queries_per_second"
+      metricsQuery: 'rate(<<.Series>>{<<.LabelMatchers>>}[5m])'
+    
+    - seriesQuery: 'weaviate_vector_operations_total{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^(.*)_total"
+        as: "weaviate_vector_operations_per_second"
+      metricsQuery: 'rate(<<.Series>>{<<.LabelMatchers>>}[5m])'
+    
+    - seriesQuery: 'weaviate_request_duration_seconds{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^(.*)_duration_seconds"
+        as: "weaviate_response_time_p95"
+      metricsQuery: 'histogram_quantile(0.95, rate(<<.Series>>_bucket{<<.LabelMatchers>>}[5m])) * 1000'
+    
+    # Document Processing Metrics
+    - seriesQuery: 'document_processing_queue_depth{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        as: "document_processing_queue_depth"
+      metricsQuery: '<<.Series>>{<<.LabelMatchers>>}'
+    
+    - seriesQuery: 'document_chunking_ops_total{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^(.*)_total"
+        as: "document_chunking_ops_per_second"
+      metricsQuery: 'rate(<<.Series>>{<<.LabelMatchers>>}[5m])'
+    
+    - seriesQuery: 'embedding_generation_backlog{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        as: "embedding_generation_backlog"
+      metricsQuery: '<<.Series>>{<<.LabelMatchers>>}'
+    
+    - seriesQuery: 'document_processing_latency_seconds{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^(.*)_latency_seconds"
+        as: "document_processing_latency_p95"
+      metricsQuery: 'histogram_quantile(0.95, rate(<<.Series>>_bucket{<<.LabelMatchers>>}[5m]))'
+    
+    # Telecom-specific Metrics
+    - seriesQuery: 'nephoran_networkintent_processing_rate{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        as: "networkintent_processing_rate"
+      metricsQuery: 'rate(nephoran_networkintent_total{<<.LabelMatchers>>}[5m])'
+    
+    - seriesQuery: 'nephoran_oran_interface_requests_total{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^(.*)_total"
+        as: "oran_interface_requests_per_second"
+      metricsQuery: 'rate(<<.Series>>{<<.LabelMatchers>>}[5m])'
+    
+    - seriesQuery: 'nephoran_e2nodeset_scaling_pressure{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        as: "e2nodeset_scaling_pressure"
+      metricsQuery: '<<.Series>>{<<.LabelMatchers>>}'
+    
+    # Cache and Storage Metrics
+    - seriesQuery: 'rag_cache_hit_rate{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        as: "rag_cache_hit_rate"
+      metricsQuery: '<<.Series>>{<<.LabelMatchers>>}'
+    
+    - seriesQuery: 'weaviate_objects_total{namespace!="",pod!=""}'
+      seriesFilters: []
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        as: "weaviate_objects_count"
+      metricsQuery: '<<.Series>>{<<.LabelMatchers>>}'
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: custom-metrics-apiserver
+  namespace: nephoran-system
+  labels:
+    app: custom-metrics-apiserver
+    component: custom-metrics
+    app.kubernetes.io/name: custom-metrics-apiserver
+    app.kubernetes.io/component: custom-metrics
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: custom-metrics-apiserver
+  template:
+    metadata:
+      labels:
+        app: custom-metrics-apiserver
+    spec:
+      serviceAccountName: custom-metrics-apiserver
+      containers:
+      - name: custom-metrics-apiserver
+        image: k8s.gcr.io/prometheus-adapter/prometheus-adapter:v0.11.1
+        args:
+        - --secure-port=6443
+        - --tls-cert-file=/tmp/cert/tls.crt
+        - --tls-private-key-file=/tmp/cert/tls.key
+        - --logtostderr=true
+        - --prometheus-url=http://prometheus:9090/
+        - --metrics-relist-interval=1m
+        - --v=4
+        - --config=/etc/adapter/config.yaml
+        ports:
+        - containerPort: 6443
+          name: https
+        volumeMounts:
+        - mountPath: /tmp/cert
+          name: volume-serving-cert
+          readOnly: true
+        - mountPath: /etc/adapter/
+          name: config
+          readOnly: true
+        resources:
+          limits:
+            cpu: 250m
+            memory: 200Mi
+          requests:
+            cpu: 102m
+            memory: 180Mi
+      volumes:
+      - name: volume-serving-cert
+        secret:
+          secretName: cm-adapter-serving-certs
+      - name: config
+        configMap:
+          name: adapter-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: custom-metrics-apiserver
+  namespace: nephoran-system
+  labels:
+    app: custom-metrics-apiserver
+    component: custom-metrics
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 6443
+  selector:
+    app: custom-metrics-apiserver
+---
+apiVersion: apiregistration.k8s.io/v1beta1
+kind: APIService
+metadata:
+  name: v1beta1.custom.metrics.k8s.io
+  labels:
+    app: custom-metrics-apiserver
+    component: custom-metrics
+spec:
+  service:
+    name: custom-metrics-apiserver
+    namespace: nephoran-system
+  group: custom.metrics.k8s.io
+  version: v1beta1
+  insecureSkipTLSVerify: true
+  groupPriorityMinimum: 100
+  versionPriority: 100

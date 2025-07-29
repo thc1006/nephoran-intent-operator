@@ -1,0 +1,180 @@
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: nephoran-compute-quota
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: resource-quota
+    app.kubernetes.io/component: resource-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  hard:
+    # CPU and Memory limits
+    requests.cpu: "20"
+    requests.memory: 40Gi
+    limits.cpu: "50"
+    limits.memory: 100Gi
+    
+    # Pod limits
+    pods: "100"
+    
+    # Persistent volume claims
+    persistentvolumeclaims: "20"
+    requests.storage: 500Gi
+    
+    # Services and load balancers
+    services: "20"
+    services.loadbalancers: "5"
+    
+    # Secrets and config maps
+    secrets: "50"
+    configmaps: "50"
+    
+    # Network policies
+    networkpolicies.networking.k8s.io: "10"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: nephoran-object-quota
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: object-quota
+    app.kubernetes.io/component: resource-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  hard:
+    # Workload objects
+    count/deployments.apps: "30"
+    count/statefulsets.apps: "10"
+    count/jobs.batch: "50"
+    count/cronjobs.batch: "10"
+    
+    # Storage objects
+    count/persistentvolumeclaims: "20"
+    
+    # Network objects
+    count/services: "20"
+    count/ingresses.networking.k8s.io: "10"
+    
+    # RBAC objects
+    count/roles.rbac.authorization.k8s.io: "20"
+    count/rolebindings.rbac.authorization.k8s.io: "30"
+    
+    # Custom resources
+    count/networkintents.nephoran.com: "50"
+    count/e2nodesets.nephoran.com: "20"
+    count/managedelements.nephoran.com: "30"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: nephoran-container-limits
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: limit-range
+    app.kubernetes.io/component: resource-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  limits:
+  # Container limits
+  - type: Container
+    default:
+      cpu: "500m"
+      memory: "1Gi"
+      ephemeral-storage: "2Gi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "256Mi"
+      ephemeral-storage: "1Gi"
+    max:
+      cpu: "4"
+      memory: "8Gi"
+      ephemeral-storage: "10Gi"
+    min:
+      cpu: "50m"
+      memory: "128Mi"
+      ephemeral-storage: "500Mi"
+  
+  # Pod limits
+  - type: Pod
+    max:
+      cpu: "8"
+      memory: "16Gi"
+      ephemeral-storage: "20Gi"
+    min:
+      cpu: "100m"
+      memory: "256Mi"
+      ephemeral-storage: "1Gi"
+  
+  # PVC limits
+  - type: PersistentVolumeClaim
+    max:
+      storage: "100Gi"
+    min:
+      storage: "1Gi"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: nephoran-priority-limits
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: priority-limit-range
+    app.kubernetes.io/component: resource-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  limits:
+  # High-priority workloads (LLM, Weaviate)
+  - type: Container
+    default:
+      cpu: "1"
+      memory: "2Gi"
+    defaultRequest:
+      cpu: "500m"
+      memory: "1Gi"
+    max:
+      cpu: "4"
+      memory: "8Gi"
+    min:
+      cpu: "100m"
+      memory: "512Mi"
+    maxLimitRequestRatio:
+      cpu: "4"
+      memory: "2"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: nephoran-critical
+  labels:
+    app.kubernetes.io/name: priority-class
+    app.kubernetes.io/component: resource-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+value: 1000000
+globalDefault: false
+description: "Critical Nephoran components (Weaviate, LLM processor)"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: nephoran-high
+  labels:
+    app.kubernetes.io/name: priority-class
+    app.kubernetes.io/component: resource-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+value: 500000
+globalDefault: false
+description: "High priority Nephoran components (RAG API, controllers)"
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: nephoran-normal
+  labels:
+    app.kubernetes.io/name: priority-class
+    app.kubernetes.io/component: resource-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+value: 100000
+globalDefault: true
+description: "Normal priority Nephoran components (document processing, monitoring)"

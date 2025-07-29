@@ -1,0 +1,85 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rag-api
+  labels:
+    app: rag-api
+    component: knowledge-retrieval
+    app.kubernetes.io/name: rag-api
+    app.kubernetes.io/component: knowledge-retrieval
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rag-api
+  minReplicas: 2
+  maxReplicas: 12
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 85
+  # Request rate based scaling
+  - type: Pods
+    pods:
+      metric:
+        name: rag_requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "30"
+  # Query processing latency
+  - type: Pods
+    pods:
+      metric:
+        name: rag_query_latency_p95
+      target:
+        type: AverageValue
+        averageValue: "2" # 2 seconds
+  # Document processing queue depth
+  - type: Pods
+    pods:
+      metric:
+        name: rag_document_processing_queue_depth
+      target:
+        type: AverageValue
+        averageValue: "10"
+  # Embedding generation queue
+  - type: Pods
+    pods:
+      metric:
+        name: rag_embedding_queue_depth
+      target:
+        type: AverageValue
+        averageValue: "20"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 45
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+      - type: Pods
+        value: 3
+        periodSeconds: 60
+      selectPolicy: Max
