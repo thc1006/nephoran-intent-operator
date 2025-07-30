@@ -8,15 +8,16 @@ replace github.com/thc1006/nephoran-intent-operator => ./
 
 require (
 	github.com/go-git/go-git/v5 v5.16.2
+	github.com/go-redis/redis/v8 v8.11.5
+	github.com/ledongthuc/pdf v0.0.0-20220302013212-dc9945bd7d49
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
+	github.com/pdfcpu/pdfcpu v0.8.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/stretchr/testify v1.10.0
 	github.com/weaviate/weaviate-go-client/v4 v4.15.1
-	github.com/go-redis/redis/v8 v8.11.5
-	github.com/ledongthuc/pdf v0.0.0-20220302013212-dc9945bd7d49
-	github.com/pdfcpu/pdfcpu v0.8.1
 	go.uber.org/zap v1.27.0
+	golang.org/x/crypto v0.39.0
 	k8s.io/api v0.33.3
 	k8s.io/apimachinery v0.33.3
 	k8s.io/client-go v0.33.3
@@ -99,3 +100,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
+
+replace github.com/ledongthuc/pdf v0.0.0-20220302013212-dc9945bd7d49 => github.com/ledongthuc/pdf v0.0.0-20240201131950-da5b75280b06

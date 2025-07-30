@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // RAGPipeline orchestrates the complete RAG processing pipeline
@@ -18,7 +18,7 @@ type RAGPipeline struct {
 	embeddingService     *EmbeddingService
 	weaviateClient      *WeaviateClient
 	enhancedRetrieval   *EnhancedRetrievalService
-	llmClient           llm.ClientInterface
+	llmClient           shared.ClientInterface
 	redisCache          *RedisCache
 	monitor             *RAGMonitor
 
@@ -84,7 +84,7 @@ type PipelineStatus struct {
 }
 
 // NewRAGPipeline creates a new RAG pipeline with all components
-func NewRAGPipeline(config *PipelineConfig, llmClient llm.ClientInterface) (*RAGPipeline, error) {
+func NewRAGPipeline(config *PipelineConfig, llmClient shared.ClientInterface) (*RAGPipeline, error) {
 	if config == nil {
 		config = getDefaultPipelineConfig()
 	}

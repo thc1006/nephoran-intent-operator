@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // ContextBuilder manages context injection and assembly for RAG-enhanced LLM processing
@@ -107,7 +107,7 @@ type ContextRequest struct {
 	IntentType       string             `json:"intent_type"`
 	ModelName        string             `json:"model_name"`
 	MaxTokens        int                `json:"max_tokens"`
-	SearchResults    []*rag.SearchResult `json:"search_results"`
+	SearchResults    []*shared.SearchResult `json:"search_results"`
 	ExistingContext  string             `json:"existing_context"`
 	RequireSources   []string           `json:"require_sources"`
 	ExcludeSources   []string           `json:"exclude_sources"`
@@ -403,7 +403,7 @@ func (cb *ContextBuilder) selectDocumentsForContext(scoredDocs []*ScoredDocument
 				if truncatedContent != "" {
 					// Create a copy with truncated content
 					truncatedDoc := *doc
-					truncatedDoc.Document = &rag.TelecomDocument{
+					truncatedDoc.Document = &shared.TelecomDocument{
 						ID:              doc.Document.ID,
 						Title:           doc.Document.Title,
 						Content:         truncatedContent,

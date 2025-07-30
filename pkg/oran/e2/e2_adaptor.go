@@ -7,11 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -146,22 +144,25 @@ type E2AdaptorInterface interface {
 	RemoveE2Interface(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error
 }
 
-// E2NodeInfo represents information about an E2 Node
+// E2ConnectionState represents simple connection states
+type E2ConnectionState string
+
+const (
+	E2ConnectionStateConnected    E2ConnectionState = "CONNECTED"
+	E2ConnectionStateDisconnected E2ConnectionState = "DISCONNECTED"
+	E2ConnectionStateConnecting   E2ConnectionState = "CONNECTING"
+	E2ConnectionStateFailed       E2ConnectionState = "FAILED"
+)
+
+// E2NodeInfo represents information about an E2 Node (now uses GlobalE2NodeID from e2ap_messages.go)
 type E2NodeInfo struct {
 	NodeID              string              `json:"node_id"`
-	GlobalE2NodeID      E2NodeID            `json:"global_e2_node_id"`
-	RanFunctions        []*E2NodeFunction   `json:"ran_functions"`
+	GlobalE2NodeID      GlobalE2NodeID      `json:"global_e2_node_id"`
+	RANFunctions        []*E2NodeFunction   `json:"ran_functions"`
 	ConnectionStatus    E2ConnectionStatus  `json:"connection_status"`
+	SubscriptionCount   int                 `json:"subscription_count"`
 	LastSeen            time.Time           `json:"last_seen"`
 	Configuration       map[string]interface{} `json:"configuration,omitempty"`
-}
-
-// E2NodeID represents the global E2 Node ID structure
-type E2NodeID struct {
-	PlmnID              string    `json:"plmn_id"`
-	NodeType            string    `json:"node_type"` // eNB, en-gNB, ng-eNB, gNB
-	NodeID              string    `json:"node_id"`
-	NodeInstance        int       `json:"node_instance,omitempty"`
 }
 
 // E2ConnectionStatus represents the connection status of an E2 Node
@@ -288,11 +289,20 @@ func (e *E2Adaptor) RegisterE2Node(ctx context.Context, nodeID string, functions
 	
 	nodeInfo := &E2NodeInfo{
 		NodeID: nodeID,
-		GlobalE2NodeID: E2NodeID{
-			NodeID:   nodeID,
-			NodeType: "gNB", // Default, should be configurable
+		GlobalE2NodeID: GlobalE2NodeID{
+			PLMNIdentity: PLMNIdentity{
+				MCC: "001", // Default, should be configurable
+				MNC: "01",  // Default, should be configurable
+			},
+			E2NodeID: E2NodeID{
+				GNBID: &GNBID{
+					GNBIDChoice: GNBIDChoice{
+						GNBID32: &nodeID,
+					},
+				},
+			},
 		},
-		RanFunctions: functions,
+		RANFunctions: functions,
 		ConnectionStatus: E2ConnectionStatus{
 			State:         "CONNECTED",
 			EstablishedAt: time.Now(),
@@ -409,7 +419,7 @@ func (e *E2Adaptor) UpdateE2Node(ctx context.Context, nodeID string, functions [
 	defer e.mutex.Unlock()
 	
 	if nodeInfo, exists := e.nodeRegistry[nodeID]; exists {
-		nodeInfo.RanFunctions = functions
+		nodeInfo.RANFunctions = functions
 		nodeInfo.LastSeen = time.Now()
 	}
 	
@@ -744,10 +754,10 @@ func (e *E2Adaptor) GetIndicationData(ctx context.Context, nodeID string, subscr
 // ConfigureE2Interface configures the E2 interface for a ManagedElement
 func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error {
 	logger := log.FromContext(ctx)
-	logger.Info("configuring E2 interface", "managedElement", me.Name)
+	logger.Info("configuring E2 interface", "managedElement", me.ObjectMeta.Name)
 	
 	if me.Spec.E2Configuration.Raw == nil {
-		logger.Info("no E2 configuration to apply", "managedElement", me.Name)
+		logger.Info("no E2 configuration to apply", "managedElement", me.ObjectMeta.Name)
 		return nil
 	}
 	
@@ -760,7 +770,7 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1alph
 	// Extract node ID
 	nodeID, ok := e2Config["node_id"].(string)
 	if !ok {
-		nodeID = me.Name
+		nodeID = me.ObjectMeta.Name
 	}
 	
 	// Extract RAN functions
@@ -867,7 +877,7 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1alph
 	}
 	
 	logger.Info("successfully configured E2 interface", 
-		"managedElement", me.Name,
+		"managedElement", me.ObjectMeta.Name,
 		"nodeID", nodeID,
 		"functions", len(ranFunctions))
 	
@@ -877,10 +887,10 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1alph
 // RemoveE2Interface removes the E2 interface configuration for a ManagedElement
 func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error {
 	logger := log.FromContext(ctx)
-	logger.Info("removing E2 interface", "managedElement", me.Name)
+	logger.Info("removing E2 interface", "managedElement", me.ObjectMeta.Name)
 	
 	if me.Spec.E2Configuration.Raw == nil {
-		logger.Info("no E2 configuration to remove", "managedElement", me.Name)
+		logger.Info("no E2 configuration to remove", "managedElement", me.ObjectMeta.Name)
 		return nil
 	}
 	
@@ -892,7 +902,7 @@ func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1alpha1.
 	
 	nodeID, ok := e2Config["node_id"].(string)
 	if !ok {
-		nodeID = me.Name
+		nodeID = me.ObjectMeta.Name
 	}
 	
 	// Delete all subscriptions for this node
@@ -915,7 +925,7 @@ func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1alpha1.
 	}
 	
 	logger.Info("successfully removed E2 interface", 
-		"managedElement", me.Name,
+		"managedElement", me.ObjectMeta.Name,
 		"nodeID", nodeID)
 	
 	return nil
@@ -929,14 +939,14 @@ func (e *E2Adaptor) startHeartbeatMonitor() {
 	for range ticker.C {
 		e.mutex.Lock()
 		now := time.Now()
-		for nodeID, nodeInfo := range e.nodeRegistry {
+		for _, nodeInfo := range e.nodeRegistry {
 			// Check if node hasn't sent heartbeat in 2x the interval
 			if now.Sub(nodeInfo.ConnectionStatus.LastHeartbeat) > 2*e.heartbeatInterval {
 				nodeInfo.ConnectionStatus.State = "DISCONNECTED"
 				nodeInfo.ConnectionStatus.ConnectionFailures++
 				
 				// Mark all node functions as unavailable
-				for _, function := range nodeInfo.RanFunctions {
+				for _, function := range nodeInfo.RANFunctions {
 					function.Status.State = "UNAVAILABLE"
 				}
 			}

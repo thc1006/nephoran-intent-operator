@@ -1,0 +1,717 @@
+package e2
+
+import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
+	"sync"
+	"time"
+)
+
+// E2AP Protocol Data Units (PDUs) following O-RAN.WG3.E2AP-v3.0
+
+// E2APMessageType represents the type of E2AP message
+type E2APMessageType int
+
+const (
+	// Initiating messages
+	E2APMessageTypeSetupRequest             E2APMessageType = 1
+	E2APMessageTypeRICSubscriptionRequest   E2APMessageType = 2
+	E2APMessageTypeRICControlRequest        E2APMessageType = 3
+	E2APMessageTypeErrorIndication          E2APMessageType = 4
+	E2APMessageTypeRICSubscriptionDeleteRequest E2APMessageType = 5
+	E2APMessageTypeResetRequest             E2APMessageType = 6
+	
+	// Successful outcome messages
+	E2APMessageTypeSetupResponse            E2APMessageType = 11
+	E2APMessageTypeRICSubscriptionResponse  E2APMessageType = 12
+	E2APMessageTypeRICControlAcknowledge    E2APMessageType = 13
+	E2APMessageTypeRICSubscriptionDeleteResponse E2APMessageType = 14
+	E2APMessageTypeResetResponse            E2APMessageType = 15
+	
+	// Unsuccessful outcome messages
+	E2APMessageTypeSetupFailure             E2APMessageType = 21
+	E2APMessageTypeRICSubscriptionFailure   E2APMessageType = 22
+	E2APMessageTypeRICControlFailure        E2APMessageType = 23
+	E2APMessageTypeRICSubscriptionDeleteFailure E2APMessageType = 24
+	E2APMessageTypeResetFailure             E2APMessageType = 25
+	
+	// Indication messages
+	E2APMessageTypeRICIndication            E2APMessageType = 31
+	E2APMessageTypeRICServiceUpdate         E2APMessageType = 32
+	E2APMessageTypeRICServiceUpdateAcknowledge E2APMessageType = 33
+	E2APMessageTypeRICServiceUpdateFailure  E2APMessageType = 34
+)
+
+// E2APMessage represents a generic E2AP message structure
+type E2APMessage struct {
+	MessageType    E2APMessageType `json:"message_type"`
+	TransactionID  int32          `json:"transaction_id"`
+	ProcedureCode  int32          `json:"procedure_code"`
+	Criticality    Criticality    `json:"criticality"`
+	Payload        interface{}    `json:"payload"`
+	Timestamp      time.Time      `json:"timestamp"`
+	CorrelationID  string         `json:"correlation_id,omitempty"`
+}
+
+// Criticality represents the criticality of E2AP messages
+type Criticality int
+
+const (
+	CriticalityReject Criticality = iota
+	CriticalityIgnore
+	CriticalityNotify
+)
+
+// E2APEncoder handles encoding/decoding of E2AP messages
+type E2APEncoder struct {
+	messageRegistry map[E2APMessageType]MessageCodec
+	correlationMap  map[string]*PendingMessage
+	mutex          sync.RWMutex
+}
+
+// MessageCodec interface for encoding/decoding specific message types
+type MessageCodec interface {
+	Encode(message interface{}) ([]byte, error)
+	Decode(data []byte) (interface{}, error)
+	GetMessageType() E2APMessageType
+	Validate(message interface{}) error
+}
+
+// PendingMessage tracks pending E2AP transactions
+type PendingMessage struct {
+	MessageType   E2APMessageType
+	TransactionID int32
+	SentTime      time.Time
+	Timeout       time.Duration
+	Callback      func(response *E2APMessage, err error)
+}
+
+// E2SetupRequest represents E2 Setup Request message
+type E2SetupRequest struct {
+	GlobalE2NodeID    GlobalE2NodeID        `json:"global_e2_node_id"`
+	RANFunctionsList  []RANFunctionItem     `json:"ran_functions_list"`
+	E2NodeComponentConfigurationList []E2NodeComponentConfigurationItem `json:"e2_node_component_config_list,omitempty"`
+}
+
+// E2SetupResponse represents E2 Setup Response message
+type E2SetupResponse struct {
+	GlobalRICID               GlobalRICID           `json:"global_ric_id"`
+	RANFunctionsAccepted      []RANFunctionIDItem   `json:"ran_functions_accepted,omitempty"`
+	RANFunctionsRejected      []RANFunctionIDCause  `json:"ran_functions_rejected,omitempty"`
+	E2NodeComponentConfigurationList []E2NodeComponentConfigurationItem `json:"e2_node_component_config_list,omitempty"`
+}
+
+// E2SetupFailure represents E2 Setup Failure message
+type E2SetupFailure struct {
+	Cause              E2APCause         `json:"cause"`
+	TimeToWait         *TimeToWait       `json:"time_to_wait,omitempty"`
+	CriticalityDiagnostics *CriticalityDiagnostics `json:"criticality_diagnostics,omitempty"`
+}
+
+// RICSubscriptionRequest represents RIC Subscription Request message
+type RICSubscriptionRequest struct {
+	RICRequestID       RICRequestID      `json:"ric_request_id"`
+	RANFunctionID      RANFunctionID     `json:"ran_function_id"`
+	RICSubscriptionDetails RICSubscriptionDetails `json:"ric_subscription_details"`
+}
+
+// RICSubscriptionResponse represents RIC Subscription Response message
+type RICSubscriptionResponse struct {
+	RICRequestID         RICRequestID                `json:"ric_request_id"`
+	RANFunctionID        RANFunctionID               `json:"ran_function_id"`
+	RICActionAdmittedList []RICActionID              `json:"ric_action_admitted_list,omitempty"`
+	RICActionNotAdmittedList []RICActionNotAdmittedItem `json:"ric_action_not_admitted_list,omitempty"`
+}
+
+// RICSubscriptionFailure represents RIC Subscription Failure message
+type RICSubscriptionFailure struct {
+	RICRequestID         RICRequestID                `json:"ric_request_id"`
+	RANFunctionID        RANFunctionID               `json:"ran_function_id"`
+	Cause                E2APCause                   `json:"cause"`
+	RICActionNotAdmittedList []RICActionNotAdmittedItem `json:"ric_action_not_admitted_list,omitempty"`
+	CriticalityDiagnostics *CriticalityDiagnostics     `json:"criticality_diagnostics,omitempty"`
+}
+
+// RICControlRequest represents RIC Control Request message
+type RICControlRequest struct {
+	RICRequestID       RICRequestID      `json:"ric_request_id"`
+	RANFunctionID      RANFunctionID     `json:"ran_function_id"`
+	RICCallProcessID   *RICCallProcessID `json:"ric_call_process_id,omitempty"`
+	RICControlHeader   []byte            `json:"ric_control_header"`
+	RICControlMessage  []byte            `json:"ric_control_message"`
+	RICControlAckRequest *RICControlAckRequest `json:"ric_control_ack_request,omitempty"`
+}
+
+// RICControlAcknowledge represents RIC Control Acknowledge message
+type RICControlAcknowledge struct {
+	RICRequestID       RICRequestID      `json:"ric_request_id"`
+	RANFunctionID      RANFunctionID     `json:"ran_function_id"`
+	RICCallProcessID   *RICCallProcessID `json:"ric_call_process_id,omitempty"`
+	RICControlOutcome  []byte            `json:"ric_control_outcome,omitempty"`
+}
+
+// RICControlFailure represents RIC Control Failure message
+type RICControlFailure struct {
+	RICRequestID       RICRequestID      `json:"ric_request_id"`
+	RANFunctionID      RANFunctionID     `json:"ran_function_id"`
+	RICCallProcessID   *RICCallProcessID `json:"ric_call_process_id,omitempty"`
+	Cause              E2APCause         `json:"cause"`
+	RICControlOutcome  []byte            `json:"ric_control_outcome,omitempty"`
+	CriticalityDiagnostics *CriticalityDiagnostics `json:"criticality_diagnostics,omitempty"`
+}
+
+// RICIndication represents RIC Indication message
+type RICIndication struct {
+	RICRequestID       RICRequestID      `json:"ric_request_id"`
+	RANFunctionID      RANFunctionID     `json:"ran_function_id"`
+	RICActionID        RICActionID       `json:"ric_action_id"`
+	RICIndicationSN    *RICIndicationSN  `json:"ric_indication_sn,omitempty"`
+	RICIndicationType  RICIndicationType `json:"ric_indication_type"`
+	RICIndicationHeader []byte           `json:"ric_indication_header"`
+	RICIndicationMessage []byte          `json:"ric_indication_message"`
+	RICCallProcessID   *RICCallProcessID `json:"ric_call_process_id,omitempty"`
+}
+
+// Common E2AP data types
+
+// GlobalE2NodeID represents the global E2 node identifier
+type GlobalE2NodeID struct {
+	PLMNIdentity   PLMNIdentity   `json:"plmn_identity"`
+	E2NodeID       E2NodeID       `json:"e2_node_id"`
+}
+
+// GlobalRICID represents the global RIC identifier
+type GlobalRICID struct {
+	PLMNIdentity   PLMNIdentity   `json:"plmn_identity"`
+	RICID          RICID          `json:"ric_id"`
+}
+
+// PLMNIdentity represents the PLMN (Public Land Mobile Network) identity
+type PLMNIdentity struct {
+	MCC string `json:"mcc"` // Mobile Country Code (3 digits)
+	MNC string `json:"mnc"` // Mobile Network Code (2-3 digits)
+}
+
+// E2NodeID represents the E2 node identifier (choice)
+type E2NodeID struct {
+	GNBID    *GNBID    `json:"gnb_id,omitempty"`
+	ENBID    *ENBID    `json:"enb_id,omitempty"`
+	EnGNBID  *EnGNBID  `json:"en_gnb_id,omitempty"`
+	NgENBID  *NgENBID  `json:"ng_enb_id,omitempty"`
+}
+
+// GNBID represents gNB identifier
+type GNBID struct {
+	GNBIDChoice GNBIDChoice `json:"gnb_id_choice"`
+}
+
+// GNBIDChoice represents the choice of gNB ID
+type GNBIDChoice struct {
+	GNBID22 *string `json:"gnb_id_22,omitempty"` // 22-bit string
+	GNBID32 *string `json:"gnb_id_32,omitempty"` // 32-bit string
+}
+
+// ENBID represents eNB identifier
+type ENBID struct {
+	MacroENBID  *string `json:"macro_enb_id,omitempty"`  // 20-bit string
+	HomeENBID   *string `json:"home_enb_id,omitempty"`   // 28-bit string
+	ShortMacro  *string `json:"short_macro,omitempty"`   // 18-bit string
+	LongMacro   *string `json:"long_macro,omitempty"`    // 21-bit string
+}
+
+// EnGNBID represents en-gNB identifier
+type EnGNBID struct {
+	EnGNBID string `json:"en_gnb_id"` // 22-bit string
+}
+
+// NgENBID represents ng-eNB identifier
+type NgENBID struct {
+	MacroNgENBID *string `json:"macro_ng_enb_id,omitempty"` // 20-bit string
+	ShortMacro   *string `json:"short_macro,omitempty"`      // 18-bit string
+	LongMacro    *string `json:"long_macro,omitempty"`       // 21-bit string
+}
+
+// RICID represents RIC identifier
+type RICID struct {
+	RICID string `json:"ric_id"` // 20-bit string
+}
+
+// RICRequestID represents RIC request identifier
+type RICRequestID struct {
+	RICRequestorID RICRequestorID `json:"ric_requestor_id"`
+	RICInstanceID  RICInstanceID  `json:"ric_instance_id"`
+}
+
+// RICRequestorID represents RIC requestor identifier (0..65535)
+type RICRequestorID int32
+
+// RICInstanceID represents RIC instance identifier (0..65535)
+type RICInstanceID int32
+
+// RANFunctionID represents RAN function identifier (0..4095)
+type RANFunctionID int32
+
+// RICActionID represents RIC action identifier (0..255)
+type RICActionID int32
+
+// RICCallProcessID represents RIC call process identifier
+type RICCallProcessID []byte
+
+// RICIndicationSN represents RIC indication sequence number (0..65535)
+type RICIndicationSN int32
+
+// RICIndicationType represents RIC indication type
+type RICIndicationType int
+
+const (
+	RICIndicationTypeReport RICIndicationType = iota
+	RICIndicationTypeInsert
+)
+
+// RICControlAckRequest represents RIC control acknowledgment request
+type RICControlAckRequest int
+
+const (
+	RICControlAckRequestNoAck RICControlAckRequest = iota
+	RICControlAckRequestAck
+	RICControlAckRequestNAck
+)
+
+// E2APCause represents E2AP cause
+type E2APCause struct {
+	RICCause      *RICCause      `json:"ric_cause,omitempty"`
+	RICServiceCause *RICServiceCause `json:"ric_service_cause,omitempty"`
+	E2NodeCause   *E2NodeCause   `json:"e2_node_cause,omitempty"`
+	TransportCause *TransportCause `json:"transport_cause,omitempty"`
+	ProtocolCause *ProtocolCause `json:"protocol_cause,omitempty"`
+	MiscCause     *MiscCause     `json:"misc_cause,omitempty"`
+}
+
+// RICCause represents RIC-related causes
+type RICCause int
+
+const (
+	RICCauseRANFunctionIDInvalid RICCause = iota
+	RICCauseActionNotSupported
+	RICCauseExcessiveActions
+	RICCauseDuplicateAction
+	RICCauseDuplicateRICRequestID
+	RICCauseFunctionResourceLimit
+	RICCauseRequestIDUnknown
+	RICCauseInconsistentActionSubsequentActionSequence
+	RICCauseControlMessageInvalid
+	RICCauseRICCallProcessIDInvalid
+	RICCauseControlTimerExpired
+	RICCauseControlFailedToExecute
+	RICCauseSystemNotReady
+	RICCauseUnspecified
+)
+
+// RICServiceCause represents RIC service-related causes
+type RICServiceCause int
+
+const (
+	RICServiceCauseRANFunctionNotRequired RICServiceCause = iota
+	RICServiceCauseExcessiveFunctions
+	RICServiceCauseRICResourceLimit
+)
+
+// E2NodeCause represents E2 node-related causes
+type E2NodeCause int
+
+const (
+	E2NodeCauseE2NodeComponentUnknown E2NodeCause = iota
+)
+
+// TransportCause represents transport-related causes
+type TransportCause int
+
+const (
+	TransportCauseUnspecified TransportCause = iota
+	TransportCauseTransportResourceUnavailable
+)
+
+// ProtocolCause represents protocol-related causes
+type ProtocolCause int
+
+const (
+	ProtocolCauseTransferSyntaxError ProtocolCause = iota
+	ProtocolCauseAbstractSyntaxErrorReject
+	ProtocolCauseAbstractSyntaxErrorIgnoreAndNotify
+	ProtocolCauseMessageNotCompatibleWithReceiverState
+	ProtocolCauseSemanticError
+	ProtocolCauseAbstractSyntaxErrorFalselyConstructedMessage
+	ProtocolCauseUnspecified
+)
+
+// MiscCause represents miscellaneous causes
+type MiscCause int
+
+const (
+	MiscCauseControlProcessingOverload MiscCause = iota
+	MiscCauseNotEnoughUserPlaneProcessingResources
+	MiscCauseHardwareFailure
+	MiscCauseOMIntervention
+	MiscCauseUnspecified
+)
+
+// TimeToWait represents time to wait before retry
+type TimeToWait int
+
+const (
+	TimeToWaitV1s TimeToWait = iota
+	TimeToWaitV2s
+	TimeToWaitV5s
+	TimeToWaitV10s
+	TimeToWaitV20s
+	TimeToWaitV60s
+)
+
+// CriticalityDiagnostics represents criticality diagnostics information
+type CriticalityDiagnostics struct {
+	ProcedureCode       *int32                              `json:"procedure_code,omitempty"`
+	TriggeringMessage   *TriggeringMessage                  `json:"triggering_message,omitempty"`
+	ProcedureCriticality *Criticality                       `json:"procedure_criticality,omitempty"`
+	IEsCriticalityDiagnostics []CriticalityDiagnosticsIEItem `json:"ies_criticality_diagnostics,omitempty"`
+}
+
+// TriggeringMessage represents the triggering message type
+type TriggeringMessage int
+
+const (
+	TriggeringMessageInitiatingMessage TriggeringMessage = iota
+	TriggeringMessageSuccessfulOutcome
+	TriggeringMessageUnsuccessfulOutcome
+)
+
+// CriticalityDiagnosticsIEItem represents IE-specific criticality diagnostics
+type CriticalityDiagnosticsIEItem struct {
+	IECriticality Criticality `json:"ie_criticality"`
+	IEID          int32       `json:"ie_id"`
+	TypeOfError   TypeOfError `json:"type_of_error"`
+}
+
+// TypeOfError represents the type of error in criticality diagnostics
+type TypeOfError int
+
+const (
+	TypeOfErrorNotUnderstood TypeOfError = iota
+	TypeOfErrorMissing
+)
+
+// RANFunctionItem represents a RAN function item
+type RANFunctionItem struct {
+	RANFunctionID         RANFunctionID     `json:"ran_function_id"`
+	RANFunctionDefinition []byte            `json:"ran_function_definition"`
+	RANFunctionRevision   RANFunctionRevision `json:"ran_function_revision"`
+	RANFunctionOID        *string           `json:"ran_function_oid,omitempty"`
+}
+
+// RANFunctionRevision represents RAN function revision (0..255)
+type RANFunctionRevision int32
+
+// RANFunctionIDItem represents RAN function ID item
+type RANFunctionIDItem struct {
+	RANFunctionID       RANFunctionID     `json:"ran_function_id"`
+	RANFunctionRevision RANFunctionRevision `json:"ran_function_revision"`
+}
+
+// RANFunctionIDCause represents RAN function ID with cause
+type RANFunctionIDCause struct {
+	RANFunctionID RANFunctionID `json:"ran_function_id"`
+	Cause         E2APCause     `json:"cause"`
+}
+
+// RICSubscriptionDetails represents RIC subscription details
+type RICSubscriptionDetails struct {
+	RICEventTriggerDefinition []byte                   `json:"ric_event_trigger_definition"`
+	RICActionToBeSetupList    []RICActionToBeSetupItem `json:"ric_action_to_be_setup_list"`
+}
+
+// RICActionToBeSetupItem represents a RIC action to be setup
+type RICActionToBeSetupItem struct {
+	RICActionID         RICActionID       `json:"ric_action_id"`
+	RICActionType       RICActionType     `json:"ric_action_type"`
+	RICActionDefinition []byte            `json:"ric_action_definition,omitempty"`
+	RICSubsequentAction *RICSubsequentAction `json:"ric_subsequent_action,omitempty"`
+}
+
+// RICActionType represents the type of RIC action
+type RICActionType int
+
+const (
+	RICActionTypeReport RICActionType = iota
+	RICActionTypeInsert
+	RICActionTypePolicy
+)
+
+// RICSubsequentAction represents subsequent action for RIC action
+type RICSubsequentAction struct {
+	RICSubsequentActionType RICSubsequentActionType `json:"ric_subsequent_action_type"`
+	RICTimeToWait           *RICTimeToWait          `json:"ric_time_to_wait,omitempty"`
+}
+
+// RICSubsequentActionType represents the type of subsequent action
+type RICSubsequentActionType int
+
+const (
+	RICSubsequentActionTypeContinue RICSubsequentActionType = iota
+	RICSubsequentActionTypeWait
+)
+
+// RICTimeToWait represents RIC time to wait
+type RICTimeToWait int
+
+const (
+	RICTimeToWaitZero RICTimeToWait = iota
+	RICTimeToWaitW1ms
+	RICTimeToWaitW2ms
+	RICTimeToWaitW5ms
+	RICTimeToWaitW10ms
+	RICTimeToWaitW20ms
+	RICTimeToWaitW50ms
+	RICTimeToWaitW100ms
+	RICTimeToWaitW200ms
+	RICTimeToWaitW500ms
+	RICTimeToWaitW1s
+	RICTimeToWaitW2s
+	RICTimeToWaitW5s
+	RICTimeToWaitW10s
+	RICTimeToWaitW20s
+	RICTimeToWaitW60s
+)
+
+// RICActionNotAdmittedItem represents a RIC action that was not admitted
+type RICActionNotAdmittedItem struct {
+	RICActionID RICActionID `json:"ric_action_id"`
+	Cause       E2APCause   `json:"cause"`
+}
+
+// E2NodeComponentConfigurationItem represents E2 node component configuration
+type E2NodeComponentConfigurationItem struct {
+	E2NodeComponentInterfaceType E2NodeComponentInterfaceType `json:"e2_node_component_interface_type"`
+	E2NodeComponentID            E2NodeComponentID            `json:"e2_node_component_id"`
+	E2NodeComponentConfiguration E2NodeComponentConfiguration `json:"e2_node_component_configuration"`
+}
+
+// E2NodeComponentInterfaceType represents the interface type
+type E2NodeComponentInterfaceType int
+
+const (
+	E2NodeComponentInterfaceTypeNG E2NodeComponentInterfaceType = iota
+	E2NodeComponentInterfaceTypeXn
+	E2NodeComponentInterfaceTypeE1
+	E2NodeComponentInterfaceTypeF1
+	E2NodeComponentInterfaceTypeW1
+	E2NodeComponentInterfaceTypeS1
+	E2NodeComponentInterfaceTypeX2
+)
+
+// E2NodeComponentID represents E2 node component identifier (choice)
+type E2NodeComponentID struct {
+	E2NodeComponentInterfaceTypeNG *E2NodeComponentInterfaceNG `json:"ng,omitempty"`
+	E2NodeComponentInterfaceTypeXn *E2NodeComponentInterfaceXn `json:"xn,omitempty"`
+	E2NodeComponentInterfaceTypeE1 *E2NodeComponentInterfaceE1 `json:"e1,omitempty"`
+	E2NodeComponentInterfaceTypeF1 *E2NodeComponentInterfaceF1 `json:"f1,omitempty"`
+	E2NodeComponentInterfaceTypeW1 *E2NodeComponentInterfaceW1 `json:"w1,omitempty"`
+	E2NodeComponentInterfaceTypeS1 *E2NodeComponentInterfaceS1 `json:"s1,omitempty"`
+	E2NodeComponentInterfaceTypeX2 *E2NodeComponentInterfaceX2 `json:"x2,omitempty"`
+}
+
+// Interface-specific component IDs (simplified for HTTP transport)
+type E2NodeComponentInterfaceNG struct {
+	AMFName string `json:"amf_name"`
+}
+
+type E2NodeComponentInterfaceXn struct {
+	GlobalNGRANNodeID string `json:"global_ng_ran_node_id"`
+}
+
+type E2NodeComponentInterfaceE1 struct {
+	GNBCUCPID string `json:"gnb_cu_cp_id"`
+}
+
+type E2NodeComponentInterfaceF1 struct {
+	GNBDUID string `json:"gnb_du_id"`
+}
+
+type E2NodeComponentInterfaceW1 struct {
+	NGENBDUID string `json:"ng_enb_du_id"`
+}
+
+type E2NodeComponentInterfaceS1 struct {
+	MMEName string `json:"mme_name"`
+}
+
+type E2NodeComponentInterfaceX2 struct {
+	ENBID string `json:"enb_id"`
+}
+
+// E2NodeComponentConfiguration represents E2 node component configuration
+type E2NodeComponentConfiguration struct {
+	E2NodeComponentRequestPart  []byte `json:"e2_node_component_request_part"`
+	E2NodeComponentResponsePart []byte `json:"e2_node_component_response_part"`
+}
+
+// NewE2APEncoder creates a new E2AP encoder with registered codecs
+func NewE2APEncoder() *E2APEncoder {
+	encoder := &E2APEncoder{
+		messageRegistry: make(map[E2APMessageType]MessageCodec),
+		correlationMap:  make(map[string]*PendingMessage),
+	}
+
+	// Register standard message codecs
+	encoder.registerCodec(&E2SetupRequestCodec{})
+	encoder.registerCodec(&E2SetupResponseCodec{})
+	encoder.registerCodec(&E2SetupFailureCodec{})
+	encoder.registerCodec(&RICSubscriptionRequestCodec{})
+	encoder.registerCodec(&RICSubscriptionResponseCodec{})
+	encoder.registerCodec(&RICSubscriptionFailureCodec{})
+	encoder.registerCodec(&RICControlRequestCodec{})
+	encoder.registerCodec(&RICControlAcknowledgeCodec{})
+	encoder.registerCodec(&RICControlFailureCodec{})
+	encoder.registerCodec(&RICIndicationCodec{})
+
+	return encoder
+}
+
+// registerCodec registers a message codec
+func (e *E2APEncoder) registerCodec(codec MessageCodec) {
+	e.messageRegistry[codec.GetMessageType()] = codec
+}
+
+// EncodeMessage encodes an E2AP message to bytes
+func (e *E2APEncoder) EncodeMessage(message *E2APMessage) ([]byte, error) {
+	codec, exists := e.messageRegistry[message.MessageType]
+	if !exists {
+		return nil, fmt.Errorf("no codec registered for message type %d", message.MessageType)
+	}
+
+	// Validate message
+	if err := codec.Validate(message.Payload); err != nil {
+		return nil, fmt.Errorf("message validation failed: %w", err)
+	}
+
+	// Encode payload
+	payloadBytes, err := codec.Encode(message.Payload)
+	if err != nil {
+		return nil, fmt.Errorf("payload encoding failed: %w", err)
+	}
+
+	// Create message header
+	header := make([]byte, 16) // Fixed header size for HTTP transport
+	binary.BigEndian.PutUint32(header[0:4], uint32(message.MessageType))
+	binary.BigEndian.PutUint32(header[4:8], uint32(message.TransactionID))
+	binary.BigEndian.PutUint32(header[8:12], uint32(message.ProcedureCode))
+	binary.BigEndian.PutUint32(header[12:16], uint32(message.Criticality))
+
+	// Combine header and payload
+	buf := bytes.NewBuffer(header)
+	buf.Write(payloadBytes)
+
+	return buf.Bytes(), nil
+}
+
+// DecodeMessage decodes bytes to an E2AP message
+func (e *E2APEncoder) DecodeMessage(data []byte) (*E2APMessage, error) {
+	if len(data) < 16 {
+		return nil, fmt.Errorf("message too short: expected at least 16 bytes, got %d", len(data))
+	}
+
+	// Parse header
+	messageType := E2APMessageType(binary.BigEndian.Uint32(data[0:4]))
+	transactionID := int32(binary.BigEndian.Uint32(data[4:8]))
+	procedureCode := int32(binary.BigEndian.Uint32(data[8:12]))
+	criticality := Criticality(binary.BigEndian.Uint32(data[12:16]))
+
+	// Get codec for message type
+	codec, exists := e.messageRegistry[messageType]
+	if !exists {
+		return nil, fmt.Errorf("no codec registered for message type %d", messageType)
+	}
+
+	// Decode payload
+	payload, err := codec.Decode(data[16:])
+	if err != nil {
+		return nil, fmt.Errorf("payload decoding failed: %w", err)
+	}
+
+	return &E2APMessage{
+		MessageType:   messageType,
+		TransactionID: transactionID,
+		ProcedureCode: procedureCode,
+		Criticality:   criticality,
+		Payload:       payload,
+		Timestamp:     time.Now(),
+	}, nil
+}
+
+// TrackMessage tracks a message for correlation
+func (e *E2APEncoder) TrackMessage(correlationID string, message *PendingMessage) {
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+	e.correlationMap[correlationID] = message
+}
+
+// GetPendingMessage retrieves a pending message by correlation ID
+func (e *E2APEncoder) GetPendingMessage(correlationID string) (*PendingMessage, bool) {
+	e.mutex.RLock()
+	defer e.mutex.RUnlock()
+	msg, exists := e.correlationMap[correlationID]
+	return msg, exists
+}
+
+// RemovePendingMessage removes a pending message
+func (e *E2APEncoder) RemovePendingMessage(correlationID string) {
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+	delete(e.correlationMap, correlationID)
+}
+
+// Helper functions for creating common E2AP messages
+
+// CreateE2SetupRequest creates a new E2 Setup Request message
+func CreateE2SetupRequest(nodeID GlobalE2NodeID, functions []RANFunctionItem) *E2APMessage {
+	return &E2APMessage{
+		MessageType:   E2APMessageTypeSetupRequest,
+		ProcedureCode: 1,
+		Criticality:   CriticalityReject,
+		Payload: &E2SetupRequest{
+			GlobalE2NodeID:   nodeID,
+			RANFunctionsList: functions,
+		},
+		Timestamp: time.Now(),
+	}
+}
+
+// CreateRICSubscriptionRequest creates a new RIC Subscription Request message
+func CreateRICSubscriptionRequest(requestID RICRequestID, functionID RANFunctionID, details RICSubscriptionDetails) *E2APMessage {
+	return &E2APMessage{
+		MessageType:   E2APMessageTypeRICSubscriptionRequest,
+		ProcedureCode: 2,
+		Criticality:   CriticalityReject,
+		Payload: &RICSubscriptionRequest{
+			RICRequestID:           requestID,
+			RANFunctionID:          functionID,
+			RICSubscriptionDetails: details,
+		},
+		Timestamp: time.Now(),
+	}
+}
+
+// CreateRICControlRequest creates a new RIC Control Request message
+func CreateRICControlRequest(requestID RICRequestID, functionID RANFunctionID, header, message []byte) *E2APMessage {
+	return &E2APMessage{
+		MessageType:   E2APMessageTypeRICControlRequest,
+		ProcedureCode: 3,
+		Criticality:   CriticalityReject,
+		Payload: &RICControlRequest{
+			RICRequestID:      requestID,
+			RANFunctionID:     functionID,
+			RICControlHeader:  header,
+			RICControlMessage: message,
+		},
+		Timestamp: time.Now(),
+	}
+}
