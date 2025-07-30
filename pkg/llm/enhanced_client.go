@@ -251,20 +251,30 @@ func (hc *HealthChecker) checkHealth() {
 	hc.mutex.Lock()
 	defer hc.mutex.Unlock()
 
-	health := hc.healthStatus[hc.client.url]
-	health.LastCheck = time.Now()
-	health.ResponseTime = responseTime
-
+	// Fix race condition: create new health status instead of modifying existing
+	url := hc.client.url
+	currentHealth, exists := hc.healthStatus[url]
+	
+	// Create new health status with atomic updates
+	newHealth := HealthStatus{
+		LastCheck:    time.Now(),
+		ResponseTime: responseTime,
+		Available:    err == nil,
+		ErrorCount:   currentHealth.ErrorCount, // Preserve error count
+	}
+	
 	if err != nil {
-		health.ErrorCount++
-		health.Available = false
-		health.Status = "unhealthy"
+		newHealth.ErrorCount++
+		newHealth.Status = "unhealthy"
 	} else {
-		health.Available = true
-		health.Status = "healthy"
+		newHealth.Status = "healthy"
+		// Reset error count on successful health check
+		if exists && currentHealth.ErrorCount > 0 {
+			newHealth.ErrorCount = 0
+		}
 	}
 
-	hc.healthStatus[hc.client.url] = health
+	hc.healthStatus[url] = newHealth
 }
 
 // GetHealth returns the current health status

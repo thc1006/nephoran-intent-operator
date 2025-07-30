@@ -275,14 +275,37 @@ func initializeComponents() error {
 	// Initialize circuit breaker manager
 	circuitBreakerMgr = llm.NewCircuitBreakerManager(nil)
 	
-	// Initialize base LLM client
-	llmClient := llm.NewClientWithConfig(config.RAGAPIURL, llm.ClientConfig{
+	// Initialize base LLM client with proper validation and error handling
+	if config.RAGAPIURL == "" {
+		log.Fatal("RAG API URL is required but not configured")
+	}
+	
+	clientConfig := llm.ClientConfig{
 		APIKey:      config.LLMAPIKey,
 		ModelName:   config.LLMModelName,
 		MaxTokens:   config.LLMMaxTokens,
 		BackendType: config.LLMBackendType,
 		Timeout:     config.LLMTimeout,
-	})
+	}
+	
+	// Validate client configuration
+	if clientConfig.APIKey == "" && clientConfig.BackendType != "mock" {
+		log.Fatal("API Key is required for non-mock backends")
+	}
+	if clientConfig.ModelName == "" {
+		log.Fatal("Model name is required")
+	}
+	if clientConfig.MaxTokens <= 0 {
+		log.Fatal("Max tokens must be greater than 0")
+	}
+	if clientConfig.Timeout <= 0 {
+		log.Fatal("Timeout must be greater than 0")
+	}
+	
+	llmClient := llm.NewClientWithConfig(config.RAGAPIURL, clientConfig)
+	if llmClient == nil {
+		log.Fatal("Failed to create LLM client - nil client returned")
+	}
 	
 	// Initialize relevance scorer (without embeddings for now)
 	relevanceScorer = llm.NewRelevanceScorer(nil, nil)
