@@ -1,0 +1,313 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: enhanced-llm-processor-scaler
+  namespace: nephoran-system
+  labels:
+    app: llm-processor
+    component: ai-processing
+    version: enhanced
+spec:
+  scaleTargetRef:
+    name: llm-processor
+  minReplicaCount: 3
+  maxReplicaCount: 25
+  pollingInterval: 20
+  cooldownPeriod: 200
+  idleReplicaCount: 3
+  advanced:
+    restoreToOriginalReplicaCount: true
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 180
+          policies:
+          - type: Percent
+            value: 15
+            periodSeconds: 60
+        scaleUp:
+          stabilizationWindowSeconds: 45
+          policies:
+          - type: Percent
+            value: 75
+            periodSeconds: 30
+  triggers:
+  # Enhanced queue-based scaling with weighted metrics
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: llm_request_queue_weighted
+      threshold: '8' 
+      query: |
+        (
+          avg(rate(nephoran_llm_request_queue_depth[3m])) * 0.4 +
+          avg(rate(nephoran_llm_context_build_duration_seconds[3m])) * 0.3 +
+          avg(rate(nephoran_llm_token_usage_rate[3m])) * 0.3
+        )
+  # Response time SLA-based scaling
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: llm_response_time_sla
+      threshold: '1.5'
+      query: histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m]))
+  # Cost optimization scaling
+  - type: prometheus
+    metadata: 
+      serverAddress: http://prometheus:9090
+      metricName: llm_cost_efficiency
+      threshold: '0.8'
+      query: |
+        (
+          rate(nephoran_llm_successful_requests_total[5m]) / 
+          rate(nephoran_llm_cost_dollars_total[5m])
+        )
+  # Concurrent connections scaling
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: llm_concurrent_connections
+      threshold: '15' 
+      query: nephoran_llm_active_connections
+  # Circuit breaker state scaling
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: llm_circuit_breaker_state
+      threshold: '0.1'
+      query: |
+        (
+          sum(rate(nephoran_llm_circuit_breaker_failures_total[2m])) /
+          sum(rate(nephoran_llm_requests_total[2m]))
+        )
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: enhanced-rag-api-scaler
+  namespace: nephoran-system
+  labels:
+    app: rag-api
+    component: knowledge-retrieval
+    version: enhanced
+spec:
+  scaleTargetRef:
+    name: rag-api
+  minReplicaCount: 3
+  maxReplicaCount: 20
+  pollingInterval: 25
+  cooldownPeriod: 180
+  idleReplicaCount: 3
+  advanced:
+    restoreToOriginalReplicaCount: true
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 240
+          policies:
+          - type: Percent
+            value: 20
+            periodSeconds: 90
+        scaleUp:
+          stabilizationWindowSeconds: 60
+          policies:
+          - type: Percent
+            value: 60
+            periodSeconds: 45
+  triggers:
+  # Multi-dimensional RAG performance scaling
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: rag_performance_composite
+      threshold: '12'
+      query: |
+        (
+          avg(rate(rag_queries_total[3m])) * 0.35 +
+          avg(rate(rag_embedding_generation_duration_seconds[3m])) * 100 * 0.25 +
+          avg(rate(rag_context_assembly_duration_seconds[3m])) * 100 * 0.25 +
+          avg(rag_cache_miss_rate[3m]) * 50 * 0.15
+        )
+  # Vector database performance scaling
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: vector_db_performance
+      threshold: '200'
+      query: |
+        histogram_quantile(0.90, 
+          rate(weaviate_request_duration_seconds_bucket{operation="query"}[5m])
+        ) * 1000
+  # Document processing queue scaling
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: document_processing_load
+      threshold: '25'
+      query: |
+        (
+          avg(rag_document_processing_queue_depth) +
+          rate(rag_document_chunks_total[5m]) / 10
+        )
+  # Cache efficiency scaling
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: cache_efficiency_score
+      threshold: '0.6'
+      query: |
+        (
+          1 - avg(rag_cache_hit_rate[5m])
+        ) * avg(rate(rag_queries_total[5m])) / 50
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: enhanced-weaviate-scaler
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: vector-database
+    version: enhanced  
+spec:
+  scaleTargetRef:
+    name: weaviate
+  minReplicaCount: 3
+  maxReplicaCount: 12
+  pollingInterval: 45
+  cooldownPeriod: 600
+  idleReplicaCount: 3
+  advanced:
+    restoreToOriginalReplicaCount: true
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 900
+          policies:
+          - type: Percent
+            value: 15
+            periodSeconds: 300
+        scaleUp:
+          stabilizationWindowSeconds: 180
+          policies:
+          - type: Percent
+            value: 40
+            periodSeconds: 120
+  triggers:
+  # Vector operations performance
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: vector_operations_load
+      threshold: '150'
+      query: |
+        (
+          rate(weaviate_requests_total[5m]) * 0.6 +
+          avg(weaviate_objects_count) / 100000 * 0.4
+        )
+  # Query complexity and latency scaling
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: vector_query_complexity
+      threshold: '1000'
+      query: |
+        histogram_quantile(0.95, 
+          rate(weaviate_request_duration_seconds_bucket{operation="vector_search"}[5m])
+        ) * 1000
+  # Memory and storage scaling
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: vector_storage_pressure
+      threshold: '0.75'
+      query: |
+        (
+          avg(weaviate_memory_usage_bytes) / avg(weaviate_memory_limit_bytes) * 0.7 +
+          avg(weaviate_disk_usage_bytes) / avg(weaviate_disk_limit_bytes) * 0.3
+        )
+  # Concurrent query scaling
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: vector_concurrent_queries
+      threshold: '40'
+      query: weaviate_concurrent_queries
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledJob
+metadata:
+  name: enhanced-performance-optimizer
+  namespace: nephoran-system
+  labels:
+    app: performance-optimizer
+    component: optimization
+    version: enhanced
+spec:
+  jobTargetRef:
+    template:
+      metadata:
+        labels:
+          app: performance-optimizer
+          component: optimization
+      spec:
+        containers:
+        - name: optimizer
+          image: nephoran/performance-optimizer:latest
+          env:
+          - name: PROMETHEUS_URL
+            value: "http://prometheus:9090"
+          - name: OPTIMIZATION_MODE
+            value: "continuous"
+          - name: METRICS_ANALYSIS_WINDOW
+            value: "1h"
+          command:
+          - /bin/sh
+          - -c
+          - |
+            echo "Starting performance optimization analysis..."
+            python3 /app/optimize_performance.py --mode=continuous --window=1h
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 2Gi
+        restartPolicy: OnFailure
+  pollingInterval: 1800  # 30 minutes
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  minReplicaCount: 0
+  maxReplicaCount: 3
+  triggers:
+  # Performance degradation trigger
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: performance_degradation_score
+      threshold: '0.8'
+      query: |
+        (
+          (histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[30m])) / 2.0) * 0.4 +
+          (1 - avg(rag_cache_hit_rate[30m])) * 0.3 +
+          (rate(nephoran_errors_total[30m]) / rate(nephoran_requests_total[30m])) * 0.3
+        )
+  # Resource optimization trigger  
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus:9090
+      metricName: resource_optimization_opportunity
+      threshold: '0.7'
+      query: |
+        (
+          avg(rate(container_cpu_usage_seconds_total{namespace="nephoran-system"}[30m])) * 0.5 +
+          avg(container_memory_usage_bytes{namespace="nephoran-system"}) / 
+          avg(container_spec_memory_limit_bytes{namespace="nephoran-system"}) * 0.5
+        )
+  # Weekly optimization schedule
+  - type: cron
+    metadata:
+      timezone: UTC
+      start: "0 3 * * 1"  # Monday at 3 AM
+      end: "0 5 * * 1"    # Monday at 5 AM

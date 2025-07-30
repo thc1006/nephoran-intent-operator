@@ -1,0 +1,532 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enhanced-grafana-dashboards
+  namespace: nephoran-system
+  labels:
+    app: grafana
+    component: dashboards
+    grafana_dashboard: "1"
+data:
+  # System Overview Dashboard
+  system-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Intent Operator - System Overview",
+        "tags": ["nephoran", "overview", "performance"],
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Intent Processing Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(nephoran_networkintent_processed_total[5m])",
+                "legendFormat": "Intents/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 5},
+                    {"color": "green", "value": 10}
+                  ]
+                },
+                "unit": "reqps"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "System Availability",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "avg(up{job=~\"nephoran.*\"})",
+                "legendFormat": "Availability %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 0.95},
+                    {"color": "green", "value": 0.99}
+                  ]
+                },
+                "unit": "percentunit",
+                "max": 1,
+                "min": 0
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Error Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(nephoran_errors_total[5m]) / rate(nephoran_requests_total[5m])",
+                "legendFormat": "Error Rate %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 0.01},
+                    {"color": "red", "value": 0.05}
+                  ]
+                },
+                "unit": "percentunit"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Response Time P95",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P95 Latency"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 2},
+                    {"color": "red", "value": 5}
+                  ]
+                },
+                "unit": "s"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+          },
+          {
+            "id": 5,
+            "title": "Component Health Status",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "nephoran_controller_health_status",
+                "legendFormat": "{{controller}}-{{component}}"
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {"Time": true, "__name__": true},
+                  "renameByName": {
+                    "controller": "Controller",
+                    "component": "Component",
+                    "Value": "Status"
+                  }
+                }
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "Resource Utilization",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "avg(rate(container_cpu_usage_seconds_total{namespace=\"nephoran-system\"}[5m])) * 100",
+                "legendFormat": "CPU %"
+              },
+              {
+                "expr": "avg(container_memory_usage_bytes{namespace=\"nephoran-system\"}) / avg(container_spec_memory_limit_bytes{namespace=\"nephoran-system\"}) * 100",
+                "legendFormat": "Memory %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "percent",
+                "max": 100,
+                "min": 0
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ]
+      }
+    }
+
+  # LLM Performance Dashboard  
+  llm-performance.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran LLM Performance",
+        "tags": ["nephoran", "llm", "performance"],
+        "timezone": "browser",
+        "refresh": "15s",
+        "time": {
+          "from": "now-30m",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "LLM Request Latency Distribution",
+            "type": "histogram",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P50"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P95"
+              },
+              {
+                "expr": "histogram_quantile(0.99, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P99"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "s"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Token Usage Trends",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(nephoran_llm_tokens_consumed_total[5m])",
+                "legendFormat": "Tokens/sec"
+              },
+              {
+                "expr": "nephoran_llm_token_cost_dollars_total",
+                "legendFormat": "Cumulative Cost $"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"}
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Cache Performance",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "nephoran_llm_cache_hit_rate",
+                "legendFormat": "Hit Rate"
+              },
+              {
+                "expr": "rate(nephoran_llm_cache_operations_total[5m])",
+                "legendFormat": "Operations/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "percentunit"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Circuit Breaker Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "nephoran_llm_circuit_breaker_state",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "mappings": [
+                  {"options": {"0": {"text": "Closed", "color": "green"}}},
+                  {"options": {"1": {"text": "Open", "color": "red"}}},
+                  {"options": {"2": {"text": "Half-Open", "color": "yellow"}}}
+                ]
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ]
+      }
+    }
+
+  # RAG Pipeline Dashboard
+  rag-pipeline.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran RAG Pipeline Performance",
+        "tags": ["nephoran", "rag", "pipeline"],
+        "timezone": "browser",  
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Document Processing Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(rag_documents_processed_total[5m])",
+                "legendFormat": "Documents/sec"
+              },
+              {
+                "expr": "rate(rag_document_chunks_total[5m])",
+                "legendFormat": "Chunks/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Vector Search Performance",
+            "type": "timeseries", 
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(weaviate_request_duration_seconds_bucket{operation=\"query\"}[5m])) * 1000",
+                "legendFormat": "P95 Query Latency (ms)"
+              },
+              {
+                "expr": "rate(weaviate_requests_total{operation=\"query\"}[5m])",
+                "legendFormat": "Queries/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"}
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Embedding Generation Metrics",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(rag_embeddings_generated_total[5m])",
+                "legendFormat": "Embeddings/sec"
+              },
+              {
+                "expr": "histogram_quantile(0.90, rate(rag_embedding_generation_duration_seconds_bucket[5m]))",
+                "legendFormat": "P90 Generation Time"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"}
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Knowledge Base Statistics",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "weaviate_objects_count",
+                "legendFormat": "Total Objects"
+              },
+              {
+                "expr": "sum(rate(weaviate_requests_total[5m]))",
+                "legendFormat": "Requests/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "short"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ]
+      }
+    }
+
+  # Business Metrics Dashboard
+  business-metrics.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Business Metrics",
+        "tags": ["nephoran", "business", "kpi"],
+        "timezone": "browser",
+        "refresh": "5m",
+        "time": {
+          "from": "now-24h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Intent Success Rate",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "rate(nephoran_networkintent_success_total[1h]) / rate(nephoran_networkintent_total[1h])",
+                "legendFormat": "Success Rate"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 0.95},
+                    {"color": "green", "value": 0.98}
+                  ]
+                },
+                "unit": "percentunit"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}  
+          },
+          {
+            "id": 2,
+            "title": "Time to Deployment",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "avg(nephoran_intent_to_deployment_duration_seconds)",
+                "legendFormat": "Avg Time"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 300},
+                    {"color": "red", "value": 600}
+                  ]
+                },
+                "unit": "s"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Cost per Intent",
+            "type": "stat", 
+            "targets": [
+              {
+                "expr": "rate(nephoran_llm_cost_dollars_total[1h]) / rate(nephoran_networkintent_processed_total[1h])",
+                "legendFormat": "$/Intent"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "unit": "currencyUSD"
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "User Satisfaction Score",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "avg(nephoran_user_satisfaction_score)",
+                "legendFormat": "Satisfaction"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 7},
+                    {"color": "green", "value": 8.5}
+                  ]
+                },
+                "max": 10,
+                "min": 0
+              }
+            },
+            "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+          },
+          {
+            "id": 5,
+            "title": "Intent Types Distribution",
+            "type": "piechart",
+            "targets": [
+              {
+                "expr": "sum by (intent_type) (rate(nephoran_networkintent_total[1h]))",
+                "legendFormat": "{{intent_type}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 6,
+            "title": "Automation Rate",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "rate(nephoran_automated_deployments_total[1h]) / rate(nephoran_total_deployments_total[1h])",
+                "legendFormat": "Automation Rate"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "percentunit"
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          }
+        ]
+      }
+    }

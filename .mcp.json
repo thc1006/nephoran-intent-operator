@@ -17,7 +17,7 @@
         "C:\\Users\\thc1006\\.kube\\config",
         "C:\\Users\\thc1006\\.kube:/root/.kube",
         "workspaces",
-        "workspaces\\nephoran-intent-operator",
+        "workspaces\\nephoran-intent-operator"
       ]
     },
     "kubernetes": {
