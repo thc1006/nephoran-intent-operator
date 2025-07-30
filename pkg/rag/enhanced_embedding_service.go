@@ -3,9 +3,9 @@ package rag
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"log/slog"
 	"math"
 	"net/http"
@@ -285,18 +285,24 @@ func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context
 		return nil, fmt.Errorf("failed to select provider: %w", err)
 	}
 
-	// Generate embeddings
-	response, err := mps.generateWithProvider(ctx, provider, request)
+	// Preprocess and deduplicate texts
+	deduplicatedRequest, indexMapping := mps.preprocessAndDeduplicate(request)
+	
+	// Generate embeddings for deduplicated texts
+	response, err := mps.generateWithProvider(ctx, provider, deduplicatedRequest)
 	if err != nil {
 		// Try fallback providers if enabled
 		if mps.config.FallbackEnabled {
-			response, err = mps.generateWithFallback(ctx, provider, request)
+			response, err = mps.generateWithFallback(ctx, provider, deduplicatedRequest)
 		}
 		if err != nil {
 			mps.updateMetrics(nil, false)
 			return nil, fmt.Errorf("embedding generation failed: %w", err)
 		}
 	}
+	
+	// Expand response back to original text count using index mapping
+	response = mps.expandResponse(response, indexMapping, len(request.Texts))
 
 	// Quality check
 	if mps.config.EnableQualityCheck && len(response.Embeddings) > 0 {
@@ -595,10 +601,99 @@ func (mps *MultiProviderEmbeddingService) cacheResponse(request *EmbeddingReques
 	}
 }
 
-// generateCacheKey generates a cache key for text
+// generateCacheKey generates a cache key for text using fast FNV hash
 func (mps *MultiProviderEmbeddingService) generateCacheKey(text string) string {
-	hash := md5.Sum([]byte(text))
-	return fmt.Sprintf("emb:%x", hash)
+	h := fnv.New64a()
+	h.Write([]byte(text))
+	return fmt.Sprintf("emb:%016x", h.Sum64())
+}
+
+// preprocessAndDeduplicate preprocesses texts and removes duplicates for efficient API usage
+func (mps *MultiProviderEmbeddingService) preprocessAndDeduplicate(request *EmbeddingRequest) (*EmbeddingRequest, map[int]int) {
+	processed := make([]string, 0, len(request.Texts))
+	dedupeMap := make(map[string]int)
+	indexMapping := make(map[int]int) // maps original index to deduplicated index
+	duplicateCount := 0
+	
+	for i, text := range request.Texts {
+		// Preprocess the text (normalize, clean, etc.)
+		processedText := mps.preprocessSingleText(text)
+		
+		if existingIdx, exists := dedupeMap[processedText]; exists {
+			// Text already exists, map to existing index
+			indexMapping[i] = existingIdx
+			duplicateCount++
+		} else {
+			// New unique text, add to processed list
+			newIdx := len(processed)
+			processed = append(processed, processedText)
+			dedupeMap[processedText] = newIdx
+			indexMapping[i] = newIdx
+		}
+	}
+	
+	// Log deduplication statistics
+	if duplicateCount > 0 {
+		deduplicationRatio := float64(duplicateCount) / float64(len(request.Texts)) * 100
+		mps.logger.Info("Text deduplication applied",
+			"original_count", len(request.Texts),
+			"unique_count", len(processed),
+			"duplicates_removed", duplicateCount,
+			"deduplication_ratio", fmt.Sprintf("%.1f%%", deduplicationRatio),
+		)
+	}
+	
+	// Create new request with deduplicated texts
+	deduplicatedRequest := &EmbeddingRequest{
+		Texts:       processed,
+		UseCache:    request.UseCache,
+		Priority:    request.Priority,
+		Metadata:    request.Metadata,
+		Model:       request.Model,
+		BatchSize:   request.BatchSize,
+		Timeout:     request.Timeout,
+	}
+	
+	return deduplicatedRequest, indexMapping
+}
+
+// expandResponse expands the deduplicated response back to the original text count
+func (mps *MultiProviderEmbeddingService) expandResponse(response *EmbeddingResponse, indexMapping map[int]int, originalCount int) *EmbeddingResponse {
+	if len(indexMapping) == originalCount && len(response.Embeddings) == originalCount {
+		// No deduplication was applied
+		return response
+	}
+	
+	// Create expanded embeddings array
+	expandedEmbeddings := make([][]float32, originalCount)
+	
+	for originalIdx := 0; originalIdx < originalCount; originalIdx++ {
+		deduplicatedIdx := indexMapping[originalIdx]
+		if deduplicatedIdx < len(response.Embeddings) {
+			expandedEmbeddings[originalIdx] = response.Embeddings[deduplicatedIdx]
+		}
+	}
+	
+	// Update response with expanded embeddings
+	expandedResponse := &EmbeddingResponse{
+		Embeddings:     expandedEmbeddings,
+		Model:          response.Model,
+		Provider:       response.Provider,
+		TokenUsage:     response.TokenUsage,
+		ProcessingTime: response.ProcessingTime,
+		CacheHitRate:   response.CacheHitRate,
+		QualityScore:   response.QualityScore,
+		Cost:           response.Cost,
+		RequestID:      response.RequestID,
+		Metadata:       response.Metadata,
+	}
+	
+	mps.logger.Debug("Response expanded after deduplication",
+		"original_embedding_count", len(response.Embeddings),
+		"expanded_embedding_count", len(expandedEmbeddings),
+	)
+	
+	return expandedResponse
 }
 
 // estimateTotalCost estimates the total cost for the request
