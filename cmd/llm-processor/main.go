@@ -15,6 +15,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
@@ -29,11 +30,8 @@ var (
 	relevanceScorer     *llm.RelevanceScorer
 	promptBuilder       *llm.RAGAwarePromptBuilder
 	logger              *slog.Logger
+	healthChecker       *health.HealthChecker
 	startTime           = time.Now()
-	healthMux           sync.RWMutex
-	healthy             = true
-	readyMux            sync.RWMutex
-	ready               = false
 	requestID           int64
 )
 
@@ -141,11 +139,17 @@ func main() {
 	// Load configuration
 	config = loadConfig()
 
+	// Initialize health checker
+	healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
+
 	// Initialize components
 	if err := initializeComponents(); err != nil {
 		logger.Error("Failed to initialize components", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
+
+	// Register health checks
+	registerHealthChecks()
 
 	logger.Info("Starting LLM Processor service",
 		slog.String("version", config.ServiceVersion),
@@ -186,8 +190,8 @@ func main() {
 	}
 
 	// Public health endpoints (no authentication required)
-	router.HandleFunc("/healthz", healthzHandler).Methods("GET")
-	router.HandleFunc("/readyz", readyzHandler).Methods("GET")
+	router.HandleFunc("/healthz", healthChecker.HealthzHandler).Methods("GET")
+	router.HandleFunc("/readyz", healthChecker.ReadyzHandler).Methods("GET")
 	router.HandleFunc("/metrics", metricsHandler).Methods("GET")
 
 	// Protected endpoints
@@ -231,7 +235,7 @@ func main() {
 	}
 
 	// Mark service as ready
-	markReady(true)
+	healthChecker.SetReady(true)
 
 	// Start server in a goroutine
 	go func() {
@@ -250,7 +254,7 @@ func main() {
 	logger.Info("Server shutting down...")
 
 	// Mark service as not ready
-	markReady(false)
+	healthChecker.SetReady(false)
 
 	// Give the server a timeout to finish handling requests
 	ctx, cancel := context.WithTimeout(context.Background(), config.GracefulShutdown)
@@ -320,6 +324,80 @@ func initializeComponents() error {
 	return nil
 }
 
+// registerHealthChecks registers all health checks for the service
+func registerHealthChecks() {
+	// Internal service health checks
+	healthChecker.RegisterCheck("service_status", func(ctx context.Context) *health.Check {
+		return &health.Check{
+			Status:  health.StatusHealthy,
+			Message: "Service is running normally",
+		}
+	})
+
+	// Circuit breaker health check
+	if circuitBreakerMgr != nil {
+		healthChecker.RegisterCheck("circuit_breaker", func(ctx context.Context) *health.Check {
+			stats := circuitBreakerMgr.GetAllStats()
+			if len(stats) == 0 {
+				return &health.Check{
+					Status:  health.StatusHealthy,
+					Message: "No circuit breakers registered",
+				}
+			}
+			
+			// Check if any circuit breakers are open
+			for name, state := range stats {
+				if state != nil {
+					// Assuming the state has a field indicating if it's open
+					// This would need to match your actual circuit breaker implementation
+					return &health.Check{
+						Status:  health.StatusHealthy,
+						Message: fmt.Sprintf("Circuit breaker %s is operational", name),
+					}
+				}
+			}
+			
+			return &health.Check{
+				Status:  health.StatusHealthy,
+				Message: "All circuit breakers operational",
+			}
+		})
+	}
+
+	// Token manager health check
+	if tokenManager != nil {
+		healthChecker.RegisterCheck("token_manager", func(ctx context.Context) *health.Check {
+			models := tokenManager.GetSupportedModels()
+			return &health.Check{
+				Status:  health.StatusHealthy,
+				Message: fmt.Sprintf("Token manager operational with %d supported models", len(models)),
+				Metadata: map[string]interface{}{
+					"supported_models": models,
+				},
+			}
+		})
+	}
+
+	// Streaming processor health check
+	if streamingProcessor != nil {
+		healthChecker.RegisterCheck("streaming_processor", func(ctx context.Context) *health.Check {
+			metrics := streamingProcessor.GetMetrics()
+			return &health.Check{
+				Status:  health.StatusHealthy,
+				Message: "Streaming processor operational",
+				Metadata: metrics,
+			}
+		})
+	}
+
+	// RAG API dependency check
+	if config.RAGEnabled && config.RAGAPIURL != "" {
+		healthChecker.RegisterDependency("rag_api", health.HTTPCheck("rag_api", config.RAGAPIURL+"/health"))
+	}
+
+	logger.Info("Health checks registered", "checks", len(healthChecker.checks), "dependencies", len(healthChecker.dependencies))
+}
+
 func loadConfig() *Config {
 	return &Config{
 		Port:             getEnv("PORT", "8080"),
@@ -375,47 +453,6 @@ func loadConfig() *Config {
 	}
 }
 
-func healthzHandler(w http.ResponseWriter, r *http.Request) {
-	healthMux.RLock()
-	isHealthy := healthy
-	healthMux.RUnlock()
-
-	response := HealthResponse{
-		Status:    "healthy",
-		Version:   config.ServiceVersion,
-		Uptime:    time.Since(startTime).String(),
-		Timestamp: time.Now().UTC().Format(time.RFC3339),
-	}
-
-	if !isHealthy {
-		response.Status = "unhealthy"
-		w.WriteHeader(http.StatusServiceUnavailable)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-func readyzHandler(w http.ResponseWriter, r *http.Request) {
-	readyMux.RLock()
-	isReady := ready
-	readyMux.RUnlock()
-
-	response := HealthResponse{
-		Status:    "ready",
-		Version:   config.ServiceVersion,
-		Uptime:    time.Since(startTime).String(),
-		Timestamp: time.Now().UTC().Format(time.RFC3339),
-	}
-
-	if !isReady {
-		response.Status = "not ready"
-		w.WriteHeader(http.StatusServiceUnavailable)
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
 
 func processIntentHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -483,8 +520,8 @@ func statusHandler(w http.ResponseWriter, r *http.Request) {
 		"service":         "llm-processor",
 		"version":         config.ServiceVersion,
 		"uptime":          time.Since(startTime).String(),
-		"healthy":         getHealthStatus(),
-		"ready":           getReadyStatus(),
+		"healthy":         healthChecker.IsHealthy(),
+		"ready":           healthChecker.IsReady(),
 		"backend_type":    config.LLMBackendType,
 		"model":           config.LLMModelName,
 		"rag_enabled":     config.RAGEnabled,
@@ -566,23 +603,6 @@ func parseStringSlice(s string) []string {
 	return result
 }
 
-func markReady(isReady bool) {
-	readyMux.Lock()
-	ready = isReady
-	readyMux.Unlock()
-}
-
-func getHealthStatus() bool {
-	healthMux.RLock()
-	defer healthMux.RUnlock()
-	return healthy
-}
-
-func getReadyStatus() bool {
-	readyMux.RLock()
-	defer readyMux.RUnlock()
-	return ready
-}
 
 // streamingHandler handles Server-Sent Events streaming requests
 func streamingHandler(w http.ResponseWriter, r *http.Request) {

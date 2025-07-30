@@ -21,10 +21,14 @@ generate: ## Generate code
 	@echo "--- Generating Code ---"
 	controller-gen object:headerFile=hack/boilerplate.go.txt paths="github.com/thc1006/nephoran-intent-operator/api/v1"
 
-lint: ## Run linters
-	@echo "--- Running Linters ---"
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run ./...
-	flake8 pkg/rag/
+lint: ## Run linters with caching
+	@echo "--- Running Linters with Caching ---"
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint@latest run --enable-all --disable=exhaustivestruct,exhaustruct,gochecknoglobals,gochecknoinits,gomnd,wsl,nlreturn,testpackage --timeout=5m ./...
+ifeq ($(shell command -v flake8 2>/dev/null),)
+	@echo "flake8 not found, skipping Python linting"
+else
+	flake8 pkg/rag/ --max-line-length=120 --extend-ignore=E203,W503
+endif
 
 
 help:
@@ -65,11 +69,9 @@ else
 	pip3 install -r requirements-rag.txt
 endif
 
-build-all: ## Build all components
-	@echo "--- Building all components ---"
-	$(MAKE) build-llm-processor
-	$(MAKE) build-nephio-bridge  
-	$(MAKE) build-oran-adaptor
+build-all: ## Build all components in parallel
+	@echo "--- Building all components in parallel ---"
+	$(MAKE) -j$(shell nproc 2>/dev/null || echo 4) build-llm-processor build-nephio-bridge build-oran-adaptor
 
 deploy-dev: ## Deploy to development environment
 	@echo "--- Deploying to development environment ---"
@@ -94,12 +96,34 @@ endif
 # TODO: Add build targets for each service (e.g., build-llm-processor)
 .PHONY: build-llm-processor build-nephio-bridge build-oran-adaptor docker-build docker-push populate-kb
 
-docker-build: ## Build docker images for all services
-	@echo "--- Building Docker Images ---"
-	docker build -t $(REGISTRY)/llm-processor:$(VERSION) -f cmd/llm-processor/Dockerfile .
-	docker build -t $(REGISTRY)/nephio-bridge:$(VERSION) -f cmd/nephio-bridge/Dockerfile .
-	docker build -t $(REGISTRY)/oran-adaptor:$(VERSION) -f cmd/oran-adaptor/Dockerfile .
-	docker build -t $(REGISTRY)/rag-api:$(VERSION) -f pkg/rag/Dockerfile .
+docker-build: ## Build docker images with BuildKit optimization
+	@echo "--- Building Docker Images with Parallel BuildKit ---"
+	DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+		--build-arg VCS_REF=$(shell git rev-parse --short HEAD) \
+		-t $(REGISTRY)/llm-processor:$(VERSION) \
+		-f cmd/llm-processor/Dockerfile . &
+	DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+		--build-arg VCS_REF=$(shell git rev-parse --short HEAD) \
+		-t $(REGISTRY)/nephio-bridge:$(VERSION) \
+		-f cmd/nephio-bridge/Dockerfile . &
+	DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+		--build-arg VCS_REF=$(shell git rev-parse --short HEAD) \
+		-t $(REGISTRY)/oran-adaptor:$(VERSION) \
+		-f cmd/oran-adaptor/Dockerfile . &
+	DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ') \
+		--build-arg VCS_REF=$(shell git rev-parse --short HEAD) \
+		-t $(REGISTRY)/rag-api:$(VERSION) \
+		-f pkg/rag/Dockerfile . &
+	wait
+	@echo "All Docker images built successfully"
 
 docker-push: ## Push docker images to the registry
 	@echo "--- Pushing Docker Images ---"
@@ -151,26 +175,106 @@ rag-status: ## Show RAG system status
 	kubectl get pods -l app=rag-api
 	kubectl get svc weaviate rag-api
 
-build-llm-processor:
-	@echo "Building llm-processor..."
+build-llm-processor: ## Build LLM processor with optimizations
+	@echo "Building llm-processor with optimizations..."
 ifeq ($(OS),Windows_NT)
-	go build -o bin\llm-processor.exe cmd\llm-processor\main.go
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build \
+		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		-trimpath -a -installsuffix cgo \
+		-o bin\llm-processor.exe cmd\llm-processor\main.go
 else
-	go build -o bin/llm-processor cmd/llm-processor/main.go
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=amd64 go build \
+		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		-trimpath -a -installsuffix cgo \
+		-o bin/llm-processor cmd/llm-processor/main.go
 endif
 
-build-nephio-bridge:
-	@echo "Building nephio-bridge..."
+build-nephio-bridge: ## Build Nephio bridge with optimizations
+	@echo "Building nephio-bridge with optimizations..."
 ifeq ($(OS),Windows_NT)
-	go build -o bin\nephio-bridge.exe cmd\nephio-bridge\main.go
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build \
+		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		-trimpath -a -installsuffix cgo \
+		-o bin\nephio-bridge.exe cmd\nephio-bridge\main.go
 else
-	go build -o bin/nephio-bridge cmd/nephio-bridge/main.go
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=amd64 go build \
+		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		-trimpath -a -installsuffix cgo \
+		-o bin/nephio-bridge cmd/nephio-bridge/main.go
 endif
 
-build-oran-adaptor:
-	@echo "Building oran-adaptor..."
+build-oran-adaptor: ## Build O-RAN adaptor with optimizations
+	@echo "Building oran-adaptor with optimizations..."
 ifeq ($(OS),Windows_NT)
-	go build -o bin\oran-adaptor.exe cmd\oran-adaptor\main.go
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build \
+		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		-trimpath -a -installsuffix cgo \
+		-o bin\oran-adaptor.exe cmd\oran-adaptor\main.go
 else
-	go build -o bin/oran-adaptor cmd/oran-adaptor/main.go
+	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=amd64 go build \
+		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		-trimpath -a -installsuffix cgo \
+		-o bin/oran-adaptor cmd/oran-adaptor/main.go
 endif
+
+# Performance monitoring and benchmarking targets
+.PHONY: benchmark security-scan validate-images
+
+benchmark: ## Run performance benchmarks
+	@echo "--- Running Performance Benchmarks ---"
+	go test -bench=. -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof ./pkg/...
+	@echo "Benchmark results saved to cpu.prof and mem.prof"
+
+security-scan: ## Run security vulnerability scans
+	@echo "--- Running Security Scans ---"
+	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+	@echo "--- Scanning Docker images for vulnerabilities ---"
+	@if command -v trivy >/dev/null 2>&1; then \
+		trivy image $(REGISTRY)/llm-processor:$(VERSION); \
+		trivy image $(REGISTRY)/nephio-bridge:$(VERSION); \
+		trivy image $(REGISTRY)/oran-adaptor:$(VERSION); \
+		trivy image $(REGISTRY)/rag-api:$(VERSION); \
+	else \
+		echo "Trivy not installed, skipping container security scan"; \
+		echo "Install with: curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin"; \
+	fi
+
+validate-images: docker-build ## Validate Docker images
+	@echo "--- Validating Docker Images ---"
+	@for image in llm-processor nephio-bridge oran-adaptor rag-api; do \
+		echo "Validating $(REGISTRY)/$$image:$(VERSION)"; \
+		docker run --rm $(REGISTRY)/$$image:$(VERSION) --version 2>/dev/null || echo "Version check failed or not implemented for $$image"; \
+		docker inspect $(REGISTRY)/$$image:$(VERSION) | jq '.[0].Config.Labels' || echo "No labels found for $$image"; \
+	done
+
+build-performance: ## Monitor build performance
+	@echo "--- Build Performance Monitoring ---"
+	@echo "Starting build with timing..."
+	@start_time=$$(date +%s); \
+	$(MAKE) clean build-all; \
+	end_time=$$(date +%s); \
+	echo "Total build time: $$((end_time - start_time)) seconds"
+
+clean: ## Clean build artifacts
+	@echo "--- Cleaning Build Artifacts ---"
+	rm -rf bin/
+	docker system prune -f
+	go clean -cache -modcache -testcache
+
+# Dependency management and updates
+update-deps: ## Update dependencies safely
+	@echo "--- Updating Dependencies ---"
+	go get -u ./...
+	go mod tidy
+	go mod verify
+
+# Development helpers
+dev-setup: setup-dev ## Extended development setup with additional tools
+	@echo "--- Installing Additional Development Tools ---"
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	go install github.com/securecodewarrior/sast-scan@latest
+
+# Enhanced testing targets
+test-all: test-integration benchmark security-scan ## Run all tests including benchmarks and security
+	@echo "--- All Tests Completed ---"

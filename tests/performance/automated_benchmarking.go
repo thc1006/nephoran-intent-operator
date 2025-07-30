@@ -14,8 +14,8 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	
-	"github.com/nephoran/intent-operator/pkg/rag"
-	"github.com/nephoran/intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
 // AutomatedBenchmarkSuite provides comprehensive automated performance benchmarking
