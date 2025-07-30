@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/nephoran/intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // RAGComponentsTestSuite provides comprehensive unit testing for RAG components

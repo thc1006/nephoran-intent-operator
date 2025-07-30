@@ -63,3 +63,22 @@ type SearchResult struct {
 	Distance float32          `json:"distance"`
 	Metadata map[string]interface{} `json:"metadata"`
 }
+
+// SearchQuery represents a search query to the vector database
+type SearchQuery struct {
+	Query         string                 `json:"query"`
+	Limit         int                    `json:"limit"`
+	Filters       map[string]interface{} `json:"filters,omitempty"`
+	HybridSearch  bool                   `json:"hybrid_search"`
+	HybridAlpha   float32                `json:"hybrid_alpha"`
+	UseReranker   bool                   `json:"use_reranker"`
+	MinConfidence float32                `json:"min_confidence"`
+	ExpandQuery   bool                   `json:"expand_query"`
+}
+
+// SearchResponse represents the response from a search operation
+type SearchResponse struct {
+	Results []*SearchResult `json:"results"`
+	Took    int64           `json:"took"`
+	Total   int64           `json:"total"`
+}
