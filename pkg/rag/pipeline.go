@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"runtime"
 	"sync"
 	"time"
 
@@ -236,13 +237,10 @@ func (rp *RAGPipeline) ProcessDocument(ctx context.Context, documentPath string)
 	}
 	loadTime := time.Since(loadStart)
 
-	// Step 2: Process each document
-	for _, doc := range documents {
-		if err := rp.processIndividualDocument(ctx, doc); err != nil {
-			rp.logger.Error("Failed to process document", "doc_id", doc.ID, "error", err)
-			continue
-		}
-		rp.processedDocuments++
+	// Step 2: Process documents in parallel
+	if err := rp.processDocumentsParallel(ctx, documents); err != nil {
+		rp.logger.Error("Failed to process documents in parallel", "error", err)
+		return fmt.Errorf("parallel document processing failed: %w", err)
 	}
 
 	processingTime := time.Since(startTime)
@@ -312,6 +310,136 @@ func (rp *RAGPipeline) processIndividualDocument(ctx context.Context, doc *Loade
 	)
 
 	return nil
+}
+
+// processDocumentsParallel processes multiple documents concurrently using a worker pool
+func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents []*LoadedDocument) error {
+	maxWorkers := rp.config.MaxConcurrentProcessing
+	if maxWorkers <= 0 {
+		maxWorkers = runtime.NumCPU()
+	}
+	
+	// Limit to reasonable maximum to avoid resource exhaustion
+	if maxWorkers > 20 {
+		maxWorkers = 20
+	}
+	
+	// Don't create more workers than documents
+	if maxWorkers > len(documents) {
+		maxWorkers = len(documents)
+	}
+	
+	rp.logger.Info("Starting parallel document processing", 
+		"documents", len(documents), 
+		"workers", maxWorkers,
+	)
+	
+	// Create channels for work distribution
+	docChan := make(chan *LoadedDocument, len(documents))
+	resultChan := make(chan error, len(documents))
+	
+	// Start worker goroutines
+	var wg sync.WaitGroup
+	for i := 0; i < maxWorkers; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			rp.logger.Debug("Starting document processing worker", "worker_id", workerID)
+			
+			for doc := range docChan {
+				select {
+				case <-ctx.Done():
+					resultChan <- ctx.Err()
+					return
+				default:
+					startTime := time.Now()
+					err := rp.processIndividualDocument(ctx, doc)
+					processingTime := time.Since(startTime)
+					
+					if err != nil {
+						rp.logger.Error("Worker failed to process document", 
+							"worker_id", workerID,
+							"doc_id", doc.ID, 
+							"error", err,
+							"processing_time", processingTime,
+						)
+						resultChan <- fmt.Errorf("worker %d failed to process doc %s: %w", workerID, doc.ID, err)
+					} else {
+						rp.logger.Debug("Worker successfully processed document", 
+							"worker_id", workerID,
+							"doc_id", doc.ID,
+							"processing_time", processingTime,
+						)
+						rp.processedDocuments++
+						resultChan <- nil
+					}
+				}
+			}
+		}(i)
+	}
+	
+	// Send documents to workers
+	go func() {
+		defer close(docChan)
+		for _, doc := range documents {
+			select {
+			case docChan <- doc:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
+	
+	// Wait for all workers to complete
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+	
+	// Collect results and track errors
+	var errors []error
+	processedCount := 0
+	
+	for err := range resultChan {
+		if err != nil {
+			errors = append(errors, err)
+		} else {
+			processedCount++
+		}
+	}
+	
+	rp.logger.Info("Parallel document processing completed", 
+		"total_documents", len(documents),
+		"processed_successfully", processedCount,
+		"errors", len(errors),
+		"workers", maxWorkers,
+	)
+	
+	// If we have some errors but not all failed, log warnings but continue
+	if len(errors) > 0 {
+		errorRate := float64(len(errors)) / float64(len(documents))
+		if errorRate > 0.5 {
+			// More than 50% failed - consider this a critical failure
+			return fmt.Errorf("parallel processing failed with %d/%d documents failing: %v", len(errors), len(documents), errors[:min(5, len(errors))])
+		} else {
+			// Less than 50% failed - log warnings but continue
+			rp.logger.Warn("Some documents failed processing in parallel mode",
+				"failed_count", len(errors),
+				"success_count", processedCount,
+				"error_rate", errorRate,
+			)
+		}
+	}
+	
+	return nil
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // ProcessQuery processes a query through the enhanced retrieval pipeline

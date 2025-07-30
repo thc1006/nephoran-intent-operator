@@ -3,9 +3,9 @@ package rag
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"log/slog"
 	"math"
 	"net/http"
@@ -1092,14 +1092,14 @@ func (es *EmbeddingService) applyTelecomPreprocessing(text string) string {
 	return text
 }
 
-// generateCacheKey generates a cache key for the given text
+// generateCacheKey generates a cache key for the given text using fast FNV hash
 func (es *EmbeddingService) generateCacheKey(text string) string {
-	// Create a hash of the text and configuration that affects embeddings
-	hasher := md5.New()
-	hasher.Write([]byte(text))
-	hasher.Write([]byte(es.config.ModelName))
-	hasher.Write([]byte(fmt.Sprintf("%d", es.config.Dimensions)))
-	return fmt.Sprintf("%x", hasher.Sum(nil))
+	// Create a fast hash of the text and configuration that affects embeddings
+	h := fnv.New64a()
+	h.Write([]byte(text))
+	h.Write([]byte(es.config.ModelName))
+	h.Write([]byte(fmt.Sprintf("%d", es.config.Dimensions)))
+	return fmt.Sprintf("%016x", h.Sum64())
 }
 
 // GenerateEmbeddingsForChunks generates embeddings for document chunks
