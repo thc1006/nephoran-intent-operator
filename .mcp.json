@@ -1,0 +1,40 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "filesystem": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "C:\\Users\\thc1006\\.kube\\config",
+        "C:\\Users\\thc1006\\.kube:/root/.kube",
+        "workspaces",
+        "workspaces\\nephoran-intent-operator",
+      ]
+    },
+    "kubernetes": {
+      "command": "python",
+      "args": ["-u", "-m", "kubectl_mcp_tool.mcp_server"],
+      "env": {
+        "KUBECONFIG": "C:\\Users\\thc1006\\.kube\\config",
+        "PYTHONUNBUFFERED": "1"
+      }
+    },
+    "helm": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-v", "C:\\Users\\thc1006\\.kube:/root/.kube",
+        "ghcr.io/zekker6/mcp-helm:v0.0.5"
+      ]
+    }
+  }
+}
