@@ -88,6 +88,81 @@ type TLSConfig struct {
 	SkipVerify bool
 }
 
+// SMOServiceRegistry represents the SMO service registry integration
+type SMOServiceRegistry struct {
+	URL        string
+	APIKey     string
+	httpClient *http.Client
+}
+
+// SMOPolicyOrchestrator manages cross-domain policy coordination
+type SMOPolicyOrchestrator struct {
+	registry    *SMOServiceRegistry
+	a1Adaptors  map[string]*A1Adaptor
+	eventQueue  chan *PolicyEvent
+	workflows   map[string]*PolicyWorkflow
+}
+
+// PolicyEvent represents a policy-related event
+type PolicyEvent struct {
+	ID          string                 `json:"id"`
+	Type        string                 `json:"type"` // CREATE, UPDATE, DELETE, ENFORCE
+	PolicyID    string                 `json:"policy_id"`
+	Source      string                 `json:"source"`
+	Target      string                 `json:"target"`
+	Data        map[string]interface{} `json:"data"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Status      string                 `json:"status"`
+}
+
+// PolicyWorkflow represents a multi-step policy orchestration workflow
+type PolicyWorkflow struct {
+	ID           string                    `json:"id"`
+	Name         string                    `json:"name"`
+	Description  string                    `json:"description"`
+	Steps        []*PolicyWorkflowStep     `json:"steps"`
+	CurrentStep  int                       `json:"current_step"`
+	Status       string                    `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
+	Context      map[string]interface{}    `json:"context"`
+	CreatedAt    time.Time                 `json:"created_at"`
+	UpdatedAt    time.Time                 `json:"updated_at"`
+}
+
+// PolicyWorkflowStep represents a single step in a policy workflow
+type PolicyWorkflowStep struct {
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Type        string                 `json:"type"` // POLICY_CREATE, POLICY_UPDATE, VALIDATION, NOTIFICATION
+	Target      string                 `json:"target"`
+	Parameters  map[string]interface{} `json:"parameters"`
+	Conditions  []string               `json:"conditions"`
+	OnSuccess   string                 `json:"on_success"`
+	OnFailure   string                 `json:"on_failure"`
+	Status      string                 `json:"status"`
+	ExecutedAt  *time.Time             `json:"executed_at,omitempty"`
+}
+
+// ServiceInfo represents information about registered services
+type ServiceInfo struct {
+	ID           string            `json:"id"`
+	Name         string            `json:"name"`
+	Type         string            `json:"type"` // RIC, xApp, rApp
+	Version      string            `json:"version"`
+	Status       string            `json:"status"`
+	Endpoints    []ServiceEndpoint `json:"endpoints"`
+	Capabilities []string          `json:"capabilities"`
+	Metadata     map[string]string `json:"metadata"`
+	RegisteredAt time.Time         `json:"registered_at"`
+}
+
+// ServiceEndpoint represents a service endpoint
+type ServiceEndpoint struct {
+	Name     string `json:"name"`
+	URL      string `json:"url"`
+	Protocol string `json:"protocol"`
+	Version  string `json:"version"`
+}
+
 // NewA1Adaptor creates a new A1 adaptor with the given configuration
 func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 	if config == nil {
@@ -578,4 +653,555 @@ func CreateTrafficSteeringPolicyType() *A1PolicyType {
 			"required": []string{"target_cell", "traffic_percentage"},
 		},
 	}
+}
+
+// NewSMOServiceRegistry creates a new SMO service registry client
+func NewSMOServiceRegistry(url, apiKey string) *SMOServiceRegistry {
+	return &SMOServiceRegistry{
+		URL:    url,
+		APIKey: apiKey,
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+	}
+}
+
+// RegisterService registers a service with the SMO service registry
+func (r *SMOServiceRegistry) RegisterService(ctx context.Context, service *ServiceInfo) error {
+	logger := log.FromContext(ctx)
+	
+	url := fmt.Sprintf("%s/services", r.URL)
+	body, err := json.Marshal(service)
+	if err != nil {
+		return fmt.Errorf("failed to marshal service info: %w", err)
+	}
+	
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", r.APIKey)
+	
+	resp, err := r.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusCreated {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("failed to register service: status=%d, body=%s", resp.StatusCode, string(bodyBytes))
+	}
+	
+	logger.Info("service registered with SMO", "serviceID", service.ID, "name", service.Name)
+	return nil
+}
+
+// DiscoverServices discovers available services from the SMO service registry
+func (r *SMOServiceRegistry) DiscoverServices(ctx context.Context, serviceType string) ([]*ServiceInfo, error) {
+	url := fmt.Sprintf("%s/services", r.URL)
+	if serviceType != "" {
+		url += fmt.Sprintf("?type=%s", serviceType)
+	}
+	
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	req.Header.Set("X-API-Key", r.APIKey)
+	
+	resp, err := r.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to discover services: status=%d", resp.StatusCode)
+	}
+	
+	var services []*ServiceInfo
+	if err := json.NewDecoder(resp.Body).Decode(&services); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+	
+	return services, nil
+}
+
+// NotifyPolicyEvent sends a policy event notification to the SMO
+func (r *SMOServiceRegistry) NotifyPolicyEvent(ctx context.Context, event *PolicyEvent) error {
+	url := fmt.Sprintf("%s/events", r.URL)
+	
+	body, err := json.Marshal(event)
+	if err != nil {
+		return fmt.Errorf("failed to marshal event: %w", err)
+	}
+	
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-API-Key", r.APIKey)
+	
+	resp, err := r.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusAccepted {
+		return fmt.Errorf("failed to notify policy event: status=%d", resp.StatusCode)
+	}
+	
+	return nil
+}
+
+// NewSMOPolicyOrchestrator creates a new SMO policy orchestrator
+func NewSMOPolicyOrchestrator(registry *SMOServiceRegistry) *SMOPolicyOrchestrator {
+	return &SMOPolicyOrchestrator{
+		registry:   registry,
+		a1Adaptors: make(map[string]*A1Adaptor),
+		eventQueue: make(chan *PolicyEvent, 100),
+		workflows:  make(map[string]*PolicyWorkflow),
+	}
+}
+
+// RegisterA1Adaptor registers an A1 adaptor with the orchestrator
+func (o *SMOPolicyOrchestrator) RegisterA1Adaptor(ricID string, adaptor *A1Adaptor) {
+	o.a1Adaptors[ricID] = adaptor
+}
+
+// StartEventProcessor starts the event processing loop
+func (o *SMOPolicyOrchestrator) StartEventProcessor(ctx context.Context) {
+	logger := log.FromContext(ctx)
+	logger.Info("starting SMO policy orchestrator event processor")
+	
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				logger.Info("stopping event processor")
+				return
+			case event := <-o.eventQueue:
+				if err := o.processEvent(ctx, event); err != nil {
+					logger.Error(err, "failed to process policy event", "eventID", event.ID)
+				}
+			}
+		}
+	}()
+}
+
+// processEvent processes a single policy event
+func (o *SMOPolicyOrchestrator) processEvent(ctx context.Context, event *PolicyEvent) error {
+	logger := log.FromContext(ctx)
+	logger.Info("processing policy event", "eventID", event.ID, "type", event.Type)
+	
+	switch event.Type {
+	case "CREATE":
+		return o.handlePolicyCreate(ctx, event)
+	case "UPDATE":
+		return o.handlePolicyUpdate(ctx, event)
+	case "DELETE":
+		return o.handlePolicyDelete(ctx, event)
+	case "ENFORCE":
+		return o.handlePolicyEnforce(ctx, event)
+	default:
+		return fmt.Errorf("unknown event type: %s", event.Type)
+	}
+}
+
+// handlePolicyCreate handles policy creation events
+func (o *SMOPolicyOrchestrator) handlePolicyCreate(ctx context.Context, event *PolicyEvent) error {
+	logger := log.FromContext(ctx)
+	
+	// Extract policy information from event data
+	policyTypeID, ok := event.Data["policy_type_id"].(float64)
+	if !ok {
+		return fmt.Errorf("policy_type_id not found in event data")
+	}
+	
+	instanceID, ok := event.Data["policy_instance_id"].(string)
+	if !ok {
+		return fmt.Errorf("policy_instance_id not found in event data")
+	}
+	
+	policyData, ok := event.Data["policy_data"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("policy_data not found in event data")
+	}
+	
+	// Create policy instance
+	instance := &A1PolicyInstance{
+		PolicyInstanceID: instanceID,
+		PolicyTypeID:     int(policyTypeID),
+		PolicyData:       policyData,
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+	
+	// Apply policy to target RIC
+	adaptor, ok := o.a1Adaptors[event.Target]
+	if !ok {
+		return fmt.Errorf("A1 adaptor not found for RIC: %s", event.Target)
+	}
+	
+	if err := adaptor.CreatePolicyInstance(ctx, int(policyTypeID), instance); err != nil {
+		// Notify SMO of failure
+		failureEvent := &PolicyEvent{
+			ID:        fmt.Sprintf("%s-failure", event.ID),
+			Type:      "FAILURE",
+			PolicyID:  event.PolicyID,
+			Source:    event.Target,
+			Target:    event.Source,
+			Data: map[string]interface{}{
+				"error":          err.Error(),
+				"original_event": event.ID,
+			},
+			Timestamp: time.Now(),
+			Status:    "FAILED",
+		}
+		
+		o.registry.NotifyPolicyEvent(ctx, failureEvent)
+		return fmt.Errorf("failed to create policy instance: %w", err)
+	}
+	
+	// Notify SMO of success
+	successEvent := &PolicyEvent{
+		ID:        fmt.Sprintf("%s-success", event.ID),
+		Type:      "SUCCESS",
+		PolicyID:  event.PolicyID,
+		Source:    event.Target,
+		Target:    event.Source,
+		Data: map[string]interface{}{
+			"policy_instance_id": instanceID,
+			"policy_type_id":     int(policyTypeID),
+			"original_event":     event.ID,
+		},
+		Timestamp: time.Now(),
+		Status:    "COMPLETED",
+	}
+	
+	o.registry.NotifyPolicyEvent(ctx, successEvent)
+	
+	logger.Info("policy creation completed", "eventID", event.ID, "policyID", event.PolicyID)
+	return nil
+}
+
+// handlePolicyUpdate handles policy update events
+func (o *SMOPolicyOrchestrator) handlePolicyUpdate(ctx context.Context, event *PolicyEvent) error {
+	// Similar to handlePolicyCreate but updates existing policy
+	return o.handlePolicyCreate(ctx, event) // Reuse create logic for simplicity
+}
+
+// handlePolicyDelete handles policy deletion events
+func (o *SMOPolicyOrchestrator) handlePolicyDelete(ctx context.Context, event *PolicyEvent) error {
+	logger := log.FromContext(ctx)
+	
+	policyTypeID, ok := event.Data["policy_type_id"].(float64)
+	if !ok {
+		return fmt.Errorf("policy_type_id not found in event data")
+	}
+	
+	instanceID, ok := event.Data["policy_instance_id"].(string)
+	if !ok {
+		return fmt.Errorf("policy_instance_id not found in event data")
+	}
+	
+	// Delete policy from target RIC
+	adaptor, ok := o.a1Adaptors[event.Target]
+	if !ok {
+		return fmt.Errorf("A1 adaptor not found for RIC: %s", event.Target)
+	}
+	
+	if err := adaptor.DeletePolicyInstance(ctx, int(policyTypeID), instanceID); err != nil {
+		return fmt.Errorf("failed to delete policy instance: %w", err)
+	}
+	
+	logger.Info("policy deletion completed", "eventID", event.ID, "policyID", event.PolicyID)
+	return nil
+}
+
+// handlePolicyEnforce handles policy enforcement events
+func (o *SMOPolicyOrchestrator) handlePolicyEnforce(ctx context.Context, event *PolicyEvent) error {
+	logger := log.FromContext(ctx)
+	
+	policyTypeID, ok := event.Data["policy_type_id"].(float64)
+	if !ok {
+		return fmt.Errorf("policy_type_id not found in event data")
+	}
+	
+	instanceID, ok := event.Data["policy_instance_id"].(string)
+	if !ok {
+		return fmt.Errorf("policy_instance_id not found in event data")
+	}
+	
+	// Check policy status
+	adaptor, ok := o.a1Adaptors[event.Target]
+	if !ok {
+		return fmt.Errorf("A1 adaptor not found for RIC: %s", event.Target)
+	}
+	
+	status, err := adaptor.GetPolicyStatus(ctx, int(policyTypeID), instanceID)
+	if err != nil {
+		return fmt.Errorf("failed to get policy status: %w", err)
+	}
+	
+	// Notify SMO of enforcement status
+	statusEvent := &PolicyEvent{
+		ID:        fmt.Sprintf("%s-status", event.ID),
+		Type:      "STATUS",
+		PolicyID:  event.PolicyID,
+		Source:    event.Target,
+		Target:    event.Source,
+		Data: map[string]interface{}{
+			"enforcement_status": status.EnforcementStatus,
+			"enforcement_reason": status.EnforcementReason,
+			"last_modified":      status.LastModified,
+		},
+		Timestamp: time.Now(),
+		Status:    "COMPLETED",
+	}
+	
+	o.registry.NotifyPolicyEvent(ctx, statusEvent)
+	
+	logger.Info("policy enforcement check completed", "eventID", event.ID, "status", status.EnforcementStatus)
+	return nil
+}
+
+// CreatePolicyWorkflow creates a new policy workflow
+func (o *SMOPolicyOrchestrator) CreatePolicyWorkflow(ctx context.Context, workflow *PolicyWorkflow) error {
+	logger := log.FromContext(ctx)
+	
+	workflow.ID = fmt.Sprintf("workflow-%d", time.Now().UnixNano())
+	workflow.Status = "PENDING"
+	workflow.CurrentStep = 0
+	workflow.CreatedAt = time.Now()
+	workflow.UpdatedAt = time.Now()
+	
+	if workflow.Context == nil {
+		workflow.Context = make(map[string]interface{})
+	}
+	
+	o.workflows[workflow.ID] = workflow
+	
+	// Start workflow execution
+	go o.executeWorkflow(context.Background(), workflow.ID)
+	
+	logger.Info("policy workflow created", "workflowID", workflow.ID, "name", workflow.Name)
+	return nil
+}
+
+// executeWorkflow executes a policy workflow
+func (o *SMOPolicyOrchestrator) executeWorkflow(ctx context.Context, workflowID string) {
+	logger := log.FromContext(ctx)
+	
+	workflow, ok := o.workflows[workflowID]
+	if !ok {
+		logger.Error(fmt.Errorf("workflow not found"), "workflowID", workflowID)
+		return
+	}
+	
+	workflow.Status = "RUNNING"
+	workflow.UpdatedAt = time.Now()
+	
+	for i, step := range workflow.Steps {
+		if i < workflow.CurrentStep {
+			continue // Skip already completed steps
+		}
+		
+		workflow.CurrentStep = i
+		logger.Info("executing workflow step", "workflowID", workflowID, "step", i, "stepName", step.Name)
+		
+		if err := o.executeWorkflowStep(ctx, workflow, step); err != nil {
+			logger.Error(err, "workflow step failed", "workflowID", workflowID, "step", i)
+			workflow.Status = "FAILED"
+			workflow.UpdatedAt = time.Now()
+			return
+		}
+		
+		step.Status = "COMPLETED"
+		step.ExecutedAt = &[]time.Time{time.Now()}[0]
+		workflow.UpdatedAt = time.Now()
+	}
+	
+	workflow.Status = "COMPLETED"
+	workflow.UpdatedAt = time.Now()
+	logger.Info("workflow completed", "workflowID", workflowID)
+}
+
+// executeWorkflowStep executes a single workflow step
+func (o *SMOPolicyOrchestrator) executeWorkflowStep(ctx context.Context, workflow *PolicyWorkflow, step *PolicyWorkflowStep) error {
+	switch step.Type {
+	case "POLICY_CREATE":
+		return o.executeCreatePolicyStep(ctx, workflow, step)
+	case "POLICY_UPDATE":
+		return o.executeUpdatePolicyStep(ctx, workflow, step)
+	case "VALIDATION":
+		return o.executeValidationStep(ctx, workflow, step)
+	case "NOTIFICATION":
+		return o.executeNotificationStep(ctx, workflow, step)
+	default:
+		return fmt.Errorf("unknown step type: %s", step.Type)
+	}
+}
+
+// executeCreatePolicyStep executes a policy creation step
+func (o *SMOPolicyOrchestrator) executeCreatePolicyStep(ctx context.Context, workflow *PolicyWorkflow, step *PolicyWorkflowStep) error {
+	event := &PolicyEvent{
+		ID:        fmt.Sprintf("%s-step-%s", workflow.ID, step.ID),
+		Type:      "CREATE",
+		PolicyID:  fmt.Sprintf("%s-policy", workflow.ID),
+		Source:    "orchestrator",
+		Target:    step.Target,
+		Data:      step.Parameters,
+		Timestamp: time.Now(),
+		Status:    "PENDING",
+	}
+	
+	select {
+	case o.eventQueue <- event:
+		return nil
+	case <-time.After(5 * time.Second):
+		return fmt.Errorf("timeout queuing policy event")
+	}
+}
+
+// executeUpdatePolicyStep executes a policy update step
+func (o *SMOPolicyOrchestrator) executeUpdatePolicyStep(ctx context.Context, workflow *PolicyWorkflow, step *PolicyWorkflowStep) error {
+	// Similar to create step but with UPDATE type
+	event := &PolicyEvent{
+		ID:        fmt.Sprintf("%s-step-%s", workflow.ID, step.ID),
+		Type:      "UPDATE",
+		PolicyID:  fmt.Sprintf("%s-policy", workflow.ID),
+		Source:    "orchestrator",
+		Target:    step.Target,
+		Data:      step.Parameters,
+		Timestamp: time.Now(),
+		Status:    "PENDING",
+	}
+	
+	select {
+	case o.eventQueue <- event:
+		return nil
+	case <-time.After(5 * time.Second):
+		return fmt.Errorf("timeout queuing policy event")
+	}
+}
+
+// executeValidationStep executes a validation step
+func (o *SMOPolicyOrchestrator) executeValidationStep(ctx context.Context, workflow *PolicyWorkflow, step *PolicyWorkflowStep) error {
+	// Perform validation logic based on step parameters
+	validationType, ok := step.Parameters["validation_type"].(string)
+	if !ok {
+		return fmt.Errorf("validation_type not specified in step parameters")
+	}
+	
+	switch validationType {
+	case "policy_enforcement":
+		// Check if policies are enforced
+		return o.validatePolicyEnforcement(ctx, workflow, step)
+	case "resource_availability":
+		// Check if resources are available
+		return o.validateResourceAvailability(ctx, workflow, step)
+	default:
+		return fmt.Errorf("unknown validation type: %s", validationType)
+	}
+}
+
+// executeNotificationStep executes a notification step
+func (o *SMOPolicyOrchestrator) executeNotificationStep(ctx context.Context, workflow *PolicyWorkflow, step *PolicyWorkflowStep) error {
+	// Send notification based on step parameters
+	notificationType, ok := step.Parameters["notification_type"].(string)
+	if !ok {
+		return fmt.Errorf("notification_type not specified in step parameters")
+	}
+	
+	message, ok := step.Parameters["message"].(string)
+	if !ok {
+		message = fmt.Sprintf("Workflow %s step %s completed", workflow.ID, step.Name)
+	}
+	
+	switch notificationType {
+	case "smo_event":
+		event := &PolicyEvent{
+			ID:        fmt.Sprintf("%s-notification-%s", workflow.ID, step.ID),
+			Type:      "NOTIFICATION",
+			PolicyID:  fmt.Sprintf("%s-policy", workflow.ID),
+			Source:    "orchestrator",
+			Target:    "smo",
+			Data: map[string]interface{}{
+				"workflow_id": workflow.ID,
+				"step_id":     step.ID,
+				"message":     message,
+			},
+			Timestamp: time.Now(),
+			Status:    "PENDING",
+		}
+		return o.registry.NotifyPolicyEvent(ctx, event)
+	default:
+		return fmt.Errorf("unknown notification type: %s", notificationType)
+	}
+}
+
+// validatePolicyEnforcement validates that policies are properly enforced
+func (o *SMOPolicyOrchestrator) validatePolicyEnforcement(ctx context.Context, workflow *PolicyWorkflow, step *PolicyWorkflowStep) error {
+	ricID, ok := step.Parameters["ric_id"].(string)
+	if !ok {
+		return fmt.Errorf("ric_id not specified in validation parameters")
+	}
+	
+	adaptor, ok := o.a1Adaptors[ricID]
+	if !ok {
+		return fmt.Errorf("A1 adaptor not found for RIC: %s", ricID)
+	}
+	
+	// List all policy instances and check their status
+	policyTypes, err := adaptor.ListPolicyTypes(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to list policy types: %w", err)
+	}
+	
+	for _, policyType := range policyTypes {
+		instances, err := adaptor.ListPolicyInstances(ctx, policyType.PolicyTypeID)
+		if err != nil {
+			continue // Skip if unable to list instances
+		}
+		
+		for _, instance := range instances {
+			if instance.Status.EnforcementStatus != "ENFORCED" {
+				return fmt.Errorf("policy instance %s not enforced", instance.PolicyInstanceID)
+			}
+		}
+	}
+	
+	return nil
+}
+
+// validateResourceAvailability validates that resources are available
+func (o *SMOPolicyOrchestrator) validateResourceAvailability(ctx context.Context, workflow *PolicyWorkflow, step *PolicyWorkflowStep) error {
+	// This would integrate with cloud management APIs to check resource availability
+	// For now, we'll do a simple validation
+	
+	requiredCPU, ok := step.Parameters["required_cpu"].(float64)
+	if !ok {
+		requiredCPU = 0
+	}
+	
+	requiredMemory, ok := step.Parameters["required_memory"].(float64)
+	if !ok {
+		requiredMemory = 0
+	}
+	
+	// In a real implementation, this would check actual resource availability
+	// For now, we'll assume resources are available if requirements are reasonable
+	if requiredCPU > 1000 || requiredMemory > 16384 { // 1000 CPU cores or 16GB memory
+		return fmt.Errorf("insufficient resources available")
+	}
+	
+	return nil
 }
