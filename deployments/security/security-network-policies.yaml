@@ -1,0 +1,590 @@
+---
+# Default Deny All Network Policy for nephoran-system namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+
+---
+# Allow DNS resolution for all pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+
+---
+# Security Scanner Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: security-scanner-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security-scanner
+spec:
+  podSelector:
+    matchLabels:
+      app: security-scanner
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from other security components
+  - from:
+    - podSelector:
+        matchLabels:
+          app: nephio-bridge-secure
+    - podSelector:
+        matchLabels:
+          app: incident-response
+    - podSelector:
+        matchLabels:
+          app: vulnerability-manager
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow metrics scraping from Prometheus
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # Allow scanning of cluster resources (API server)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow communication with other security components
+  - to:
+    - podSelector:
+        matchLabels:
+          app: incident-response
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow external OWASP/security tool downloads (HTTPS)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Vulnerability Manager Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: vulnerability-manager-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: vulnerability-manager
+spec:
+  podSelector:
+    matchLabels:
+      app: vulnerability-manager
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from security components
+  - from:
+    - podSelector:
+        matchLabels:
+          app: security-scanner
+    - podSelector:
+        matchLabels:
+          app: incident-response
+    - podSelector:
+        matchLabels:
+          app: nephio-bridge-secure
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow metrics scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # Allow access to Kubernetes API for container image scanning
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow access to external vulnerability databases (NVD, CVE)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow communication with incident response for alerting
+  - to:
+    - podSelector:
+        matchLabels:
+          app: incident-response
+    ports:
+    - protocol: TCP
+      port: 8080
+
+---
+# Incident Response Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: incident-response-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: incident-response
+spec:
+  podSelector:
+    matchLabels:
+      app: incident-response
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from all security components
+  - from:
+    - podSelector:
+        matchLabels:
+          app: security-scanner
+    - podSelector:
+        matchLabels:
+          app: vulnerability-manager
+    - podSelector:
+        matchLabels:
+          app: nephio-bridge-secure
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow metrics scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # Emergency response - access to Kubernetes API for pod isolation
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow communication with other security components
+  - to:
+    - podSelector:
+        matchLabels:
+          app: security-scanner
+    - podSelector:
+        matchLabels:
+          app: vulnerability-manager
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow external notifications (Slack, email, webhooks)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 587  # SMTP
+    - protocol: TCP
+      port: 25   # SMTP
+
+---
+# Nephio Bridge Secure Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephio-bridge-secure-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: nephio-bridge
+spec:
+  podSelector:
+    matchLabels:
+      app: nephio-bridge-secure
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow ingress from security components for monitoring
+  - from:
+    - podSelector:
+        matchLabels:
+          app: security-scanner
+    - podSelector:
+        matchLabels:
+          app: incident-response
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+  # Allow metrics scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+  # Allow external access for API endpoints
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+  egress:
+  # Allow access to Kubernetes API
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow communication with security components
+  - to:
+    - podSelector:
+        matchLabels:
+          app: security-scanner
+    - podSelector:
+        matchLabels:
+          app: vulnerability-manager
+    - podSelector:
+        matchLabels:
+          app: incident-response
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow communication with other Nephoran components
+  - to:
+    - podSelector:
+        matchLabels:
+          app: rag-api
+    - podSelector:
+        matchLabels:
+          app: llm-processor
+    - podSelector:
+        matchLabels:
+          app: weaviate
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow external OAuth2 and API calls
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow Redis communication for token blacklisting
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+
+---
+# Redis Network Policy (for token blacklisting)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: redis
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow Redis connections from Nephoran components
+  - from:
+    - podSelector:
+        matchLabels:
+          app: nephio-bridge-secure
+    - podSelector:
+        matchLabels:
+          app: rag-api
+    - podSelector:
+        matchLabels:
+          app: llm-processor
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow metrics scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9121  # Redis exporter port
+  egress:
+  # Redis typically doesn't need egress, but allow minimal access
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53   # DNS only
+
+---
+# External Service Access Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: external-api-access-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: external-api
+  policyTypes:
+  - Egress
+  egress:
+  # Allow HTTPS access for external APIs (OAuth2, OpenAI, etc.)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow HTTP for some external services (if needed)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 80
+
+---
+# Monitoring Namespace Access Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-access-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  # Allow Prometheus scraping from monitoring namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - namespaceSelector:
+        matchLabels:
+          name: prometheus-system
+    ports:
+    - protocol: TCP
+      port: 9090
+    - protocol: TCP
+      port: 8080  # Application metrics
+    - protocol: TCP
+      port: 2112  # Weaviate metrics
+
+---
+# Security Component Inter-Communication Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: security-inter-communication-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: security-scanner
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow communication between security components
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-intent-operator
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+  egress:
+  # Allow communication to security components
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-intent-operator
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+
+---
+# Strict Security Monitor Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: security-monitor-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security-monitor
+spec:
+  podSelector:
+    matchLabels:
+      app: security-monitor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow monitoring from Prometheus only
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8081
+  egress:
+  # Only allow communication with incident response for alerts
+  - to:
+    - podSelector:
+        matchLabels:
+          app: incident-response
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow monitoring target (localhost for sidecar)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 8080
+
+---
+# Emergency Access Network Policy (for critical incidents)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: emergency-access-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+    emergency-access: "true"
+spec:
+  podSelector:
+    matchLabels:
+      app: incident-response
+  policyTypes:
+  - Egress
+  egress:
+  # Emergency access to all pods for incident response
+  - to:
+    - namespaceSelector: {}
+  # Emergency external communication
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+
+---
+# Audit and Compliance Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: audit-compliance-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+    compliance: "soc2"
+spec:
+  podSelector:
+    matchLabels:
+      compliance: "required"
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Restrict ingress to authorized security components only
+  - from:
+    - podSelector:
+        matchLabels:
+          security-clearance: "authorized"
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # Audit logging and compliance reporting
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: logging
+    - namespaceSelector:
+        matchLabels:
+          name: audit
+    ports:
+    - protocol: TCP
+      port: 514   # Syslog
+    - protocol: TCP
+      port: 9200  # Elasticsearch
+    - protocol: TCP
+      port: 443   # HTTPS compliance reporting
