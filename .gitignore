@@ -43,3 +43,7 @@ pip-wheel-metadata/
 /dist
 mcp.json
 .kiro/settings/mcp.json.mcp.json
+
+.mcp.json
+*.token
+.env.local
