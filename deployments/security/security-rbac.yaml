@@ -1,0 +1,403 @@
+---
+# Security Scanner RBAC
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: security-scanner
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security-scanner
+rules:
+# Read-only access to scan cluster resources
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies", "ingresses"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["security.openshift.io", "policy"]
+  resources: ["securitycontextconstraints", "podsecuritypolicies"]
+  verbs: ["get", "list", "watch"]
+# Access to security-related CRDs
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents", "managedelements"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: security-scanner
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security-scanner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: security-scanner
+subjects:
+- kind: ServiceAccount
+  name: security-scanner
+  namespace: nephoran-system
+
+---
+# Vulnerability Manager RBAC
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: vulnerability-manager
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: vulnerability-manager
+rules:
+# Read access to scan for vulnerabilities
+- apiGroups: [""]
+  resources: ["pods", "nodes", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+# Container image access
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create"]
+# Write access for remediation (limited)
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["patch", "update"]
+  resourceNames: ["nephoran-*"] # Only Nephoran deployments
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: vulnerability-manager
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: vulnerability-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: vulnerability-manager
+subjects:
+- kind: ServiceAccount
+  name: vulnerability-manager
+  namespace: nephoran-system
+
+---
+# Incident Response RBAC
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: incident-response
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: incident-response
+rules:
+# Read access to monitor security events
+- apiGroups: [""]
+  resources: ["events", "pods", "services", "nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+# Emergency response capabilities
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["delete"] # Pod isolation
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["create", "patch", "update"] # Network isolation
+# Event creation for incident tracking
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: incident-response
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: incident-response
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: incident-response
+subjects:
+- kind: ServiceAccount
+  name: incident-response
+  namespace: nephoran-system
+
+---
+# Enhanced Nephio Bridge RBAC (with security permissions)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephio-bridge-secure
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: nephio-bridge
+rules:
+# Existing Nephio Bridge permissions
+- apiGroups: [""]
+  resources: ["configmaps", "secrets", "services", "pods"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents", "e2nodesets", "managedelements"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents/status", "e2nodesets/status", "managedelements/status"]
+  verbs: ["get", "update", "patch"]
+
+# Security-related permissions
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch", "get", "list", "watch"]
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["use"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+# Authentication and authorization
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+  resourceNames: ["nephoran-*"] # Only Nephoran-related RBAC
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephio-bridge-secure
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: nephio-bridge
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nephio-bridge-secure
+subjects:
+- kind: ServiceAccount
+  name: nephio-bridge
+  namespace: nephoran-system
+
+---
+# Security Operator Role (for human operators)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-security-operator
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+rules:
+# Security component management
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+  resourceNames: ["security-config", "security-secrets", "notification-config", "security-policies"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "patch", "update"]
+  resourceNames: ["security-scanner", "vulnerability-manager", "incident-response", "nephio-bridge-secure"]
+
+# Security monitoring and investigation
+- apiGroups: [""]
+  resources: ["events", "pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+
+# Incident response capabilities
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["delete"] # Emergency pod termination
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["patch"] # Scale down compromised deployments
+
+---
+# Security Admin Role (for security administrators)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-security-admin
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+rules:
+# Full security component management
+- apiGroups: [""]
+  resources: ["configmaps", "secrets", "serviceaccounts"]
+  verbs: ["*"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "daemonsets"]
+  verbs: ["*"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+  verbs: ["*"]
+
+# Network security management
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies", "ingresses"]
+  verbs: ["*"]
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["*"]
+
+# Resource management
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims", "persistentvolumes"]
+  verbs: ["*"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list", "watch"]
+
+---
+# Role for MFA and Authentication Management
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: mfa-manager
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: authentication
+rules:
+# MFA configuration management
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+  resourceNames: ["mfa-config", "oauth2-config"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+  resourceNames: ["mfa-secrets", "oauth2-secrets", "jwt-keys"]
+
+# User session management
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["create", "delete", "patch"]
+  resourceNames: ["user-sessions-*"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mfa-manager
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: authentication
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: mfa-manager
+subjects:
+- kind: ServiceAccount
+  name: nephio-bridge
+  namespace: nephoran-system
+
+---
+# Token Blacklist Manager Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: token-blacklist-manager
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: authentication
+rules:
+# Token blacklist management
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  resourceNames: ["token-blacklist-*"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["redis-password"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: token-blacklist-manager
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: authentication
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: token-blacklist-manager
+subjects:
+- kind: ServiceAccount
+  name: nephio-bridge
+  namespace: nephoran-system
+
+---
+# Security Monitoring Service Account (for external tools)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: security-monitoring
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: monitoring
+automountServiceAccountToken: true
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: security-monitoring
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: monitoring
+rules:
+# Read-only monitoring access
+- apiGroups: [""]
+  resources: ["events", "pods", "services", "endpoints", "nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies", "ingresses"]
+  verbs: ["get", "list", "watch"]
+
+# Metrics access
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: security-monitoring
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: security-monitoring
+subjects:
+- kind: ServiceAccount
+  name: security-monitoring
+  namespace: nephoran-system

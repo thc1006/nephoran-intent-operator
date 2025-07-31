@@ -1001,8 +1001,459 @@ Services support distributed tracing with Jaeger integration. Trace spans are au
 - Controller reconciliation loops
 - O-RAN interface communications
 
+## Enhanced Features Documentation
+
+### Async Processing Capabilities
+
+The Nephoran Intent Operator now supports advanced asynchronous processing with Server-Sent Events (SSE) streaming, multi-level caching, and intelligent performance optimization.
+
+#### Server-Sent Events (SSE) Streaming
+
+**Real-time Intent Processing with Streaming Response**
+
+The streaming processor enables real-time processing with immediate feedback:
+
+```bash
+# Start a streaming session
+curl -X POST http://llm-processor:8080/stream \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/event-stream" \
+  -d '{
+    "query": "Deploy AMF with 3 replicas for network slice eMBB",
+    "intent_type": "network_deployment",
+    "model_name": "gpt-4o-mini",
+    "max_tokens": 2048,
+    "enable_rag": true,
+    "session_id": "demo_session_001"
+  }'
+```
+
+**Streaming Response Format:**
+```
+event: start
+data: {"session_id":"demo_session_001","status":"started","timestamp":"2025-01-30T10:30:15Z"}
+
+event: context_injection
+data: {"type":"context_injection","content":"Context retrieved and injected","metadata":{"context_length":15420,"injection_time":"85ms"}}
+
+event: chunk
+data: {"type":"content","delta":"Based on the retrieved 3GPP TS 23.501 specifications for AMF deployment...","timestamp":"2025-01-30T10:30:16Z","chunk_index":0}
+
+event: chunk
+data: {"type":"content","delta":"The network function requires the following Kubernetes resources...","timestamp":"2025-01-30T10:30:16Z","chunk_index":1}
+
+event: heartbeat
+data: {"timestamp":"2025-01-30T10:30:45Z"}
+
+event: completion
+data: {"type":"completion","is_complete":true,"metadata":{"total_chunks":15,"total_bytes":8192,"processing_time":"2.3s"}}
+```
+
+**Streaming Session Management:**
+
+- **Concurrent Sessions**: Supports up to 100 concurrent streaming sessions
+- **Session Timeout**: Configurable timeout (default: 5 minutes)
+- **Heartbeat**: Automatic heartbeat every 30 seconds to maintain connection
+- **Graceful Disconnection**: Automatic cleanup of disconnected sessions
+- **Error Recovery**: Automatic reconnection support with exponential backoff
+
+#### Session Management API
+
+**Get Active Session Status:**
+```bash
+curl -X GET http://llm-processor:8080/stream/sessions/demo_session_001
+```
+
+**Response:**
+```json
+{
+  "id": "demo_session_001",
+  "start_time": "2025-01-30T10:30:15Z",
+  "last_activity": "2025-01-30T10:30:45Z",
+  "bytes_streamed": 8192,
+  "chunks_streamed": 15,
+  "context_updates": 2,
+  "status": "streaming",
+  "metadata": {
+    "model_name": "gpt-4o-mini",
+    "enable_rag": true
+  }
+}
+```
+
+**Cancel Active Session:**
+```bash
+curl -X DELETE http://llm-processor:8080/stream/sessions/demo_session_001
+```
+
+### Multi-Level Caching System
+
+**Advanced L1/L2 Caching Architecture**
+
+The enhanced caching system provides significant performance improvements:
+
+#### Cache Configuration
+
+```json
+{
+  "l1_cache": {
+    "enabled": true,
+    "max_size": 1000,
+    "ttl": "15m",
+    "eviction_policy": "LRU"
+  },
+  "l2_cache": {
+    "enabled": true,
+    "redis_addr": "redis:6379",
+    "redis_db": 0,
+    "ttl": "1h",
+    "compression_enabled": true,
+    "compression_threshold": 1024
+  },
+  "performance": {
+    "max_key_size": 256,
+    "max_value_size": 10485760,
+    "enable_statistics": true
+  }
+}
+```
+
+#### Cache API Endpoints
+
+**Get Cache Statistics:**
+```bash
+curl -X GET http://llm-processor:8080/cache/stats
+```
+
+**Response:**
+```json
+{
+  "l1_stats": {
+    "hits": 2456,
+    "misses": 543,
+    "sets": 2999,
+    "evictions": 123,
+    "size": 877,
+    "hit_rate": 0.819
+  },
+  "l2_stats": {
+    "hits": 1234,
+    "misses": 456,
+    "sets": 1690,
+    "errors": 2,
+    "enabled": true,
+    "hit_rate": 0.730
+  },
+  "overall_stats": {
+    "total_hits": 3690,
+    "total_misses": 999,
+    "overall_hit_rate": 0.787,
+    "average_get_time": "12.5ms",
+    "average_set_time": "8.3ms",
+    "memory_usage": 67108864,
+    "last_updated": "2025-01-30T10:30:15Z"
+  }
+}
+```
+
+**Cache Operations:**
+
+**Clear Cache:**
+```bash
+curl -X DELETE http://llm-processor:8080/cache/clear
+```
+
+**Warm Cache with Popular Queries:**
+```bash
+curl -X POST http://llm-processor:8080/cache/warm \
+  -H "Content-Type: application/json" \
+  -d '{
+    "strategy": "popular_queries",
+    "limit": 100,
+    "categories": ["network_deployment", "scaling_operations"]
+  }'
+```
+
+#### Specialized Cache Endpoints
+
+**RAG Context Caching:**
+```bash
+# Cache RAG query results
+curl -X POST http://rag-api:5001/cache/rag/set \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "AMF deployment procedures",
+    "results": [...],
+    "ttl": "1h"
+  }'
+
+# Retrieve cached RAG results
+curl -X GET "http://rag-api:5001/cache/rag/get?query=AMF%20deployment%20procedures"
+```
+
+**LLM Response Caching:**
+```bash
+# Cache LLM responses
+curl -X POST http://llm-processor:8080/cache/llm/set \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Deploy AMF with 3 replicas",
+    "model_name": "gpt-4o-mini",
+    "response": "...",
+    "ttl": "30m"
+  }'
+```
+
+### Circuit Breaker Pattern
+
+**Advanced Fault Tolerance with Circuit Breakers**
+
+The system implements sophisticated circuit breaker patterns for improved reliability:
+
+#### Circuit Breaker Configuration
+
+```json
+{
+  "failure_threshold": 5,
+  "failure_rate": 0.5,
+  "minimum_request_count": 10,
+  "timeout": "30s",
+  "half_open_timeout": "60s",
+  "success_threshold": 3,
+  "reset_timeout": "60s",
+  "enable_health_check": true,
+  "health_check_interval": "30s"
+}
+```
+
+#### Circuit Breaker Management API
+
+**Get Circuit Breaker Status:**
+```bash
+curl -X GET http://llm-processor:8080/circuit-breaker/status
+```
+
+**Response:**
+```json
+{
+  "llm-processor": {
+    "name": "llm-processor",
+    "state": "closed",
+    "failure_count": 2,
+    "success_count": 847,
+    "failure_rate": 0.0023,
+    "total_requests": 849,
+    "last_failure_time": "2025-01-30T09:15:32Z",
+    "last_success_time": "2025-01-30T10:29:45Z",
+    "uptime": "2h34m18s",
+    "average_latency": "1.23s"
+  },
+  "rag-api": {
+    "name": "rag-api",
+    "state": "half-open",
+    "failure_count": 0,
+    "success_count": 2,
+    "failure_rate": 0.0,
+    "total_requests": 2,
+    "state_change_time": "2025-01-30T10:25:00Z"
+  }
+}
+```
+
+**Circuit Breaker Control Operations:**
+
+**Reset Circuit Breaker:**
+```bash
+curl -X POST http://llm-processor:8080/circuit-breaker/control \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "reset",
+    "circuit_name": "llm-processor"
+  }'
+```
+
+**Force Open Circuit Breaker:**
+```bash
+curl -X POST http://llm-processor:8080/circuit-breaker/control \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "force_open",
+    "circuit_name": "llm-processor"
+  }'
+```
+
+### Performance Optimization API
+
+**Intelligent Performance Optimization**
+
+The system includes automated performance optimization capabilities:
+
+#### Performance Metrics Collection
+
+**Get Current Performance Metrics:**
+```bash
+curl -X GET http://llm-processor:8080/performance/metrics
+```
+
+**Response:**
+```json
+{
+  "cpu_usage": 0.65,
+  "memory_usage": 0.72,
+  "goroutine_count": 45,
+  "heap_size": 134217728,
+  "average_latency": "1.45s",
+  "throughput_rpm": 850,
+  "error_rate": 0.023,
+  "cache_hit_rate": 0.787,
+  "document_processing_time": "2.3s",
+  "embedding_generation_time": "0.8s",
+  "retrieval_time": "0.15s",
+  "context_assembly_time": "0.12s",
+  "optimizations_applied": 3,
+  "last_optimization": "2025-01-30T10:15:00Z",
+  "performance_gain": 0.23
+}
+```
+
+#### Performance Optimization Controls
+
+**Trigger Manual Optimization:**
+```bash
+curl -X POST http://llm-processor:8080/performance/optimize \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target_metrics": ["latency", "memory_usage"],
+    "optimization_level": "aggressive"
+  }'
+```
+
+**Get Performance Report:**
+```bash
+curl -X GET http://llm-processor:8080/performance/report
+```
+
+**Response:**
+```json
+{
+  "generated_at": "2025-01-30T10:30:15Z",
+  "current_metrics": { ... },
+  "active_optimizations": {
+    "opt_high_memory_usage_1706607015": {
+      "id": "opt_high_memory_usage_1706607015",
+      "type": "high_memory_usage",
+      "description": "Optimize memory usage through garbage collection and cache cleanup",
+      "start_time": "2025-01-30T10:30:15Z",
+      "estimated_duration": "30s",
+      "status": "running",
+      "impact": 0.3
+    }
+  },
+  "recommendations": [
+    "Consider increasing available memory or optimizing memory usage",
+    "Improve cache strategies and consider cache warming"
+  ],
+  "health_score": 0.78
+}
+```
+
+#### Auto-Optimization Configuration
+
+**Configure Auto-Optimization:**
+```bash
+curl -X POST http://llm-processor:8080/performance/config \
+  -H "Content-Type: application/json" \
+  -d '{
+    "enable_auto_optimization": true,
+    "optimization_interval": "10m",
+    "memory_threshold": 0.8,
+    "cpu_threshold": 0.7,
+    "latency_threshold": "5s",
+    "throughput_target": 1000,
+    "enable_memory_optimization": true,
+    "enable_cache_optimization": true
+  }'
+```
+
+### Enhanced Error Handling
+
+**Comprehensive Error Types and Recovery Patterns**
+
+The system now provides detailed error classification and automatic recovery:
+
+#### Error Categories
+
+| Error Type | Code | Description | Retryable | Recovery Action |
+|------------|------|-------------|-----------|------------------|
+| `STREAMING_SESSION_LIMIT_EXCEEDED` | `SSE_001` | Maximum concurrent streams reached | Yes | Wait and retry |
+| `STREAMING_SESSION_TIMEOUT` | `SSE_002` | Session timeout exceeded | No | Create new session |
+| `STREAMING_CONNECTION_LOST` | `SSE_003` | Client connection lost | Yes | Automatic reconnection |
+| `CACHE_L1_MEMORY_PRESSURE` | `CACHE_001` | L1 cache memory pressure | No | Automatic eviction |
+| `CACHE_L2_REDIS_UNAVAILABLE` | `CACHE_002` | Redis cache unavailable | Yes | Fall back to L1 only |
+| `CACHE_SERIALIZATION_ERROR` | `CACHE_003` | Data serialization failed | No | Skip caching |
+| `CIRCUIT_BREAKER_OPEN` | `CB_001` | Circuit breaker in open state | Yes | Wait for reset timeout |
+| `CIRCUIT_BREAKER_HALF_OPEN_LIMIT` | `CB_002` | Half-open request limit exceeded | Yes | Wait for state transition |
+| `PERFORMANCE_MEMORY_THRESHOLD` | `PERF_001` | Memory usage above threshold | No | Auto-optimization triggered |
+| `PERFORMANCE_CPU_THRESHOLD` | `PERF_002` | CPU usage above threshold | No | Concurrency limits adjusted |
+| `PERFORMANCE_LATENCY_THRESHOLD` | `PERF_003` | Latency above acceptable limit | No | Timeout optimization applied |
+
+#### Error Response Format
+
+**Enhanced Error Structure:**
+```json
+{
+  "error": {
+    "code": "STREAMING_SESSION_LIMIT_EXCEEDED",
+    "type": "streaming_error",
+    "message": "Maximum concurrent streaming sessions exceeded",
+    "details": {
+      "current_sessions": 100,
+      "max_sessions": 100,
+      "retry_after": 30,
+      "estimated_wait_time": "2m"
+    },
+    "recovery": {
+      "strategy": "exponential_backoff",
+      "retryable": true,
+      "max_retries": 3,
+      "suggested_actions": [
+        "Wait for active sessions to complete",
+        "Reduce concurrent request load",
+        "Consider scaling the service"
+      ]
+    },
+    "context": {
+      "component": "streaming-processor",
+      "session_id": "attempted_session_id",
+      "timestamp": "2025-01-30T10:30:15Z",
+      "request_id": "req-12345",
+      "correlation_id": "corr-67890"
+    }
+  }
+}
+```
+
+#### Automatic Recovery Mechanisms
+
+**Circuit Breaker Recovery:**
+- Automatic transition to half-open state after timeout
+- Health check probes during open state
+- Gradual request throttling during recovery
+
+**Cache Recovery:**
+- Automatic L2 failover to L1 when Redis is unavailable
+- Memory pressure relief through intelligent eviction
+- Background cache warming after recovery
+
+**Performance Recovery:**
+- Automatic resource optimization during high load
+- Dynamic concurrency adjustment
+- Intelligent request batching optimization
+
 ## Conclusion
 
-This comprehensive API documentation provides detailed information for integrating with all Nephoran Intent Operator services. For additional examples, troubleshooting, and advanced configuration, refer to the service-specific documentation and the main project README.
+This comprehensive API documentation provides detailed information for integrating with all Nephoran Intent Operator services, including the new enhanced features for async processing, multi-level caching, circuit breaker patterns, and performance optimization. The system now provides production-ready reliability with intelligent error handling and automatic recovery mechanisms.
+
+For additional examples, troubleshooting, and advanced configuration, refer to the service-specific documentation and the main project README.
 
 For support and questions, please refer to the project's GitHub repository or contact the development team.
