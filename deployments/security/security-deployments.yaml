@@ -1,0 +1,707 @@
+---
+# Security Scanner Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: security-scanner
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security-scanner
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: security-scanner
+  template:
+    metadata:
+      labels:
+        app: security-scanner
+        app.kubernetes.io/name: nephoran-intent-operator
+        app.kubernetes.io/component: security-scanner
+    spec:
+      serviceAccountName: security-scanner
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: security-scanner
+        image: nephoran/security-scanner:v1.0.0
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: SCANNER_CONFIG_FILE
+          value: "/config/scanner-config.yaml"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: OWASP_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: security-config
+              key: enable_owasp_testing
+        - name: VULN_SCANNING_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: security-config
+              key: enable_vuln_scanning
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: temp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: security-config
+      - name: temp
+        emptyDir: {}
+
+---
+# Vulnerability Manager Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vulnerability-manager
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: vulnerability-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vulnerability-manager
+  template:
+    metadata:
+      labels:
+        app: vulnerability-manager
+        app.kubernetes.io/name: nephoran-intent-operator
+        app.kubernetes.io/component: vulnerability-manager
+    spec:
+      serviceAccountName: vulnerability-manager
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: vulnerability-manager
+        image: nephoran/vulnerability-manager:v1.0.0
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: VULN_CONFIG_FILE
+          value: "/config/vuln-config.yaml"
+        - name: NVD_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: security-secrets
+              key: vulnerability_db_api_key
+        - name: CVE_SCANNING_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: security-config
+              key: enable_cve_scanning
+        - name: IMAGE_SCANNING_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: security-config
+              key: enable_image_scanning
+        - name: DEPENDENCY_CHECK_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: security-config
+              key: enable_dependency_check
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: cve-data
+          mountPath: /data/cve
+        - name: temp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: security-config
+      - name: cve-data
+        persistentVolumeClaim:
+          claimName: cve-data-pvc
+      - name: temp
+        emptyDir: {}
+
+---
+# Incident Response System Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: incident-response
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: incident-response
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: incident-response
+  template:
+    metadata:
+      labels:
+        app: incident-response
+        app.kubernetes.io/name: nephoran-intent-operator
+        app.kubernetes.io/component: incident-response
+    spec:
+      serviceAccountName: incident-response
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      - name: incident-response
+        image: nephoran/incident-response:v1.0.0
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: IR_CONFIG_FILE
+          value: "/config/incident-response-config.yaml"
+        - name: SLACK_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: security-secrets
+              key: slack_webhook_url
+        - name: JIRA_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: security-secrets
+              key: jira_api_token
+        - name: AUTO_RESPONSE_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: security-config
+              key: enable_auto_response
+        - name: FORENSICS_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: security-config
+              key: forensics_enabled
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: incident-data
+          mountPath: /data/incidents
+        - name: temp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: security-config
+      - name: incident-data
+        persistentVolumeClaim:
+          claimName: incident-data-pvc
+      - name: temp
+        emptyDir: {}
+
+---
+# Enhanced Nephio Bridge with Security Sidecars
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephio-bridge-secure
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: nephio-bridge
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nephio-bridge-secure
+  template:
+    metadata:
+      labels:
+        app: nephio-bridge-secure
+        app.kubernetes.io/name: nephoran-intent-operator
+        app.kubernetes.io/component: nephio-bridge
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      serviceAccountName: nephio-bridge
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+      containers:
+      # Main application container
+      - name: nephio-bridge
+        image: nephoran/nephio-bridge:v1.0.0
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8443
+          name: https
+        - containerPort: 9090
+          name: metrics
+        env:
+        - name: AUTH_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: security-config
+              key: auth_enabled
+        - name: OAUTH2_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: security-config
+              key: oauth2_enabled
+        - name: MFA_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: security-config
+              key: mfa_enabled
+        - name: JWT_SIGNING_KEY
+          valueFrom:
+            secretKeyRef:
+              name: security-secrets
+              key: jwt_signing_key
+        - name: AZURE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: security-secrets
+              key: azure_client_secret
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: security-secrets
+              key: redis_password
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: config
+          mountPath: /config
+          readOnly: true
+        - name: tls-certs
+          mountPath: /etc/tls
+          readOnly: true
+        - name: temp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      # Security monitoring sidecar
+      - name: security-monitor
+        image: nephoran/security-monitor:v1.0.0
+        ports:
+        - containerPort: 8081
+          name: monitor
+        env:
+        - name: MONITOR_TARGET
+          value: "localhost:8080"
+        - name: INCIDENT_RESPONSE_URL
+          value: "http://incident-response:8080"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        volumeMounts:
+        - name: temp
+          mountPath: /tmp
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: config
+        configMap:
+          name: security-config
+      - name: tls-certs
+        secret:
+          secretName: nephio-bridge-tls
+      - name: temp
+        emptyDir: {}
+
+---
+# Services for Security Components
+apiVersion: v1
+kind: Service
+metadata:
+  name: security-scanner
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security-scanner
+spec:
+  selector:
+    app: security-scanner
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: vulnerability-manager
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: vulnerability-manager
+spec:
+  selector:
+    app: vulnerability-manager
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: incident-response
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: incident-response
+spec:
+  selector:
+    app: incident-response
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephio-bridge-secure
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: nephio-bridge
+spec:
+  selector:
+    app: nephio-bridge-secure
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+  - name: https
+    port: 8443
+    targetPort: https
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+  type: ClusterIP
+
+---
+# Persistent Volume Claims for Security Data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cve-data-pvc
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: vulnerability-manager
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: fast-ssd
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: incident-data-pvc
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: incident-response
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: fast-ssd
+
+---
+# Service Accounts for Security Components
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: security-scanner
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security-scanner
+automountServiceAccountToken: false
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vulnerability-manager
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: vulnerability-manager
+automountServiceAccountToken: false
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: incident-response
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: incident-response
+automountServiceAccountToken: false
+
+---
+# Horizontal Pod Autoscalers
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: security-scanner-hpa
+  namespace: nephoran-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: security-scanner
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: incident-response-hpa
+  namespace: nephoran-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: incident-response
+  minReplicas: 2
+  maxReplicas: 4
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nephio-bridge-secure-hpa
+  namespace: nephoran-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nephio-bridge-secure
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# Pod Disruption Budgets
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: security-scanner-pdb
+  namespace: nephoran-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: security-scanner
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: incident-response-pdb
+  namespace: nephoran-system
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: incident-response
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nephio-bridge-secure-pdb
+  namespace: nephoran-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: nephio-bridge-secure

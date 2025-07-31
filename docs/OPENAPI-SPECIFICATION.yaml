@@ -1,0 +1,1157 @@
+openapi: 3.0.3
+info:
+  title: Nephoran Intent Operator API
+  description: |
+    Enhanced REST API for the Nephoran Intent Operator with async processing capabilities,
+    multi-level caching, circuit breaker patterns, and intelligent performance optimization.
+    
+    This API provides comprehensive network intent processing, streaming capabilities,
+    and advanced error handling with recovery patterns specifically designed for
+    telecommunications network automation.
+  version: 2.0.0
+  contact:
+    name: Nephoran Intent Operator Support
+    url: https://github.com/nephoran/intent-operator
+    email: support@nephoran.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: http://llm-processor:8080
+    description: Development server (internal cluster)
+  - url: https://api.nephoran.com/v1
+    description: Production server
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Intent Processing
+    description: Core intent processing operations
+  - name: Streaming
+    description: Server-Sent Events streaming capabilities
+  - name: Caching
+    description: Multi-level cache management
+  - name: Circuit Breaker
+    description: Fault tolerance and circuit breaker management
+  - name: Performance
+    description: Performance optimization and monitoring
+  - name: Health
+    description: Health checks and system status
+
+paths:
+  # Intent Processing Endpoints
+  /process:
+    post:
+      tags:
+        - Intent Processing
+      summary: Process network intent
+      description: |
+        Process a natural language network intent and return structured parameters.
+        Supports both synchronous and asynchronous processing modes.
+      operationId: processIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntentRequest'
+            examples:
+              deployment_intent:
+                summary: AMF Deployment Intent
+                value:
+                  intent: "Deploy AMF with 3 replicas for enhanced mobile broadband"
+                  metadata:
+                    priority: "high"
+                    namespace: "telecom-core"
+                  options:
+                    async: false
+                    enable_cache: true
+              scaling_intent:
+                summary: SMF Scaling Intent
+                value:
+                  intent: "Scale SMF to 5 instances for increased capacity"
+                  metadata:
+                    priority: "medium"
+                    environment: "production"
+                  options:
+                    async: true
+                    callback_url: "https://webhook.example.com/notifications"
+      responses:
+        '200':
+          description: Intent processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentResponse'
+              examples:
+                successful_processing:
+                  summary: Successful Intent Processing
+                  value:
+                    intent_id: "intent-12345"
+                    status: "completed"
+                    structured_output:
+                      type: "NetworkFunctionDeployment"
+                      name: "amf-deployment"
+                      namespace: "telecom-core"
+                      spec:
+                        replicas: 3
+                        image: "registry.nephoran.com/5g-core/amf:v2.1.0"
+                        resources:
+                          requests:
+                            cpu: "1000m"
+                            memory: "2Gi"
+                          limits:
+                            cpu: "2000m"
+                            memory: "4Gi"
+                    processing_time: "1.234s"
+                    cache_hit: false
+                    confidence_score: 0.94
+        '202':
+          description: Intent accepted for asynchronous processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AsyncResponse'
+        '400':
+          description: Bad request - invalid intent format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: Service unavailable - circuit breaker open
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Streaming Endpoints
+  /stream:
+    post:
+      tags:
+        - Streaming
+      summary: Start streaming intent processing
+      description: |
+        Initiate Server-Sent Events (SSE) streaming for real-time intent processing.
+        Returns a stream of processing events including context injection, token generation,
+        and final results.
+      operationId: startStreaming
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StreamingRequest'
+            examples:
+              streaming_request:
+                summary: Streaming Processing Request
+                value:
+                  query: "Configure UPF for ultra-low latency applications"
+                  session_id: "session_abc123"
+                  model_name: "gpt-4o-mini"
+                  max_tokens: 2048
+                  enable_rag: true
+      responses:
+        '200':
+          description: Streaming session established
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                format: binary
+              examples:
+                streaming_events:
+                  summary: Sample Streaming Events
+                  value: |
+                    event: start
+                    data: {"session_id":"session_abc123","status":"started"}
+
+                    event: context_injection
+                    data: {"type":"context_injection","content":"Context retrieved and injected","metadata":{"context_length":15420,"injection_time":"85ms"}}
+
+                    event: chunk
+                    data: {"type":"content","delta":"Based on the retrieved network specifications...","timestamp":"2025-01-12T10:30:15Z","chunk_index":0}
+
+                    event: completion
+                    data: {"type":"completion","is_complete":true,"metadata":{"total_chunks":15,"total_bytes":8192,"processing_time":"2.3s"}}
+        '400':
+          description: Invalid streaming request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Maximum concurrent sessions exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stream/sessions/{session_id}:
+    get:
+      tags:
+        - Streaming
+      summary: Get streaming session status
+      description: Retrieve the current status and metadata for a streaming session
+      operationId: getStreamingSession
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique session identifier
+      responses:
+        '200':
+          description: Session status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StreamingSession'
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Streaming
+      summary: Cancel streaming session
+      description: Cancel an active streaming session and clean up resources
+      operationId: cancelStreamingSession
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique session identifier
+      responses:
+        '200':
+          description: Session cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Session cancelled successfully"
+                  session_id:
+                    type: string
+                    example: "session_abc123"
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stream/sessions:
+    get:
+      tags:
+        - Streaming
+      summary: List active streaming sessions
+      description: Get a list of all currently active streaming sessions
+      operationId: listStreamingSessions
+      responses:
+        '200':
+          description: Active sessions retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  active_sessions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/StreamingSession'
+                  total_count:
+                    type: integer
+                    example: 15
+                  max_concurrent:
+                    type: integer
+                    example: 100
+
+  # Caching Endpoints
+  /cache/stats:
+    get:
+      tags:
+        - Caching
+      summary: Get cache statistics
+      description: |
+        Retrieve comprehensive statistics for the multi-level cache system
+        including L1 (in-memory) and L2 (Redis) cache performance metrics.
+      operationId: getCacheStats
+      responses:
+        '200':
+          description: Cache statistics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CacheStats'
+              examples:
+                cache_statistics:
+                  summary: Cache Performance Statistics
+                  value:
+                    l1_stats:
+                      hits: 12847
+                      misses: 3201
+                      sets: 8943
+                      evictions: 421
+                      size: 850
+                      hit_rate: 0.801
+                    l2_stats:
+                      hits: 7923
+                      misses: 4128
+                      sets: 6742
+                      errors: 12
+                      enabled: true
+                      hit_rate: 0.657
+                    overall_stats:
+                      total_hits: 20770
+                      total_misses: 7329
+                      overall_hit_rate: 0.739
+                      average_get_time: "12ms"
+                      average_set_time: "8ms"
+                      memory_usage: 2048576
+                      last_updated: "2025-01-12T10:30:15Z"
+
+  /cache/clear:
+    delete:
+      tags:
+        - Caching
+      summary: Clear cache
+      description: Clear all cache levels or specific cache types
+      operationId: clearCache
+      parameters:
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [all, l1, l2]
+            default: all
+          description: Cache level to clear
+        - name: prefix
+          in: query
+          schema:
+            type: string
+          description: Cache key prefix to clear (e.g., 'rag:', 'llm:')
+      responses:
+        '200':
+          description: Cache cleared successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cache cleared successfully"
+                  cleared_levels:
+                    type: array
+                    items:
+                      type: string
+                    example: ["l1", "l2"]
+                  items_cleared:
+                    type: integer
+                    example: 1247
+
+  /cache/warm:
+    post:
+      tags:
+        - Caching
+      summary: Warm cache
+      description: Proactively warm the cache with frequently accessed data
+      operationId: warmCache
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                strategy:
+                  type: string
+                  enum: [popular_queries, predictive, manual]
+                  example: popular_queries
+                limit:
+                  type: integer
+                  example: 500
+                queries:
+                  type: array
+                  items:
+                    type: string
+                  description: Manual queries to warm (when strategy is 'manual')
+      responses:
+        '200':
+          description: Cache warming completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Cache warming completed"
+                  items_warmed:
+                    type: integer
+                    example: 427
+                  warming_time:
+                    type: string
+                    example: "2.3s"
+
+  # Circuit Breaker Endpoints
+  /circuit-breaker/status:
+    get:
+      tags:
+        - Circuit Breaker
+      summary: Get circuit breaker status
+      description: |
+        Retrieve the current status and metrics for all circuit breakers in the system.
+        Includes state information, failure rates, and recovery metrics.
+      operationId: getCircuitBreakerStatus
+      responses:
+        '200':
+          description: Circuit breaker status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CircuitBreakerStatus'
+              examples:
+                circuit_breaker_status:
+                  summary: Circuit Breaker Status
+                  value:
+                    llm-processor:
+                      name: "llm-processor"
+                      state: "closed"
+                      failure_count: 2
+                      success_count: 847
+                      failure_rate: 0.0023
+                      total_requests: 849
+                      last_failure_time: "2025-01-12T09:15:32Z"
+                      last_success_time: "2025-01-12T10:30:14Z"
+                      state_change_time: "2025-01-12T08:00:00Z"
+                      uptime: "2h34m18s"
+                    rag-api:
+                      name: "rag-api"
+                      state: "half-open"
+                      failure_count: 3
+                      success_count: 1
+                      failure_rate: 0.75
+                      total_requests: 4
+                      half_open_requests: 1
+    post:
+      tags:
+        - Circuit Breaker
+      summary: Control circuit breaker
+      description: Manually control circuit breaker state (reset, force open, etc.)
+      operationId: controlCircuitBreaker
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                action:
+                  type: string
+                  enum: [reset, force_open, force_close]
+                  example: reset
+                name:
+                  type: string
+                  example: llm-processor
+                  description: Circuit breaker name (optional, applies to all if not specified)
+      responses:
+        '200':
+          description: Circuit breaker action completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Circuit breaker reset successfully"
+                  affected_circuits:
+                    type: array
+                    items:
+                      type: string
+                    example: ["llm-processor"]
+
+  # Performance Endpoints
+  /performance/metrics:
+    get:
+      tags:
+        - Performance
+      summary: Get performance metrics
+      description: |
+        Retrieve comprehensive performance metrics including system resources,
+        processing times, and optimization statistics.
+      operationId: getPerformanceMetrics
+      responses:
+        '200':
+          description: Performance metrics retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceMetrics'
+              examples:
+                performance_metrics:
+                  summary: System Performance Metrics
+                  value:
+                    cpu_usage: 0.45
+                    memory_usage: 0.67
+                    goroutine_count: 1247
+                    heap_size: 2048576000
+                    gc_pauses: ["12ms", "8ms", "15ms"]
+                    average_latency: "1.234s"
+                    throughput_rpm: 847
+                    error_rate: 0.023
+                    cache_hit_rate: 0.82
+                    document_processing_time: "234ms"
+                    embedding_generation_time: "567ms"
+                    retrieval_time: "123ms"
+                    context_assembly_time: "89ms"
+                    optimizations_applied: 12
+                    last_optimization: "2025-01-12T10:15:23Z"
+                    performance_gain: 0.23
+
+  /performance/optimize:
+    post:
+      tags:
+        - Performance
+      summary: Trigger performance optimization
+      description: |
+        Manually trigger performance optimization for specific metrics or
+        let the system auto-optimize based on current performance characteristics.
+      operationId: optimizePerformance
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                target_metrics:
+                  type: array
+                  items:
+                    type: string
+                    enum: [memory_usage, cpu_usage, latency, throughput, cache_efficiency]
+                  example: ["memory_usage", "cache_efficiency"]
+                force_optimization:
+                  type: boolean
+                  default: false
+                  description: Force optimization even if thresholds aren't met
+      responses:
+        '200':
+          description: Optimization completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Performance optimization completed"
+                  optimizations_applied:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          example: "memory_optimization"
+                        description:
+                          type: string
+                          example: "Garbage collection triggered and memory usage reduced"
+                        impact:
+                          type: number
+                          format: float
+                          example: 0.15
+                        duration:
+                          type: string
+                          example: "1.2s"
+                  overall_improvement:
+                    type: number
+                    format: float
+                    example: 0.23
+
+  /performance/report:
+    get:
+      tags:
+        - Performance
+      summary: Get performance report
+      description: |
+        Generate a comprehensive performance report with recommendations
+        and health scoring.
+      operationId: getPerformanceReport
+      responses:
+        '200':
+          description: Performance report generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PerformanceReport'
+
+  # Health Check Endpoints
+  /healthz:
+    get:
+      tags:
+        - Health
+      summary: Basic health check
+      description: Basic liveness probe endpoint
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-01-12T10:30:15Z"
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /readyz:
+    get:
+      tags:
+        - Health
+      summary: Readiness check
+      description: |
+        Comprehensive readiness check including dependency validation,
+        cache connectivity, and circuit breaker status.
+      operationId: readinessCheck
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ready"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  dependencies:
+                    type: object
+                    properties:
+                      rag_api:
+                        type: string
+                        example: "healthy"
+                      redis_cache:
+                        type: string
+                        example: "healthy"
+                      weaviate:
+                        type: string
+                        example: "healthy"
+                  circuit_breakers:
+                    type: object
+                    properties:
+                      llm-processor:
+                        type: string
+                        example: "closed"
+                      rag-api:
+                        type: string
+                        example: "closed"
+        '503':
+          description: Service is not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /metrics:
+    get:
+      tags:
+        - Health
+      summary: Prometheus metrics
+      description: Prometheus-compatible metrics endpoint
+      operationId: getPrometheusMetrics
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                prometheus_metrics:
+                  summary: Sample Prometheus Metrics
+                  value: |
+                    # HELP nephoran_intent_requests_total Total number of intent processing requests
+                    # TYPE nephoran_intent_requests_total counter
+                    nephoran_intent_requests_total{status="success"} 1247
+                    nephoran_intent_requests_total{status="error"} 23
+                    
+                    # HELP nephoran_cache_hit_rate Cache hit rate percentage
+                    # TYPE nephoran_cache_hit_rate gauge
+                    nephoran_cache_hit_rate{level="l1"} 0.82
+                    nephoran_cache_hit_rate{level="l2"} 0.67
+                    
+                    # HELP nephoran_streaming_active_sessions Number of active streaming sessions
+                    # TYPE nephoran_streaming_active_sessions gauge
+                    nephoran_streaming_active_sessions 15
+
+components:
+  schemas:
+    IntentRequest:
+      type: object
+      required:
+        - intent
+      properties:
+        intent:
+          type: string
+          description: Natural language network intent
+          example: "Deploy AMF with 3 replicas for enhanced mobile broadband"
+          minLength: 10
+          maxLength: 2000
+        metadata:
+          type: object
+          properties:
+            priority:
+              type: string
+              enum: [low, medium, high, critical]
+              default: medium
+            namespace:
+              type: string
+              example: "telecom-core"
+            environment:
+              type: string
+              enum: [development, staging, production]
+              default: development
+            user_id:
+              type: string
+              example: "operator-123"
+        options:
+          type: object
+          properties:
+            async:
+              type: boolean
+              default: false
+              description: Process intent asynchronously
+            enable_cache:
+              type: boolean
+              default: true
+              description: Enable result caching
+            callback_url:
+              type: string
+              format: uri
+              description: Webhook URL for async processing results
+            max_tokens:
+              type: integer
+              minimum: 100
+              maximum: 4096
+              default: 2048
+            model_name:
+              type: string
+              enum: [gpt-4o-mini, gpt-4o, claude-3-haiku]
+              default: gpt-4o-mini
+
+    IntentResponse:
+      type: object
+      properties:
+        intent_id:
+          type: string
+          example: "intent-12345"
+        status:
+          type: string
+          enum: [completed, failed, processing]
+        structured_output:
+          type: object
+          description: Generated network function configuration
+        processing_time:
+          type: string
+          example: "1.234s"
+        cache_hit:
+          type: boolean
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        model_used:
+          type: string
+          example: "gpt-4o-mini"
+        tokens_used:
+          type: integer
+          example: 1456
+        timestamp:
+          type: string
+          format: date-time
+
+    AsyncResponse:
+      type: object
+      properties:
+        intent_id:
+          type: string
+          example: "intent-12345"
+        status:
+          type: string
+          enum: [accepted, queued]
+        estimated_completion:
+          type: string
+          format: date-time
+        callback_url:
+          type: string
+          format: uri
+        tracking_url:
+          type: string
+          format: uri
+          example: "/api/v1/intents/intent-12345/status"
+
+    StreamingRequest:
+      type: object
+      required:
+        - query
+        - session_id
+      properties:
+        query:
+          type: string
+          description: Query to process via streaming
+          example: "Configure UPF for ultra-low latency applications"
+        session_id:
+          type: string
+          description: Unique session identifier
+          example: "session_abc123"
+        model_name:
+          type: string
+          default: "gpt-4o-mini"
+        max_tokens:
+          type: integer
+          default: 2048
+        enable_rag:
+          type: boolean
+          default: true
+        stream_options:
+          type: object
+          properties:
+            chunk_size:
+              type: integer
+              default: 512
+            max_chunk_delay:
+              type: string
+              default: "25ms"
+            enable_compression:
+              type: boolean
+              default: false
+
+    StreamingSession:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "session_abc123"
+        status:
+          type: string
+          enum: [active, completed, failed, cancelled]
+        start_time:
+          type: string
+          format: date-time
+        last_activity:
+          type: string
+          format: date-time
+        bytes_streamed:
+          type: integer
+          example: 8192
+        chunks_streamed:
+          type: integer
+          example: 15
+        client_info:
+          type: object
+          properties:
+            user_agent:
+              type: string
+            ip_address:
+              type: string
+
+    CacheStats:
+      type: object
+      properties:
+        l1_stats:
+          type: object
+          properties:
+            hits:
+              type: integer
+            misses:
+              type: integer
+            sets:
+              type: integer
+            evictions:
+              type: integer
+            size:
+              type: integer
+            hit_rate:
+              type: number
+              format: float
+        l2_stats:
+          type: object
+          properties:
+            hits:
+              type: integer
+            misses:
+              type: integer
+            sets:
+              type: integer
+            errors:
+              type: integer
+            enabled:
+              type: boolean
+            hit_rate:
+              type: number
+              format: float
+        overall_stats:
+          type: object
+          properties:
+            total_hits:
+              type: integer
+            total_misses:
+              type: integer
+            overall_hit_rate:
+              type: number
+              format: float
+            average_get_time:
+              type: string
+            average_set_time:
+              type: string
+            memory_usage:
+              type: integer
+            last_updated:
+              type: string
+              format: date-time
+
+    CircuitBreakerStatus:
+      type: object
+      additionalProperties:
+        type: object
+        properties:
+          name:
+            type: string
+          state:
+            type: string
+            enum: [closed, open, half-open]
+          failure_count:
+            type: integer
+          success_count:
+            type: integer
+          failure_rate:
+            type: number
+            format: float
+          total_requests:
+            type: integer
+          last_failure_time:
+            type: string
+            format: date-time
+          last_success_time:
+            type: string
+            format: date-time
+          state_change_time:
+            type: string
+            format: date-time
+          half_open_requests:
+            type: integer
+          uptime:
+            type: string
+
+    PerformanceMetrics:
+      type: object
+      properties:
+        cpu_usage:
+          type: number
+          format: float
+          description: CPU usage percentage (0.0-1.0)
+        memory_usage:
+          type: number
+          format: float
+          description: Memory usage percentage (0.0-1.0)
+        goroutine_count:
+          type: integer
+        heap_size:
+          type: integer
+        gc_pauses:
+          type: array
+          items:
+            type: string
+          description: Recent garbage collection pause times
+        average_latency:
+          type: string
+        throughput_rpm:
+          type: integer
+          description: Requests per minute
+        error_rate:
+          type: number
+          format: float
+        cache_hit_rate:
+          type: number
+          format: float
+        document_processing_time:
+          type: string
+        embedding_generation_time:
+          type: string
+        retrieval_time:
+          type: string
+        context_assembly_time:
+          type: string
+        optimizations_applied:
+          type: integer
+        last_optimization:
+          type: string
+          format: date-time
+        performance_gain:
+          type: number
+          format: float
+
+    PerformanceReport:
+      type: object
+      properties:
+        generated_at:
+          type: string
+          format: date-time
+        current_metrics:
+          $ref: '#/components/schemas/PerformanceMetrics'
+        active_optimizations:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+              description:
+                type: string
+              start_time:
+                type: string
+                format: date-time
+              estimated_duration:
+                type: string
+              status:
+                type: string
+                enum: [running, completed, failed]
+              impact:
+                type: number
+                format: float
+        recommendations:
+          type: array
+          items:
+            type: string
+        health_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: "INTENT_PROCESSING_FAILED"
+            type:
+              type: string
+              example: "processing_error"
+            message:
+              type: string
+              example: "Failed to process network intent"
+            details:
+              type: object
+              additionalProperties: true
+            recovery:
+              type: object
+              properties:
+                strategy:
+                  type: string
+                  enum: [retry, exponential_backoff, circuit_breaker_reset]
+                retryable:
+                  type: boolean
+                max_retries:
+                  type: integer
+                suggested_actions:
+                  type: array
+                  items:
+                    type: string
+            context:
+              type: object
+              properties:
+                request_id:
+                  type: string
+                timestamp:
+                  type: string
+                  format: date-time
+                component:
+                  type: string
+        timestamp:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+security:
+  - ApiKeyAuth: []
+  - BearerAuth: []
+
+# Webhooks for async processing
+webhooks:
+  intentProcessingComplete:
+    post:
+      summary: Intent processing completed
+      description: Webhook called when asynchronous intent processing is completed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                intent_id:
+                  type: string
+                status:
+                  type: string
+                  enum: [completed, failed]
+                structured_output:
+                  type: object
+                error:
+                  $ref: '#/components/schemas/ErrorResponse'
+                processing_time:
+                  type: string
+                timestamp:
+                  type: string
+                  format: date-time
+      responses:
+        '200':
+          description: Webhook received successfully

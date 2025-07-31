@@ -1,0 +1,474 @@
+---
+# Certificate Authority for mTLS
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: nephoran-ca-issuer
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  ca:
+    secretName: nephoran-ca-key-pair
+
+---
+# Root CA Certificate Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nephoran-ca-key-pair
+  namespace: cert-manager
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+type: kubernetes.io/tls
+data:
+  # Base64 encoded CA certificate and private key
+  # These should be generated and replaced with actual values
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCi4uLgotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t
+  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCi4uLgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0t
+
+---
+# Security Scanner TLS Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: security-scanner-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security-scanner
+spec:
+  secretName: security-scanner-tls
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - security-scanner
+  - security-scanner.nephoran-system
+  - security-scanner.nephoran-system.svc
+  - security-scanner.nephoran-system.svc.cluster.local
+  ipAddresses:
+  - 127.0.0.1
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+    - nephoran-intent-operator
+    organizationalUnits:
+    - security
+    countries:
+    - US
+    provinces:
+    - CA
+    localities:
+    - San Francisco
+  commonName: security-scanner.nephoran-system.svc.cluster.local
+  keySize: 2048
+  keyAlgorithm: rsa
+  keyEncoding: pkcs1
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
+
+---
+# Vulnerability Manager TLS Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: vulnerability-manager-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: vulnerability-manager
+spec:
+  secretName: vulnerability-manager-tls
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - vulnerability-manager
+  - vulnerability-manager.nephoran-system
+  - vulnerability-manager.nephoran-system.svc
+  - vulnerability-manager.nephoran-system.svc.cluster.local
+  ipAddresses:
+  - 127.0.0.1
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+    - nephoran-intent-operator
+    organizationalUnits:
+    - security
+    countries:
+    - US
+    provinces:
+    - CA
+    localities:
+    - San Francisco
+  commonName: vulnerability-manager.nephoran-system.svc.cluster.local
+  keySize: 2048
+  keyAlgorithm: rsa
+  keyEncoding: pkcs1
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
+
+---
+# Incident Response TLS Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: incident-response-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: incident-response
+spec:
+  secretName: incident-response-tls
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - incident-response
+  - incident-response.nephoran-system
+  - incident-response.nephoran-system.svc
+  - incident-response.nephoran-system.svc.cluster.local
+  ipAddresses:
+  - 127.0.0.1
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+    - nephoran-intent-operator
+    organizationalUnits:
+    - security
+    countries:
+    - US
+    provinces:
+    - CA
+    localities:
+    - San Francisco
+  commonName: incident-response.nephoran-system.svc.cluster.local
+  keySize: 2048
+  keyAlgorithm: rsa
+  keyEncoding: pkcs1
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
+
+---
+# Nephio Bridge Secure TLS Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nephio-bridge-secure-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: nephio-bridge
+spec:
+  secretName: nephio-bridge-secure-tls
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - nephio-bridge-secure
+  - nephio-bridge-secure.nephoran-system
+  - nephio-bridge-secure.nephoran-system.svc
+  - nephio-bridge-secure.nephoran-system.svc.cluster.local
+  ipAddresses:
+  - 127.0.0.1
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+    - nephoran-intent-operator
+    organizationalUnits:
+    - security
+    countries:
+    - US
+    provinces:
+    - CA
+    localities:
+    - San Francisco
+  commonName: nephio-bridge-secure.nephoran-system.svc.cluster.local
+  keySize: 2048
+  keyAlgorithm: rsa
+  keyEncoding: pkcs1
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
+
+---
+# RAG API TLS Certificate (for secure communication)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rag-api-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rag-api
+spec:
+  secretName: rag-api-tls
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - rag-api
+  - rag-api.nephoran-system
+  - rag-api.nephoran-system.svc
+  - rag-api.nephoran-system.svc.cluster.local
+  ipAddresses:
+  - 127.0.0.1
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+    - nephoran-intent-operator
+    organizationalUnits:
+    - rag-api
+    countries:
+    - US
+    provinces:
+    - CA
+    localities:
+    - San Francisco
+  commonName: rag-api.nephoran-system.svc.cluster.local
+  keySize: 2048
+  keyAlgorithm: rsa
+  keyEncoding: pkcs1
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
+
+---
+# LLM Processor TLS Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: llm-processor-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: llm-processor
+spec:
+  secretName: llm-processor-tls
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - llm-processor
+  - llm-processor.nephoran-system
+  - llm-processor.nephoran-system.svc
+  - llm-processor.nephoran-system.svc.cluster.local
+  ipAddresses:
+  - 127.0.0.1
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+    - nephoran-intent-operator
+    organizationalUnits:
+    - llm-processor
+    countries:
+    - US
+    provinces:
+    - CA
+    localities:
+    - San Francisco
+  commonName: llm-processor.nephoran-system.svc.cluster.local
+  keySize: 2048
+  keyAlgorithm: rsa
+  keyEncoding: pkcs1
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
+
+---
+# Weaviate TLS Certificate (for secure vector database communication)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: weaviate-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: weaviate
+spec:
+  secretName: weaviate-tls
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - weaviate
+  - weaviate.nephoran-system
+  - weaviate.nephoran-system.svc
+  - weaviate.nephoran-system.svc.cluster.local
+  ipAddresses:
+  - 127.0.0.1
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+    - nephoran-intent-operator
+    organizationalUnits:
+    - vector-database
+    countries:
+    - US
+    provinces:
+    - CA
+    localities:
+    - San Francisco
+  commonName: weaviate.nephoran-system.svc.cluster.local
+  keySize: 2048
+  keyAlgorithm: rsa
+  keyEncoding: pkcs1
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
+
+---
+# Redis TLS Certificate (for secure token blacklisting communication)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: redis-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: redis
+spec:
+  secretName: redis-tls
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+  - redis
+  - redis.nephoran-system
+  - redis.nephoran-system.svc
+  - redis.nephoran-system.svc.cluster.local
+  ipAddresses:
+  - 127.0.0.1
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+    - nephoran-intent-operator
+    organizationalUnits:
+    - cache
+    countries:
+    - US
+    provinces:
+    - CA
+    localities:
+    - San Francisco
+  commonName: redis.nephoran-system.svc.cluster.local
+  keySize: 2048
+  keyAlgorithm: rsa
+  keyEncoding: pkcs1
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
+
+---
+# Certificate Renewal Job
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: certificate-renewal-checker
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  schedule: "0 12 * * *" # Daily at noon
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: certificate-manager
+          containers:
+          - name: cert-checker
+            image: bitnami/kubectl:latest
+            command:
+            - /bin/bash
+            - -c
+            - |
+              echo "Checking certificate expiration..."
+              kubectl get certificates -n nephoran-system -o json | \
+              jq -r '.items[] | select(.status.renewalTime and (.status.renewalTime | fromdateiso8601) < (now + 7*24*3600)) | .metadata.name' | \
+              while read cert; do
+                echo "Certificate $cert needs renewal soon"
+                kubectl annotate certificate $cert -n nephoran-system cert-manager.io/force-renewal=$(date +%s) --overwrite
+              done
+              echo "Certificate renewal check completed"
+          restartPolicy: OnFailure
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+
+---
+# ServiceAccount for certificate management
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: certificate-manager
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+automountServiceAccountToken: true
+
+---
+# Role for certificate management
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: certificate-manager
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+rules:
+- apiGroups: ["cert-manager.io"]
+  resources: ["certificates"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+
+---
+# RoleBinding for certificate management
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: certificate-manager
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+subjects:
+- kind: ServiceAccount
+  name: certificate-manager
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: certificate-manager
+  apiGroup: rbac.authorization.k8s.io
