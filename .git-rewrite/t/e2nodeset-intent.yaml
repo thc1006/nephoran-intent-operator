@@ -1,6 +1,0 @@
-apiVersion: nephoran.com/v1alpha1
-kind: E2NodeSet
-metadata:
-  name: simulated-gnbs-2
-spec:
-  replicas: 3
