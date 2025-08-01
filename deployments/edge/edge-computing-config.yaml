@@ -482,7 +482,7 @@ spec:
         app: edge-local-ric
         component: oran
       annotations:
-        sidecar.istio.io/inject: "false"  # Direct O-RAN communication
+        sidecar.istio.io/inject: "true"  # Enable Istio sidecar for service mesh security
     spec:
       serviceAccountName: edge-local-ric
       hostNetwork: true  # For O-RAN interface access
