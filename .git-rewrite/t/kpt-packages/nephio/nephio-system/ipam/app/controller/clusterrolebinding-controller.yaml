@@ -1,0 +1,22 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: # kpt-merge: /ipam-controller-controller-role-binding
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/component: tbd
+    app.kubernetes.io/instance: tbd
+    app.kubernetes.io/managed-by: kpt
+    app.kubernetes.io/name: ipam
+    app.kubernetes.io/part-of: ipam
+    app.kubernetes.io/version: tbd
+  name: ipam-controller-controller-role-binding
+  annotations:
+    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|ClusterRoleBinding|default|ipam-controller-controller-role-binding'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: ipam-controller-controller-role
+subjects:
+- kind: ServiceAccount
+  name: ipam-controller
+  namespace: nephio-system

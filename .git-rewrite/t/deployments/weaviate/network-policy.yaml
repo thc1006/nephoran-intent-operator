@@ -1,0 +1,257 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: weaviate-network-policy
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: security
+  annotations:
+    kubernetes.io/description: "Comprehensive network policy for Weaviate cluster security"
+spec:
+  podSelector:
+    matchLabels:
+      app: weaviate
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow inbound from RAG API and LLM processor services within namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-system
+    - podSelector:
+        matchLabels:
+          app: rag-api
+    ports:
+    - protocol: TCP
+      port: 8080
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-system
+    - podSelector:
+        matchLabels:
+          app: llm-processor
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow inbound from monitoring systems for metrics collection
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 2112
+  # Allow inter-cluster communication for Weaviate clustering
+  - from:
+    - podSelector:
+        matchLabels:
+          app: weaviate
+    ports:
+    - protocol: TCP
+      port: 7000  # Gossip port
+    - protocol: TCP
+      port: 7001  # Data port
+    - protocol: TCP
+      port: 8080  # HTTP API
+  # Allow health checks from Kubernetes API server and ingress controllers
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 8080
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # Allow outbound HTTPS for OpenAI API calls and external services
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow outbound HTTP for health checks and webhook callbacks
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 80
+  # Allow DNS resolution within cluster
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow inter-pod communication within Weaviate cluster
+  - to:
+    - podSelector:
+        matchLabels:
+          app: weaviate
+    ports:
+    - protocol: TCP
+      port: 7000
+    - protocol: TCP
+      port: 7001
+    - protocol: TCP
+      port: 8080
+  # Allow access to Kubernetes API for service discovery
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: weaviate-backup-network-policy
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup-security
+  annotations:
+    kubernetes.io/description: "Restricted network policy for Weaviate backup operations"
+spec:
+  podSelector:
+    matchLabels:
+      app: weaviate-backup
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Deny all inbound traffic to backup pods for security
+  - from: []
+  egress:
+  # Allow access to Weaviate API for backup operations
+  - to:
+    - podSelector:
+        matchLabels:
+          app: weaviate
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow access to external backup storage (S3, GCS, etc.)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow DNS resolution for external storage endpoints
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rag-api-to-weaviate
+  namespace: nephoran-system
+  labels:
+    app: rag-api
+    component: security
+  annotations:
+    kubernetes.io/description: "Network policy allowing RAG API to communicate with Weaviate"
+spec:
+  podSelector:
+    matchLabels:
+      app: rag-api
+  policyTypes:
+  - Egress
+  egress:
+  # Allow RAG API to connect to Weaviate cluster
+  - to:
+    - podSelector:
+        matchLabels:
+          app: weaviate
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow outbound HTTPS for OpenAI API calls
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: llm-processor-to-weaviate
+  namespace: nephoran-system
+  labels:
+    app: llm-processor
+    component: security
+  annotations:
+    kubernetes.io/description: "Network policy allowing LLM processor to communicate with Weaviate"
+spec:
+  podSelector:
+    matchLabels:
+      app: llm-processor
+  policyTypes:
+  - Egress
+  egress:
+  # Allow LLM processor to connect to Weaviate cluster
+  - to:
+    - podSelector:
+        matchLabels:
+          app: weaviate
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow outbound HTTPS for OpenAI and other LLM API calls
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53

@@ -1,0 +1,18 @@
+apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: nephio-packages
+upstream:
+  type: git
+  git:
+    repo: https://github.com/nephio-project/nephio-packages
+    directory: /
+    ref: main
+  updateStrategy: resource-merge
+upstreamLock:
+  type: git
+  git:
+    repo: https://github.com/nephio-project/nephio-packages
+    directory: /
+    ref: main
+    commit: 66b7ba37b7282c31c6a0647d100827cf659f5fe0

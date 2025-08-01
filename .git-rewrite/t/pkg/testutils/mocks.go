@@ -1,0 +1,281 @@
+package testutils
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/git"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+)
+
+// MockLLMClient provides a mock implementation of the LLM client interface
+type MockLLMClient struct {
+	responses       map[string]string
+	errors          map[string]error
+	processingDelay time.Duration
+	callCount       int
+	lastIntent      string
+}
+
+// NewMockLLMClient creates a new mock LLM client
+func NewMockLLMClient() *MockLLMClient {
+	return &MockLLMClient{
+		responses:       make(map[string]string),
+		errors:          make(map[string]error),
+		processingDelay: 100 * time.Millisecond,
+	}
+}
+
+// ProcessIntent implements the LLM client interface
+func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	m.callCount++
+	m.lastIntent = intent
+
+	// Simulate processing delay
+	select {
+	case <-ctx.Done():
+		return "", ctx.Err()
+	case <-time.After(m.processingDelay):
+	}
+
+	// Check for specific error responses
+	if err, exists := m.errors[intent]; exists {
+		return "", err
+	}
+
+	// Check for specific responses
+	if response, exists := m.responses[intent]; exists {
+		return response, nil
+	}
+
+	// Generate default response based on intent content
+	return m.generateDefaultResponse(intent), nil
+}
+
+// SetResponse sets a specific response for a given intent
+func (m *MockLLMClient) SetResponse(intent, response string) {
+	m.responses[intent] = response
+}
+
+// SetError sets an error to be returned for a specific intent
+func (m *MockLLMClient) SetError(intent string, err error) {
+	m.errors[intent] = err
+}
+
+// SetProcessingDelay sets the simulated processing delay
+func (m *MockLLMClient) SetProcessingDelay(delay time.Duration) {
+	m.processingDelay = delay
+}
+
+// GetCallCount returns the number of times ProcessIntent was called
+func (m *MockLLMClient) GetCallCount() int {
+	return m.callCount
+}
+
+// GetLastIntent returns the last intent that was processed
+func (m *MockLLMClient) GetLastIntent() string {
+	return m.lastIntent
+}
+
+// Reset clears all mock state
+func (m *MockLLMClient) Reset() {
+	m.responses = make(map[string]string)
+	m.errors = make(map[string]error)
+	m.callCount = 0
+	m.lastIntent = ""
+	m.processingDelay = 100 * time.Millisecond
+}
+
+// generateDefaultResponse creates a default response based on intent content
+func (m *MockLLMClient) generateDefaultResponse(intent string) string {
+	lowerIntent := strings.ToLower(intent)
+
+	// Determine response type based on intent content
+	if strings.Contains(lowerIntent, "scale") || strings.Contains(lowerIntent, "increase") || strings.Contains(lowerIntent, "decrease") {
+		return m.generateScaleResponse(intent)
+	}
+
+	return m.generateDeploymentResponse(intent)
+}
+
+// generateDeploymentResponse generates a default deployment response
+func (m *MockLLMClient) generateDeploymentResponse(intent string) string {
+	lowerIntent := strings.ToLower(intent)
+
+	// Determine network function type
+	nfType := "generic-nf"
+	namespace := "default"
+
+	if strings.Contains(lowerIntent, "upf") {
+		nfType = "upf"
+		namespace = "5g-core"
+	} else if strings.Contains(lowerIntent, "amf") {
+		nfType = "amf"
+		namespace = "5g-core"
+	} else if strings.Contains(lowerIntent, "smf") {
+		nfType = "smf"
+		namespace = "5g-core"
+	} else if strings.Contains(lowerIntent, "ric") || strings.Contains(lowerIntent, "near-rt") {
+		nfType = "near-rt-ric"
+		namespace = "o-ran"
+	} else if strings.Contains(lowerIntent, "edge") || strings.Contains(lowerIntent, "mec") {
+		nfType = "mec-app"
+		namespace = "edge-apps"
+	}
+
+	response := map[string]interface{}{
+		"type":      "NetworkFunctionDeployment",
+		"name":      fmt.Sprintf("%s-deployment", nfType),
+		"namespace": namespace,
+		"spec": map[string]interface{}{
+			"replicas": 1,
+			"image":    fmt.Sprintf("registry.local/%s:latest", nfType),
+			"resources": map[string]interface{}{
+				"requests": map[string]string{"cpu": "500m", "memory": "1Gi"},
+				"limits":   map[string]string{"cpu": "1000m", "memory": "2Gi"},
+			},
+		},
+	}
+
+	jsonBytes, _ := json.Marshal(response)
+	return string(jsonBytes)
+}
+
+// generateScaleResponse generates a default scaling response
+func (m *MockLLMClient) generateScaleResponse(intent string) string {
+	lowerIntent := strings.ToLower(intent)
+
+	nfType := "generic-nf"
+	namespace := "default"
+
+	if strings.Contains(lowerIntent, "upf") {
+		nfType = "upf"
+		namespace = "5g-core"
+	} else if strings.Contains(lowerIntent, "amf") {
+		nfType = "amf"
+		namespace = "5g-core"
+	}
+
+	response := map[string]interface{}{
+		"type":      "NetworkFunctionScale",
+		"name":      fmt.Sprintf("%s-deployment", nfType),
+		"namespace": namespace,
+		"spec": map[string]interface{}{
+			"scaling": map[string]interface{}{
+				"horizontal": map[string]interface{}{
+					"replicas": 3,
+				},
+			},
+		},
+	}
+
+	jsonBytes, _ := json.Marshal(response)
+	return string(jsonBytes)
+}
+
+// MockGitClient provides a mock implementation of the Git client interface
+type MockGitClient struct {
+	files           map[string]string
+	commits         []string
+	initError       error
+	commitPushError error
+	callLog         []string
+	commitCount     int
+	lastCommitHash  string
+}
+
+// NewMockGitClient creates a new mock Git client
+func NewMockGitClient() *MockGitClient {
+	return &MockGitClient{
+		files:          make(map[string]string),
+		commits:        make([]string, 0),
+		callLog:        make([]string, 0),
+		lastCommitHash: "initial-commit-hash",
+	}
+}
+
+// InitRepo implements the Git client interface
+func (m *MockGitClient) InitRepo() error {
+	m.callLog = append(m.callLog, "InitRepo()")
+
+	if m.initError != nil {
+		return m.initError
+	}
+
+	return nil
+}
+
+// CommitAndPush implements the Git client interface
+func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
+	m.callLog = append(m.callLog, fmt.Sprintf("CommitAndPush(%d files, %s)", len(files), message))
+	m.commitCount++
+
+	if m.commitPushError != nil {
+		return "", m.commitPushError
+	}
+
+	// Store files
+	for path, content := range files {
+		m.files[path] = content
+	}
+
+	// Store commit message
+	m.commits = append(m.commits, message)
+
+	// Generate commit hash
+	commitHash := fmt.Sprintf("commit-hash-%d", m.commitCount)
+	m.lastCommitHash = commitHash
+
+	return commitHash, nil
+}
+
+// SetInitError sets an error to be returned by InitRepo operations
+func (m *MockGitClient) SetInitError(err error) {
+	m.initError = err
+}
+
+// SetCommitPushError sets an error to be returned by CommitAndPush operations
+func (m *MockGitClient) SetCommitPushError(err error) {
+	m.commitPushError = err
+}
+
+// GetCallLog returns the log of all method calls
+func (m *MockGitClient) GetCallLog() []string {
+	return m.callLog
+}
+
+// GetCommitCount returns the number of commits made
+func (m *MockGitClient) GetCommitCount() int {
+	return m.commitCount
+}
+
+// GetFileContent returns the content of a file in the mock repository
+func (m *MockGitClient) GetFileContent(filePath string) string {
+	if content, exists := m.files[filePath]; exists {
+		return content
+	}
+	return ""
+}
+
+// GetCommits returns all commits made to the mock repository
+func (m *MockGitClient) GetCommits() []string {
+	return m.commits
+}
+
+// Reset clears all mock state
+func (m *MockGitClient) Reset() {
+	m.files = make(map[string]string)
+	m.commits = make([]string, 0)
+	m.callLog = make([]string, 0)
+	m.commitCount = 0
+	m.initError = nil
+	m.commitPushError = nil
+	m.lastCommitHash = "initial-commit-hash"
+}
+
+// Ensure mock clients implement the expected interfaces
+var _ llm.ClientInterface = (*MockLLMClient)(nil)
+var _ git.ClientInterface = (*MockGitClient)(nil)

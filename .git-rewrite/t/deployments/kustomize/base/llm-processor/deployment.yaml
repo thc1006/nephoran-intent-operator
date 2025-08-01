@@ -1,0 +1,289 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-processor
+  labels:
+    app: llm-processor
+    component: ai-processing
+    version: v2.0.0
+    app.kubernetes.io/name: llm-processor
+    app.kubernetes.io/component: ai-processing
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/version: v2.0.0
+  annotations:
+    deployment.kubernetes.io/revision: "2"
+    nephoran.com/component: "llm-processor"
+    nephoran.com/enhanced: "true"
+    config.kubernetes.io/depends-on: "v1/Secret/llm-credentials,v1/ConfigMap/llm-processor-config"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: llm-processor
+  template:
+    metadata:
+      labels:
+        app: llm-processor
+        component: ai-processing
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: llm-processor
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: llm-processor
+        image: ghcr.io/thc1006/nephoran-intent-operator/llm-processor:v2.0.0
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 8080
+          protocol: TCP
+        env:
+        # Service Configuration
+        - name: PORT
+          value: "8080"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: SERVICE_VERSION
+          value: "v2.0.0"
+        - name: GRACEFUL_SHUTDOWN_TIMEOUT
+          value: "30s"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        
+        # LLM Configuration
+        - name: LLM_BACKEND_TYPE
+          value: "mistral"
+        - name: LLM_MODEL_NAME
+          value: "mistral-8x22b"
+        - name: LLM_TIMEOUT
+          value: "60s"
+        - name: LLM_MAX_TOKENS
+          value: "2048"
+        
+        # Enhanced Security Configuration
+        - name: API_KEY_REQUIRED
+          value: "false"
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: llm-credentials
+              key: api_key
+              optional: true
+        
+        # CORS Configuration
+        - name: CORS_ENABLED
+          value: "true"
+        - name: ALLOWED_ORIGINS
+          value: "https://*.nephoran.com,https://localhost:3000"
+        
+        # Request Logging
+        - name: REQUEST_LOG_ENABLED
+          value: "true"
+        - name: REQUEST_LOG_LEVEL
+          value: "info"
+        
+        # Mistral Configuration
+        - name: MISTRAL_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: llm-processor-config
+              key: mistral_api_url
+        - name: MISTRAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: llm-credentials
+              key: mistral_api_key
+        
+        # OpenAI Configuration (Fallback)
+        - name: OPENAI_API_URL
+          value: "https://api.openai.com/v1/chat/completions"
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: llm-credentials
+              key: openai_api_key
+        
+        # RAG API Configuration
+        - name: RAG_API_URL
+          value: "http://rag-api.default.svc.cluster.local:5001/process_intent"
+        - name: RAG_TIMEOUT
+          value: "30s"
+        - name: RAG_ENABLED
+          value: "true"
+        
+        # Circuit Breaker Configuration
+        - name: CIRCUIT_BREAKER_ENABLED
+          value: "true"
+        - name: CIRCUIT_BREAKER_THRESHOLD
+          value: "5"
+        - name: CIRCUIT_BREAKER_TIMEOUT
+          value: "60s"
+        
+        # Retry Configuration
+        - name: MAX_RETRIES
+          value: "3"
+        - name: RETRY_DELAY
+          value: "1s"
+        - name: RETRY_BACKOFF
+          value: "exponential"
+        
+        # Rate Limiting
+        - name: RATE_LIMIT_REQUESTS_PER_MINUTE
+          value: "60"
+        - name: RATE_LIMIT_BURST
+          value: "10"
+        
+        # Monitoring
+        - name: METRICS_ENABLED
+          value: "true"
+        - name: TRACING_ENABLED
+          value: "true"
+        - name: JAEGER_ENDPOINT
+          value: "http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
+        
+        # Git Information (injected at build time)
+        - name: GIT_COMMIT
+          value: "$(GIT_COMMIT)"
+        - name: GIT_BRANCH
+          value: "$(GIT_BRANCH)"
+        
+        # Health Checks
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-liveness-probe"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+            scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-readiness-probe"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+        
+        # Startup Probe for slow-starting containers
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-startup-probe"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 30
+          successThreshold: 1
+        
+        # Resource Requirements
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+            ephemeral-storage: 4Gi
+        
+        # Security Context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+        
+        # Volume Mounts
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+        - name: var-run
+          mountPath: /var/run
+          readOnly: false
+      
+      # Pod-level configurations
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+      
+      # Anti-affinity for high availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - llm-processor
+              topologyKey: kubernetes.io/hostname
+      
+      # Tolerations for dedicated nodes
+      tolerations:
+      - key: "nephoran.com/ai-workload"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      
+      # Node Selection
+      nodeSelector:
+        nephoran.com/node-type: "ai-processing"
+      
+      # Volumes
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: var-run
+        emptyDir:
+          sizeLimit: 100Mi

@@ -1,0 +1,32 @@
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: configure-5g-network
+  namespace: default
+  labels:
+    app.kubernetes.io/name: networkintent
+    app.kubernetes.io/instance: configure-5g-network
+spec:
+  intent: "Configure a 5G network slice for IoT devices with low latency requirements. Set up bandwidth allocation of 100 Mbps, enable QoS with priority level 5, and configure network isolation for security."
+---
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: setup-edge-computing
+  namespace: default
+  labels:
+    app.kubernetes.io/name: networkintent
+    app.kubernetes.io/instance: setup-edge-computing
+spec:
+  intent: "Deploy edge computing resources for real-time video processing. Configure compute nodes with GPU acceleration, set up container orchestration, and enable low-latency networking between edge nodes and central cloud."
+---
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: configure-network-policies
+  namespace: telecom
+  labels:
+    app.kubernetes.io/name: networkintent
+    app.kubernetes.io/instance: configure-network-policies
+spec:
+  intent: "Set up network security policies for a multi-tenant telecom environment. Create namespace isolation, configure ingress/egress rules, and enable network monitoring for compliance."

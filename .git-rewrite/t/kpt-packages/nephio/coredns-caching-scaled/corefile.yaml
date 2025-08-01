@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ConfigMap
+metadata: # kpt-merge: example/coredns-caching
+  name: coredns-caching
+  namespace: example
+  annotations:
+    internal.kpt.dev/upstream-identifier: '|ConfigMap|example|coredns-caching'
+data:
+  Corefile-low: |
+    .:53 {
+        errors
+        health {
+          lameduck 5s
+        }
+        ready
+        prometheus :9153
+        forward . /etc/resolv.conf {
+          max_concurrent 1000
+        }
+        cache 300 {
+          success 2048
+          denial 2048
+          prefetch 100
+          serve_stale
+        }
+        loop
+        reload
+    }
+  Corefile-medium: |
+    .:53 {
+        errors
+        health {
+          lameduck 5s
+        }
+        ready
+        prometheus :9153
+        forward . /etc/resolv.conf {
+          max_concurrent 2000
+        }
+        cache 300 {
+          success 4096
+          denial 4096
+          prefetch 100
+          serve_stale
+        }
+        loop
+        reload
+    }
+  Corefile-high: |
+    .:53 {
+        errors
+        health {
+          lameduck 5s
+        }
+        ready
+        prometheus :9153
+        forward . /etc/resolv.conf {
+          max_concurrent 2000
+        }
+        cache 300 {
+          success 4096
+          denial 4096
+          prefetch 100
+          serve_stale
+        }
+        loop
+        reload
+    }

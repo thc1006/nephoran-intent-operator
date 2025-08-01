@@ -1,0 +1,26 @@
+# Placeholder for a scalable E2 Node Simulator (ric-sim)
+# Our controller will use this as a template.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ric-sim
+  namespace: nephoran
+  labels:
+    app.kubernetes.io/name: ric-sim
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ric-sim
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ric-sim
+    spec:
+      containers:
+      - name: ric-sim
+        # This image is a placeholder based on O-RAN SC examples
+        image: nexus3.o-ran-sc.org:10002/o-ran-sc/ric-sim:3.0.1
+        ports:
+        - containerPort: 3800
+          name: e2term

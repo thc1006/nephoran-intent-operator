@@ -1,0 +1,214 @@
+# Weaviate Helm Chart Values for Nephoran Intent Operator
+# Production-ready configuration optimized for telecom domain knowledge
+
+# Global configuration
+global:
+  storageClass: "fast-ssd"  # Use high-performance SSD storage for production
+  namespace: "nephoran-system"
+  environment: "production"
+  
+# Image pull secrets for private registries
+imagePullSecrets:
+  - name: "docker-registry-secret"
+
+weaviate:
+  # Weaviate server configuration
+  image:
+    registry: docker.io
+    repository: semitechnologies/weaviate
+    tag: "1.28.1"  # Latest stable version
+    pullPolicy: IfNotPresent
+    
+  # Pod disruption budget for high availability
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+    maxUnavailable: 1
+    
+  # Resource configuration for production workloads
+  resources:
+    requests:
+      memory: "4Gi"
+      cpu: "1000m"
+      ephemeral-storage: "10Gi"
+    limits:
+      memory: "16Gi"
+      cpu: "4000m"
+      ephemeral-storage: "50Gi"
+      
+  # Horizontal Pod Autoscaler configuration with custom metrics
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    # Custom metrics for telecom workloads
+    customMetrics:
+      - type: Pods
+        pods:
+          metric:
+            name: weaviate_query_latency_p99
+          target:
+            type: AverageValue
+            averageValue: "100m"
+      - type: Pods
+        pods:
+          metric:
+            name: weaviate_vector_index_size
+          target:
+            type: AverageValue
+            averageValue: "1000000"
+    
+  # Environment variables for Weaviate configuration
+  env:
+    QUERY_DEFAULTS_LIMIT: "50"
+    QUERY_MAXIMUM_RESULTS: "10000"
+    AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "false"
+    AUTHENTICATION_APIKEY_ENABLED: "true"
+    PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+    DEFAULT_VECTORIZER_MODULE: "text2vec-openai"
+    # Enhanced module configuration for telecom domain
+    ENABLE_MODULES: "text2vec-openai,generative-openai,qna-openai,sum-transformers,ref2vec-centroid"
+    # Performance optimizations
+    TRACK_VECTOR_DIMENSIONS: "true"
+    INDEXING_CLEANUP_INTERVAL_SECONDS: "300"
+    VECTOR_CACHE_MAX_OBJECTS: "1000000"
+    # Backup configuration
+    BACKUP_FILESYSTEM_PATH: "/var/lib/weaviate/backups"
+    # Logging configuration
+    LOG_LEVEL: "info"
+    LOG_FORMAT: "json"
+    # Cluster configuration for high availability
+    CLUSTER_HOSTNAME: "weaviate"
+    CLUSTER_GOSSIP_BIND_PORT: "7000"
+    CLUSTER_DATA_BIND_PORT: "7001"
+    
+  # Persistence configuration for knowledge base storage
+  persistence:
+    enabled: true
+    size: 500Gi  # Large storage for comprehensive telecom documentation corpus
+    storageClass: "fast-ssd"  # High-performance SSD storage
+    accessModes:
+      - ReadWriteOnce
+    annotations:
+      volume.beta.kubernetes.io/storage-provisioner: "kubernetes.io/aws-ebs"
+      volume.kubernetes.io/storage-resizer: "kubernetes.io/aws-ebs"
+    # Backup persistence for disaster recovery
+    backup:
+      enabled: true
+      size: 200Gi
+      storageClass: "standard"
+      accessModes:
+        - ReadWriteOnce
+    
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+    
+  # Security configuration
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+    
+  # Pod security context
+  podSecurityContext:
+    fsGroup: 1000
+    
+  # Node selector for deployment
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  # Monitoring and observability
+  monitoring:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 30s
+      scrapeTimeout: 10s
+      labels: {}
+      
+  # Health checks
+  livenessProbe:
+    httpGet:
+      path: /v1/.well-known/live
+      port: 8080
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 5
+    
+  readinessProbe:
+    httpGet:
+      path: /v1/.well-known/ready
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    
+# Backup configuration for data protection
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: "30d"
+  storageClass: "standard"
+  
+# Vector database optimization for telecom domain
+vectorizer:
+  openai:
+    model: "text-embedding-3-large"
+    dimensions: 3072
+    tokenLimit: 8192
+    
+# Schema configuration for telecom knowledge
+schema:
+  autoSchema: true
+  classes:
+    - name: "TelecomKnowledge"
+      description: "Telecommunications domain knowledge base"
+      vectorizer: "text2vec-openai"
+      properties:
+        - name: "content"
+          dataType: ["text"]
+          description: "Document content"
+        - name: "source"
+          dataType: ["text"]
+          description: "Document source (3GPP, O-RAN, etc.)"
+        - name: "category"
+          dataType: ["text"]
+          description: "Knowledge category"
+        - name: "version"
+          dataType: ["text"]
+          description: "Specification version"
+        - name: "timestamp"
+          dataType: ["date"]
+          description: "Last updated timestamp"
+          
+# Network policies for security
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: default
+        - podSelector:
+            matchLabels:
+              app: rag-api
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to: []  # Allow all outbound traffic for OpenAI API calls
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
