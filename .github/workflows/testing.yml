@@ -1,0 +1,900 @@
+# Comprehensive Testing Workflow for Nephoran Intent Operator
+# This workflow implements automated testing execution with >95% code coverage goals
+# and production reliability validation as specified in the project requirements.
+
+name: Comprehensive Testing Suite
+
+on:
+  push:
+    branches: [ dev-container, main, develop ]
+  pull_request:
+    branches: [ dev-container, main ]
+  schedule:
+    # Run comprehensive tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: 'Test suite to run'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - unit
+        - integration
+        - performance
+        - chaos
+        - security
+      coverage_threshold:
+        description: 'Minimum code coverage percentage'
+        required: false
+        default: '95'
+        type: string
+
+env:
+  GO_VERSION: '1.24'
+  PYTHON_VERSION: '3.11'
+  KUBERNETES_VERSION: 'v1.29.0'
+  COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '95' }}
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
+
+jobs:
+  # =============================================================================
+  # Pre-flight Checks and Setup
+  # =============================================================================
+  setup:
+    name: Pre-flight Setup and Validation
+    runs-on: ubuntu-latest
+    outputs:
+      test-matrix: ${{ steps.test-matrix.outputs.matrix }}
+      go-cache-key: ${{ steps.cache-keys.outputs.go-cache-key }}
+      python-cache-key: ${{ steps.cache-keys.outputs.python-cache-key }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history for coverage analysis
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+
+      - name: Setup Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Generate Cache Keys
+        id: cache-keys
+        run: |
+          echo "go-cache-key=go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum', '**/go.mod') }}" >> $GITHUB_OUTPUT
+          echo "python-cache-key=python-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements-rag.txt') }}" >> $GITHUB_OUTPUT
+
+      - name: Cache Go Dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ steps.cache-keys.outputs.go-cache-key }}
+          restore-keys: |
+            go-${{ env.GO_VERSION }}-
+
+      - name: Cache Python Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ steps.cache-keys.outputs.python-cache-key }}
+          restore-keys: |
+            python-${{ env.PYTHON_VERSION }}-
+
+      - name: Install Go Dependencies
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-rag.txt
+
+      - name: Install Testing Tools
+        run: |
+          # Go testing tools
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+          go install golang.org/x/tools/cmd/cover@latest
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          
+          # Python testing tools
+          pip install pytest pytest-cov pytest-benchmark pytest-xdist
+          
+          # Kubernetes testing tools
+          curl -Lo envtest-setup.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.21.0/hack/setup-envtest.sh
+          chmod +x envtest-setup.sh
+          sudo ./envtest-setup.sh ${{ env.KUBERNETES_VERSION }}
+
+      - name: Validate Project Structure
+        run: |
+          echo "=== Validating Project Structure ==="
+          
+          # Check required directories
+          required_dirs=("pkg" "api" "cmd" "testing" "deployments")
+          for dir in "${required_dirs[@]}"; do
+            if [ ! -d "$dir" ]; then
+              echo "❌ Missing required directory: $dir"
+              exit 1
+            fi
+            echo "✅ Found directory: $dir"
+          done
+          
+          # Check testing infrastructure
+          if [ ! -f "testing/framework/suite.go" ]; then
+            echo "❌ Missing testing framework"
+            exit 1
+          fi
+          
+          echo "✅ Project structure validation complete"
+
+      - name: Generate Test Matrix
+        id: test-matrix
+        run: |
+          matrix=$(cat <<EOF
+          {
+            "include": [
+              {
+                "name": "unit-tests",
+                "suite": "unit",
+                "timeout": "10m",
+                "parallel": true
+              },
+              {
+                "name": "integration-tests", 
+                "suite": "integration",
+                "timeout": "20m",
+                "parallel": false
+              },
+              {
+                "name": "performance-tests",
+                "suite": "performance", 
+                "timeout": "30m",
+                "parallel": false
+              },
+              {
+                "name": "chaos-tests",
+                "suite": "chaos",
+                "timeout": "15m", 
+                "parallel": false
+              }
+            ]
+          }
+          EOF
+          )
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # Code Quality and Static Analysis
+  # =============================================================================
+  code-quality:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Restore Go Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ needs.setup.outputs.go-cache-key }}
+
+      - name: Install Analysis Tools
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          go install github.com/securecodewarrior/govulncheck@latest
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+
+      - name: Run Go Linting
+        run: |
+          echo "=== Running Go Linting ==="
+          golangci-lint run --timeout=10m --issues-exit-code=1 \
+            --out-format=github-actions \
+            --enable=gofmt,govet,ineffassign,misspell,revive,staticcheck
+
+      - name: Run Security Scanning
+        run: |
+          echo "=== Running Security Analysis ==="
+          govulncheck ./...
+
+      - name: Run Static Analysis
+        run: |
+          echo "=== Running Static Analysis ==="
+          staticcheck ./...
+
+      - name: Verify Go Formatting
+        run: |
+          echo "=== Checking Go Code Formatting ==="
+          if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+            echo "❌ Code is not properly formatted:"
+            gofmt -s -l .
+            exit 1
+          fi
+          echo "✅ All Go code is properly formatted"
+
+      - name: Check for Sensitive Data
+        run: |
+          echo "=== Scanning for Sensitive Data ==="
+          # Check for potential secrets or sensitive information
+          if grep -r -i "password\|secret\|key\|token" --include="*.go" --include="*.yaml" --include="*.yml" .; then
+            echo "⚠️ Found potential sensitive data - please review"
+          else
+            echo "✅ No obvious sensitive data found"
+          fi
+
+  # =============================================================================
+  # Unit Testing with Coverage Analysis
+  # =============================================================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: [setup, code-quality]
+    strategy:
+      matrix:
+        package:
+          - "./pkg/controllers/..."
+          - "./pkg/llm/..."
+          - "./pkg/rag/..."
+          - "./pkg/oran/..."
+          - "./pkg/monitoring/..."
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Restore Go Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ needs.setup.outputs.go-cache-key }}
+
+      - name: Setup Test Environment
+        run: |
+          # Setup envtest for Kubernetes testing
+          export KUBEBUILDER_ASSETS=$(setup-envtest use ${{ env.KUBERNETES_VERSION }} -p path)
+          echo "KUBEBUILDER_ASSETS=$KUBEBUILDER_ASSETS" >> $GITHUB_ENV
+
+      - name: Run Unit Tests with Coverage
+        run: |
+          echo "=== Running Unit Tests for ${{ matrix.package }} ==="
+          
+          # Create coverage directory
+          mkdir -p coverage
+          
+          # Run tests with coverage
+          go test -v -race -coverprofile=coverage/$(echo "${{ matrix.package }}" | tr '/' '_' | tr '.' '_').out \
+            -covermode=atomic \
+            -timeout=10m \
+            ${{ matrix.package }}
+
+      - name: Upload Coverage Data
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-data
+          path: coverage/
+          retention-days: 7
+
+  # =============================================================================
+  # Integration Testing with Kubernetes
+  # =============================================================================
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [setup, unit-tests]
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Setup Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Restore Caches
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            ~/.cache/pip
+          key: integration-${{ needs.setup.outputs.go-cache-key }}-${{ needs.setup.outputs.python-cache-key }}
+
+      - name: Setup Kind Cluster
+        uses: helm/kind-action@v1.8.0
+        with:
+          kubernetes-version: ${{ env.KUBERNETES_VERSION }}
+          cluster_name: nephoran-test
+          config: |
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+              kubeadmConfigPatches:
+              - |
+                kind: InitConfiguration
+                nodeRegistration:
+                  kubeletExtraArgs:
+                    node-labels: "testing=true"
+            - role: worker
+            - role: worker
+
+      - name: Install Dependencies
+        run: |
+          # Install Python dependencies for RAG API
+          pip install -r requirements-rag.txt
+          
+          # Install Go testing tools
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+      - name: Deploy Test Dependencies
+        run: |
+          echo "=== Deploying Test Dependencies ==="
+          
+          # Deploy Weaviate for RAG testing
+          kubectl apply -f - <<EOF
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: weaviate-test
+            namespace: default
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: weaviate-test
+            template:
+              metadata:
+                labels:
+                  app: weaviate-test
+              spec:
+                containers:
+                - name: weaviate
+                  image: semitechnologies/weaviate:1.28.0
+                  ports:
+                  - containerPort: 8080
+                  env:
+                  - name: QUERY_DEFAULTS_LIMIT
+                    value: "25"
+                  - name: AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED
+                    value: "true"
+                  - name: PERSISTENCE_DATA_PATH
+                    value: "/var/lib/weaviate"
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: weaviate-test
+            namespace: default
+          spec:
+            selector:
+              app: weaviate-test
+            ports:
+            - port: 8080
+              targetPort: 8080
+          EOF
+          
+          # Wait for Weaviate to be ready
+          kubectl wait --for=condition=available deployment/weaviate-test --timeout=300s
+
+      - name: Run Integration Tests
+        env:
+          WEAVIATE_URL: "http://weaviate-test:8080"
+          REDIS_URL: "redis://localhost:6379"
+          KUBEBUILDER_ASSETS: /tmp/k8s/current
+        run: |
+          echo "=== Running Integration Tests ==="
+          
+          # Setup kubebuilder assets
+          setup-envtest use ${{ env.KUBERNETES_VERSION }} --bin-dir /tmp/k8s/current
+          
+          # Run integration tests
+          go run github.com/onsi/ginkgo/v2/ginkgo -v -trace -race \
+            --timeout=20m \
+            --output-dir=test-results \
+            --junit-report=integration-tests.xml \
+            ./testing/unit/...
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: integration-test-results
+          path: test-results/
+          retention-days: 7
+
+  # =============================================================================
+  # Performance and Load Testing
+  # =============================================================================
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    needs: [setup, integration-tests]
+    if: github.event_name == 'schedule' || github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'performance'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Restore Go Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ needs.setup.outputs.go-cache-key }}
+
+      - name: Setup Performance Testing Environment
+        run: |
+          # Install performance testing tools
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+          
+          # Setup larger Kind cluster for performance testing
+          kind create cluster --name nephoran-perf --config - <<EOF
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          nodes:
+          - role: control-plane
+            extraMounts:
+            - hostPath: /tmp
+              containerPath: /tmp
+          - role: worker
+          - role: worker
+          - role: worker
+          EOF
+
+      - name: Run Performance Benchmarks
+        run: |
+          echo "=== Running Performance Benchmarks ==="
+          
+          # Run Go benchmarks
+          go test -bench=. -benchmem -timeout=30m \
+            -benchtime=10s \
+            -cpuprofile=cpu.prof \
+            -memprofile=mem.prof \
+            ./testing/performance/...
+
+      - name: Run Load Tests
+        env:
+          LOAD_TEST_ENABLED: "true"
+          MAX_CONCURRENCY: "1000"
+          TEST_DURATION: "5m"
+        run: |
+          echo "=== Running Load Tests ==="
+          
+          # Run load tests with high concurrency
+          go run github.com/onsi/ginkgo/v2/ginkgo -v \
+            --timeout=30m \
+            --output-dir=performance-results \
+            --junit-report=load-tests.xml \
+            ./testing/performance/...
+
+      - name: Analyze Performance Results
+        run: |
+          echo "=== Analyzing Performance Results ==="
+          
+          # Generate performance reports
+          if [ -f cpu.prof ]; then
+            go tool pprof -text cpu.prof > performance-results/cpu-profile.txt
+          fi
+          
+          if [ -f mem.prof ]; then
+            go tool pprof -text mem.prof > performance-results/memory-profile.txt
+          fi
+
+      - name: Upload Performance Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: performance-test-results
+          path: performance-results/
+          retention-days: 30
+
+      - name: Performance Regression Check
+        run: |
+          echo "=== Checking for Performance Regressions ==="
+          
+          # Compare with baseline performance metrics
+          # This would integrate with historical performance data
+          echo "Performance regression analysis would be implemented here"
+
+  # =============================================================================
+  # Chaos Engineering Tests
+  # =============================================================================
+  chaos-tests:
+    name: Chaos Engineering Tests
+    runs-on: ubuntu-latest
+    needs: [setup, integration-tests]
+    if: github.event_name == 'schedule' || github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'chaos'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Restore Go Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ needs.setup.outputs.go-cache-key }}
+
+      - name: Setup Chaos Testing Environment
+        run: |
+          # Install chaos testing tools
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+          
+          # Setup Kind cluster with multiple nodes for chaos testing
+          kind create cluster --name nephoran-chaos --config - <<EOF
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          nodes:
+          - role: control-plane
+          - role: worker
+          - role: worker
+          - role: worker
+          EOF
+
+      - name: Run Chaos Engineering Tests
+        env:
+          CHAOS_TEST_ENABLED: "true"
+          FAILURE_RATE: "0.2"
+        run: |
+          echo "=== Running Chaos Engineering Tests ==="
+          
+          # Run chaos tests with failure injection
+          go run github.com/onsi/ginkgo/v2/ginkgo -v \
+            --timeout=15m \
+            --output-dir=chaos-results \
+            --junit-report=chaos-tests.xml \
+            ./testing/chaos/...
+
+      - name: Upload Chaos Test Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: chaos-test-results
+          path: chaos-results/
+          retention-days: 7
+
+  # =============================================================================
+  # Security Testing
+  # =============================================================================
+  security-tests:
+    name: Security Tests
+    runs-on: ubuntu-latest
+    needs: [setup, code-quality]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Run Vulnerability Scanning
+        run: |
+          echo "=== Running Vulnerability Scans ==="
+          
+          # Install security tools
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          
+          # Scan for vulnerabilities
+          govulncheck ./...
+
+      - name: Run Security Linting
+        run: |
+          echo "=== Running Security Linting ==="
+          
+          # Install gosec
+          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+          
+          # Run security analysis
+          gosec -fmt=json -out=security-report.json ./...
+
+      - name: Container Security Scanning
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "=== Scanning Container Images ==="
+          
+          # Build container images
+          make docker-build
+          
+          # Install Trivy for container scanning
+          sudo apt-get update
+          sudo apt-get install wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy
+          
+          # Scan images
+          docker images --format "table {{.Repository}}:{{.Tag}}" | grep nephoran | while read image; do
+            echo "Scanning $image"
+            trivy image --format json --output "${image//\//_}-scan.json" "$image"
+          done
+
+      - name: Upload Security Results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: security-test-results
+          path: |
+            security-report.json
+            *-scan.json
+          retention-days: 30
+
+  # =============================================================================
+  # Coverage Analysis and Reporting
+  # =============================================================================
+  coverage-analysis:
+    name: Coverage Analysis
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Download Coverage Data
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-data
+          path: coverage/
+
+      - name: Merge Coverage Reports
+        run: |
+          echo "=== Merging Coverage Reports ==="
+          
+          # Install coverage tools
+          go install github.com/wadey/gocovmerge@latest
+          
+          # Merge all coverage files
+          gocovmerge coverage/*.out > merged-coverage.out
+          
+          # Generate coverage report
+          go tool cover -func=merged-coverage.out > coverage-report.txt
+          go tool cover -html=merged-coverage.out -o coverage-report.html
+
+      - name: Calculate Coverage Percentage
+        id: coverage
+        run: |
+          echo "=== Calculating Coverage Percentage ==="
+          
+          # Extract coverage percentage
+          coverage_percent=$(go tool cover -func=merged-coverage.out | grep total: | awk '{print $3}' | sed 's/%//')
+          echo "Current coverage: ${coverage_percent}%"
+          echo "Threshold: ${{ env.COVERAGE_THRESHOLD }}%"
+          
+          echo "coverage_percent=${coverage_percent}" >> $GITHUB_OUTPUT
+          
+          # Check if coverage meets threshold
+          if (( $(echo "${coverage_percent} >= ${{ env.COVERAGE_THRESHOLD }}" | bc -l) )); then
+            echo "✅ Coverage threshold met: ${coverage_percent}% >= ${{ env.COVERAGE_THRESHOLD }}%"
+            echo "coverage_passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Coverage threshold not met: ${coverage_percent}% < ${{ env.COVERAGE_THRESHOLD }}%"
+            echo "coverage_passed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload Coverage Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-reports
+          path: |
+            merged-coverage.out
+            coverage-report.txt
+            coverage-report.html
+          retention-days: 30
+
+      - name: Coverage Check
+        if: steps.coverage.outputs.coverage_passed == 'false'
+        run: |
+          echo "❌ Code coverage ${{ steps.coverage.outputs.coverage_percent }}% is below the required threshold of ${{ env.COVERAGE_THRESHOLD }}%"
+          echo "Please add more tests to improve coverage."
+          exit 1
+
+  # =============================================================================
+  # Test Results Aggregation and Quality Gates
+  # =============================================================================
+  test-results:
+    name: Test Results Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, performance-tests, chaos-tests, security-tests, coverage-analysis]
+    if: always()
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download All Test Results
+        uses: actions/download-artifact@v3
+        with:
+          path: test-results/
+
+      - name: Generate Test Summary
+        run: |
+          echo "=== Generating Test Summary ===" 
+          
+          # Create summary report
+          cat > test-summary.md <<EOF
+          # Nephoran Intent Operator - Test Results Summary
+          
+          ## Test Execution Status
+          - **Unit Tests**: ${{ needs.unit-tests.result }}
+          - **Integration Tests**: ${{ needs.integration-tests.result }}
+          - **Performance Tests**: ${{ needs.performance-tests.result }}
+          - **Chaos Tests**: ${{ needs.chaos-tests.result }}
+          - **Security Tests**: ${{ needs.security-tests.result }}
+          - **Coverage Analysis**: ${{ needs.coverage-analysis.result }}
+          
+          ## Coverage Information
+          - **Current Coverage**: ${{ needs.coverage-analysis.outputs.coverage_percent }}%
+          - **Coverage Threshold**: ${{ env.COVERAGE_THRESHOLD }}%
+          - **Coverage Status**: ${{ needs.coverage-analysis.outputs.coverage_passed == 'true' && '✅ PASSED' || '❌ FAILED' }}
+          
+          ## Quality Gates
+          - **Code Quality**: ${{ needs.code-quality.result == 'success' && '✅ PASSED' || '❌ FAILED' }}
+          - **Security Scan**: ${{ needs.security-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }}
+          - **Performance**: ${{ needs.performance-tests.result == 'success' && '✅ PASSED' || '❌ FAILED' }}
+          
+          ## Artifacts
+          - Coverage reports available in artifacts
+          - Performance profiles available in artifacts
+          - Security scan results available in artifacts
+          
+          Generated on: $(date)
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+          EOF
+
+      - name: Upload Test Summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-summary
+          path: test-summary.md
+          retention-days: 30
+
+      - name: Quality Gate Check
+        run: |
+          echo "=== Final Quality Gate Check ==="
+          
+          failed_jobs=()
+          
+          # Check each job result
+          if [ "${{ needs.unit-tests.result }}" != "success" ]; then
+            failed_jobs+=("Unit Tests")
+          fi
+          
+          if [ "${{ needs.integration-tests.result }}" != "success" ]; then
+            failed_jobs+=("Integration Tests")
+          fi
+          
+          if [ "${{ needs.coverage-analysis.result }}" != "success" ]; then
+            failed_jobs+=("Coverage Analysis")
+          fi
+          
+          if [ "${{ needs.code-quality.result }}" != "success" ]; then
+            failed_jobs+=("Code Quality")
+          fi
+          
+          if [ "${{ needs.security-tests.result }}" != "success" ]; then
+            failed_jobs+=("Security Tests")
+          fi
+          
+          # Report results
+          if [ ${#failed_jobs[@]} -eq 0 ]; then
+            echo "✅ All quality gates passed!"
+            echo "🎉 Production reliability validated with >${{ env.COVERAGE_THRESHOLD }}% coverage"
+          else
+            echo "❌ Quality gate failures detected:"
+            printf '%s\n' "${failed_jobs[@]}"
+            echo ""
+            echo "Please address the failing tests before merging."
+            exit 1
+          fi
+
+  # =============================================================================
+  # Notification and Reporting
+  # =============================================================================
+  notify:
+    name: Test Completion Notification
+    runs-on: ubuntu-latest
+    needs: [test-results]
+    if: always() && (github.event_name == 'schedule' || github.ref == 'refs/heads/main')
+    steps:
+      - name: Prepare Notification
+        id: notification
+        run: |
+          if [ "${{ needs.test-results.result }}" == "success" ]; then
+            echo "status=✅ SUCCESS" >> $GITHUB_OUTPUT
+            echo "color=good" >> $GITHUB_OUTPUT
+            echo "message=All tests passed with coverage above ${{ env.COVERAGE_THRESHOLD }}%" >> $GITHUB_OUTPUT
+          else
+            echo "status=❌ FAILURE" >> $GITHUB_OUTPUT  
+            echo "color=danger" >> $GITHUB_OUTPUT
+            echo "message=One or more test suites failed" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Notification
+        if: env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{
+              \"text\": \"${{ steps.notification.outputs.status }} Nephoran Intent Operator Tests\",
+              \"attachments\": [{
+                \"color\": \"${{ steps.notification.outputs.color }}\",
+                \"fields\": [
+                  {
+                    \"title\": \"Branch\",
+                    \"value\": \"${{ github.ref_name }}\",
+                    \"short\": true
+                  },
+                  {
+                    \"title\": \"Commit\",
+                    \"value\": \"${{ github.sha }}\",
+                    \"short\": true
+                  },
+                  {
+                    \"title\": \"Result\",
+                    \"value\": \"${{ steps.notification.outputs.message }}\",
+                    \"short\": false
+                  }
+                ]
+              }]
+            }" \
+            $SLACK_WEBHOOK_URL
