@@ -1,0 +1,233 @@
+# Nephoran Intent Operator - Global State Synchronization
+# Phase 4 Enterprise Architecture - Cross-Region Data Consistency
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: global-sync-config
+  namespace: nephoran-global
+data:
+  sync-config.yaml: |
+    synchronization:
+      # Intent state synchronization
+      intent_sync:
+        enabled: true
+        sync_interval: 5s
+        batch_size: 100
+        conflict_resolution: "last-write-wins"
+        retry_policy:
+          max_attempts: 3
+          backoff_multiplier: 2
+          initial_delay: 1s
+      
+      # Configuration synchronization
+      config_sync:
+        enabled: true
+        sync_interval: 30s
+        include_patterns:
+          - "networkintents/*"
+          - "e2nodesets/*"
+          - "policies/*"
+        exclude_patterns:
+          - "*/local-*"
+          - "*/temp-*"
+      
+      # Metrics aggregation
+      metrics_sync:
+        enabled: true
+        aggregation_interval: 60s
+        retention_period: 30d
+        aggregation_rules:
+          - metric: "intent_processing_rate"
+            aggregation: "sum"
+          - metric: "llm_latency"
+            aggregation: "avg"
+          - metric: "deployment_success_rate"
+            aggregation: "avg"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: global-state-synchronizer
+  namespace: nephoran-global
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: state-synchronizer
+        spec:
+          serviceAccountName: global-sync-operator
+          containers:
+          - name: synchronizer
+            image: nephoran/global-state-sync:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              #!/bin/bash
+              set -e
+              
+              echo "Starting global state synchronization..."
+              
+              # Get all regions
+              REGIONS=$(kubectl get cm nephoran-global-config -n nephoran-global -o jsonpath='{.data.regions\.yaml}' | yq e '.regions | keys | .[]' -)
+              
+              # Synchronize intent states
+              for region in $REGIONS; do
+                echo "Syncing intents from region: $region"
+                
+                # Connect to regional cluster
+                kubectl config use-context $region || continue
+                
+                # Export intent states
+                kubectl get networkintents -A -o json > /tmp/intents-$region.json
+                
+                # Import to global state store
+                cockroach sql --insecure --host=global-state-store.nephoran-global \
+                  --execute="INSERT INTO intents_sync (region, data, timestamp) VALUES ('$region', '$(cat /tmp/intents-$region.json | base64)', NOW()) ON CONFLICT (region) DO UPDATE SET data = EXCLUDED.data, timestamp = EXCLUDED.timestamp;"
+              done
+              
+              # Aggregate metrics
+              echo "Aggregating regional metrics..."
+              for region in $REGIONS; do
+                kubectl config use-context $region || continue
+                
+                # Query Prometheus for key metrics
+                METRICS=$(curl -s http://prometheus.nephoran-system:9090/api/v1/query_range \
+                  -d 'query=nephoran_intent_processing_rate' \
+                  -d 'start='$(date -u -d '5 minutes ago' +%s) \
+                  -d 'end='$(date +%s) \
+                  -d 'step=60s')
+                
+                # Store in global metrics table
+                echo "$METRICS" | jq -r '.data.result[] | @json' | while read metric; do
+                  cockroach sql --insecure --host=global-state-store.nephoran-global \
+                    --execute="INSERT INTO metrics_aggregate (region, metric_name, value, timestamp) VALUES ('$region', 'intent_processing_rate', '$metric', NOW());"
+                done
+              done
+              
+              echo "Global state synchronization completed"
+            env:
+            - name: SYNC_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: global-sync-config
+                  key: sync-config.yaml
+            resources:
+              requests:
+                cpu: 500m
+                memory: 1Gi
+              limits:
+                cpu: 1000m
+                memory: 2Gi
+          restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: global-sync-operator
+  namespace: nephoran-global
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: global-sync-operator
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents", "e2nodesets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: global-sync-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: global-sync-operator
+subjects:
+- kind: ServiceAccount
+  name: global-sync-operator
+  namespace: nephoran-global
+---
+# Global state store schema
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: global-state-schema
+  namespace: nephoran-global
+data:
+  schema.sql: |
+    -- Global intent synchronization table
+    CREATE TABLE IF NOT EXISTS intents_sync (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      region STRING NOT NULL,
+      data JSONB NOT NULL,
+      timestamp TIMESTAMP NOT NULL DEFAULT NOW(),
+      sync_status STRING DEFAULT 'pending',
+      UNIQUE INDEX idx_region_timestamp (region, timestamp DESC)
+    );
+    
+    -- Regional metrics aggregation table
+    CREATE TABLE IF NOT EXISTS metrics_aggregate (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      region STRING NOT NULL,
+      metric_name STRING NOT NULL,
+      value JSONB NOT NULL,
+      timestamp TIMESTAMP NOT NULL,
+      aggregation_period STRING DEFAULT '5m',
+      INDEX idx_region_metric_time (region, metric_name, timestamp DESC)
+    );
+    
+    -- Configuration sync tracking
+    CREATE TABLE IF NOT EXISTS config_sync (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      region STRING NOT NULL,
+      resource_type STRING NOT NULL,
+      resource_name STRING NOT NULL,
+      resource_namespace STRING,
+      version STRING NOT NULL,
+      checksum STRING NOT NULL,
+      last_sync TIMESTAMP NOT NULL DEFAULT NOW(),
+      sync_status STRING DEFAULT 'in_sync',
+      UNIQUE INDEX idx_resource (region, resource_type, resource_namespace, resource_name)
+    );
+    
+    -- Global deployment tracking
+    CREATE TABLE IF NOT EXISTS global_deployments (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      intent_id STRING NOT NULL,
+      deployment_id STRING NOT NULL,
+      regions JSONB NOT NULL,
+      status STRING NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      completion_percentage DECIMAL(5,2),
+      INDEX idx_intent_deployment (intent_id, deployment_id)
+    );
+    
+    -- Cross-region failover tracking
+    CREATE TABLE IF NOT EXISTS failover_events (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      source_region STRING NOT NULL,
+      target_region STRING NOT NULL,
+      resource_type STRING NOT NULL,
+      resource_id STRING NOT NULL,
+      failover_reason STRING,
+      initiated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      completed_at TIMESTAMP,
+      status STRING NOT NULL DEFAULT 'in_progress',
+      INDEX idx_failover_time (initiated_at DESC)
+    );

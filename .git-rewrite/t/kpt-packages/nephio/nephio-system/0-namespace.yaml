@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata: # kpt-merge: /nephio-system
-  name: nephio-system
-  annotations:
-    internal.kpt.dev/upstream-identifier: '|Namespace|default|nephio-system'

@@ -1,0 +1,191 @@
+# Nephoran Intent Operator - Istio Telemetry Configuration
+# Phase 4 Enterprise Architecture - Advanced Observability
+---
+# Custom metrics configuration
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: nephoran-custom-metrics
+  namespace: nephoran-system
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+    dimensions:
+      request_intent_type: request.headers["x-intent-type"] | "unknown"
+      request_priority: request.headers["x-priority"] | "normal"
+      tenant_id: request.headers["x-tenant-id"] | "default"
+      model_version: request.headers["x-model-version"] | "stable"
+      region: request.headers["x-region"] | "default"
+    overrides:
+    # LLM processing metrics
+    - match:
+        metric: REQUEST_COUNT
+        mode: SERVICE
+        service: llm-processor.*
+      tagOverrides:
+        llm_model:
+          value: request.headers["x-llm-model"] | "gpt-4o-mini"
+        token_count:
+          value: response.headers["x-token-count"] | "0"
+    # RAG API metrics
+    - match:
+        metric: REQUEST_DURATION
+        mode: SERVICE
+        service: rag-api.*
+      tagOverrides:
+        query_type:
+          value: request.headers["x-query-type"] | "semantic"
+        cache_hit:
+          value: response.headers["x-cache-hit"] | "false"
+    # Weaviate metrics
+    - match:
+        metric: TCP_OPENED_CONNECTIONS
+        mode: SERVICE
+        service: weaviate.*
+      disabled: false
+---
+# Request classification
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: request-classification
+  namespace: nephoran-system
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+    overrides:
+    - match:
+        metric: REQUEST_COUNT
+      tagOverrides:
+        request_class:
+          operation: |
+            if (request.path | regexMatch("^/v1/intent.*")) "intent_processing"
+            else if (request.path | regexMatch("^/v1/query.*")) "rag_query"
+            else if (request.path | regexMatch("^/health.*")) "health_check"
+            else if (request.path | regexMatch("^/metrics.*")) "metrics"
+            else "other"
+---
+# Distributed tracing configuration
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: nephoran-tracing
+  namespace: nephoran-system
+spec:
+  tracing:
+  - providers:
+    - name: jaeger
+    randomSamplingPercentage: 10.0
+    customTags:
+      tenant_id:
+        header:
+          name: x-tenant-id
+          defaultValue: "default"
+      intent_type:
+        header:
+          name: x-intent-type
+          defaultValue: "unknown"
+      correlation_id:
+        header:
+          name: x-correlation-id
+      model_version:
+        header:
+          name: x-model-version
+          defaultValue: "stable"
+---
+# Access logging configuration
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: nephoran-access-logging
+  namespace: nephoran-system
+spec:
+  accessLogging:
+  - providers:
+    - name: file
+    filter:
+      expression: 'response.code >= 400 || request.headers["x-debug"] == "true" || response.duration > 1000'
+    logFormat:
+      text: |
+        [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"
+        %RESPONSE_CODE% %RESPONSE_FLAGS% %RESPONSE_CODE_DETAILS%
+        %CONNECTION_TERMINATION_DETAILS% "%UPSTREAM_TRANSPORT_FAILURE_REASON%"
+        %BYTES_RECEIVED% %BYTES_SENT% %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%
+        "%REQ(X-FORWARDED-FOR)%" "%REQ(USER-AGENT)%" "%REQ(X-REQUEST-ID)%"
+        "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%" %DOWNSTREAM_REMOTE_ADDRESS%
+        %DOWNSTREAM_LOCAL_ADDRESS% %DOWNSTREAM_TLS_VERSION% %DOWNSTREAM_TLS_CIPHER%
+        %DOWNSTREAM_TLS_SNI% %ROUTE_NAME% tenant_id="%REQ(X-TENANT-ID)%"
+        intent_type="%REQ(X-INTENT-TYPE)%" model="%REQ(X-MODEL-VERSION)%"
+---
+# Service-specific telemetry
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: llm-processor-telemetry
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: llm-processor
+  metrics:
+  - providers:
+    - name: prometheus
+    overrides:
+    - match:
+        metric: REQUEST_COUNT
+      tagOverrides:
+        processing_status:
+          value: response.headers["x-processing-status"] | "unknown"
+        confidence_score:
+          value: response.headers["x-confidence-score"] | "0"
+  tracing:
+  - providers:
+    - name: jaeger
+    randomSamplingPercentage: 25.0  # Higher sampling for critical service
+---
+# Outlier detection metrics
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: outlier-detection-metrics
+  namespace: nephoran-system
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+    overrides:
+    - match:
+        metric: ALL_METRICS
+        mode: SERVICE
+      tagOverrides:
+        outlier_detection_enforced:
+          value: connection.outlierDetection.enforcedConsecutiveErrors | "0"
+        outlier_detection_success_rate:
+          value: connection.outlierDetection.successRate | "100"
+---
+# Intent processing SLI metrics
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: intent-sli-metrics
+  namespace: nephoran-system
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+    dimensions:
+      sli_category: |
+        if (response.code >= 200 && response.code < 300 && response.duration < 2000) "good"
+        else if (response.code >= 500) "bad"
+        else "acceptable"
+    overrides:
+    - match:
+        metric: REQUEST_COUNT
+        service: llm-processor.*
+      tagOverrides:
+        slo_target:
+          value: |
+            if (request.path | regexMatch("^/v1/intent.*")) "99.5"
+            else "99.0"
