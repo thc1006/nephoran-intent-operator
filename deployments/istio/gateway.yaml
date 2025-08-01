@@ -1,0 +1,243 @@
+# Nephoran Intent Operator - Istio Gateway Configuration
+# Phase 4 Enterprise Architecture - Secure External Access
+---
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: nephoran-gateway
+  namespace: nephoran-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: nephoran-tls-cert
+      minProtocolVersion: TLSV1_3
+    hosts:
+    - "*.nephoran.io"
+    - "api.nephoran.io"
+    - "intent.nephoran.io"
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*.nephoran.io"
+    tls:
+      httpsRedirect: true
+---
+# Multi-region gateway
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: nephoran-multiregion-gateway
+  namespace: nephoran-system
+spec:
+  selector:
+    istio: eastwestgateway
+  servers:
+  - port:
+      number: 15443
+      name: tls
+      protocol: TLS
+    tls:
+      mode: ISTIO_MUTUAL
+    hosts:
+    - "*.local"
+---
+# Gateway Virtual Service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: nephoran-gateway-vs
+  namespace: nephoran-system
+spec:
+  hosts:
+  - "api.nephoran.io"
+  - "intent.nephoran.io"
+  gateways:
+  - nephoran-gateway
+  http:
+  # Health check endpoint
+  - match:
+    - uri:
+        exact: /health
+    route:
+    - destination:
+        host: llm-processor
+        port:
+          number: 8080
+  # Metrics endpoint (restricted)
+  - match:
+    - uri:
+        exact: /metrics
+      headers:
+        authorization:
+          regex: "Bearer.*"
+    route:
+    - destination:
+        host: llm-processor
+        port:
+          number: 8080
+  # API v1 endpoints
+  - match:
+    - uri:
+        prefix: /v1/intent
+    route:
+    - destination:
+        host: llm-processor
+        port:
+          number: 8080
+      weight: 100
+    timeout: 60s
+    retries:
+      attempts: 3
+      perTryTimeout: 20s
+    headers:
+      request:
+        add:
+          x-forwarded-proto: https
+          x-request-id: "%REQ(X-REQUEST-ID)%"
+        remove:
+        - x-custom-header
+    corsPolicy:
+      allowOrigins:
+      - exact: https://console.nephoran.io
+      - regex: "https://.*\\.nephoran\\.io"
+      allowMethods:
+      - GET
+      - POST
+      - PUT
+      - DELETE
+      - OPTIONS
+      allowHeaders:
+      - authorization
+      - content-type
+      - x-tenant-id
+      - x-correlation-id
+      exposeHeaders:
+      - x-request-id
+      - x-ratelimit-remaining
+      maxAge: "24h"
+      allowCredentials: true
+  # RAG API endpoints
+  - match:
+    - uri:
+        prefix: /v1/query
+    - uri:
+        prefix: /v1/knowledge
+    route:
+    - destination:
+        host: rag-api
+        port:
+          number: 8080
+    timeout: 45s
+    retries:
+      attempts: 2
+      perTryTimeout: 20s
+  # Admin endpoints (restricted)
+  - match:
+    - uri:
+        prefix: /admin
+      headers:
+        x-admin-token:
+          regex: ".*"
+    route:
+    - destination:
+        host: llm-processor
+        port:
+          number: 8080
+    rateLimit:
+      actions:
+      - requestHeaders:
+          descriptorKey: admin-api
+          headerName: x-admin-token
+---
+# ServiceEntry for external services
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: openai-api
+  namespace: nephoran-system
+spec:
+  hosts:
+  - api.openai.com
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: github-api
+  namespace: nephoran-system
+spec:
+  hosts:
+  - api.github.com
+  - raw.githubusercontent.com
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: s3-backup
+  namespace: nephoran-system
+spec:
+  hosts:
+  - "*.s3.amazonaws.com"
+  - "*.s3.*.amazonaws.com"
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+# Telemetry configuration
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: nephoran-metrics
+  namespace: nephoran-system
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+    overrides:
+    - match:
+        metric: REQUEST_COUNT
+      tagOverrides:
+        tenant_id:
+          value: request.headers["x-tenant-id"] | "unknown"
+        intent_type:
+          value: request.headers["x-intent-type"] | "unknown"
+    - match:
+        metric: REQUEST_DURATION
+      tagOverrides:
+        method:
+          value: request.method | "unknown"
+---
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: nephoran-access-logs
+  namespace: nephoran-system
+spec:
+  accessLogging:
+  - providers:
+    - name: otel
+    filter:
+      expression: 'response.code >= 400 || request.headers["x-debug"] == "true"'

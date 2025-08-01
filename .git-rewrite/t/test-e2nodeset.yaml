@@ -1,7 +1,0 @@
-apiVersion: nephoran.com/v1alpha1
-kind: E2NodeSet
-metadata:
-  name: test-e2nodeset
-  namespace: default
-spec:
-  replicas: 3
