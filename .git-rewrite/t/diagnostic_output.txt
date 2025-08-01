@@ -1,0 +1,118 @@
+--- Running Kubernetes Cluster Diagnostics ---
+
+1. Verifying the YAML of the installed 'e2nodesets.nephoran.com' CRD...
+   This confirms the CRD exists in the cluster.
+---------------------------------------------------------------------
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apiextensions.k8s.io/v1","kind":"CustomResourceDefinition","metadata":{"annotations":{"controller-gen.kubebuilder.io/version":"v0.14.0"},"name":"e2nodesets.nephoran.com"},"spec":{"group":"nephoran.com","names":{"kind":"E2NodeSet","listKind":"E2NodeSetList","plural":"e2nodesets","singular":"e2nodeset"},"scope":"Namespaced","versions":[{"name":"v1alpha1","schema":{"openAPIV3Schema":{"description":"E2NodeSet is the Schema for the e2nodesets API","properties":{"apiVersion":{"description":"APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources","type":"string"},"kind":{"description":"Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds","type":"string"},"metadata":{"type":"object"},"spec":{"description":"E2NodeSetSpec defines the desired state of E2NodeSet","properties":{"replicas":{"description":"Replicas is the number of simulated E2 Nodes to run.","format":"int32","minimum":0,"type":"integer"}},"required":["replicas"],"type":"object"},"status":{"description":"E2NodeSetStatus defines the observed state of E2NodeSet","properties":{"readyReplicas":{"description":"ReadyReplicas is the number of E2 Nodes that are ready.","format":"int32","type":"integer"}},"type":"object"}},"type":"object"}},"served":true,"storage":true,"subresources":{"status":{}}}]}}
+  creationTimestamp: "2025-07-26T17:48:45Z"
+  generation: 1
+  name: e2nodesets.nephoran.com
+  resourceVersion: "2048427"
+  uid: 34875d95-5fd4-46d0-bd75-f2cdfedd6852
+spec:
+  conversion:
+    strategy: None
+  group: nephoran.com
+  names:
+    kind: E2NodeSet
+    listKind: E2NodeSetList
+    plural: e2nodesets
+    singular: e2nodeset
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: E2NodeSet is the Schema for the e2nodesets API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: E2NodeSetSpec defines the desired state of E2NodeSet
+            properties:
+              replicas:
+                description: Replicas is the number of simulated E2 Nodes to run.
+                format: int32
+                minimum: 0
+                type: integer
+            required:
+            - replicas
+            type: object
+          status:
+            description: E2NodeSetStatus defines the observed state of E2NodeSet
+            properties:
+              readyReplicas:
+                description: ReadyReplicas is the number of E2 Nodes that are ready.
+                format: int32
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: E2NodeSet
+    listKind: E2NodeSetList
+    plural: e2nodesets
+    singular: e2nodeset
+  conditions:
+  - lastTransitionTime: "2025-07-26T17:48:45Z"
+    message: no conflicts found
+    reason: NoConflicts
+    status: "True"
+    type: NamesAccepted
+  - lastTransitionTime: "2025-07-26T17:48:45Z"
+    message: the initial names have been accepted
+    reason: InitialNamesAccepted
+    status: "True"
+    type: Established
+  storedVersions:
+  - v1alpha1
+
+
+2. Checking if the API server is aware of the 'e2nodeset' resource...
+   If this command returns no output, the API server has not registered the CRD.
+---------------------------------------------------------------------
+e2nodesets                                       nephoran.com/v1alpha1               true         E2NodeSet
+
+
+3. Checking the status of core control plane pods in 'kube-system'...
+   All pods here should be in the 'Running' state.
+---------------------------------------------------------------------
+NAME                                      READY   STATUS      RESTARTS        AGE
+coredns-697968c856-r2r49                  1/1     Running     3 (6h43m ago)   57d
+helm-install-traefik-crd-lnqhp            0/1     Completed   0               57d
+helm-install-traefik-zwghh                0/1     Completed   1               57d
+local-path-provisioner-774c6665dc-nxvxf   1/1     Running     3 (6h43m ago)   57d
+metrics-server-6f4c6675d5-dc8sh           1/1     Running     3 (6h43m ago)   57d
+svclb-nephio-webui-3c9d60df-bf7rw         1/1     Running     0               135m
+svclb-traefik-18ee8db1-z47k8              2/2     Running     6 (6h43m ago)   57d
+traefik-c98fdf6fb-pbxq8                   1/1     Running     3 (6h43m ago)   57d
+
+
+4. Retrieving the last 100 lines of logs from 'kube-apiserver' pods...
+   Looking for any errors related to CRDs, resource mapping, or caching.
+---------------------------------------------------------------------

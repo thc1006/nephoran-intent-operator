@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: # kpt-merge: /nephio-webui
+  name: nephio-webui
+  annotations:
+    internal.kpt.dev/upstream-identifier: 'rbac.authorization.k8s.io|ClusterRoleBinding|default|nephio-webui'
+subjects:
+- kind: ServiceAccount
+  name: nephio-webui-sa
+  namespace: nephio-webui
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: ""
