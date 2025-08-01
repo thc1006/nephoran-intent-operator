@@ -1,0 +1,608 @@
+# Nephoran Intent Operator - Edge-to-Cloud Synchronization
+# Phase 4 Enterprise Architecture - Distributed Edge-Cloud Communication
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-cloud-sync-config
+  namespace: nephoran-edge
+data:
+  sync-config.yaml: |
+    edge_cloud_sync:
+      # Synchronization settings
+      sync_interval: 30s
+      batch_size: 100
+      retry_attempts: 3
+      retry_backoff: 5s
+      
+      # Data synchronization types
+      sync_types:
+        - intent_status
+        - metrics_data
+        - health_status
+        - configuration_updates
+        - oran_function_state
+        - edge_node_inventory
+      
+      # Bandwidth optimization
+      compression_enabled: true
+      compression_algorithm: "gzip"
+      delta_sync_enabled: true
+      sync_only_changes: true
+      
+      # Security settings
+      encryption_enabled: true
+      certificate_validation: true
+      mutual_tls: true
+      
+      # Failover configuration
+      offline_mode_enabled: true
+      local_cache_duration: 24h
+      max_offline_duration: 72h
+      sync_resume_strategy: "incremental"
+      
+      # Network optimization
+      adaptive_sync_interval: true
+      bandwidth_aware_batching: true
+      priority_based_sync: true
+      
+    # Cloud endpoints configuration
+    cloud_endpoints:
+      primary:
+        url: "https://nephoran-global.api.company.com"
+        region: "us-east-1"
+        priority: 1
+        health_check_endpoint: "/health"
+        
+      secondary:
+        url: "https://nephoran-backup.api.company.com"
+        region: "us-west-2"  
+        priority: 2
+        health_check_endpoint: "/health"
+        
+      emergency:
+        url: "https://nephoran-emergency.api.company.com"
+        region: "eu-west-1"
+        priority: 3
+        health_check_endpoint: "/health"
+    
+    # Data types and priorities
+    sync_priorities:
+      critical:
+        - oran_function_failures
+        - security_events
+        - emergency_alerts
+        interval: 5s
+        
+      high:
+        - intent_status_updates
+        - performance_degradation
+        - capacity_warnings
+        interval: 15s
+        
+      normal:
+        - metrics_data
+        - health_status
+        - configuration_changes
+        interval: 30s
+        
+      low:
+        - historical_data
+        - statistical_reports
+        - log_aggregation
+        interval: 300s
+---
+# Edge-Cloud Synchronization Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-cloud-sync
+  namespace: nephoran-edge
+  labels:
+    app: edge-cloud-sync
+    component: synchronization
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: edge-cloud-sync
+  template:
+    metadata:
+      labels:
+        app: edge-cloud-sync
+        component: synchronization
+      annotations:
+        sidecar.istio.io/inject: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: edge-cloud-sync
+      containers:
+      - name: sync-service
+        image: nephoran/edge-cloud-sync:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8090
+          name: metrics
+        - containerPort: 9090
+          name: management
+        env:
+        - name: SYNC_CONFIG_PATH
+          value: "/config/sync-config.yaml"
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: EDGE_ZONE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['nephoran.io/edge-zone']
+        - name: CLOUD_PRIMARY_ENDPOINT
+          valueFrom:
+            secretKeyRef:
+              name: cloud-endpoints
+              key: primary-url
+        - name: SYNC_CERTIFICATE_PATH
+          value: "/certs/tls.crt"
+        - name: SYNC_PRIVATE_KEY_PATH
+          value: "/certs/tls.key"
+        envFrom:
+        - configMapRef:
+            name: edge-cloud-sync-config
+        resources:
+          requests:
+            cpu: 300m
+            memory: 512Mi
+          limits:
+            cpu: 600m
+            memory: 1Gi
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: sync-data
+          mountPath: /data/sync
+        - name: tls-certs
+          mountPath: /certs
+        - name: local-cache
+          mountPath: /cache
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+      volumes:
+      - name: config
+        configMap:
+          name: edge-cloud-sync-config
+      - name: sync-data
+        persistentVolumeClaim:
+          claimName: edge-sync-data
+      - name: tls-certs
+        secret:
+          secretName: edge-cloud-sync-tls
+      - name: local-cache
+        emptyDir:
+          sizeLimit: 2Gi
+---
+# Edge Metrics Collector
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: edge-metrics-collector
+  namespace: nephoran-edge
+  labels:
+    app: edge-metrics-collector
+spec:
+  selector:
+    matchLabels:
+      app: edge-metrics-collector
+  template:
+    metadata:
+      labels:
+        app: edge-metrics-collector
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: edge-metrics-collector
+      nodeSelector:
+        nephoran.io/node-type: "edge"
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: metrics-collector
+        image: nephoran/edge-metrics-collector:latest
+        ports:
+        - containerPort: 8080
+          name: metrics
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: EDGE_ZONE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['nephoran.io/edge-zone']
+        - name: COLLECTION_INTERVAL
+          value: "15s"
+        - name: ORAN_METRICS_ENABLED
+          value: "true"
+        - name: HARDWARE_METRICS_ENABLED
+          value: "true"
+        - name: NETWORK_METRICS_ENABLED
+          value: "true"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 200m
+            memory: 512Mi
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: dev
+          mountPath: /host/dev
+          readOnly: true
+        - name: metrics-cache
+          mountPath: /cache
+        securityContext:
+          privileged: true
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: dev
+        hostPath:
+          path: /dev
+      - name: metrics-cache
+        emptyDir:
+          sizeLimit: 500Mi
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: nephoran.io/edge-node
+        operator: Exists
+        effect: NoSchedule
+---
+# Edge Intent Processor
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-intent-processor
+  namespace: nephoran-edge
+  labels:
+    app: edge-intent-processor
+    component: intent-processing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-intent-processor
+  template:
+    metadata:
+      labels:
+        app: edge-intent-processor
+        component: intent-processing
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      serviceAccountName: edge-intent-processor
+      containers:
+      - name: intent-processor
+        image: nephoran/edge-intent-processor:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8090
+          name: metrics
+        env:
+        - name: EDGE_MODE
+          value: "autonomous"
+        - name: CLOUD_CONNECTIVITY_REQUIRED
+          value: "false"
+        - name: LOCAL_PROCESSING_ENABLED
+          value: "true"
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: EDGE_ZONE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.annotations['nephoran.io/edge-zone']
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        volumeMounts:
+        - name: intent-data
+          mountPath: /data/intents
+        - name: local-models
+          mountPath: /models
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 5
+      volumes:
+      - name: intent-data
+        persistentVolumeClaim:
+          claimName: edge-intent-data
+      - name: local-models
+        persistentVolumeClaim:
+          claimName: edge-ml-models
+---
+# Edge Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-cloud-sync
+  namespace: nephoran-edge
+  labels:
+    app: edge-cloud-sync
+spec:
+  selector:
+    app: edge-cloud-sync
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: metrics
+    port: 8090
+    targetPort: 8090
+  - name: management
+    port: 9090
+    targetPort: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-intent-processor
+  namespace: nephoran-edge
+  labels:
+    app: edge-intent-processor
+spec:
+  selector:
+    app: edge-intent-processor
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: metrics
+    port: 8090
+    targetPort: 8090
+---
+# Persistent Volume Claims
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: edge-sync-data
+  namespace: nephoran-edge
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: edge-intent-data
+  namespace: nephoran-edge
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Service Accounts and RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edge-cloud-sync
+  namespace: nephoran-edge
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edge-metrics-collector
+  namespace: nephoran-edge
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edge-intent-processor
+  namespace: nephoran-edge
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: edge-cloud-sync
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["nephoran.com"]
+  resources: ["edgenodes", "networkintents", "e2nodesets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: edge-metrics-collector
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["nephoran.com"]
+  resources: ["edgenodes"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: edge-intent-processor
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents", "e2nodesets", "edgenodes"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: edge-cloud-sync
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edge-cloud-sync
+subjects:
+- kind: ServiceAccount
+  name: edge-cloud-sync
+  namespace: nephoran-edge
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: edge-metrics-collector
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edge-metrics-collector
+subjects:
+- kind: ServiceAccount
+  name: edge-metrics-collector
+  namespace: nephoran-edge
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: edge-intent-processor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edge-intent-processor
+subjects:
+- kind: ServiceAccount
+  name: edge-intent-processor
+  namespace: nephoran-edge
+---
+# Edge Monitoring and Alerting
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-monitoring-config
+  namespace: nephoran-edge
+data:
+  edge-alerts.yaml: |
+    groups:
+    - name: edge.alerts
+      rules:
+      # Edge connectivity alerts
+      - alert: EdgeCloudConnectivityLost
+        expr: up{job="edge-cloud-sync"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: edge-connectivity
+        annotations:
+          summary: "Edge node lost cloud connectivity"
+          description: "Edge node {{ $labels.instance }} has lost connectivity to cloud for > 2 minutes"
+      
+      - alert: EdgeCloudSyncDelayed
+        expr: time() - edge_cloud_last_sync_timestamp > 300
+        for: 5m
+        labels:
+          severity: warning
+          component: edge-sync
+        annotations:
+          summary: "Edge cloud synchronization delayed"
+          description: "Edge node {{ $labels.instance }} hasn't synced with cloud for > 5 minutes"
+      
+      # Edge resource alerts
+      - alert: EdgeNodeResourceExhaustion
+        expr: edge_node_cpu_utilization > 90 or edge_node_memory_utilization > 90
+        for: 3m
+        labels:
+          severity: critical
+          component: edge-resources
+        annotations:
+          summary: "Edge node resource exhaustion"
+          description: "Edge node {{ $labels.instance }} resource utilization is critical"
+      
+      # O-RAN function alerts  
+      - alert: EdgeORANFunctionDown
+        expr: edge_oran_function_status{status!="active"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: edge-oran
+        annotations:
+          summary: "Edge O-RAN function down"
+          description: "O-RAN function {{ $labels.function }} on edge node {{ $labels.instance }} is not active"
+      
+      # Edge intent processing alerts
+      - alert: EdgeIntentProcessingFailed
+        expr: rate(edge_intent_processing_failures_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: edge-intent
+        annotations:
+          summary: "High edge intent processing failure rate"
+          description: "Edge intent processing failure rate is {{ $value }} failures/sec on {{ $labels.instance }}"
