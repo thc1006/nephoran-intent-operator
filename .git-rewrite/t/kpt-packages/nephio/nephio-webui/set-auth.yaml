@@ -1,0 +1,97 @@
+apiVersion: fn.kpt.dev/v1alpha1
+kind: StarlarkRun
+metadata: # kpt-merge: /set-auth
+  name: set-auth
+  annotations:
+    config.kubernetes.io/local-config: "true"
+    internal.kpt.dev/upstream-identifier: 'fn.kpt.dev|StarlarkRun|default|set-auth'
+authProvider: current-context
+oidcTokenProvider: okta
+providerConfig:
+  google:
+    secretName: nephio-google-oauth-client
+  okta:
+    secretName: nephio-okta-oauth-client
+  service-account:
+    secretName: nephio-sa-token
+source: |-
+  load("krmfn.star", "krmfn")
+  def ensure_env(list, env):
+    # looks through the list and adds or updates the env
+    idx = -1
+    for i in range(len(list)):
+      if list[i]["name"] == env["name"]:
+        idx = i
+        break
+    if idx > -1:
+      list[idx] = env
+    else:
+      list.append(env)
+  def remove_env(list, name):
+    for i in range(len(list)):
+      if list[i]["name"] == name:
+        list.pop(i)
+        break
+  def find_main_container_env(resources):
+    for r in resources:
+      if krmfn.match_gvk(r, "apps/v1", "Deployment") and krmfn.match_name(r, "nephio-webui"):
+        for c in r["spec"]["template"]["spec"]["containers"]:
+          if c["name"] == "main":
+            if "env" not in c:
+              c["env"] = []
+            return c["env"]
+    return {}
+  def env_from_secret(name, secret, key):
+    return {
+      "name": name,
+      "valueFrom": {
+        "secretKeyRef": {
+          "name": secret,
+          "key": key,
+        },
+      },
+    }
+  def set_google_auth(env, config, enabled):
+    if enabled:
+      ensure_env(env, env_from_secret("AUTH_GOOGLE_CLIENT_ID", config["secretName"], "client-id"))
+      ensure_env(env, env_from_secret("AUTH_GOOGLE_CLIENT_SECRET", config["secretName"], "client-secret"))
+    else:
+      remove_env(env, "AUTH_GOOGLE_CLIENT_ID")
+      remove_env(env, "AUTH_GOOGLE_CLIENT_SECRET")
+  def set_okta_auth(env, config, enabled):
+    if enabled:
+      ensure_env(env, env_from_secret("AUTH_OKTA_CLIENT_ID", config["secretName"], "client-id"))
+      ensure_env(env, env_from_secret("AUTH_OKTA_CLIENT_SECRET", config["secretName"], "client-secret"))
+      ensure_env(env, env_from_secret("AUTH_OKTA_AUDIENCE", config["secretName"], "audience"))
+      ensure_env(env, env_from_secret("AUTH_OKTA_AUTH_SERVER_ID", config["secretName"], "auth-server-id"))
+      ensure_env(env, env_from_secret("AUTH_OKTA_IDP", config["secretName"], "idp"))
+    else:
+      remove_env(env, "AUTH_OKTA_CLIENT_ID")
+      remove_env(env, "AUTH_OKTA_CLIENT_SECRET")
+      remove_env(env, "AUTH_OKTA_AUDIENCE")
+      remove_env(env, "AUTH_OKTA_AUTH_SERVER_ID")
+      remove_env(env, "AUTH_OKTA_IDP")
+  def set_service_account_auth(env, config, enabled):
+    if enabled:
+      ensure_env(env, env_from_secret("AUTH_SERVICE_ACCOUNT_TOKEN", config["secretName"], "token"))
+    else:
+      remove_env(env, "AUTH_SERVICE_ACCOUNT_TOKEN")
+  def set_auth_provider(env, auth_provider, oidc_token_provider):
+    ensure_env(env, {"name": "AUTH_PROVIDER", "value": auth_provider})
+    ensure_env(env, {"name": "AUTH_OIDC_TOKEN_PROVIDER", "value": oidc_token_provider})
+  def set_auth_services(resources, config):
+    validProviders = ["google", "oidc", "service-account", "current-context"]
+    if config["authProvider"] not in validProviders:
+      fail(config["authProvider"], "is not a valid authProvider. Valid authProvider values are", validProviders)
+    validTokenProviders = ["google", "okta"]
+    oidc_enabled = (config["authProvider"] == "oidc")
+    if oidc_enabled and config["oidcTokenProvider"] not in validTokenProviders:
+      fail(config["oidcTokenProvider"], "is not a valid oidcTokenProvider. Valid oidcTokenProvider values are", validTokenProviders)
+    google_enabled = config["authProvider"] == "google" or (oidc_enabled and config["oidcTokenProvider"] == "google")
+    okta_enabled = oidc_enabled and config["oidcTokenProvider"] == "okta"
+    env = find_main_container_env(resources)
+    set_auth_provider(env, config["authProvider"], config["oidcTokenProvider"])
+    set_google_auth(env, config["providerConfig"]["google"], google_enabled)
+    set_okta_auth(env, config["providerConfig"]["okta"], okta_enabled)
+    set_service_account_auth(env, config["providerConfig"]["service-account"], config["authProvider"] == "service-account")
+  set_auth_services(ctx.resource_list["items"], ctx.resource_list["functionConfig"])

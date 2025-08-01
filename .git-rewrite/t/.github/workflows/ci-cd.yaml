@@ -1,0 +1,77 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install Dependencies
+        run: |
+          go install golang.org/x/tools/cmd/goimports@latest
+          go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
+
+      - name: Check Go Formatting and Imports
+        run: |
+          goimports -l .
+          # The following command will exit with an error if any files are not formatted.
+          test -z "$(goimports -l .)"
+
+      - name: Run Go Vet
+        run: go vet ./...
+
+      - name: Generate Code and Check for Diffs
+        run: |
+          make generate
+          # The following command will exit with an error if 'make generate' produced changes.
+          git diff --exit-code
+
+      - name: Run Go Tests
+        run: go test -v ./...
+
+  build-and-push:
+    name: Build and Push Docker Images
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - name: nephoran-llm-processor
+            dockerfile: cmd/llm-processor/Dockerfile
+          - name: nephoran-nephio-bridge
+            dockerfile: cmd/nephio-bridge/Dockerfile
+          - name: nephoran-oran-adaptor
+            dockerfile: cmd/oran-adaptor/Dockerfile
+          - name: nephoran-rag-api
+            dockerfile: pkg/rag/Dockerfile
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.service.dockerfile }}
+          push: true
+          tags: thc1006/${{ matrix.service.name }}:latest

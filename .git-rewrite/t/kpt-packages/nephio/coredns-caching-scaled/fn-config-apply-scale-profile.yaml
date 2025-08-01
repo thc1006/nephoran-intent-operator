@@ -1,0 +1,46 @@
+apiVersion: functions.nephio.org/v1alpha1
+kind: ApplyClusterScaleProfile
+metadata: # kpt-merge: /fn-config-apply-scale-profile
+  name: fn-config-apply-scale-profile
+  annotations:
+    config.kubernetes.io/local-config: "true"
+    internal.kpt.dev/upstream-identifier: 'functions.nephio.org|ApplyClusterScaleProfile|default|fn-config-apply-scale-profile'
+profile: scale-profile
+configMaps:
+- name: coredns-caching
+  key: Corefile
+deployments:
+- name: coredns-caching
+  lowDensity:
+    replicas: 1
+    containers:
+    - name: coredns
+      resources:
+        requests:
+          memory: "100Mi"
+          cpu: "100m"
+        limits:
+          memory: "200Mi"
+          cpu: "500m"
+  mediumDensity:
+    replicas: 3
+    containers:
+    - name: coredns
+      resources:
+        requests:
+          memory: "100Mi"
+          cpu: "100m"
+        limits:
+          memory: "400Mi"
+          cpu: "1000m"
+  highDensity:
+    replicas: 12
+    containers:
+    - name: coredns
+      resources:
+        requests:
+          memory: "100Mi"
+          cpu: "100m"
+        limits:
+          memory: "400Mi"
+          cpu: "1000m"

@@ -1,0 +1,59 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephio-bridge-role
+rules:
+- apiGroups:
+  - nephoran.com
+  resources:
+  - e2nodesets
+  - networkintents
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - nephoran.com
+  resources:
+  - e2nodesets/status
+  - networkintents/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephio-bridge-rb
+subjects:
+- kind: ServiceAccount
+  name: nephio-bridge-sa
+  namespace: nephio-system
+roleRef:
+  kind: ClusterRole
+  name: nephio-bridge-role
+  apiGroup: rbac.authorization.k8s.io

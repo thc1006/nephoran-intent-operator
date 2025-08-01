@@ -1,0 +1,134 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: # kpt-merge: /upfs.nf.nephio.org
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+    internal.kpt.dev/upstream-identifier: 'apiextensions.k8s.io|CustomResourceDefinition|default|upfs.nf.nephio.org'
+  creationTimestamp: null
+  name: upfs.nf.nephio.org
+spec:
+  group: nf.nephio.org
+  names:
+    kind: UPF
+    listKind: UPFList
+    plural: upfs
+    singular: upf
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: UPF is the Schema for the upfs API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: UPFSpec defines the desired state of UPF
+            properties:
+              capacity:
+                properties:
+                  downlinkThroughput:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  uplinkThroughput:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                required:
+                - downlinkThroughput
+                - uplinkThroughput
+                type: object
+              n3:
+                items:
+                  properties:
+                    networkInstance:
+                      description: NetworkInstance identifies the layer 3 address space for IPAM
+                      type: string
+                    networkName:
+                      description: NetworkName identifies the specific network to use for IPs
+                      type: string
+                  type: object
+                type: array
+              n4:
+                items:
+                  properties:
+                    networkInstance:
+                      description: NetworkInstance identifies the layer 3 address space for IPAM
+                      type: string
+                    networkName:
+                      description: NetworkName identifies the specific network to use for IPs
+                      type: string
+                  type: object
+                type: array
+              n6:
+                items:
+                  properties:
+                    dnn:
+                      type: string
+                    endpoint:
+                      properties:
+                        networkInstance:
+                          description: NetworkInstance identifies the layer 3 address space for IPAM
+                          type: string
+                        networkName:
+                          description: NetworkName identifies the specific network to use for IPs
+                          type: string
+                      type: object
+                    uePool:
+                      description: UE address pool
+                      properties:
+                        networkInstance:
+                          description: NetworkInstance identifies the layer 3 address space for IPAM
+                          type: string
+                        networkName:
+                          description: NetworkName identifies the specific network to use for IPs
+                          type: string
+                        prefixSize:
+                          description: PrefixSize identifies the size of the pool needed
+                          type: string
+                      type: object
+                  required:
+                  - dnn
+                  - endpoint
+                  - uePool
+                  type: object
+                type: array
+              n9:
+                items:
+                  properties:
+                    networkInstance:
+                      description: NetworkInstance identifies the layer 3 address space for IPAM
+                      type: string
+                    networkName:
+                      description: NetworkName identifies the specific network to use for IPs
+                      type: string
+                  type: object
+                type: array
+              upfClassName:
+                type: string
+            required:
+            - capacity
+            - n3
+            - n4
+            - n6
+            - upfClassName
+            type: object
+          status:
+            description: UPFStatus defines the observed state of UPF
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

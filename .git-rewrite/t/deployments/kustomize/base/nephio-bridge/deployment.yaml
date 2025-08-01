@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephio-bridge
+  labels:
+    app: nephio-bridge
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nephio-bridge
+  template:
+    metadata:
+      labels:
+        app: nephio-bridge
+    spec:
+      serviceAccountName: nephio-bridge-sa
+      containers:
+      - name: nephio-bridge
+        image: thc1006/nephoran-nephio-bridge:latest
+        command: ["/nephio-bridge"]
+        args:
+        - "--git-repo-url=$(GIT_REPO_URL)"
+        - "--git-branch=$(GIT_BRANCH)"
+        - "--ssh-key-path=/etc/git-secret/ssh"
+        ports:
+        - containerPort: 8081
+        env:
+        - name: GIT_REPO_URL
+          valueFrom:
+            configMapKeyRef:
+              name: nephio-bridge-config
+              key: git.repo.url
+        - name: GIT_BRANCH
+          valueFrom:
+            configMapKeyRef:
+              name: nephio-bridge-config
+              key: git.branch
+        volumeMounts:
+        - name: git-secret
+          mountPath: "/etc/git-secret"
+          readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+      volumes:
+      - name: git-secret
+        secret:
+          secretName: git-ssh-key
+          defaultMode: 0400
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephio-bridge-config
+data:
+  git.repo.url: "git@github.com:your-username/your-repo.git"
+  git.branch: "main"

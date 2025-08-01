@@ -47,3 +47,11 @@ mcp.json
 .mcp.json
 *.token
 .env.local
+
+# Prevent accidental token files
+*token*
+*secret*
+*key*
+.env
+.env.*
+onc

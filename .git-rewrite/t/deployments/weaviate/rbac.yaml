@@ -1,0 +1,164 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: weaviate
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: service-account
+  annotations:
+    kubernetes.io/description: "Service account for Weaviate with least privilege access"
+    eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT_ID:role/weaviate-service-role"
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: weaviate-operator
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: rbac
+  annotations:
+    kubernetes.io/description: "Minimal role for Weaviate operations within namespace"
+rules:
+# Read access to configuration and secrets
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["weaviate-config"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["weaviate-api-key", "openai-api-key"]
+# Access to persistent storage
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["weaviate-pvc", "weaviate-backup-pvc"]
+# Pod and service discovery
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+# Event creation for monitoring
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+# Log access for debugging
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: weaviate-binding
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: weaviate-operator
+subjects:
+- kind: ServiceAccount
+  name: weaviate
+  namespace: nephoran-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: weaviate-metrics-reader
+  labels:
+    app: weaviate
+    component: monitoring
+  annotations:
+    kubernetes.io/description: "Cluster-wide read access for metrics collection"
+rules:
+# Metrics access
+- apiGroups: [""]
+  resources: ["nodes", "nodes/metrics", "nodes/proxy"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list"]
+# Custom metrics for HPA
+- apiGroups: ["custom.metrics.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: weaviate-metrics-binding
+  labels:
+    app: weaviate
+    component: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: weaviate-metrics-reader
+subjects:
+- kind: ServiceAccount
+  name: weaviate
+  namespace: nephoran-system
+---
+# Service account for backup operations
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: weaviate-backup
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup
+  annotations:
+    kubernetes.io/description: "Service account for Weaviate backup operations"
+    eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT_ID:role/weaviate-backup-role"
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: weaviate-backup-operator
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup-rbac
+rules:
+# Backup storage access
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["weaviate-api-key", "backup-credentials"]
+# Pod management for backup jobs
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: weaviate-backup-binding
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    component: backup-rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: weaviate-backup-operator
+subjects:
+- kind: ServiceAccount
+  name: weaviate-backup
+  namespace: nephoran-system

@@ -1,0 +1,7 @@
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: test-intent
+  namespace: default
+spec:
+  intent: "Deploy 3 E2 nodes for testing network connectivity"

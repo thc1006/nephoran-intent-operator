@@ -1,0 +1,58 @@
+{
+  // 顯示名稱
+  "name": "nephoran-dev",
+  // 基底映像：純 Ubuntu 22.04（含非 root 使用者 vscode）
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-22.04",
+
+  // Run container with extra privileges so Docker & kind work
+  "runArgs": [
+    "--privileged",
+    "--network=host",
+    "-v",
+    "/var/run/docker.sock:/var/run/docker.sock"
+  ],
+
+  // Install required toolchains via official Features
+  "features": {
+    // Go 1.22
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.22"
+    },
+    // Python 3.11 + pip
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.11"
+    },
+    // Docker Engine inside container
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    // kubectl + Helm + Minikube
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "kubectlVersion": "latest"
+    },
+    // Node 20—for Gemini CLI (npm)
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    }
+  },
+
+  // Additional tools after container is ready
+  "postCreateCommand": "go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && pip install --upgrade pip flake8 && npm install -g @google-gemini/cli",
+
+  // Optional VS Code settings / extensions
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "go.toolsManagement.autoUpdate": true,
+        "python.defaultInterpreterPath": "/usr/local/bin/python"
+      },
+      "extensions": [
+        "golang.go",
+        "ms-python.python",
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml"
+      ]
+    }
+  },
+
+  // Use the pre‑created non‑root user
+  "remoteUser": "vscode"
+}
