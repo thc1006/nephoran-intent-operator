@@ -1,0 +1,732 @@
+# Nephoran Intent Operator - Edge Computing Configuration
+# Phase 4 Enterprise Architecture - Distributed O-RAN Edge Integration
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-edge
+  labels:
+    istio-injection: enabled
+    nephoran.io/tier: edge
+    nephoran.io/zone-type: edge-computing
+---
+# Edge Computing Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-computing-config
+  namespace: nephoran-edge
+data:
+  edge-config.yaml: |
+    edge_controller:
+      # Node discovery settings
+      node_discovery_enabled: true
+      discovery_interval: 30s
+      health_check_interval: 10s
+      
+      # Zone management
+      auto_zone_creation: true
+      max_nodes_per_zone: 10
+      zone_redundancy_factor: 2
+      
+      # O-RAN edge capabilities
+      enable_local_ric: true
+      enable_edge_ml: true
+      enable_caching: true
+      local_processing_enabled: true
+      
+      # Performance thresholds
+      max_latency_ms: 5          # URLLC requirement
+      min_bandwidth_mbps: 100
+      edge_resource_threshold: 0.8
+      
+      # Failover and resilience
+      edge_failover_enabled: true
+      backhaul_failover_enabled: true
+      local_autonomy: true       # Continue without backhaul
+    
+    # Edge zone definitions
+    edge_zones:
+      metro-zone-1:
+        name: "Metro Edge Zone 1"
+        region: "us-east-1"
+        service_level: "Premium"
+        coverage:
+          center_latitude: 40.7128
+          center_longitude: -74.0060
+          radius_km: 10
+        requirements:
+          max_latency_ms: 1
+          min_availability: 99.99
+          redundancy_level: 3
+      
+      access-zone-1:
+        name: "Access Edge Zone 1"
+        region: "us-east-1"
+        service_level: "Standard"
+        coverage:
+          center_latitude: 40.7589
+          center_longitude: -73.9851
+          radius_km: 5
+        requirements:
+          max_latency_ms: 5
+          min_availability: 99.9
+          redundancy_level: 2
+      
+      industrial-zone-1:
+        name: "Industrial Edge Zone 1"
+        region: "us-east-1"
+        service_level: "Premium"
+        coverage:
+          center_latitude: 40.6892
+          center_longitude: -74.0445
+          radius_km: 2
+        requirements:
+          max_latency_ms: 1
+          min_availability: 99.999
+          redundancy_level: 4
+          
+    # O-RAN function templates
+    oran_functions:
+      near_rt_ric:
+        image: "oran/near-rt-ric:v1.0.0"
+        resources:
+          cpu: "2000m"
+          memory: "4Gi"
+          storage: "20Gi"
+        capabilities:
+          - policy_management
+          - resource_optimization
+          - handover_control
+          - interference_mitigation
+        ports:
+          - name: e2-interface
+            port: 38472
+            protocol: SCTP
+          - name: a1-interface
+            port: 9999
+            protocol: HTTP
+      
+      distributed_unit:
+        image: "oran/o-du:v1.0.0"
+        resources:
+          cpu: "1500m"
+          memory: "3Gi"
+          storage: "10Gi"
+        capabilities:
+          - radio_resource_management
+          - scheduling
+          - beamforming
+        ports:
+          - name: f1-interface
+            port: 38472
+            protocol: SCTP
+      
+      centralized_unit:
+        image: "oran/o-cu:v1.0.0"
+        resources:
+          cpu: "1000m"
+          memory: "2Gi"
+          storage: "10Gi"
+        capabilities:
+          - pdcp_processing
+          - handover_preparation
+          - radio_bearer_control
+        ports:
+          - name: f1-interface
+            port: 38473
+            protocol: SCTP
+          - name: x2-interface
+            port: 36422
+            protocol: SCTP
+    
+    # Edge AI/ML configurations
+    edge_ml:
+      inference_engines:
+        tensorflow_serving:
+          image: "tensorflow/serving:latest"
+          resources:
+            cpu: "1000m"
+            memory: "2Gi"
+            gpu: 1
+          model_repository: "/models"
+          
+        pytorch_serve:
+          image: "pytorch/torchserve:latest"
+          resources:
+            cpu: "500m"
+            memory: "1Gi"
+          model_store: "/models"
+          
+        onnx_runtime:
+          image: "mcr.microsoft.com/onnxruntime/server:latest"
+          resources:
+            cpu: "500m"
+            memory: "1Gi"
+          
+      ml_models:
+        network_optimization:
+          name: "Network Traffic Prediction"
+          framework: "tensorflow"
+          version: "v1.0"
+          input_shape: [1, 100, 10]
+          use_cases:
+            - traffic_prediction
+            - congestion_detection
+            - resource_allocation
+        
+        interference_detection:
+          name: "RF Interference Detection"
+          framework: "pytorch"
+          version: "v2.1"
+          input_shape: [1, 1024]
+          use_cases:
+            - spectrum_monitoring
+            - interference_mitigation
+            - signal_quality_prediction
+        
+        beamforming_optimization:
+          name: "Massive MIMO Beamforming"
+          framework: "onnx"
+          version: "v1.5"
+          input_shape: [1, 64, 64]
+          use_cases:
+            - beamforming_weights
+            - antenna_optimization
+            - coverage_enhancement
+            
+    # Edge caching configuration
+    edge_caching:
+      content_cache:
+        enabled: true
+        max_size_gb: 100
+        ttl_hours: 24
+        eviction_policy: "LRU"
+        content_types:
+          - video
+          - images
+          - software_updates
+          - ar_vr_content
+      
+      data_cache:
+        enabled: true
+        max_size_gb: 50
+        ttl_minutes: 60
+        cache_types:
+          - user_profiles
+          - network_state
+          - configuration_data
+          - metrics_data
+      
+      ml_model_cache:
+        enabled: true
+        max_size_gb: 20
+        preload_models:
+          - network_optimization
+          - interference_detection
+          - beamforming_optimization
+---
+# Edge Node Discovery Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-discovery-service
+  namespace: nephoran-edge
+  labels:
+    app: edge-discovery
+    component: discovery
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: edge-discovery
+  template:
+    metadata:
+      labels:
+        app: edge-discovery
+        component: discovery
+      annotations:
+        sidecar.istio.io/inject: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: edge-discovery
+      containers:
+      - name: discovery
+        image: nephoran/edge-discovery:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8090
+          name: metrics
+        env:
+        - name: EDGE_CONFIG_PATH
+          value: "/config/edge-config.yaml"
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NODE_DISCOVERY_INTERVAL
+          value: "30s"
+        - name: HEALTH_CHECK_INTERVAL
+          value: "10s"
+        envFrom:
+        - configMapRef:
+            name: edge-computing-config
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: edge-computing-config
+---
+# Edge ML Inference Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-ml-service
+  namespace: nephoran-edge
+  labels:
+    app: edge-ml
+    component: inference
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: edge-ml
+  template:
+    metadata:
+      labels:
+        app: edge-ml
+        component: inference
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      serviceAccountName: edge-ml
+      nodeSelector:
+        nephoran.io/node-type: "edge"
+        nephoran.io/accelerator: "gpu"
+      containers:
+      - name: tensorflow-serving
+        image: tensorflow/serving:latest-gpu
+        ports:
+        - containerPort: 8501
+          name: rest-api
+        - containerPort: 8500
+          name: grpc-api
+        env:
+        - name: MODEL_CONFIG_FILE
+          value: "/models/models.config"
+        - name: MONITORING_CONFIG_FILE
+          value: "/models/monitoring.config"
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 2Gi
+            nvidia.com/gpu: 1
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+            nvidia.com/gpu: 1
+        volumeMounts:
+        - name: models
+          mountPath: /models
+        - name: model-config
+          mountPath: /models/models.config
+          subPath: models.config
+      - name: pytorch-serve
+        image: pytorch/torchserve:latest-gpu
+        ports:
+        - containerPort: 8080
+          name: inference
+        - containerPort: 8081
+          name: management
+        - containerPort: 8082
+          name: metrics
+        env:
+        - name: TS_CONFIG_FILE
+          value: "/config/torchserve.properties"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        volumeMounts:
+        - name: models
+          mountPath: /models
+        - name: torchserve-config
+          mountPath: /config
+      volumes:
+      - name: models
+        persistentVolumeClaim:
+          claimName: edge-ml-models
+      - name: model-config
+        configMap:
+          name: tensorflow-model-config
+      - name: torchserve-config
+        configMap:
+          name: torchserve-config
+---
+# Edge Caching Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-cache-service
+  namespace: nephoran-edge
+  labels:
+    app: edge-cache
+    component: caching
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: edge-cache
+  template:
+    metadata:
+      labels:
+        app: edge-cache
+        component: caching
+    spec:
+      serviceAccountName: edge-cache
+      containers:
+      - name: redis-cache
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+          name: redis
+        command:
+        - redis-server
+        - /config/redis.conf
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: 1000m
+            memory: 4Gi
+        volumeMounts:
+        - name: cache-data
+          mountPath: /data
+        - name: redis-config
+          mountPath: /config
+      - name: cache-manager
+        image: nephoran/edge-cache-manager:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: REDIS_URL
+          value: "redis://localhost:6379"
+        - name: CACHE_CONFIG_PATH
+          value: "/config/cache-config.yaml"
+        resources:
+          requests:
+            cpu: 200m
+            memory: 500Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        volumeMounts:
+        - name: cache-config
+          mountPath: /config
+      volumes:
+      - name: cache-data
+        persistentVolumeClaim:
+          claimName: edge-cache-data
+      - name: redis-config
+        configMap:
+          name: redis-config
+      - name: cache-config
+        configMap:
+          name: edge-caching-config
+---
+# Edge Local RIC Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-local-ric
+  namespace: nephoran-edge
+  labels:
+    app: edge-local-ric
+    component: oran
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: edge-local-ric
+  template:
+    metadata:
+      labels:
+        app: edge-local-ric
+        component: oran
+      annotations:
+        sidecar.istio.io/inject: "false"  # Direct O-RAN communication
+    spec:
+      serviceAccountName: edge-local-ric
+      hostNetwork: true  # For O-RAN interface access
+      nodeSelector:
+        nephoran.io/node-type: "edge"
+        nephoran.io/oran-capable: "true"
+      containers:
+      - name: near-rt-ric
+        image: oran/near-rt-ric:v1.0.0
+        ports:
+        - containerPort: 38472
+          name: e2-sctp
+          protocol: SCTP
+        - containerPort: 9999
+          name: a1-http
+          protocol: TCP
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        env:
+        - name: RIC_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: PLM_ID
+          value: "001"
+        - name: NB_ID
+          value: "01"
+        - name: E2_INTERFACE_PORT
+          value: "38472"
+        - name: A1_INTERFACE_PORT
+          value: "9999"
+        resources:
+          requests:
+            cpu: 2000m
+            memory: 4Gi
+          limits:
+            cpu: 4000m
+            memory: 8Gi
+        volumeMounts:
+        - name: ric-config
+          mountPath: /config
+        - name: ric-data
+          mountPath: /data
+        livenessProbe:
+          tcpSocket:
+            port: 9999
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9999
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      volumes:
+      - name: ric-config
+        configMap:
+          name: local-ric-config
+      - name: ric-data
+        persistentVolumeClaim:
+          claimName: edge-ric-data
+---
+# Edge Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-discovery-service
+  namespace: nephoran-edge
+  labels:
+    app: edge-discovery
+spec:
+  selector:
+    app: edge-discovery
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: metrics
+    port: 8090
+    targetPort: 8090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-ml-service
+  namespace: nephoran-edge
+  labels:
+    app: edge-ml
+spec:
+  selector:
+    app: edge-ml
+  ports:
+  - name: tensorflow-rest
+    port: 8501
+    targetPort: 8501
+  - name: tensorflow-grpc
+    port: 8500
+    targetPort: 8500
+  - name: pytorch-inference
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-cache-service
+  namespace: nephoran-edge
+  labels:
+    app: edge-cache
+spec:
+  selector:
+    app: edge-cache
+  ports:
+  - name: redis
+    port: 6379
+    targetPort: 6379
+  - name: cache-manager
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-local-ric
+  namespace: nephoran-edge
+  labels:
+    app: edge-local-ric
+spec:
+  selector:
+    app: edge-local-ric
+  type: NodePort
+  ports:
+  - name: e2-interface
+    port: 38472
+    targetPort: 38472
+    protocol: SCTP
+    nodePort: 30472
+  - name: a1-interface
+    port: 9999
+    targetPort: 9999
+    nodePort: 30999
+---
+# Persistent Volume Claims
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: edge-ml-models
+  namespace: nephoran-edge
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: edge-cache-data
+  namespace: nephoran-edge
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 200Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: edge-ric-data
+  namespace: nephoran-edge
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 50Gi
+---
+# Service Accounts and RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edge-discovery
+  namespace: nephoran-edge
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edge-ml
+  namespace: nephoran-edge
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edge-cache
+  namespace: nephoran-edge
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edge-local-ric
+  namespace: nephoran-edge
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: edge-controller
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "pods", "services", "configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents", "e2nodesets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: edge-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edge-controller
+subjects:
+- kind: ServiceAccount
+  name: edge-discovery
+  namespace: nephoran-edge
+- kind: ServiceAccount
+  name: edge-ml
+  namespace: nephoran-edge
+- kind: ServiceAccount
+  name: edge-cache
+  namespace: nephoran-edge
+- kind: ServiceAccount
+  name: edge-local-ric
+  namespace: nephoran-edge

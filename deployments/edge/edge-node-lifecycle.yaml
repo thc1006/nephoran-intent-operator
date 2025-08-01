@@ -1,0 +1,533 @@
+# Nephoran Intent Operator - Edge Node Lifecycle Management
+# Phase 4 Enterprise Architecture - Edge Node Registration and Management
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-node-lifecycle-config
+  namespace: nephoran-edge
+data:
+  lifecycle-config.yaml: |
+    edge_node_lifecycle:
+      # Registration settings
+      auto_registration: true
+      registration_timeout: 300s
+      node_validation_enabled: true
+      capability_discovery: true
+      
+      # Health monitoring
+      health_check_interval: 30s
+      health_check_timeout: 10s
+      failure_threshold: 3
+      recovery_threshold: 2
+      
+      # Resource management
+      resource_monitoring_interval: 60s
+      resource_threshold_cpu: 80
+      resource_threshold_memory: 85
+      resource_threshold_storage: 90
+      
+      # O-RAN function management
+      oran_function_deployment: true
+      oran_function_validation: true
+      oran_function_health_checks: true
+      oran_interface_monitoring: true
+      
+      # Edge zone assignment
+      auto_zone_assignment: true
+      zone_preference_location: true
+      zone_preference_capabilities: true
+      zone_load_balancing: true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: edge-node-manager
+  namespace: nephoran-edge
+  labels:
+    app: edge-node-manager
+    component: lifecycle
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: edge-node-manager
+  template:
+    metadata:
+      labels:
+        app: edge-node-manager
+        component: lifecycle
+      annotations:
+        sidecar.istio.io/inject: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: edge-node-manager
+      containers:
+      - name: node-manager
+        image: nephoran/edge-node-manager:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8090
+          name: metrics
+        - containerPort: 9090
+          name: registration
+        env:
+        - name: EDGE_CONFIG_PATH
+          value: "/config/lifecycle-config.yaml"
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NODE_MANAGER_LOG_LEVEL
+          value: "info"
+        - name: REGISTRATION_PORT
+          value: "9090"
+        - name: METRICS_PORT
+          value: "8090"
+        envFrom:
+        - configMapRef:
+            name: edge-node-lifecycle-config
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        volumeMounts:
+        - name: config
+          mountPath: /config
+        - name: node-registry
+          mountPath: /data/registry
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      volumes:
+      - name: config
+        configMap:
+          name: edge-node-lifecycle-config
+      - name: node-registry
+        persistentVolumeClaim:
+          claimName: edge-node-registry
+---
+# Edge Node Registration CRD
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: edgenodes.nephoran.com
+spec:
+  group: nephoran.com
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              nodeId:
+                type: string
+                description: "Unique identifier for the edge node"
+              zone:
+                type: string
+                description: "Edge zone assignment"
+              location:
+                type: object
+                properties:
+                  latitude:
+                    type: number
+                  longitude:
+                    type: number
+                  region:
+                    type: string
+                  datacenter:
+                    type: string
+              capabilities:
+                type: object
+                properties:
+                  computeIntensive:
+                    type: boolean
+                  lowLatencyProcessing:
+                    type: boolean
+                  localRICSupport:
+                    type: boolean
+                  cachingSupport:
+                    type: boolean
+                  videoProcessing:
+                    type: boolean
+                  iotGateway:
+                    type: boolean
+                  networkFunctions:
+                    type: array
+                    items:
+                      type: string
+                  acceleratorTypes:
+                    type: array
+                    items:
+                      type: string
+              resources:
+                type: object
+                properties:
+                  cpu:
+                    type: integer
+                  memory:
+                    type: string
+                  storage:
+                    type: string
+                  gpu:
+                    type: integer
+                  networkBandwidth:
+                    type: integer
+                  accelerators:
+                    type: integer
+              networkInterfaces:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    type:
+                      type: string
+                    bandwidth:
+                      type: integer
+                    latency:
+                      type: integer
+                    packetLoss:
+                      type: number
+                    qosSupport:
+                      type: boolean
+              oranFunctions:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    version:
+                      type: string
+                    enabled:
+                      type: boolean
+                    configuration:
+                      type: object
+                      additionalProperties:
+                        type: string
+          status:
+            type: object
+            properties:
+              phase:
+                type: string
+                enum: ["Registering", "Active", "Degraded", "Maintenance", "Offline", "Failed"]
+              message:
+                type: string
+              lastSeen:
+                type: string
+                format: date-time
+              healthStatus:
+                type: object
+                properties:
+                  overall:
+                    type: string
+                  uptime:
+                    type: number
+                  avgLatency:
+                    type: number
+                  throughput:
+                    type: number
+                  errorRate:
+                    type: number
+                  temperature:
+                    type: number
+                  powerConsumption:
+                    type: number
+              resourceUtilization:
+                type: object
+                properties:
+                  cpu:
+                    type: number
+                  memory:
+                    type: number
+                  storage:
+                    type: number
+                  network:
+                    type: number
+              activeServices:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    type:
+                      type: string
+                    status:
+                      type: string
+                    port:
+                      type: integer
+              connectedCells:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    cellId:
+                      type: string
+                    type:
+                      type: string
+                    frequency:
+                      type: string
+                    connectedUEs:
+                      type: integer
+                    signalQuality:
+                      type: number
+    additionalPrinterColumns:
+    - name: Zone
+      type: string
+      jsonPath: .spec.zone
+    - name: Status
+      type: string
+      jsonPath: .status.phase
+    - name: CPU
+      type: string
+      jsonPath: .status.resourceUtilization.cpu
+    - name: Memory
+      type: string
+      jsonPath: .status.resourceUtilization.memory
+    - name: Age
+      type: date
+      jsonPath: .metadata.creationTimestamp
+  scope: Namespaced
+  names:
+    plural: edgenodes
+    singular: edgenode
+    kind: EdgeNode
+    shortNames:
+    - en
+---
+# Edge Node Registration Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-node-manager
+  namespace: nephoran-edge
+  labels:
+    app: edge-node-manager
+spec:
+  selector:
+    app: edge-node-manager
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  - name: metrics
+    port: 8090
+    targetPort: 8090
+  - name: registration
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+---
+# Edge Node Registration LoadBalancer Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: edge-node-registration
+  namespace: nephoran-edge
+  labels:
+    app: edge-node-manager
+    service: registration
+spec:
+  type: LoadBalancer
+  selector:
+    app: edge-node-manager
+  ports:
+  - name: registration
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+---
+# Edge Node Registry PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: edge-node-registry
+  namespace: nephoran-edge
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Edge Node Manager ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edge-node-manager
+  namespace: nephoran-edge
+---
+# Edge Node Manager ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: edge-node-manager
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets", "replicasets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["nephoran.com"]
+  resources: ["edgenodes", "networkintents", "e2nodesets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+---
+# Edge Node Manager ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: edge-node-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edge-node-manager
+subjects:
+- kind: ServiceAccount
+  name: edge-node-manager
+  namespace: nephoran-edge
+---
+# Edge Node Health Check DaemonSet
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: edge-node-health-monitor
+  namespace: nephoran-edge
+  labels:
+    app: edge-health-monitor
+spec:
+  selector:
+    matchLabels:
+      app: edge-health-monitor
+  template:
+    metadata:
+      labels:
+        app: edge-health-monitor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: edge-health-monitor
+      nodeSelector:
+        nephoran.io/node-type: "edge"
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: health-monitor
+        image: nephoran/edge-health-monitor:latest
+        ports:
+        - containerPort: 8080
+          name: metrics
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: HEALTH_CHECK_INTERVAL
+          value: "30s"
+        - name: METRICS_PORT
+          value: "8080"
+        - name: ORAN_MONITORING_ENABLED
+          value: "true"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: dev
+          mountPath: /host/dev
+          readOnly: true
+        securityContext:
+          privileged: true
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: dev
+        hostPath:
+          path: /dev
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      - key: nephoran.io/edge-node
+        operator: Exists
+        effect: NoSchedule
+---
+# Edge Health Monitor ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: edge-health-monitor
+  namespace: nephoran-edge
+---
+# Edge Health Monitor ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: edge-health-monitor
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["nephoran.com"]
+  resources: ["edgenodes"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["nodes", "pods"]
+  verbs: ["get", "list"]
+---
+# Edge Health Monitor ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: edge-health-monitor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: edge-health-monitor
+subjects:
+- kind: ServiceAccount
+  name: edge-health-monitor
+  namespace: nephoran-edge
