@@ -57,3 +57,8 @@ mcp.json
 .env
 .env.*
 onc
+
+.kiro
+.kiro/
+.claude
+.claude/
