@@ -1,0 +1,1118 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-production-dashboards
+  namespace: nephoran-monitoring
+  labels:
+    app: grafana
+    component: dashboards
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: dashboards
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  # Executive Business Dashboard
+  executive-overview.json: |
+    {
+      "id": null,
+      "title": "Nephoran Executive Overview",
+      "tags": ["nephoran", "executive", "business"],
+      "style": "dark",
+      "timezone": "UTC",
+      "refresh": "30s",
+      "time": {
+        "from": "now-4h",
+        "to": "now"
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Business KPIs Overview",
+          "type": "stat",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "nephoran_automation_rate",
+              "legendFormat": "Automation Rate (%)",
+              "refId": "A"
+            },
+            {
+              "expr": "nephoran_cost_per_intent",
+              "legendFormat": "Cost per Intent ($)",
+              "refId": "B"
+            },
+            {
+              "expr": "nephoran_user_satisfaction",
+              "legendFormat": "User Satisfaction",
+              "refId": "C"
+            },
+            {
+              "expr": "avg(rate(nephoran_time_to_deployment_seconds_sum[5m]) / rate(nephoran_time_to_deployment_seconds_count[5m]))",
+              "legendFormat": "Avg Time to Deploy (s)",
+              "refId": "D"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {"displayMode": "basic"},
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "red", "value": 80}
+                ]
+              }
+            }
+          },
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"],
+              "fields": ""
+            },
+            "orientation": "horizontal",
+            "textMode": "auto",
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto"
+          }
+        },
+        {
+          "id": 2,
+          "title": "Intent Processing Success Rate",
+          "type": "gauge",
+          "gridPos": {"h": 8, "w": 8, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "(sum(rate(nephoran_networkintent_duration_seconds_count{status=\"completed\"}[5m])) / sum(rate(nephoran_networkintent_duration_seconds_count[5m]))) * 100",
+              "legendFormat": "Success Rate",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "yellow", "value": 95},
+                  {"color": "green", "value": 98}
+                ]
+              },
+              "unit": "percent",
+              "min": 0,
+              "max": 100
+            }
+          },
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"],
+              "fields": ""
+            },
+            "orientation": "auto",
+            "textMode": "auto",
+            "colorMode": "value",
+            "graphMode": "area",
+            "justifyMode": "auto",
+            "showThresholdLabels": false,
+            "showThresholdMarkers": true
+          }
+        },
+        {
+          "id": 3,
+          "title": "System Availability SLA",
+          "type": "gauge",
+          "gridPos": {"h": 8, "w": 8, "x": 8, "y": 8},
+          "targets": [
+            {
+              "expr": "nephoran_service_availability * 100",
+              "legendFormat": "Availability",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "yellow", "value": 99},
+                  {"color": "green", "value": 99.9}
+                ]
+              },
+              "unit": "percent",
+              "min": 99,
+              "max": 100
+            }
+          }
+        },
+        {
+          "id": 4,
+          "title": "Cost Efficiency Trends",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 8, "x": 16, "y": 8},
+          "targets": [
+            {
+              "expr": "rate(nephoran_llm_cost_total[5m]) * 3600",
+              "legendFormat": "LLM Cost/Hour",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(nephoran_operational_cost_total[5m]) * 3600",
+              "legendFormat": "Operational Cost/Hour",
+              "refId": "B"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "barAlignment": 0,
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "spanNulls": -1,
+                "insertNulls": false,
+                "showPoints": "never",
+                "pointSize": 5
+              },
+              "mappings": [],
+              "thresholds": {"steps": [{"color": "green", "value": null}]},
+              "unit": "currencyUSD"
+            }
+          }
+        },
+        {
+          "id": 5,
+          "title": "Intent Processing Volume",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+          "targets": [
+            {
+              "expr": "rate(nephoran_networkintent_total[5m]) * 60",
+              "legendFormat": "Intents/Minute",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(nephoran_networkintent_duration_seconds_count{status=\"completed\"}[5m]) * 60",
+              "legendFormat": "Completed/Minute",
+              "refId": "B"
+            },
+            {
+              "expr": "rate(nephoran_networkintent_retries_total[5m]) * 60",
+              "legendFormat": "Retries/Minute",
+              "refId": "C"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "barAlignment": 0,
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "gradientMode": "none",
+                "spanNulls": -1,
+                "insertNulls": false,
+                "showPoints": "never",
+                "pointSize": 5
+              },
+              "mappings": [],
+              "thresholds": {"steps": [{"color": "green", "value": null}]},
+              "unit": "short"
+            }
+          }
+        },
+        {
+          "id": 6,
+          "title": "O-RAN Compliance Score",
+          "type": "stat",
+          "gridPos": {"h": 8, "w": 6, "x": 12, "y": 16},
+          "targets": [
+            {
+              "expr": "nephoran_oran_compliance_score",
+              "legendFormat": "Compliance Score",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "yellow", "value": 70},
+                  {"color": "green", "value": 90}
+                ]
+              },
+              "unit": "percent",
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "id": 7,
+          "title": "Security Threat Level",
+          "type": "stat",
+          "gridPos": {"h": 8, "w": 6, "x": 18, "y": 16},
+          "targets": [
+            {
+              "expr": "nephoran_security_threat_level",
+              "legendFormat": "Threat Level",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [
+                {"options": {"0": {"text": "Low"}}, "type": "value"},
+                {"options": {"1": {"text": "Medium"}}, "type": "value"},
+                {"options": {"2": {"text": "High"}}, "type": "value"},
+                {"options": {"3": {"text": "Critical"}}, "type": "value"}
+              ],
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": 0},
+                  {"color": "yellow", "value": 1},
+                  {"color": "orange", "value": 2},
+                  {"color": "red", "value": 3}
+                ]
+              },
+              "unit": "short"
+            }
+          }
+        }
+      ]
+    }
+
+  # Technical Performance Dashboard
+  technical-performance.json: |
+    {
+      "id": null,
+      "title": "Nephoran Technical Performance",
+      "tags": ["nephoran", "technical", "performance"],
+      "style": "dark",
+      "timezone": "UTC",
+      "refresh": "15s",
+      "time": {
+        "from": "now-1h",
+        "to": "now"
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Request Latency Distribution",
+          "type": "heatmap",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "sum(rate(nephoran_llm_request_duration_seconds_bucket[5m])) by (le)",
+              "legendFormat": "{{le}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "hideFrom": {
+                  "tooltip": false,
+                  "vis": false,
+                  "legend": false
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 2,
+          "title": "Response Time Percentiles",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.50, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "P50",
+              "refId": "A"
+            },
+            {
+              "expr": "histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "P95",
+              "refId": "B"
+            },
+            {
+              "expr": "histogram_quantile(0.99, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+              "legendFormat": "P99",
+              "refId": "C"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Component Health Status",
+          "type": "stat",
+          "gridPos": {"h": 6, "w": 24, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "nephoran_controller_health",
+              "legendFormat": "{{component}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [
+                {"options": {"0": {"text": "Unhealthy", "color": "red"}}, "type": "value"},
+                {"options": {"1": {"text": "Healthy", "color": "green"}}, "type": "value"}
+              ],
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "green", "value": 1}
+                ]
+              }
+            }
+          },
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"],
+              "fields": ""
+            },
+            "orientation": "horizontal",
+            "textMode": "auto",
+            "colorMode": "background"
+          }
+        },
+        {
+          "id": 4,
+          "title": "Error Rates by Component",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+          "targets": [
+            {
+              "expr": "rate(nephoran_networkintent_retries_total[5m])",
+              "legendFormat": "NetworkIntent Retries",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(nephoran_oran_interface_errors_total[5m])",
+              "legendFormat": "O-RAN Interface Errors",
+              "refId": "B"
+            },
+            {
+              "expr": "rate(nephoran_llm_errors_total[5m])",
+              "legendFormat": "LLM Errors",
+              "refId": "C"
+            },
+            {
+              "expr": "rate(nephoran_rag_errors_total[5m])",
+              "legendFormat": "RAG Errors",
+              "refId": "D"
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Resource Utilization",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
+          "targets": [
+            {
+              "expr": "nephoran_resource_utilization{resource_type=\"cpu\"}",
+              "legendFormat": "CPU Usage %",
+              "refId": "A"
+            },
+            {
+              "expr": "nephoran_resource_utilization{resource_type=\"memory\"}",
+              "legendFormat": "Memory Usage %",
+              "refId": "B"
+            },
+            {
+              "expr": "nephoran_resource_utilization{resource_type=\"disk\"}",
+              "legendFormat": "Disk Usage %",
+              "refId": "C"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "barAlignment": 0,
+                "lineWidth": 1,
+                "fillOpacity": 10,
+                "gradientMode": "none"
+              },
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 70},
+                  {"color": "red", "value": 90}
+                ]
+              },
+              "unit": "percent",
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "id": 6,
+          "title": "Cache Performance",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 22},
+          "targets": [
+            {
+              "expr": "nephoran_cache_hit_rate * 100",
+              "legendFormat": "Hit Rate %",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(nephoran_cache_operations_total{operation=\"hit\"}[5m]) * 60",
+              "legendFormat": "Hits/Minute",
+              "refId": "B"
+            },
+            {
+              "expr": "rate(nephoran_cache_operations_total{operation=\"miss\"}[5m]) * 60",
+              "legendFormat": "Misses/Minute",
+              "refId": "C"
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "title": "Queue Depths",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 22},
+          "targets": [
+            {
+              "expr": "nephoran_queue_depth{queue_type=\"processing\"}",
+              "legendFormat": "Processing Queue",
+              "refId": "A"
+            },
+            {
+              "expr": "nephoran_queue_depth{queue_type=\"llm\"}",
+              "legendFormat": "LLM Queue",
+              "refId": "B"
+            },
+            {
+              "expr": "nephoran_queue_depth{queue_type=\"rag\"}",
+              "legendFormat": "RAG Queue",
+              "refId": "C"
+            }
+          ]
+        }
+      ]
+    }
+
+  # O-RAN Operations Dashboard
+  oran-operations.json: |
+    {
+      "id": null,
+      "title": "O-RAN Interface Operations",
+      "tags": ["nephoran", "oran", "telecom"],
+      "style": "dark",
+      "timezone": "UTC",
+      "refresh": "30s",
+      "time": {
+        "from": "now-2h",
+        "to": "now"
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "O-RAN Interface Status",
+          "type": "stat",
+          "gridPos": {"h": 6, "w": 24, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "nephoran_oran_connection_status",
+              "legendFormat": "{{interface}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [
+                {"options": {"0": {"text": "Disconnected", "color": "red"}}, "type": "value"},
+                {"options": {"1": {"text": "Connected", "color": "green"}}, "type": "value"}
+              ],
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "green", "value": 1}
+                ]
+              }
+            }
+          },
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"],
+              "fields": ""
+            },
+            "orientation": "horizontal",
+            "textMode": "auto",
+            "colorMode": "background"
+          }
+        },
+        {
+          "id": 2,
+          "title": "Interface Request Rate",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+          "targets": [
+            {
+              "expr": "rate(nephoran_oran_interface_requests_total{interface=\"A1\"}[5m])",
+              "legendFormat": "A1 Interface",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(nephoran_oran_interface_requests_total{interface=\"O1\"}[5m])",
+              "legendFormat": "O1 Interface",
+              "refId": "B"
+            },
+            {
+              "expr": "rate(nephoran_oran_interface_requests_total{interface=\"O2\"}[5m])",
+              "legendFormat": "O2 Interface",
+              "refId": "C"
+            },
+            {
+              "expr": "rate(nephoran_oran_interface_requests_total{interface=\"E2\"}[5m])",
+              "legendFormat": "E2 Interface",
+              "refId": "D"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Interface Error Rates",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6},
+          "targets": [
+            {
+              "expr": "rate(nephoran_oran_interface_errors_total[5m]) / rate(nephoran_oran_interface_requests_total[5m]) * 100",
+              "legendFormat": "{{interface}} Error Rate %",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear"
+              },
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 2},
+                  {"color": "red", "value": 5}
+                ]
+              },
+              "unit": "percent",
+              "min": 0
+            }
+          }
+        },
+        {
+          "id": 4,
+          "title": "Network Function Status",
+          "type": "table",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+          "targets": [
+            {
+              "expr": "nephoran_network_function_status",
+              "legendFormat": "",
+              "refId": "A",
+              "instant": true
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "custom": {
+                "align": "auto",
+                "displayMode": "auto"
+              },
+              "mappings": [
+                {"options": {"0": {"text": "Down", "color": "red"}}, "type": "value"},
+                {"options": {"1": {"text": "Up", "color": "green"}}, "type": "value"},
+                {"options": {"2": {"text": "Degraded", "color": "yellow"}}, "type": "value"}
+              ],
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "green", "value": 1}
+                ]
+              }
+            }
+          },
+          "options": {
+            "showHeader": true
+          },
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {},
+                "indexByName": {},
+                "renameByName": {
+                  "function_name": "Network Function",
+                  "namespace": "Namespace",
+                  "Value": "Status"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "title": "Policy Operations",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
+          "targets": [
+            {
+              "expr": "rate(nephoran_oran_policy_operations_total{operation=\"create\"}[5m])",
+              "legendFormat": "Policy Creates",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(nephoran_oran_policy_operations_total{operation=\"update\"}[5m])",
+              "legendFormat": "Policy Updates",
+              "refId": "B"
+            },
+            {
+              "expr": "rate(nephoran_oran_policy_operations_total{operation=\"delete\"}[5m])",
+              "legendFormat": "Policy Deletes",
+              "refId": "C"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "title": "Compliance Metrics",
+          "type": "stat",
+          "gridPos": {"h": 6, "w": 24, "x": 0, "y": 22},
+          "targets": [
+            {
+              "expr": "nephoran_oran_compliance_score{domain=\"A1\"}",
+              "legendFormat": "A1 Compliance",
+              "refId": "A"
+            },
+            {
+              "expr": "nephoran_oran_compliance_score{domain=\"O1\"}",
+              "legendFormat": "O1 Compliance",
+              "refId": "B"
+            },
+            {
+              "expr": "nephoran_oran_compliance_score{domain=\"O2\"}",
+              "legendFormat": "O2 Compliance",
+              "refId": "C"
+            },
+            {
+              "expr": "nephoran_oran_compliance_score{domain=\"E2\"}",
+              "legendFormat": "E2 Compliance",
+              "refId": "D"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "yellow", "value": 70},
+                  {"color": "green", "value": 90}
+                ]
+              },
+              "unit": "percent",
+              "min": 0,
+              "max": 100
+            }
+          }
+        }
+      ]
+    }
+
+  # System Health Dashboard  
+  system-health.json: |
+    {
+      "id": null,
+      "title": "Nephoran System Health",
+      "tags": ["nephoran", "health", "monitoring"],
+      "style": "dark",
+      "timezone": "UTC",
+      "refresh": "10s",
+      "time": {
+        "from": "now-30m",
+        "to": "now"
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Service Level Indicators",
+          "type": "stat",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "nephoran_service_availability * 100",
+              "legendFormat": "Availability %",
+              "refId": "A"
+            },
+            {
+              "expr": "nephoran_sli_latency_p95",
+              "legendFormat": "P95 Latency (s)",
+              "refId": "B"
+            },
+            {
+              "expr": "nephoran_sli_latency_p99",
+              "legendFormat": "P99 Latency (s)",
+              "refId": "C"
+            },
+            {
+              "expr": "nephoran_error_budget_burn_rate",
+              "legendFormat": "Error Budget Burn Rate",
+              "refId": "D"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 70},
+                  {"color": "red", "value": 90}
+                ]
+              }
+            }
+          },
+          "options": {
+            "reduceOptions": {
+              "values": false,
+              "calcs": ["lastNotNull"],
+              "fields": ""
+            },
+            "orientation": "horizontal",
+            "textMode": "auto",
+            "colorMode": "value",
+            "graphMode": "area"
+          }
+        },
+        {
+          "id": 2,
+          "title": "Component Health Matrix",
+          "type": "heatmap",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "nephoran_controller_health",
+              "legendFormat": "{{component}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "hideFrom": {
+                  "tooltip": false,
+                  "vis": false,
+                  "legend": false
+                }
+              }
+            }
+          }
+        },
+        {
+          "id": 3,
+          "title": "Error Budget Status",
+          "type": "gauge",
+          "gridPos": {"h": 8, "w": 6, "x": 12, "y": 8},
+          "targets": [
+            {
+              "expr": "(1 - nephoran_error_budget_burn_rate) * 100",
+              "legendFormat": "Error Budget Remaining",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "yellow", "value": 20},
+                  {"color": "green", "value": 50}
+                ]
+              },
+              "unit": "percent",
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "id": 4,
+          "title": "SLO Compliance",
+          "type": "gauge",
+          "gridPos": {"h": 8, "w": 6, "x": 18, "y": 8},
+          "targets": [
+            {
+              "expr": "nephoran_slo_compliance * 100",
+              "legendFormat": "SLO Compliance",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "yellow", "value": 95},
+                  {"color": "green", "value": 99}
+                ]
+              },
+              "unit": "percent",
+              "min": 0,
+              "max": 100
+            }
+          }
+        },
+        {
+          "id": 5,
+          "title": "Security Events",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+          "targets": [
+            {
+              "expr": "rate(nephoran_security_events_total{severity=\"low\"}[5m])",
+              "legendFormat": "Low Severity",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(nephoran_security_events_total{severity=\"medium\"}[5m])",
+              "legendFormat": "Medium Severity",
+              "refId": "B"
+            },
+            {
+              "expr": "rate(nephoran_security_events_total{severity=\"high\"}[5m])",
+              "legendFormat": "High Severity",
+              "refId": "C"
+            },
+            {
+              "expr": "rate(nephoran_security_events_total{severity=\"critical\"}[5m])",
+              "legendFormat": "Critical Severity",
+              "refId": "D"
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "title": "System Optimization Score",
+          "type": "gauge",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+          "targets": [
+            {
+              "expr": "nephoran_optimization_score * 100",
+              "legendFormat": "Optimization Score",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "red", "value": 0},
+                  {"color": "yellow", "value": 60},
+                  {"color": "green", "value": 80}
+                ]
+              },
+              "unit": "percent",
+              "min": 0,
+              "max": 100
+            }
+          }
+        }
+      ]
+    }
+
+  # AI/ML Analytics Dashboard
+  ai-ml-analytics.json: |
+    {
+      "id": null,
+      "title": "AI/ML Analytics & Predictions",
+      "tags": ["nephoran", "ai", "ml", "analytics"],
+      "style": "dark",
+      "timezone": "UTC",
+      "refresh": "1m",
+      "time": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "LLM Performance Metrics",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+          "targets": [
+            {
+              "expr": "rate(nephoran_llm_requests_total[5m])",
+              "legendFormat": "Request Rate",
+              "refId": "A"
+            },
+            {
+              "expr": "avg(rate(nephoran_llm_token_usage_total[5m]))",
+              "legendFormat": "Token Usage Rate",
+              "refId": "B"
+            },
+            {
+              "expr": "rate(nephoran_llm_cost_total[5m]) * 3600",
+              "legendFormat": "Cost per Hour ($)",
+              "refId": "C"
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "title": "RAG Pipeline Performance",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.95, rate(nephoran_rag_query_duration_seconds_bucket[5m]))",
+              "legendFormat": "RAG P95 Latency",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(nephoran_rag_cache_operations_total{operation=\"hit\"}[5m]) / rate(nephoran_rag_cache_operations_total[5m]) * 100",
+              "legendFormat": "Cache Hit Rate %",
+              "refId": "B"
+            },
+            {
+              "expr": "nephoran_rag_knowledge_base_size",
+              "legendFormat": "Knowledge Base Size",
+              "refId": "C"
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Anomaly Detection Status",
+          "type": "stat",
+          "gridPos": {"h": 6, "w": 12, "x": 0, "y": 8},
+          "targets": [
+            {
+              "expr": "nephoran_anomaly_detection_score",
+              "legendFormat": "{{metric_name}}",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "thresholds"},
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 0.3},
+                  {"color": "red", "value": 0.7}
+                ]
+              },
+              "unit": "short",
+              "min": 0,
+              "max": 1
+            }
+          }
+        },
+        {
+          "id": 4,
+          "title": "Trend Analysis",
+          "type": "timeseries",
+          "gridPos": {"h": 6, "w": 12, "x": 12, "y": 8},
+          "targets": [
+            {
+              "expr": "nephoran_trend_slope",
+              "legendFormat": "{{metric_name}} Trend",
+              "refId": "A"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear"
+              }
+            }
+          }
+        },
+        {
+          "id": 5,
+          "title": "Capacity Predictions",
+          "type": "timeseries",
+          "gridPos": {"h": 8, "w": 24, "x": 0, "y": 14},
+          "targets": [
+            {
+              "expr": "nephoran_capacity_prediction_cpu",
+              "legendFormat": "Predicted CPU Usage %",
+              "refId": "A"
+            },
+            {
+              "expr": "nephoran_capacity_prediction_memory",
+              "legendFormat": "Predicted Memory Usage %",
+              "refId": "B"
+            },
+            {
+              "expr": "nephoran_capacity_prediction_storage",
+              "legendFormat": "Predicted Storage Usage %",
+              "refId": "C"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "color": {"mode": "palette-classic"},
+              "custom": {
+                "drawStyle": "line",
+                "lineInterpolation": "linear",
+                "fillOpacity": 20
+              },
+              "mappings": [],
+              "thresholds": {
+                "steps": [
+                  {"color": "green", "value": null},
+                  {"color": "yellow", "value": 70},
+                  {"color": "red", "value": 90}
+                ]
+              },
+              "unit": "percent",
+              "min": 0,
+              "max": 100
+            }
+          }
+        }
+      ]
+    }

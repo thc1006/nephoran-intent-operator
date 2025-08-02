@@ -2,27 +2,34 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: prometheus-config
-  namespace: nephoran-system
+  namespace: nephoran-monitoring
   labels:
     app: prometheus
     component: monitoring
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: nephoran-intent-operator
 data:
   prometheus.yml: |
     global:
       scrape_interval: 15s
       evaluation_interval: 15s
       external_labels:
-        cluster: 'nephoran-cluster'
+        cluster: 'nephoran-production'
         environment: 'production'
-    
+
+    # Load alerting rules
     rule_files:
       - "/etc/prometheus/rules/*.yml"
-    
+
+    # Alertmanager configuration
     alerting:
       alertmanagers:
         - static_configs:
             - targets:
               - alertmanager:9093
+          timeout: 10s
+          api_version: v2
     
     scrape_configs:
       # Nephoran Intent Operator controllers
@@ -56,6 +63,12 @@ data:
           - source_labels: [__meta_kubernetes_pod_name]
             action: replace
             target_label: kubernetes_pod_name
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            action: replace
+            target_label: app_name
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+            action: replace
+            target_label: component
         scrape_interval: 15s
         metrics_path: /metrics
     
@@ -277,3 +290,301 @@ data:
             annotations:
               summary: "Weaviate vector database is down"
               description: "Weaviate service is not responding"
+
+  # Enhanced Recording Rules for SLI/SLO Monitoring, Business KPIs, and Analytics
+  recording-rules.yml: |
+    groups:
+    - name: nephoran.sli.recording
+      interval: 30s
+      rules:
+      # Service Level Indicators (SLIs)
+      - record: nephoran:sli:availability
+        expr: |
+          (
+            sum(rate(nephoran_networkintent_duration_seconds_count{status="completed"}[5m])) / 
+            sum(rate(nephoran_networkintent_duration_seconds_count[5m]))
+          )
+        labels:
+          service: networkintent
+          sli_type: availability
+
+      - record: nephoran:sli:latency_p50
+        expr: |
+          histogram_quantile(0.50, rate(nephoran_networkintent_duration_seconds_bucket[5m]))
+        labels:
+          service: networkintent
+          sli_type: latency
+          percentile: "50"
+
+      - record: nephoran:sli:latency_p95
+        expr: |
+          histogram_quantile(0.95, rate(nephoran_networkintent_duration_seconds_bucket[5m]))
+        labels:
+          service: networkintent
+          sli_type: latency
+          percentile: "95"
+
+      - record: nephoran:sli:latency_p99
+        expr: |
+          histogram_quantile(0.99, rate(nephoran_networkintent_duration_seconds_bucket[5m]))
+        labels:
+          service: networkintent
+          sli_type: latency
+          percentile: "99"
+
+      - record: nephoran:sli:error_rate
+        expr: |
+          (
+            sum(rate(nephoran_networkintent_retries_total[5m])) / 
+            sum(rate(nephoran_networkintent_total[5m]))
+          )
+        labels:
+          service: networkintent
+          sli_type: error_rate
+
+      # Error Budget Burn Rates
+      - record: nephoran:error_budget:burn_rate_1h
+        expr: |
+          (
+            1 - (
+              sum(rate(nephoran_networkintent_duration_seconds_count{status="completed"}[1h])) / 
+              sum(rate(nephoran_networkintent_duration_seconds_count[1h]))
+            )
+          ) / 0.01
+        labels:
+          service: networkintent
+          window: 1h
+
+      - record: nephoran:error_budget:burn_rate_6h
+        expr: |
+          (
+            1 - (
+              sum(rate(nephoran_networkintent_duration_seconds_count{status="completed"}[6h])) / 
+              sum(rate(nephoran_networkintent_duration_seconds_count[6h]))
+            )
+          ) / 0.01
+        labels:
+          service: networkintent
+          window: 6h
+
+    - name: nephoran.business.kpis
+      interval: 60s
+      rules:
+      # Business KPIs
+      - record: nephoran:business:automation_rate
+        expr: |
+          (
+            sum(rate(nephoran_automated_deployments_total[1h])) / 
+            sum(rate(nephoran_total_deployments_total[1h]))
+          ) * 100
+        labels:
+          kpi_type: automation_rate
+
+      - record: nephoran:business:cost_per_intent
+        expr: |
+          (
+            sum(rate(nephoran_llm_cost_total[1h])) + 
+            sum(rate(nephoran_operational_cost_total[1h]))
+          ) / sum(rate(nephoran_networkintent_total[1h]))
+        labels:
+          kpi_type: cost_per_intent
+
+      - record: nephoran:business:time_to_deployment
+        expr: |
+          avg(rate(nephoran_time_to_deployment_seconds_sum[5m]) / rate(nephoran_time_to_deployment_seconds_count[5m]))
+        labels:
+          kpi_type: time_to_deployment
+
+      - record: nephoran:business:user_satisfaction
+        expr: |
+          avg(nephoran_user_satisfaction_score)
+        labels:
+          kpi_type: user_satisfaction
+
+      # Telecom-specific KPIs
+      - record: nephoran:telecom:workload_intensity
+        expr: |
+          (
+            sum(rate(nephoran_networkintent_total[5m])) * 60 +
+            sum(rate(nephoran_oran_interface_requests_total[5m])) * 60 * 0.1 +
+            sum(rate(nephoran_llm_requests_total[5m])) * 60 * 0.2
+          )
+        labels:
+          kpi_type: workload_intensity
+
+      - record: nephoran:cache:performance_index
+        expr: |
+          (
+            avg(nephoran_cache_hit_rate) * 0.5 +
+            avg(1 / (1 + rate(nephoran_cache_operations_total{operation="miss"}[5m]))) * 0.3 +
+            avg(1 / (1 + rate(nephoran_cache_evictions_total[5m]))) * 0.2
+          )
+        labels:
+          kpi_type: cache_performance
+
+    - name: nephoran.capacity.planning
+      interval: 300s
+      rules:
+      # Capacity Planning Predictions
+      - record: nephoran:capacity:prediction_cpu
+        expr: |
+          predict_linear(nephoran_resource_utilization{resource_type="cpu"}[2h], 3600)
+        labels:
+          resource_type: cpu
+          prediction_window: 1h
+
+      - record: nephoran:capacity:prediction_memory
+        expr: |
+          predict_linear(nephoran_resource_utilization{resource_type="memory"}[2h], 3600)
+        labels:
+          resource_type: memory
+          prediction_window: 1h
+
+      - record: nephoran:capacity:prediction_storage
+        expr: |
+          predict_linear(nephoran_resource_utilization{resource_type="disk"}[6h], 7200)
+        labels:
+          resource_type: storage
+          prediction_window: 2h
+
+      # Queue Depth Monitoring
+      - record: nephoran:queue:depth_total
+        expr: |
+          sum(nephoran_queue_depth) by (queue_type)
+        labels:
+          metric_type: queue_depth
+
+      - record: nephoran:e2nodeset:scaling_pressure
+        expr: |
+          (
+            sum(rate(nephoran_e2nodeset_replicas_desired[5m])) - 
+            sum(rate(nephoran_e2nodeset_replicas_available[5m]))
+          ) / sum(rate(nephoran_e2nodeset_replicas_desired[5m]))
+        labels:
+          metric_type: scaling_pressure
+
+    - name: nephoran.anomaly.detection
+      interval: 120s
+      rules:
+      # Anomaly Detection using Z-score
+      - record: nephoran:anomaly:request_rate_zscore
+        expr: |
+          (
+            rate(nephoran_llm_requests_total[5m]) - 
+            avg_over_time(rate(nephoran_llm_requests_total[5m])[1h:5m])
+          ) / stddev_over_time(rate(nephoran_llm_requests_total[5m])[1h:5m])
+        labels:
+          metric_name: llm_request_rate
+          anomaly_type: zscore
+
+      - record: nephoran:anomaly:latency_zscore
+        expr: |
+          (
+            histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m])) - 
+            avg_over_time(histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m]))[1h:5m])
+          ) / stddev_over_time(histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m]))[1h:5m])
+        labels:
+          metric_name: llm_latency_p95
+          anomaly_type: zscore
+
+      - record: nephoran:anomaly:error_rate_zscore
+        expr: |
+          (
+            rate(nephoran_networkintent_retries_total[5m]) - 
+            avg_over_time(rate(nephoran_networkintent_retries_total[5m])[1h:5m])
+          ) / stddev_over_time(rate(nephoran_networkintent_retries_total[5m])[1h:5m])
+        labels:
+          metric_name: intent_error_rate
+          anomaly_type: zscore
+
+      # Anomaly Detection Score (0-1, where >0.5 indicates anomaly)
+      - record: nephoran:anomaly:detection_score
+        expr: |
+          clamp_max(
+            (
+              abs(nephoran:anomaly:request_rate_zscore) * 0.3 +
+              abs(nephoran:anomaly:latency_zscore) * 0.4 +
+              abs(nephoran:anomaly:error_rate_zscore) * 0.3
+            ) / 6, 1
+          )
+        labels:
+          metric_name: combined_anomaly_score
+
+    - name: nephoran.trend.analysis
+      interval: 300s
+      rules:
+      # Trend Analysis using deriv() function
+      - record: nephoran:trend:slope
+        expr: |
+          deriv(nephoran_networkintent_total[30m])
+        labels:
+          metric_name: intent_volume_trend
+
+      - record: nephoran:trend:latency_slope
+        expr: |
+          deriv(nephoran:sli:latency_p95[30m])
+        labels:
+          metric_name: latency_trend
+
+      - record: nephoran:trend:cost_slope
+        expr: |
+          deriv(nephoran_llm_cost_total[30m])
+        labels:
+          metric_name: cost_trend
+
+    - name: nephoran.security.monitoring
+      interval: 60s
+      rules:
+      # Security Threat Level Assessment
+      - record: nephoran:security:threat_level
+        expr: |
+          clamp_max(
+            (
+              sum(rate(nephoran_auth_failures_total[5m])) * 10 +
+              sum(rate(nephoran_security_events_total{severity="high"}[5m])) * 5 +
+              sum(rate(nephoran_security_events_total{severity="critical"}[5m])) * 20
+            ), 3
+          )
+        labels:
+          metric_type: threat_level
+
+      # Failed Authentication Rate
+      - record: nephoran:security:auth_failure_rate
+        expr: |
+          sum(rate(nephoran_auth_failures_total[5m]))
+        labels:
+          metric_type: auth_failure_rate
+
+    - name: nephoran.optimization.scores
+      interval: 300s
+      rules:
+      # System Optimization Score (0-1)
+      - record: nephoran:optimization:score
+        expr: |
+          (
+            (1 - avg(nephoran_resource_utilization{resource_type="cpu"}) / 100) * 0.25 +
+            (1 - avg(nephoran_resource_utilization{resource_type="memory"}) / 100) * 0.25 +
+            avg(nephoran_cache_hit_rate) * 0.2 +
+            (1 - nephoran:sli:error_rate) * 0.2 +
+            min(nephoran:sli:availability, 1) * 0.1
+          )
+        labels:
+          metric_type: optimization_score
+
+      # Service Availability
+      - record: nephoran:service:availability
+        expr: |
+          avg(up{job=~"nephoran.*|rag.*|weaviate"})
+        labels:
+          metric_type: service_availability
+
+      # SLO Compliance Score
+      - record: nephoran:slo:compliance
+        expr: |
+          (
+            (nephoran:sli:availability > 0.995) * 0.4 +
+            (nephoran:sli:latency_p95 < 5) * 0.3 +
+            (nephoran:sli:error_rate < 0.01) * 0.3
+          )
+        labels:
+          metric_type: slo_compliance

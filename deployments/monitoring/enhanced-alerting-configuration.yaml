@@ -1,0 +1,705 @@
+---
+# Enhanced AlertManager Configuration for Enterprise Monitoring
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enhanced-alertmanager-config
+  namespace: nephoran-monitoring
+  labels:
+    app: alertmanager
+    component: monitoring
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/component: enhanced-config
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'smtp.nephoran.com:587'
+      smtp_from: 'alertmanager@nephoran.com'
+      smtp_auth_username: 'alertmanager@nephoran.com'
+      smtp_auth_password_file: '/etc/alertmanager/smtp-password'
+      slack_api_url_file: '/etc/alertmanager/slack-webhook'
+      pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+      http_config:
+        tls_config:
+          insecure_skip_verify: false
+        follow_redirects: true
+        enable_http2: true
+      resolve_timeout: '5m'
+
+    # Template definitions for consistent formatting
+    templates:
+      - '/etc/alertmanager/templates/*.tmpl'
+
+    # Enhanced routing with multi-tier escalation
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'default-receiver'
+      routes:
+      # Critical alerts - immediate escalation
+      - matchers:
+        - severity =~ "critical|emergency"
+        receiver: 'critical-escalation'
+        group_wait: 10s
+        group_interval: 2m
+        repeat_interval: 30m
+        continue: true
+        routes:
+        # Service-specific critical routing
+        - matchers:
+          - service = "networkintent"
+          - severity = "critical"
+          receiver: 'intent-critical'
+        - matchers:
+          - service = "oran-interface"
+          - severity = "critical"
+          receiver: 'oran-critical'
+        - matchers:
+          - service = "llm-processor"
+          - severity = "critical"
+          receiver: 'llm-critical'
+
+      # Warning alerts - standard escalation
+      - matchers:
+        - severity = "warning"
+        receiver: 'warning-team'
+        group_wait: 5m
+        group_interval: 10m
+        repeat_interval: 4h
+
+      # Info alerts - low priority
+      - matchers:
+        - severity = "info"
+        receiver: 'info-channel'
+        group_wait: 10m
+        group_interval: 30m
+        repeat_interval: 24h
+
+      # Business impact alerts
+      - matchers:
+        - alert_type = "business_impact"
+        receiver: 'business-stakeholders'
+        group_wait: 1m
+        group_interval: 5m
+        repeat_interval: 1h
+
+      # Security alerts
+      - matchers:
+        - alert_type = "security"
+        receiver: 'security-team'
+        group_wait: 30s
+        group_interval: 2m
+        repeat_interval: 30m
+
+      # Performance degradation alerts
+      - matchers:
+        - alert_type = "performance"
+        receiver: 'performance-team'
+        group_wait: 2m
+        group_interval: 10m
+        repeat_interval: 2h
+
+    # Inhibition rules to reduce alert noise
+    inhibit_rules:
+    # Critical alerts inhibit warnings for same service
+    - source_matchers:
+      - severity = "critical"
+      target_matchers:
+      - severity = "warning"
+      equal: ['service', 'instance', 'alertname']
+
+    # Service down inhibits all other alerts for that service
+    - source_matchers:
+      - alertname =~ ".*ServiceDown|.*Down"
+      target_matchers:
+      - service = "{{ $labels.service }}"
+      equal: ['service']
+
+    # SLO violations inhibit individual metric alerts
+    - source_matchers:
+      - alert_type = "slo_violation"
+      target_matchers:
+      - alert_type = "metric"
+      equal: ['service']
+
+    # Receivers with comprehensive notification channels
+    receivers:
+    # Default receiver - general alerts
+    - name: 'default-receiver'
+      slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhook'
+        channel: '#nephoran-alerts'
+        title: '{{ .GroupLabels.alertname }} - {{ .GroupLabels.cluster }}'
+        text: |
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Severity:* {{ .Labels.severity }}
+          *Service:* {{ .Labels.service }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        color: 'warning'
+        send_resolved: true
+
+    # Critical escalation - multi-channel notification
+    - name: 'critical-escalation'
+      pagerduty_configs:
+      - routing_key_file: '/etc/alertmanager/pagerduty-key'
+        description: '{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}'
+        severity: 'critical'
+        client: 'Nephoran AlertManager'
+        client_url: 'http://alertmanager.nephoran.com'
+        details:
+          cluster: '{{ .GroupLabels.cluster }}'
+          service: '{{ .GroupLabels.service }}'
+          runbook: '{{ .CommonAnnotations.runbook_url }}'
+      slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhook'
+        channel: '#nephoran-critical'
+        title: '🚨 CRITICAL ALERT 🚨 {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *CRITICAL ISSUE DETECTED*
+          *Alert:* {{ .Annotations.summary }}
+          *Description:* {{ .Annotations.description }}
+          *Service:* {{ .Labels.service }}
+          *Cluster:* {{ .Labels.cluster }}
+          *Time:* {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          *Escalation:* @channel @oncall-engineer
+          {{ end }}
+        color: 'danger'
+        send_resolved: true
+      email_configs:
+      - to: 'oncall@nephoran.com,engineering-lead@nephoran.com'
+        subject: 'CRITICAL: {{ .GroupLabels.alertname }} in {{ .GroupLabels.cluster }}'
+        body: |
+          {{ range .Alerts }}
+          Critical Alert: {{ .Annotations.summary }}
+          
+          Description: {{ .Annotations.description }}
+          Service: {{ .Labels.service }}
+          Cluster: {{ .Labels.cluster }}
+          Severity: {{ .Labels.severity }}
+          Started: {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+          
+          Runbook: {{ .Annotations.runbook_url }}
+          Dashboard: {{ .Annotations.dashboard_url }}
+          
+          Please investigate immediately.
+          {{ end }}
+
+    # Intent processing critical alerts
+    - name: 'intent-critical'
+      slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhook'
+        channel: '#nephoran-intent-critical'
+        title: '🎯 INTENT PROCESSING CRITICAL 🎯'
+        text: |
+          {{ range .Alerts }}
+          *Intent processing system failure detected*
+          *Impact:* Network automation may be unavailable
+          *Alert:* {{ .Annotations.summary }}
+          *Service:* {{ .Labels.service }}
+          *Action Required:* Check NetworkIntent controller and LLM processor
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        color: 'danger'
+
+    # O-RAN interface critical alerts
+    - name: 'oran-critical'
+      slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhook'
+        channel: '#nephoran-oran-critical'
+        title: '📡 O-RAN INTERFACE CRITICAL 📡'
+        text: |
+          {{ range .Alerts }}
+          *O-RAN interface failure detected*
+          *Impact:* Network functions may be unreachable
+          *Interface:* {{ .Labels.interface }}
+          *Alert:* {{ .Annotations.summary }}
+          *Action Required:* Check {{ .Labels.interface }} connectivity
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        color: 'danger'
+
+    # LLM processor critical alerts
+    - name: 'llm-critical'
+      slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhook'
+        channel: '#nephoran-llm-critical'
+        title: '🤖 LLM PROCESSOR CRITICAL 🤖'
+        text: |
+          {{ range .Alerts }}
+          *LLM processing system failure*
+          *Impact:* Intent processing unavailable
+          *Alert:* {{ .Annotations.summary }}
+          *Service:* {{ .Labels.service }}
+          *Action Required:* Check LLM processor and RAG API
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        color: 'danger'
+
+    # Warning team notifications
+    - name: 'warning-team'
+      slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhook'
+        channel: '#nephoran-warnings'
+        title: '⚠️ {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Warning Alert*
+          *Summary:* {{ .Annotations.summary }}
+          *Service:* {{ .Labels.service }}
+          *Description:* {{ .Annotations.description }}
+          *Runbook:* {{ .Annotations.runbook_url }}
+          {{ end }}
+        color: 'warning'
+
+    # Business stakeholder notifications
+    - name: 'business-stakeholders'
+      email_configs:
+      - to: 'business-stakeholders@nephoran.com'
+        subject: 'Business Impact Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Business Impact Alert
+          
+          Summary: {{ .Annotations.summary }}
+          Business Impact: {{ .Annotations.business_impact }}
+          Affected Services: {{ .Labels.service }}
+          
+          Current Status: {{ .Labels.severity }}
+          Estimated Resolution: {{ .Annotations.eta }}
+          
+          This alert indicates a potential impact to business operations.
+          {{ end }}
+      slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhook'
+        channel: '#business-alerts'
+        title: '💼 Business Impact Alert'
+        text: |
+          {{ range .Alerts }}
+          *Business Impact Detected*
+          *Summary:* {{ .Annotations.summary }}
+          *Impact:* {{ .Annotations.business_impact }}
+          *ETA:* {{ .Annotations.eta }}
+          {{ end }}
+
+    # Security team notifications
+    - name: 'security-team'
+      slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhook'
+        channel: '#security-alerts'
+        title: '🔒 Security Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Security Event Detected*
+          *Type:* {{ .Labels.security_type }}
+          *Severity:* {{ .Labels.severity }}
+          *Summary:* {{ .Annotations.summary }}
+          *Source:* {{ .Labels.source }}
+          *Action Required:* {{ .Annotations.security_action }}
+          {{ end }}
+        color: 'danger'
+      email_configs:
+      - to: 'security-team@nephoran.com'
+        subject: 'Security Alert: {{ .GroupLabels.alertname }}'
+
+    # Performance team notifications
+    - name: 'performance-team'
+      slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhook'
+        channel: '#performance-alerts'
+        title: '📈 Performance Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Performance Degradation*
+          *Metric:* {{ .Labels.metric_name }}
+          *Current Value:* {{ .Labels.current_value }}
+          *Threshold:* {{ .Labels.threshold }}
+          *Impact:* {{ .Annotations.performance_impact }}
+          {{ end }}
+
+    # Info channel for low-priority alerts
+    - name: 'info-channel'
+      slack_configs:
+      - api_url_file: '/etc/alertmanager/slack-webhook'
+        channel: '#nephoran-info'
+        title: 'ℹ️ {{ .GroupLabels.alertname }}'
+        text: |
+          {{ range .Alerts }}
+          *Info:* {{ .Annotations.summary }}
+          *Details:* {{ .Annotations.description }}
+          {{ end }}
+        color: 'good'
+
+---
+# Enhanced Prometheus Alerting Rules
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enhanced-alerting-rules
+  namespace: nephoran-monitoring
+  labels:
+    app: prometheus
+    component: alerting-rules
+data:
+  # SLO-based alerting rules
+  slo-alerts.yml: |
+    groups:
+    - name: nephoran.slo.alerts
+      rules:
+      # Multi-window, multi-burn-rate alerts for SLO violations
+      - alert: ErrorBudgetBurnRateHigh
+        expr: |
+          (
+            nephoran:error_budget:burn_rate_1h > (14.4 * 0.01)
+            and
+            nephoran:error_budget:burn_rate_6h > (6 * 0.01)
+          )
+        for: 2m
+        labels:
+          severity: critical
+          alert_type: slo_violation
+          service: networkintent
+        annotations:
+          summary: "High error budget burn rate detected"
+          description: "Error budget is burning at {{ $value }}x the acceptable rate"
+          runbook_url: "https://runbooks.nephoran.com/slo-violation"
+          business_impact: "Service availability SLO at risk"
+
+      - alert: ErrorBudgetBurnRateMedium
+        expr: |
+          (
+            nephoran:error_budget:burn_rate_1h > (6 * 0.01)
+            and
+            nephoran:error_budget:burn_rate_6h > (3 * 0.01)
+          )
+        for: 15m
+        labels:
+          severity: warning
+          alert_type: slo_violation
+          service: networkintent
+        annotations:
+          summary: "Medium error budget burn rate detected"
+          description: "Error budget burning at {{ $value }}x rate - monitor closely"
+          runbook_url: "https://runbooks.nephoran.com/slo-violation"
+
+      # SLI violations
+      - alert: LatencySLOViolation
+        expr: nephoran:sli:latency_p95 > 5
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: slo_violation
+          service: networkintent
+        annotations:
+          summary: "Latency SLO violation - P95 latency too high"
+          description: "P95 latency is {{ $value }}s, exceeding 5s SLO"
+          runbook_url: "https://runbooks.nephoran.com/latency-slo"
+          performance_impact: "User experience degraded"
+
+      - alert: AvailabilitySLOViolation
+        expr: nephoran:sli:availability < 0.995
+        for: 2m
+        labels:
+          severity: critical
+          alert_type: slo_violation
+          service: networkintent
+        annotations:
+          summary: "Availability SLO violation"
+          description: "Service availability is {{ $value | humanizePercentage }}, below 99.5% SLO"
+          runbook_url: "https://runbooks.nephoran.com/availability-slo"
+          business_impact: "Service availability below acceptable threshold"
+
+  # Business KPI alerts
+  business-kpi-alerts.yml: |
+    groups:
+    - name: nephoran.business.kpi.alerts
+      rules:
+      # Automation rate degradation
+      - alert: AutomationRateDropped
+        expr: nephoran:business:automation_rate < 80
+        for: 10m
+        labels:
+          severity: warning
+          alert_type: business_impact
+          kpi_type: automation_rate
+        annotations:
+          summary: "Automation rate below target"
+          description: "Automation rate is {{ $value }}%, below 80% target"
+          business_impact: "Increased manual operations required"
+          runbook_url: "https://runbooks.nephoran.com/automation-rate"
+          eta: "2 hours"
+
+      # Cost per intent threshold
+      - alert: CostPerIntentHigh
+        expr: nephoran:business:cost_per_intent > 0.50
+        for: 15m
+        labels:
+          severity: warning
+          alert_type: business_impact
+          kpi_type: cost_efficiency
+        annotations:
+          summary: "Cost per intent exceeding budget"
+          description: "Cost per intent is ${{ $value }}, above $0.50 target"
+          business_impact: "Budget overrun risk"
+          runbook_url: "https://runbooks.nephoran.com/cost-optimization"
+
+      # User satisfaction score
+      - alert: UserSatisfactionLow
+        expr: nephoran:business:user_satisfaction < 7.5
+        for: 30m
+        labels:
+          severity: warning
+          alert_type: business_impact
+          kpi_type: user_satisfaction
+        annotations:
+          summary: "User satisfaction below acceptable level"
+          description: "User satisfaction score is {{ $value }}/10, below 7.5 target"
+          business_impact: "User experience degradation"
+          runbook_url: "https://runbooks.nephoran.com/user-satisfaction"
+
+      # Time to deployment SLO
+      - alert: TimeToDeploymentSLOViolation
+        expr: nephoran:business:time_to_deployment > 300
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: business_impact
+          kpi_type: deployment_speed
+        annotations:
+          summary: "Time to deployment exceeding SLO"
+          description: "Average time to deployment is {{ $value }}s, above 300s SLO"
+          business_impact: "Slower network function deployment"
+          runbook_url: "https://runbooks.nephoran.com/deployment-speed"
+
+  # Security alerts
+  security-alerts.yml: |
+    groups:
+    - name: nephoran.security.alerts
+      rules:
+      # High threat level
+      - alert: HighSecurityThreatLevel
+        expr: nephoran:security:threat_level > 2
+        for: 1m
+        labels:
+          severity: critical
+          alert_type: security
+          security_type: threat_detection
+        annotations:
+          summary: "High security threat level detected"
+          description: "Security threat level is {{ $value }}/3"
+          security_action: "Investigate authentication logs and security events"
+          runbook_url: "https://runbooks.nephoran.com/security-threats"
+
+      # Authentication failure spike
+      - alert: AuthenticationFailureSpike
+        expr: nephoran:security:auth_failure_rate > 10
+        for: 2m
+        labels:
+          severity: warning
+          alert_type: security
+          security_type: authentication
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failures at {{ $value }} per second"
+          security_action: "Check for potential brute force attacks"
+          runbook_url: "https://runbooks.nephoran.com/auth-failures"
+
+      # Anomaly detection
+      - alert: SystemAnomalyDetected
+        expr: nephoran:anomaly:detection_score > 0.7
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: security
+          security_type: anomaly
+        annotations:
+          summary: "System anomaly detected"
+          description: "Anomaly detection score is {{ $value }}/1.0"
+          security_action: "Review system behavior and logs"
+          runbook_url: "https://runbooks.nephoran.com/anomaly-detection"
+
+  # Capacity planning alerts
+  capacity-alerts.yml: |
+    groups:
+    - name: nephoran.capacity.alerts
+      rules:
+      # Resource capacity predictions
+      - alert: CPUCapacityPredictionHigh
+        expr: nephoran:capacity:prediction_cpu > 85
+        for: 10m
+        labels:
+          severity: warning
+          alert_type: capacity
+          resource_type: cpu
+        annotations:
+          summary: "CPU capacity will exceed threshold"
+          description: "Predicted CPU utilization in 1h: {{ $value }}%"
+          runbook_url: "https://runbooks.nephoran.com/capacity-planning"
+
+      - alert: MemoryCapacityPredictionHigh
+        expr: nephoran:capacity:prediction_memory > 90
+        for: 10m
+        labels:
+          severity: warning
+          alert_type: capacity
+          resource_type: memory
+        annotations:
+          summary: "Memory capacity will exceed threshold"
+          description: "Predicted memory utilization in 1h: {{ $value }}%"
+          runbook_url: "https://runbooks.nephoran.com/capacity-planning"
+
+      - alert: StorageCapacityPredictionHigh
+        expr: nephoran:capacity:prediction_storage > 80
+        for: 30m
+        labels:
+          severity: warning
+          alert_type: capacity
+          resource_type: storage
+        annotations:
+          summary: "Storage capacity will exceed threshold"
+          description: "Predicted storage utilization in 2h: {{ $value }}%"
+          runbook_url: "https://runbooks.nephoran.com/capacity-planning"
+
+      # Queue depth monitoring
+      - alert: QueueDepthHigh
+        expr: nephoran:queue:depth_total > 100
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: performance
+          queue_type: "{{ $labels.queue_type }}"
+        annotations:
+          summary: "High queue depth detected"
+          description: "{{ $labels.queue_type }} queue depth is {{ $value }}"
+          performance_impact: "Processing delays expected"
+          runbook_url: "https://runbooks.nephoran.com/queue-management"
+
+  # Service health alerts
+  service-health-alerts.yml: |
+    groups:
+    - name: nephoran.service.health.alerts
+      rules:
+      # Component health status
+      - alert: ServiceHealthDegraded
+        expr: nephoran_controller_health_status == 0
+        for: 1m
+        labels:
+          severity: critical
+          alert_type: service_health
+          service: "{{ $labels.service }}"
+          component: "{{ $labels.component }}"
+        annotations:
+          summary: "Service component unhealthy"
+          description: "{{ $labels.service }}/{{ $labels.component }} health check failing"
+          runbook_url: "https://runbooks.nephoran.com/service-health"
+
+      # Service availability
+      - alert: ServiceUnavailable
+        expr: nephoran:service:availability < 0.99
+        for: 2m
+        labels:
+          severity: critical
+          alert_type: service_health
+        annotations:
+          summary: "Low service availability"
+          description: "Overall service availability is {{ $value | humanizePercentage }}"
+          business_impact: "Service disruption in progress"
+          runbook_url: "https://runbooks.nephoran.com/service-availability"
+
+      # SLO compliance monitoring
+      - alert: SLOComplianceViolation
+        expr: nephoran:slo:compliance < 0.8
+        for: 5m
+        labels:
+          severity: warning
+          alert_type: slo_violation
+        annotations:
+          summary: "SLO compliance below target"
+          description: "SLO compliance score is {{ $value }}/1.0"
+          business_impact: "Service quality below acceptable level"
+          runbook_url: "https://runbooks.nephoran.com/slo-compliance"
+
+---
+# Alert notification templates
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-templates
+  namespace: nephoran-monitoring
+data:
+  slack.tmpl: |
+    {{ define "slack.default.title" }}
+    {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+    {{ end }}
+
+    {{ define "slack.default.text" }}
+    {{ range .Alerts }}
+    *Alert:* {{ .Annotations.summary }}
+    *Description:* {{ .Annotations.description }}
+    *Severity:* {{ .Labels.severity }}
+    *Service:* {{ .Labels.service }}
+    {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+    {{ if .Annotations.dashboard_url }}*Dashboard:* {{ .Annotations.dashboard_url }}{{ end }}
+    {{ end }}
+    {{ end }}
+
+  email.tmpl: |
+    {{ define "email.default.subject" }}
+    [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }} - {{ .GroupLabels.cluster }}
+    {{ end }}
+
+    {{ define "email.default.html" }}
+    <h2>Alert Details</h2>
+    {{ range .Alerts }}
+    <h3>{{ .Annotations.summary }}</h3>
+    <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+    <p><strong>Severity:</strong> {{ .Labels.severity }}</p>
+    <p><strong>Service:</strong> {{ .Labels.service }}</p>
+    <p><strong>Started:</strong> {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}</p>
+    {{ if .Annotations.runbook_url }}
+    <p><strong>Runbook:</strong> <a href="{{ .Annotations.runbook_url }}">{{ .Annotations.runbook_url }}</a></p>
+    {{ end }}
+    {{ if .Annotations.dashboard_url }}
+    <p><strong>Dashboard:</strong> <a href="{{ .Annotations.dashboard_url }}">{{ .Annotations.dashboard_url }}</a></p>
+    {{ end }}
+    {{ end }}
+    {{ end }}
+
+---
+# Secret for notification credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: alertmanager-secrets
+  namespace: nephoran-monitoring
+type: Opaque
+stringData:
+  slack-webhook: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+  pagerduty-key: "your-pagerduty-integration-key"
+  smtp-password: "your-smtp-password"
+
+---
+# ServiceMonitor for AlertManager metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: enhanced-alertmanager
+  namespace: nephoran-monitoring
+  labels:
+    app: alertmanager
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: alertmanager
+  endpoints:
+  - port: web
+    interval: 30s
+    path: /metrics
