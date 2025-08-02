@@ -225,19 +225,19 @@ benchmark: ## Run performance benchmarks
 	go test -bench=. -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof ./pkg/...
 	@echo "Benchmark results saved to cpu.prof and mem.prof"
 
-security-scan: ## Run security vulnerability scans
-	@echo "--- Running Security Scans ---"
-	go run golang.org/x/vuln/cmd/govulncheck@latest ./...
-	@echo "--- Scanning Docker images for vulnerabilities ---"
-	@if command -v trivy >/dev/null 2>&1; then \
-		trivy image $(REGISTRY)/llm-processor:$(VERSION); \
-		trivy image $(REGISTRY)/nephio-bridge:$(VERSION); \
-		trivy image $(REGISTRY)/oran-adaptor:$(VERSION); \
-		trivy image $(REGISTRY)/rag-api:$(VERSION); \
-	else \
-		echo "Trivy not installed, skipping container security scan"; \
-		echo "Install with: curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin"; \
-	fi
+security-scan: ## Run comprehensive security vulnerability scans
+	@echo "--- Running Comprehensive Security Scans ---"
+	./scripts/security-scan.sh
+
+validate-build: ## Validate build system integrity
+	@echo "--- Validating Build System ---"
+	./scripts/validate-build.sh
+
+fix-api-versions: ## Fix API version inconsistencies
+	@echo "--- Fixing API Version Inconsistencies ---"
+	@echo "Regenerating CRDs with correct versions..."
+	$(MAKE) generate
+	controller-gen crd:generateEmbeddedObjectMeta=true paths="./api/v1" output:crd:artifacts:config=deployments/crds
 
 validate-images: docker-build ## Validate Docker images
 	@echo "--- Validating Docker Images ---"
@@ -276,5 +276,12 @@ dev-setup: setup-dev ## Extended development setup with additional tools
 	go install github.com/securecodewarrior/sast-scan@latest
 
 # Enhanced testing targets
-test-all: test-integration benchmark security-scan ## Run all tests including benchmarks and security
+test-all: test-integration benchmark security-scan validate-build ## Run all tests including benchmarks and security
 	@echo "--- All Tests Completed ---"
+
+# Build integrity and security
+validate-all: validate-build security-scan ## Run all validation checks
+	@echo "--- All Validations Completed ---"
+
+pre-commit: lint validate-build ## Pre-commit validation
+	@echo "--- Pre-commit Checks ---"

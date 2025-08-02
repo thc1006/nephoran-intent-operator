@@ -46,7 +46,7 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 	files[filepath.Join(packagePath, "Kptfile")] = kptfile
 	
 	// Generate package resources based on intent type
-	switch intent.Spec.Type {
+	switch // intent.Spec.Type (temporarily disabled) {
 	case "deployment":
 		resources, err := pg.generateDeploymentResources(intent)
 		if err != nil {
@@ -72,7 +72,7 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 			files[filepath.Join(packagePath, path)] = content
 		}
 	default:
-		return nil, fmt.Errorf("unsupported intent type: %s", intent.Spec.Type)
+		return nil, fmt.Errorf("unsupported intent type: %s", // intent.Spec.Type (temporarily disabled))
 	}
 	
 	// Generate README

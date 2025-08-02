@@ -257,11 +257,23 @@ pip3 install -r requirements-rag.txt  # Install Python dependencies
 make generate
 ```
 
+**🔧 Required Development Tools:**
+```shell
+# Install additional development tools
+make dev-setup                   # Installs linters, security scanners, etc.
+
+# Manual tool installation
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+go install golang.org/x/vuln/cmd/govulncheck@latest
+go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+```
+
 **Environment Validation:**
 ```shell
 # Validate development environment
 ./validate-environment.ps1        # Comprehensive environment validation
 ./diagnose_cluster.sh             # Cluster health diagnostics
+make validate-build               # Validate build system integrity
 ```
 
 ### 🔨 **Enhanced Build System (Cross-Platform with Performance Optimizations)**
@@ -287,6 +299,16 @@ make docker-build                 # Build all Docker images with:
                                   # - Health check integration
 
 make docker-push                  # Push to registry (requires authentication)
+make validate-images              # Validate Docker images after build
+```
+
+**🔒 Security and Quality Assurance:**
+```shell
+# Comprehensive security scanning
+make security-scan                # Run vulnerability scans and security checks
+make validate-all                 # Run all validation checks
+make benchmark                    # Performance benchmarking
+make test-all                     # All tests including security and benchmarks
 ```
 
 **Build System Features:**
@@ -294,6 +316,8 @@ make docker-push                  # Push to registry (requires authentication)
 - **Security Scanning**: Integrated `govulncheck` and container security validation
 - **Dependency Management**: Automated Go module updates and verification
 - **Performance Monitoring**: Build time tracking and optimization recommendations
+- **API Version Management**: Automated CRD generation with version consistency
+- **Build Integrity**: Comprehensive validation and rollback capabilities
 
 ### 🧪 **Testing & Validation**
 
@@ -366,3 +390,150 @@ After the automated cleanup (see `FILE_REMOVAL_REPORT.md`):
 - Documentation is current and accurate
 
 For questions about removed files or repository changes, consult the `FILE_REMOVAL_REPORT.md` for complete details and rollback procedures if needed.
+
+## 🛠️ **Troubleshooting Guide**
+
+### **Common Build Issues**
+
+**1. API Version Inconsistencies:**
+```shell
+# If you encounter API version errors
+make fix-api-versions             # Fix CRD version inconsistencies
+make generate                     # Regenerate code with correct versions
+```
+
+**2. Dependency Issues:**
+```shell
+# Clean and rebuild dependencies
+go clean -cache -modcache -testcache
+go mod tidy
+go mod verify
+make update-deps                  # Update dependencies safely
+```
+
+**3. Build Failures:**
+```shell
+# Clean build artifacts and retry
+make clean
+make build-all
+
+# Check for security vulnerabilities
+make security-scan
+
+# Validate build system
+make validate-build
+```
+
+**4. Container Build Issues:**
+```shell
+# Clean Docker cache and rebuild
+docker system prune -f
+make docker-build
+
+# Validate built images
+make validate-images
+```
+
+### **Development Environment Issues**
+
+**1. Cross-Platform Build Problems:**
+```shell
+# Ensure proper OS detection
+echo $OS  # Windows_NT on Windows, empty on Unix-like systems
+
+# Use platform-specific commands
+make build-all  # Automatically detects platform
+```
+
+**2. Missing Tools:**
+```shell
+# Install all required development tools
+make dev-setup
+
+# Manual tool verification
+go version      # Go 1.24+
+python3 --version  # Python 3.8+
+kubectl version    # Kubernetes CLI
+docker --version   # Docker engine
+```
+
+**3. Permission Issues (Linux/macOS):**
+```shell
+# Fix common permission issues
+chmod +x scripts/*.sh
+chmod +x deploy.sh
+chmod +x *.ps1
+```
+
+### **Security and Compliance**
+
+**1. Security Scan Failures:**
+```shell
+# Run comprehensive security audit
+./scripts/execute-security-audit.sh
+
+# Fix specific vulnerabilities
+go mod tidy
+make update-deps
+```
+
+**2. Container Security Issues:**
+```shell
+# Security scanning for containers
+./scripts/vulnerability-scanner.sh
+./scripts/security-config-validator.sh
+```
+
+### **Deployment Issues**
+
+**1. Kubernetes Deployment Problems:**
+```shell
+# Validate cluster connectivity
+kubectl cluster-info
+
+# Check deployment status
+kubectl get pods -A
+kubectl get crd | grep nephoran
+
+# Validate environment
+./validate-environment.ps1
+```
+
+**2. RAG System Issues:**
+```shell
+# Check RAG system health
+make rag-status
+make rag-logs
+
+# Redeploy RAG system
+make cleanup-rag
+make deploy-rag
+```
+
+### **Performance and Monitoring**
+
+**1. Build Performance Issues:**
+```shell
+# Monitor build performance
+make build-performance
+
+# Run benchmarks
+make benchmark
+```
+
+**2. Runtime Performance:**
+```shell
+# Run performance tests
+./scripts/performance-benchmark-suite.sh
+
+# Load testing
+./scripts/execute-production-load-test.sh
+```
+
+### **Getting Help**
+
+For complex issues:
+1. Check `FILE_REMOVAL_REPORT.md` for recent changes
+2. Review build logs with `make validate-build`
+3. Run comprehensive diagnostics with `./diagnose_cluster.sh`
+4. Consult the disaster recovery documentation in `CLAUDE.md`

@@ -3,9 +3,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base32"
-	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net/smtp"
@@ -14,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pquerna/otp"
-	"github.com/pquerna/otp/totp"
 )
 
 // MFAManager handles multi-factor authentication

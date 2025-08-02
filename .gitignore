@@ -41,6 +41,8 @@ pip-wheel-metadata/
 # Build output
 /build
 /dist
+/bin/
+bin/
 mcp.json
 .kiro/settings/mcp.json.mcp.json
 
