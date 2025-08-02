@@ -1,0 +1,1058 @@
+---
+# Operational Runbooks and Automation Scripts for Nephoran Intent Operator
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: operational-runbooks
+  namespace: nephoran-monitoring
+  labels:
+    app: operational-runbooks
+    component: monitoring
+    app.kubernetes.io/name: runbooks
+    app.kubernetes.io/component: automation
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  # Network Intent Controller Runbook
+  networkintent-controller-runbook.md: |
+    # NetworkIntent Controller Operational Runbook
+    
+    ## Overview
+    This runbook covers operational procedures for the NetworkIntent controller, including troubleshooting, recovery, and maintenance.
+    
+    ## Common Issues and Solutions
+    
+    ### Issue: NetworkIntent Controller Down
+    **Symptoms**: 
+    - Alert: `ServiceDown` for `nephio-bridge` service
+    - No intent processing activity
+    - NetworkIntent resources stuck in `Processing` state
+    
+    **Investigation Steps**:
+    1. Check pod status: `kubectl get pods -n nephoran-system -l app=nephio-bridge`
+    2. Review logs: `kubectl logs -n nephoran-system deployment/nephio-bridge --tail=100`
+    3. Check resource usage: `kubectl top pods -n nephoran-system -l app=nephio-bridge`
+    4. Verify CRD status: `kubectl get crd networkintents.nephoran.com`
+    
+    **Automated Recovery**:
+    - Script: `/scripts/restart-controller.sh nephio-bridge`
+    - Timeout: 5 minutes
+    - Escalation: If not recovered, page on-call engineer
+    
+    **Manual Recovery Steps**:
+    1. Restart deployment: `kubectl rollout restart deployment/nephio-bridge -n nephoran-system`
+    2. Scale up replicas: `kubectl scale deployment/nephio-bridge --replicas=3 -n nephoran-system`
+    3. Check for resource constraints and adjust limits if needed
+    4. Verify NetworkIntent processing resumes
+    
+    ### Issue: High Intent Processing Latency
+    **Symptoms**:
+    - Alert: `LatencySLOViolation` 
+    - P95 latency > 5 seconds
+    - User complaints about slow processing
+    
+    **Investigation Steps**:
+    1. Check LLM processor health: `curl http://llm-processor:8080/healthz`
+    2. Review RAG API performance: `curl http://rag-api:8080/stats`
+    3. Monitor Weaviate performance: `kubectl logs -n nephoran-system deployment/weaviate | grep -i slow`
+    4. Check external API connectivity (OpenAI)
+    
+    **Automated Remediation**:
+    - Scale up LLM processor: `kubectl scale deployment/llm-processor --replicas=5 -n nephoran-system`
+    - Clear caches: `curl -X DELETE http://rag-api:8080/cache/clear`
+    - Restart circuit breaker: `curl -X POST http://llm-processor:8080/circuit-breaker/reset`
+    
+    ### Issue: Intent Processing Failures
+    **Symptoms**:
+    - Alert: `IntentProcessingFailureRate` high
+    - NetworkIntent resources in `Failed` state
+    - Error logs in controller
+    
+    **Investigation Steps**:
+    1. Check intent validation errors in logs
+    2. Verify LLM API connectivity and quotas
+    3. Review structured output parsing errors
+    4. Check GitOps package generation failures
+    
+    **Recovery Actions**:
+    1. Retry failed intents: Run `/scripts/retry-failed-intents.sh`
+    2. Check API quotas and rate limits
+    3. Validate intent schemas and templates
+    4. Escalate to development team if persistent
+    
+    ## Maintenance Procedures
+    
+    ### Regular Maintenance Tasks
+    1. **Weekly**: Review intent processing metrics and trends
+    2. **Monthly**: Update LLM model configurations and prompts
+    3. **Quarterly**: Performance optimization and capacity planning
+    
+    ### Deployment Procedures
+    1. Use blue-green deployment strategy
+    2. Test in staging environment first
+    3. Monitor key metrics during rollout
+    4. Have rollback plan ready
+    
+    ## Emergency Contacts
+    - On-call Engineer: +1-555-ONCALL
+    - Engineering Lead: eng-lead@nephoran.com
+    - Slack Channel: #nephoran-incidents
+
+  # LLM Processor Service Runbook
+  llm-processor-runbook.md: |
+    # LLM Processor Service Operational Runbook
+    
+    ## Overview
+    The LLM Processor service handles natural language processing for NetworkIntent resources.
+    
+    ## Common Issues and Solutions
+    
+    ### Issue: LLM Processor Service Down
+    **Symptoms**:
+    - Alert: `ServiceDown` for `llm-processor`
+    - Intent processing stops completely
+    - HTTP 503 errors from service endpoints
+    
+    **Automated Recovery**:
+    - Immediate restart: `kubectl rollout restart deployment/llm-processor -n nephoran-system`
+    - Health check validation after 30 seconds
+    - Auto-scaling trigger if resource constrained
+    
+    **Manual Investigation**:
+    1. Check dependency health: RAG API, OpenAI API connectivity
+    2. Review circuit breaker status: `curl http://llm-processor:8080/circuit-breaker/status`
+    3. Monitor resource usage and OOM conditions
+    4. Verify configuration and secrets
+    
+    ### Issue: Circuit Breaker Open
+    **Symptoms**:
+    - Alert: `CircuitBreakerOpen`
+    - All requests failing fast
+    - No external API calls being made
+    
+    **Investigation**:
+    1. Check underlying service health (RAG API, OpenAI)
+    2. Review error rates and response times
+    3. Verify API quotas and rate limits
+    
+    **Recovery**:
+    1. Fix underlying issues first
+    2. Reset circuit breaker: `curl -X POST http://llm-processor:8080/circuit-breaker/reset`
+    3. Monitor recovery and adjust thresholds if needed
+    
+    ### Issue: High Token Usage Costs
+    **Symptoms**:
+    - Alert: `LLMCostSpikingHigh`
+    - Budget alerts from OpenAI
+    - Unexpected billing charges
+    
+    **Investigation**:
+    1. Review token usage metrics and trends
+    2. Check for inefficient prompts or processing loops
+    3. Analyze cache hit rates and effectiveness
+    4. Review prompt engineering and optimization
+    
+    **Mitigation**:
+    1. Enable aggressive caching: Update cache TTL settings
+    2. Optimize prompts for token efficiency
+    3. Implement rate limiting if necessary
+    4. Consider model optimization (GPT-4 vs GPT-3.5)
+    
+    ## Performance Optimization
+    
+    ### Cache Management
+    - Monitor cache hit rates (target: >80%)
+    - Clear cache during maintenance windows
+    - Warm cache with common queries
+    
+    ### Model Configuration
+    - Adjust temperature and max tokens based on use case
+    - Use streaming for real-time responses
+    - Implement retry logic with exponential backoff
+    
+    ## Monitoring and Alerting
+    - Key metrics: response time, error rate, token usage
+    - SLO: 95% of requests processed within 2 seconds
+    - Critical alerts: service down, circuit breaker open
+    - Warning alerts: high latency, cost spikes
+
+  # RAG API Service Runbook
+  rag-api-runbook.md: |
+    # RAG API Service Operational Runbook
+    
+    ## Overview
+    The RAG API provides retrieval-augmented generation capabilities for the LLM processor.
+    
+    ## Common Issues and Solutions
+    
+    ### Issue: RAG API Service Unavailable
+    **Symptoms**:
+    - Alert: `ServiceUnavailable` for `rag-api`
+    - LLM processor dependency checks failing
+    - Vector database query failures
+    
+    **Automated Recovery**:
+    - Restart service: `kubectl rollout restart deployment/rag-api -n nephoran-system`
+    - Scale up replicas if under resource pressure
+    - Clear application cache and restart connections
+    
+    **Investigation Steps**:
+    1. Check Weaviate connectivity: `curl http://weaviate:8080/v1/.well-known/ready`
+    2. Review vector database performance and indexes
+    3. Monitor embedding API connectivity (OpenAI)
+    4. Check Python application logs for errors
+    
+    ### Issue: Slow Vector Search Performance
+    **Symptoms**:
+    - Alert: `VectorSearchLatencyHigh`
+    - RAG API response times > 3 seconds
+    - Timeouts in vector similarity queries
+    
+    **Investigation**:
+    1. Check Weaviate cluster health and resource usage
+    2. Review vector index size and fragmentation
+    3. Monitor concurrent query load
+    4. Analyze search query complexity
+    
+    **Optimization Actions**:
+    1. Optimize vector indexes: Run index compaction
+    2. Scale Weaviate cluster horizontally
+    3. Implement query result caching
+    4. Tune search parameters (limit, filters)
+    
+    ### Issue: Knowledge Base Inconsistency
+    **Symptoms**:
+    - Poor intent processing accuracy
+    - Outdated information in responses
+    - Missing or corrupted documents
+    
+    **Investigation**:
+    1. Check knowledge base population status
+    2. Verify document indexing and embeddings
+    3. Review document quality and relevance scores
+    4. Test search queries manually
+    
+    **Recovery Actions**:
+    1. Re-populate knowledge base: Run `/scripts/populate-knowledge-base.sh`
+    2. Validate document integrity and embeddings
+    3. Update document metadata and categories
+    4. Clear and rebuild search indexes
+    
+    ## Maintenance Procedures
+    
+    ### Knowledge Base Updates
+    1. Schedule during low-traffic periods
+    2. Backup existing knowledge base
+    3. Update documents incrementally
+    4. Validate search quality after updates
+    
+    ### Performance Tuning
+    1. Monitor query patterns and optimize for common cases
+    2. Adjust vector search parameters based on accuracy needs
+    3. Balance index size vs search performance
+    4. Implement intelligent caching strategies
+
+  # Weaviate Vector Database Runbook
+  weaviate-runbook.md: |
+    # Weaviate Vector Database Operational Runbook
+    
+    ## Overview
+    Weaviate provides vector storage and semantic search capabilities for the RAG system.
+    
+    ## Common Issues and Solutions
+    
+    ### Issue: Weaviate Cluster Down
+    **Symptoms**:
+    - Alert: `WeaviateClusterDown`
+    - All vector search operations failing
+    - RAG API dependency checks failing
+    
+    **Investigation**:
+    1. Check pod status: `kubectl get pods -n nephoran-system -l app=weaviate`
+    2. Review cluster logs: `kubectl logs -n nephoran-system -l app=weaviate --tail=100`
+    3. Check persistent volume status and storage capacity
+    4. Verify resource allocation and limits
+    
+    **Recovery Actions**:
+    1. Restart failed pods: `kubectl delete pod -n nephoran-system -l app=weaviate`
+    2. Scale cluster if needed: `kubectl scale statefulset/weaviate --replicas=5 -n nephoran-system`
+    3. Check and resolve storage issues
+    4. Restore from backup if data corruption detected
+    
+    ### Issue: High Memory Usage
+    **Symptoms**:
+    - Alert: `WeaviateMemoryUsageHigh`
+    - OOM kills and pod restarts
+    - Slow query performance
+    
+    **Investigation**:
+    1. Check vector index size and memory usage
+    2. Review query complexity and concurrent load
+    3. Monitor garbage collection patterns
+    4. Analyze memory allocation across shards
+    
+    **Mitigation**:
+    1. Increase memory limits: Update resource specifications
+    2. Optimize vector indexes: Run compaction jobs
+    3. Implement data partitioning strategies
+    4. Scale cluster horizontally to distribute load
+    
+    ### Issue: Slow Query Performance
+    **Symptoms**:
+    - Alert: `VectorSearchLatencyHigh`
+    - Query timeouts and user complaints
+    - High CPU usage on Weaviate nodes
+    
+    **Optimization**:
+    1. Tune HNSW parameters: ef, efConstruction, maxConnections
+    2. Optimize search filters and query structure
+    3. Implement query result caching
+    4. Consider index rebuilding for better performance
+    
+    ## Backup and Recovery
+    
+    ### Automated Backup Procedures
+    1. Daily full backups to cloud storage
+    2. Incremental backups every 4 hours
+    3. Cross-region replication for disaster recovery
+    4. Automated backup validation and integrity checks
+    
+    ### Recovery Procedures
+    1. Stop all write operations to cluster
+    2. Restore from most recent valid backup
+    3. Verify data integrity and search functionality
+    4. Resume normal operations and monitor closely
+    
+    ## Performance Monitoring
+    - Key metrics: query latency, memory usage, index size
+    - SLO: 95% of queries completed within 500ms
+    - Capacity planning: Monitor growth trends and plan scaling
+
+  # O-RAN Interface Runbook
+  oran-interface-runbook.md: |
+    # O-RAN Interface Operational Runbook
+    
+    ## Overview
+    The O-RAN adaptor manages A1, O1, O2, and E2 interface communications.
+    
+    ## Common Issues and Solutions
+    
+    ### Issue: O-RAN Interface Connectivity Lost
+    **Symptoms**:
+    - Alert: `ORANInterfaceDown`
+    - Network function deployment failures
+    - Interface status reporting unavailable
+    
+    **Investigation**:
+    1. Check adaptor service health: `kubectl get pods -n nephoran-system -l app=oran-adaptor`
+    2. Test interface connectivity: `curl http://oran-adaptor:8080/interfaces/status`
+    3. Review external O-RAN component availability
+    4. Check network policies and firewall rules
+    
+    **Recovery Actions**:
+    1. Restart adaptor service: `kubectl rollout restart deployment/oran-adaptor -n nephoran-system`
+    2. Verify external endpoint configurations
+    3. Test individual interface connections (A1, O1, O2)
+    4. Escalate to network operations if persistent
+    
+    ### Issue: A1 Policy Management Failures
+    **Symptoms**:
+    - Policy CRUD operations failing
+    - xApp management issues
+    - Near-RT RIC connectivity problems
+    
+    **Investigation**:
+    1. Check Near-RT RIC availability and health
+    2. Review A1 API authentication and authorization
+    3. Validate policy schemas and formats
+    4. Monitor API rate limits and quotas
+    
+    **Recovery**:
+    1. Retry failed policy operations
+    2. Refresh authentication tokens
+    3. Validate policy templates and schemas
+    4. Check RIC configuration and policies
+    
+    ### Issue: O1 Management Interface Problems
+    **Symptoms**:
+    - FCAPS operations failing
+    - Configuration management issues
+    - Fault and performance monitoring gaps
+    
+    **Investigation**:
+    1. Check SMO platform connectivity
+    2. Review NETCONF/RESTCONF sessions
+    3. Validate management schemas
+    4. Monitor alarm and event flows
+    
+    **Resolution**:
+    1. Re-establish management sessions
+    2. Synchronize configuration state
+    3. Validate monitoring endpoints
+    4. Clear alarm and event backlogs
+    
+    ## Interface Testing and Validation
+    
+    ### Automated Health Checks
+    1. Continuous connectivity monitoring
+    2. Interface-specific health probes
+    3. End-to-end transaction testing
+    4. Performance and latency monitoring
+    
+    ### Manual Testing Procedures
+    1. Interface capability testing
+    2. Error handling validation
+    3. Load and stress testing
+    4. Failover and recovery testing
+    
+    ## Emergency Procedures
+    
+    ### Interface Isolation
+    1. Isolate problematic interfaces to prevent cascade failures
+    2. Route traffic through healthy interfaces
+    3. Implement fallback mechanisms
+    4. Monitor system stability
+    
+    ### Escalation Procedures
+    1. Network Operations Center (NOC)
+    2. O-RAN vendor support teams
+    3. System integration partners
+    4. Emergency maintenance windows
+
+---
+# Automation Scripts ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: automation-scripts
+  namespace: nephoran-monitoring
+  labels:
+    app: automation-scripts
+    component: monitoring
+data:
+  # Service restart automation
+  restart-service.sh: |
+    #!/bin/bash
+    # Automated service restart script with health validation
+    
+    SERVICE_NAME=${1:-"nephio-bridge"}
+    NAMESPACE=${2:-"nephoran-system"}
+    MAX_WAIT_TIME=${3:-300}  # 5 minutes
+    
+    echo "🔄 Restarting service: $SERVICE_NAME in namespace: $NAMESPACE"
+    
+    # Pre-restart health check
+    echo "📊 Pre-restart health check..."
+    kubectl get pods -n $NAMESPACE -l app=$SERVICE_NAME
+    
+    # Perform rolling restart
+    echo "🚀 Performing rolling restart..."
+    kubectl rollout restart deployment/$SERVICE_NAME -n $NAMESPACE
+    
+    # Wait for rollout to complete
+    echo "⏳ Waiting for rollout to complete (max ${MAX_WAIT_TIME}s)..."
+    kubectl rollout status deployment/$SERVICE_NAME -n $NAMESPACE --timeout=${MAX_WAIT_TIME}s
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Service restart completed successfully"
+        
+        # Post-restart validation
+        echo "🔍 Post-restart validation..."
+        sleep 30  # Allow time for service to stabilize
+        
+        # Check pod status
+        READY_PODS=$(kubectl get pods -n $NAMESPACE -l app=$SERVICE_NAME --no-headers | grep "Running" | grep "1/1" | wc -l)
+        TOTAL_PODS=$(kubectl get pods -n $NAMESPACE -l app=$SERVICE_NAME --no-headers | wc -l)
+        
+        echo "📈 Pod status: $READY_PODS/$TOTAL_PODS ready"
+        
+        if [ "$READY_PODS" -eq "$TOTAL_PODS" ] && [ "$TOTAL_PODS" -gt 0 ]; then
+            echo "✅ All pods are ready and running"
+            
+            # Test service endpoints
+            echo "🔍 Testing service endpoints..."
+            SERVICE_IP=$(kubectl get svc $SERVICE_NAME -n $NAMESPACE -o jsonpath='{.spec.clusterIP}')
+            
+            if curl -f -s --max-time 10 "http://$SERVICE_IP:8080/healthz" > /dev/null; then
+                echo "✅ Health endpoint responding correctly"
+                
+                # Send success notification
+                curl -X POST "$SLACK_WEBHOOK_URL" -H 'Content-type: application/json' \
+                  --data "{\"text\":\"✅ Service $SERVICE_NAME successfully restarted and validated\"}"
+                
+                exit 0
+            else
+                echo "❌ Health endpoint not responding"
+            fi
+        else
+            echo "❌ Not all pods are ready"
+        fi
+    else
+        echo "❌ Service restart failed"
+    fi
+    
+    # Send failure notification
+    curl -X POST "$SLACK_WEBHOOK_URL" -H 'Content-type: application/json' \
+      --data "{\"text\":\"❌ Service $SERVICE_NAME restart failed - manual intervention required\"}"
+    
+    exit 1
+
+  # Intent retry automation
+  retry-failed-intents.sh: |
+    #!/bin/bash
+    # Retry failed NetworkIntent resources
+    
+    NAMESPACE=${1:-"nephoran-system"}
+    MAX_RETRIES=${2:-3}
+    
+    echo "🔄 Retrying failed NetworkIntent resources in namespace: $NAMESPACE"
+    
+    # Get failed intents
+    FAILED_INTENTS=$(kubectl get networkintents -n $NAMESPACE -o json | \
+      jq -r '.items[] | select(.status.phase == "Failed") | .metadata.name')
+    
+    if [ -z "$FAILED_INTENTS" ]; then
+        echo "✅ No failed intents found"
+        exit 0
+    fi
+    
+    echo "📋 Failed intents found:"
+    echo "$FAILED_INTENTS"
+    
+    # Retry each failed intent
+    for intent in $FAILED_INTENTS; do
+        echo "🔄 Retrying intent: $intent"
+        
+        # Get current retry count
+        RETRY_COUNT=$(kubectl get networkintent $intent -n $NAMESPACE -o json | \
+          jq -r '.metadata.annotations["nephoran.com/retry-count"] // "0"')
+        
+        if [ "$RETRY_COUNT" -ge "$MAX_RETRIES" ]; then
+            echo "⚠️ Intent $intent has exceeded max retries ($MAX_RETRIES), skipping"
+            continue
+        fi
+        
+        # Increment retry count
+        NEW_RETRY_COUNT=$((RETRY_COUNT + 1))
+        
+        # Clear failure status and increment retry count
+        kubectl patch networkintent $intent -n $NAMESPACE --type merge -p '{
+          "metadata": {
+            "annotations": {
+              "nephoran.com/retry-count": "'$NEW_RETRY_COUNT'",
+              "nephoran.com/retry-timestamp": "'$(date -Iseconds)'"
+            }
+          },
+          "status": {
+            "phase": "Pending",
+            "message": "Retry attempt '$NEW_RETRY_COUNT'",
+            "lastUpdateTime": "'$(date -Iseconds)'"
+          }
+        }'
+        
+        echo "✅ Intent $intent marked for retry (attempt $NEW_RETRY_COUNT)"
+    done
+    
+    echo "🎯 Retry operation completed"
+
+  # Circuit breaker reset automation
+  reset-circuit-breakers.sh: |
+    #!/bin/bash
+    # Reset circuit breakers across all services
+    
+    NAMESPACE=${1:-"nephoran-system"}
+    
+    echo "🔧 Resetting circuit breakers in namespace: $NAMESPACE"
+    
+    # Services with circuit breaker endpoints
+    SERVICES=("llm-processor" "rag-api" "oran-adaptor")
+    
+    for service in "${SERVICES[@]}"; do
+        echo "🔄 Resetting circuit breaker for $service..."
+        
+        SERVICE_IP=$(kubectl get svc $service -n $NAMESPACE -o jsonpath='{.spec.clusterIP}' 2>/dev/null)
+        
+        if [ -z "$SERVICE_IP" ]; then
+            echo "⚠️ Service $service not found, skipping"
+            continue
+        fi
+        
+        # Check circuit breaker status
+        CB_STATUS=$(curl -s --max-time 5 "http://$SERVICE_IP:8080/circuit-breaker/status" | jq -r '.state // "unknown"' 2>/dev/null)
+        
+        echo "📊 Circuit breaker status for $service: $CB_STATUS"
+        
+        if [ "$CB_STATUS" = "open" ] || [ "$CB_STATUS" = "half-open" ]; then
+            echo "🔧 Resetting circuit breaker for $service..."
+            
+            RESET_RESULT=$(curl -s -X POST "http://$SERVICE_IP:8080/circuit-breaker/reset" \
+              -H "Content-Type: application/json" \
+              -d '{"action":"reset","reason":"automated_recovery"}')
+            
+            if [ $? -eq 0 ]; then
+                echo "✅ Circuit breaker reset successfully for $service"
+            else
+                echo "❌ Failed to reset circuit breaker for $service"
+            fi
+        else
+            echo "✅ Circuit breaker for $service is already closed"
+        fi
+    done
+    
+    echo "🎯 Circuit breaker reset operation completed"
+
+  # Cache management automation
+  manage-caches.sh: |
+    #!/bin/bash
+    # Cache management operations
+    
+    OPERATION=${1:-"status"}  # status, clear, warm
+    NAMESPACE=${2:-"nephoran-system"}
+    
+    echo "🗄️ Cache management operation: $OPERATION in namespace: $NAMESPACE"
+    
+    case $OPERATION in
+        "status")
+            echo "📊 Checking cache status..."
+            
+            # LLM Processor cache
+            LLM_CACHE=$(curl -s "http://llm-processor.$NAMESPACE.svc.cluster.local:8080/cache/stats" | jq -r '.hit_rate // "unknown"')
+            echo "LLM Processor cache hit rate: $LLM_CACHE"
+            
+            # RAG API cache
+            RAG_CACHE=$(curl -s "http://rag-api.$NAMESPACE.svc.cluster.local:8080/cache/stats" | jq -r '.hit_rate // "unknown"')
+            echo "RAG API cache hit rate: $RAG_CACHE"
+            ;;
+            
+        "clear")
+            echo "🧹 Clearing caches..."
+            
+            # Clear LLM Processor cache
+            curl -X DELETE "http://llm-processor.$NAMESPACE.svc.cluster.local:8080/cache/clear"
+            echo "✅ LLM Processor cache cleared"
+            
+            # Clear RAG API cache
+            curl -X DELETE "http://rag-api.$NAMESPACE.svc.cluster.local:8080/cache/clear"
+            echo "✅ RAG API cache cleared"
+            ;;
+            
+        "warm")
+            echo "🔥 Warming caches..."
+            
+            # Warm LLM Processor cache
+            curl -X POST "http://llm-processor.$NAMESPACE.svc.cluster.local:8080/cache/warm" \
+              -H "Content-Type: application/json" \
+              -d '{"strategy":"popular_queries","limit":100}'
+            echo "✅ LLM Processor cache warming initiated"
+            
+            # Warm RAG API cache
+            curl -X POST "http://rag-api.$NAMESPACE.svc.cluster.local:8080/cache/warm" \
+              -H "Content-Type: application/json" \
+              -d '{"strategy":"frequent_vectors","limit":1000}'
+            echo "✅ RAG API cache warming initiated"
+            ;;
+            
+        *)
+            echo "❌ Unknown operation: $OPERATION"
+            echo "Usage: $0 {status|clear|warm} [namespace]"
+            exit 1
+            ;;
+    esac
+
+  # System health check automation
+  health-check.sh: |
+    #!/bin/bash
+    # Comprehensive system health check
+    
+    NAMESPACE=${1:-"nephoran-system"}
+    
+    echo "🏥 Performing comprehensive health check for namespace: $NAMESPACE"
+    
+    # Initialize counters
+    TOTAL_CHECKS=0
+    PASSED_CHECKS=0
+    FAILED_CHECKS=0
+    
+    # Function to perform health check
+    check_health() {
+        local service=$1
+        local endpoint=$2
+        local expected_status=${3:-200}
+        
+        TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+        
+        echo -n "🔍 Checking $service health... "
+        
+        response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$endpoint" 2>/dev/null)
+        
+        if [ "$response" = "$expected_status" ]; then
+            echo "✅ PASS ($response)"
+            PASSED_CHECKS=$((PASSED_CHECKS + 1))
+        else
+            echo "❌ FAIL ($response)"
+            FAILED_CHECKS=$((FAILED_CHECKS + 1))
+        fi
+    }
+    
+    echo "📋 Starting health checks..."
+    
+    # Check core services
+    check_health "nephio-bridge" "http://nephio-bridge.$NAMESPACE.svc.cluster.local:8081/healthz"
+    check_health "llm-processor" "http://llm-processor.$NAMESPACE.svc.cluster.local:8080/healthz"
+    check_health "rag-api" "http://rag-api.$NAMESPACE.svc.cluster.local:8080/healthz"
+    check_health "oran-adaptor" "http://oran-adaptor.$NAMESPACE.svc.cluster.local:8080/healthz"
+    check_health "weaviate" "http://weaviate.$NAMESPACE.svc.cluster.local:8080/v1/.well-known/ready"
+    
+    # Check readiness endpoints
+    check_health "nephio-bridge-ready" "http://nephio-bridge.$NAMESPACE.svc.cluster.local:8081/readyz"
+    check_health "llm-processor-ready" "http://llm-processor.$NAMESPACE.svc.cluster.local:8080/readyz"
+    check_health "rag-api-ready" "http://rag-api.$NAMESPACE.svc.cluster.local:8080/readyz"
+    check_health "oran-adaptor-ready" "http://oran-adaptor.$NAMESPACE.svc.cluster.local:8080/readyz"
+    
+    # Check monitoring endpoints
+    check_health "prometheus" "http://prometheus.nephoran-monitoring.svc.cluster.local:9090/-/ready"
+    check_health "grafana" "http://grafana.nephoran-monitoring.svc.cluster.local:3000/api/health"
+    check_health "alertmanager" "http://alertmanager.nephoran-monitoring.svc.cluster.local:9093/-/ready"
+    
+    # Calculate health score
+    HEALTH_SCORE=$((PASSED_CHECKS * 100 / TOTAL_CHECKS))
+    
+    echo ""
+    echo "📊 Health Check Summary:"
+    echo "   Total Checks: $TOTAL_CHECKS"
+    echo "   Passed: $PASSED_CHECKS"
+    echo "   Failed: $FAILED_CHECKS"
+    echo "   Health Score: $HEALTH_SCORE%"
+    
+    # Determine overall health status
+    if [ $HEALTH_SCORE -ge 95 ]; then
+        echo "✅ Overall Status: HEALTHY"
+        exit 0
+    elif [ $HEALTH_SCORE -ge 80 ]; then
+        echo "⚠️ Overall Status: DEGRADED"
+        exit 1
+    else
+        echo "❌ Overall Status: UNHEALTHY"
+        exit 2
+    fi
+
+---
+# Automated Incident Response Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: incident-response-automation
+  namespace: nephoran-monitoring
+  labels:
+    app: incident-response
+    component: automation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: incident-response
+  template:
+    metadata:
+      labels:
+        app: incident-response
+    spec:
+      serviceAccountName: nephoran-monitoring
+      containers:
+      - name: incident-responder
+        image: alpine/curl:8.4.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          #!/bin/sh
+          echo "🤖 Incident Response Automation System Starting..."
+          
+          # Function to handle alerts
+          handle_alert() {
+            local alert_name=$1
+            local severity=$2
+            local service=$3
+            
+            echo "🚨 Processing alert: $alert_name (severity: $severity, service: $service)"
+            
+            case $alert_name in
+              "ServiceDown")
+                echo "🔄 Executing service restart automation..."
+                /scripts/restart-service.sh $service
+                ;;
+              "CircuitBreakerOpen")
+                echo "🔧 Executing circuit breaker reset..."
+                /scripts/reset-circuit-breakers.sh
+                ;;
+              "HighMemoryUsage")
+                echo "📈 Scaling up service..."
+                kubectl scale deployment/$service --replicas=3 -n nephoran-system
+                ;;
+              "IntentProcessingFailureRate")
+                echo "🔄 Retrying failed intents..."
+                /scripts/retry-failed-intents.sh
+                ;;
+              *)
+                echo "ℹ️ No automated action for alert: $alert_name"
+                ;;
+            esac
+          }
+          
+          # Alert webhook listener
+          while true; do
+            echo "👂 Listening for incident alerts..."
+            
+            # Simulate alert processing (in real implementation, this would be webhook-based)
+            # For now, perform periodic health checks and automated maintenance
+            
+            /scripts/health-check.sh
+            HEALTH_STATUS=$?
+            
+            if [ $HEALTH_STATUS -ne 0 ]; then
+              echo "⚠️ Health check failed, triggering automated recovery..."
+              
+              # Automated recovery actions
+              /scripts/restart-service.sh nephio-bridge
+              /scripts/reset-circuit-breakers.sh
+              /scripts/manage-caches.sh clear
+              /scripts/manage-caches.sh warm
+              
+              # Wait and re-check
+              sleep 60
+              /scripts/health-check.sh
+            fi
+            
+            # Sleep between checks (5 minutes)
+            sleep 300
+          done
+        env:
+        - name: SLACK_WEBHOOK_URL
+          valueFrom:
+            secretKeyRef:
+              name: alertmanager-secrets
+              key: slack-webhook
+        volumeMounts:
+        - name: automation-scripts
+          mountPath: /scripts
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+      volumes:
+      - name: automation-scripts
+        configMap:
+          name: automation-scripts
+          defaultMode: 0755
+
+---
+# Incident Response Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: incident-response
+  namespace: nephoran-monitoring
+  labels:
+    app: incident-response
+    component: automation
+spec:
+  selector:
+    app: incident-response
+  type: ClusterIP
+  ports:
+  - name: webhook
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+
+---
+# Runbook Automation CronJobs
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: daily-health-check
+  namespace: nephoran-monitoring
+  labels:
+    app: automated-maintenance
+    component: health-check
+spec:
+  schedule: "0 8 * * *"  # Daily at 8 AM UTC
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: nephoran-monitoring
+          containers:
+          - name: health-check
+            image: alpine/curl:8.4.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              /scripts/health-check.sh
+              echo "Daily health check completed"
+            volumeMounts:
+            - name: automation-scripts
+              mountPath: /scripts
+          volumes:
+          - name: automation-scripts
+            configMap:
+              name: automation-scripts
+              defaultMode: 0755
+          restartPolicy: OnFailure
+
+---
+# Weekly maintenance automation
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: weekly-maintenance
+  namespace: nephoran-monitoring
+  labels:
+    app: automated-maintenance
+    component: weekly-tasks
+spec:
+  schedule: "0 2 * * 0"  # Weekly on Sunday at 2 AM UTC
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: nephoran-monitoring
+          containers:
+          - name: weekly-maintenance
+            image: alpine/curl:8.4.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "🔧 Starting weekly maintenance tasks..."
+              
+              # Clear caches
+              /scripts/manage-caches.sh clear
+              sleep 30
+              
+              # Warm caches
+              /scripts/manage-caches.sh warm
+              
+              # Reset circuit breakers
+              /scripts/reset-circuit-breakers.sh
+              
+              # Comprehensive health check
+              /scripts/health-check.sh
+              
+              echo "✅ Weekly maintenance completed"
+            volumeMounts:
+            - name: automation-scripts
+              mountPath: /scripts
+          volumes:
+          - name: automation-scripts
+            configMap:
+              name: automation-scripts
+              defaultMode: 0755
+          restartPolicy: OnFailure
+
+---
+# Runbook access RBAC
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-runbook-automation
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints"]
+  verbs: ["get", "list", "watch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets"]
+  verbs: ["get", "list", "watch", "patch", "update"]
+- apiGroups: ["apps"]
+  resources: ["deployments/scale", "replicasets/scale", "statefulsets/scale"]
+  verbs: ["get", "patch", "update"]
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents", "e2nodesets", "managedelements"]
+  verbs: ["get", "list", "watch", "patch", "update"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "create"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-runbook-automation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nephoran-runbook-automation
+subjects:
+- kind: ServiceAccount
+  name: nephoran-monitoring
+  namespace: nephoran-monitoring
+
+---
+# Emergency escalation webhook
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: emergency-escalation
+  namespace: nephoran-monitoring
+data:
+  escalation-config.yaml: |
+    # Emergency Escalation Configuration
+    escalation_levels:
+      level_1:
+        trigger: "service_down"
+        timeout: "5m"
+        actions:
+          - "automated_restart"
+          - "slack_notification"
+        contacts:
+          - "#nephoran-alerts"
+      
+      level_2:
+        trigger: "automated_recovery_failed"
+        timeout: "10m"
+        actions:
+          - "page_oncall_engineer"
+          - "create_incident_ticket"
+        contacts:
+          - "oncall@nephoran.com"
+          - "#nephoran-critical"
+      
+      level_3:
+        trigger: "critical_system_failure"
+        timeout: "15m"
+        actions:
+          - "executive_notification"
+          - "emergency_response_team"
+        contacts:
+          - "exec-team@nephoran.com"
+          - "emergency-response@nephoran.com"
+    
+    notification_templates:
+      slack_critical: |
+        🚨 **CRITICAL SYSTEM ALERT** 🚨
+        Service: {{ .service }}
+        Issue: {{ .alert_name }}
+        Duration: {{ .duration }}
+        Automated Actions: {{ .actions_taken }}
+        Status: {{ .recovery_status }}
+        
+        @channel @oncall-engineer
+      
+      email_executive: |
+        Subject: CRITICAL: Nephoran System Incident
+        
+        A critical system incident has been detected:
+        
+        Service: {{ .service }}
+        Alert: {{ .alert_name }}
+        Impact: {{ .business_impact }}
+        Duration: {{ .duration }}
+        
+        Automated recovery attempts: {{ .recovery_attempts }}
+        Current status: {{ .status }}
+        
+        Manual intervention may be required.
+        
+        Incident Response Team has been notified.

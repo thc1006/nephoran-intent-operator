@@ -1,0 +1,788 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-config
+  namespace: nephoran-monitoring
+  labels:
+    app: logstash
+    component: logging
+    app.kubernetes.io/name: logstash
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  logstash.yml: |
+    http.host: "0.0.0.0"
+    path.config: /usr/share/logstash/pipeline
+    path.logs: /var/log/logstash
+    
+    # Performance tuning for Nephoran workloads
+    pipeline.workers: 4
+    pipeline.batch.size: 1000
+    pipeline.batch.delay: 50
+    
+    # Monitoring and health
+    monitoring.enabled: true
+    monitoring.elasticsearch.hosts: ["http://elasticsearch:9200"]
+    
+    # Logging
+    log.level: info
+    
+    # Dead letter queue
+    dead_letter_queue.enable: true
+    dead_letter_queue.max_bytes: 1gb
+    
+    # X-Pack monitoring
+    xpack.monitoring.enabled: true
+    xpack.monitoring.elasticsearch.hosts: ["http://elasticsearch:9200"]
+
+  nephoran-pipeline.conf: |
+    input {
+      # Kubernetes logs via Filebeat or direct file monitoring
+      beats {
+        port => 5044
+        type => "kubernetes"
+      }
+      
+      # Direct HTTP input for application logs
+      http {
+        port => 8080
+        codec => json
+        type => "nephoran-http"
+        additional_codecs => {
+          "application/json" => "json"
+        }
+      }
+      
+      # Syslog input for system logs
+      syslog {
+        port => 5514
+        type => "syslog"
+      }
+      
+      # TCP input for structured logs
+      tcp {
+        port => 5000
+        codec => json_lines
+        type => "nephoran-structured"
+      }
+    }
+    
+    filter {
+      # Parse Kubernetes logs
+      if [type] == "kubernetes" {
+        # Extract Kubernetes metadata
+        if [kubernetes] {
+          mutate {
+            add_field => {
+              "k8s_namespace" => "%{[kubernetes][namespace]}"
+              "k8s_pod" => "%{[kubernetes][pod_name]}"
+              "k8s_container" => "%{[kubernetes][container_name]}"
+            }
+          }
+          
+          # Add Nephoran-specific tags based on pod labels
+          if [kubernetes][labels][app] =~ /^(nephio-bridge|llm-processor|rag-api|oran-adaptor|weaviate)$/ {
+            mutate {
+              add_tag => ["nephoran-service"]
+              add_field => { "nephoran_component" => "%{[kubernetes][labels][app]}" }
+            }
+          }
+        }
+      }
+      
+      # Parse Nephoran structured logs
+      if [type] == "nephoran-structured" or [type] == "nephoran-http" {
+        # Ensure timestamp field is properly formatted
+        if [timestamp] {
+          date {
+            match => [ "timestamp", "ISO8601", "yyyy-MM-dd'T'HH:mm:ss.SSSZ", "yyyy-MM-dd HH:mm:ss" ]
+            target => "@timestamp"
+          }
+        }
+        
+        # Extract correlation and trace IDs
+        if [correlation_id] {
+          mutate {
+            add_field => { "trace_correlation_id" => "%{correlation_id}" }
+          }
+        }
+        
+        if [trace_id] {
+          mutate {
+            add_field => { "opentelemetry_trace_id" => "%{trace_id}" }
+          }
+        }
+        
+        # Classify log levels
+        if [level] {
+          mutate {
+            uppercase => [ "level" ]
+          }
+        }
+        
+        # Extract intent information
+        if [intent_name] {
+          mutate {
+            add_tag => ["nephoran-intent"]
+            add_field => { "intent_identifier" => "%{intent_name}" }
+          }
+        }
+        
+        # Extract O-RAN interface information
+        if [oran_interface] {
+          mutate {
+            add_tag => ["oran-interface"]
+            add_field => { "oran_interface_type" => "%{oran_interface}" }
+          }
+        }
+        
+        # Security event classification
+        if [event_type] == "security" or [log_type] == "security" {
+          mutate {
+            add_tag => ["security-event"]
+          }
+          
+          # Extract security severity
+          if [severity] {
+            mutate {
+              add_field => { "security_severity" => "%{severity}" }
+            }
+          }
+        }
+        
+        # Error classification and enrichment
+        if [level] == "ERROR" or [error] {
+          mutate {
+            add_tag => ["error"]
+          }
+          
+          # Extract error details
+          if [error_type] {
+            mutate {
+              add_field => { "error_classification" => "%{error_type}" }
+            }
+          }
+          
+          # Stack trace handling
+          if [error] =~ /\n.*at / {
+            mutate {
+              add_tag => ["has-stacktrace"]
+            }
+          }
+        }
+        
+        # Performance metrics extraction
+        if [duration] {
+          mutate {
+            convert => { "duration" => "integer" }
+          }
+          
+          # Classify performance levels
+          if [duration] >= 5000 {
+            mutate { add_tag => ["slow-operation"] }
+          } else if [duration] >= 1000 {
+            mutate { add_tag => ["moderate-performance"] }
+          } else {
+            mutate { add_tag => ["fast-operation"] }
+          }
+        }
+        
+        # Business metrics classification
+        if [operation_type] == "intent_processing" {
+          mutate {
+            add_tag => ["business-metric"]
+            add_field => { "business_operation" => "intent_processing" }
+          }
+        }
+        
+        if [operation_type] == "llm_processing" {
+          mutate {
+            add_tag => ["ai-operation"]
+            add_field => { "ai_operation_type" => "llm_processing" }
+          }
+        }
+      }
+      
+      # General enrichment for all logs
+      mutate {
+        add_field => {
+          "log_source" => "nephoran-intent-operator"
+          "environment" => "${NEPHORAN_ENVIRONMENT:production}"
+          "cluster" => "${KUBERNETES_CLUSTER_NAME:nephoran-cluster}"
+        }
+      }
+      
+      # GeoIP enrichment for IP addresses
+      if [client_ip] {
+        geoip {
+          source => "client_ip"
+          target => "geoip"
+        }
+      }
+      
+      if [source_ip] {
+        geoip {
+          source => "source_ip"
+          target => "source_geoip"
+        }
+      }
+      
+      # User agent parsing for HTTP logs
+      if [user_agent] {
+        useragent {
+          source => "user_agent"
+          target => "ua"
+        }
+      }
+      
+      # Remove sensitive information
+      mutate {
+        remove_field => ["password", "token", "secret", "api_key"]
+      }
+      
+      # Add processing timestamp
+      mutate {
+        add_field => { "processed_at" => "%{+yyyy-MM-dd'T'HH:mm:ss.SSSZ}" }
+      }
+    }
+    
+    output {
+      # Main Elasticsearch output with index routing
+      elasticsearch {
+        hosts => ["http://elasticsearch:9200"]
+        
+        # Dynamic index routing based on log type and date
+        index => "nephoran-%{[type]:unknown}-%{+yyyy.MM.dd}"
+        
+        # Template management
+        template_name => "nephoran-logs"
+        template => "/usr/share/logstash/templates/nephoran-template.json"
+        template_overwrite => true
+        
+        # Document routing
+        document_type => "_doc"
+        
+        # Performance tuning
+        flush_size => 1000
+        idle_flush_time => 10
+        
+        # Retry configuration
+        retry_max_interval => 30
+        retry_max_times => 5
+        
+        # Health check
+        healthcheck_path => "/_cluster/health"
+      }
+      
+      # Security events to dedicated index
+      if "security-event" in [tags] {
+        elasticsearch {
+          hosts => ["http://elasticsearch:9200"]
+          index => "nephoran-security-%{+yyyy.MM.dd}"
+          document_type => "_doc"
+          flush_size => 100
+          idle_flush_time => 5
+        }
+      }
+      
+      # High-priority errors to dedicated index
+      if "error" in [tags] and [level] == "ERROR" {
+        elasticsearch {
+          hosts => ["http://elasticsearch:9200"]
+          index => "nephoran-errors-%{+yyyy.MM.dd}"
+          document_type => "_doc"
+          flush_size => 100
+          idle_flush_time => 5
+        }
+      }
+      
+      # Business metrics to dedicated index
+      if "business-metric" in [tags] {
+        elasticsearch {
+          hosts => ["http://elasticsearch:9200"]
+          index => "nephoran-business-%{+yyyy.MM.dd}"
+          document_type => "_doc"
+          flush_size => 500
+        }
+      }
+      
+      # Debug output for development
+      if "${LOGSTASH_DEBUG:false}" == "true" {
+        stdout {
+          codec => rubydebug
+        }
+      }
+      
+      # Dead letter queue for failed events
+      if "_grokparsefailure" in [tags] or "_dateparsefailure" in [tags] {
+        elasticsearch {
+          hosts => ["http://elasticsearch:9200"]
+          index => "nephoran-dlq-%{+yyyy.MM.dd}"
+          document_type => "_doc"
+        }
+      }
+    }
+
+  jvm.options: |
+    # Heap settings
+    -Xms2g
+    -Xmx2g
+    
+    # GC settings
+    -XX:+UseG1GC
+    -XX:G1HeapRegionSize=16m
+    -XX:+UseStringDeduplication
+    
+    # Performance optimizations
+    -XX:+UnlockExperimentalVMOptions
+    -XX:+UseCGroupMemoryLimitForHeap
+    -XX:MaxRAMFraction=1
+    
+    # Security
+    -Djava.security.egd=file:/dev/./urandom
+    
+    # Monitoring
+    -Dcom.sun.management.jmxremote
+    -Dcom.sun.management.jmxremote.port=9600
+    -Dcom.sun.management.jmxremote.ssl=false
+    -Dcom.sun.management.jmxremote.authenticate=false
+
+  log4j2.properties: |
+    status = info
+    name = LogstashPropertiesConfig
+    
+    appender.console.type = Console
+    appender.console.name = plain_console
+    appender.console.layout.type = PatternLayout
+    appender.console.layout.pattern = [%d{ISO8601}][%-5p][%-25c] %m%n
+    
+    appender.json_console.type = Console
+    appender.json_console.name = json_console
+    appender.json_console.layout.type = JSONLayout
+    appender.json_console.layout.compact = true
+    appender.json_console.layout.eventEol = true
+    
+    rootLogger.level = info
+    rootLogger.appenderRef.console.ref = ${LOGSTASH_LOG_FORMAT:plain_console}
+    
+    logger.slowlog.name = slowlog
+    logger.slowlog.level = trace
+    logger.slowlog.appenderRef.console.ref = ${LOGSTASH_LOG_FORMAT:plain_console}
+    logger.slowlog.additivity = false
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: logstash-templates
+  namespace: nephoran-monitoring
+  labels:
+    app: logstash
+    component: logging
+data:
+  nephoran-template.json: |
+    {
+      "index_patterns": ["nephoran-*"],
+      "version": 1,
+      "settings": {
+        "number_of_shards": 1,
+        "number_of_replicas": 0,
+        "index.lifecycle.name": "nephoran-logs-policy",
+        "index.lifecycle.rollover_alias": "nephoran-logs",
+        "refresh_interval": "30s",
+        "max_result_window": 50000,
+        "analysis": {
+          "analyzer": {
+            "nephoran_analyzer": {
+              "type": "custom",
+              "tokenizer": "standard",
+              "filter": ["lowercase", "stop", "snowball"]
+            }
+          }
+        }
+      },
+      "mappings": {
+        "properties": {
+          "@timestamp": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "timestamp": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "processed_at": {
+            "type": "date",
+            "format": "strict_date_optional_time||epoch_millis"
+          },
+          "level": {
+            "type": "keyword",
+            "fields": {
+              "text": {
+                "type": "text",
+                "analyzer": "nephoran_analyzer"
+              }
+            }
+          },
+          "message": {
+            "type": "text",
+            "analyzer": "nephoran_analyzer",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 512
+              }
+            }
+          },
+          "service": {"type": "keyword"},
+          "environment": {"type": "keyword"},
+          "cluster": {"type": "keyword"},
+          "log_source": {"type": "keyword"},
+          "component": {"type": "keyword"},
+          "nephoran_component": {"type": "keyword"},
+          "correlation_id": {"type": "keyword"},
+          "trace_correlation_id": {"type": "keyword"},
+          "request_id": {"type": "keyword"},
+          "operation_id": {"type": "keyword"},
+          "trace_id": {"type": "keyword"},
+          "opentelemetry_trace_id": {"type": "keyword"},
+          "span_id": {"type": "keyword"},
+          "intent_name": {"type": "keyword"},
+          "intent_identifier": {"type": "keyword"},
+          "intent_namespace": {"type": "keyword"},
+          "operation": {"type": "keyword"},
+          "operation_type": {"type": "keyword"},
+          "business_operation": {"type": "keyword"},
+          "ai_operation_type": {"type": "keyword"},
+          "status": {"type": "keyword"},
+          "duration": {"type": "long"},
+          "error": {
+            "type": "text",
+            "analyzer": "nephoran_analyzer",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 1024
+              }
+            }
+          },
+          "error_type": {"type": "keyword"},
+          "error_classification": {"type": "keyword"},
+          "oran_interface": {"type": "keyword"},
+          "oran_interface_type": {"type": "keyword"},
+          "endpoint": {"type": "keyword"},
+          "status_code": {"type": "integer"},
+          "policy_type": {"type": "keyword"},
+          "policy_id": {"type": "keyword"},
+          "user_id": {"type": "keyword"},
+          "client_ip": {"type": "ip"},
+          "source_ip": {"type": "ip"},
+          "user_agent": {"type": "text"},
+          "severity": {"type": "keyword"},
+          "security_severity": {"type": "keyword"},
+          "event_type": {"type": "keyword"},
+          "log_type": {"type": "keyword"},
+          "resource_type": {"type": "keyword"},
+          "resource_name": {"type": "keyword"},
+          "namespace": {"type": "keyword"},
+          "k8s_namespace": {"type": "keyword"},
+          "k8s_pod": {"type": "keyword"},
+          "k8s_container": {"type": "keyword"},
+          "kubernetes": {
+            "properties": {
+              "namespace": {"type": "keyword"},
+              "pod_name": {"type": "keyword"},
+              "container_name": {"type": "keyword"},
+              "labels": {
+                "type": "object",
+                "dynamic": true
+              }
+            }
+          },
+          "geoip": {
+            "properties": {
+              "location": {"type": "geo_point"},
+              "country_name": {"type": "keyword"},
+              "city_name": {"type": "keyword"},
+              "region_name": {"type": "keyword"}
+            }
+          },
+          "source_geoip": {
+            "properties": {
+              "location": {"type": "geo_point"},
+              "country_name": {"type": "keyword"},
+              "city_name": {"type": "keyword"},
+              "region_name": {"type": "keyword"}
+            }
+          },
+          "ua": {
+            "properties": {
+              "name": {"type": "keyword"},
+              "version": {"type": "keyword"},
+              "os": {"type": "keyword"},
+              "device": {"type": "keyword"}
+            }
+          },
+          "tags": {"type": "keyword"}
+        }
+      },
+      "aliases": {
+        "nephoran-logs": {}
+      }
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+  namespace: nephoran-monitoring
+  labels:
+    app: logstash
+    component: logging
+    app.kubernetes.io/name: logstash
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+        component: logging
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9600"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+      containers:
+      - name: logstash
+        image: docker.elastic.co/logstash/logstash:8.11.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5044
+          name: beats
+          protocol: TCP
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 5514
+          name: syslog
+          protocol: TCP
+        - containerPort: 5000
+          name: tcp
+          protocol: TCP
+        - containerPort: 9600
+          name: monitoring
+          protocol: TCP
+        - containerPort: 9600
+          name: jmx
+          protocol: TCP
+        env:
+        - name: LS_JAVA_OPTS
+          value: "-Xms2g -Xmx2g"
+        - name: NEPHORAN_ENVIRONMENT
+          value: "production"
+        - name: KUBERNETES_CLUSTER_NAME
+          value: "nephoran-cluster"
+        - name: LOGSTASH_DEBUG
+          value: "false"
+        - name: XPACK_MONITORING_ENABLED
+          value: "true"
+        - name: XPACK_MONITORING_ELASTICSEARCH_HOSTS
+          value: "http://elasticsearch:9200"
+        resources:
+          requests:
+            memory: "3Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: logstash-config
+          mountPath: /usr/share/logstash/config/logstash.yml
+          subPath: logstash.yml
+        - name: logstash-config
+          mountPath: /usr/share/logstash/pipeline/nephoran-pipeline.conf
+          subPath: nephoran-pipeline.conf
+        - name: logstash-config
+          mountPath: /usr/share/logstash/config/jvm.options
+          subPath: jvm.options
+        - name: logstash-config
+          mountPath: /usr/share/logstash/config/log4j2.properties
+          subPath: log4j2.properties
+        - name: logstash-templates
+          mountPath: /usr/share/logstash/templates/nephoran-template.json
+          subPath: nephoran-template.json
+        - name: logstash-data
+          mountPath: /usr/share/logstash/data
+        - name: logstash-logs
+          mountPath: /var/log/logstash
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 9600
+          initialDelaySeconds: 90
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 9600
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /
+            port: 9600
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+      volumes:
+      - name: logstash-config
+        configMap:
+          name: logstash-config
+      - name: logstash-templates
+        configMap:
+          name: logstash-templates
+      - name: logstash-data
+        emptyDir:
+          sizeLimit: 10Gi
+      - name: logstash-logs
+        emptyDir:
+          sizeLimit: 2Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash
+  namespace: nephoran-monitoring
+  labels:
+    app: logstash
+    component: logging
+    app.kubernetes.io/name: logstash
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9600"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: beats
+    port: 5044
+    targetPort: 5044
+    protocol: TCP
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: syslog
+    port: 5514
+    targetPort: 5514
+    protocol: TCP
+  - name: tcp
+    port: 5000
+    targetPort: 5000
+    protocol: TCP
+  - name: monitoring
+    port: 9600
+    targetPort: 9600
+    protocol: TCP
+  selector:
+    app: logstash
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash-beats
+  namespace: nephoran-monitoring
+  labels:
+    app: logstash
+    component: logging
+spec:
+  type: LoadBalancer
+  ports:
+  - name: beats
+    port: 5044
+    targetPort: 5044
+    protocol: TCP
+  selector:
+    app: logstash
+
+---
+# HorizontalPodAutoscaler for Logstash
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: logstash-hpa
+  namespace: nephoran-monitoring
+  labels:
+    app: logstash
+    component: logging
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: logstash
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+
+---
+# ServiceMonitor for Prometheus scraping
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: logstash
+  namespace: nephoran-monitoring
+  labels:
+    app: logstash
+    component: logging
+spec:
+  selector:
+    matchLabels:
+      app: logstash
+  endpoints:
+  - port: monitoring
+    interval: 30s
+    path: /metrics
