@@ -1,0 +1,1032 @@
+---
+# Comprehensive Health Checks and Service Discovery Monitoring
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: health-check-configuration
+  namespace: nephoran-monitoring
+  labels:
+    app: health-checks
+    component: monitoring
+    app.kubernetes.io/name: health-checks
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  # Health Check Endpoint Configuration
+  health-check-config.yaml: |
+    # Global health check configuration
+    health_checks:
+      enabled: true
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      failure_threshold: 3
+      success_threshold: 1
+      
+    # Service-specific health check configurations
+    services:
+      nephio-bridge:
+        endpoints:
+          - name: readiness
+            path: /readyz
+            port: 8081
+            scheme: http
+            headers:
+              User-Agent: "Nephoran-HealthCheck/1.0"
+            expected_status: [200]
+            expected_body_contains: "ready"
+          - name: liveness
+            path: /healthz
+            port: 8081
+            scheme: http
+            headers:
+              User-Agent: "Nephoran-HealthCheck/1.0"
+            expected_status: [200]
+            expected_body_contains: "healthy"
+          - name: metrics
+            path: /metrics
+            port: 8080
+            scheme: http
+            expected_status: [200]
+            expected_content_type: "text/plain"
+        dependencies:
+          - name: kubernetes-api
+            type: external
+            check: api_server_connectivity
+          - name: git-repository
+            type: external
+            check: git_connectivity
+        health_thresholds:
+          startup_time: 60s
+          max_response_time: 5s
+          min_success_rate: 95%
+          
+      llm-processor:
+        endpoints:
+          - name: readiness
+            path: /readyz
+            port: 8080
+            scheme: http
+            expected_status: [200]
+            expected_body_contains: "dependencies_ready"
+          - name: liveness
+            path: /healthz
+            port: 8080
+            scheme: http
+            expected_status: [200]
+            expected_body_contains: "service_healthy"
+          - name: circuit-breaker
+            path: /circuit-breaker/status
+            port: 8080
+            scheme: http
+            expected_status: [200]
+            check_circuit_state: true
+        dependencies:
+          - name: rag-api
+            type: internal
+            check: http_connectivity
+            endpoint: "http://rag-api:8080/health"
+          - name: openai-api
+            type: external
+            check: api_connectivity
+            endpoint: "https://api.openai.com/v1/models"
+        health_thresholds:
+          startup_time: 30s
+          max_response_time: 2s
+          min_success_rate: 98%
+          
+      rag-api:
+        endpoints:
+          - name: readiness
+            path: /readyz
+            port: 8080
+            scheme: http
+            expected_status: [200]
+            expected_body_contains: "weaviate_ready"
+          - name: liveness
+            path: /healthz
+            port: 8080
+            scheme: http
+            expected_status: [200]
+            expected_body_contains: "api_healthy"
+          - name: stats
+            path: /stats
+            port: 8080
+            scheme: http
+            expected_status: [200]
+        dependencies:
+          - name: weaviate
+            type: internal
+            check: vector_db_connectivity
+            endpoint: "http://weaviate:8080/v1/.well-known/ready"
+          - name: openai-embedding
+            type: external
+            check: embedding_api_connectivity
+        health_thresholds:
+          startup_time: 45s
+          max_response_time: 3s
+          min_success_rate: 96%
+          
+      oran-adaptor:
+        endpoints:
+          - name: readiness
+            path: /readyz
+            port: 8080
+            scheme: http
+            expected_status: [200]
+            expected_body_contains: "interfaces_ready"
+          - name: liveness
+            path: /healthz
+            port: 8080
+            scheme: http
+            expected_status: [200]
+            expected_body_contains: "adaptor_healthy"
+          - name: interfaces
+            path: /interfaces/status
+            port: 8080
+            scheme: http
+            expected_status: [200]
+            check_all_interfaces: true
+        dependencies:
+          - name: a1-interface
+            type: external
+            check: oran_interface_connectivity
+            interface_type: "A1"
+          - name: o1-interface
+            type: external
+            check: oran_interface_connectivity
+            interface_type: "O1"
+          - name: o2-interface
+            type: external
+            check: oran_interface_connectivity
+            interface_type: "O2"
+        health_thresholds:
+          startup_time: 90s
+          max_response_time: 1s
+          min_success_rate: 99%
+          
+      weaviate:
+        endpoints:
+          - name: readiness
+            path: /v1/.well-known/ready
+            port: 8080
+            scheme: http
+            expected_status: [200]
+          - name: liveness
+            path: /v1/.well-known/live
+            port: 8080
+            scheme: http
+            expected_status: [200]
+          - name: cluster-health
+            path: /v1/nodes
+            port: 8080
+            scheme: http
+            expected_status: [200]
+            check_cluster_nodes: true
+        dependencies:
+          - name: storage
+            type: infrastructure
+            check: persistent_volume_health
+        health_thresholds:
+          startup_time: 120s
+          max_response_time: 500ms
+          min_success_rate: 99.9%
+
+---
+# Health Check Monitoring Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: health-check-monitor
+  namespace: nephoran-monitoring
+  labels:
+    app: health-check-monitor
+    component: monitoring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: health-check-monitor
+  template:
+    metadata:
+      labels:
+        app: health-check-monitor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: nephoran-monitoring
+      containers:
+      - name: health-monitor
+        image: curlimages/curl:8.4.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          #!/bin/sh
+          # Health check monitoring script
+          
+          # Function to check service health
+          check_service_health() {
+            local service=$1
+            local endpoint=$2
+            local expected_status=$3
+            
+            response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$endpoint" 2>/dev/null)
+            
+            if [ "$response" = "$expected_status" ]; then
+              echo "service_health{service=\"$service\",endpoint=\"$endpoint\",status=\"healthy\"} 1" >> /tmp/metrics
+            else
+              echo "service_health{service=\"$service\",endpoint=\"$endpoint\",status=\"unhealthy\"} 0" >> /tmp/metrics
+            fi
+            
+            echo "service_response_code{service=\"$service\",endpoint=\"$endpoint\"} $response" >> /tmp/metrics
+          }
+          
+          # Function to check dependency health
+          check_dependency_health() {
+            local service=$1
+            local dependency=$2
+            local endpoint=$3
+            
+            if curl -f -s --max-time 5 "$endpoint" > /dev/null 2>&1; then
+              echo "service_dependency_health{service=\"$service\",dependency=\"$dependency\",status=\"healthy\"} 1" >> /tmp/metrics
+            else
+              echo "service_dependency_health{service=\"$service\",dependency=\"$dependency\",status=\"unhealthy\"} 0" >> /tmp/metrics
+            fi
+          }
+          
+          # Function to calculate service uptime
+          calculate_uptime() {
+            local service=$1
+            local start_time_file="/tmp/${service}_start_time"
+            
+            if [ ! -f "$start_time_file" ]; then
+              date +%s > "$start_time_file"
+            fi
+            
+            start_time=$(cat "$start_time_file")
+            current_time=$(date +%s)
+            uptime=$((current_time - start_time))
+            
+            echo "service_uptime_seconds{service=\"$service\"} $uptime" >> /tmp/metrics
+          }
+          
+          # Main monitoring loop
+          while true; do
+            # Clear metrics file
+            echo "# HELP service_health Service health status (1=healthy, 0=unhealthy)" > /tmp/metrics
+            echo "# TYPE service_health gauge" >> /tmp/metrics
+            echo "# HELP service_response_code HTTP response code from health check" >> /tmp/metrics
+            echo "# TYPE service_response_code gauge" >> /tmp/metrics
+            echo "# HELP service_dependency_health Service dependency health status" >> /tmp/metrics
+            echo "# TYPE service_dependency_health gauge" >> /tmp/metrics
+            echo "# HELP service_uptime_seconds Service uptime in seconds" >> /tmp/metrics
+            echo "# TYPE service_uptime_seconds counter" >> /tmp/metrics
+            echo "# HELP service_discovery_endpoints Number of discovered service endpoints" >> /tmp/metrics
+            echo "# TYPE service_discovery_endpoints gauge" >> /tmp/metrics
+            
+            # Check Nephio Bridge health
+            check_service_health "nephio-bridge" "http://nephio-bridge.nephoran-system.svc.cluster.local:8081/healthz" "200"
+            check_service_health "nephio-bridge" "http://nephio-bridge.nephoran-system.svc.cluster.local:8081/readyz" "200"
+            calculate_uptime "nephio-bridge"
+            
+            # Check LLM Processor health
+            check_service_health "llm-processor" "http://llm-processor.nephoran-system.svc.cluster.local:8080/healthz" "200"
+            check_service_health "llm-processor" "http://llm-processor.nephoran-system.svc.cluster.local:8080/readyz" "200"
+            check_dependency_health "llm-processor" "rag-api" "http://rag-api.nephoran-system.svc.cluster.local:8080/health"
+            calculate_uptime "llm-processor"
+            
+            # Check RAG API health
+            check_service_health "rag-api" "http://rag-api.nephoran-system.svc.cluster.local:8080/healthz" "200"
+            check_service_health "rag-api" "http://rag-api.nephoran-system.svc.cluster.local:8080/readyz" "200"
+            check_dependency_health "rag-api" "weaviate" "http://weaviate.nephoran-system.svc.cluster.local:8080/v1/.well-known/ready"
+            calculate_uptime "rag-api"
+            
+            # Check O-RAN Adaptor health
+            check_service_health "oran-adaptor" "http://oran-adaptor.nephoran-system.svc.cluster.local:8080/healthz" "200"
+            check_service_health "oran-adaptor" "http://oran-adaptor.nephoran-system.svc.cluster.local:8080/readyz" "200"
+            calculate_uptime "oran-adaptor"
+            
+            # Check Weaviate health
+            check_service_health "weaviate" "http://weaviate.nephoran-system.svc.cluster.local:8080/v1/.well-known/ready" "200"
+            check_service_health "weaviate" "http://weaviate.nephoran-system.svc.cluster.local:8080/v1/.well-known/live" "200"
+            calculate_uptime "weaviate"
+            
+            # Service Discovery - Count available endpoints
+            nephio_endpoints=$(nslookup nephio-bridge.nephoran-system.svc.cluster.local 2>/dev/null | grep -c "Address:" || echo "0")
+            llm_endpoints=$(nslookup llm-processor.nephoran-system.svc.cluster.local 2>/dev/null | grep -c "Address:" || echo "0")
+            rag_endpoints=$(nslookup rag-api.nephoran-system.svc.cluster.local 2>/dev/null | grep -c "Address:" || echo "0")
+            oran_endpoints=$(nslookup oran-adaptor.nephoran-system.svc.cluster.local 2>/dev/null | grep -c "Address:" || echo "0")
+            weaviate_endpoints=$(nslookup weaviate.nephoran-system.svc.cluster.local 2>/dev/null | grep -c "Address:" || echo "0")
+            
+            echo "service_discovery_endpoints{service=\"nephio-bridge\"} $nephio_endpoints" >> /tmp/metrics
+            echo "service_discovery_endpoints{service=\"llm-processor\"} $llm_endpoints" >> /tmp/metrics
+            echo "service_discovery_endpoints{service=\"rag-api\"} $rag_endpoints" >> /tmp/metrics
+            echo "service_discovery_endpoints{service=\"oran-adaptor\"} $oran_endpoints" >> /tmp/metrics
+            echo "service_discovery_endpoints{service=\"weaviate\"} $weaviate_endpoints" >> /tmp/metrics
+            
+            # Add timestamp
+            echo "health_check_last_run_timestamp $(date +%s)" >> /tmp/metrics
+            
+            # Wait for next check
+            sleep 30
+          done &
+          
+          # Start metrics server
+          while true; do
+            echo -e "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n$(cat /tmp/metrics 2>/dev/null || echo '# No metrics available')" | nc -l -p 9090 -q 1
+          done
+        ports:
+        - containerPort: 9090
+          name: metrics
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 9090
+          initialDelaySeconds: 10
+          periodSeconds: 10
+
+---
+# Health Check Monitor Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: health-check-monitor
+  namespace: nephoran-monitoring
+  labels:
+    app: health-check-monitor
+    component: monitoring
+spec:
+  selector:
+    app: health-check-monitor
+  type: ClusterIP
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+
+---
+# ServiceMonitor for Health Check Monitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: health-check-monitor
+  namespace: nephoran-monitoring
+  labels:
+    app: health-check-monitor
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: health-check-monitor
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /
+
+---
+# Service Discovery Monitoring
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-discovery-monitor
+  namespace: nephoran-monitoring
+  labels:
+    app: service-discovery
+    component: monitoring
+data:
+  service-discovery-config.yaml: |
+    # Service Discovery Configuration
+    discovery:
+      enabled: true
+      check_interval: 60s
+      timeout: 10s
+      
+    # Services to monitor for discovery
+    monitored_services:
+      - name: nephio-bridge
+        namespace: nephoran-system
+        type: ClusterIP
+        expected_ports: [8080, 8081]
+        health_endpoint: "/healthz"
+        
+      - name: llm-processor
+        namespace: nephoran-system
+        type: ClusterIP
+        expected_ports: [8080]
+        health_endpoint: "/healthz"
+        
+      - name: rag-api
+        namespace: nephoran-system
+        type: ClusterIP
+        expected_ports: [8080]
+        health_endpoint: "/health"
+        
+      - name: oran-adaptor
+        namespace: nephoran-system
+        type: ClusterIP
+        expected_ports: [8080]
+        health_endpoint: "/healthz"
+        
+      - name: weaviate
+        namespace: nephoran-system
+        type: ClusterIP
+        expected_ports: [8080]
+        health_endpoint: "/v1/.well-known/ready"
+        
+    # DNS resolution monitoring
+    dns_checks:
+      - domain: nephio-bridge.nephoran-system.svc.cluster.local
+        record_type: A
+        expected_responses: 1
+        
+      - domain: llm-processor.nephoran-system.svc.cluster.local
+        record_type: A
+        expected_responses: 1
+        
+      - domain: rag-api.nephoran-system.svc.cluster.local
+        record_type: A
+        expected_responses: 1
+        
+      - domain: oran-adaptor.nephoran-system.svc.cluster.local
+        record_type: A
+        expected_responses: 1
+        
+      - domain: weaviate.nephoran-system.svc.cluster.local
+        record_type: A
+        expected_responses: 1
+        
+    # Endpoint monitoring
+    endpoint_checks:
+      - name: kubernetes-api
+        url: https://kubernetes.default.svc.cluster.local/api/v1
+        expected_status: [200, 401]  # 401 is acceptable (authentication required)
+        
+      - name: prometheus
+        url: http://prometheus.nephoran-monitoring.svc.cluster.local:9090/-/ready
+        expected_status: [200]
+        
+      - name: grafana
+        url: http://grafana.nephoran-monitoring.svc.cluster.local:3000/api/health
+        expected_status: [200]
+        
+      - name: alertmanager
+        url: http://alertmanager.nephoran-monitoring.svc.cluster.local:9093/-/ready
+        expected_status: [200]
+
+---
+# Enhanced Liveness and Readiness Probes Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enhanced-probes-config
+  namespace: nephoran-system
+  labels:
+    app: nephoran-intent-operator
+    component: health-probes
+data:
+  # Nephio Bridge Enhanced Probes
+  nephio-bridge-probes.yaml: |
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8081
+        scheme: HTTP
+        httpHeaders:
+        - name: User-Agent
+          value: "Kubernetes-Liveness-Probe"
+      initialDelaySeconds: 60
+      periodSeconds: 30
+      timeoutSeconds: 10
+      successThreshold: 1
+      failureThreshold: 5
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8081
+        scheme: HTTP
+        httpHeaders:
+        - name: User-Agent
+          value: "Kubernetes-Readiness-Probe"
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      successThreshold: 1
+      failureThreshold: 3
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      successThreshold: 1
+      failureThreshold: 10
+      
+  # LLM Processor Enhanced Probes
+  llm-processor-probes.yaml: |
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+        httpHeaders:
+        - name: User-Agent
+          value: "Kubernetes-Liveness-Probe"
+      initialDelaySeconds: 45
+      periodSeconds: 30
+      timeoutSeconds: 10
+      successThreshold: 1
+      failureThreshold: 5
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8080
+        scheme: HTTP
+        httpHeaders:
+        - name: User-Agent
+          value: "Kubernetes-Readiness-Probe"
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      successThreshold: 1
+      failureThreshold: 3
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 5
+      timeoutSeconds: 3
+      successThreshold: 1
+      failureThreshold: 12
+      
+  # RAG API Enhanced Probes
+  rag-api-probes.yaml: |
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+        httpHeaders:
+        - name: User-Agent
+          value: "Kubernetes-Liveness-Probe"
+      initialDelaySeconds: 60
+      periodSeconds: 30
+      timeoutSeconds: 15
+      successThreshold: 1
+      failureThreshold: 5
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8080
+        scheme: HTTP
+        httpHeaders:
+        - name: User-Agent
+          value: "Kubernetes-Readiness-Probe"
+      initialDelaySeconds: 45
+      periodSeconds: 15
+      timeoutSeconds: 10
+      successThreshold: 1
+      failureThreshold: 3
+    startupProbe:
+      httpGet:
+        path: /health
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 45
+      periodSeconds: 10
+      timeoutSeconds: 5
+      successThreshold: 1
+      failureThreshold: 15
+      
+  # O-RAN Adaptor Enhanced Probes
+  oran-adaptor-probes.yaml: |
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+        httpHeaders:
+        - name: User-Agent
+          value: "Kubernetes-Liveness-Probe"
+      initialDelaySeconds: 90
+      periodSeconds: 30
+      timeoutSeconds: 10
+      successThreshold: 1
+      failureThreshold: 5
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8080
+        scheme: HTTP
+        httpHeaders:
+        - name: User-Agent
+          value: "Kubernetes-Readiness-Probe"
+      initialDelaySeconds: 60
+      periodSeconds: 15
+      timeoutSeconds: 10
+      successThreshold: 1
+      failureThreshold: 3
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 60
+      periodSeconds: 15
+      timeoutSeconds: 10
+      successThreshold: 1
+      failureThreshold: 10
+      
+  # Weaviate Enhanced Probes
+  weaviate-probes.yaml: |
+    livenessProbe:
+      httpGet:
+        path: /v1/.well-known/live
+        port: 8080
+        scheme: HTTP
+        httpHeaders:
+        - name: User-Agent
+          value: "Kubernetes-Liveness-Probe"
+      initialDelaySeconds: 120
+      periodSeconds: 30
+      timeoutSeconds: 10
+      successThreshold: 1
+      failureThreshold: 5
+    readinessProbe:
+      httpGet:
+        path: /v1/.well-known/ready
+        port: 8080
+        scheme: HTTP
+        httpHeaders:
+        - name: User-Agent
+          value: "Kubernetes-Readiness-Probe"
+      initialDelaySeconds: 90
+      periodSeconds: 15
+      timeoutSeconds: 10
+      successThreshold: 1
+      failureThreshold: 3
+    startupProbe:
+      httpGet:
+        path: /v1/.well-known/live
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 60
+      periodSeconds: 20
+      timeoutSeconds: 10
+      successThreshold: 1
+      failureThreshold: 15
+
+---
+# Health Dashboard for Grafana
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: health-dashboard
+  namespace: nephoran-monitoring
+  labels:
+    grafana_dashboard: "true"
+    app: grafana-dashboards
+data:
+  health-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Service Health & Discovery",
+        "tags": ["nephoran", "health", "service-discovery"],
+        "timezone": "UTC",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Service Health Overview",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "service_health",
+                "legendFormat": "{{service}} - {{endpoint}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                },
+                "mappings": [
+                  {"options": {"0": {"text": "Unhealthy"}}, "type": "value"},
+                  {"options": {"1": {"text": "Healthy"}}, "type": "value"}
+                ]
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Service Uptime",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "service_uptime_seconds / 3600",
+                "legendFormat": "{{service}} (hours)"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "h",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 1},
+                    {"color": "green", "value": 24}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Service Dependencies Health",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "service_dependency_health",
+                "legendFormat": "",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "mappings": [
+                  {"options": {"0": {"text": "❌ Unhealthy", "color": "red"}}, "type": "value"},
+                  {"options": {"1": {"text": "✅ Healthy", "color": "green"}}, "type": "value"}
+                ]
+              }
+            },
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {"Time": true, "__name__": true},
+                  "renameByName": {
+                    "service": "Service",
+                    "dependency": "Dependency",
+                    "Value": "Health Status"
+                  }
+                }
+              }
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Service Discovery Endpoints",
+            "type": "bargauge",
+            "targets": [
+              {
+                "expr": "service_discovery_endpoints",
+                "legendFormat": "{{service}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 1},
+                    {"color": "green", "value": 2}
+                  ]
+                },
+                "min": 0,
+                "max": 5
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+          },
+          {
+            "id": 5,
+            "title": "Health Check Response Codes",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "service_response_code",
+                "legendFormat": "",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "mappings": [
+                  {"options": {"200": {"text": "✅ 200 OK", "color": "green"}}, "type": "value"},
+                  {"options": {"404": {"text": "❌ 404 Not Found", "color": "red"}}, "type": "value"},
+                  {"options": {"500": {"text": "❌ 500 Server Error", "color": "red"}}, "type": "value"},
+                  {"options": {"0": {"text": "❌ Connection Failed", "color": "dark-red"}}, "type": "value"}
+                ]
+              }
+            },
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {"Time": true, "__name__": true},
+                  "renameByName": {
+                    "service": "Service",
+                    "endpoint": "Endpoint",
+                    "Value": "Response Code"
+                  }
+                }
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Service Health Timeline",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "service_health",
+                "legendFormat": "{{service}} - {{endpoint}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "custom": {
+                  "drawStyle": "line",
+                  "lineInterpolation": "stepAfter",
+                  "pointSize": 3,
+                  "fillOpacity": 20
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                },
+                "min": 0,
+                "max": 1
+              }
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 24}
+          }
+        ],
+        "time": {
+          "from": "now-6h",
+          "to": "now"
+        },
+        "refresh": "30s",
+        "schemaVersion": 39,
+        "version": 1
+      }
+    }
+
+---
+# Prometheus Rules for Health Monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nephoran-health-rules
+  namespace: nephoran-monitoring
+  labels:
+    app: nephoran-health-monitoring
+    component: alerting
+spec:
+  groups:
+  - name: nephoran.health.rules
+    rules:
+    # Service health recording rules
+    - record: nephoran:service:health_status
+      expr: |
+        max by (service) (service_health{status="healthy"})
+        
+    - record: nephoran:service:availability_percentage
+      expr: |
+        (
+          increase(service_health{status="healthy"}[5m]) /
+          (increase(service_health{status="healthy"}[5m]) + increase(service_health{status="unhealthy"}[5m])) * 100
+        ) or vector(100)
+        
+    - record: nephoran:service:dependency_health_score
+      expr: |
+        avg by (service) (service_dependency_health{status="healthy"})
+        
+    # Service discovery recording rules
+    - record: nephoran:discovery:endpoint_availability
+      expr: |
+        service_discovery_endpoints > 0
+        
+    - record: nephoran:discovery:total_endpoints
+      expr: |
+        sum(service_discovery_endpoints)
+        
+    # Health alerting rules
+    - alert: ServiceDown
+      expr: nephoran:service:health_status == 0
+      for: 2m
+      labels:
+        severity: critical
+        alert_type: service_health
+        component: "{{ $labels.service }}"
+      annotations:
+        summary: "Service {{ $labels.service }} is down"
+        description: "Service {{ $labels.service }} has been unhealthy for more than 2 minutes"
+        runbook_url: "https://runbooks.nephoran.com/service-down"
+        
+    - alert: ServiceDependencyDown
+      expr: service_dependency_health{status="unhealthy"} == 0
+      for: 5m
+      labels:
+        severity: warning
+        alert_type: service_health
+        component: "{{ $labels.service }}"
+      annotations:
+        summary: "Service dependency unhealthy"
+        description: "Service {{ $labels.service }} dependency {{ $labels.dependency }} is unhealthy"
+        runbook_url: "https://runbooks.nephoran.com/dependency-health"
+        
+    - alert: ServiceDiscoveryFailure
+      expr: service_discovery_endpoints == 0
+      for: 3m
+      labels:
+        severity: warning
+        alert_type: service_discovery
+        component: "{{ $labels.service }}"
+      annotations:
+        summary: "Service discovery failure"
+        description: "No endpoints discovered for service {{ $labels.service }}"
+        runbook_url: "https://runbooks.nephoran.com/service-discovery"
+        
+    - alert: LowServiceAvailability
+      expr: nephoran:service:availability_percentage < 95
+      for: 10m
+      labels:
+        severity: warning
+        alert_type: service_health
+        component: "{{ $labels.service }}"
+      annotations:
+        summary: "Low service availability"
+        description: "Service {{ $labels.service }} availability is {{ $value }}%, below 95% threshold"
+        runbook_url: "https://runbooks.nephoran.com/availability-slo"
+
+---
+# Network Policy for Health Monitoring
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: health-monitoring-network-policy
+  namespace: nephoran-monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app: health-check-monitor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-monitoring
+    - podSelector:
+        matchLabels:
+          app: prometheus
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-system
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8081
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
