@@ -2,11 +2,9 @@ package monitoring
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
-	"runtime"
 	"time"
 
 	"github.com/google/uuid"

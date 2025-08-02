@@ -1,0 +1,544 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-config
+  namespace: nephoran-monitoring
+  labels:
+    app: elasticsearch
+    component: logging
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  elasticsearch.yml: |
+    cluster.name: "nephoran-logs"
+    network.host: 0.0.0.0
+    discovery.type: single-node
+    xpack.security.enabled: false
+    xpack.monitoring.collection.enabled: true
+    
+    # Performance optimizations for Nephoran workloads
+    indices.memory.index_buffer_size: 20%
+    thread_pool.write.queue_size: 1000
+    thread_pool.search.queue_size: 1000
+    
+    # Index lifecycle management
+    action.auto_create_index: "+nephoran-*,+.kibana*,+.monitoring-*,-*"
+    
+    # Cluster settings for log aggregation
+    cluster.routing.allocation.disk.threshold_enabled: true
+    cluster.routing.allocation.disk.watermark.low: 85%
+    cluster.routing.allocation.disk.watermark.high: 90%
+    cluster.routing.allocation.disk.watermark.flood_stage: 95%
+    
+  jvm.options: |
+    # JVM heap size optimizations for log processing
+    -Xms2g
+    -Xmx2g
+    
+    # GC optimizations
+    -XX:+UseG1GC
+    -XX:G1HeapRegionSize=16m
+    -XX:+UseStringDeduplication
+    
+    # Security and monitoring
+    -Djava.security.policy=all.permissions
+    -Dlog4j2.disable.jmx=true
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+  namespace: nephoran-monitoring
+  labels:
+    app: elasticsearch
+    component: logging
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  serviceName: elasticsearch
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+        component: logging
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9200"
+        prometheus.io/path: "/_prometheus/metrics"
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 9200
+          name: http
+          protocol: TCP
+        - containerPort: 9300
+          name: transport
+          protocol: TCP
+        env:
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: cluster.initial_master_nodes
+          value: elasticsearch-0
+        - name: ES_JAVA_OPTS
+          value: "-Xms2g -Xmx2g"
+        - name: discovery.seed_hosts
+          value: "elasticsearch"
+        - name: ELASTIC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: elasticsearch-credentials
+              key: password
+              optional: true
+        resources:
+          requests:
+            memory: "3Gi"
+            cpu: "1000m"
+          limits:
+            memory: "4Gi"
+            cpu: "2000m"
+        volumeMounts:
+        - name: elasticsearch-data
+          mountPath: /usr/share/elasticsearch/data
+        - name: elasticsearch-config
+          mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          subPath: elasticsearch.yml
+        - name: elasticsearch-config
+          mountPath: /usr/share/elasticsearch/config/jvm.options
+          subPath: jvm.options
+        livenessProbe:
+          httpGet:
+            path: /_cluster/health
+            port: 9200
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /_cluster/health?wait_for_status=yellow&timeout=5s
+            port: 9200
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /_cluster/health
+            port: 9200
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+      volumes:
+      - name: elasticsearch-config
+        configMap:
+          name: elasticsearch-config
+  volumeClaimTemplates:
+  - metadata:
+      name: elasticsearch-data
+      labels:
+        app: elasticsearch
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 50Gi
+      storageClassName: gp3-encrypted
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: nephoran-monitoring
+  labels:
+    app: elasticsearch
+    component: logging
+    app.kubernetes.io/name: elasticsearch
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9200"
+    prometheus.io/path: "/_prometheus/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 9200
+    targetPort: 9200
+    protocol: TCP
+  - name: transport
+    port: 9300
+    targetPort: 9300
+    protocol: TCP
+  selector:
+    app: elasticsearch
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: elasticsearch-credentials
+  namespace: nephoran-monitoring
+  labels:
+    app: elasticsearch
+    component: logging
+type: Opaque
+data:
+  # Default password: nephoran-elastic-2024
+  password: bmVwaG9yYW4tZWxhc3RpYy0yMDI0
+
+---
+# Index Template for Nephoran Logs
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-index-templates
+  namespace: nephoran-monitoring
+  labels:
+    app: elasticsearch
+    component: logging
+data:
+  nephoran-logs-template.json: |
+    {
+      "index_patterns": ["nephoran-*"],
+      "template": {
+        "settings": {
+          "number_of_shards": 1,
+          "number_of_replicas": 0,
+          "index.lifecycle.name": "nephoran-logs-policy",
+          "index.lifecycle.rollover_alias": "nephoran-logs",
+          "refresh_interval": "30s",
+          "max_result_window": 50000,
+          "analysis": {
+            "analyzer": {
+              "nephoran_analyzer": {
+                "type": "custom",
+                "tokenizer": "standard",
+                "filter": ["lowercase", "stop", "snowball"]
+              }
+            }
+          }
+        },
+        "mappings": {
+          "properties": {
+            "@timestamp": {
+              "type": "date",
+              "format": "strict_date_optional_time||epoch_millis"
+            },
+            "timestamp": {
+              "type": "date",
+              "format": "strict_date_optional_time||epoch_millis"
+            },
+            "level": {
+              "type": "keyword",
+              "fields": {
+                "text": {
+                  "type": "text",
+                  "analyzer": "nephoran_analyzer"
+                }
+              }
+            },
+            "message": {
+              "type": "text",
+              "analyzer": "nephoran_analyzer",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+                }
+              }
+            },
+            "service": {
+              "type": "keyword"
+            },
+            "environment": {
+              "type": "keyword"
+            },
+            "version": {
+              "type": "keyword"
+            },
+            "component": {
+              "type": "keyword"
+            },
+            "correlation_id": {
+              "type": "keyword"
+            },
+            "request_id": {
+              "type": "keyword"
+            },
+            "operation_id": {
+              "type": "keyword"
+            },
+            "trace_id": {
+              "type": "keyword"
+            },
+            "span_id": {
+              "type": "keyword"
+            },
+            "intent_name": {
+              "type": "keyword",
+              "fields": {
+                "text": {
+                  "type": "text",
+                  "analyzer": "nephoran_analyzer"
+                }
+              }
+            },
+            "intent_namespace": {
+              "type": "keyword"
+            },
+            "operation": {
+              "type": "keyword"
+            },
+            "operation_type": {
+              "type": "keyword"
+            },
+            "status": {
+              "type": "keyword"
+            },
+            "duration": {
+              "type": "long"
+            },
+            "error": {
+              "type": "text",
+              "analyzer": "nephoran_analyzer",
+              "fields": {
+                "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 512
+                }
+              }
+            },
+            "error_type": {
+              "type": "keyword"
+            },
+            "oran_interface": {
+              "type": "keyword"
+            },
+            "endpoint": {
+              "type": "keyword"
+            },
+            "status_code": {
+              "type": "integer"
+            },
+            "policy_type": {
+              "type": "keyword"
+            },
+            "policy_id": {
+              "type": "keyword"
+            },
+            "user_id": {
+              "type": "keyword"
+            },
+            "client_ip": {
+              "type": "ip"
+            },
+            "source_ip": {
+              "type": "ip"
+            },
+            "severity": {
+              "type": "keyword"
+            },
+            "event_type": {
+              "type": "keyword"
+            },
+            "log_type": {
+              "type": "keyword"
+            },
+            "resource_type": {
+              "type": "keyword"
+            },
+            "resource_name": {
+              "type": "keyword"
+            },
+            "namespace": {
+              "type": "keyword"
+            },
+            "kubernetes": {
+              "properties": {
+                "namespace": {
+                  "type": "keyword"
+                },
+                "pod_name": {
+                  "type": "keyword"
+                },
+                "container_name": {
+                  "type": "keyword"
+                },
+                "labels": {
+                  "type": "object",
+                  "dynamic": true
+                }
+              }
+            }
+          }
+        },
+        "aliases": {
+          "nephoran-logs": {}
+        }
+      },
+      "priority": 200,
+      "_meta": {
+        "description": "Template for Nephoran Intent Operator logs with optimized mappings for telecom operations"
+      }
+    }
+
+  nephoran-ilm-policy.json: |
+    {
+      "policy": {
+        "phases": {
+          "hot": {
+            "actions": {
+              "rollover": {
+                "max_size": "5gb",
+                "max_age": "1d",
+                "max_docs": 100000
+              },
+              "set_priority": {
+                "priority": 100
+              }
+            }
+          },
+          "warm": {
+            "min_age": "7d",
+            "actions": {
+              "shrink": {
+                "number_of_shards": 1
+              },
+              "set_priority": {
+                "priority": 50
+              }
+            }
+          },
+          "cold": {
+            "min_age": "30d",
+            "actions": {
+              "set_priority": {
+                "priority": 0
+              }
+            }
+          },
+          "delete": {
+            "min_age": "90d",
+            "actions": {
+              "delete": {}
+            }
+          }
+        }
+      }
+    }
+
+---
+# Elasticsearch Exporter for Prometheus Monitoring
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticsearch-exporter
+  namespace: nephoran-monitoring
+  labels:
+    app: elasticsearch-exporter
+    component: logging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticsearch-exporter
+  template:
+    metadata:
+      labels:
+        app: elasticsearch-exporter
+        component: logging
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9114"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+      - name: elasticsearch-exporter
+        image: quay.io/prometheuscommunity/elasticsearch-exporter:v1.6.0
+        ports:
+        - containerPort: 9114
+          name: http
+        env:
+        - name: ES_URI
+          value: "http://elasticsearch:9200"
+        - name: ES_ALL
+          value: "true"
+        - name: ES_INDICES
+          value: "true"
+        - name: ES_INDICES_SETTINGS
+          value: "true"
+        - name: ES_SHARDS
+          value: "true"
+        - name: ES_SNAPSHOTS
+          value: "true"
+        - name: ES_TIMEOUT
+          value: "30s"
+        args:
+        - --es.uri=http://elasticsearch:9200
+        - --es.all
+        - --es.indices
+        - --es.indices_settings
+        - --es.shards
+        - --es.snapshots
+        - --es.timeout=30s
+        - --web.listen-address=:9114
+        - --web.telemetry-path=/metrics
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9114
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9114
+          initialDelaySeconds: 10
+          periodSeconds: 10
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-exporter
+  namespace: nephoran-monitoring
+  labels:
+    app: elasticsearch-exporter
+    component: logging
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9114"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 9114
+    targetPort: 9114
+    protocol: TCP
+  selector:
+    app: elasticsearch-exporter
