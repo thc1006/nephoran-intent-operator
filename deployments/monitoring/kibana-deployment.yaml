@@ -1,0 +1,545 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-config
+  namespace: nephoran-monitoring
+  labels:
+    app: kibana
+    component: logging
+    app.kubernetes.io/name: kibana
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  kibana.yml: |
+    # Kibana Configuration for Nephoran Intent Operator Log Analysis
+    
+    # Server configuration
+    server.name: "nephoran-kibana"
+    server.host: "0.0.0.0"
+    server.port: 5601
+    server.basePath: "/kibana"
+    server.rewriteBasePath: true
+    
+    # Elasticsearch configuration
+    elasticsearch.hosts:
+      - "http://elasticsearch:9200"
+    elasticsearch.requestTimeout: 30000
+    elasticsearch.shardTimeout: 30000
+    
+    # Enhanced security settings
+    server.ssl.enabled: false
+    elasticsearch.ssl.verificationMode: none
+    
+    # Monitoring and telemetry
+    monitoring.ui.container.elasticsearch.enabled: true
+    telemetry.enabled: false
+    telemetry.optIn: false
+    
+    # Performance optimizations
+    elasticsearch.pingTimeout: 10000
+    elasticsearch.requestHeadersWhitelist:
+      - "authorization"
+      - "content-type"
+      - "x-requested-with"
+    
+    # Logging configuration
+    logging.appenders:
+      default:
+        type: console
+        layout:
+          type: json
+    logging.root:
+      level: info
+      appenders: [default]
+    
+    # Kibana-specific settings
+    kibana.index: ".kibana"
+    kibana.defaultAppId: "dashboard"
+    
+    # Data source configuration
+    data.search.timeout: 600000
+    
+    # Maps configuration (disabled for security)
+    map.includeElasticMapsService: false
+    
+    # Advanced settings for Nephoran log analysis
+    timelion.enabled: true
+    vis_type_vega.enabled: true
+    
+    # Index pattern management
+    kibana.autocompleteTerminateAfter: 100000
+    kibana.autocompleteTimeout: 1000
+
+  index-patterns.json: |
+    {
+      "version": "8.11.0",
+      "objects": [
+        {
+          "id": "nephoran-logs-*",
+          "type": "index-pattern",
+          "attributes": {
+            "title": "nephoran-logs-*",
+            "timeFieldName": "@timestamp",
+            "fields": "[{\"name\":\"@timestamp\",\"type\":\"date\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"level\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"message\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":false},{\"name\":\"component\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"trace_id\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"correlation_id\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"intent_name\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"operation_type\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"duration\",\"type\":\"number\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"k8s_namespace\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"k8s_pod\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true}]"
+          }
+        },
+        {
+          "id": "nephoran-security-*",
+          "type": "index-pattern",
+          "attributes": {
+            "title": "nephoran-security-*",
+            "timeFieldName": "@timestamp",
+            "fields": "[{\"name\":\"@timestamp\",\"type\":\"date\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"security_severity\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"event_type\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"user_id\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"client_ip\",\"type\":\"ip\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"source_ip\",\"type\":\"ip\",\"searchable\":true,\"aggregatable\":true}]"
+          }
+        },
+        {
+          "id": "nephoran-errors-*",
+          "type": "index-pattern",
+          "attributes": {
+            "title": "nephoran-errors-*",
+            "timeFieldName": "@timestamp",
+            "fields": "[{\"name\":\"@timestamp\",\"type\":\"date\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"error\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":false},{\"name\":\"error_classification\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"component\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"operation\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true}]"
+          }
+        },
+        {
+          "id": "nephoran-business-*",
+          "type": "index-pattern",
+          "attributes": {
+            "title": "nephoran-business-*",
+            "timeFieldName": "@timestamp",
+            "fields": "[{\"name\":\"@timestamp\",\"type\":\"date\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"business_operation\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"ai_operation_type\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"duration\",\"type\":\"number\",\"searchable\":true,\"aggregatable\":true}]"
+          }
+        }
+      ]
+    }
+
+  saved-objects.json: |
+    {
+      "version": "8.11.0",
+      "objects": [
+        {
+          "id": "nephoran-overview-dashboard",
+          "type": "dashboard",
+          "attributes": {
+            "title": "Nephoran Log Overview",
+            "description": "Comprehensive overview of Nephoran Intent Operator logs",
+            "panelsJSON": "[{\"version\":\"8.11.0\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":15,\"i\":\"1\"},\"panelIndex\":\"1\",\"embeddableConfig\":{},\"panelRefName\":\"panel_1\"},{\"version\":\"8.11.0\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":15,\"i\":\"2\"},\"panelIndex\":\"2\",\"embeddableConfig\":{},\"panelRefName\":\"panel_2\"},{\"version\":\"8.11.0\",\"gridData\":{\"x\":0,\"y\":15,\"w\":48,\"h\":15,\"i\":\"3\"},\"panelIndex\":\"3\",\"embeddableConfig\":{},\"panelRefName\":\"panel_3\"}]",
+            "timeRestore": true,
+            "timeFrom": "now-1h",
+            "timeTo": "now",
+            "refreshInterval": {
+              "pause": false,
+              "value": 30000
+            }
+          }
+        },
+        {
+          "id": "nephoran-errors-dashboard",
+          "type": "dashboard",
+          "attributes": {
+            "title": "Nephoran Error Analysis",
+            "description": "Detailed analysis of errors and failures in Nephoran system",
+            "panelsJSON": "[{\"version\":\"8.11.0\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":15,\"i\":\"1\"},\"panelIndex\":\"1\",\"embeddableConfig\":{},\"panelRefName\":\"panel_1\"},{\"version\":\"8.11.0\",\"gridData\":{\"x\":24,\"y\":0,\"w\":24,\"h\":15,\"i\":\"2\"},\"panelIndex\":\"2\",\"embeddableConfig\":{},\"panelRefName\":\"panel_2\"}]",
+            "timeRestore": true,
+            "timeFrom": "now-4h",
+            "timeTo": "now"
+          }
+        },
+        {
+          "id": "nephoran-security-dashboard",
+          "type": "dashboard",
+          "attributes": {
+            "title": "Nephoran Security Events",
+            "description": "Security monitoring and threat analysis for Nephoran system",
+            "panelsJSON": "[{\"version\":\"8.11.0\",\"gridData\":{\"x\":0,\"y\":0,\"w\":48,\"h\":30,\"i\":\"1\"},\"panelIndex\":\"1\",\"embeddableConfig\":{},\"panelRefName\":\"panel_1\"}]",
+            "timeRestore": true,
+            "timeFrom": "now-24h",
+            "timeTo": "now"
+          }
+        }
+      ]
+    }
+
+  searches.json: |
+    {
+      "version": "8.11.0",
+      "objects": [
+        {
+          "id": "intent-processing-logs",
+          "type": "search",
+          "attributes": {
+            "title": "Intent Processing Logs",
+            "description": "Logs related to NetworkIntent processing",
+            "columns": ["@timestamp", "level", "component", "intent_name", "operation_type", "duration", "message"],
+            "sort": [["@timestamp", "desc"]],
+            "kibanaSavedObjectMeta": {
+              "searchSourceJSON": "{\"index\":\"nephoran-logs-*\",\"query\":{\"match\":{\"operation_type\":\"intent_processing\"}},\"filter\":[]}"
+            }
+          }
+        },
+        {
+          "id": "error-analysis",
+          "type": "search",
+          "attributes": {
+            "title": "Error Analysis",
+            "description": "All error-level logs for troubleshooting",
+            "columns": ["@timestamp", "level", "component", "error_classification", "error", "trace_id"],
+            "sort": [["@timestamp", "desc"]],
+            "kibanaSavedObjectMeta": {
+              "searchSourceJSON": "{\"index\":\"nephoran-errors-*\",\"query\":{\"match_all\":{}},\"filter\":[]}"
+            }
+          }
+        },
+        {
+          "id": "llm-operations",
+          "type": "search",
+          "attributes": {
+            "title": "LLM Operations",
+            "description": "LLM and AI operation logs",
+            "columns": ["@timestamp", "ai_operation_type", "duration", "trace_id", "correlation_id", "message"],
+            "sort": [["@timestamp", "desc"]],
+            "kibanaSavedObjectMeta": {
+              "searchSourceJSON": "{\"index\":\"nephoran-logs-*\",\"query\":{\"bool\":{\"should\":[{\"match\":{\"operation_type\":\"llm_processing\"}},{\"match\":{\"component\":\"llm-processor\"}},{\"match\":{\"component\":\"rag-api\"}}]}},\"filter\":[]}"
+            }
+          }
+        },
+        {
+          "id": "oran-interface-logs",
+          "type": "search",
+          "attributes": {
+            "title": "O-RAN Interface Logs",
+            "description": "O-RAN interface communication logs",
+            "columns": ["@timestamp", "oran_interface_type", "endpoint", "status_code", "duration", "message"],
+            "sort": [["@timestamp", "desc"]],
+            "kibanaSavedObjectMeta": {
+              "searchSourceJSON": "{\"index\":\"nephoran-logs-*\",\"query\":{\"bool\":{\"should\":[{\"exists\":{\"field\":\"oran_interface\"}},{\"match\":{\"component\":\"oran-adaptor\"}}]}},\"filter\":[]}"
+            }
+          }
+        },
+        {
+          "id": "security-events",
+          "type": "search",
+          "attributes": {
+            "title": "Security Events",
+            "description": "Security-related events and threats",
+            "columns": ["@timestamp", "security_severity", "event_type", "user_id", "client_ip", "message"],
+            "sort": [["@timestamp", "desc"]],
+            "kibanaSavedObjectMeta": {
+              "searchSourceJSON": "{\"index\":\"nephoran-security-*\",\"query\":{\"match_all\":{}},\"filter\":[]}"
+            }
+          }
+        },
+        {
+          "id": "performance-analysis",
+          "type": "search",
+          "attributes": {
+            "title": "Performance Analysis",
+            "description": "Performance and latency analysis",
+            "columns": ["@timestamp", "component", "operation_type", "duration", "tags"],
+            "sort": [["duration", "desc"]],
+            "kibanaSavedObjectMeta": {
+              "searchSourceJSON": "{\"index\":\"nephoran-logs-*\",\"query\":{\"bool\":{\"should\":[{\"match\":{\"tags\":\"slow-operation\"}},{\"match\":{\"tags\":\"moderate-performance\"}},{\"range\":{\"duration\":{\"gte\":1000}}}]}},\"filter\":[]}"
+            }
+          }
+        }
+      ]
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: nephoran-monitoring
+  labels:
+    app: kibana
+    component: logging
+    app.kubernetes.io/name: kibana
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+        component: logging
+      annotations:
+        prometheus.io/scrape: "false"
+        checksum/config: "{{ include (print $.Template.BasePath \"/kibana-config.yaml\") . | sha256sum }}"
+    spec:
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+      initContainers:
+      - name: wait-for-elasticsearch
+        image: curlimages/curl:8.4.0
+        command:
+        - sh
+        - -c
+        - |
+          until curl -s "http://elasticsearch:9200/_cluster/health?wait_for_status=yellow&timeout=60s" > /dev/null; do
+            echo "Waiting for Elasticsearch to be ready..."
+            sleep 10
+          done
+          echo "Elasticsearch is ready!"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana:8.11.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5601
+          name: http
+          protocol: TCP
+        env:
+        - name: ELASTICSEARCH_HOSTS
+          value: "http://elasticsearch:9200"
+        - name: SERVER_NAME
+          value: "nephoran-kibana"
+        - name: SERVER_HOST
+          value: "0.0.0.0"
+        - name: LOGGING_ROOT_LEVEL
+          value: "info"
+        - name: XPACK_SECURITY_ENABLED
+          value: "false"
+        - name: XPACK_ENCRYPTEDSAVEDOBJECTS_ENCRYPTIONKEY
+          value: "nephoran-kibana-encryption-key-32-chars"
+        - name: XPACK_REPORTING_ENCRYPTIONKEY
+          value: "nephoran-reporting-encryption-key-32"
+        - name: XPACK_SECURITY_ENCRYPTIONKEY
+          value: "nephoran-security-encryption-key-32c"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        volumeMounts:
+        - name: kibana-config
+          mountPath: /usr/share/kibana/config/kibana.yml
+          subPath: kibana.yml
+        - name: kibana-data
+          mountPath: /usr/share/kibana/data
+        livenessProbe:
+          httpGet:
+            path: /kibana/api/status
+            port: 5601
+          initialDelaySeconds: 120
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /kibana/api/status
+            port: 5601
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        startupProbe:
+          httpGet:
+            path: /kibana/api/status
+            port: 5601
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 30
+      volumes:
+      - name: kibana-config
+        configMap:
+          name: kibana-config
+      - name: kibana-data
+        emptyDir:
+          sizeLimit: 5Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: nephoran-monitoring
+  labels:
+    app: kibana
+    component: logging
+    app.kubernetes.io/name: kibana
+    app.kubernetes.io/component: logging
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 5601
+    targetPort: 5601
+    protocol: TCP
+  selector:
+    app: kibana
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana-external
+  namespace: nephoran-monitoring
+  labels:
+    app: kibana
+    component: logging
+spec:
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 5601
+    targetPort: 5601
+    protocol: TCP
+  selector:
+    app: kibana
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kibana-setup
+  namespace: nephoran-monitoring
+  labels:
+    app: kibana
+    component: setup
+spec:
+  template:
+    metadata:
+      labels:
+        app: kibana-setup
+    spec:
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      initContainers:
+      - name: wait-for-kibana
+        image: curlimages/curl:8.4.0
+        command:
+        - sh
+        - -c
+        - |
+          until curl -s "http://kibana:5601/kibana/api/status" | grep -q "Green\|Yellow"; do
+            echo "Waiting for Kibana to be ready..."
+            sleep 15
+          done
+          echo "Kibana is ready!"
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "128Mi"
+            cpu: "200m"
+      containers:
+      - name: setup
+        image: curlimages/curl:8.4.0
+        command:
+        - sh
+        - -c
+        - |
+          set -e
+          echo "Setting up Kibana index patterns and saved objects..."
+          
+          # Wait for Kibana to be fully ready
+          sleep 30
+          
+          # Create index patterns
+          echo "Creating index patterns..."
+          curl -X POST "http://kibana:5601/kibana/api/saved_objects/_import" \
+            -H "Content-Type: application/json" \
+            -H "kbn-xsrf: true" \
+            -d @/setup/index-patterns.json || echo "Index patterns may already exist"
+          
+          # Import saved objects
+          echo "Importing saved objects..."
+          curl -X POST "http://kibana:5601/kibana/api/saved_objects/_import" \
+            -H "Content-Type: application/json" \
+            -H "kbn-xsrf: true" \
+            -d @/setup/saved-objects.json || echo "Saved objects may already exist"
+          
+          # Import searches
+          echo "Importing saved searches..."
+          curl -X POST "http://kibana:5601/kibana/api/saved_objects/_import" \
+            -H "Content-Type: application/json" \
+            -H "kbn-xsrf: true" \
+            -d @/setup/searches.json || echo "Searches may already exist"
+          
+          # Set default index pattern
+          echo "Setting default index pattern..."
+          curl -X POST "http://kibana:5601/kibana/api/kibana/settings/defaultIndex" \
+            -H "Content-Type: application/json" \
+            -H "kbn-xsrf: true" \
+            -d '{"value":"nephoran-logs-*"}' || echo "Default index pattern may already be set"
+          
+          echo "Kibana setup completed successfully!"
+        volumeMounts:
+        - name: setup-config
+          mountPath: /setup
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      volumes:
+      - name: setup-config
+        configMap:
+          name: kibana-config
+
+---
+# NetworkPolicy for Kibana security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kibana-network-policy
+  namespace: nephoran-monitoring
+  labels:
+    app: kibana
+    component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: kibana
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-monitoring
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 5601
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: elasticsearch
+    ports:
+    - protocol: TCP
+      port: 9200
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53

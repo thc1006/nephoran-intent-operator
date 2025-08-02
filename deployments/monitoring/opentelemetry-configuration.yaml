@@ -1,0 +1,372 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opentelemetry-configuration
+  namespace: nephoran-monitoring
+  labels:
+    app: opentelemetry
+    component: monitoring
+    app.kubernetes.io/name: opentelemetry
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  # OpenTelemetry Collector Configuration
+  otel-collector-config.yaml: |
+    receivers:
+      # OTLP receiver for receiving telemetry data
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+            cors:
+              allowed_origins:
+                - "http://*"
+                - "https://*"
+      
+      # Jaeger receiver for legacy Jaeger traces
+      jaeger:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:14250
+          thrift_http:
+            endpoint: 0.0.0.0:14268
+          thrift_compact:
+            endpoint: 0.0.0.0:6831
+      
+      # Zipkin receiver for Zipkin traces
+      zipkin:
+        endpoint: 0.0.0.0:9411
+      
+      # Prometheus receiver for metrics
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'otel-collector'
+              scrape_interval: 15s
+              static_configs:
+                - targets: ['0.0.0.0:8888']
+    
+    processors:
+      # Batch processor for efficient data transmission
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+        send_batch_max_size: 2048
+      
+      # Memory limiter to prevent OOM
+      memory_limiter:
+        limit_mib: 512
+        spike_limit_mib: 128
+        check_interval: 5s
+      
+      # Resource processor to add environment labels
+      resource:
+        attributes:
+          - key: environment
+            value: "production"
+            action: upsert
+          - key: cluster
+            value: "nephoran-production"
+            action: upsert
+          - key: service.namespace
+            from_attribute: k8s.namespace.name
+            action: upsert
+      
+      # Attributes processor for span enhancement
+      attributes:
+        actions:
+          - key: nephoran.intent.id
+            action: insert
+            from_attribute: http.header.x-intent-id
+          - key: nephoran.component
+            action: insert
+            from_attribute: service.name
+          - key: nephoran.request.source
+            action: insert
+            from_attribute: http.header.x-forwarded-for
+      
+      # Span processor for filtering and sampling
+      span:
+        name:
+          to_attributes:
+            rules:
+              - ^\/api\/v1\/(.*)$
+              - ^nephoran\.(.*)\.(.*)$
+      
+      # Probabilistic sampler
+      probabilistic_sampler:
+        hash_seed: 22
+        sampling_percentage: 10  # 10% sampling rate for production
+    
+    exporters:
+      # Jaeger exporter for trace visualization
+      jaeger:
+        endpoint: jaeger-collector:14250
+        tls:
+          insecure: true
+        sending_queue:
+          num_consumers: 4
+          queue_size: 100
+        retry_on_failure:
+          enabled: true
+          initial_interval: 5s
+          max_interval: 30s
+          max_elapsed_time: 300s
+      
+      # Prometheus exporter for metrics
+      prometheus:
+        endpoint: "0.0.0.0:8889"
+        namespace: nephoran_tracing
+        const_labels:
+          environment: production
+          cluster: nephoran
+      
+      # Logging exporter for debugging
+      logging:
+        loglevel: info
+        sampling_initial: 2
+        sampling_thereafter: 500
+    
+    extensions:
+      # Health check extension
+      health_check:
+        endpoint: 0.0.0.0:13133
+      
+      # Performance profiler
+      pprof:
+        endpoint: 0.0.0.0:1777
+      
+      # Zpages for diagnostics
+      zpages:
+        endpoint: 0.0.0.0:55679
+    
+    service:
+      extensions: [health_check, pprof, zpages]
+      pipelines:
+        # Traces pipeline
+        traces:
+          receivers: [otlp, jaeger, zipkin]
+          processors: [memory_limiter, resource, attributes, span, probabilistic_sampler, batch]
+          exporters: [jaeger, logging]
+        
+        # Metrics pipeline for tracing metrics
+        metrics:
+          receivers: [otlp, prometheus]
+          processors: [memory_limiter, resource, batch]
+          exporters: [prometheus, logging]
+      
+      telemetry:
+        logs:
+          level: "info"
+        metrics:
+          address: 0.0.0.0:8888
+
+---
+# OpenTelemetry Collector Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opentelemetry-collector
+  namespace: nephoran-monitoring
+  labels:
+    app: opentelemetry-collector
+    component: monitoring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: opentelemetry-collector
+  template:
+    metadata:
+      labels:
+        app: opentelemetry-collector
+    spec:
+      serviceAccountName: nephoran-monitoring
+      containers:
+      - name: otel-collector
+        image: otel/opentelemetry-collector-contrib:0.88.0
+        command:
+          - "/otelcol-contrib"
+          - "--config=/conf/otel-collector-config.yaml"
+        ports:
+        - containerPort: 4317   # OTLP gRPC
+          name: otlp-grpc
+        - containerPort: 4318   # OTLP HTTP
+          name: otlp-http
+        - containerPort: 14250  # Jaeger gRPC
+          name: jaeger-grpc
+        - containerPort: 14268  # Jaeger HTTP
+          name: jaeger-http
+        - containerPort: 9411   # Zipkin
+          name: zipkin
+        - containerPort: 8888   # Metrics
+          name: metrics
+        - containerPort: 8889   # Prometheus metrics
+          name: prom-metrics
+        - containerPort: 13133  # Health check
+          name: health-check
+        - containerPort: 1777   # pprof
+          name: pprof
+        - containerPort: 55679  # zpages
+          name: zpages
+        env:
+        - name: K8S_NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: K8S_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: K8S_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: K8S_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        volumeMounts:
+        - name: otel-collector-config-vol
+          mountPath: /conf
+        resources:
+          requests:
+            cpu: 200m
+            memory: 400Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 13133
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: otel-collector-config-vol
+        configMap:
+          name: opentelemetry-configuration
+          items:
+          - key: otel-collector-config.yaml
+            path: otel-collector-config.yaml
+
+---
+# OpenTelemetry Collector Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: opentelemetry-collector
+  namespace: nephoran-monitoring
+  labels:
+    app: opentelemetry-collector
+    component: monitoring
+spec:
+  selector:
+    app: opentelemetry-collector
+  type: ClusterIP
+  ports:
+  - name: otlp-grpc
+    port: 4317
+    targetPort: 4317
+    protocol: TCP
+  - name: otlp-http
+    port: 4318
+    targetPort: 4318
+    protocol: TCP
+  - name: jaeger-grpc
+    port: 14250
+    targetPort: 14250
+    protocol: TCP
+  - name: jaeger-http
+    port: 14268
+    targetPort: 14268
+    protocol: TCP
+  - name: zipkin
+    port: 9411
+    targetPort: 9411
+    protocol: TCP
+  - name: metrics
+    port: 8888
+    targetPort: 8888
+    protocol: TCP
+  - name: prom-metrics
+    port: 8889
+    targetPort: 8889
+    protocol: TCP
+
+---
+# OpenTelemetry Auto-Instrumentation
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opentelemetry-auto-instrumentation
+  namespace: nephoran-monitoring
+  labels:
+    app: opentelemetry
+    component: auto-instrumentation
+data:
+  # Go service instrumentation
+  go-instrumentation.yaml: |
+    # Environment variables for Go services
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://opentelemetry-collector:4317"
+    OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+    OTEL_SERVICE_NAME: "nephoran-service"
+    OTEL_RESOURCE_ATTRIBUTES: "service.namespace=nephoran-system,service.version=v1.0.0,deployment.environment=production"
+    OTEL_PROPAGATORS: "tracecontext,baggage,b3"
+    OTEL_TRACES_SAMPLER: "parentbased_traceidratio"
+    OTEL_TRACES_SAMPLER_ARG: "0.1"
+    OTEL_METRICS_EXPORTER: "otlp"
+    OTEL_LOGS_EXPORTER: "otlp"
+    OTEL_EXPORTER_OTLP_COMPRESSION: "gzip"
+    OTEL_EXPORTER_OTLP_TIMEOUT: "10000"
+    OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT: "128"
+    OTEL_SPAN_EVENT_COUNT_LIMIT: "128"
+    OTEL_SPAN_LINK_COUNT_LIMIT: "128"
+  
+  # Python service instrumentation  
+  python-instrumentation.yaml: |
+    # Environment variables for Python services (RAG API)
+    OTEL_EXPORTER_OTLP_ENDPOINT: "http://opentelemetry-collector:4318"
+    OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+    OTEL_SERVICE_NAME: "rag-api"
+    OTEL_RESOURCE_ATTRIBUTES: "service.namespace=nephoran-system,service.version=v1.0.0,deployment.environment=production"
+    OTEL_PROPAGATORS: "tracecontext,baggage,b3"
+    OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED: "true"
+    OTEL_PYTHON_LOG_CORRELATION: "true"
+    OTEL_TRACES_SAMPLER: "parentbased_traceidratio"
+    OTEL_TRACES_SAMPLER_ARG: "0.1"
+    OTEL_METRICS_EXPORTER: "otlp"
+    OTEL_LOGS_EXPORTER: "otlp"
+    OTEL_EXPORTER_OTLP_COMPRESSION: "gzip"
+    OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST: "x-intent-id,x-user-id,x-correlation-id"
+    OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_RESPONSE: "x-processing-time,x-cache-status"
+
+---
+# ServiceMonitor for OpenTelemetry Collector metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: opentelemetry-collector
+  namespace: nephoran-monitoring
+  labels:
+    app: opentelemetry-collector
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: opentelemetry-collector
+  endpoints:
+  - port: prom-metrics
+    interval: 30s
+    path: /metrics
+  - port: metrics
+    interval: 30s
+    path: /metrics
