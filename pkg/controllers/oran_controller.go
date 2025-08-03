@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o1"
 )
@@ -31,14 +31,14 @@ type OranAdaptorReconciler struct {
 	A1Adaptor *a1.A1Adaptor
 }
 
-//+kubebuilder:rbac:groups=nephoran.nephoran.io,resources=managedelements,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=nephoran.nephoran.io,resources=managedelements/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=nephoran.com,resources=managedelements,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=nephoran.com,resources=managedelements/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch
 
 func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	me := &nephoranv1alpha1.ManagedElement{}
+	me := &nephoranv1.ManagedElement{}
 	if err := r.Get(ctx, req.NamespacedName, me); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -86,7 +86,7 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	return r.updateStatus(ctx, me)
 }
 
-func (r *OranAdaptorReconciler) updateStatus(ctx context.Context, me *nephoranv1alpha1.ManagedElement) (ctrl.Result, error) {
+func (r *OranAdaptorReconciler) updateStatus(ctx context.Context, me *nephoranv1.ManagedElement) (ctrl.Result, error) {
 	if err := r.Status().Update(ctx, me); err != nil {
 		log.FromContext(ctx).Error(err, "Failed to update ManagedElement status")
 		return ctrl.Result{}, err
@@ -98,7 +98,7 @@ func (r *OranAdaptorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.O1Adaptor = o1.NewO1Adaptor()
 	r.A1Adaptor = a1.NewA1Adaptor()
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&nephoranv1alpha1.ManagedElement{}).
+		For(&nephoranv1.ManagedElement{}).
 		Owns(&appsv1.Deployment{}).
 		Complete(r)
 }

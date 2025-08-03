@@ -14,7 +14,9 @@ import (
 // ClientInterface defines the interface for a Git client.
 type ClientInterface interface {
 	CommitAndPush(files map[string]string, message string) (string, error)
+	CommitAndPushChanges(message string) error
 	InitRepo() error
+	RemoveDirectory(path string) error
 }
 
 // Client implements the Git client.
@@ -105,4 +107,74 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 	}
 
 	return commitObj.Hash.String(), nil
+}
+
+// CommitAndPushChanges commits and pushes any changes without specifying files
+func (c *Client) CommitAndPushChanges(message string) error {
+	r, err := git.PlainOpen(c.RepoPath)
+	if err != nil {
+		return fmt.Errorf("failed to open repo: %w", err)
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Add all changes
+	if _, err := w.Add("."); err != nil {
+		return fmt.Errorf("failed to add changes: %w", err)
+	}
+
+	_, err = w.Commit(message, &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "Nephio Bridge",
+			Email: "nephio-bridge@example.com",
+			When:  time.Now(),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to commit: %w", err)
+	}
+
+	auth, err := ssh.NewPublicKeys("git", []byte(c.SshKey), "")
+	if err != nil {
+		return fmt.Errorf("failed to create ssh auth: %w", err)
+	}
+
+	err = r.Push(&git.PushOptions{
+		RemoteName: "origin",
+		Auth:       auth,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to push: %w", err)
+	}
+
+	return nil
+}
+
+// RemoveDirectory removes a directory from the repository
+func (c *Client) RemoveDirectory(path string) error {
+	r, err := git.PlainOpen(c.RepoPath)
+	if err != nil {
+		return fmt.Errorf("failed to open repo: %w", err)
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Remove directory from filesystem
+	fullPath := filepath.Join(c.RepoPath, path)
+	if err := os.RemoveAll(fullPath); err != nil {
+		return fmt.Errorf("failed to remove directory %s: %w", fullPath, err)
+	}
+
+	// Stage the removal
+	if _, err := w.Add(path); err != nil {
+		return fmt.Errorf("failed to stage directory removal: %w", err)
+	}
+
+	return nil
 }

@@ -289,7 +289,7 @@ func (r *E2NodeSetReconciler) createDefaultRANFunctions(e2nodeSet *nephoranv1.E2
 			FunctionRevision:    1,
 			FunctionOID:         "1.3.6.1.4.1.53148.1.1.2.2",
 			FunctionDescription: "Key Performance Measurement Service Model",
-			ServiceModel:        *e2.CreateEnhancedKPMServiceModel(),
+			ServiceModel:        e2.CreateEnhancedKPMServiceModel(),
 		},
 		{
 			FunctionID:          2,
@@ -297,7 +297,7 @@ func (r *E2NodeSetReconciler) createDefaultRANFunctions(e2nodeSet *nephoranv1.E2
 			FunctionRevision:    1,
 			FunctionOID:         "1.3.6.1.4.1.53148.1.1.2.3",
 			FunctionDescription: "RAN Control Service Model",
-			ServiceModel:        *e2.CreateEnhancedRCServiceModel(),
+			ServiceModel:        e2.CreateEnhancedRCServiceModel(),
 		},
 		// Add more RAN functions as needed
 	}
