@@ -4,14 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"math"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 	"unicode"
-	"unicode/utf8"
 )
 
 // ChunkingService provides intelligent document chunking for telecom specifications
@@ -312,7 +309,7 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 	lines := strings.Split(content, "\n")
 	var currentOffset int
 
-	for i, line := range lines {
+	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		
 		// Skip empty lines

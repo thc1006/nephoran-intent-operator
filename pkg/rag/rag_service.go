@@ -2,7 +2,6 @@ package rag
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -85,7 +84,7 @@ type RAGRequest struct {
 // RAGResponse represents the response from RAG processing
 type RAGResponse struct {
 	Answer              string                 `json:"answer"`
-	SourceDocuments     []*shared.SearchResult `json:"source_documents"`
+	SourceDocuments     []*SearchResult        `json:"source_documents"`
 	Confidence          float32                `json:"confidence"`
 	ProcessingTime      time.Duration          `json:"processing_time"`
 	RetrievalTime       time.Duration          `json:"retrieval_time"`
@@ -170,7 +169,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 	// Step 1: Retrieve relevant documents
 	retrievalStart := time.Now()
-	searchQuery := &shared.SearchQuery{
+	searchQuery := &SearchQuery{
 		Query:         request.Query,
 		Limit:         request.MaxResults,
 		Filters:       rs.buildSearchFilters(request),
@@ -282,7 +281,7 @@ func (rs *RAGService) buildSearchFilters(request *RAGRequest) map[string]interfa
 }
 
 // prepareContext creates a context string from retrieved documents
-func (rs *RAGService) prepareContext(results []*shared.SearchResult, request *RAGRequest) (string, map[string]interface{}) {
+func (rs *RAGService) prepareContext(results []*SearchResult, request *RAGRequest) (string, map[string]interface{}) {
 	var contextParts []string
 	var totalTokens int
 	documentsUsed := 0
@@ -327,7 +326,7 @@ func (rs *RAGService) prepareContext(results []*shared.SearchResult, request *RA
 }
 
 // formatDocumentForContext formats a document for inclusion in the LLM context
-func (rs *RAGService) formatDocumentForContext(result *shared.SearchResult, index int) string {
+func (rs *RAGService) formatDocumentForContext(result *SearchResult, index int) string {
 	doc := result.Document
 	
 	var parts []string
@@ -413,7 +412,7 @@ Guidelines:
 }
 
 // enhanceResponse post-processes the LLM response to add source references and formatting
-func (rs *RAGService) enhanceResponse(llmResponse string, sourceDocuments []*shared.SearchResult, request *RAGRequest) string {
+func (rs *RAGService) enhanceResponse(llmResponse string, sourceDocuments []*SearchResult, request *RAGRequest) string {
 	response := llmResponse
 
 	// Add source references if requested
@@ -442,7 +441,7 @@ func (rs *RAGService) enhanceResponse(llmResponse string, sourceDocuments []*sha
 }
 
 // calculateConfidence calculates an overall confidence score for the response
-func (rs *RAGService) calculateConfidence(results []*shared.SearchResult) float32 {
+func (rs *RAGService) calculateConfidence(results []*SearchResult) float32 {
 	if len(results) == 0 {
 		return 0.0
 	}

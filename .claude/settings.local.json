@@ -49,7 +49,17 @@
       "Bash(git push:*)",
       "Bash(git fetch:*)",
       "Bash(git merge-base:*)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(mkdir:*)",
+      "Bash(move .mcp.json ..)",
+      "Bash(mv:*)",
+      "Bash(mv:*)",
+      "Bash(mkdir:*)",
+      "mcp__filesystem__read_text_file",
+      "Bash(python -m pip:*)",
+      "Bash(python:*)",
+      "Bash(npx:*)",
+      "Bash(setx:*)"
     ],
     "deny": []
   },

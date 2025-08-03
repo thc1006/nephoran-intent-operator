@@ -251,53 +251,6 @@ func NewEnhancedRetrievalService(
 	return service
 }
 
-// getDefaultRetrievalConfig returns default configuration
-func getDefaultRetrievalConfig() *RetrievalConfig {
-	return &RetrievalConfig{
-		DefaultLimit:            10,
-		MaxLimit:               50,
-		DefaultHybridAlpha:     0.7,
-		MinConfidenceThreshold: 0.5,
-		EnableQueryExpansion:   true,
-		QueryExpansionTerms:    3,
-		EnableQueryRewriting:   true,
-		EnableSpellCorrection:  true,
-		EnableSynonymExpansion: true,
-		EnableSemanticReranking: true,
-		RerankingTopK:          20,
-		CrossEncoderModel:      "cross-encoder/ms-marco-MiniLM-L-6-v2",
-		MaxContextLength:       8000,
-		ContextOverlapRatio:    0.1,
-		IncludeHierarchyInfo:   true,
-		IncludeSourceMetadata:  true,
-		EnableDiversityFiltering: true,
-		DiversityThreshold:     0.8,
-		BoostRecentDocuments:   true,
-		RecencyBoostFactor:     1.2,
-		EnableResultCaching:    true,
-		ResultCacheTTL:         15 * time.Minute,
-		MaxConcurrentQueries:   10,
-		QueryTimeout:           30 * time.Second,
-		IntentTypeWeights: map[string]float64{
-			"configuration":    1.2,
-			"troubleshooting":  1.3,
-			"optimization":     1.1,
-			"monitoring":       1.0,
-		},
-		TechnicalDomainBoosts: map[string]float64{
-			"RAN":       1.0,
-			"Core":      1.0,
-			"Transport": 0.9,
-			"Management": 0.8,
-		},
-		SourcePriorityWeights: map[string]float64{
-			"3GPP":  1.3,
-			"O-RAN": 1.2,
-			"ETSI":  1.1,
-			"ITU":   1.0,
-		},
-	}
-}
 
 // SearchEnhanced performs an enhanced search with query processing and reranking
 func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request *EnhancedSearchRequest) (*EnhancedSearchResponse, error) {
