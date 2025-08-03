@@ -73,9 +73,6 @@ type NetworkIntentStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-
 // NetworkIntent is the Schema for the networkintents API
 type NetworkIntent struct {
 	metav1.TypeMeta   `json:",inline"`
