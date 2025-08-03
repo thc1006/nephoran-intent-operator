@@ -42,7 +42,8 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(minikube:*)",
-      "Bash(docker:*)"
+      "Bash(docker:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": []
   },
