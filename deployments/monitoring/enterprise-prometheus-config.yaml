@@ -1,0 +1,829 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: enterprise-prometheus-config
+  namespace: nephoran-monitoring
+  labels:
+    app: prometheus
+    component: monitoring
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'nephoran-production'
+        environment: 'production'
+        region: 'us-central1'
+      query_log_file: /prometheus/queries.log
+
+    # Load alerting rules
+    rule_files:
+      - "/etc/prometheus/rules/*.yml"
+
+    # Alertmanager configuration
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              - alertmanager:9093
+          timeout: 10s
+          api_version: v2
+          path_prefix: /
+          scheme: http
+    
+    scrape_configs:
+      # Enhanced Nephoran Intent Operator controllers with detailed labels
+      - job_name: 'nephoran-controllers'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: nephio-bridge|llm-processor|oran-adaptor
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            action: replace
+            target_label: app_name
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_component]
+            action: replace
+            target_label: component
+          - source_labels: [__meta_kubernetes_pod_ip]
+            action: replace
+            target_label: pod_ip
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            action: replace
+            target_label: node_name
+          - source_labels: [__meta_kubernetes_pod_phase]
+            action: replace
+            target_label: pod_phase
+        scrape_interval: 15s
+        scrape_timeout: 10s
+        metrics_path: /metrics
+    
+      # Enhanced RAG API service with health monitoring
+      - job_name: 'rag-api'
+        kubernetes_sd_configs:
+          - role: service
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_app]
+            action: keep
+            regex: rag-api
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: kubernetes_service_name
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        metrics_path: /metrics
+    
+      # Enhanced Weaviate vector database with performance metrics
+      - job_name: 'weaviate'
+        kubernetes_sd_configs:
+          - role: service
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_app]
+            action: keep
+            regex: weaviate
+          - source_labels: [__address__]
+            action: replace
+            regex: ([^:]+):.*
+            replacement: $1:2112
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: kubernetes_service_name
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        metrics_path: /metrics
+
+      # Enhanced O-RAN Interface Metrics
+      - job_name: 'oran-interfaces'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: oran-adaptor
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+        scrape_interval: 15s
+        scrape_timeout: 10s
+        metrics_path: /metrics
+
+      # Node Exporter for detailed system metrics
+      - job_name: 'node-exporter'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-monitoring
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            action: keep
+            regex: node-exporter
+        scrape_interval: 30s
+        scrape_timeout: 10s
+
+      # Kubernetes API server metrics with security context
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - default
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: false
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+        scrape_interval: 30s
+        scrape_timeout: 10s
+    
+      # Enhanced Kubernetes nodes with system metrics
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: false
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics
+        scrape_interval: 30s
+        scrape_timeout: 10s
+    
+      # Enhanced cAdvisor for container metrics with resource filtering
+      - job_name: 'kubernetes-cadvisor'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+          insecure_skip_verify: false
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+          - target_label: __address__
+            replacement: kubernetes.default.svc:443
+          - source_labels: [__meta_kubernetes_node_name]
+            regex: (.+)
+            target_label: __metrics_path__
+            replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+        scrape_interval: 30s
+        scrape_timeout: 10s
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'container_(network_receive_bytes_total|network_transmit_bytes_total|fs_reads_bytes_total|fs_writes_bytes_total|memory_usage_bytes|spec_memory_limit_bytes|cpu_usage_seconds_total|spec_cpu_quota|fs_usage_bytes|fs_limit_bytes)'
+            action: keep
+          - source_labels: [container]
+            regex: 'POD|'
+            action: drop
+
+      # Kubernetes service endpoints monitoring
+      - job_name: 'kubernetes-service-endpoints'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - nephoran-system
+                - nephoran-monitoring
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+            action: replace
+            target_label: __scheme__
+            regex: (https?)
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: kubernetes_service_name
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            action: replace
+            target_label: kubernetes_node
+        scrape_interval: 30s
+        scrape_timeout: 10s
+
+      # Kubernetes ingress monitoring
+      - job_name: 'kubernetes-ingresses'
+        kubernetes_sd_configs:
+          - role: ingress
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_ingress_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_ingress_annotation_prometheus_io_scheme]
+            action: replace
+            target_label: __scheme__
+            regex: (https?)
+          - source_labels: [__meta_kubernetes_ingress_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_ingress_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+          - action: labelmap
+            regex: __meta_kubernetes_ingress_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_ingress_name]
+            action: replace
+            target_label: kubernetes_ingress_name
+        scrape_interval: 30s
+        scrape_timeout: 10s
+
+      # Custom ServiceMonitor CRDs
+      - job_name: 'nephoran-servicemonitors'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_label_monitored_by]
+            action: keep
+            regex: prometheus
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: metrics
+        scrape_interval: 15s
+        scrape_timeout: 10s
+
+  # Enhanced Alerting Rules with SLO monitoring
+  enhanced-alerting-rules.yml: |
+    groups:
+      - name: nephoran.slo.alerts
+        rules:
+          # SLO-based alerts for 99.9% availability target
+          - alert: SLOAvailabilityBreach
+            expr: nephoran:sli:availability < 0.999
+            for: 5m
+            labels:
+              severity: critical
+              service: networkintent
+              slo_type: availability
+            annotations:
+              summary: "SLO availability breach"
+              description: "Service availability {{ $value | humanizePercentage }} is below 99.9% SLO target"
+              runbook_url: "https://runbooks.nephoran.com/slo-availability-breach"
+
+          # Error budget burn rate alerts (multi-window)
+          - alert: ErrorBudgetBurnRateHigh1h
+            expr: nephoran:error_budget:burn_rate_1h > 14.4
+            for: 2m
+            labels:
+              severity: critical
+              service: networkintent
+              slo_type: error_budget
+            annotations:
+              summary: "High error budget burn rate (1h window)"
+              description: "Error budget burning at {{ $value }}x (>14.4x) for 1 hour window"
+
+          - alert: ErrorBudgetBurnRateHigh6h
+            expr: nephoran:error_budget:burn_rate_6h > 6
+            for: 15m
+            labels:
+              severity: warning
+              service: networkintent
+              slo_type: error_budget
+            annotations:
+              summary: "High error budget burn rate (6h window)"
+              description: "Error budget burning at {{ $value }}x (>6x) for 6 hour window"
+
+          # Latency SLO alerts (P95 < 5s, P99 < 10s)
+          - alert: SLOLatencyP95Breach
+            expr: nephoran:sli:latency_p95 > 5
+            for: 3m
+            labels:
+              severity: warning
+              service: networkintent
+              slo_type: latency
+            annotations:
+              summary: "SLO P95 latency breach"
+              description: "P95 latency {{ $value }}s exceeds 5s SLO target"
+
+          - alert: SLOLatencyP99Breach
+            expr: nephoran:sli:latency_p99 > 10
+            for: 3m
+            labels:
+              severity: critical
+              service: networkintent
+              slo_type: latency
+            annotations:
+              summary: "SLO P99 latency breach"
+              description: "P99 latency {{ $value }}s exceeds 10s SLO target"
+
+      - name: nephoran.business.kpi.alerts
+        rules:
+          # Business KPI alerts
+          - alert: AutomationRateLow
+            expr: nephoran:business:automation_rate < 85
+            for: 10m
+            labels:
+              severity: warning
+              kpi_type: automation_rate
+            annotations:
+              summary: "Automation rate below target"
+              description: "Automation rate {{ $value }}% is below 85% target"
+
+          - alert: CostPerIntentHigh
+            expr: nephoran:business:cost_per_intent > 0.05
+            for: 5m
+            labels:
+              severity: warning
+              kpi_type: cost_per_intent
+            annotations:
+              summary: "Cost per intent exceeds budget"
+              description: "Cost per intent ${{ $value }} exceeds $0.05 budget"
+
+          - alert: UserSatisfactionLow
+            expr: nephoran:business:user_satisfaction < 8.0
+            for: 15m
+            labels:
+              severity: warning
+              kpi_type: user_satisfaction
+            annotations:
+              summary: "User satisfaction below target"
+              description: "User satisfaction score {{ $value }} is below 8.0 target"
+
+          - alert: TimeToDeploymentHigh
+            expr: nephoran:business:time_to_deployment > 300
+            for: 10m
+            labels:
+              severity: warning
+              kpi_type: time_to_deployment
+            annotations:
+              summary: "Time to deployment exceeds target"
+              description: "Average time to deployment {{ $value }}s exceeds 300s target"
+
+      - name: nephoran.anomaly.alerts
+        rules:
+          # Anomaly detection alerts
+          - alert: AnomalyDetected
+            expr: nephoran:anomaly:detection_score > 0.7
+            for: 3m
+            labels:
+              severity: warning
+              alert_type: anomaly
+            annotations:
+              summary: "System anomaly detected"
+              description: "Anomaly detection score {{ $value }} indicates unusual system behavior"
+
+          - alert: HighLatencyAnomaly
+            expr: abs(nephoran:anomaly:latency_zscore) > 3
+            for: 2m
+            labels:
+              severity: critical
+              alert_type: anomaly
+              metric: latency
+            annotations:
+              summary: "High latency anomaly detected"
+              description: "Latency Z-score {{ $value }} indicates significant deviation from normal"
+
+          - alert: RequestRateAnomaly
+            expr: abs(nephoran:anomaly:request_rate_zscore) > 2.5
+            for: 5m
+            labels:
+              severity: warning
+              alert_type: anomaly
+              metric: request_rate
+            annotations:
+              summary: "Request rate anomaly detected"
+              description: "Request rate Z-score {{ $value }} indicates unusual traffic pattern"
+
+      - name: nephoran.capacity.alerts
+        rules:
+          # Capacity planning alerts
+          - alert: CPUCapacityPredictionHigh
+            expr: nephoran:capacity:prediction_cpu > 85
+            for: 0m
+            labels:
+              severity: warning
+              alert_type: capacity
+              resource: cpu
+            annotations:
+              summary: "High CPU capacity predicted"
+              description: "CPU utilization predicted to reach {{ $value }}% in next hour"
+
+          - alert: MemoryCapacityPredictionHigh
+            expr: nephoran:capacity:prediction_memory > 90
+            for: 0m
+            labels:
+              severity: critical
+              alert_type: capacity
+              resource: memory
+            annotations:
+              summary: "High memory capacity predicted"
+              description: "Memory utilization predicted to reach {{ $value }}% in next hour"
+
+          - alert: StorageCapacityPredictionHigh
+            expr: nephoran:capacity:prediction_storage > 80
+            for: 0m
+            labels:
+              severity: warning
+              alert_type: capacity
+              resource: storage
+            annotations:
+              summary: "High storage capacity predicted"
+              description: "Storage utilization predicted to reach {{ $value }}% in next 2 hours"
+
+          - alert: QueueDepthHigh
+            expr: nephoran:queue:depth_total > 50
+            for: 5m
+            labels:
+              severity: warning
+              alert_type: capacity
+            annotations:
+              summary: "High queue depth detected"
+              description: "Queue depth {{ $value }} indicates potential bottleneck"
+
+      - name: nephoran.security.alerts
+        rules:
+          # Security monitoring alerts
+          - alert: HighThreatLevel
+            expr: nephoran:security:threat_level > 2
+            for: 1m
+            labels:
+              severity: critical
+              alert_type: security
+            annotations:
+              summary: "High security threat level"
+              description: "Security threat level {{ $value }} indicates potential security incident"
+
+          - alert: AuthenticationFailureRateHigh
+            expr: nephoran:security:auth_failure_rate > 5
+            for: 2m
+            labels:
+              severity: warning
+              alert_type: security
+            annotations:
+              summary: "High authentication failure rate"
+              description: "Authentication failure rate {{ $value }}/sec indicates potential attack"
+
+          - alert: SecurityEventSpike
+            expr: increase(nephoran_security_events_total[5m]) > 10
+            for: 1m
+            labels:
+              severity: critical
+              alert_type: security
+            annotations:
+              summary: "Security event spike detected"
+              description: "{{ $value }} security events in last 5 minutes"
+
+      - name: nephoran.oran.compliance.alerts
+        rules:
+          # O-RAN compliance alerts
+          - alert: ORANComplianceScoreLow
+            expr: nephoran_oran_compliance_score < 90
+            for: 5m
+            labels:
+              severity: warning
+              alert_type: compliance
+              interface: o-ran
+            annotations:
+              summary: "O-RAN compliance score low"
+              description: "O-RAN compliance score {{ $value }}% is below 90% threshold"
+
+          - alert: ORANInterfaceHealthDegraded
+            expr: nephoran_oran_interface_health_score < 0.8
+            for: 3m
+            labels:
+              severity: critical
+              alert_type: compliance
+              interface: o-ran
+            annotations:
+              summary: "O-RAN interface health degraded"
+              description: "O-RAN interface {{ $labels.interface_type }} health score {{ $value }} is degraded"
+
+          - alert: ORANPolicyViolation
+            expr: increase(nephoran_oran_policy_violations_total[5m]) > 0
+            for: 1m
+            labels:
+              severity: warning
+              alert_type: compliance
+              interface: o-ran
+            annotations:
+              summary: "O-RAN policy violation detected"
+              description: "{{ $value }} O-RAN policy violations in last 5 minutes"
+
+      - name: nephoran.performance.alerts
+        rules:
+          # Performance optimization alerts
+          - alert: OptimizationScoreLow
+            expr: nephoran:optimization:score < 0.7
+            for: 10m
+            labels:
+              severity: warning
+              alert_type: performance
+            annotations:
+              summary: "System optimization score low"
+              description: "System optimization score {{ $value }} is below 0.7 target"
+
+          - alert: ServiceAvailabilityLow
+            expr: nephoran:service:availability < 0.95
+            for: 2m
+            labels:
+              severity: critical
+              alert_type: performance
+            annotations:
+              summary: "Service availability low"
+              description: "Service availability {{ $value | humanizePercentage }} is below 95%"
+
+          - alert: SLOComplianceLow
+            expr: nephoran:slo:compliance < 0.9
+            for: 5m
+            labels:
+              severity: warning
+              alert_type: performance
+            annotations:
+              summary: "SLO compliance low"
+              description: "SLO compliance score {{ $value }} is below 90%"
+
+  # Advanced Recording Rules for Analytics and Predictions
+  advanced-recording-rules.yml: |
+    groups:
+    - name: nephoran.advanced.analytics
+      interval: 60s
+      rules:
+      # Multi-dimensional performance analytics
+      - record: nephoran:analytics:request_pattern
+        expr: |
+          (
+            rate(nephoran_networkintent_total[1h]) * 100 +
+            rate(nephoran_llm_requests_total[1h]) * 10 +
+            rate(nephoran_rag_queries_total[1h]) * 5
+          ) / 115
+        labels:
+          analytics_type: request_pattern
+
+      - record: nephoran:analytics:system_load_factor
+        expr: |
+          (
+            avg(nephoran_resource_utilization{resource_type="cpu"}) * 0.4 +
+            avg(nephoran_resource_utilization{resource_type="memory"}) * 0.3 +
+            avg(nephoran_resource_utilization{resource_type="disk"}) * 0.2 +
+            avg(nephoran_resource_utilization{resource_type="network"}) * 0.1
+          ) / 100
+        labels:
+          analytics_type: system_load
+
+      # Cost analytics and optimization
+      - record: nephoran:analytics:cost_efficiency
+        expr: |
+          (
+            sum(rate(nephoran_networkintent_total[1h])) / 
+            (sum(rate(nephoran_llm_cost_total[1h])) + sum(rate(nephoran_operational_cost_total[1h])))
+          )
+        labels:
+          analytics_type: cost_efficiency
+
+      - record: nephoran:analytics:resource_efficiency
+        expr: |
+          (
+            sum(rate(nephoran_networkintent_total[1h])) /
+            (
+              avg(nephoran_resource_utilization{resource_type="cpu"}) +
+              avg(nephoran_resource_utilization{resource_type="memory"})
+            )
+          ) * 100
+        labels:
+          analytics_type: resource_efficiency
+
+      # Quality and reliability analytics
+      - record: nephoran:analytics:quality_score
+        expr: |
+          (
+            nephoran:sli:availability * 0.4 +
+            (1 - nephoran:sli:error_rate) * 0.3 +
+            min(5 / nephoran:sli:latency_p95, 1) * 0.2 +
+            avg(nephoran_user_satisfaction_score) / 10 * 0.1
+          )
+        labels:
+          analytics_type: quality_score
+
+      - record: nephoran:analytics:reliability_index
+        expr: |
+          (
+            avg(up{job=~"nephoran.*"}) * 0.3 +
+            (1 - rate(nephoran_errors_total[1h]) / rate(nephoran_requests_total[1h])) * 0.3 +
+            avg(nephoran_controller_health_status) * 0.2 +
+            min(1, 60 / avg(nephoran_recovery_time_seconds)) * 0.2
+          )
+        labels:
+          analytics_type: reliability_index
+
+      # Predictive analytics for scaling
+      - record: nephoran:predict:scaling_factor
+        expr: |
+          (
+            predict_linear(rate(nephoran_networkintent_total[30m])[2h:5m], 3600) /
+            rate(nephoran_networkintent_total[5m])
+          )
+        labels:
+          prediction_type: scaling_factor
+          horizon: 1h
+
+      - record: nephoran:predict:resource_demand
+        expr: |
+          predict_linear(
+            (
+              nephoran_resource_utilization{resource_type="cpu"} * 0.5 +
+              nephoran_resource_utilization{resource_type="memory"} * 0.5
+            )[4h:10m], 7200
+          )
+        labels:
+          prediction_type: resource_demand
+          horizon: 2h
+
+      # Telecom-specific analytics
+      - record: nephoran:telecom:network_efficiency
+        expr: |
+          (
+            sum(rate(nephoran_networkintent_duration_seconds_count{status="completed"}[1h])) /
+            sum(rate(nephoran_networkintent_duration_seconds_count[1h])) * 0.4 +
+            avg(nephoran_oran_interface_health_score) * 0.3 +
+            (1 - rate(nephoran_oran_interface_errors_total[1h]) / rate(nephoran_oran_interface_requests_total[1h])) * 0.3
+          )
+        labels:
+          telecom_kpi: network_efficiency
+
+      - record: nephoran:telecom:automation_effectiveness
+        expr: |
+          (
+            nephoran:business:automation_rate / 100 * 0.5 +
+            (300 / nephoran:business:time_to_deployment) * 0.3 +
+            (1 - nephoran:sli:error_rate) * 0.2
+          )
+        labels:
+          telecom_kpi: automation_effectiveness
+
+    - name: nephoran.ml.insights
+      interval: 300s
+      rules:
+      # Machine learning insights and patterns
+      - record: nephoran:ml:workload_seasonality
+        expr: |
+          (
+            rate(nephoran_networkintent_total[1h]) /
+            avg_over_time(rate(nephoran_networkintent_total[1h])[24h:1h])
+          )
+        labels:
+          ml_type: seasonality
+          pattern: workload
+
+      - record: nephoran:ml:latency_correlation
+        expr: |
+          (
+            histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[30m])) /
+            avg_over_time(histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[30m]))[6h:30m])
+          )
+        labels:
+          ml_type: correlation
+          pattern: latency
+
+      - record: nephoran:ml:error_clustering
+        expr: |
+          (
+            rate(nephoran_errors_total[15m]) /
+            avg_over_time(rate(nephoran_errors_total[15m])[2h:15m])
+          )
+        labels:
+          ml_type: clustering
+          pattern: errors
+
+      # Adaptive thresholds based on historical data
+      - record: nephoran:adaptive:latency_threshold
+        expr: |
+          (
+            avg_over_time(histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m]))[24h:5m]) +
+            2 * stddev_over_time(histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m]))[24h:5m])
+          )
+        labels:
+          threshold_type: adaptive_latency
+
+      - record: nephoran:adaptive:error_threshold
+        expr: |
+          (
+            avg_over_time(rate(nephoran_errors_total[5m])[24h:5m]) +
+            3 * stddev_over_time(rate(nephoran_errors_total[5m])[24h:5m])
+          )
+        labels:
+          threshold_type: adaptive_error_rate
+
+      - record: nephoran:adaptive:capacity_threshold
+        expr: |
+          (
+            avg_over_time(nephoran_resource_utilization{resource_type="cpu"}[24h:5m]) +
+            1.5 * stddev_over_time(nephoran_resource_utilization{resource_type="cpu"}[24h:5m])
+          )
+        labels:
+          threshold_type: adaptive_capacity
+          resource: cpu

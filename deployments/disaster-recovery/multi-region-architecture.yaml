@@ -1,0 +1,801 @@
+---
+# Multi-Region High Availability Architecture for Nephoran Intent Operator
+# This configuration implements active-passive multi-region deployment with automated failover
+
+# Namespace for disaster recovery components
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-dr
+  labels:
+    app.kubernetes.io/name: disaster-recovery
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    environment: multi-region
+---
+# ServiceAccount for DR operations
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephoran-dr-operator
+  namespace: nephoran-dr
+  labels:
+    app: disaster-recovery
+    component: operator
+---
+# ClusterRole for DR operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-dr-operator
+rules:
+# Full access to Nephoran resources for failover operations
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents", "e2nodesets", "managedelements"]
+  verbs: ["*"]
+# Access to core Kubernetes resources for cluster management
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "configmaps", "secrets", "persistentvolumes", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "daemonsets", "statefulsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Access to monitoring and backup resources
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors", "podmonitors", "prometheusrules"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Access to backup and storage operations
+- apiGroups: ["snapshot.storage.k8s.io"]
+  resources: ["volumesnapshots", "volumesnapshotcontents"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+# ClusterRoleBinding for DR operator
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-dr-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nephoran-dr-operator
+subjects:
+- kind: ServiceAccount
+  name: nephoran-dr-operator
+  namespace: nephoran-dr
+---
+# ConfigMap for Multi-Region Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-region-config
+  namespace: nephoran-dr
+  labels:
+    app: disaster-recovery
+    component: configuration
+data:
+  # Primary region configuration
+  primary-region.yaml: |
+    region_config:
+      name: "primary"
+      location: "us-east-1"
+      priority: 1
+      role: "active"
+      
+    cluster_config:
+      endpoint: "https://primary-k8s.nephoran.com"
+      kubeconfig_secret: "primary-cluster-kubeconfig"
+      
+    services:
+      nephio-bridge:
+        replicas: 3
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "2Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        
+      llm-processor:
+        replicas: 2
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+            
+      rag-api:
+        replicas: 2
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+            
+      weaviate:
+        replicas: 3
+        storage_size: "100Gi"
+        backup_schedule: "0 */6 * * *"  # Every 6 hours
+        
+    network_config:
+      load_balancer:
+        type: "external"
+        health_check_path: "/healthz"
+        health_check_interval: "30s"
+        
+    monitoring:
+      prometheus_retention: "7d"
+      alerting_enabled: true
+      
+  # Secondary region configuration  
+  secondary-region.yaml: |
+    region_config:
+      name: "secondary"
+      location: "us-west-2"
+      priority: 2
+      role: "passive"
+      
+    cluster_config:
+      endpoint: "https://secondary-k8s.nephoran.com"
+      kubeconfig_secret: "secondary-cluster-kubeconfig"
+      
+    services:
+      nephio-bridge:
+        replicas: 1  # Reduced for passive mode
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "1000m"
+            memory: "2Gi"
+        
+      llm-processor:
+        replicas: 1
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+            
+      rag-api:
+        replicas: 1
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+            
+      weaviate:
+        replicas: 1  # Standby replica
+        storage_size: "100Gi"
+        replication_source: "primary"
+        
+    network_config:
+      load_balancer:
+        type: "internal"  # Internal only for passive region
+        health_check_path: "/healthz"
+        health_check_interval: "60s"
+        
+    monitoring:
+      prometheus_retention: "3d"  # Shorter retention for secondary
+      alerting_enabled: false  # Disabled in passive mode
+      
+  # Failover configuration
+  failover-config.yaml: |
+    failover:
+      enabled: true
+      mode: "automatic"
+      
+    triggers:
+      primary_health_check:
+        endpoint: "https://primary-k8s.nephoran.com/healthz"
+        timeout: "30s"
+        failure_threshold: 3
+        check_interval: "30s"
+        
+      service_health_checks:
+        - service: "nephio-bridge"
+          endpoint: "/healthz"
+          port: 8081
+          failure_threshold: 5
+        - service: "llm-processor"
+          endpoint: "/healthz"
+          port: 8080
+          failure_threshold: 3
+        - service: "weaviate"
+          endpoint: "/v1/.well-known/ready"
+          port: 8080
+          failure_threshold: 5
+          
+    automation:
+      dns_update:
+        enabled: true
+        provider: "route53"
+        hosted_zone: "nephoran.com"
+        ttl: 60
+        
+      traffic_routing:
+        enabled: true
+        switch_timeout: "5m"
+        
+      notification:
+        slack_webhook: "${SLACK_DR_WEBHOOK}"
+        email_recipients:
+          - "dr-team@nephoran.com"
+          - "oncall@nephoran.com"
+          
+    recovery:
+      rto_target: "5m"  # Recovery Time Objective
+      rpo_target: "1m"  # Recovery Point Objective
+      
+      validation_steps:
+        - "verify_cluster_connectivity"
+        - "check_service_health"
+        - "validate_data_consistency"
+        - "run_integration_tests"
+        
+    data_replication:
+      weaviate:
+        mode: "async_replication"
+        sync_interval: "5m"
+        consistency_check: "1h"
+        
+      configuration:
+        mode: "git_sync"
+        repository: "https://github.com/nephoran/config-repo"
+        branch: "main"
+        sync_interval: "1m"
+        
+      secrets:
+        mode: "manual_sync"  # Secrets require manual coordination
+        validation_required: true
+
+---
+# External-DNS Configuration for Automated DNS Management
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-dns
+  namespace: nephoran-dr
+  labels:
+    app: external-dns
+    component: dns-management
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: external-dns
+  template:
+    metadata:
+      labels:
+        app: external-dns
+    spec:
+      serviceAccountName: nephoran-dr-operator
+      containers:
+      - name: external-dns
+        image: k8s.gcr.io/external-dns/external-dns:v0.13.5
+        args:
+        - --source=service
+        - --source=ingress
+        - --domain-filter=nephoran.com
+        - --provider=aws
+        - --aws-zone-type=public
+        - --registry=txt
+        - --txt-owner-id=nephoran-dr
+        - --interval=1m
+        - --log-level=info
+        env:
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: aws-dns-credentials
+              key: access-key-id
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aws-dns-credentials
+              key: secret-access-key
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 7979
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 7979
+          initialDelaySeconds: 5
+          periodSeconds: 10
+
+---
+# Cross-Region Data Replication Controller
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: data-replication-controller
+  namespace: nephoran-dr
+  labels:
+    app: data-replication
+    component: controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: data-replication
+  template:
+    metadata:
+      labels:
+        app: data-replication
+    spec:
+      serviceAccountName: nephoran-dr-operator
+      containers:
+      - name: replication-controller
+        image: alpine/curl:8.4.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          #!/bin/sh
+          echo "🔄 Starting Cross-Region Data Replication Controller"
+          
+          # Function to replicate Weaviate data
+          replicate_weaviate_data() {
+            echo "🗄️ Starting Weaviate data replication..."
+            
+            PRIMARY_WEAVIATE="http://weaviate.nephoran-system.svc.cluster.local:8080"
+            SECONDARY_WEAVIATE="https://secondary-weaviate.nephoran.com:8080"
+            
+            # Create backup on primary
+            BACKUP_ID="replication-$(date +%Y%m%d-%H%M%S)"
+            
+            echo "📦 Creating backup: $BACKUP_ID"
+            curl -X POST "$PRIMARY_WEAVIATE/v1/backups" \
+              -H "Content-Type: application/json" \
+              -d "{
+                \"id\": \"$BACKUP_ID\",
+                \"include\": [\"TelecomKnowledge\", \"IntentPatterns\", \"NetworkFunctions\"],
+                \"compression\": \"gzip\"
+              }"
+            
+            # Wait for backup completion
+            echo "⏳ Waiting for backup completion..."
+            sleep 30
+            
+            # Transfer backup to secondary region
+            echo "📤 Transferring backup to secondary region..."
+            # Implementation would use cloud storage (S3) as intermediate
+            aws s3 cp "/backups/$BACKUP_ID.tar.gz" "s3://nephoran-dr-backups/weaviate/"
+            
+            # Restore on secondary
+            echo "📥 Restoring backup on secondary region..."
+            curl -X POST "$SECONDARY_WEAVIATE/v1/backups/restore" \
+              -H "Content-Type: application/json" \
+              -d "{\"id\": \"$BACKUP_ID\"}"
+              
+            echo "✅ Weaviate replication completed for $BACKUP_ID"
+          }
+          
+          # Function to sync configuration
+          sync_configuration() {
+            echo "⚙️ Syncing configuration between regions..."
+            
+            # Git-based configuration sync
+            git clone https://github.com/nephoran/config-repo /tmp/config
+            cd /tmp/config
+            
+            # Update secondary region configs
+            kubectl apply -f secondary-region/ --kubeconfig=/etc/kubeconfig/secondary
+            
+            echo "✅ Configuration sync completed"
+          }
+          
+          # Function to validate data consistency
+          validate_consistency() {
+            echo "🔍 Validating data consistency..."
+            
+            PRIMARY_COUNT=$(curl -s "$PRIMARY_WEAVIATE/v1/objects" | jq '.totalResults')
+            SECONDARY_COUNT=$(curl -s "$SECONDARY_WEAVIATE/v1/objects" | jq '.totalResults')
+            
+            DIFF=$((PRIMARY_COUNT - SECONDARY_COUNT))
+            DIFF_ABS=${DIFF#-}  # Absolute value
+            
+            if [ $DIFF_ABS -le 10 ]; then
+              echo "✅ Data consistency validated (diff: $DIFF objects)"
+              return 0
+            else
+              echo "❌ Data consistency check failed (diff: $DIFF objects)"
+              return 1
+            fi
+          }
+          
+          # Main replication loop
+          while true; do
+            echo "🔄 Starting replication cycle at $(date)"
+            
+            # Replicate Weaviate data every 5 minutes
+            replicate_weaviate_data
+            
+            # Sync configuration every minute  
+            sync_configuration
+            
+            # Validate consistency
+            if validate_consistency; then
+              echo "📊 Replication cycle completed successfully"
+            else
+              echo "⚠️ Replication cycle completed with warnings"
+              # Send alert
+              curl -X POST "$SLACK_WEBHOOK" \
+                -H 'Content-type: application/json' \
+                --data '{"text":"⚠️ DR replication consistency check failed"}'
+            fi
+            
+            # Wait 5 minutes before next cycle
+            sleep 300
+          done
+        env:
+        - name: SLACK_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: dr-notification-secrets
+              key: slack-webhook
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+        volumeMounts:
+        - name: secondary-kubeconfig
+          mountPath: /etc/kubeconfig
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: secondary-kubeconfig
+        secret:
+          secretName: secondary-cluster-kubeconfig
+
+---
+# Health Check and Failover Controller
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: failover-controller
+  namespace: nephoran-dr
+  labels:
+    app: failover-controller
+    component: automation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: failover-controller
+  template:
+    metadata:
+      labels:
+        app: failover-controller
+    spec:
+      serviceAccountName: nephoran-dr-operator
+      containers:
+      - name: failover-controller
+        image: alpine/curl:8.4.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          #!/bin/sh
+          echo "🚨 Starting Automated Failover Controller"
+          
+          # Current state tracking
+          CURRENT_ACTIVE_REGION="primary"
+          FAILOVER_IN_PROGRESS=false
+          CONSECUTIVE_FAILURES=0
+          LAST_FAILOVER_TIME=0
+          
+          # Function to check primary region health
+          check_primary_health() {
+            echo "🏥 Checking primary region health..."
+            
+            # Check cluster API
+            if ! curl -f -s --max-time 30 "https://primary-k8s.nephoran.com/healthz" > /dev/null; then
+              echo "❌ Primary cluster API unreachable"
+              return 1
+            fi
+            
+            # Check critical services
+            local failed_services=0
+            
+            for service in "nephio-bridge:8081" "llm-processor:8080" "weaviate:8080"; do
+              service_name=$(echo $service | cut -d: -f1)
+              service_port=$(echo $service | cut -d: -f2)
+              
+              if ! curl -f -s --max-time 10 "http://$service_name.nephoran-system.svc.cluster.local:$service_port/healthz" > /dev/null; then
+                echo "❌ Service $service_name unhealthy"
+                failed_services=$((failed_services + 1))
+              else
+                echo "✅ Service $service_name healthy"
+              fi
+            done
+            
+            if [ $failed_services -ge 2 ]; then
+              echo "❌ Too many critical services failed ($failed_services/4)"
+              return 1
+            fi
+            
+            echo "✅ Primary region health check passed"
+            return 0
+          }
+          
+          # Function to activate secondary region
+          activate_secondary_region() {
+            echo "🔀 Activating secondary region..."
+            
+            # Scale up secondary services
+            kubectl scale deployment/nephio-bridge --replicas=3 -n nephoran-system --kubeconfig=/etc/kubeconfig/secondary
+            kubectl scale deployment/llm-processor --replicas=2 -n nephoran-system --kubeconfig=/etc/kubeconfig/secondary
+            kubectl scale deployment/rag-api --replicas=2 -n nephoran-system --kubeconfig=/etc/kubeconfig/secondary
+            kubectl scale statefulset/weaviate --replicas=3 -n nephoran-system --kubeconfig=/etc/kubeconfig/secondary
+            
+            # Wait for services to be ready
+            echo "⏳ Waiting for services to scale up..."
+            sleep 120
+            
+            # Update DNS to point to secondary region
+            echo "🌐 Updating DNS records..."
+            # This would update Route53 or other DNS provider
+            aws route53 change-resource-record-sets \
+              --hosted-zone-id Z1234567890 \
+              --change-batch '{
+                "Changes": [{
+                  "Action": "UPSERT",
+                  "ResourceRecordSet": {
+                    "Name": "api.nephoran.com",
+                    "Type": "A",
+                    "TTL": 60,
+                    "ResourceRecords": [{"Value": "secondary-region-ip"}]
+                  }
+                }]
+              }'
+            
+            # Enable monitoring and alerting in secondary
+            kubectl patch deployment/prometheus -n nephoran-monitoring \
+              --type merge -p '{"spec":{"replicas":1}}' \
+              --kubeconfig=/etc/kubeconfig/secondary
+              
+            echo "✅ Secondary region activated"
+          }
+          
+          # Function to perform failover
+          perform_failover() {
+            if [ "$FAILOVER_IN_PROGRESS" = true ]; then
+              echo "⚠️ Failover already in progress, skipping"
+              return
+            fi
+            
+            FAILOVER_IN_PROGRESS=true
+            FAILOVER_START_TIME=$(date +%s)
+            
+            echo "🚨 INITIATING EMERGENCY FAILOVER TO SECONDARY REGION"
+            
+            # Send immediate notification
+            curl -X POST "$SLACK_WEBHOOK" \
+              -H 'Content-type: application/json' \
+              --data '{"text":"🚨 EMERGENCY FAILOVER INITIATED - Primary region failure detected, switching to secondary region"}'
+            
+            # Activate secondary region
+            activate_secondary_region
+            
+            # Update current state
+            CURRENT_ACTIVE_REGION="secondary"
+            LAST_FAILOVER_TIME=$FAILOVER_START_TIME
+            
+            # Validate failover success
+            sleep 60
+            if curl -f -s --max-time 30 "https://api.nephoran.com/healthz" > /dev/null; then
+              FAILOVER_END_TIME=$(date +%s)
+              FAILOVER_DURATION=$((FAILOVER_END_TIME - FAILOVER_START_TIME))
+              
+              echo "✅ Failover completed successfully in ${FAILOVER_DURATION}s"
+              
+              curl -X POST "$SLACK_WEBHOOK" \
+                -H 'Content-type: application/json' \
+                --data "{\"text\":\"✅ Failover completed successfully in ${FAILOVER_DURATION}s. RTO target: 300s\"}"
+            else
+              echo "❌ Failover validation failed"
+              
+              curl -X POST "$SLACK_WEBHOOK" \
+                -H 'Content-type: application/json' \
+                --data '{"text":"❌ Failover validation failed - manual intervention required"}'
+            fi
+            
+            FAILOVER_IN_PROGRESS=false
+          }
+          
+          # Main monitoring loop
+          while true; do
+            if [ "$CURRENT_ACTIVE_REGION" = "primary" ]; then
+              if check_primary_health; then
+                CONSECUTIVE_FAILURES=0
+                echo "✅ Primary region operational"
+              else
+                CONSECUTIVE_FAILURES=$((CONSECUTIVE_FAILURES + 1))
+                echo "⚠️ Primary region health check failed (attempt $CONSECUTIVE_FAILURES/3)"
+                
+                if [ $CONSECUTIVE_FAILURES -ge 3 ]; then
+                  # Check if enough time has passed since last failover (minimum 1 hour)
+                  CURRENT_TIME=$(date +%s)
+                  TIME_SINCE_LAST_FAILOVER=$((CURRENT_TIME - LAST_FAILOVER_TIME))
+                  
+                  if [ $TIME_SINCE_LAST_FAILOVER -ge 3600 ]; then
+                    perform_failover
+                  else
+                    echo "⚠️ Failover suppressed - too soon since last failover"
+                  fi
+                fi
+              fi
+            else
+              echo "ℹ️ Currently running on secondary region"
+              # Could implement automatic failback logic here
+            fi
+            
+            # Health check every 30 seconds
+            sleep 30
+          done
+        env:
+        - name: SLACK_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: dr-notification-secrets
+              key: slack-webhook
+        - name: AWS_DEFAULT_REGION
+          value: "us-east-1"
+        volumeMounts:
+        - name: secondary-kubeconfig
+          mountPath: /etc/kubeconfig
+          readOnly: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      volumes:
+      - name: secondary-kubeconfig
+        secret:
+          secretName: secondary-cluster-kubeconfig
+
+---
+# ServiceMonitor for DR components
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: disaster-recovery-monitoring
+  namespace: nephoran-dr
+  labels:
+    app: disaster-recovery
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: disaster-recovery
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
+---
+# PrometheusRule for DR alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: disaster-recovery-rules
+  namespace: nephoran-dr
+  labels:
+    app: disaster-recovery
+    component: alerting
+spec:
+  groups:
+  - name: nephoran.dr.alerts
+    rules:
+    - alert: PrimaryRegionDown
+      expr: up{job="primary-cluster"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        alert_type: disaster_recovery
+        component: primary_region
+      annotations:
+        summary: "Primary region is down"
+        description: "Primary region health checks failing for more than 2 minutes"
+        runbook_url: "https://runbooks.nephoran.com/dr-primary-region-down"
+        
+    - alert: FailoverRequired
+      expr: nephoran_dr_consecutive_failures >= 3
+      for: 1m
+      labels:
+        severity: critical
+        alert_type: disaster_recovery
+        action: failover_required
+      annotations:
+        summary: "Automatic failover required"
+        description: "Primary region has failed health checks 3 consecutive times"
+        
+    - alert: DataReplicationLag
+      expr: nephoran_dr_replication_lag_seconds > 300
+      for: 5m
+      labels:
+        severity: warning
+        alert_type: disaster_recovery
+        component: data_replication
+      annotations:
+        summary: "High data replication lag"
+        description: "Data replication lag is {{ $value }}s, exceeding 5 minutes"
+        
+    - alert: FailoverInProgress
+      expr: nephoran_dr_failover_in_progress == 1
+      for: 1s
+      labels:
+        severity: critical
+        alert_type: disaster_recovery
+        action: failover_active
+      annotations:
+        summary: "Disaster recovery failover in progress"
+        description: "Automated failover to secondary region is currently in progress"
+
+---
+# Network Policy for DR namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dr-network-policy
+  namespace: nephoran-dr
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-monitoring
+    - podSelector: {}
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+    - protocol: UDP
+      port: 53
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-system
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-monitoring

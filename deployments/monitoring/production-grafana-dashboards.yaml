@@ -1,0 +1,653 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-production-dashboards
+  namespace: nephoran-system
+  labels:
+    app: grafana
+    component: monitoring
+    grafana_dashboard: "true"
+data:
+  # Main System Overview Dashboard
+  system-overview.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Intent Operator - System Overview",
+        "tags": ["nephoran", "overview", "production"],
+        "timezone": "UTC",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "System Health Status",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "avg(nephoran_controller_health_status)",
+                "legendFormat": "System Health"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "mappings": [
+                  {"options": {"0": {"text": "Unhealthy", "color": "red"}}, "type": "value"},
+                  {"options": {"1": {"text": "Healthy", "color": "green"}}, "type": "value"}
+                ],
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Intent Processing Rate",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+            "targets": [
+              {
+                "expr": "rate(nephoran_networkintent_reconciliations_total[5m])",
+                "legendFormat": "Intents/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "ops",
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 0.1},
+                    {"color": "green", "value": 0.5}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 3,
+            "title": "System Uptime",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "time() - process_start_time_seconds{job=~\"nephoran.*\"}",
+                "legendFormat": "Uptime"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s",
+                "color": {"mode": "continuous-GrYlRd"}
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Active Alerts",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+            "targets": [
+              {
+                "expr": "count(ALERTS{alertstate=\"firing\"})",
+                "legendFormat": "Active Alerts"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 5,
+            "title": "Intent Processing Duration (P99)",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.99, rate(nephoran_networkintent_processing_duration_seconds_bucket[5m]))",
+                "legendFormat": "P99 Duration"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(nephoran_networkintent_processing_duration_seconds_bucket[5m]))",
+                "legendFormat": "P95 Duration"
+              },
+              {
+                "expr": "histogram_quantile(0.50, rate(nephoran_networkintent_processing_duration_seconds_bucket[5m]))",
+                "legendFormat": "P50 Duration"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Duration (seconds)",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Component Status",
+            "type": "table",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+            "targets": [
+              {
+                "expr": "nephoran_controller_health_status",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {"Time": true, "__name__": true},
+                  "renameByName": {
+                    "controller": "Controller",
+                    "component": "Component",
+                    "Value": "Status"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+  # LLM and RAG Performance Dashboard
+  llm-rag-performance.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Intent Operator - LLM & RAG Performance",
+        "tags": ["nephoran", "llm", "rag", "performance"],
+        "timezone": "UTC",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "LLM Request Rate",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "rate(nephoran_llm_requests_total[5m])",
+                "legendFormat": "{{model}} - {{result}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Requests/sec",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "LLM Response Times",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.99, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P99"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P95"
+              },
+              {
+                "expr": "histogram_quantile(0.50, rate(nephoran_llm_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "P50"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Duration (seconds)",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Token Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "rate(nephoran_llm_tokens_used_total[5m])",
+                "legendFormat": "{{model}} - {{token_type}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Tokens/sec",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "LLM Cost Analysis",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "rate(nephoran_llm_cost_dollars_total[1h])",
+                "legendFormat": "{{model}} - Hourly Cost"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Cost (USD/hour)",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "RAG Cache Performance",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 8, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "nephoran_llm_cache_hit_rate",
+                "legendFormat": "Cache Hit Rate"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 0.6},
+                    {"color": "green", "value": 0.8}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 6,
+            "title": "Vector Database Performance",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 16, "x": 8, "y": 16},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(nephoran_weaviate_query_duration_seconds_bucket[5m]))",
+                "legendFormat": "Query P95"
+              },
+              {
+                "expr": "nephoran_weaviate_object_count",
+                "legendFormat": "Object Count"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+  # Business KPIs Dashboard
+  business-kpis.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Intent Operator - Business KPIs",
+        "tags": ["nephoran", "business", "kpis"],
+        "timezone": "UTC",
+        "refresh": "1m",
+        "time": {
+          "from": "now-24h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Intent Success Rate (24h)",
+            "type": "stat",
+            "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "rate(nephoran_networkintent_reconciliations_total{result=\"success\"}[24h]) / rate(nephoran_networkintent_reconciliations_total[24h])",
+                "legendFormat": "Success Rate"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 0.95},
+                    {"color": "green", "value": 0.99}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Average Time to Deployment",
+            "type": "stat",
+            "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0},
+            "targets": [
+              {
+                "expr": "avg(nephoran_time_to_deployment_seconds)",
+                "legendFormat": "Avg Time"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s",
+                "color": {"mode": "continuous-GrYlRd"}
+              }
+            }
+          },
+          {
+            "id": 3,
+            "title": "Automation Rate",
+            "type": "stat",
+            "gridPos": {"h": 6, "w": 6, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "nephoran_automation_rate{deployment_type=\"automated\"}",
+                "legendFormat": "Automation Rate"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 0.7},
+                    {"color": "green", "value": 0.9}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Daily LLM Cost",
+            "type": "stat",
+            "gridPos": {"h": 6, "w": 6, "x": 18, "y": 0},
+            "targets": [
+              {
+                "expr": "increase(nephoran_llm_cost_dollars_total[24h])",
+                "legendFormat": "Daily Cost"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "currencyUSD",
+                "color": {"mode": "continuous-BlYlRd"}
+              }
+            }
+          },
+          {
+            "id": 5,
+            "title": "Intent Processing Trends",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6},
+            "targets": [
+              {
+                "expr": "sum(rate(nephoran_networkintent_reconciliations_total[1h]))",
+                "legendFormat": "Total Intents/hour"
+              },
+              {
+                "expr": "sum(rate(nethoran_networkintent_reconciliations_total{result=\"success\"}[1h]))",
+                "legendFormat": "Successful Intents/hour"
+              },
+              {
+                "expr": "sum(rate(nephoran_networkintent_reconciliations_total{result=\"error\"}[1h]))",
+                "legendFormat": "Failed Intents/hour"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Cost Analysis by Model",
+            "type": "piechart",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 14},
+            "targets": [
+              {
+                "expr": "sum by (model) (increase(nephoran_llm_cost_dollars_total[24h]))",
+                "legendFormat": "{{model}}"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "title": "Intent Types Distribution",
+            "type": "piechart",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 14},
+            "targets": [
+              {
+                "expr": "sum by (intent_type) (increase(nephoran_networkintent_reconciliations_total[24h]))",
+                "legendFormat": "{{intent_type}}"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+  # O-RAN Interface Dashboard
+  oran-interfaces.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Intent Operator - O-RAN Interfaces",
+        "tags": ["nephoran", "oran", "interfaces"],
+        "timezone": "UTC",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "O-RAN Interface Status",
+            "type": "table",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "nephoran_oran_connection_status",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {"Time": true, "__name__": true},
+                  "renameByName": {
+                    "interface": "Interface",
+                    "endpoint": "Endpoint",
+                    "Value": "Status"
+                  }
+                }
+              }
+            ],
+            "overrides": [
+              {
+                "matcher": {"id": "byName", "options": "Status"},
+                "properties": [
+                  {
+                    "id": "mappings",
+                    "value": [
+                      {"options": {"0": {"text": "Disconnected", "color": "red"}}, "type": "value"},
+                      {"options": {"1": {"text": "Connected", "color": "green"}}, "type": "value"}
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Interface Request Rate",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "rate(nephoran_oran_interface_requests_total[5m])",
+                "legendFormat": "{{interface}} - {{operation}}"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Interface Error Rate",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+            "targets": [
+              {
+                "expr": "rate(nephoran_oran_interface_errors_total[5m])",
+                "legendFormat": "{{interface}} - {{error_type}}"
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Response Times by Interface",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(nephoran_oran_interface_request_duration_seconds_bucket[5m]))",
+                "legendFormat": "{{interface}} P95"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+  # Infrastructure and Resource Monitoring
+  infrastructure.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Intent Operator - Infrastructure",
+        "tags": ["nephoran", "infrastructure", "resources"],
+        "timezone": "UTC",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "CPU Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{namespace=\"nephoran-system\"}[5m])",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "CPU Usage",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 2,
+            "title": "Memory Usage",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "container_memory_usage_bytes{namespace=\"nephoran-system\"}",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Memory (bytes)",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "Pod Status",
+            "type": "table",
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+            "targets": [
+              {
+                "expr": "kube_pod_info{namespace=\"nephoran-system\"}",
+                "format": "table",
+                "instant": true
+              }
+            ]
+          },
+          {
+            "id": 4,
+            "title": "Network I/O",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+            "targets": [
+              {
+                "expr": "rate(container_network_receive_bytes_total{namespace=\"nephoran-system\"}[5m])",
+                "legendFormat": "{{pod}} - RX"
+              },
+              {
+                "expr": "rate(container_network_transmit_bytes_total{namespace=\"nephoran-system\"}[5m])",
+                "legendFormat": "{{pod}} - TX"
+              }
+            ]
+          },
+          {
+            "id": 5,
+            "title": "Storage I/O",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+            "targets": [
+              {
+                "expr": "rate(container_fs_reads_bytes_total{namespace=\"nephoran-system\"}[5m])",
+                "legendFormat": "{{pod}} - Read"
+              },
+              {
+                "expr": "rate(container_fs_writes_bytes_total{namespace=\"nephoran-system\"}[5m])",
+                "legendFormat": "{{pod}} - Write"
+              }
+            ]
+          }
+        ]
+      }
+    }
