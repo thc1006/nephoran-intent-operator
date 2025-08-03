@@ -47,6 +47,10 @@ mcp.json
 .kiro/settings/mcp.json.mcp.json
 
 .mcp.json
+.mcp-fresh.json
+.mcp.json.old
+.mcp.json.backup
+.mcp.json.template
 *.token
 .env.local
 
