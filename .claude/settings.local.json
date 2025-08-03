@@ -46,7 +46,10 @@
       "WebFetch(domain:github.com)",
       "Bash(git config:*)",
       "Bash(git branch:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(git fetch:*)",
+      "Bash(git merge-base:*)",
+      "Bash(git rebase:*)"
     ],
     "deny": []
   },
