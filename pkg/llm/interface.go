@@ -12,5 +12,5 @@ type ClientInterface interface {
 	shared.ClientInterface
 }
 
-// Ensure our interface is compatible with the shared interface
-var _ shared.ClientInterface = (*ClientInterface)(nil)
+// ClientInterface embeds shared.ClientInterface for compatibility
+// Type assertion is not needed since ClientInterface embeds shared.ClientInterface
