@@ -758,7 +758,7 @@ func (rc *RedisCache) GetHealthStatus(ctx context.Context) map[string]interface{
 		"status":     status,
 		"healthy":    healthy,
 		"ping_time":  pingTime,
-		"error":      func() string { if err != nil { return err.Error() } return "" }(),
+		"error":      func() string { if err != nil { return err.Error() }; return "" }(),
 		"metrics": map[string]interface{}{
 			"hit_rate":       metrics.HitRate,
 			"total_requests": metrics.TotalRequests,

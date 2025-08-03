@@ -8,21 +8,21 @@
       }
     },
     "filesystem": {
-      "command": "npx",
+      "command": "cmd",
       "args": [
+        "/c",
+        "npx",
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/home/vscode/.kube/config",
-        "/home/vscode/.kube:/root/.kube",
-        "/workspaces",
-        "/workspaces/nephoran-intent-operator"
+        "C:\\Users\\thc1006\\Desktop\\nephoran-intent-operator\\nephoran-intent-operator",
+        "C:\\Users\\thc1006\\Desktop\\nephoran-intent-operator"
       ]
     },
     "kubernetes": {
-      "command": "python3",
+      "command": "python",
       "args": ["-u", "-m", "kubectl_mcp_tool.mcp_server"],
       "env": {
-        "KUBECONFIG": "/home/vscode/.kube/config",
+        "KUBECONFIG": "C:\\Users\\thc1006\\.kube\\config",
         "PYTHONUNBUFFERED": "1"
       }
     },
@@ -30,7 +30,7 @@
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
-        "-v", "/home/vscode/.kube:/root/.kube",
+        "-v", "C:\\Users\\thc1006\\.kube:/root/.kube",
         "ghcr.io/zekker6/mcp-helm:v0.0.5"
       ]
     }

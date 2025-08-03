@@ -172,41 +172,6 @@ func NewDocumentLoader(config *DocumentLoaderConfig) *DocumentLoader {
 	}
 }
 
-// getDefaultLoaderConfig returns default configuration for the document loader
-func getDefaultLoaderConfig() *DocumentLoaderConfig {
-	return &DocumentLoaderConfig{
-		LocalPaths:        []string{"./knowledge_base"},
-		RemoteURLs:        []string{},
-		MaxFileSize:       500 * 1024 * 1024, // 500MB for 3GPP specs
-		PDFTextExtractor:  "hybrid",          // Use hybrid approach
-		StreamingEnabled:  true,
-		StreamingThreshold: 50 * 1024 * 1024,   // 50MB threshold
-		MaxMemoryUsage:    200 * 1024 * 1024,   // 200MB memory limit
-		PageProcessingBatch: 10,                // Process 10 pages at a time
-		EnableTableExtraction:  true,
-		EnableFigureExtraction: true,
-		OCREnabled:        false,
-		OCRLanguage:       "eng",
-		MinContentLength:  100,
-		MaxContentLength:  1000000, // 1MB text
-		LanguageFilter:    []string{"en", "eng", "english"},
-		EnableCaching:     true,
-		CacheDirectory:    "./cache/documents",
-		CacheTTL:          24 * time.Hour,
-		BatchSize:         10,
-		MaxConcurrency:    5,
-		ProcessingTimeout: 30 * time.Second,
-		MaxRetries:        3,
-		RetryDelay:        2 * time.Second,
-		PreferredSources: map[string]int{
-			"3GPP":  10,
-			"O-RAN": 9,
-			"ETSI":  8,
-			"ITU":   7,
-		},
-		TechnicalDomains: []string{"RAN", "Core", "Transport", "Management", "O-RAN"},
-	}
-}
 
 // LoadDocuments loads documents from configured sources
 func (dl *DocumentLoader) LoadDocuments(ctx context.Context) ([]*LoadedDocument, error) {
