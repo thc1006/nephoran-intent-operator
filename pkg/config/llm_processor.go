@@ -64,12 +64,12 @@ type LLMProcessorConfig struct {
 	RetryBackoff string
 
 	// OAuth2 Authentication Configuration
-	AuthEnabled     bool
-	AuthConfigFile  string
-	JWTSecretKey    string
-	RequireAuth     bool
-	AdminUsers      []string
-	OperatorUsers   []string
+	AuthEnabled    bool
+	AuthConfigFile string
+	JWTSecretKey   string
+	RequireAuth    bool
+	AdminUsers     []string
+	OperatorUsers  []string
 
 	// Secret Management Configuration
 	UseKubernetesSecrets bool
@@ -120,9 +120,9 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 		RetryDelay:   1 * time.Second,
 		RetryBackoff: "exponential",
 
-		AuthEnabled:  false,
-		RequireAuth:  true,
-		AdminUsers:   []string{},
+		AuthEnabled:   true,
+		RequireAuth:   true,
+		AdminUsers:    []string{},
 		OperatorUsers: []string{},
 
 		UseKubernetesSecrets: true,
@@ -261,7 +261,7 @@ func (c *LLMProcessorConfig) Validate() error {
 	}
 
 	if len(errors) > 0 {
-		return fmt.Errorf(strings.Join(errors, "; "))
+		return fmt.Errorf("%s", strings.Join(errors, "; "))
 	}
 
 	return nil

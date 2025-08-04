@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -16,7 +17,7 @@ type ClientInterface interface {
 	CommitAndPush(files map[string]string, message string) (string, error)
 	CommitAndPushChanges(message string) error
 	InitRepo() error
-	RemoveDirectory(path string) error
+	RemoveDirectory(path string, commitMessage string) error
 }
 
 // Client implements the Git client.
@@ -121,9 +122,25 @@ func (c *Client) CommitAndPushChanges(message string) error {
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 
-	// Add all changes
-	if _, err := w.Add("."); err != nil {
-		return fmt.Errorf("failed to add changes: %w", err)
+	// Get status and stage only tracked files, skip untracked and .git files
+	status, err := w.Status()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree status: %w", err)
+	}
+
+	for file := range status {
+		// Skip files/directories starting with .git
+		if strings.HasPrefix(file, ".git") {
+			continue
+		}
+		
+		// Stage only tracked files (modified, deleted, renamed)
+		fileStatus := status[file]
+		if fileStatus.Staging != git.Untracked && fileStatus.Worktree != git.Untracked {
+			if _, err := w.Add(file); err != nil {
+				return fmt.Errorf("failed to add file %s: %w", file, err)
+			}
+		}
 	}
 
 	_, err = w.Commit(message, &git.CommitOptions{
@@ -153,8 +170,8 @@ func (c *Client) CommitAndPushChanges(message string) error {
 	return nil
 }
 
-// RemoveDirectory removes a directory from the repository
-func (c *Client) RemoveDirectory(path string) error {
+// RemoveDirectory removes a directory from the repository and commits the change
+func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 	r, err := git.PlainOpen(c.RepoPath)
 	if err != nil {
 		return fmt.Errorf("failed to open repo: %w", err)
@@ -171,9 +188,47 @@ func (c *Client) RemoveDirectory(path string) error {
 		return fmt.Errorf("failed to remove directory %s: %w", fullPath, err)
 	}
 
-	// Stage the removal
-	if _, err := w.Add(path); err != nil {
-		return fmt.Errorf("failed to stage directory removal: %w", err)
+	// Get status to find all files that were deleted
+	status, err := w.Status()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree status: %w", err)
+	}
+
+	// Stage all deletions within the removed directory
+	for file := range status {
+		fileStatus := status[file]
+		// Stage files that are deleted and within the target path
+		if fileStatus.Worktree == git.Deleted && strings.HasPrefix(file, path) {
+			if _, err := w.Add(file); err != nil {
+				return fmt.Errorf("failed to stage deletion of %s: %w", file, err)
+			}
+		}
+	}
+
+	// Commit the changes
+	_, err = w.Commit(commitMessage, &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "Nephio Bridge",
+			Email: "nephio-bridge@example.com",
+			When:  time.Now(),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to commit directory removal: %w", err)
+	}
+
+	// Push the changes
+	auth, err := ssh.NewPublicKeys("git", []byte(c.SshKey), "")
+	if err != nil {
+		return fmt.Errorf("failed to create ssh auth: %w", err)
+	}
+
+	err = r.Push(&git.PushOptions{
+		RemoteName: "origin",
+		Auth:       auth,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to push directory removal: %w", err)
 	}
 
 	return nil

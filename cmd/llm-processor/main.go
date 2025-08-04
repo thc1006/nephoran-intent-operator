@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -17,11 +19,11 @@ import (
 )
 
 var (
-	cfg         *config.LLMProcessorConfig
-	logger      *slog.Logger
-	service     *services.LLMProcessorService
-	handler     *handlers.LLMProcessorHandler
-	startTime   = time.Now()
+	cfg       *config.LLMProcessorConfig
+	logger    *slog.Logger
+	service   *services.LLMProcessorService
+	handler   *handlers.LLMProcessorHandler
+	startTime = time.Now()
 )
 
 func main() {
@@ -41,16 +43,24 @@ func main() {
 	// Update logger level based on configuration
 	logger = createLoggerWithLevel(cfg.LogLevel)
 
+	// Perform security validation before starting the service
+	if err := validateSecurityConfiguration(cfg, logger); err != nil {
+		logger.Error("Security validation failed", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
 	logger.Info("Starting LLM Processor service",
 		slog.String("version", cfg.ServiceVersion),
 		slog.String("port", cfg.Port),
 		slog.String("backend_type", cfg.LLMBackendType),
 		slog.String("model", cfg.LLMModelName),
+		slog.Bool("auth_enabled", cfg.AuthEnabled),
+		slog.Bool("require_auth", cfg.RequireAuth),
 	)
 
 	// Initialize service components
 	service = services.NewLLMProcessorService(cfg, logger)
-	
+
 	ctx := context.Background()
 	if err := service.Initialize(ctx); err != nil {
 		logger.Error("Failed to initialize service", slog.String("error", err.Error()))
@@ -106,6 +116,75 @@ func main() {
 	logger.Info("Server exited")
 }
 
+// validateSecurityConfiguration performs fail-fast security validation
+// to prevent accidental deployment of unauthenticated services in production
+func validateSecurityConfiguration(cfg *config.LLMProcessorConfig, logger *slog.Logger) error {
+	// Check if we're in a development environment
+	isDevelopment := isDevelopmentEnvironment()
+
+	logger.Info("Security configuration validation",
+		slog.Bool("is_development", isDevelopment),
+		slog.Bool("auth_enabled", cfg.AuthEnabled),
+		slog.Bool("require_auth", cfg.RequireAuth),
+	)
+
+	// If authentication is disabled, only allow in development environments
+	if !cfg.AuthEnabled {
+		if !isDevelopment {
+			return fmt.Errorf("authentication is disabled but this appears to be a production environment. " +
+				"Set AUTH_ENABLED=true or ensure GO_ENV/NODE_ENV/ENVIRONMENT is set to 'development' or 'dev'")
+		}
+
+		logger.Warn("Authentication is disabled - this should only be used in development environments",
+			slog.String("environment_status", "development_detected"))
+	}
+
+	// Additional security check: if auth is enabled but not required, warn in production
+	if cfg.AuthEnabled && !cfg.RequireAuth && !isDevelopment {
+		logger.Warn("Authentication is enabled but not required in production environment. " +
+			"Consider setting REQUIRE_AUTH=true for enhanced security")
+	}
+
+	// Log security status for audit purposes
+	if cfg.AuthEnabled {
+		logger.Info("Authentication security status",
+			slog.Bool("auth_enabled", true),
+			slog.Bool("require_auth", cfg.RequireAuth),
+			slog.String("jwt_secret_configured", func() string {
+				if cfg.JWTSecretKey != "" {
+					return "yes"
+				}
+				return "no"
+			}()),
+		)
+	} else {
+		logger.Warn("Service starting without authentication - development mode only")
+	}
+
+	return nil
+}
+
+// isDevelopmentEnvironment determines if the service is running in a development environment
+// by checking common environment variables used to indicate development/staging environments
+func isDevelopmentEnvironment() bool {
+	// Check common environment indicators
+	envVars := []string{"GO_ENV", "NODE_ENV", "ENVIRONMENT", "ENV", "APP_ENV"}
+
+	for _, envVar := range envVars {
+		value := strings.ToLower(os.Getenv(envVar))
+		switch value {
+		case "development", "dev", "local", "test", "testing":
+			return true
+		case "production", "prod", "staging", "stage":
+			return false
+		}
+	}
+
+	// If no environment variable is set, default to production for safety
+	// This ensures fail-safe behavior where authentication is required by default
+	return false
+}
+
 // createLoggerWithLevel creates a logger with the specified level
 func createLoggerWithLevel(level string) *slog.Logger {
 	var logLevel slog.Level
@@ -131,7 +210,7 @@ func createLoggerWithLevel(level string) *slog.Logger {
 // setupHTTPServer configures and returns the HTTP server
 func setupHTTPServer() *http.Server {
 	router := mux.NewRouter()
-	
+
 	// Initialize OAuth2 middleware if enabled
 	var authMiddleware *auth.AuthMiddleware
 	if cfg.AuthEnabled {
@@ -140,23 +219,23 @@ func setupHTTPServer() *http.Server {
 			logger.Error("Failed to load auth config", slog.String("error", err.Error()))
 			os.Exit(1)
 		}
-		
+
 		oauth2Config, err := authConfig.ToOAuth2Config()
 		if err != nil {
 			logger.Error("Failed to create OAuth2 config", slog.String("error", err.Error()))
 			os.Exit(1)
 		}
-		
+
 		authMiddleware = auth.NewAuthMiddleware(oauth2Config, []byte(cfg.JWTSecretKey))
-		
+
 		// OAuth2 authentication routes
 		router.HandleFunc("/auth/login/{provider}", authMiddleware.LoginHandler).Methods("GET")
 		router.HandleFunc("/auth/callback/{provider}", authMiddleware.CallbackHandler).Methods("GET")
 		router.HandleFunc("/auth/refresh", authMiddleware.RefreshHandler).Methods("POST")
 		router.HandleFunc("/auth/logout", authMiddleware.LogoutHandler).Methods("POST")
 		router.HandleFunc("/auth/userinfo", authMiddleware.UserInfoHandler).Methods("GET")
-		
-		logger.Info("OAuth2 authentication enabled", 
+
+		logger.Info("OAuth2 authentication enabled",
 			slog.Int("providers", len(oauth2Config.Providers)))
 	}
 
@@ -171,28 +250,28 @@ func setupHTTPServer() *http.Server {
 		// Apply authentication middleware to protected routes
 		protectedRouter := router.PathPrefix("/").Subrouter()
 		protectedRouter.Use(authMiddleware.Authenticate)
-		
+
 		// Main processing endpoint - requires operator role
 		protectedRouter.HandleFunc("/process", handler.ProcessIntentHandler).Methods("POST")
 		protectedRouter.Use(authMiddleware.RequireOperator())
-		
+
 		// Streaming endpoint - requires operator role
 		if cfg.StreamingEnabled {
 			protectedRouter.HandleFunc("/stream", handler.StreamingHandler).Methods("POST")
 		}
-		
+
 		// Admin endpoints - requires admin role
 		adminRouter := protectedRouter.PathPrefix("/admin").Subrouter()
 		adminRouter.Use(authMiddleware.RequireAdmin())
 		adminRouter.HandleFunc("/status", handler.StatusHandler).Methods("GET")
 		adminRouter.HandleFunc("/circuit-breaker/status", handler.CircuitBreakerStatusHandler).Methods("GET")
-		
+
 	} else {
 		// No authentication required - direct routes
 		router.HandleFunc("/process", handler.ProcessIntentHandler).Methods("POST")
 		router.HandleFunc("/status", handler.StatusHandler).Methods("GET")
 		router.HandleFunc("/circuit-breaker/status", handler.CircuitBreakerStatusHandler).Methods("GET")
-		
+
 		if cfg.StreamingEnabled {
 			router.HandleFunc("/stream", handler.StreamingHandler).Methods("POST")
 		}

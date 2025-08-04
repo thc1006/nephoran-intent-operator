@@ -215,16 +215,19 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1alpha1.ManagedEle
 	// Create new NETCONF client
 	client := NewNetconfClient(netconfConfig)
 	
-	// Prepare authentication configuration
+	// TODO: Implement proper credential resolution from Secret references
+	// The ManagedElementCredentials struct uses SecretReferences, not direct values
+	// This needs to be updated to resolve secrets from the Kubernetes API
 	authConfig := &AuthConfig{
-		Username: me.Spec.Credentials.Username,
-		Password: me.Spec.Credentials.Password,
+		Username: "placeholder", // TODO: resolve from me.Spec.Credentials.UsernameRef
+		Password: "placeholder", // TODO: resolve from me.Spec.Credentials.PasswordRef
 	}
 	
-	// If private key is provided, use it for authentication
-	if me.Spec.Credentials.PrivateKey != "" {
-		authConfig.PrivateKey = []byte(me.Spec.Credentials.PrivateKey)
-	}
+	// TODO: Implement private key resolution from PrivateKeyRef
+	// if me.Spec.Credentials.PrivateKeyRef != nil {
+	//     // Resolve secret and extract private key
+	//     authConfig.PrivateKey = []byte("placeholder")
+	// }
 	
 	// Establish connection with retry logic
 	var lastErr error

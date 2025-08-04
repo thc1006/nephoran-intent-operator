@@ -178,6 +178,183 @@ The Nephoran Intent Operator has been comprehensively tested and verified:
 - **Integration Confidence**: 85% based on comprehensive static analysis
 - **Dependency Stability**: All versions verified (Weaviate v1.25.6, unified OpenTelemetry)
 
+## Authentication and Security
+
+The Nephoran Intent Operator implements a **security-first approach** with authentication **ENABLED by default** for all production deployments. This ensures secure operations and protects against unauthorized access to critical network functions.
+
+### Default Authentication Behavior
+
+Starting with version v2.0.0, the LLM Processor service enforces the following security defaults:
+
+- **AuthEnabled**: `true` by default (authentication is enabled)
+- **RequireAuth**: `true` by default (authentication is required for protected endpoints)
+- **Production Safety**: Service will **fail to start** if authentication is disabled in production environments
+
+### Environment-Based Configuration
+
+The system automatically detects the deployment environment using these environment variables (in priority order):
+
+| Environment Variable | Development Values | Production Values |
+|---------------------|-------------------|-------------------|
+| `GO_ENV` | `development`, `dev`, `local`, `test`, `testing` | `production`, `prod`, `staging`, `stage` |
+| `NODE_ENV` | `development`, `dev`, `local`, `test`, `testing` | `production`, `prod`, `staging`, `stage` |
+| `ENVIRONMENT` | `development`, `dev`, `local`, `test`, `testing` | `production`, `prod`, `staging`, `stage` |
+| `ENV` | `development`, `dev`, `local`, `test`, `testing` | `production`, `prod`, `staging`, `stage` |
+| `APP_ENV` | `development`, `dev`, `local`, `test`, `testing` | `production`, `prod`, `staging`, `stage` |
+
+### Authentication Configuration
+
+Control authentication behavior using these environment variables:
+
+```bash
+# Enable/disable authentication (default: true)
+AUTH_ENABLED=true
+
+# Require authentication for protected endpoints (default: true)
+REQUIRE_AUTH=true
+
+# JWT secret key for token signing
+JWT_SECRET_KEY=your-secure-secret-key
+
+# OAuth2 configuration file
+AUTH_CONFIG_FILE=/config/auth-config.json
+```
+
+### Development Environment Setup
+
+For **development environments only**, authentication can be disabled:
+
+```bash
+# Method 1: Set environment indicator
+export GO_ENV=development
+export AUTH_ENABLED=false
+
+# Method 2: Use development kustomize overlay
+kubectl apply -k deployments/kustomize/overlays/local
+```
+
+**Warning**: The service will refuse to start if `AUTH_ENABLED=false` is set in a production environment.
+
+### Production Environment Requirements
+
+In production environments, the system enforces these security requirements:
+
+1. **Authentication Must Be Enabled**: `AUTH_ENABLED=true` (default)
+2. **Authentication Must Be Required**: `REQUIRE_AUTH=true` (default)
+3. **Secure Configuration**: JWT secret and OAuth2 providers must be properly configured
+4. **Environment Detection**: Production environment must be explicitly set or will be auto-detected
+
+Example production configuration:
+
+```bash
+# Production environment
+export ENVIRONMENT=production
+
+# Authentication configuration (these are the defaults)
+export AUTH_ENABLED=true
+export REQUIRE_AUTH=true
+export JWT_SECRET_KEY=$(openssl rand -base64 32)
+
+# OAuth2 providers configuration
+export AZURE_ENABLED=true
+export AZURE_CLIENT_ID=your-azure-client-id
+export AZURE_CLIENT_SECRET=your-azure-client-secret
+```
+
+### Troubleshooting Authentication Issues
+
+#### Service Fails to Start with Authentication Error
+
+**Error**: `authentication is disabled but this appears to be a production environment`
+
+**Solution**:
+```bash
+# Option 1: Enable authentication (recommended)
+export AUTH_ENABLED=true
+
+# Option 2: Set development environment
+export GO_ENV=development
+# or
+export NODE_ENV=development
+```
+
+#### Service Starts but Authentication Not Working
+
+**Check Configuration**:
+```bash
+# Verify authentication status
+kubectl logs deployment/llm-processor | grep -i auth
+
+# Check configuration
+kubectl get configmap llm-processor-oauth2-config -o yaml
+
+# Test authentication endpoints
+curl -v http://localhost:8080/auth/login
+```
+
+#### Missing JWT Secret Key
+
+**Error**: JWT secret key not configured
+
+**Solution**:
+```bash
+# Generate a secure JWT secret
+export JWT_SECRET_KEY=$(openssl rand -base64 32)
+
+# Or update the Kubernetes secret
+kubectl create secret generic llm-processor-secrets \
+  --from-literal=jwt-secret-key="$(openssl rand -base64 32)" \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+### Migration Notes for Existing Deployments
+
+If you have existing deployments that previously ran with authentication disabled, you need to update your configuration:
+
+#### Step 1: Update Environment Configuration
+
+```bash
+# For development environments
+export GO_ENV=development  # or NODE_ENV=development
+
+# For production environments (authentication will be enforced)
+export ENVIRONMENT=production
+export AUTH_ENABLED=true
+export REQUIRE_AUTH=true
+```
+
+#### Step 2: Configure Authentication Providers
+
+```bash
+# Set up OAuth2 configuration
+kubectl apply -f deployments/kustomize/base/llm-processor/oauth2-config.yaml
+
+# Configure secrets
+kubectl apply -f deployments/kustomize/base/llm-processor/oauth2-secrets.yaml
+```
+
+#### Step 3: Update Deployment Overlays
+
+Use the appropriate Kustomize overlay for your environment:
+
+```bash
+# Local/development deployment
+kubectl apply -k deployments/kustomize/overlays/local
+
+# Production deployment
+kubectl apply -k deployments/kustomize/overlays/production
+```
+
+### Security Best Practices
+
+1. **Always Enable Authentication in Production**: Never disable authentication in production environments
+2. **Use Strong JWT Secrets**: Generate cryptographically secure JWT secret keys
+3. **Configure OAuth2 Providers**: Set up proper OAuth2 integration with your identity provider
+4. **Monitor Authentication Logs**: Regularly review authentication logs for security events
+5. **Rotate Secrets Regularly**: Implement regular rotation of JWT secrets and OAuth2 credentials
+
+For detailed OAuth2 configuration, see the [OAuth2 Authentication Guide](docs/OAuth2-Authentication-Guide.md).
+
 ## Usage Examples
 
 The Nephoran Intent Operator supports both **natural language intents** and **direct resource management**.

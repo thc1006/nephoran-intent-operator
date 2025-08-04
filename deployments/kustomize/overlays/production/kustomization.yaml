@@ -204,7 +204,7 @@ patches:
 - patch: |-
     - op: replace
       path: /spec/template/spec/serviceAccountName
-      value: nephio-bridge-sa-production
+      value: nephio-bridge-sa
   target:
     kind: Deployment
     name: nephio-bridge
@@ -212,13 +212,19 @@ patches:
 - patch: |-
     - op: replace
       path: /spec/template/spec/serviceAccountName
-      value: oran-adaptor-sa-production
+      value: oran-adaptor-sa
   target:
     kind: Deployment
     name: oran-adaptor
 
-# Update cluster role bindings for production namespace
+# Update cluster role bindings for production namespace and correct ServiceAccounts
 - patch: |-
+    - op: replace
+      path: /subjects/0/kind
+      value: ServiceAccount
+    - op: replace
+      path: /subjects/0/name
+      value: nephio-bridge-sa
     - op: replace
       path: /subjects/0/namespace
       value: nephoran-system
@@ -228,11 +234,32 @@ patches:
 
 - patch: |-
     - op: replace
+      path: /subjects/0/kind
+      value: ServiceAccount
+    - op: replace
+      path: /subjects/0/name
+      value: oran-adaptor-sa
+    - op: replace
       path: /subjects/0/namespace
       value: nephoran-system
   target:
     kind: ClusterRoleBinding
     name: oran-adaptor-rb
+
+# Update e2nodeset-admin-binding for production namespace
+- patch: |-
+    - op: replace
+      path: /subjects/0/kind
+      value: ServiceAccount
+    - op: replace
+      path: /subjects/0/name
+      value: nephio-bridge-sa
+    - op: replace
+      path: /subjects/0/namespace
+      value: nephoran-system
+  target:
+    kind: ClusterRoleBinding
+    name: e2nodeset-admin-binding
 
 # Production node affinity and anti-affinity
 - patch: |-

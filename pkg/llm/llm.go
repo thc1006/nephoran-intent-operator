@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Client is a client for the LLM processor.
@@ -59,10 +58,13 @@ type ClientMetrics struct {
 
 // ResponseCache provides simple in-memory caching
 type ResponseCache struct {
-	entries map[string]*CacheEntry
-	mutex   sync.RWMutex
-	ttl     time.Duration
-	maxSize int
+	entries  map[string]*CacheEntry
+	mutex    sync.RWMutex
+	ttl      time.Duration
+	maxSize  int
+	stopCh   chan struct{}
+	stopOnce sync.Once
+	stopped  bool
 }
 
 type CacheEntry struct {
@@ -156,6 +158,8 @@ func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
 		entries: make(map[string]*CacheEntry),
 		ttl:     ttl,
 		maxSize: maxSize,
+		stopCh:  make(chan struct{}),
+		stopped: false,
 	}
 
 	// Start cleanup routine
@@ -169,15 +173,30 @@ func (c *ResponseCache) cleanup() {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		c.mutex.Lock()
-		now := time.Now()
-		for key, entry := range c.entries {
-			if now.Sub(entry.Timestamp) > c.ttl {
-				delete(c.entries, key)
+	for {
+		select {
+		case <-c.stopCh:
+			// Graceful shutdown signal received
+			return
+		case <-ticker.C:
+			// Check if we've been stopped during the cleanup operation
+			c.mutex.RLock()
+			if c.stopped {
+				c.mutex.RUnlock()
+				return
 			}
+			c.mutex.RUnlock()
+
+			// Perform cleanup
+			c.mutex.Lock()
+			now := time.Now()
+			for key, entry := range c.entries {
+				if now.Sub(entry.Timestamp) > c.ttl {
+					delete(c.entries, key)
+				}
+			}
+			c.mutex.Unlock()
 		}
-		c.mutex.Unlock()
 	}
 }
 
@@ -185,6 +204,11 @@ func (c *ResponseCache) cleanup() {
 func (c *ResponseCache) Get(key string) (string, bool) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
+
+	// Return false if cache is stopped
+	if c.stopped {
+		return "", false
+	}
 
 	entry, exists := c.entries[key]
 	if !exists {
@@ -203,6 +227,11 @@ func (c *ResponseCache) Get(key string) (string, bool) {
 func (c *ResponseCache) Set(key, response string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+
+	// Don't set if cache is stopped
+	if c.stopped {
+		return
+	}
 
 	// Evict oldest entries if cache is full
 	if len(c.entries) >= c.maxSize {
@@ -224,6 +253,18 @@ func (c *ResponseCache) Set(key, response string) {
 		Timestamp: time.Now(),
 		HitCount:  0,
 	}
+}
+
+// Stop gracefully shuts down the cache cleanup goroutine
+func (c *ResponseCache) Stop() {
+	c.stopOnce.Do(func() {
+		c.mutex.Lock()
+		c.stopped = true
+		c.mutex.Unlock()
+
+		// Signal the cleanup goroutine to stop
+		close(c.stopCh)
+	})
 }
 
 // GetMetrics returns current client metrics
@@ -370,6 +411,21 @@ func (c *Client) SetFallbackURLs(urls []string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.fallbackURLs = urls
+}
+
+// Shutdown gracefully shuts down the client and its resources
+func (c *Client) Shutdown() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if c.cache != nil {
+		c.cache.Stop()
+	}
+
+	// Close HTTP client connections
+	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
+		transport.CloseIdleConnections()
+	}
 }
 
 // classifyIntent determines the type of network intent

@@ -219,7 +219,8 @@ func NewPerformanceIntegration(config *PerformanceConfig, llmClient shared.Clien
 	}
 
 	// Register health checkers
-	if ragHealthChecker := &RAGServiceHealthChecker{}; ragHealthChecker != nil {
+	ragHealthChecker := &RAGServiceHealthChecker{}
+	if ragHealthChecker != nil {
 		monitor.RegisterHealthChecker(ragHealthChecker)
 	}
 

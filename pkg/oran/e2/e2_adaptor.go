@@ -1094,7 +1094,7 @@ func CreateDefaultE2NodeFunction() *E2NodeFunction {
 
 // executeWithRetry executes an operation with exponential backoff retry
 func (e *E2Adaptor) executeWithRetry(ctx context.Context, operation func() error) error {
-	return e.circuitBreaker.Execute(ctx, func(ctx context.Context) (interface{}, error) {
+	_, err := e.circuitBreaker.Execute(ctx, func(ctx context.Context) (interface{}, error) {
 		var lastErr error
 		
 		for attempt := 0; attempt <= e.retryConfig.MaxRetries; attempt++ {
@@ -1120,6 +1120,7 @@ func (e *E2Adaptor) executeWithRetry(ctx context.Context, operation func() error
 		
 		return nil, fmt.Errorf("operation failed after %d attempts: %w", e.retryConfig.MaxRetries+1, lastErr)
 	})
+	return err
 }
 
 // calculateBackoffDelay calculates the delay for exponential backoff with jitter

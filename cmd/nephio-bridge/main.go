@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"net/http"
 	"os"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/tools/record"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -18,12 +22,102 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 )
+
+// llmClientAdapter adapts llm.Client to shared.ClientInterface
+type llmClientAdapter struct {
+	client *llm.Client
+}
+
+func (a *llmClientAdapter) ProcessIntent(ctx context.Context, prompt string) (string, error) {
+	return a.client.ProcessIntent(ctx, prompt)
+}
+
+func (a *llmClientAdapter) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
+	// For now, fall back to non-streaming
+	result, err := a.client.ProcessIntent(ctx, prompt)
+	if err != nil {
+		return err
+	}
+	
+	if chunks != nil {
+		chunks <- &shared.StreamingChunk{
+			Content: result,
+			IsLast:  true,
+		}
+		close(chunks)
+	}
+	return nil
+}
+
+func (a *llmClientAdapter) GetSupportedModels() []string {
+	return []string{"gpt-4o-mini", "gpt-4", "gpt-3.5-turbo"}
+}
+
+func (a *llmClientAdapter) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
+	return &shared.ModelCapabilities{
+		MaxTokens:         8192,
+		SupportsChat:      true,
+		SupportsFunction:  false,
+		SupportsStreaming: false,
+		CostPerToken:      0.001,
+		Features:          make(map[string]interface{}),
+	}, nil
+}
+
+func (a *llmClientAdapter) ValidateModel(modelName string) error {
+	// Basic validation
+	return nil
+}
+
+func (a *llmClientAdapter) EstimateTokens(text string) int {
+	// Simple estimation: roughly 4 characters per token
+	return len(text) / 4
+}
+
+func (a *llmClientAdapter) GetMaxTokens(modelName string) int {
+	return 8192
+}
+
+func (a *llmClientAdapter) Close() error {
+	a.client.Shutdown()
+	return nil
+}
+
+// dependencyImpl implements the Dependencies interface
+type dependencyImpl struct {
+	gitClient     git.ClientInterface
+	llmClient     shared.ClientInterface
+	packageGen    *nephio.PackageGenerator
+	httpClient    *http.Client
+	eventRecorder record.EventRecorder
+}
+
+func (d *dependencyImpl) GetGitClient() git.ClientInterface {
+	return d.gitClient
+}
+
+func (d *dependencyImpl) GetLLMClient() shared.ClientInterface {
+	return d.llmClient
+}
+
+func (d *dependencyImpl) GetPackageGenerator() *nephio.PackageGenerator {
+	return d.packageGen
+}
+
+func (d *dependencyImpl) GetHTTPClient() *http.Client {
+	return d.httpClient
+}
+
+func (d *dependencyImpl) GetEventRecorder() record.EventRecorder {
+	return d.eventRecorder
+}
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -90,17 +184,41 @@ func main() {
 		setupLog.Info("Nephio Porch integration enabled")
 	}
 
-	// Setup NetworkIntent controller
-	if err = (&controllers.NetworkIntentReconciler{
-		Client:          mgr.GetClient(),
-		Scheme:          mgr.GetScheme(),
-		GitClient:       gitClient,
-		LLMClient:       llmClient,
+	// Create dependencies struct that implements Dependencies interface
+	deps := &dependencyImpl{
+		gitClient:        gitClient,
+		llmClient:        &llmClientAdapter{client: llmClient},
+		packageGen:       packageGen,
+		httpClient:       &http.Client{Timeout: 30 * time.Second},
+		eventRecorder:    mgr.GetEventRecorderFor("network-intent-controller"),
+	}
+	
+	// Create controller configuration
+	controllerConfig := &controllers.Config{
+		MaxRetries:      3,
+		RetryDelay:      time.Minute * 2,
+		Timeout:         time.Minute * 10,
+		GitRepoURL:      cfg.GitRepoURL,
+		GitBranch:       cfg.GitBranch,
+		GitDeployPath:   "deployments",
 		LLMProcessorURL: cfg.LLMProcessorURL,
-		PackageGen:      packageGen,
 		UseNephioPorch:  useNephioPorch,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "NetworkIntent")
+	}
+	
+	// Setup NetworkIntent controller
+	networkIntentController, err := controllers.NewNetworkIntentReconciler(
+		mgr.GetClient(),
+		mgr.GetScheme(),
+		deps,
+		controllerConfig,
+	)
+	if err != nil {
+		setupLog.Error(err, "unable to create NetworkIntent controller")
+		os.Exit(1)
+	}
+	
+	if err = networkIntentController.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to setup controller", "controller", "NetworkIntent")
 		os.Exit(1)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -162,11 +163,66 @@ func LoadFromEnv() (*Config, error) {
 
 // Validate checks that required configuration is present
 func (c *Config) Validate() error {
+	var errors []string
+
+	// Always required configuration
 	if c.OpenAIAPIKey == "" {
-		return fmt.Errorf("OPENAI_API_KEY is required")
+		errors = append(errors, "OPENAI_API_KEY is required")
+	}
+
+	// Git features validation - enabled when Git integration is intended
+	// Git features are considered enabled when GitRepoURL is configured or
+	// when other Git-related config suggests Git usage
+	if c.isGitFeatureEnabled() {
+		if c.GitRepoURL == "" {
+			errors = append(errors, "GIT_REPO_URL is required when Git features are enabled")
+		}
+	}
+
+	// LLM processing validation - enabled when LLM processing is intended
+	// LLM processing is considered enabled when LLMProcessorURL is configured
+	if c.isLLMProcessingEnabled() {
+		if c.LLMProcessorURL == "" {
+			errors = append(errors, "LLM_PROCESSOR_URL is required when LLM processing is enabled")
+		}
+	}
+
+	// RAG features validation - enabled when RAG features are intended
+	// RAG features are considered enabled when RAG API URL is configured or
+	// when RAG-related infrastructure is configured
+	if c.isRAGFeatureEnabled() {
+		if c.RAGAPIURLInternal == "" {
+			errors = append(errors, "RAG_API_URL_INTERNAL is required when RAG features are enabled")
+		}
+	}
+
+	// Return validation errors if any
+	if len(errors) > 0 {
+		return fmt.Errorf("configuration validation failed: %s", strings.Join(errors, "; "))
 	}
 
 	return nil
+}
+
+// isGitFeatureEnabled checks if Git features are enabled based on configuration
+func (c *Config) isGitFeatureEnabled() bool {
+	// Git features are enabled when GitRepoURL is set or when Git token is provided
+	// (indicating intention to use Git even if URL is missing - validation error)
+	return c.GitRepoURL != "" || c.GitToken != ""
+}
+
+// isLLMProcessingEnabled checks if LLM processing is enabled based on configuration
+func (c *Config) isLLMProcessingEnabled() bool {
+	// LLM processing is enabled when LLMProcessorURL is set
+	// This follows the pattern seen in networkintent_constructor.go
+	return c.LLMProcessorURL != ""
+}
+
+// isRAGFeatureEnabled checks if RAG features are enabled based on configuration
+func (c *Config) isRAGFeatureEnabled() bool {
+	// RAG features are enabled when RAG API URL is set or when Weaviate is configured
+	// (indicating intention to use RAG even if internal URL is missing - validation error)
+	return c.RAGAPIURLInternal != "" || c.RAGAPIURLExternal != "" || c.WeaviateURL != ""
 }
 
 // GetRAGAPIURL returns the appropriate RAG API URL based on environment

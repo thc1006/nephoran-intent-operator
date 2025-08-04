@@ -1,0 +1,491 @@
+package llm
+
+import (
+	"context"
+	"fmt"
+	"sync"
+	"time"
+)
+
+// WorkerPool manages a pool of workers for concurrent processing
+type WorkerPool struct {
+	workerCount    int
+	jobQueue       chan Job
+	workers        []*Worker
+	wg             sync.WaitGroup
+	ctx            context.Context
+	cancel         context.CancelFunc
+	metrics        *WorkerPoolMetrics
+	mu             sync.RWMutex
+	started        bool
+}
+
+// Job represents a unit of work to be processed
+type Job struct {
+	ID       string
+	Task     func(ctx context.Context) error
+	Priority int
+	Timeout  time.Duration
+	Callback func(result JobResult)
+}
+
+// JobResult contains the result of job execution
+type JobResult struct {
+	JobID     string
+	Success   bool
+	Error     error
+	Duration  time.Duration
+	StartTime time.Time
+	EndTime   time.Time
+}
+
+// Worker represents a single worker in the pool
+type Worker struct {
+	id         int
+	jobQueue   chan Job
+	quit       chan struct{}
+	pool       *WorkerPool
+	metrics    *WorkerMetrics
+	mu         sync.RWMutex
+	processing bool
+	currentJob *Job
+}
+
+// WorkerPoolMetrics tracks pool-level metrics
+type WorkerPoolMetrics struct {
+	TotalJobs       int64
+	CompletedJobs   int64
+	FailedJobs      int64
+	ActiveJobs      int64
+	QueuedJobs      int64
+	AverageLatency  time.Duration
+	TotalLatency    time.Duration
+	StartTime       time.Time
+	mu              sync.RWMutex
+}
+
+// WorkerMetrics tracks individual worker metrics
+type WorkerMetrics struct {
+	WorkerID       int
+	JobsProcessed  int64
+	JobsFailed     int64
+	TotalLatency   time.Duration
+	AverageLatency time.Duration
+	IsActive       bool
+	CurrentJob     string
+	LastJobTime    time.Time
+	mu             sync.RWMutex
+}
+
+// WorkerPoolConfig configures the worker pool
+type WorkerPoolConfig struct {
+	WorkerCount       int
+	QueueSize         int
+	DefaultTimeout    time.Duration
+	EnableMetrics     bool
+	ShutdownTimeout   time.Duration
+	HealthCheckInterval time.Duration
+}
+
+// NewWorkerPool creates a new worker pool
+func NewWorkerPool(config *WorkerPoolConfig) *WorkerPool {
+	ctx, cancel := context.WithCancel(context.Background())
+	
+	pool := &WorkerPool{
+		workerCount: config.WorkerCount,
+		jobQueue:    make(chan Job, config.QueueSize),
+		workers:     make([]*Worker, config.WorkerCount),
+		ctx:         ctx,
+		cancel:      cancel,
+		metrics: &WorkerPoolMetrics{
+			StartTime: time.Now(),
+		},
+	}
+
+	// Create workers
+	for i := 0; i < config.WorkerCount; i++ {
+		worker := &Worker{
+			id:       i,
+			jobQueue: pool.jobQueue,
+			quit:     make(chan struct{}),
+			pool:     pool,
+			metrics:  &WorkerMetrics{WorkerID: i},
+		}
+		pool.workers[i] = worker
+	}
+
+	return pool
+}
+
+// Start starts all workers in the pool
+func (wp *WorkerPool) Start() error {
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
+
+	if wp.started {
+		return fmt.Errorf("worker pool already started")
+	}
+
+	for _, worker := range wp.workers {
+		wp.wg.Add(1)
+		go worker.start()
+	}
+
+	wp.started = true
+	return nil
+}
+
+// Stop gracefully stops all workers
+func (wp *WorkerPool) Stop(timeout time.Duration) error {
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
+
+	if !wp.started {
+		return fmt.Errorf("worker pool not started")
+	}
+
+	// Close job queue to signal workers to stop accepting new jobs
+	close(wp.jobQueue)
+
+	// Wait for workers to finish with timeout
+	done := make(chan struct{})
+	go func() {
+		wp.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		// All workers finished gracefully
+	case <-time.After(timeout):
+		// Timeout reached, force shutdown
+		wp.cancel()
+		<-done
+	}
+
+	wp.started = false
+	return nil
+}
+
+// Submit submits a job to the worker pool
+func (wp *WorkerPool) Submit(job Job) error {
+	wp.mu.RLock()
+	if !wp.started {
+		wp.mu.RUnlock()
+		return fmt.Errorf("worker pool not started")
+	}
+	wp.mu.RUnlock()
+
+	// Set default timeout if not specified
+	if job.Timeout == 0 {
+		job.Timeout = 30 * time.Second
+	}
+
+	// Update metrics
+	wp.metrics.mu.Lock()
+	wp.metrics.TotalJobs++
+	wp.metrics.QueuedJobs++
+	wp.metrics.mu.Unlock()
+
+	select {
+	case wp.jobQueue <- job:
+		return nil
+	case <-wp.ctx.Done():
+		return fmt.Errorf("worker pool is shutting down")
+	default:
+		// Queue is full
+		wp.metrics.mu.Lock()
+		wp.metrics.QueuedJobs--
+		wp.metrics.mu.Unlock()
+		return fmt.Errorf("job queue is full")
+	}
+}
+
+// SubmitWithPriority submits a job with priority (higher number = higher priority)
+func (wp *WorkerPool) SubmitWithPriority(job Job) error {
+	// For simplicity, this implementation treats all jobs equally
+	// A production implementation might use a priority queue
+	return wp.Submit(job)
+}
+
+// GetMetrics returns current pool metrics
+func (wp *WorkerPool) GetMetrics() WorkerPoolMetrics {
+	wp.metrics.mu.RLock()
+	defer wp.metrics.mu.RUnlock()
+
+	metrics := *wp.metrics
+	
+	// Calculate queue size
+	metrics.QueuedJobs = int64(len(wp.jobQueue))
+	
+	// Calculate average latency
+	if metrics.CompletedJobs > 0 {
+		metrics.AverageLatency = time.Duration(int64(metrics.TotalLatency) / metrics.CompletedJobs)
+	}
+
+	return metrics
+}
+
+// GetWorkerMetrics returns metrics for all workers
+func (wp *WorkerPool) GetWorkerMetrics() []WorkerMetrics {
+	metrics := make([]WorkerMetrics, len(wp.workers))
+	
+	for i, worker := range wp.workers {
+		worker.metrics.mu.RLock()
+		metrics[i] = *worker.metrics
+		worker.metrics.mu.RUnlock()
+	}
+	
+	return metrics
+}
+
+// GetActiveJobs returns the number of currently active jobs
+func (wp *WorkerPool) GetActiveJobs() int64 {
+	wp.metrics.mu.RLock()
+	defer wp.metrics.mu.RUnlock()
+	return wp.metrics.ActiveJobs
+}
+
+// GetQueuedJobs returns the number of queued jobs
+func (wp *WorkerPool) GetQueuedJobs() int64 {
+	return int64(len(wp.jobQueue))
+}
+
+// Worker methods
+
+// start starts the worker's processing loop
+func (w *Worker) start() {
+	defer w.pool.wg.Done()
+
+	for {
+		select {
+		case job, ok := <-w.jobQueue:
+			if !ok {
+				// Channel closed, worker should exit
+				return
+			}
+			w.processJob(job)
+		case <-w.quit:
+			return
+		case <-w.pool.ctx.Done():
+			return
+		}
+	}
+}
+
+// processJob processes a single job
+func (w *Worker) processJob(job Job) {
+	startTime := time.Now()
+	
+	// Update worker state
+	w.mu.Lock()
+	w.processing = true
+	w.currentJob = &job
+	w.mu.Unlock()
+
+	// Update pool metrics
+	w.pool.metrics.mu.Lock()
+	w.pool.metrics.ActiveJobs++
+	w.pool.metrics.QueuedJobs--
+	w.pool.metrics.mu.Unlock()
+
+	// Create job context with timeout
+	ctx, cancel := context.WithTimeout(w.pool.ctx, job.Timeout)
+	defer cancel()
+
+	// Execute the job
+	var err error
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("job panicked: %v", r)
+			}
+		}()
+		err = job.Task(ctx)
+	}()
+
+	endTime := time.Now()
+	duration := endTime.Sub(startTime)
+
+	// Create result
+	result := JobResult{
+		JobID:     job.ID,
+		Success:   err == nil,
+		Error:     err,
+		Duration:  duration,
+		StartTime: startTime,
+		EndTime:   endTime,
+	}
+
+	// Update metrics
+	w.updateMetrics(result)
+	w.pool.updateMetrics(result)
+
+	// Call callback if provided
+	if job.Callback != nil {
+		job.Callback(result)
+	}
+
+	// Reset worker state
+	w.mu.Lock()
+	w.processing = false
+	w.currentJob = nil
+	w.mu.Unlock()
+}
+
+// updateMetrics updates worker-specific metrics
+func (w *Worker) updateMetrics(result JobResult) {
+	w.metrics.mu.Lock()
+	defer w.metrics.mu.Unlock()
+
+	w.metrics.JobsProcessed++
+	w.metrics.TotalLatency += result.Duration
+	w.metrics.LastJobTime = result.EndTime
+
+	if !result.Success {
+		w.metrics.JobsFailed++
+	}
+
+	if w.metrics.JobsProcessed > 0 {
+		w.metrics.AverageLatency = time.Duration(int64(w.metrics.TotalLatency) / w.metrics.JobsProcessed)
+	}
+}
+
+// updateMetrics updates pool-level metrics
+func (wp *WorkerPool) updateMetrics(result JobResult) {
+	wp.metrics.mu.Lock()
+	defer wp.metrics.mu.Unlock()
+
+	wp.metrics.ActiveJobs--
+	wp.metrics.CompletedJobs++
+	wp.metrics.TotalLatency += result.Duration
+
+	if !result.Success {
+		wp.metrics.FailedJobs++
+	}
+}
+
+// IsProcessing returns whether the worker is currently processing a job
+func (w *Worker) IsProcessing() bool {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	return w.processing
+}
+
+// GetCurrentJob returns the currently processing job (if any)
+func (w *Worker) GetCurrentJob() *Job {
+	w.mu.RLock()
+	defer w.mu.RUnlock()
+	return w.currentJob
+}
+
+// Stop stops the worker
+func (w *Worker) Stop() {
+	close(w.quit)
+}
+
+// IntentProcessingPool is a specialized worker pool for processing intents
+type IntentProcessingPool struct {
+	*WorkerPool
+	intentProcessor func(ctx context.Context, intent string) (map[string]interface{}, error)
+}
+
+// NewIntentProcessingPool creates a specialized pool for intent processing
+func NewIntentProcessingPool(config *WorkerPoolConfig, processor func(ctx context.Context, intent string) (map[string]interface{}, error)) *IntentProcessingPool {
+	return &IntentProcessingPool{
+		WorkerPool:      NewWorkerPool(config),
+		intentProcessor: processor,
+	}
+}
+
+// ProcessIntent submits an intent for processing
+func (ipp *IntentProcessingPool) ProcessIntent(ctx context.Context, intentID, intent string, callback func(string, map[string]interface{}, error)) error {
+	job := Job{
+		ID:      intentID,
+		Timeout: 60 * time.Second,
+		Task: func(jobCtx context.Context) error {
+			result, err := ipp.intentProcessor(jobCtx, intent)
+			callback(intentID, result, err)
+			return err
+		},
+	}
+
+	return ipp.Submit(job)
+}
+
+// Health check functionality
+type HealthChecker struct {
+	pool             *WorkerPool
+	checkInterval    time.Duration
+	healthThreshold  float64
+	unhealthyWorkers map[int]time.Time
+	mu               sync.RWMutex
+}
+
+// NewHealthChecker creates a new health checker for the worker pool
+func NewHealthChecker(pool *WorkerPool, checkInterval time.Duration, healthThreshold float64) *HealthChecker {
+	return &HealthChecker{
+		pool:             pool,
+		checkInterval:    checkInterval,
+		healthThreshold:  healthThreshold,
+		unhealthyWorkers: make(map[int]time.Time),
+	}
+}
+
+// Start starts the health monitoring
+func (hc *HealthChecker) Start(ctx context.Context) {
+	ticker := time.NewTicker(hc.checkInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			hc.checkHealth()
+		case <-ctx.Done():
+			return
+		}
+	}
+}
+
+// checkHealth performs health check on all workers
+func (hc *HealthChecker) checkHealth() {
+	hc.mu.Lock()
+	defer hc.mu.Unlock()
+
+	workerMetrics := hc.pool.GetWorkerMetrics()
+	
+	for _, metrics := range workerMetrics {
+		// Calculate success rate
+		var successRate float64 = 1.0
+		if metrics.JobsProcessed > 0 {
+			successRate = float64(metrics.JobsProcessed-metrics.JobsFailed) / float64(metrics.JobsProcessed)
+		}
+
+		// Check if worker is unhealthy
+		if successRate < hc.healthThreshold {
+			hc.unhealthyWorkers[metrics.WorkerID] = time.Now()
+		} else {
+			delete(hc.unhealthyWorkers, metrics.WorkerID)
+		}
+	}
+}
+
+// GetUnhealthyWorkers returns list of unhealthy worker IDs
+func (hc *HealthChecker) GetUnhealthyWorkers() []int {
+	hc.mu.RLock()
+	defer hc.mu.RUnlock()
+
+	var unhealthy []int
+	for workerID := range hc.unhealthyWorkers {
+		unhealthy = append(unhealthy, workerID)
+	}
+	
+	return unhealthy
+}
+
+// IsHealthy returns true if the pool is healthy
+func (hc *HealthChecker) IsHealthy() bool {
+	hc.mu.RLock()
+	defer hc.mu.RUnlock()
+	return len(hc.unhealthyWorkers) == 0
+}

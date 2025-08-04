@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -95,8 +96,12 @@ func (r *OranAdaptorReconciler) updateStatus(ctx context.Context, me *nephoranv1
 }
 
 func (r *OranAdaptorReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.O1Adaptor = o1.NewO1Adaptor()
-	r.A1Adaptor = a1.NewA1Adaptor()
+	r.O1Adaptor = o1.NewO1Adaptor(nil) // Use default config
+	var err error
+	r.A1Adaptor, err = a1.NewA1Adaptor(nil) // Use default config
+	if err != nil {
+		return fmt.Errorf("failed to create A1 adaptor: %w", err)
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.ManagedElement{}).
 		Owns(&appsv1.Deployment{}).
