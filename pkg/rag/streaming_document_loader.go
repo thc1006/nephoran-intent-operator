@@ -5,656 +5,398 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log/slog"
-	"os"
 	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/ledongthuc/pdf"
+	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
 )
 
-// StreamingDocumentProcessor handles streaming document processing with concurrent chunk handling
-type StreamingDocumentProcessor struct {
-	config            *StreamingConfig
-	logger            *slog.Logger
-	chunkingService   *ChunkingService
-	embeddingService  *EmbeddingService
-	memoryMonitor     *MemoryMonitor
-	processingPool    *ProcessingPool
-	metrics           *StreamingMetrics
-	
-	// Channels for streaming pipeline
-	documentStream    chan *StreamingDocument
-	chunkStream       chan *StreamingChunk
-	embeddingStream   chan *EmbeddingTask
-	resultStream      chan *ProcessingResult
-	errorStream       chan error
-	
-	// Control channels
-	ctx               context.Context
-	cancel            context.CancelFunc
-	wg                sync.WaitGroup
+// StreamingDocumentLoader provides memory-efficient document processing
+type StreamingDocumentLoader struct {
+	logger           *zap.Logger
+	chunkingService  *ChunkingService
+	memoryThreshold  int64 // bytes
+	bufferSize       int
+	maxConcurrency   int
+	processPool      *ProcessingPool
+	metrics          *streamingMetrics
 }
 
-// StreamingConfig holds configuration for streaming document processing
+// StreamingConfig holds configuration for streaming operations
 type StreamingConfig struct {
-	// Streaming parameters
-	StreamBufferSize      int           `json:"stream_buffer_size"`       // Size of streaming buffers
-	ChunkBufferSize       int           `json:"chunk_buffer_size"`        // Size of chunk processing buffer
-	MaxConcurrentDocs     int           `json:"max_concurrent_docs"`      // Max documents processed concurrently
-	MaxConcurrentChunks   int           `json:"max_concurrent_chunks"`    // Max chunks processed concurrently
-	StreamingThreshold    int64         `json:"streaming_threshold"`      // File size threshold for streaming
-	
-	// Memory management
-	MaxMemoryUsage        int64         `json:"max_memory_usage"`         // Maximum memory usage in bytes
-	MemoryCheckInterval   time.Duration `json:"memory_check_interval"`    // How often to check memory usage
-	BackpressureThreshold float64       `json:"backpressure_threshold"`   // Memory usage % to trigger backpressure
-	
-	// Processing configuration
-	EnableParallelChunking bool         `json:"enable_parallel_chunking"` // Enable parallel chunk processing
-	ChunkBatchSize        int           `json:"chunk_batch_size"`         // Chunks to process in batch
-	EmbeddingBatchSize    int           `json:"embedding_batch_size"`     // Embeddings to generate in batch
-	ProcessingTimeout     time.Duration `json:"processing_timeout"`       // Timeout for processing
-	
-	// Error handling
-	MaxRetries            int           `json:"max_retries"`              // Maximum retries for failed operations
-	RetryBackoff          time.Duration `json:"retry_backoff"`            // Backoff duration between retries
-	ErrorThreshold        float64       `json:"error_threshold"`          // Error rate threshold to stop processing
+	MemoryThresholdMB int64
+	BufferSizeKB      int
+	MaxConcurrency    int
+	BackpressureLimit int
 }
 
-// StreamingDocument represents a document being processed in streaming mode
-type StreamingDocument struct {
-	ID              string
-	SourcePath      string
-	Reader          io.Reader
-	Size            int64
-	Metadata        *DocumentMetadata
-	ProcessingStart time.Time
+// ProcessingPool manages worker goroutines for parallel processing
+type ProcessingPool struct {
+	documentWorkers  chan func()
+	chunkWorkers     chan func()
+	embeddingWorkers chan func()
+	wg               sync.WaitGroup
 }
 
-// StreamingChunk represents a chunk being processed
-type StreamingChunk struct {
-	DocumentID      string
-	Chunk           *DocumentChunk
-	SequenceNumber  int
-	ProcessingTime  time.Duration
+// streamingMetrics tracks performance metrics
+type streamingMetrics struct {
+	documentsProcessed   prometheus.Counter
+	chunksProcessed      prometheus.Counter
+	bytesProcessed       prometheus.Counter
+	processingDuration   prometheus.Histogram
+	memoryUsage          prometheus.Gauge
+	backpressureEvents   prometheus.Counter
+	streamingThresholdHit prometheus.Counter
 }
 
-// EmbeddingTask represents an embedding generation task
-type EmbeddingTask struct {
-	ChunkID         string
-	Text            string
-	Priority        int
-	RetryCount      int
-	SourceDocID     string
+// Document represents a document with metadata
+type Document struct {
+	ID       string
+	Content  io.Reader
+	Metadata map[string]interface{}
+	Size     int64 // -1 if unknown
 }
 
-// ProcessingResult represents the result of processing a document
-type ProcessingResult struct {
-	DocumentID      string
-	ChunksCreated   int
-	EmbeddingsCreated int
-	ProcessingTime  time.Duration
-	Errors          []error
-	Success         bool
+// ProcessedChunk represents a chunk ready for embedding
+type ProcessedChunk struct {
+	ID       string
+	Content  string
+	Metadata map[string]interface{}
+	Position int
 }
 
-// StreamingMetrics tracks streaming processing metrics
-type StreamingMetrics struct {
-	DocumentsProcessed    int64
-	ChunksProcessed       int64
-	EmbeddingsGenerated   int64
-	BytesProcessed        int64
-	ErrorCount            int64
-	BackpressureEvents    int64
-	AverageProcessingTime time.Duration
-	PeakMemoryUsage       int64
-	CurrentMemoryUsage    int64
-	mutex                 sync.RWMutex
-}
-
-// NewStreamingDocumentProcessor creates a new streaming document processor
-func NewStreamingDocumentProcessor(config *StreamingConfig, chunkingService *ChunkingService, embeddingService *EmbeddingService) *StreamingDocumentProcessor {
-	ctx, cancel := context.WithCancel(context.Background())
-	
-	processor := &StreamingDocumentProcessor{
-		config:           config,
-		logger:           slog.Default().With("component", "streaming-processor"),
-		chunkingService:  chunkingService,
-		embeddingService: embeddingService,
-		memoryMonitor:    NewMemoryMonitor(config.MaxMemoryUsage),
-		processingPool:   NewProcessingPool(config.MaxConcurrentDocs),
-		metrics:          &StreamingMetrics{},
-		
-		// Initialize channels
-		documentStream:   make(chan *StreamingDocument, config.StreamBufferSize),
-		chunkStream:      make(chan *StreamingChunk, config.ChunkBufferSize),
-		embeddingStream:  make(chan *EmbeddingTask, config.ChunkBufferSize),
-		resultStream:     make(chan *ProcessingResult, config.MaxConcurrentDocs),
-		errorStream:      make(chan error, 100),
-		
-		ctx:              ctx,
-		cancel:           cancel,
+// NewStreamingDocumentLoader creates a new streaming document loader
+func NewStreamingDocumentLoader(
+	logger *zap.Logger,
+	chunkingService *ChunkingService,
+	config StreamingConfig,
+) *StreamingDocumentLoader {
+	if config.MemoryThresholdMB == 0 {
+		config.MemoryThresholdMB = 100 // 100MB default
 	}
-	
-	// Start processing pipelines
-	processor.startPipelines()
-	
-	return processor
-}
+	if config.BufferSizeKB == 0 {
+		config.BufferSizeKB = 64 // 64KB default
+	}
+	if config.MaxConcurrency == 0 {
+		config.MaxConcurrency = runtime.NumCPU()
+	}
 
-// startPipelines starts all processing pipelines
-func (sdp *StreamingDocumentProcessor) startPipelines() {
-	// Start document processing workers
-	for i := 0; i < sdp.config.MaxConcurrentDocs; i++ {
-		sdp.wg.Add(1)
-		go sdp.documentProcessor(i)
+	metrics := &streamingMetrics{
+		documentsProcessed: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "rag_streaming_documents_processed_total",
+			Help: "Total number of documents processed via streaming",
+		}),
+		chunksProcessed: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "rag_streaming_chunks_processed_total",
+			Help: "Total number of chunks processed",
+		}),
+		bytesProcessed: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "rag_streaming_bytes_processed_total",
+			Help: "Total bytes processed via streaming",
+		}),
+		processingDuration: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Name:    "rag_streaming_processing_duration_seconds",
+			Help:    "Duration of document processing operations",
+			Buckets: prometheus.DefBuckets,
+		}),
+		memoryUsage: prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "rag_streaming_memory_usage_bytes",
+			Help: "Current memory usage for streaming operations",
+		}),
+		backpressureEvents: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "rag_streaming_backpressure_events_total",
+			Help: "Total number of backpressure events",
+		}),
+		streamingThresholdHit: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "rag_streaming_threshold_hit_total",
+			Help: "Number of times streaming threshold was hit",
+		}),
 	}
-	
-	// Start chunk processing workers
-	chunkWorkers := sdp.config.MaxConcurrentChunks
-	if chunkWorkers == 0 {
-		chunkWorkers = sdp.config.MaxConcurrentDocs * 2
+
+	// Register metrics
+	prometheus.MustRegister(
+		metrics.documentsProcessed,
+		metrics.chunksProcessed,
+		metrics.bytesProcessed,
+		metrics.processingDuration,
+		metrics.memoryUsage,
+		metrics.backpressureEvents,
+		metrics.streamingThresholdHit,
+	)
+
+	pool := &ProcessingPool{
+		documentWorkers:  make(chan func(), config.MaxConcurrency),
+		chunkWorkers:     make(chan func(), config.MaxConcurrency*2),
+		embeddingWorkers: make(chan func(), config.MaxConcurrency),
 	}
-	for i := 0; i < chunkWorkers; i++ {
-		sdp.wg.Add(1)
-		go sdp.chunkProcessor(i)
+
+	// Start worker pools
+	for i := 0; i < config.MaxConcurrency; i++ {
+		go pool.worker(pool.documentWorkers)
+		go pool.worker(pool.chunkWorkers)
+		go pool.worker(pool.embeddingWorkers)
 	}
-	
-	// Start embedding generation workers
-	embeddingWorkers := sdp.config.MaxConcurrentDocs
-	for i := 0; i < embeddingWorkers; i++ {
-		sdp.wg.Add(1)
-		go sdp.embeddingProcessor(i)
+
+	loader := &StreamingDocumentLoader{
+		logger:          logger,
+		chunkingService: chunkingService,
+		memoryThreshold: config.MemoryThresholdMB * 1024 * 1024,
+		bufferSize:      config.BufferSizeKB * 1024,
+		maxConcurrency:  config.MaxConcurrency,
+		processPool:     pool,
+		metrics:         metrics,
 	}
-	
+
 	// Start memory monitor
-	sdp.wg.Add(1)
-	go sdp.memoryMonitorWorker()
-	
-	// Start error handler
-	sdp.wg.Add(1)
-	go sdp.errorHandler()
+	go loader.monitorMemory()
+
+	return loader
 }
 
-// ProcessDocumentStream processes a document using streaming approach
-func (sdp *StreamingDocumentProcessor) ProcessDocumentStream(ctx context.Context, doc *LoadedDocument) (*ProcessingResult, error) {
-	startTime := time.Now()
-	
+// ProcessDocument processes a single document with streaming support
+func (l *StreamingDocumentLoader) ProcessDocument(
+	ctx context.Context,
+	doc Document,
+	chunkProcessor func(ProcessedChunk) error,
+) error {
+	start := time.Now()
+	defer func() {
+		l.metrics.processingDuration.Observe(time.Since(start).Seconds())
+		l.metrics.documentsProcessed.Inc()
+	}()
+
 	// Check if streaming is needed
-	if doc.Size < sdp.config.StreamingThreshold {
-		// Process normally for small documents
-		return sdp.processSmallDocument(ctx, doc)
+	if doc.Size > 0 && doc.Size > l.memoryThreshold {
+		l.metrics.streamingThresholdHit.Inc()
+		return l.processStreamingDocument(ctx, doc, chunkProcessor)
 	}
-	
-	// Create streaming document
-	streamingDoc := &StreamingDocument{
-		ID:              doc.ID,
-		SourcePath:      doc.SourcePath,
-		Size:            doc.Size,
-		Metadata:        doc.Metadata,
-		ProcessingStart: startTime,
-	}
-	
-	// Open file for streaming
-	reader, err := sdp.openDocumentStream(doc.SourcePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open document stream: %w", err)
-	}
-	defer reader.Close()
-	
-	streamingDoc.Reader = reader
-	
-	// Submit to processing pipeline
-	select {
-	case sdp.documentStream <- streamingDoc:
-		sdp.logger.Info("Document submitted for streaming processing", 
-			"doc_id", doc.ID, 
-			"size", doc.Size)
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-time.After(sdp.config.ProcessingTimeout):
-		return nil, fmt.Errorf("timeout submitting document for processing")
-	}
-	
-	// Wait for processing result
-	select {
-	case result := <-sdp.resultStream:
-		if result.DocumentID == doc.ID {
-			return result, nil
-		}
-		// Wrong result, this shouldn't happen
-		return nil, fmt.Errorf("received result for wrong document")
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-time.After(sdp.config.ProcessingTimeout):
-		return nil, fmt.Errorf("timeout waiting for processing result")
-	}
+
+	// For smaller documents, use regular processing
+	return l.processRegularDocument(ctx, doc, chunkProcessor)
 }
 
-// documentProcessor processes documents from the stream
-func (sdp *StreamingDocumentProcessor) documentProcessor(workerID int) {
-	defer sdp.wg.Done()
-	
+// processStreamingDocument handles large documents with streaming
+func (l *StreamingDocumentLoader) processStreamingDocument(
+	ctx context.Context,
+	doc Document,
+	chunkProcessor func(ProcessedChunk) error,
+) error {
+	l.logger.Info("Processing document via streaming",
+		zap.String("document_id", doc.ID),
+		zap.Int64("size_bytes", doc.Size))
+
+	reader := bufio.NewReaderSize(doc.Content, l.bufferSize)
+	var buffer []byte
+	chunkIndex := 0
+	bytesRead := int64(0)
+
 	for {
 		select {
-		case doc := <-sdp.documentStream:
-			sdp.processStreamingDocument(doc)
-		case <-sdp.ctx.Done():
-			return
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
 		}
-	}
-}
 
-// processStreamingDocument processes a single streaming document
-func (sdp *StreamingDocumentProcessor) processStreamingDocument(doc *StreamingDocument) {
-	result := &ProcessingResult{
-		DocumentID:     doc.ID,
-		ProcessingTime: time.Since(doc.ProcessingStart),
-	}
-	
-	// Check memory before processing
-	if !sdp.checkMemoryAvailable() {
-		sdp.handleBackpressure()
-	}
-	
-	// Process document in chunks
-	chunkCount := 0
-	errorCount := 0
-	scanner := bufio.NewScanner(doc.Reader)
-	scanner.Buffer(make([]byte, 0, 64*1024), 1024*1024) // 64KB initial, 1MB max
-	
-	var currentChunk strings.Builder
-	currentChunkSize := 0
-	
-	for scanner.Scan() {
-		line := scanner.Text()
-		lineSize := len(line) + 1 // +1 for newline
-		
-		// Check if adding this line would exceed chunk size
-		if currentChunkSize+lineSize > sdp.chunkingService.config.ChunkSize {
-			// Process current chunk
-			if currentChunk.Len() > 0 {
-				chunk := sdp.createChunkFromContent(doc, currentChunk.String(), chunkCount)
-				select {
-				case sdp.chunkStream <- chunk:
-					chunkCount++
-				case <-sdp.ctx.Done():
-					result.Errors = append(result.Errors, sdp.ctx.Err())
-					sdp.resultStream <- result
-					return
+		// Read chunk with backpressure handling
+		chunk, err := l.readChunkWithBackpressure(reader, &bytesRead)
+		if err == io.EOF {
+			// Process final chunk if buffer has content
+			if len(buffer) > 0 {
+				if err := l.processChunk(ctx, doc, string(buffer), chunkIndex, chunkProcessor); err != nil {
+					return fmt.Errorf("failed to process final chunk: %w", err)
 				}
-				
-				// Reset for next chunk
-				currentChunk.Reset()
-				currentChunkSize = 0
 			}
-		}
-		
-		currentChunk.WriteString(line)
-		currentChunk.WriteString("\n")
-		currentChunkSize += lineSize
-		
-		// Update metrics
-		atomic.AddInt64(&sdp.metrics.BytesProcessed, int64(lineSize))
-	}
-	
-	// Process final chunk
-	if currentChunk.Len() > 0 {
-		chunk := sdp.createChunkFromContent(doc, currentChunk.String(), chunkCount)
-		select {
-		case sdp.chunkStream <- chunk:
-			chunkCount++
-		case <-sdp.ctx.Done():
-			result.Errors = append(result.Errors, sdp.ctx.Err())
-		}
-	}
-	
-	if err := scanner.Err(); err != nil {
-		result.Errors = append(result.Errors, fmt.Errorf("scanner error: %w", err))
-		errorCount++
-	}
-	
-	// Update result
-	result.ChunksCreated = chunkCount
-	result.Success = errorCount == 0
-	result.ProcessingTime = time.Since(doc.ProcessingStart)
-	
-	// Update metrics
-	atomic.AddInt64(&sdp.metrics.DocumentsProcessed, 1)
-	if errorCount > 0 {
-		atomic.AddInt64(&sdp.metrics.ErrorCount, int64(errorCount))
-	}
-	
-	// Send result
-	select {
-	case sdp.resultStream <- result:
-	case <-sdp.ctx.Done():
-		sdp.logger.Warn("Failed to send processing result", "doc_id", doc.ID)
-	}
-}
-
-// chunkProcessor processes chunks from the stream
-func (sdp *StreamingDocumentProcessor) chunkProcessor(workerID int) {
-	defer sdp.wg.Done()
-	
-	// Batch chunks for efficient processing
-	batch := make([]*StreamingChunk, 0, sdp.config.ChunkBatchSize)
-	batchTimer := time.NewTimer(100 * time.Millisecond)
-	defer batchTimer.Stop()
-	
-	for {
-		select {
-		case chunk := <-sdp.chunkStream:
-			batch = append(batch, chunk)
-			
-			if len(batch) >= sdp.config.ChunkBatchSize {
-				sdp.processBatchedChunks(batch)
-				batch = make([]*StreamingChunk, 0, sdp.config.ChunkBatchSize)
-				batchTimer.Reset(100 * time.Millisecond)
-			}
-			
-		case <-batchTimer.C:
-			if len(batch) > 0 {
-				sdp.processBatchedChunks(batch)
-				batch = make([]*StreamingChunk, 0, sdp.config.ChunkBatchSize)
-			}
-			batchTimer.Reset(100 * time.Millisecond)
-			
-		case <-sdp.ctx.Done():
-			// Process remaining batch
-			if len(batch) > 0 {
-				sdp.processBatchedChunks(batch)
-			}
-			return
-		}
-	}
-}
-
-// processBatchedChunks processes a batch of chunks
-func (sdp *StreamingDocumentProcessor) processBatchedChunks(batch []*StreamingChunk) {
-	// Apply any chunk-level processing (e.g., enhancement, validation)
-	for _, streamingChunk := range batch {
-		// Create embedding task
-		task := &EmbeddingTask{
-			ChunkID:     streamingChunk.Chunk.ID,
-			Text:        streamingChunk.Chunk.CleanContent,
-			Priority:    1,
-			SourceDocID: streamingChunk.DocumentID,
-		}
-		
-		select {
-		case sdp.embeddingStream <- task:
-			atomic.AddInt64(&sdp.metrics.ChunksProcessed, 1)
-		case <-sdp.ctx.Done():
-			return
-		}
-	}
-}
-
-// embeddingProcessor generates embeddings for chunks
-func (sdp *StreamingDocumentProcessor) embeddingProcessor(workerID int) {
-	defer sdp.wg.Done()
-	
-	// Batch embedding tasks for efficient processing
-	batch := make([]*EmbeddingTask, 0, sdp.config.EmbeddingBatchSize)
-	batchTimer := time.NewTimer(200 * time.Millisecond)
-	defer batchTimer.Stop()
-	
-	for {
-		select {
-		case task := <-sdp.embeddingStream:
-			batch = append(batch, task)
-			
-			if len(batch) >= sdp.config.EmbeddingBatchSize {
-				sdp.processBatchedEmbeddings(batch)
-				batch = make([]*EmbeddingTask, 0, sdp.config.EmbeddingBatchSize)
-				batchTimer.Reset(200 * time.Millisecond)
-			}
-			
-		case <-batchTimer.C:
-			if len(batch) > 0 {
-				sdp.processBatchedEmbeddings(batch)
-				batch = make([]*EmbeddingTask, 0, sdp.config.EmbeddingBatchSize)
-			}
-			batchTimer.Reset(200 * time.Millisecond)
-			
-		case <-sdp.ctx.Done():
-			// Process remaining batch
-			if len(batch) > 0 {
-				sdp.processBatchedEmbeddings(batch)
-			}
-			return
-		}
-	}
-}
-
-// processBatchedEmbeddings generates embeddings for a batch of tasks
-func (sdp *StreamingDocumentProcessor) processBatchedEmbeddings(batch []*EmbeddingTask) {
-	if len(batch) == 0 {
-		return
-	}
-	
-	// Extract texts for embedding
-	texts := make([]string, len(batch))
-	chunkIDs := make([]string, len(batch))
-	for i, task := range batch {
-		texts[i] = task.Text
-		chunkIDs[i] = task.ChunkID
-	}
-	
-	// Create embedding request
-	request := &EmbeddingRequest{
-		Texts:     texts,
-		ChunkIDs:  chunkIDs,
-		UseCache:  true,
-		RequestID: fmt.Sprintf("stream_batch_%d", time.Now().UnixNano()),
-	}
-	
-	// Generate embeddings with retry logic
-	maxRetries := sdp.config.MaxRetries
-	for attempt := 0; attempt <= maxRetries; attempt++ {
-		ctx, cancel := context.WithTimeout(sdp.ctx, sdp.config.ProcessingTimeout)
-		response, err := sdp.embeddingService.GenerateEmbeddings(ctx, request)
-		cancel()
-		
-		if err == nil {
-			atomic.AddInt64(&sdp.metrics.EmbeddingsGenerated, int64(len(response.Embeddings)))
-			sdp.logger.Debug("Embeddings generated for batch", 
-				"batch_size", len(batch),
-				"cache_hits", response.CacheHits)
 			break
 		}
-		
-		// Handle error
-		sdp.logger.Warn("Failed to generate embeddings", 
-			"attempt", attempt+1,
-			"error", err)
-		
-		if attempt < maxRetries {
-			// Exponential backoff
-			backoff := sdp.config.RetryBackoff * time.Duration(1<<uint(attempt))
-			time.Sleep(backoff)
-		} else {
-			// Max retries exceeded, log error
-			sdp.errorStream <- fmt.Errorf("failed to generate embeddings after %d attempts: %w", maxRetries+1, err)
-			atomic.AddInt64(&sdp.metrics.ErrorCount, 1)
+		if err != nil {
+			return fmt.Errorf("failed to read chunk: %w", err)
+		}
+
+		buffer = append(buffer, chunk...)
+
+		// Check if we have enough content for a chunk
+		if len(buffer) >= l.chunkingService.config.ChunkSize {
+			content := string(buffer[:l.chunkingService.config.ChunkSize])
+			buffer = buffer[l.chunkingService.config.ChunkSize:]
+
+			if err := l.processChunk(ctx, doc, content, chunkIndex, chunkProcessor); err != nil {
+				return fmt.Errorf("failed to process chunk %d: %w", chunkIndex, err)
+			}
+			chunkIndex++
 		}
 	}
+
+	l.metrics.bytesProcessed.Add(float64(bytesRead))
+	return nil
 }
 
-// memoryMonitorWorker monitors memory usage and triggers backpressure
-func (sdp *StreamingDocumentProcessor) memoryMonitorWorker() {
-	defer sdp.wg.Done()
+// processRegularDocument handles smaller documents in memory
+func (l *StreamingDocumentLoader) processRegularDocument(
+	ctx context.Context,
+	doc Document,
+	chunkProcessor func(ProcessedChunk) error,
+) error {
+	// Read entire document
+	content, err := io.ReadAll(doc.Content)
+	if err != nil {
+		return fmt.Errorf("failed to read document: %w", err)
+	}
+
+	l.metrics.bytesProcessed.Add(float64(len(content)))
+
+	// Chunk the document
+	chunks := l.chunkingService.ChunkText(string(content))
+
+	// Process chunks in parallel
+	return l.processChunksParallel(ctx, doc, chunks, chunkProcessor)
+}
+
+// processChunk processes a single chunk
+func (l *StreamingDocumentLoader) processChunk(
+	ctx context.Context,
+	doc Document,
+	content string,
+	position int,
+	processor func(ProcessedChunk) error,
+) error {
+	chunk := ProcessedChunk{
+		ID:       fmt.Sprintf("%s_chunk_%d", doc.ID, position),
+		Content:  content,
+		Metadata: doc.Metadata,
+		Position: position,
+	}
+
+	l.metrics.chunksProcessed.Inc()
+	return processor(chunk)
+}
+
+// processChunksParallel processes multiple chunks concurrently
+func (l *StreamingDocumentLoader) processChunksParallel(
+	ctx context.Context,
+	doc Document,
+	chunks []string,
+	processor func(ProcessedChunk) error,
+) error {
+	errChan := make(chan error, len(chunks))
+	var wg sync.WaitGroup
+
+	for i, chunk := range chunks {
+		wg.Add(1)
+		i := i
+		chunk := chunk
+
+		l.processPool.chunkWorkers <- func() {
+			defer wg.Done()
+			if err := l.processChunk(ctx, doc, chunk, i, processor); err != nil {
+				errChan <- err
+			}
+		}
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	// Check for errors
+	for err := range errChan {
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// readChunkWithBackpressure reads data with backpressure handling
+func (l *StreamingDocumentLoader) readChunkWithBackpressure(
+	reader *bufio.Reader,
+	bytesRead *int64,
+) ([]byte, error) {
+	// Check memory pressure
+	var memStats runtime.MemStats
+	runtime.ReadMemStats(&memStats)
 	
-	ticker := time.NewTicker(sdp.config.MemoryCheckInterval)
+	if memStats.Alloc > uint64(l.memoryThreshold) {
+		l.metrics.backpressureEvents.Inc()
+		// Apply backpressure - wait for memory to be freed
+		time.Sleep(100 * time.Millisecond)
+		runtime.GC()
+	}
+
+	// Read chunk
+	chunk := make([]byte, l.bufferSize)
+	n, err := reader.Read(chunk)
+	if n > 0 {
+		atomic.AddInt64(bytesRead, int64(n))
+		return chunk[:n], err
+	}
+	return nil, err
+}
+
+// ProcessBatch processes multiple documents concurrently
+func (l *StreamingDocumentLoader) ProcessBatch(
+	ctx context.Context,
+	documents []Document,
+	chunkProcessor func(ProcessedChunk) error,
+) error {
+	errChan := make(chan error, len(documents))
+	var wg sync.WaitGroup
+
+	for _, doc := range documents {
+		wg.Add(1)
+		doc := doc
+
+		l.processPool.documentWorkers <- func() {
+			defer wg.Done()
+			if err := l.ProcessDocument(ctx, doc, chunkProcessor); err != nil {
+				errChan <- fmt.Errorf("failed to process document %s: %w", doc.ID, err)
+			}
+		}
+	}
+
+	wg.Wait()
+	close(errChan)
+
+	// Collect errors
+	var errs []error
+	for err := range errChan {
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("batch processing failed with %d errors: %v", len(errs), errs)
+	}
+
+	return nil
+}
+
+// monitorMemory tracks memory usage
+func (l *StreamingDocumentLoader) monitorMemory() {
+	ticker := time.NewTicker(10 * time.Second)
 	defer ticker.Stop()
-	
-	for {
-		select {
-		case <-ticker.C:
-			currentUsage, maxUsage := sdp.memoryMonitor.GetMemoryUsage()
-			
-			// Update metrics
-			sdp.updateMetrics(func(m *StreamingMetrics) {
-				m.CurrentMemoryUsage = currentUsage
-				if currentUsage > m.PeakMemoryUsage {
-					m.PeakMemoryUsage = currentUsage
-				}
-			})
-			
-			// Check for backpressure threshold
-			usagePercent := float64(currentUsage) / float64(maxUsage)
-			if usagePercent > sdp.config.BackpressureThreshold {
-				sdp.handleBackpressure()
-			}
-			
-		case <-sdp.ctx.Done():
-			return
-		}
+
+	for range ticker.C {
+		var memStats runtime.MemStats
+		runtime.ReadMemStats(&memStats)
+		l.metrics.memoryUsage.Set(float64(memStats.Alloc))
 	}
 }
 
-// handleBackpressure handles memory backpressure
-func (sdp *StreamingDocumentProcessor) handleBackpressure() {
-	atomic.AddInt64(&sdp.metrics.BackpressureEvents, 1)
-	sdp.logger.Warn("Memory backpressure detected, slowing down processing")
-	
-	// Simple backpressure: sleep to allow memory to be freed
-	time.Sleep(500 * time.Millisecond)
-	
-	// Force garbage collection
-	runtime.GC()
-}
-
-// errorHandler handles errors from the processing pipeline
-func (sdp *StreamingDocumentProcessor) errorHandler() {
-	defer sdp.wg.Done()
-	
-	errorCounts := make(map[string]int)
-	
-	for {
-		select {
-		case err := <-sdp.errorStream:
-			sdp.logger.Error("Processing error", "error", err)
-			
-			// Track error types
-			errorType := fmt.Sprintf("%T", err)
-			errorCounts[errorType]++
-			
-			// Check if error threshold is exceeded
-			totalErrors := 0
-			for _, count := range errorCounts {
-				totalErrors += count
-			}
-			
-			errorRate := float64(totalErrors) / float64(sdp.metrics.DocumentsProcessed)
-			if errorRate > sdp.config.ErrorThreshold {
-				sdp.logger.Error("Error threshold exceeded, stopping processing",
-					"error_rate", errorRate,
-					"threshold", sdp.config.ErrorThreshold)
-				sdp.cancel()
-			}
-			
-		case <-sdp.ctx.Done():
-			return
-		}
+// worker processes tasks from a channel
+func (p *ProcessingPool) worker(tasks chan func()) {
+	for task := range tasks {
+		task()
 	}
 }
 
-// Helper methods
-
-func (sdp *StreamingDocumentProcessor) openDocumentStream(path string) (io.ReadCloser, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("failed to open file: %w", err)
-	}
-	return file, nil
-}
-
-func (sdp *StreamingDocumentProcessor) createChunkFromContent(doc *StreamingDocument, content string, sequenceNum int) *StreamingChunk {
-	chunk := &DocumentChunk{
-		ID:             fmt.Sprintf("%s_chunk_%d", doc.ID, sequenceNum),
-		DocumentID:     doc.ID,
-		Content:        content,
-		CleanContent:   sdp.chunkingService.cleanChunkContent(content),
-		ChunkIndex:     sequenceNum,
-		CharacterCount: len(content),
-		WordCount:      sdp.chunkingService.countWords(content),
-		ProcessedAt:    time.Now(),
-		ChunkType:      "text",
-		DocumentMetadata: doc.Metadata,
-	}
-	
-	return &StreamingChunk{
-		DocumentID:     doc.ID,
-		Chunk:          chunk,
-		SequenceNumber: sequenceNum,
-	}
-}
-
-func (sdp *StreamingDocumentProcessor) checkMemoryAvailable() bool {
-	current, max := sdp.memoryMonitor.GetMemoryUsage()
-	return float64(current)/float64(max) < sdp.config.BackpressureThreshold
-}
-
-func (sdp *StreamingDocumentProcessor) processSmallDocument(ctx context.Context, doc *LoadedDocument) (*ProcessingResult, error) {
-	// For small documents, use the regular chunking service
-	chunks, err := sdp.chunkingService.ChunkDocument(ctx, doc)
-	if err != nil {
-		return nil, fmt.Errorf("failed to chunk document: %w", err)
-	}
-	
-	// Generate embeddings
-	err = sdp.embeddingService.GenerateEmbeddingsForChunks(ctx, chunks)
-	if err != nil {
-		return nil, fmt.Errorf("failed to generate embeddings: %w", err)
-	}
-	
-	return &ProcessingResult{
-		DocumentID:        doc.ID,
-		ChunksCreated:     len(chunks),
-		EmbeddingsCreated: len(chunks),
-		ProcessingTime:    time.Since(time.Now()),
-		Success:           true,
-	}, nil
-}
-
-func (sdp *StreamingDocumentProcessor) updateMetrics(updater func(*StreamingMetrics)) {
-	sdp.metrics.mutex.Lock()
-	defer sdp.metrics.mutex.Unlock()
-	updater(sdp.metrics)
-}
-
-// GetMetrics returns current streaming metrics
-func (sdp *StreamingDocumentProcessor) GetMetrics() StreamingMetrics {
-	sdp.metrics.mutex.RLock()
-	defer sdp.metrics.mutex.RUnlock()
-	return *sdp.metrics
-}
-
-// Shutdown gracefully shuts down the streaming processor
-func (sdp *StreamingDocumentProcessor) Shutdown(timeout time.Duration) error {
-	sdp.logger.Info("Shutting down streaming processor")
-	
-	// Signal shutdown
-	sdp.cancel()
-	
-	// Wait for workers to finish with timeout
-	done := make(chan struct{})
-	go func() {
-		sdp.wg.Wait()
-		close(done)
-	}()
-	
-	select {
-	case <-done:
-		sdp.logger.Info("Streaming processor shut down successfully")
-		return nil
-	case <-time.After(timeout):
-		return fmt.Errorf("shutdown timeout exceeded")
-	}
+// Shutdown gracefully shuts down the processing pool
+func (l *StreamingDocumentLoader) Shutdown() {
+	close(l.processPool.documentWorkers)
+	close(l.processPool.chunkWorkers)
+	close(l.processPool.embeddingWorkers)
+	l.processPool.wg.Wait()
 }

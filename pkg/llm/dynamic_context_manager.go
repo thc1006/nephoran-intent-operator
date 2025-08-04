@@ -2,399 +2,532 @@ package llm
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log/slog"
 	"math"
 	"sort"
 	"strings"
 	"sync"
 	"time"
-	
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
 )
 
-// DynamicContextManager handles intelligent context injection with budget management
+// DynamicContextManager handles intelligent context injection and budget control
 type DynamicContextManager struct {
-	tokenManager      *TokenManager
-	contextBuilder    *ContextBuilder
-	promptRegistry    *TelecomPromptRegistry
-	documentCache     *DocumentCache
-	config            *DynamicContextConfig
-	logger            *slog.Logger
-	metrics           *ContextMetrics
+	logger            *zap.Logger
+	telecomTemplates  *TelecomPromptTemplates
+	tokenEstimator    *TokenEstimator
+	contextStrategies map[string]ContextStrategy
+	modelConfigs      map[string]ModelConfig
+	metrics           *contextMetrics
 	mu                sync.RWMutex
 }
 
-// DynamicContextConfig configures the dynamic context manager
-type DynamicContextConfig struct {
-	// Budget Management
-	MaxContextTokens       int                        `json:"max_context_tokens"`
-	MinContextTokens       int                        `json:"min_context_tokens"`
-	TokenAllocationStrategy string                    `json:"token_allocation_strategy"` // "proportional", "priority", "adaptive"
-	CompressionEnabled     bool                       `json:"compression_enabled"`
-	CompressionRatio       float64                    `json:"compression_ratio"`
-	
-	// Context Prioritization
-	PriorityWeights        map[string]float64         `json:"priority_weights"`
-	RecencyBias            float64                    `json:"recency_bias"`
-	RelevanceThreshold     float32                    `json:"relevance_threshold"`
-	DiversityFactor        float64                    `json:"diversity_factor"`
-	
-	// Telecom-Specific Settings
-	TelecomDomainPriority  map[string]float64         `json:"telecom_domain_priority"`
-	StandardsPreference    []string                   `json:"standards_preference"`
-	NetworkStateWeight     float64                    `json:"network_state_weight"`
-	ComplianceWeight       float64                    `json:"compliance_weight"`
-	
-	// Multi-Tier Strategy
-	TierDefinitions        []ContextTier              `json:"tier_definitions"`
-	TierSelectionMode      string                     `json:"tier_selection_mode"` // "auto", "manual", "adaptive"
-	
-	// Performance Settings
-	CacheEnabled           bool                       `json:"cache_enabled"`
-	CacheTTL               time.Duration              `json:"cache_ttl"`
-	ParallelProcessing     bool                       `json:"parallel_processing"`
-	MaxProcessingTime      time.Duration              `json:"max_processing_time"`
-}
-
-// ContextTier defines a tier in multi-tier prompting strategy
-type ContextTier struct {
-	Name              string                 `json:"name"`
-	MaxTokens         int                    `json:"max_tokens"`
-	MinTokens         int                    `json:"min_tokens"`
-	ComplexityLevel   string                 `json:"complexity_level"` // "simple", "moderate", "complex"
-	IncludeExamples   bool                   `json:"include_examples"`
-	IncludeMetadata   bool                   `json:"include_metadata"`
-	CompressionLevel  string                 `json:"compression_level"` // "none", "light", "moderate", "heavy"
-	RequiredSources   []string               `json:"required_sources"`
-	Priority          int                    `json:"priority"`
-}
-
-// DocumentCache caches processed documents to improve performance
-type DocumentCache struct {
-	cache    map[string]*CachedDocument
-	mu       sync.RWMutex
-	maxSize  int
-	ttl      time.Duration
-}
-
-// CachedDocument represents a cached document with metadata
-type CachedDocument struct {
-	Document        *shared.TelecomDocument `json:"document"`
-	ProcessedText   string                  `json:"processed_text"`
-	TokenCount      int                     `json:"token_count"`
-	CompressedText  string                  `json:"compressed_text"`
-	CompressedTokens int                    `json:"compressed_tokens"`
-	LastAccessed    time.Time               `json:"last_accessed"`
-	AccessCount     int                     `json:"access_count"`
-}
-
-// ContextInjectionRequest represents a request for dynamic context injection
+// ContextInjectionRequest represents a request for context injection
 type ContextInjectionRequest struct {
-	Intent            string                      `json:"intent"`
-	IntentType        string                      `json:"intent_type"`
-	ModelName         string                      `json:"model_name"`
-	NetworkState      *NetworkStateContext        `json:"network_state"`
-	ComplianceReqs    []string                    `json:"compliance_requirements"`
-	UserPreferences   map[string]interface{}      `json:"user_preferences"`
-	MaxTokenBudget    int                         `json:"max_token_budget"`
-	PreferredTier     string                      `json:"preferred_tier"`
-	RequiredDocuments []string                    `json:"required_documents"`
-	ExcludeDocuments  []string                    `json:"exclude_documents"`
+	Intent           string
+	IntentType       string
+	Domain           string
+	ModelName        string
+	MaxTokenBudget   int
+	NetworkState     *NetworkState
+	IncludeExamples  bool
+	CompressionLevel CompressionLevel
+	Priority         Priority
 }
 
-// NetworkStateContext represents current network state information
-type NetworkStateContext struct {
-	ActiveSlices      []NetworkSliceInfo          `json:"active_slices"`
-	NetworkFunctions  []NetworkFunctionInfo       `json:"network_functions"`
-	CurrentLoad       map[string]float64          `json:"current_load"`
-	ActiveAlarms      []NetworkAlarm              `json:"active_alarms"`
-	TopologyInfo      map[string]interface{}      `json:"topology_info"`
-	PerformanceMetrics map[string]interface{}     `json:"performance_metrics"`
-}
-
-// NetworkSliceInfo represents information about a network slice
-type NetworkSliceInfo struct {
-	SliceID          string                 `json:"slice_id"`
-	SST              int                    `json:"sst"`
-	SD               string                 `json:"sd"`
-	Status           string                 `json:"status"`
-	ActiveSessions   int                    `json:"active_sessions"`
-	ResourceUsage    map[string]float64     `json:"resource_usage"`
-}
-
-// NetworkFunctionInfo represents information about a network function
-type NetworkFunctionInfo struct {
-	Name             string                 `json:"name"`
-	Type             string                 `json:"type"`
-	Version          string                 `json:"version"`
-	Status           string                 `json:"status"`
-	Namespace        string                 `json:"namespace"`
-	Resources        map[string]interface{} `json:"resources"`
-}
-
-// NetworkAlarm represents an active network alarm
-type NetworkAlarm struct {
-	ID               string                 `json:"id"`
-	Severity         string                 `json:"severity"`
-	Component        string                 `json:"component"`
-	Description      string                 `json:"description"`
-	Timestamp        time.Time              `json:"timestamp"`
-}
-
-// ContextInjectionResult represents the result of context injection
+// ContextInjectionResult contains the result of context injection
 type ContextInjectionResult struct {
-	FinalPrompt      string                      `json:"final_prompt"`
-	SystemPrompt     string                      `json:"system_prompt"`
-	UserPrompt       string                      `json:"user_prompt"`
-	InjectedContext  string                      `json:"injected_context"`
-	TokenUsage       TokenUsageBreakdown         `json:"token_usage"`
-	SelectedTier     string                      `json:"selected_tier"`
-	DocumentsUsed    []*DocumentReference        `json:"documents_used"`
-	CompressionApplied bool                     `json:"compression_applied"`
-	ProcessingTime   time.Duration               `json:"processing_time"`
-	QualityScore     float32                     `json:"quality_score"`
-	Metadata         map[string]interface{}      `json:"metadata"`
+	FinalPrompt      string
+	TokensUsed       int
+	TokensAvailable  int
+	ContextLevel     ContextLevel
+	CompressionUsed  CompressionLevel
+	Strategy         string
+	Confidence       float64
+	ProcessingTime   time.Duration
 }
 
-// TokenUsageBreakdown provides detailed token usage information
-type TokenUsageBreakdown struct {
-	SystemPromptTokens   int     `json:"system_prompt_tokens"`
-	UserPromptTokens     int     `json:"user_prompt_tokens"`
-	ContextTokens        int     `json:"context_tokens"`
-	NetworkStateTokens   int     `json:"network_state_tokens"`
-	ExampleTokens        int     `json:"example_tokens"`
-	TotalTokens          int     `json:"total_tokens"`
-	BudgetUtilization    float64 `json:"budget_utilization"`
-	CompressionSavings   int     `json:"compression_savings"`
+// NetworkState holds current network information
+type NetworkState struct {
+	NetworkFunctions []NetworkFunction
+	ActiveSlices     []NetworkSlice
+	E2Nodes          []E2Node
+	Alarms           []Alarm
+	PerformanceKPIs  map[string]float64
+	Topology         *NetworkTopology
+	RecentEvents     []NetworkEvent
+}
+
+// NetworkTopology represents network topology information
+type NetworkTopology struct {
+	Sites       []Site
+	Connections []Connection
+	Coverage    []CoverageArea
+}
+
+// Site represents a network site
+type Site struct {
+	ID         string
+	Location   string
+	Type       string
+	Technology []string
+	Capacity   int
+}
+
+// Connection represents a network connection
+type Connection struct {
+	Source      string
+	Destination string
+	Type        string
+	Bandwidth   int
+	Latency     float64
+}
+
+// CoverageArea represents a coverage area
+type CoverageArea struct {
+	ID       string
+	Type     string
+	Polygon  [][]float64
+	Quality  float64
+}
+
+// NetworkEvent represents a recent network event
+type NetworkEvent struct {
+	ID          string
+	Type        string
+	Severity    string
+	Description string
+	Timestamp   time.Time
+	Source      string
+	Impact      string
+}
+
+// ContextStrategy defines how context should be selected and compressed
+type ContextStrategy interface {
+	SelectContext(request *ContextInjectionRequest) (*SelectedContext, error)
+	EstimateTokens(content string, modelName string) int
+	Compress(content string, level CompressionLevel) string
+}
+
+// SelectedContext represents the selected context for injection
+type SelectedContext struct {
+	SystemPrompt     string
+	Examples         []PromptExample
+	NetworkContext   string
+	RelevantDocs     []string
+	Metadata         map[string]interface{}
+	ConfidenceScore  float64
+}
+
+// ModelConfig holds configuration for different models
+type ModelConfig struct {
+	Name            string
+	MaxTokens       int
+	TokensPerWord   float64
+	ContextWindow   int
+	CostPerToken    float64
+	SupportsSystem  bool
+	OptimalTemp     float64
+}
+
+// ContextLevel represents different levels of context detail
+type ContextLevel int
+
+const (
+	MinimalContext ContextLevel = iota
+	StandardContext
+	ComprehensiveContext
+	ExpertContext
+)
+
+// CompressionLevel represents different levels of content compression
+type CompressionLevel int
+
+const (
+	NoCompression CompressionLevel = iota
+	LightCompression
+	ModerateCompression
+	HeavyCompression
+)
+
+// Priority represents request priority
+type Priority int
+
+const (
+	LowPriority Priority = iota
+	NormalPriority
+	HighPriority
+	CriticalPriority
+)
+
+// TokenEstimator provides token estimation for different models
+type TokenEstimator struct {
+	modelTokenRatios map[string]float64
+	mu               sync.RWMutex
+}
+
+// contextMetrics tracks context management metrics
+type contextMetrics struct {
+	requestsTotal       prometheus.Counter
+	tokensUsed          prometheus.Histogram
+	contextLevels       *prometheus.CounterVec
+	compressionUsed     *prometheus.CounterVec
+	budgetExceeded      prometheus.Counter
+	processingDuration  prometheus.Histogram
 }
 
 // NewDynamicContextManager creates a new dynamic context manager
-func NewDynamicContextManager(
-	tokenManager *TokenManager,
-	contextBuilder *ContextBuilder,
-	promptRegistry *TelecomPromptRegistry,
-	config *DynamicContextConfig,
-) *DynamicContextManager {
-	if config == nil {
-		config = getDefaultDynamicContextConfig()
+func NewDynamicContextManager(logger *zap.Logger) *DynamicContextManager {
+	metrics := &contextMetrics{
+		requestsTotal: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "context_requests_total",
+			Help: "Total number of context injection requests",
+		}),
+		tokensUsed: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Name:    "context_tokens_used",
+			Help:    "Number of tokens used in context injection",
+			Buckets: []float64{500, 1000, 2000, 4000, 8000, 16000, 32000},
+		}),
+		contextLevels: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "context_levels_used_total",
+			Help: "Context levels used",
+		}, []string{"level"}),
+		compressionUsed: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "context_compression_used_total",
+			Help: "Compression levels used",
+		}, []string{"level"}),
+		budgetExceeded: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "context_budget_exceeded_total",
+			Help: "Number of times token budget was exceeded",
+		}),
+		processingDuration: prometheus.NewHistogram(prometheus.HistogramOpts{
+			Name:    "context_processing_duration_seconds",
+			Help:    "Time spent processing context injection",
+			Buckets: prometheus.DefBuckets,
+		}),
 	}
-	
-	return &DynamicContextManager{
-		tokenManager:   tokenManager,
-		contextBuilder: contextBuilder,
-		promptRegistry: promptRegistry,
-		documentCache:  NewDocumentCache(1000, config.CacheTTL),
-		config:         config,
-		logger:         slog.Default().With("component", "dynamic-context-manager"),
-		metrics:        &ContextMetrics{LastUpdated: time.Now()},
+
+	// Register metrics
+	prometheus.MustRegister(
+		metrics.requestsTotal,
+		metrics.tokensUsed,
+		metrics.contextLevels,
+		metrics.compressionUsed,
+		metrics.budgetExceeded,
+		metrics.processingDuration,
+	)
+
+	manager := &DynamicContextManager{
+		logger:           logger,
+		telecomTemplates: NewTelecomPromptTemplates(),
+		tokenEstimator: &TokenEstimator{
+			modelTokenRatios: make(map[string]float64),
+		},
+		contextStrategies: make(map[string]ContextStrategy),
+		modelConfigs:      make(map[string]ModelConfig),
+		metrics:          metrics,
+	}
+
+	// Initialize default configurations
+	manager.initializeModelConfigs()
+	manager.initializeContextStrategies()
+
+	return manager
+}
+
+// initializeModelConfigs sets up default model configurations
+func (m *DynamicContextManager) initializeModelConfigs() {
+	m.modelConfigs["gpt-4"] = ModelConfig{
+		Name:            "gpt-4",
+		MaxTokens:       8192,
+		TokensPerWord:   1.3,
+		ContextWindow:   8192,
+		CostPerToken:    0.00003,
+		SupportsSystem:  true,
+		OptimalTemp:     0.7,
+	}
+
+	m.modelConfigs["gpt-4-32k"] = ModelConfig{
+		Name:            "gpt-4-32k",
+		MaxTokens:       32768,
+		TokensPerWord:   1.3,
+		ContextWindow:   32768,
+		CostPerToken:    0.00006,
+		SupportsSystem:  true,
+		OptimalTemp:     0.7,
+	}
+
+	m.modelConfigs["gpt-3.5-turbo"] = ModelConfig{
+		Name:            "gpt-3.5-turbo",
+		MaxTokens:       4096,
+		TokensPerWord:   1.3,
+		ContextWindow:   4096,
+		CostPerToken:    0.0000015,
+		SupportsSystem:  true,
+		OptimalTemp:     0.7,
+	}
+
+	m.modelConfigs["claude-3"] = ModelConfig{
+		Name:            "claude-3",
+		MaxTokens:       200000,
+		TokensPerWord:   1.2,
+		ContextWindow:   200000,
+		CostPerToken:    0.000008,
+		SupportsSystem:  true,
+		OptimalTemp:     0.7,
+	}
+
+	// Initialize token estimator ratios
+	m.tokenEstimator.modelTokenRatios["gpt-4"] = 1.3
+	m.tokenEstimator.modelTokenRatios["gpt-4-32k"] = 1.3
+	m.tokenEstimator.modelTokenRatios["gpt-3.5-turbo"] = 1.3
+	m.tokenEstimator.modelTokenRatios["claude-3"] = 1.2
+}
+
+// initializeContextStrategies sets up context selection strategies
+func (m *DynamicContextManager) initializeContextStrategies() {
+	m.contextStrategies["telecom"] = &TelecomContextStrategy{
+		templates:      m.telecomTemplates,
+		tokenEstimator: m.tokenEstimator,
+	}
+	m.contextStrategies["o-ran"] = &ORANContextStrategy{
+		templates:      m.telecomTemplates,
+		tokenEstimator: m.tokenEstimator,
+	}
+	m.contextStrategies["5gc"] = &FiveGCoreContextStrategy{
+		templates:      m.telecomTemplates,
+		tokenEstimator: m.tokenEstimator,
 	}
 }
 
-// getDefaultDynamicContextConfig returns default configuration
-func getDefaultDynamicContextConfig() *DynamicContextConfig {
-	return &DynamicContextConfig{
-		MaxContextTokens:        8000,
-		MinContextTokens:        1000,
-		TokenAllocationStrategy: "adaptive",
-		CompressionEnabled:      true,
-		CompressionRatio:        0.7,
-		PriorityWeights: map[string]float64{
-			"relevance":   0.4,
-			"recency":     0.2,
-			"authority":   0.2,
-			"diversity":   0.1,
-			"compliance":  0.1,
-		},
-		RecencyBias:        0.3,
-		RelevanceThreshold: 0.4,
-		DiversityFactor:    0.2,
-		TelecomDomainPriority: map[string]float64{
-			"O-RAN":     1.0,
-			"5G-Core":   0.9,
-			"RAN":       0.85,
-			"Transport": 0.7,
-			"OSS/BSS":   0.6,
-		},
-		StandardsPreference: []string{"3GPP", "O-RAN", "ETSI", "IETF"},
-		NetworkStateWeight:  0.3,
-		ComplianceWeight:    0.2,
-		TierDefinitions: []ContextTier{
-			{
-				Name:             "minimal",
-				MaxTokens:        2000,
-				MinTokens:        500,
-				ComplexityLevel:  "simple",
-				IncludeExamples:  false,
-				IncludeMetadata:  false,
-				CompressionLevel: "heavy",
-				Priority:         1,
-			},
-			{
-				Name:             "standard",
-				MaxTokens:        4000,
-				MinTokens:        1000,
-				ComplexityLevel:  "moderate",
-				IncludeExamples:  true,
-				IncludeMetadata:  true,
-				CompressionLevel: "moderate",
-				Priority:         2,
-			},
-			{
-				Name:             "comprehensive",
-				MaxTokens:        8000,
-				MinTokens:        2000,
-				ComplexityLevel:  "complex",
-				IncludeExamples:  true,
-				IncludeMetadata:  true,
-				CompressionLevel: "light",
-				Priority:         3,
-			},
-		},
-		TierSelectionMode:  "adaptive",
-		CacheEnabled:       true,
-		CacheTTL:           15 * time.Minute,
-		ParallelProcessing: true,
-		MaxProcessingTime:  5 * time.Second,
-	}
-}
+// InjectContext performs dynamic context injection with budget control
+func (m *DynamicContextManager) InjectContext(
+	ctx context.Context,
+	request *ContextInjectionRequest,
+) (*ContextInjectionResult, error) {
+	start := time.Now()
+	m.metrics.requestsTotal.Inc()
 
-// InjectContext performs dynamic context injection with budget management
-func (dcm *DynamicContextManager) InjectContext(ctx context.Context, request *ContextInjectionRequest) (*ContextInjectionResult, error) {
-	startTime := time.Now()
-	
+	defer func() {
+		duration := time.Since(start)
+		m.metrics.processingDuration.Observe(duration.Seconds())
+	}()
+
 	// Validate request
-	if err := dcm.validateRequest(request); err != nil {
-		return nil, fmt.Errorf("invalid context injection request: %w", err)
+	if err := m.validateRequest(request); err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
 	}
-	
-	// Select appropriate tier
-	selectedTier := dcm.selectContextTier(request)
-	dcm.logger.Info("Selected context tier",
-		"tier", selectedTier.Name,
-		"max_tokens", selectedTier.MaxTokens,
-		"complexity", selectedTier.ComplexityLevel,
+
+	// Get model configuration
+	modelConfig, exists := m.modelConfigs[request.ModelName]
+	if !exists {
+		modelConfig = m.modelConfigs["gpt-4"] // fallback
+	}
+
+	// Determine optimal context strategy
+	contextLevel := m.determineContextLevel(request, modelConfig)
+	strategy := m.selectStrategy(request)
+
+	// Select and prepare context
+	selectedContext, err := strategy.SelectContext(request)
+	if err != nil {
+		return nil, fmt.Errorf("failed to select context: %w", err)
+	}
+
+	// Build initial prompt
+	initialPrompt := m.buildPromptFromContext(selectedContext, request)
+	initialTokens := strategy.EstimateTokens(initialPrompt, request.ModelName)
+
+	// Apply budget control and compression if needed
+	finalPrompt, tokensUsed, compressionUsed := m.applyBudgetControl(
+		initialPrompt, 
+		initialTokens, 
+		request.MaxTokenBudget,
+		strategy,
+		request.ModelName,
 	)
-	
-	// Get prompt template
-	templates := dcm.promptRegistry.GetTemplatesByIntent(request.IntentType)
-	if len(templates) == 0 {
-		return nil, fmt.Errorf("no template found for intent type: %s", request.IntentType)
-	}
-	template := dcm.selectBestTemplate(templates, request)
-	
-	// Calculate token budget
-	tokenBudget := dcm.calculateTokenBudget(request, selectedTier, template)
-	
-	// Build base prompts
-	systemPrompt := template.SystemPrompt
-	userPrompt := dcm.buildUserPrompt(template, request)
-	
-	// Estimate base token usage
-	baseTokens := dcm.tokenManager.EstimateTokensForModel(systemPrompt+userPrompt, request.ModelName)
-	availableForContext := tokenBudget.MaxContextTokens - baseTokens
-	
-	// Gather and inject context
-	injectedContext, documentsUsed, contextTokens := dcm.gatherAndInjectContext(
-		ctx, request, selectedTier, availableForContext,
-	)
-	
-	// Add network state context if available
-	networkStateContext, networkTokens := dcm.buildNetworkStateContext(request.NetworkState, request.ModelName)
-	if networkStateContext != "" && networkTokens < availableForContext-contextTokens {
-		injectedContext = networkStateContext + "\n\n" + injectedContext
-		contextTokens += networkTokens
-	}
-	
-	// Apply compression if needed
-	compressionApplied := false
-	compressionSavings := 0
-	if selectedTier.CompressionLevel != "none" && contextTokens > tokenBudget.OptimalContextTokens {
-		compressedContext, compressedTokens := dcm.compressContext(
-			injectedContext, selectedTier.CompressionLevel, request.ModelName,
-		)
-		if compressedTokens < contextTokens {
-			compressionSavings = contextTokens - compressedTokens
-			injectedContext = compressedContext
-			contextTokens = compressedTokens
-			compressionApplied = true
-		}
-	}
-	
-	// Add examples if tier allows and budget permits
-	exampleTokens := 0
-	if selectedTier.IncludeExamples && len(template.Examples) > 0 {
-		examples, exTokens := dcm.selectExamples(
-			template.Examples, request, availableForContext-contextTokens, request.ModelName,
-		)
-		if len(examples) > 0 {
-			exampleText := dcm.formatExamples(examples)
-			userPrompt += "\n\n" + exampleText
-			exampleTokens = exTokens
-		}
-	}
-	
-	// Build final prompt
-	finalPrompt := dcm.assembleFinalPrompt(systemPrompt, userPrompt, injectedContext)
-	
-	// Calculate final token usage
-	totalTokens := dcm.tokenManager.EstimateTokensForModel(finalPrompt, request.ModelName)
-	
-	// Create token usage breakdown
-	tokenUsage := TokenUsageBreakdown{
-		SystemPromptTokens: dcm.tokenManager.EstimateTokensForModel(systemPrompt, request.ModelName),
-		UserPromptTokens:   dcm.tokenManager.EstimateTokensForModel(userPrompt, request.ModelName) - exampleTokens,
-		ContextTokens:      contextTokens,
-		NetworkStateTokens: networkTokens,
-		ExampleTokens:      exampleTokens,
-		TotalTokens:        totalTokens,
-		BudgetUtilization:  float64(totalTokens) / float64(tokenBudget.MaxContextTokens),
-		CompressionSavings: compressionSavings,
-	}
-	
-	// Calculate quality score
-	qualityScore := dcm.calculateQualityScore(
-		documentsUsed, selectedTier, tokenUsage, compressionApplied,
-	)
-	
-	// Create result
+
+	// Calculate result metrics
 	result := &ContextInjectionResult{
-		FinalPrompt:        finalPrompt,
-		SystemPrompt:       systemPrompt,
-		UserPrompt:         userPrompt,
-		InjectedContext:    injectedContext,
-		TokenUsage:         tokenUsage,
-		SelectedTier:       selectedTier.Name,
-		DocumentsUsed:      documentsUsed,
-		CompressionApplied: compressionApplied,
-		ProcessingTime:     time.Since(startTime),
-		QualityScore:       qualityScore,
-		Metadata: map[string]interface{}{
-			"template_id":        template.ID,
-			"network_state_included": networkStateContext != "",
-			"examples_included":   exampleTokens > 0,
-			"cache_hits":         0, // TODO: track cache hits
-		},
+		FinalPrompt:      finalPrompt,
+		TokensUsed:       tokensUsed,
+		TokensAvailable:  request.MaxTokenBudget - tokensUsed,
+		ContextLevel:     contextLevel,
+		CompressionUsed:  compressionUsed,
+		Strategy:         m.getStrategyName(request),
+		Confidence:       selectedContext.ConfidenceScore,
+		ProcessingTime:   time.Since(start),
 	}
-	
-	dcm.logger.Info("Context injection completed",
-		"tier", selectedTier.Name,
-		"total_tokens", totalTokens,
-		"quality_score", qualityScore,
-		"processing_time", result.ProcessingTime,
-	)
-	
+
+	// Update metrics
+	m.metrics.tokensUsed.Observe(float64(tokensUsed))
+	m.metrics.contextLevels.WithLabelValues(m.contextLevelToString(contextLevel)).Inc()
+	m.metrics.compressionUsed.WithLabelValues(m.compressionLevelToString(compressionUsed)).Inc()
+
+	if tokensUsed > request.MaxTokenBudget {
+		m.metrics.budgetExceeded.Inc()
+	}
+
+	m.logger.Info("Context injection completed",
+		zap.String("strategy", result.Strategy),
+		zap.Int("tokens_used", tokensUsed),
+		zap.Int("max_budget", request.MaxTokenBudget),
+		zap.String("context_level", m.contextLevelToString(contextLevel)),
+		zap.Duration("processing_time", result.ProcessingTime))
+
 	return result, nil
 }
 
+// determineContextLevel determines the appropriate context level based on constraints
+func (m *DynamicContextManager) determineContextLevel(
+	request *ContextInjectionRequest,
+	modelConfig ModelConfig,
+) ContextLevel {
+	// Calculate available tokens for context (reserve some for response)
+	responseReserve := int(float64(modelConfig.MaxTokens) * 0.3) // 30% for response
+	availableTokens := min(request.MaxTokenBudget, modelConfig.ContextWindow) - responseReserve
+
+	// Determine context level based on available tokens and priority
+	switch {
+	case availableTokens >= 8000 && request.Priority >= HighPriority:
+		return ExpertContext
+	case availableTokens >= 4000:
+		return ComprehensiveContext
+	case availableTokens >= 2000:
+		return StandardContext
+	default:
+		return MinimalContext
+	}
+}
+
+// selectStrategy selects the appropriate context strategy
+func (m *DynamicContextManager) selectStrategy(request *ContextInjectionRequest) ContextStrategy {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	// Select strategy based on domain and intent type
+	if strategy, exists := m.contextStrategies[request.Domain]; exists {
+		return strategy
+	}
+
+	// Fallback to telecom strategy
+	return m.contextStrategies["telecom"]
+}
+
+// applyBudgetControl applies token budget control and compression
+func (m *DynamicContextManager) applyBudgetControl(
+	prompt string,
+	estimatedTokens int,
+	maxTokens int,
+	strategy ContextStrategy,
+	modelName string,
+) (string, int, CompressionLevel) {
+	if estimatedTokens <= maxTokens {
+		return prompt, estimatedTokens, NoCompression
+	}
+
+	// Try progressive compression levels
+	compressionLevels := []CompressionLevel{
+		LightCompression,
+		ModerateCompression,
+		HeavyCompression,
+	}
+
+	for _, level := range compressionLevels {
+		compressed := strategy.Compress(prompt, level)
+		tokens := strategy.EstimateTokens(compressed, modelName)
+		
+		if tokens <= maxTokens {
+			return compressed, tokens, level
+		}
+	}
+
+	// If still over budget, use heavy compression and truncate
+	compressed := strategy.Compress(prompt, HeavyCompression)
+	tokens := strategy.EstimateTokens(compressed, modelName)
+	
+	if tokens > maxTokens {
+		// Truncate to fit budget (last resort)
+		words := strings.Fields(compressed)
+		targetWords := int(float64(maxTokens) / 1.3) // rough word-to-token ratio
+		if targetWords < len(words) {
+			compressed = strings.Join(words[:targetWords], " ")
+		}
+		tokens = strategy.EstimateTokens(compressed, modelName)
+	}
+
+	return compressed, tokens, HeavyCompression
+}
+
+// buildPromptFromContext builds a complete prompt from selected context
+func (m *DynamicContextManager) buildPromptFromContext(
+	context *SelectedContext,
+	request *ContextInjectionRequest,
+) string {
+	var builder strings.Builder
+
+	// Add system prompt
+	if context.SystemPrompt != "" {
+		builder.WriteString("## System Instructions\n")
+		builder.WriteString(context.SystemPrompt)
+		builder.WriteString("\n\n")
+	}
+
+	// Add examples if requested and available
+	if request.IncludeExamples && len(context.Examples) > 0 {
+		builder.WriteString("## Examples\n\n")
+		for i, example := range context.Examples {
+			builder.WriteString(fmt.Sprintf("### Example %d\n", i+1))
+			builder.WriteString(fmt.Sprintf("**Input:** %s\n\n", example.Input))
+			builder.WriteString(fmt.Sprintf("**Output:**\n```yaml\n%s\n```\n\n", example.Output))
+			if example.Explanation != "" {
+				builder.WriteString(fmt.Sprintf("**Explanation:** %s\n\n", example.Explanation))
+			}
+		}
+	}
+
+	// Add network context
+	if context.NetworkContext != "" {
+		builder.WriteString("## Current Network Context\n")
+		builder.WriteString(context.NetworkContext)
+		builder.WriteString("\n\n")
+	}
+
+	// Add relevant documentation
+	if len(context.RelevantDocs) > 0 {
+		builder.WriteString("## Relevant Documentation\n")
+		for _, doc := range context.RelevantDocs {
+			builder.WriteString(fmt.Sprintf("- %s\n", doc))
+		}
+		builder.WriteString("\n")
+	}
+
+	// Add user intent
+	builder.WriteString("## User Intent\n")
+	builder.WriteString(request.Intent)
+	builder.WriteString("\n\n")
+
+	// Add response format instructions
+	builder.WriteString("## Response Requirements\n")
+	builder.WriteString("Please provide your response in valid YAML format with:\n")
+	builder.WriteString("1. Detailed configuration parameters\n")
+	builder.WriteString("2. Explanatory comments for each major section\n")
+	builder.WriteString("3. Compliance references to relevant standards\n")
+	builder.WriteString("4. Risk assessment and mitigation strategies\n")
+	builder.WriteString("5. Validation and testing recommendations\n")
+
+	return builder.String()
+}
+
 // validateRequest validates the context injection request
-func (dcm *DynamicContextManager) validateRequest(request *ContextInjectionRequest) error {
+func (m *DynamicContextManager) validateRequest(request *ContextInjectionRequest) error {
 	if request.Intent == "" {
 		return fmt.Errorf("intent cannot be empty")
 	}
-	if request.IntentType == "" {
-		return fmt.Errorf("intent type cannot be empty")
+	if request.MaxTokenBudget <= 0 {
+		return fmt.Errorf("token budget must be positive")
 	}
 	if request.ModelName == "" {
 		return fmt.Errorf("model name cannot be empty")
@@ -402,655 +535,285 @@ func (dcm *DynamicContextManager) validateRequest(request *ContextInjectionReque
 	return nil
 }
 
-// selectContextTier selects the appropriate context tier
-func (dcm *DynamicContextManager) selectContextTier(request *ContextInjectionRequest) *ContextTier {
-	switch dcm.config.TierSelectionMode {
-	case "manual":
-		if request.PreferredTier != "" {
-			for _, tier := range dcm.config.TierDefinitions {
-				if tier.Name == request.PreferredTier {
-					return &tier
-				}
-			}
-		}
-	case "adaptive":
-		// Analyze intent complexity
-		complexity := dcm.analyzeIntentComplexity(request)
-		
-		// Select tier based on complexity and budget
-		for _, tier := range dcm.config.TierDefinitions {
-			if tier.ComplexityLevel == complexity {
-				if request.MaxTokenBudget == 0 || tier.MaxTokens <= request.MaxTokenBudget {
-					return &tier
-				}
-			}
-		}
+// Helper functions for string conversion
+func (m *DynamicContextManager) contextLevelToString(level ContextLevel) string {
+	switch level {
+	case MinimalContext:
+		return "minimal"
+	case StandardContext:
+		return "standard"
+	case ComprehensiveContext:
+		return "comprehensive"
+	case ExpertContext:
+		return "expert"
+	default:
+		return "unknown"
 	}
-	
-	// Default to standard tier
-	for _, tier := range dcm.config.TierDefinitions {
-		if tier.Name == "standard" {
-			return &tier
-		}
-	}
-	
-	// Fallback to first tier
-	return &dcm.config.TierDefinitions[0]
 }
 
-// analyzeIntentComplexity analyzes the complexity of an intent
-func (dcm *DynamicContextManager) analyzeIntentComplexity(request *ContextInjectionRequest) string {
-	// Simple heuristics for complexity analysis
-	complexityScore := 0
-	
-	// Check intent length
-	if len(request.Intent) > 200 {
-		complexityScore += 2
-	} else if len(request.Intent) > 100 {
-		complexityScore += 1
-	}
-	
-	// Check for technical terms
-	technicalTerms := []string{
-		"O-RAN", "xApp", "rApp", "Near-RT RIC", "Non-RT RIC",
-		"network slice", "URLLC", "eMBB", "mMTC",
-		"beamforming", "MIMO", "carrier aggregation",
-		"E2 interface", "A1 policy", "O1 management",
-	}
-	
-	lowerIntent := strings.ToLower(request.Intent)
-	for _, term := range technicalTerms {
-		if strings.Contains(lowerIntent, strings.ToLower(term)) {
-			complexityScore++
-		}
-	}
-	
-	// Check network state complexity
-	if request.NetworkState != nil {
-		if len(request.NetworkState.ActiveSlices) > 3 {
-			complexityScore += 2
-		}
-		if len(request.NetworkState.ActiveAlarms) > 0 {
-			complexityScore += 1
-		}
-	}
-	
-	// Check compliance requirements
-	if len(request.ComplianceReqs) > 2 {
-		complexityScore += 2
-	} else if len(request.ComplianceReqs) > 0 {
-		complexityScore += 1
-	}
-	
-	// Map score to complexity level
-	if complexityScore >= 6 {
-		return "complex"
-	} else if complexityScore >= 3 {
+func (m *DynamicContextManager) compressionLevelToString(level CompressionLevel) string {
+	switch level {
+	case NoCompression:
+		return "none"
+	case LightCompression:
+		return "light"
+	case ModerateCompression:
 		return "moderate"
-	}
-	return "simple"
-}
-
-// TokenBudget represents token allocation for different components
-type TokenBudget struct {
-	MaxContextTokens     int
-	OptimalContextTokens int
-	MinContextTokens     int
-	SystemPromptTokens   int
-	UserPromptTokens     int
-	ExampleTokens        int
-	NetworkStateTokens   int
-}
-
-// calculateTokenBudget calculates token budget allocation
-func (dcm *DynamicContextManager) calculateTokenBudget(
-	request *ContextInjectionRequest,
-	tier *ContextTier,
-	template *TelecomPromptTemplate,
-) *TokenBudget {
-	// Get model configuration
-	modelConfig, _ := dcm.tokenManager.GetModelConfig(request.ModelName)
-	if modelConfig == nil {
-		// Use defaults
-		modelConfig = &ModelTokenConfig{
-			ContextWindow: 8192,
-			MaxTokens:     4096,
-		}
-	}
-	
-	// Start with tier limits or request budget
-	maxTokens := tier.MaxTokens
-	if request.MaxTokenBudget > 0 && request.MaxTokenBudget < maxTokens {
-		maxTokens = request.MaxTokenBudget
-	}
-	
-	// Ensure we don't exceed model limits
-	if maxTokens > modelConfig.ContextWindow-modelConfig.MaxTokens {
-		maxTokens = modelConfig.ContextWindow - modelConfig.MaxTokens
-	}
-	
-	// Calculate optimal allocation
-	systemPromptTokens := dcm.tokenManager.EstimateTokensForModel(template.SystemPrompt, request.ModelName)
-	
-	// Reserve tokens for different components
-	reservedForResponse := int(float64(modelConfig.MaxTokens) * 0.5) // Reserve 50% for response
-	reservedForPrompt := systemPromptTokens + 500 // System prompt + user prompt buffer
-	
-	optimalContextTokens := maxTokens - reservedForResponse - reservedForPrompt
-	if optimalContextTokens < tier.MinTokens {
-		optimalContextTokens = tier.MinTokens
-	}
-	
-	return &TokenBudget{
-		MaxContextTokens:     maxTokens,
-		OptimalContextTokens: optimalContextTokens,
-		MinContextTokens:     tier.MinTokens,
-		SystemPromptTokens:   systemPromptTokens,
-		UserPromptTokens:     500, // Estimated
-		ExampleTokens:        0,   // Will be calculated later
-		NetworkStateTokens:   0,   // Will be calculated later
+	case HeavyCompression:
+		return "heavy"
+	default:
+		return "unknown"
 	}
 }
 
-// selectBestTemplate selects the most appropriate template
-func (dcm *DynamicContextManager) selectBestTemplate(
-	templates []*TelecomPromptTemplate,
-	request *ContextInjectionRequest,
-) *TelecomPromptTemplate {
-	if len(templates) == 1 {
-		return templates[0]
+func (m *DynamicContextManager) getStrategyName(request *ContextInjectionRequest) string {
+	if request.Domain != "" {
+		return request.Domain
 	}
-	
-	// Score templates based on relevance
-	type scoredTemplate struct {
-		template *TelecomPromptTemplate
-		score    float64
-	}
-	
-	scored := make([]scoredTemplate, len(templates))
-	for i, template := range templates {
-		score := 0.0
-		
-		// Domain match
-		if domainPriority, exists := dcm.config.TelecomDomainPriority[template.Domain]; exists {
-			score += domainPriority * 10
-		}
-		
-		// Technology match
-		intentLower := strings.ToLower(request.Intent)
-		for _, tech := range template.Technology {
-			if strings.Contains(intentLower, strings.ToLower(tech)) {
-				score += 5
-			}
-		}
-		
-		// Compliance match
-		for _, compliance := range request.ComplianceReqs {
-			for _, templateCompliance := range template.ComplianceStandards {
-				if compliance == templateCompliance {
-					score += 3
-				}
-			}
-		}
-		
-		scored[i] = scoredTemplate{template: template, score: score}
-	}
-	
-	// Sort by score
-	sort.Slice(scored, func(i, j int) bool {
-		return scored[i].score > scored[j].score
-	})
-	
-	return scored[0].template
+	return "telecom"
 }
 
-// buildUserPrompt builds the user prompt from template and request
-func (dcm *DynamicContextManager) buildUserPrompt(
-	template *TelecomPromptTemplate,
-	request *ContextInjectionRequest,
-) string {
-	variables := map[string]interface{}{
-		"intent": request.Intent,
+func min(a, b int) int {
+	if a < b {
+		return a
 	}
+	return b
+}
+
+// Context Strategy Implementations
+
+// TelecomContextStrategy implements context selection for general telecom intents
+type TelecomContextStrategy struct {
+	templates      *TelecomPromptTemplates
+	tokenEstimator *TokenEstimator
+}
+
+func (s *TelecomContextStrategy) SelectContext(request *ContextInjectionRequest) (*SelectedContext, error) {
+	// Determine intent type from content
+	intentType := s.classifyIntentType(request.Intent)
 	
-	// Add optional variables
+	// Get system prompt
+	systemPrompt := s.templates.GetSystemPrompt(intentType)
+	
+	// Get examples
+	examples := s.templates.GetExamples(intentType)
+	
+	// Format network context
+	var networkContext string
 	if request.NetworkState != nil {
-		variables["network_state"] = request.NetworkState
+		telecomContext := TelecomContext{
+			NetworkFunctions: request.NetworkState.NetworkFunctions,
+			ActiveSlices:     request.NetworkState.ActiveSlices,
+			E2Nodes:          request.NetworkState.E2Nodes,
+			Alarms:           request.NetworkState.Alarms,
+			PerformanceKPIs:  request.NetworkState.PerformanceKPIs,
+		}
+		networkContext = s.templates.formatContext(telecomContext)
 	}
 	
-	if len(request.ComplianceReqs) > 0 {
-		variables["compliance_requirements"] = request.ComplianceReqs
-	}
+	// Calculate confidence based on available context
+	confidence := s.calculateConfidence(request, intentType)
 	
-	// Add user preferences
-	for k, v := range request.UserPreferences {
-		variables[k] = v
-	}
-	
-	prompt, _ := dcm.promptRegistry.BuildPrompt(template.ID, variables)
-	
-	// Extract just the user prompt part (after system prompt)
-	parts := strings.Split(prompt, template.SystemPrompt)
-	if len(parts) > 1 {
-		return strings.TrimSpace(parts[1])
-	}
-	
-	return request.Intent
+	return &SelectedContext{
+		SystemPrompt:    systemPrompt,
+		Examples:        examples,
+		NetworkContext:  networkContext,
+		RelevantDocs:    []string{},
+		Metadata:        map[string]interface{}{"intent_type": intentType},
+		ConfidenceScore: confidence,
+	}, nil
 }
 
-// gatherAndInjectContext gathers relevant context within token budget
-func (dcm *DynamicContextManager) gatherAndInjectContext(
-	ctx context.Context,
-	request *ContextInjectionRequest,
-	tier *ContextTier,
-	maxTokens int,
-) (string, []*DocumentReference, int) {
-	// This would integrate with RAG system to fetch relevant documents
-	// For now, return placeholder
-	contextParts := []string{}
-	documents := []*DocumentReference{}
-	totalTokens := 0
+func (s *TelecomContextStrategy) EstimateTokens(content string, modelName string) int {
+	return s.tokenEstimator.EstimateTokens(content, modelName)
+}
+
+func (s *TelecomContextStrategy) Compress(content string, level CompressionLevel) string {
+	switch level {
+	case LightCompression:
+		return s.lightCompress(content)
+	case ModerateCompression:
+		return s.moderateCompress(content)
+	case HeavyCompression:
+		return s.heavyCompress(content)
+	default:
+		return content
+	}
+}
+
+func (s *TelecomContextStrategy) classifyIntentType(intent string) string {
+	intent = strings.ToLower(intent)
 	
-	// Add required documents if specified
-	if len(request.RequiredDocuments) > 0 {
-		for _, docID := range request.RequiredDocuments {
-			// Fetch document from cache or storage
-			if cachedDoc := dcm.documentCache.Get(docID); cachedDoc != nil {
-				tokens := dcm.tokenManager.EstimateTokensForModel(cachedDoc.ProcessedText, request.ModelName)
-				if totalTokens+tokens <= maxTokens {
-					contextParts = append(contextParts, cachedDoc.ProcessedText)
-					totalTokens += tokens
-					
-					documents = append(documents, &DocumentReference{
-						ID:             cachedDoc.Document.ID,
-						Title:          cachedDoc.Document.Title,
-						Source:         cachedDoc.Document.Source,
-						Category:       cachedDoc.Document.Category,
-						RelevanceScore: 1.0, // Required document
-						UsedTokens:     tokens,
-					})
-				}
-			}
-		}
+	if strings.Contains(intent, "ric") || strings.Contains(intent, "xapp") || strings.Contains(intent, "e2") {
+		return "oran_network_intent"
+	}
+	if strings.Contains(intent, "5gc") || strings.Contains(intent, "amf") || strings.Contains(intent, "smf") {
+		return "5gc_network_intent"
+	}
+	if strings.Contains(intent, "slice") || strings.Contains(intent, "urllc") || strings.Contains(intent, "embb") {
+		return "network_slicing_intent"
+	}
+	if strings.Contains(intent, "ran") || strings.Contains(intent, "handover") || strings.Contains(intent, "optimization") {
+		return "ran_optimization_intent"
 	}
 	
-	// Add telecom-specific context based on intent
-	if strings.Contains(strings.ToLower(request.Intent), "o-ran") {
-		oranContext := `O-RAN Context:
-- Current O-RAN Alliance specifications: G-release
-- Supported interfaces: A1, E2, O1, O2, Open Fronthaul
-- xApp framework version: 2.0
-- Conflict mitigation: Enabled
-- Multi-vendor support: Active`
+	return "oran_network_intent" // default
+}
+
+func (s *TelecomContextStrategy) calculateConfidence(request *ContextInjectionRequest, intentType string) float64 {
+	confidence := 0.7 // base confidence
+	
+	// Boost confidence if we have network state
+	if request.NetworkState != nil {
+		confidence += 0.1
 		
-		tokens := dcm.tokenManager.EstimateTokensForModel(oranContext, request.ModelName)
-		if totalTokens+tokens <= maxTokens {
-			contextParts = append(contextParts, oranContext)
-			totalTokens += tokens
+		// More boost for more complete network state
+		if len(request.NetworkState.NetworkFunctions) > 0 {
+			confidence += 0.05
+		}
+		if len(request.NetworkState.ActiveSlices) > 0 {
+			confidence += 0.05
+		}
+		if len(request.NetworkState.PerformanceKPIs) > 0 {
+			confidence += 0.05
 		}
 	}
 	
-	context := strings.Join(contextParts, "\n\n---\n\n")
-	return context, documents, totalTokens
+	// Boost confidence for well-classified intents
+	if intentType != "oran_network_intent" { // not default
+		confidence += 0.05
+	}
+	
+	return math.Min(confidence, 1.0)
 }
 
-// buildNetworkStateContext builds context from network state
-func (dcm *DynamicContextManager) buildNetworkStateContext(
-	state *NetworkStateContext,
-	modelName string,
-) (string, int) {
-	if state == nil {
-		return "", 0
-	}
-	
-	var parts []string
-	
-	// Active slices summary
-	if len(state.ActiveSlices) > 0 {
-		parts = append(parts, "Active Network Slices:")
-		for _, slice := range state.ActiveSlices {
-			sliceInfo := fmt.Sprintf("- Slice %s (SST=%d, SD=%s): %s, %d active sessions",
-				slice.SliceID, slice.SST, slice.SD, slice.Status, slice.ActiveSessions)
-			parts = append(parts, sliceInfo)
+func (s *TelecomContextStrategy) lightCompress(content string) string {
+	// Remove extra whitespace and empty lines
+	lines := strings.Split(content, "\n")
+	var compressed []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if trimmed != "" {
+			compressed = append(compressed, trimmed)
 		}
 	}
-	
-	// Network functions summary
-	if len(state.NetworkFunctions) > 0 {
-		parts = append(parts, "\nDeployed Network Functions:")
-		for _, nf := range state.NetworkFunctions {
-			nfInfo := fmt.Sprintf("- %s (%s v%s): %s in %s",
-				nf.Name, nf.Type, nf.Version, nf.Status, nf.Namespace)
-			parts = append(parts, nfInfo)
-		}
-	}
-	
-	// Active alarms
-	if len(state.ActiveAlarms) > 0 {
-		parts = append(parts, "\nActive Alarms:")
-		for _, alarm := range state.ActiveAlarms {
-			alarmInfo := fmt.Sprintf("- [%s] %s: %s",
-				alarm.Severity, alarm.Component, alarm.Description)
-			parts = append(parts, alarmInfo)
-		}
-	}
-	
-	context := strings.Join(parts, "\n")
-	tokens := dcm.tokenManager.EstimateTokensForModel(context, modelName)
-	
-	return context, tokens
+	return strings.Join(compressed, "\n")
 }
 
-// compressContext applies compression to reduce token usage
-func (dcm *DynamicContextManager) compressContext(
-	context string,
-	compressionLevel string,
-	modelName string,
-) (string, int) {
-	switch compressionLevel {
-	case "light":
-		// Remove extra whitespace and formatting
-		compressed := strings.TrimSpace(context)
-		compressed = strings.ReplaceAll(compressed, "\n\n", "\n")
-		compressed = strings.ReplaceAll(compressed, "  ", " ")
-		tokens := dcm.tokenManager.EstimateTokensForModel(compressed, modelName)
-		return compressed, tokens
-		
-	case "moderate":
-		// Remove redundant information and compress structure
-		lines := strings.Split(context, "\n")
-		var compressed []string
-		seen := make(map[string]bool)
-		
-		for _, line := range lines {
-			trimmed := strings.TrimSpace(line)
-			if trimmed != "" && !seen[trimmed] {
-				compressed = append(compressed, trimmed)
-				seen[trimmed] = true
-			}
+func (s *TelecomContextStrategy) moderateCompress(content string) string {
+	// Apply light compression first
+	content = s.lightCompress(content)
+	
+	// Remove example explanations
+	content = strings.ReplaceAll(content, "**Explanation:**", "")
+	
+	// Simplify section headers
+	content = strings.ReplaceAll(content, "## Current Network Context", "## Context")
+	content = strings.ReplaceAll(content, "## Response Requirements", "## Requirements")
+	
+	return content
+}
+
+func (s *TelecomContextStrategy) heavyCompress(content string) string {
+	// Apply moderate compression first
+	content = s.moderateCompress(content)
+	
+	// Remove all examples
+	lines := strings.Split(content, "\n")
+	var compressed []string
+	inExample := false
+	
+	for _, line := range lines {
+		if strings.Contains(line, "## Examples") {
+			inExample = true
+			continue
 		}
-		
-		result := strings.Join(compressed, "\n")
-		tokens := dcm.tokenManager.EstimateTokensForModel(result, modelName)
-		return result, tokens
-		
-	case "heavy":
-		// Aggressive compression - summarize content
-		// In production, this could use an LLM to summarize
-		words := strings.Fields(context)
-		if len(words) > 100 {
-			// Take first 30% and last 20% of content
-			firstPart := strings.Join(words[:int(float64(len(words))*0.3)], " ")
-			lastPart := strings.Join(words[int(float64(len(words))*0.8):], " ")
-			compressed := firstPart + " [...content compressed...] " + lastPart
-			tokens := dcm.tokenManager.EstimateTokensForModel(compressed, modelName)
-			return compressed, tokens
+		if strings.HasPrefix(line, "## ") && !strings.Contains(line, "Example") {
+			inExample = false
+		}
+		if !inExample {
+			compressed = append(compressed, line)
 		}
 	}
 	
-	tokens := dcm.tokenManager.EstimateTokensForModel(context, modelName)
-	return context, tokens
+	return strings.Join(compressed, "\n")
 }
 
-// selectExamples selects relevant examples within token budget
-func (dcm *DynamicContextManager) selectExamples(
-	examples []TelecomExample,
-	request *ContextInjectionRequest,
-	maxTokens int,
-	modelName string,
-) ([]TelecomExample, int) {
-	if len(examples) == 0 || maxTokens < 100 {
-		return nil, 0
+// TokenEstimator implementation
+func (te *TokenEstimator) EstimateTokens(content string, modelName string) int {
+	te.mu.RLock()
+	defer te.mu.RUnlock()
+	
+	ratio, exists := te.modelTokenRatios[modelName]
+	if !exists {
+		ratio = 1.3 // default ratio
 	}
 	
-	// Score examples by relevance
-	type scoredExample struct {
-		example TelecomExample
-		score   float64
-	}
-	
-	scored := make([]scoredExample, len(examples))
-	intentLower := strings.ToLower(request.Intent)
-	
-	for i, example := range examples {
-		score := 0.0
-		
-		// Context similarity
-		if strings.Contains(strings.ToLower(example.Context), intentLower) {
-			score += 10
-		}
-		
-		// Intent similarity
-		exampleIntentLower := strings.ToLower(example.Intent)
-		intentWords := strings.Fields(intentLower)
-		for _, word := range intentWords {
-			if strings.Contains(exampleIntentLower, word) {
-				score += 1
-			}
-		}
-		
-		scored[i] = scoredExample{example: example, score: score}
-	}
-	
-	// Sort by score
-	sort.Slice(scored, func(i, j int) bool {
-		return scored[i].score > scored[j].score
-	})
-	
-	// Select examples that fit within budget
-	selected := []TelecomExample{}
-	totalTokens := 0
-	
-	for _, s := range scored {
-		if s.score > 0 {
-			exampleText := fmt.Sprintf("Example:\nContext: %s\nIntent: %s\nResponse: %s",
-				s.example.Context, s.example.Intent, s.example.Response)
-			tokens := dcm.tokenManager.EstimateTokensForModel(exampleText, modelName)
-			
-			if totalTokens+tokens <= maxTokens {
-				selected = append(selected, s.example)
-				totalTokens += tokens
-				
-				if len(selected) >= 2 { // Limit to 2 examples
-					break
-				}
-			}
-		}
-	}
-	
-	return selected, totalTokens
+	words := len(strings.Fields(content))
+	return int(float64(words) * ratio)
 }
 
-// formatExamples formats examples for inclusion in prompt
-func (dcm *DynamicContextManager) formatExamples(examples []TelecomExample) string {
-	parts := []string{"## Examples:"}
-	
-	for i, example := range examples {
-		parts = append(parts, fmt.Sprintf("\n### Example %d:", i+1))
-		parts = append(parts, fmt.Sprintf("Context: %s", example.Context))
-		parts = append(parts, fmt.Sprintf("Intent: %s", example.Intent))
-		parts = append(parts, fmt.Sprintf("Response:\n%s", example.Response))
-		
-		if example.Explanation != "" {
-			parts = append(parts, fmt.Sprintf("Explanation: %s", example.Explanation))
-		}
-	}
-	
-	return strings.Join(parts, "\n")
+// ORANContextStrategy and FiveGCoreContextStrategy would be similar implementations
+// tailored for their specific domains
+
+type ORANContextStrategy struct {
+	templates      *TelecomPromptTemplates
+	tokenEstimator *TokenEstimator
 }
 
-// assembleFinalPrompt assembles the final prompt
-func (dcm *DynamicContextManager) assembleFinalPrompt(
-	systemPrompt, userPrompt, context string,
-) string {
-	parts := []string{}
-	
-	if systemPrompt != "" {
-		parts = append(parts, systemPrompt)
-	}
-	
-	if context != "" {
-		parts = append(parts, "## Context:", context)
-	}
-	
-	if userPrompt != "" {
-		parts = append(parts, "## Request:", userPrompt)
-	}
-	
-	return strings.Join(parts, "\n\n")
+func (s *ORANContextStrategy) SelectContext(request *ContextInjectionRequest) (*SelectedContext, error) {
+	// Focus on O-RAN specific context
+	return s.selectORANContext(request)
 }
 
-// calculateQualityScore calculates the quality score of the injection
-func (dcm *DynamicContextManager) calculateQualityScore(
-	documents []*DocumentReference,
-	tier *ContextTier,
-	tokenUsage TokenUsageBreakdown,
-	compressionApplied bool,
-) float32 {
-	score := float32(0.5) // Base score
-	
-	// Document quality contribution
-	if len(documents) > 0 {
-		var avgRelevance float32
-		for _, doc := range documents {
-			avgRelevance += doc.RelevanceScore
-		}
-		avgRelevance /= float32(len(documents))
-		score += avgRelevance * 0.2
-	}
-	
-	// Tier quality contribution
-	switch tier.ComplexityLevel {
-	case "comprehensive":
-		score += 0.2
-	case "standard":
-		score += 0.15
-	case "minimal":
-		score += 0.1
-	}
-	
-	// Token efficiency contribution
-	if tokenUsage.BudgetUtilization > 0.8 && tokenUsage.BudgetUtilization < 0.95 {
-		score += 0.1 // Good utilization
-	}
-	
-	// Compression penalty
-	if compressionApplied {
-		score -= 0.05
-	}
-	
-	// Cap score at 1.0
-	if score > 1.0 {
-		score = 1.0
-	}
-	
-	return score
+func (s *ORANContextStrategy) EstimateTokens(content string, modelName string) int {
+	return s.tokenEstimator.EstimateTokens(content, modelName)
 }
 
-// NewDocumentCache creates a new document cache
-func NewDocumentCache(maxSize int, ttl time.Duration) *DocumentCache {
-	cache := &DocumentCache{
-		cache:   make(map[string]*CachedDocument),
-		maxSize: maxSize,
-		ttl:     ttl,
-	}
-	
-	// Start cleanup goroutine
-	go cache.cleanupLoop()
-	
-	return cache
+func (s *ORANContextStrategy) Compress(content string, level CompressionLevel) string {
+	// O-RAN specific compression logic
+	return content
 }
 
-// Get retrieves a document from cache
-func (dc *DocumentCache) Get(id string) *CachedDocument {
-	dc.mu.RLock()
-	defer dc.mu.RUnlock()
-	
-	if doc, exists := dc.cache[id]; exists {
-		if time.Since(doc.LastAccessed) < dc.ttl {
-			doc.LastAccessed = time.Now()
-			doc.AccessCount++
-			return doc
-		}
-	}
-	
-	return nil
+func (s *ORANContextStrategy) selectORANContext(request *ContextInjectionRequest) (*SelectedContext, error) {
+	// Implementation would focus on O-RAN specific context selection
+	return &SelectedContext{
+		SystemPrompt:    s.templates.GetSystemPrompt("oran_network_intent"),
+		Examples:        s.templates.GetExamples("oran_network_intent"),
+		NetworkContext:  "",
+		RelevantDocs:    []string{},
+		Metadata:        map[string]interface{}{"domain": "o-ran"},
+		ConfidenceScore: 0.8,
+	}, nil
 }
 
-// Set adds a document to cache
-func (dc *DocumentCache) Set(id string, doc *CachedDocument) {
-	dc.mu.Lock()
-	defer dc.mu.Unlock()
-	
-	// Evict oldest if at capacity
-	if len(dc.cache) >= dc.maxSize {
-		dc.evictOldest()
-	}
-	
-	doc.LastAccessed = time.Now()
-	dc.cache[id] = doc
+type FiveGCoreContextStrategy struct {
+	templates      *TelecomPromptTemplates
+	tokenEstimator *TokenEstimator
 }
 
-// evictOldest removes the least recently accessed document
-func (dc *DocumentCache) evictOldest() {
-	var oldestID string
-	var oldestTime time.Time
-	
-	for id, doc := range dc.cache {
-		if oldestID == "" || doc.LastAccessed.Before(oldestTime) {
-			oldestID = id
-			oldestTime = doc.LastAccessed
-		}
-	}
-	
-	if oldestID != "" {
-		delete(dc.cache, oldestID)
-	}
+func (s *FiveGCoreContextStrategy) SelectContext(request *ContextInjectionRequest) (*SelectedContext, error) {
+	// Focus on 5G Core specific context
+	return s.select5GCoreContext(request)
 }
 
-// cleanupLoop periodically removes expired entries
-func (dc *DocumentCache) cleanupLoop() {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-	
-	for range ticker.C {
-		dc.mu.Lock()
-		now := time.Now()
-		
-		for id, doc := range dc.cache {
-			if now.Sub(doc.LastAccessed) > dc.ttl {
-				delete(dc.cache, id)
-			}
-		}
-		
-		dc.mu.Unlock()
-	}
+func (s *FiveGCoreContextStrategy) EstimateTokens(content string, modelName string) int {
+	return s.tokenEstimator.EstimateTokens(content, modelName)
 }
 
-// GetMetrics returns current context manager metrics
-func (dcm *DynamicContextManager) GetMetrics() map[string]interface{} {
-	dcm.mu.RLock()
-	defer dcm.mu.RUnlock()
-	
-	return map[string]interface{}{
-		"cache_size":        len(dcm.documentCache.cache),
-		"context_metrics":   dcm.metrics,
-		"tier_definitions":  dcm.config.TierDefinitions,
-		"current_config":    dcm.config,
-	}
+func (s *FiveGCoreContextStrategy) Compress(content string, level CompressionLevel) string {
+	// 5G Core specific compression logic
+	return content
 }
 
-// UpdateConfig updates the dynamic context configuration
-func (dcm *DynamicContextManager) UpdateConfig(config *DynamicContextConfig) error {
-	if config == nil {
-		return fmt.Errorf("configuration cannot be nil")
-	}
-	
-	dcm.mu.Lock()
-	defer dcm.mu.Unlock()
-	
-	dcm.config = config
-	dcm.logger.Info("Dynamic context configuration updated")
-	
-	return nil
+func (s *FiveGCoreContextStrategy) select5GCoreContext(request *ContextInjectionRequest) (*SelectedContext, error) {
+	// Implementation would focus on 5G Core specific context selection
+	return &SelectedContext{
+		SystemPrompt:    s.templates.GetSystemPrompt("5gc_network_intent"),
+		Examples:        s.templates.GetExamples("5gc_network_intent"),
+		NetworkContext:  "",
+		RelevantDocs:    []string{},
+		Metadata:        map[string]interface{}{"domain": "5gc"},
+		ConfidenceScore: 0.8,
+	}, nil
 }

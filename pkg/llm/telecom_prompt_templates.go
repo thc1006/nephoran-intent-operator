@@ -1,799 +1,763 @@
 package llm
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 )
 
-// TelecomPromptTemplate represents a reusable prompt template for telecom operations
-type TelecomPromptTemplate struct {
-	ID                string                      `json:"id"`
-	Name              string                      `json:"name"`
-	Description       string                      `json:"description"`
-	IntentType        string                      `json:"intent_type"`
-	BasePrompt        string                      `json:"base_prompt"`
-	SystemPrompt      string                      `json:"system_prompt"`
-	Examples          []TelecomExample            `json:"examples"`
-	RequiredContext   []string                    `json:"required_context"`
-	TokenEstimate     int                         `json:"token_estimate"`
-	Domain            string                      `json:"domain"`
-	Technology        []string                    `json:"technology"`
-	ComplianceStandards []string                  `json:"compliance_standards"`
-	Variables         map[string]PromptVariable   `json:"variables"`
-	ValidationRules   []ValidationRule            `json:"validation_rules"`
-	SuccessMetrics    []string                    `json:"success_metrics"`
+// TelecomPromptTemplates provides specialized prompts for telecom domain
+type TelecomPromptTemplates struct {
+	systemPrompts map[string]string
+	userPrompts   map[string]string
+	examples      map[string][]PromptExample
 }
 
-// TelecomExample represents an example for few-shot learning
-type TelecomExample struct {
-	Context      string                 `json:"context"`
-	Intent       string                 `json:"intent"`
-	Response     string                 `json:"response"`
-	Explanation  string                 `json:"explanation"`
-	Metadata     map[string]interface{} `json:"metadata"`
+// PromptExample represents an example for few-shot prompting
+type PromptExample struct {
+	Input       string
+	Output      string
+	Explanation string
 }
 
-// PromptVariable defines a variable that can be injected into the prompt
-type PromptVariable struct {
-	Name         string   `json:"name"`
-	Description  string   `json:"description"`
-	Type         string   `json:"type"`
-	Required     bool     `json:"required"`
-	DefaultValue string   `json:"default_value"`
-	Options      []string `json:"options"`
+// TelecomContext holds domain-specific context
+type TelecomContext struct {
+	NetworkFunctions []NetworkFunction
+	ActiveSlices     []NetworkSlice
+	E2Nodes          []E2Node
+	Alarms           []Alarm
+	PerformanceKPIs  map[string]float64
 }
 
-// ValidationRule defines validation for generated responses
-type ValidationRule struct {
-	Type        string                 `json:"type"`
-	Field       string                 `json:"field"`
-	Condition   string                 `json:"condition"`
-	Value       interface{}            `json:"value"`
-	ErrorMessage string                `json:"error_message"`
+// NetworkFunction represents a 5G Core network function
+type NetworkFunction struct {
+	Name     string `json:"name"`
+	Type     string `json:"type"` // AMF, SMF, UPF, etc.
+	Status   string `json:"status"`
+	Load     float64 `json:"load"`
+	Location string `json:"location"`
 }
 
-// TelecomPromptRegistry manages all telecom-specific prompts
-type TelecomPromptRegistry struct {
-	templates map[string]*TelecomPromptTemplate
-	domains   map[string][]*TelecomPromptTemplate
+// NetworkSlice represents a network slice configuration
+type NetworkSlice struct {
+	ID              string  `json:"id"`
+	Type            string  `json:"type"` // eMBB, URLLC, mMTC
+	Status          string  `json:"status"`
+	Throughput      float64 `json:"throughput"`
+	Latency         float64 `json:"latency"`
+	Reliability     float64 `json:"reliability"`
+	ConnectedUEs    int     `json:"connected_ues"`
 }
 
-// NewTelecomPromptRegistry creates a new registry with built-in telecom prompts
-func NewTelecomPromptRegistry() *TelecomPromptRegistry {
-	registry := &TelecomPromptRegistry{
-		templates: make(map[string]*TelecomPromptTemplate),
-		domains:   make(map[string][]*TelecomPromptTemplate),
+// E2Node represents an E2 interface node
+type E2Node struct {
+	ID       string `json:"id"`
+	Type     string `json:"type"` // gNB, ng-eNB
+	Status   string `json:"status"`
+	RRCState string `json:"rrc_state"`
+	CellID   string `json:"cell_id"`
+}
+
+// Alarm represents a network alarm
+type Alarm struct {
+	ID          string    `json:"id"`
+	Severity    string    `json:"severity"`
+	Source      string    `json:"source"`
+	Description string    `json:"description"`
+	Timestamp   time.Time `json:"timestamp"`
+}
+
+// NewTelecomPromptTemplates creates a new instance with pre-configured templates
+func NewTelecomPromptTemplates() *TelecomPromptTemplates {
+	templates := &TelecomPromptTemplates{
+		systemPrompts: make(map[string]string),
+		userPrompts:   make(map[string]string),
+		examples:      make(map[string][]PromptExample),
 	}
-	
-	registry.initializeBuiltInPrompts()
-	return registry
+
+	templates.initializeSystemPrompts()
+	templates.initializeUserPrompts()
+	templates.initializeExamples()
+
+	return templates
 }
 
-func (r *TelecomPromptRegistry) initializeBuiltInPrompts() {
-	// O-RAN Network Function Deployment Template
-	oranDeploymentTemplate := &TelecomPromptTemplate{
-		ID:          "oran-nf-deployment",
-		Name:        "O-RAN Network Function Deployment",
-		Description: "Template for deploying O-RAN compliant network functions",
-		IntentType:  "NetworkFunctionDeployment",
-		Domain:      "O-RAN",
-		Technology:  []string{"O-RAN", "5G", "Cloud-Native"},
-		ComplianceStandards: []string{"O-RAN.WG1", "O-RAN.WG2", "O-RAN.WG3", "O-RAN.WG4", "O-RAN.WG5"},
-		SystemPrompt: `You are an O-RAN architecture expert with comprehensive knowledge of:
+// initializeSystemPrompts sets up system prompts for different intent types
+func (t *TelecomPromptTemplates) initializeSystemPrompts() {
+	// O-RAN Network Intent System Prompt
+	t.systemPrompts["oran_network_intent"] = `You are an expert O-RAN (Open Radio Access Network) architect with deep knowledge of:
 
-## O-RAN Architecture Components:
-1. **Near-RT RIC (Near Real-Time RAN Intelligent Controller)**
-   - Hosts xApps for RAN optimization (10ms to 1s control loops)
-   - E2 interface for RAN control and telemetry
-   - A1 interface for policy guidance from Non-RT RIC
-   - Conflict mitigation between xApps
-   - R1 interface for rApp-xApp communication
+**O-RAN Architecture Components:**
+- Near-RT RIC (Real-time Intelligent Controller)
+- Non-RT RIC (Non-real-time RIC)
+- xApps (Applications running on Near-RT RIC)
+- rApps (Applications running on Non-RT RIC)
+- E2 Interface (between RAN nodes and Near-RT RIC)
+- A1 Interface (between Non-RT RIC and Near-RT RIC)
+- O1 Interface (management interface)
 
-2. **Non-RT RIC (Non Real-Time RIC)**
-   - Hosts rApps for RAN optimization (>1s control loops)
-   - A1 policy management for Near-RT RIC
-   - R1 interface for enrichment information
-   - O1 interface for FCAPS operations
-   - Integration with SMO (Service Management and Orchestration)
+**RAN Components:**
+- gNB (5G NodeB)
+- ng-eNB (Next Generation evolved NodeB)
+- CU (Central Unit) and DU (Distributed Unit)
+- RU (Radio Unit)
 
-3. **O-CU (O-RAN Central Unit)**
-   - Split into O-CU-CP (Control Plane) and O-CU-UP (User Plane)
-   - PDCP and RRC layer processing
-   - F1 interface to O-DU
-   - E1 interface between CU-CP and CU-UP
-   - X2/Xn interfaces for inter-node communication
+**5G Core Network Functions:**
+- AMF (Access and Mobility Management Function)
+- SMF (Session Management Function)
+- UPF (User Plane Function)
+- PCF (Policy Control Function)
+- UDM (Unified Data Management)
+- AUSF (Authentication Server Function)
+- NSSF (Network Slice Selection Function)
 
-4. **O-DU (O-RAN Distributed Unit)**
-   - RLC, MAC, and High-PHY processing
-   - Fronthaul interface to O-RU
-   - Real-time scheduling and resource allocation
-   - Support for multiple O-RUs
+**Network Slicing:**
+- eMBB (Enhanced Mobile Broadband): High throughput, moderate latency
+- URLLC (Ultra-Reliable Low Latency Communications): Ultra-low latency, high reliability
+- mMTC (Massive Machine Type Communications): High device density, low power
 
-5. **O-RU (O-RAN Radio Unit)**
-   - Low-PHY processing and RF functions
-   - Open Fronthaul interface (eCPRI/IEEE 1914.3)
-   - Beamforming capabilities
-   - Multiple antenna support
+Your role is to translate high-level network intents into specific O-RAN configurations that comply with:
+- 3GPP specifications (TS 38.xxx series)
+- O-RAN Alliance specifications
+- ETSI NFV standards
 
-## O-RAN Interfaces:
-- **A1**: Policy interface (Non-RT RIC → Near-RT RIC)
-- **E2**: Real-time control (Near-RT RIC → E2 nodes)
-- **O1**: Management plane (SMO → all O-RAN components)
-- **O2**: Cloud infrastructure interface (SMO → O-Cloud)
-- **Open Fronthaul**: Between O-DU and O-RU
-- **R1**: rApp-xApp interface for enrichment data
+Always provide technically accurate, standards-compliant configurations with proper parameter validation.`
 
-## Key Principles:
-1. Disaggregation and openness
-2. Intelligence and automation through RIC
-3. Cloud-native deployment
-4. Multi-vendor interoperability
-5. Standardized interfaces
+	// 5G Core Network Intent System Prompt
+	t.systemPrompts["5gc_network_intent"] = `You are a 5G Core Network specialist with expertise in:
 
-When generating configurations:
-- Ensure proper interface definitions
-- Include O1 configuration for management
-- Define A1 policies when applicable
-- Consider multi-vendor scenarios
-- Implement proper security measures
-- Follow O-RAN Alliance specifications`,
-		BasePrompt: `Generate a Kubernetes deployment configuration for the requested O-RAN network function.
+**Service-Based Architecture (SBA):**
+- Service registration and discovery
+- HTTP/2-based communication
+- OAuth 2.0 security framework
+- Service mesh integration
 
-Intent: {{intent}}
-Network State: {{network_state}}
-Compliance Requirements: {{compliance_requirements}}
+**Network Functions:**
+- AMF: Access and mobility management, registration, authentication
+- SMF: Session management, IP allocation, policy enforcement
+- UPF: User plane processing, packet forwarding, QoS enforcement
+- PCF: Policy control, charging rules, QoS policies
+- UDM: User data management, subscription data
+- AUSF: Authentication services, security anchoring
+- NSSF: Network slice selection, slice instance management
 
-Consider:
-1. O-RAN interface requirements
-2. Resource allocation based on function type
-3. High availability and scaling needs
-4. Security and isolation requirements
-5. Integration with existing O-RAN components`,
-		Examples: []TelecomExample{
-			{
-				Context: "Deploy Near-RT RIC",
-				Intent:  "Deploy a Near-RT RIC with xApp platform capabilities for traffic steering in a multi-vendor O-RAN environment",
-				Response: `{
-  "apiVersion": "apps/v1",
-  "kind": "Deployment",
-  "metadata": {
-    "name": "near-rt-ric",
-    "namespace": "oran-system",
-    "labels": {
-      "app": "near-rt-ric",
-      "oran.component": "ric",
-      "oran.type": "near-rt",
-      "oran.version": "g-release"
-    }
-  },
-  "spec": {
-    "replicas": 3,
-    "selector": {
-      "matchLabels": {
-        "app": "near-rt-ric"
-      }
-    },
-    "template": {
-      "metadata": {
-        "labels": {
-          "app": "near-rt-ric",
-          "oran.component": "ric"
-        }
-      },
-      "spec": {
-        "containers": [
-          {
-            "name": "near-rt-ric",
-            "image": "oran/near-rt-ric:g-release-v1.0",
-            "ports": [
-              {"containerPort": 8080, "name": "http", "protocol": "TCP"},
-              {"containerPort": 36421, "name": "e2ap", "protocol": "SCTP"},
-              {"containerPort": 9090, "name": "a1-rest", "protocol": "TCP"},
-              {"containerPort": 8888, "name": "r1-interface", "protocol": "TCP"}
-            ],
-            "env": [
-              {"name": "RIC_ID", "value": "ric-cluster-001"},
-              {"name": "E2_TERM_INIT", "value": "true"},
-              {"name": "XAPP_ONBOARDER_ENABLED", "value": "true"},
-              {"name": "CONFLICT_MITIGATION", "value": "enabled"},
-              {"name": "A1_POLICY_ENFORCEMENT", "value": "strict"}
-            ],
-            "resources": {
-              "requests": {"cpu": "2", "memory": "4Gi"},
-              "limits": {"cpu": "4", "memory": "8Gi"}
-            },
-            "volumeMounts": [
-              {"name": "ric-config", "mountPath": "/opt/ric/config"},
-              {"name": "xapp-registry", "mountPath": "/opt/ric/xapps"}
-            ]
-          }
-        ],
-        "volumes": [
-          {
-            "name": "ric-config",
-            "configMap": {"name": "near-rt-ric-config"}
-          },
-          {
-            "name": "xapp-registry",
-            "persistentVolumeClaim": {"claimName": "xapp-registry-pvc"}
-          }
-        ],
-        "affinity": {
-          "podAntiAffinity": {
-            "requiredDuringSchedulingIgnoredDuringExecution": [
-              {
-                "labelSelector": {
-                  "matchExpressions": [
-                    {
-                      "key": "app",
-                      "operator": "In",
-                      "values": ["near-rt-ric"]
-                    }
-                  ]
-                },
-                "topologyKey": "kubernetes.io/hostname"
-              }
-            ]
-          }
-        }
-      }
-    }
-  }
-}`,
-				Explanation: "Near-RT RIC deployment with high availability (3 replicas), xApp platform support, and proper O-RAN interfaces (E2, A1, R1). Includes conflict mitigation and policy enforcement capabilities.",
-				Metadata: map[string]interface{}{
-					"interfaces": []string{"E2", "A1", "R1"},
-					"ha_enabled": true,
-					"xapp_support": true,
-				},
-			},
-		},
-		Variables: map[string]PromptVariable{
-			"intent": {
-				Name:        "intent",
-				Description: "User's deployment intent",
-				Type:        "string",
-				Required:    true,
-			},
-			"network_state": {
-				Name:        "network_state",
-				Description: "Current network state and topology",
-				Type:        "object",
-				Required:    false,
-			},
-			"compliance_requirements": {
-				Name:        "compliance_requirements",
-				Description: "Specific O-RAN compliance requirements",
-				Type:        "array",
-				Required:    false,
-				Options:     []string{"O-RAN.WG1", "O-RAN.WG2", "O-RAN.WG3", "O-RAN.WG4", "O-RAN.WG5"},
-			},
-		},
-		ValidationRules: []ValidationRule{
-			{
-				Type:         "required",
-				Field:        "metadata.namespace",
-				Condition:    "exists",
-				ErrorMessage: "Namespace must be specified for O-RAN components",
-			},
-			{
-				Type:         "interface",
-				Field:        "spec.template.spec.containers[0].ports",
-				Condition:    "contains_oran_interfaces",
-				ErrorMessage: "O-RAN network function must expose required interfaces",
-			},
-		},
-		SuccessMetrics: []string{
-			"Valid Kubernetes manifest generated",
-			"O-RAN interfaces properly configured",
-			"Resource allocation appropriate for function type",
-			"High availability considered",
-			"Security policies applied",
-		},
-		TokenEstimate: 2500,
-	}
-	
-	// 5G Core Network Function Template
-	fivegCoreTemplate := &TelecomPromptTemplate{
-		ID:          "5g-core-nf",
-		Name:        "5G Core Network Function",
-		Description: "Template for deploying 5G Core network functions",
-		IntentType:  "NetworkFunctionDeployment",
-		Domain:      "5G-Core",
-		Technology:  []string{"5G", "3GPP", "SBA", "Cloud-Native"},
-		ComplianceStandards: []string{"3GPP-R15", "3GPP-R16", "3GPP-R17"},
-		SystemPrompt: `You are a 5G Core Network expert with deep knowledge of:
+**Protocols and Interfaces:**
+- N1: UE ↔ AMF (NAS signaling)
+- N2: gNB ↔ AMF (NGAP)
+- N3: gNB ↔ UPF (GTP-U)
+- N4: SMF ↔ UPF (PFCP)
+- N6: UPF ↔ Data Network
+- Namf, Nsmf, Npcf, etc. (Service-based interfaces)
 
-## 5G Core Architecture (Service Based Architecture - SBA):
-1. **Control Plane Functions:**
-   - AMF (Access and Mobility Management Function)
-   - SMF (Session Management Function)
-   - PCF (Policy Control Function)
-   - UDM (Unified Data Management)
-   - UDR (Unified Data Repository)
-   - AUSF (Authentication Server Function)
-   - NSSF (Network Slice Selection Function)
-   - NEF (Network Exposure Function)
-   - NRF (Network Repository Function)
-   - BSF (Binding Support Function)
-   - CHF (Charging Function)
+Generate configurations that ensure:
+- Proper service mesh integration
+- Scalable microservices architecture  
+- Security policy compliance
+- Performance optimization
+- Standards compliance (3GPP TS 23.501, TS 23.502)`
 
-2. **User Plane Function:**
-   - UPF (User Plane Function)
+	// Network Slicing Intent System Prompt
+	t.systemPrompts["network_slicing_intent"] = `You are a Network Slicing expert specializing in:
 
-## Service Based Interfaces (SBI):
-- RESTful APIs (HTTP/2 + JSON)
-- Service discovery via NRF
-- OAuth2.0 for authorization
-- TLS 1.2+ for security
+**Slice Types and Characteristics:**
+- eMBB: Throughput 100-1000 Mbps, Latency <100ms, Reliability 99.9%
+- URLLC: Throughput 1-10 Mbps, Latency <1ms, Reliability 99.999%
+- mMTC: Throughput <1 Mbps, Latency <1000ms, Device density 1M/km²
 
-## Reference Points:
-- N1: UE - AMF
-- N2: RAN - AMF
-- N3: RAN - UPF
-- N4: SMF - UPF
-- N6: UPF - DN
-- N9: UPF - UPF
-- N11: AMF - SMF
+**Slice Management:**
+- NSSAI (Network Slice Selection Assistance Information)
+- S-NSSAI (Single-NSSAI): SST (Slice/Service Type) + SD (Slice Differentiator)
+- NSI (Network Slice Instance) lifecycle management
+- NST (Network Slice Template) definitions
 
-## Network Slicing:
-- S-NSSAI (Single Network Slice Selection Assistance Information)
-- NSI (Network Slice Instance)
-- NSSI (Network Slice Subnet Instance)
+**Resource Orchestration:**
+- Compute, storage, and network resource allocation
+- VNF (Virtual Network Function) placement
+- CNF (Cloud-native Network Function) orchestration
+- Multi-tenancy and isolation requirements
 
-## Key Concepts:
-- PDU Sessions
-- QoS Flows (5QI)
-- Registration and Connection Management
-- Session Management
-- Policy Control
-- Charging and Billing`,
-		BasePrompt: `Generate a cloud-native deployment for the requested 5G Core network function.
+**QoS Framework:**
+- 5QI (5G QoS Identifier) mapping
+- GBR (Guaranteed Bit Rate) and Non-GBR flows
+- Packet delay budget and error rates
+- Priority handling and preemption
 
-Intent: {{intent}}
-Slice Requirements: {{slice_requirements}}
-QoS Parameters: {{qos_parameters}}
+Create slice configurations that optimize:
+- Resource utilization efficiency
+- SLA compliance and monitoring
+- Inter-slice isolation
+- Dynamic scaling capabilities`
 
-Ensure:
-1. 3GPP compliance
-2. Service mesh integration readiness
-3. Proper SBI exposure
-4. Database/storage requirements
-5. Redundancy and scaling`,
-		Examples: []TelecomExample{
-			{
-				Context: "Deploy SMF for URLLC slice",
-				Intent:  "Deploy SMF with support for URLLC network slice with <1ms latency requirement",
-				Response: `{
-  "apiVersion": "apps/v1",
-  "kind": "StatefulSet",
-  "metadata": {
-    "name": "smf-urllc",
-    "namespace": "5gc",
-    "labels": {
-      "nf.5gc.3gpp.org/type": "smf",
-      "nf.5gc.3gpp.org/slice": "urllc"
-    }
-  },
-  "spec": {
-    "serviceName": "smf-urllc",
-    "replicas": 3,
-    "selector": {
-      "matchLabels": {
-        "app": "smf-urllc"
-      }
-    },
-    "template": {
-      "metadata": {
-        "labels": {
-          "app": "smf-urllc",
-          "nf.5gc.3gpp.org/type": "smf"
-        },
-        "annotations": {
-          "sidecar.istio.io/inject": "true"
-        }
-      },
-      "spec": {
-        "containers": [
-          {
-            "name": "smf",
-            "image": "5gc/smf:r17-v2.0-urllc",
-            "ports": [
-              {"containerPort": 8080, "name": "sbi", "protocol": "TCP"},
-              {"containerPort": 8805, "name": "n4", "protocol": "UDP"},
-              {"containerPort": 2123, "name": "gtpc", "protocol": "UDP"}
-            ],
-            "env": [
-              {"name": "SMF_INSTANCE_ID", "valueFrom": {"fieldRef": {"fieldPath": "metadata.name"}}},
-              {"name": "SLICE_TYPE", "value": "URLLC"},
-              {"name": "LATENCY_TARGET", "value": "1ms"},
-              {"name": "NRF_URI", "value": "https://nrf.5gc.svc.cluster.local:8080"},
-              {"name": "PFCP_HEARTBEAT_INTERVAL", "value": "5s"},
-              {"name": "SESSION_ESTABLISHMENT_TIMEOUT", "value": "500ms"}
-            ],
-            "resources": {
-              "requests": {"cpu": "1", "memory": "1Gi"},
-              "limits": {"cpu": "2", "memory": "2Gi"}
-            },
-            "livenessProbe": {
-              "httpGet": {
-                "path": "/nsmf-pdusession/v1/health",
-                "port": 8080,
-                "scheme": "HTTPS"
-              },
-              "initialDelaySeconds": 30,
-              "periodSeconds": 10
-            },
-            "readinessProbe": {
-              "httpGet": {
-                "path": "/nsmf-pdusession/v1/ready",
-                "port": 8080,
-                "scheme": "HTTPS"
-              },
-              "initialDelaySeconds": 20,
-              "periodSeconds": 5
-            }
-          }
-        ],
-        "affinity": {
-          "podAntiAffinity": {
-            "preferredDuringSchedulingIgnoredDuringExecution": [
-              {
-                "weight": 100,
-                "podAffinityTerm": {
-                  "labelSelector": {
-                    "matchExpressions": [
-                      {
-                        "key": "app",
-                        "operator": "In",
-                        "values": ["smf-urllc"]
-                      }
-                    ]
-                  },
-                  "topologyKey": "topology.kubernetes.io/zone"
-                }
-              }
-            ]
-          }
-        }
-      }
-    },
-    "volumeClaimTemplates": [
-      {
-        "metadata": {
-          "name": "smf-data"
-        },
-        "spec": {
-          "accessModes": ["ReadWriteOnce"],
-          "storageClassName": "fast-ssd",
-          "resources": {
-            "requests": {
-              "storage": "10Gi"
-            }
-          }
-        }
-      }
-    ]
-  }
-}`,
-				Explanation: "SMF deployment optimized for URLLC with low latency configuration, fast storage, and proper 5G SBI integration",
-				Metadata: map[string]interface{}{
-					"slice_type": "URLLC",
-					"latency_optimized": true,
-					"sbi_enabled": true,
-				},
-			},
-		},
-		TokenEstimate: 2000,
-	}
-	
-	// Network Slice Configuration Template
-	networkSliceTemplate := &TelecomPromptTemplate{
-		ID:          "network-slice-config",
-		Name:        "Network Slice Configuration",
-		Description: "Template for configuring 5G network slices",
-		IntentType:  "NetworkSliceConfiguration",
-		Domain:      "5G-Slicing",
-		Technology:  []string{"5G", "Network-Slicing", "SDN", "NFV"},
-		ComplianceStandards: []string{"3GPP-TS-28.530", "3GPP-TS-28.531", "GSMA-NG.116"},
-		SystemPrompt: `You are a 5G Network Slicing expert with comprehensive knowledge of:
+	// RAN Optimization Intent System Prompt
+	t.systemPrompts["ran_optimization_intent"] = `You are a RAN optimization specialist with expertise in:
 
-## Network Slice Types (SST - Slice/Service Type):
-1. **eMBB (Enhanced Mobile Broadband) - SST=1**
-   - High data rates (>100 Mbps)
-   - High capacity
-   - Moderate latency (10-20ms)
-   - Use cases: 4K/8K video, AR/VR, cloud gaming
+**Coverage Optimization:**
+- Cell planning and site selection
+- Antenna tilt and azimuth optimization
+- Power control algorithms (OLPC, CLPC)
+- Handover parameter tuning
+- Inter-RAT mobility optimization
 
-2. **URLLC (Ultra-Reliable Low Latency Communications) - SST=2**
-   - Ultra-low latency (<1ms air interface, <5ms E2E)
-   - High reliability (99.999%)
-   - Moderate data rates
-   - Use cases: Industrial automation, remote surgery, autonomous vehicles
+**Capacity Management:**
+- Load balancing across cells
+- Carrier aggregation configuration
+- MIMO configuration optimization
+- Resource block scheduling
+- Admission control policies
 
-3. **mMTC (Massive Machine Type Communications) - SST=3**
-   - Massive device density (1M devices/km²)
-   - Low power consumption
-   - Small data packets
-   - Use cases: Smart cities, agriculture, asset tracking
+**Quality Optimization:**
+- KPI monitoring and thresholds:
+  - RSRP (Reference Signal Received Power)
+  - RSRQ (Reference Signal Received Quality)
+  - SINR (Signal-to-Interference-plus-Noise Ratio)
+  - Block Error Rate (BLER)
+  - Throughput and latency metrics
 
-4. **V2X (Vehicle-to-Everything) - SST=4**
-   - Low latency (<20ms)
-   - High mobility support
-   - High reliability
-   - Use cases: Connected vehicles, traffic management
+**Self-Organizing Networks (SON):**
+- Self-configuration of new base stations
+- Self-optimization of parameters
+- Self-healing for fault recovery
+- Automatic neighbor relation (ANR)
 
-## Slice Differentiator (SD):
-- 3-byte value for differentiating slices of same SST
-- Operator-defined based on business needs
+**ML/AI Integration:**
+- Traffic prediction models
+- Anomaly detection algorithms
+- Predictive maintenance
+- Intelligent resource allocation
 
-## S-NSSAI (Single Network Slice Selection Assistance Information):
-- Combination of SST and SD
-- Identifies a network slice
+Generate optimization strategies that:
+- Improve network KPIs systematically
+- Minimize interference and maximize throughput
+- Ensure seamless mobility experience
+- Comply with regulatory requirements`
+}
 
-## Key Slice Parameters:
-- Resource allocation (RAN, Transport, Core)
-- QoS profiles (5QI values)
-- Isolation level (physical, logical, no isolation)
-- Security policies
-- Charging rules
-- Service area
-- Maximum number of UEs
-- Maximum number of PDU sessions`,
-		BasePrompt: `Create a network slice configuration based on the requirements.
+// initializeUserPrompts sets up user prompt templates
+func (t *TelecomPromptTemplates) initializeUserPrompts() {
+	t.userPrompts["network_intent_processing"] = `Process the following network intent and generate appropriate configurations:
 
-Intent: {{intent}}
-Slice Type: {{slice_type}}
-Performance Requirements: {{performance_requirements}}
-Capacity Requirements: {{capacity_requirements}}
+**Intent:** {{.Intent}}
+
+**Current Network State:**
+{{range .NetworkFunctions}}
+- {{.Name}} ({{.Type}}): Status={{.Status}}, Load={{.Load}}%, Location={{.Location}}
+{{end}}
+
+**Active Network Slices:**
+{{range .ActiveSlices}}
+- Slice {{.ID}} ({{.Type}}): Throughput={{.Throughput}}Mbps, Latency={{.Latency}}ms, UEs={{.ConnectedUEs}}
+{{end}}
+
+**E2 Nodes:**
+{{range .E2Nodes}}
+- {{.ID}} ({{.Type}}): Status={{.Status}}, Cell={{.CellID}}
+{{end}}
+
+**Current Alarms:**
+{{range .Alarms}}
+- [{{.Severity}}] {{.Source}}: {{.Description}}
+{{end}}
+
+**Performance KPIs:**
+{{range $kpi, $value := .PerformanceKPIs}}
+- {{$kpi}}: {{$value}}
+{{end}}
+
+Please provide:
+1. **Configuration Changes:** Specific parameter modifications needed
+2. **Implementation Steps:** Ordered sequence of actions
+3. **Validation Criteria:** How to verify successful implementation
+4. **Risk Assessment:** Potential impacts and mitigation strategies
+5. **Rollback Plan:** Steps to revert if issues occur
+
+Format your response as valid YAML configuration files with detailed comments explaining each parameter choice.`
+
+	t.userPrompts["slice_configuration"] = `Configure a network slice with the following requirements:
+
+**Slice Requirements:**
+- Type: {{.SliceType}}
+- Service Level Agreement:
+  - Throughput: {{.RequiredThroughput}}
+  - Latency: {{.MaxLatency}}
+  - Reliability: {{.MinReliability}}
+  - Coverage Area: {{.CoverageArea}}
+  - Expected UEs: {{.ExpectedUEs}}
+
+**Resource Constraints:**
+- Available Compute: {{.AvailableCompute}}
+- Available Bandwidth: {{.AvailableBandwidth}}
+- Network Functions: {{.AvailableFunctions}}
 
 Generate:
-1. Slice profile with S-NSSAI
-2. QoS configuration
-3. Resource allocation
-4. Isolation policies
-5. Monitoring configuration`,
-		TokenEstimate: 1800,
-	}
-	
-	// RAN Optimization Template
-	ranOptimizationTemplate := &TelecomPromptTemplate{
-		ID:          "ran-optimization",
-		Name:        "RAN Optimization Configuration",
-		Description: "Template for RAN optimization and parameter tuning",
-		IntentType:  "RANOptimization",
-		Domain:      "RAN",
-		Technology:  []string{"5G-NR", "4G-LTE", "O-RAN", "SON"},
-		ComplianceStandards: []string{"3GPP-TS-38.300", "O-RAN.WG1", "O-RAN.WG2"},
-		SystemPrompt: `You are a RAN optimization expert with knowledge of:
+1. **Slice Template (NST):** Complete slice definition
+2. **Resource Allocation:** Compute, network, and storage requirements
+3. **VNF/CNF Placement:** Optimal placement strategy
+4. **QoS Configuration:** 5QI mappings and flow configurations
+5. **Monitoring Setup:** KPI definitions and thresholds
+6. **Scaling Policies:** Auto-scaling rules and triggers
 
-## RAN Technologies:
-1. **5G NR (New Radio)**
-   - Frequency ranges: FR1 (sub-6GHz), FR2 (mmWave)
-   - Numerologies (SCS: 15, 30, 60, 120, 240 kHz)
-   - Massive MIMO and beamforming
-   - Dynamic spectrum sharing
-   - Carrier aggregation
+Ensure compliance with 3GPP TS 23.501 and O-RAN specifications.`
 
-2. **4G LTE**
-   - LTE-Advanced features
-   - Carrier aggregation
-   - CoMP (Coordinated Multi-Point)
-   - eICIC (enhanced Inter-Cell Interference Coordination)
+	t.userPrompts["ran_optimization"] = `Optimize RAN performance for the following scenario:
 
-## Optimization Areas:
-1. **Coverage Optimization**
-   - Cell radius adjustment
-   - Antenna tilt optimization
-   - Power control
-   - Handover parameters
+**Optimization Objective:** {{.Objective}}
 
-2. **Capacity Optimization**
-   - Resource block allocation
-   - Scheduler configuration
-   - MIMO configuration
-   - Carrier management
+**Current Performance:**
+{{range $kpi, $value := .CurrentKPIs}}
+- {{$kpi}}: {{$value}}
+{{end}}
 
-3. **Quality Optimization**
-   - Interference management
-   - Mobility robustness
-   - VoLTE quality
-   - Latency reduction
+**Target Performance:**
+{{range $kpi, $value := .TargetKPIs}}
+- {{$kpi}}: {{$value}}
+{{end}}
 
-## Key Performance Indicators (KPIs):
-- RSRP/RSRQ/SINR
-- Throughput (DL/UL)
-- Latency
-- Handover success rate
-- Call drop rate
-- RRC connection success rate
-- E-RAB setup success rate`,
-		BasePrompt: `Generate RAN optimization configuration for the scenario.
+**Network Topology:**
+{{range .Sites}}
+- Site {{.ID}}: Location={{.Location}}, Sectors={{.Sectors}}, Technology={{.Technology}}
+{{end}}
 
-Intent: {{intent}}
-Network Type: {{network_type}}
-Optimization Goal: {{optimization_goal}}
-Current KPIs: {{current_kpis}}
+**Constraints:**
+- Budget: {{.Budget}}
+- Timeline: {{.Timeline}}
+- Regulatory Limits: {{.RegulatoryLimits}}
 
 Provide:
-1. Parameter adjustments
-2. Expected improvements
-3. Implementation steps
-4. Monitoring plan
-5. Rollback procedures`,
-		TokenEstimate: 1600,
-	}
-	
-	// Register all templates
-	r.RegisterTemplate(oranDeploymentTemplate)
-	r.RegisterTemplate(fivegCoreTemplate)
-	r.RegisterTemplate(networkSliceTemplate)
-	r.RegisterTemplate(ranOptimizationTemplate)
+1. **Parameter Optimization:** Specific parameter changes with justification
+2. **Algorithm Selection:** Recommended optimization algorithms
+3. **Implementation Timeline:** Phased rollout plan
+4. **Performance Monitoring:** KPI tracking and alerting
+5. **Validation Tests:** Test procedures to verify improvements
+6. **Rollback Procedures:** Emergency reversion steps
+
+Include detailed explanations of the technical rationale for each recommendation.`
 }
 
-// RegisterTemplate registers a new prompt template
-func (r *TelecomPromptRegistry) RegisterTemplate(template *TelecomPromptTemplate) error {
-	if template == nil || template.ID == "" {
-		return fmt.Errorf("invalid template: missing ID")
+// initializeExamples sets up few-shot learning examples
+func (t *TelecomPromptTemplates) initializeExamples() {
+	// O-RAN Network Intent Examples
+	t.examples["oran_network_intent"] = []PromptExample{
+		{
+			Input: "Deploy Near-RT RIC with traffic steering xApp for 5G network optimization",
+			Output: `apiVersion: o-ran.org/v1
+kind: NearRTRIC
+metadata:
+  name: traffic-steering-ric
+  namespace: o-ran
+spec:
+  platform:
+    version: "3.0"
+    resources:
+      cpu: "4"
+      memory: "8Gi"
+      storage: "100Gi"
+  e2Interface:
+    version: "2.0"
+    endpoints:
+      - name: e2term
+        port: 38000
+        protocol: "SCTP"
+  xApps:
+    - name: traffic-steering-xapp
+      version: "1.2.0"
+      image: "oran/traffic-steering:v1.2.0"
+      replicas: 2
+      resources:
+        requests:
+          cpu: "500m"
+          memory: "1Gi"
+        limits:
+          cpu: "1"
+          memory: "2Gi"
+      config:
+        steering_algorithm: "proportional_fair"
+        update_interval: "100ms"
+        kpi_collection_interval: "1s"
+        optimization_window: "10s"
+  a1Interface:
+    enabled: true
+    policy_types:
+      - type_id: 20000
+        name: "traffic_steering_policy"
+        schema: |
+          {
+            "type": "object",
+            "properties": {
+              "cell_list": {"type": "array"},
+              "ue_list": {"type": "array"},
+              "steering_weights": {"type": "array"}
+            }
+          }`,
+			Explanation: "This configuration deploys a Near-RT RIC with traffic steering capabilities, including proper E2 and A1 interface configurations, resource allocation, and xApp deployment with traffic steering algorithms.",
+		},
+		{
+			Input: "Configure E2 interface between gNB and Near-RT RIC for performance monitoring",
+			Output: `apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: e2-interface-config
+  namespace: o-ran
+data:
+  e2ap.conf: |
+    e2ap:
+      version: "2.0"
+      ran_functions:
+        - function_id: 1
+          function_definition: |
+            {
+              "ranFunctionName": "KPM",
+              "ranFunctionDescription": "KPI Monitoring Function",
+              "ranFunctionRevision": 1,
+              "oid": "1.3.6.1.4.1.53148.1.1.2.2"
+            }
+          service_models:
+            - name: "KPM-SM"
+              version: "2.0"
+              oid: "1.3.6.1.4.1.53148.1.1.2.2"
+      subscriptions:
+        - reporting_period: 1000  # 1 second
+          kpi_list:
+            - "DRB.PdcpSduBitrateDl"
+            - "DRB.PdcpSduBitrateUl"
+            - "RRU.PrbTotDl"
+            - "RRU.PrbTotUl"
+            - "QosFlow.PdcpPduVolumeDl_Filter.QCI"
+      security:
+        enabled: true
+        certificates:
+          ca_cert: "/etc/certs/ca.crt"
+          client_cert: "/etc/certs/client.crt"
+          client_key: "/etc/certs/client.key"`,
+			Explanation: "E2 interface configuration enabling KPI monitoring with standard performance measurements, proper service model registration, and security certificates.",
+		},
 	}
-	
-	r.templates[template.ID] = template
-	
-	// Index by domain
-	if template.Domain != "" {
-		r.domains[template.Domain] = append(r.domains[template.Domain], template)
+
+	// 5G Core Network Intent Examples
+	t.examples["5gc_network_intent"] = []PromptExample{
+		{
+			Input: "Deploy 5G Core with network slicing support for eMBB and URLLC services",
+			Output: `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: amf-deployment
+  namespace: 5gc
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: amf
+  template:
+    metadata:
+      labels:
+        app: amf
+    spec:
+      containers:
+      - name: amf
+        image: 5gc/amf:v1.5.0
+        ports:
+        - containerPort: 8080
+        - containerPort: 38412  # N2 interface
+        env:
+        - name: AMF_CONFIG
+          value: |
+            amf:
+              sbi:
+                scheme: https
+                register_ipv4: amf.5gc.svc.cluster.local
+                bind_ipv4: 0.0.0.0
+                port: 8080
+              ngap:
+                addr: 0.0.0.0
+                port: 38412
+              metrics:
+                addr: 0.0.0.0
+                port: 9090
+              nssai:
+                - sst: 1  # eMBB
+                  sd: "0x000001"
+                - sst: 2  # URLLC  
+                  sd: "0x000002"
+              plmn_support:
+                - plmn_id:
+                    mcc: "001"
+                    mnc: "01"
+                  s_nssai:
+                    - sst: 1
+                      sd: "0x000001"
+                    - sst: 2
+                      sd: "0x000002"
+              security:
+                integrity_order: [NIA2, NIA1, NIA0]
+                ciphering_order: [NEA2, NEA1, NEA0]`,
+			Explanation: "AMF deployment with network slicing support for both eMBB and URLLC slice types, including proper NSSAI configuration and security parameters.",
+		},
 	}
-	
-	return nil
+
+	// Network Slicing Examples
+	t.examples["network_slicing_intent"] = []PromptExample{
+		{
+			Input: "Create URLLC slice for industrial automation with 1ms latency requirement",
+			Output: `apiVersion: slice.nephoran.io/v1
+kind: NetworkSlice
+metadata:
+  name: urllc-industrial-slice
+  namespace: slicing
+spec:
+  sliceProfile:
+    sst: 2  # URLLC
+    sd: "0x000010"
+    dnn: "industrial.urllc"
+  serviceRequirements:
+    latency: 1000  # microseconds
+    reliability: 99.999
+    throughput:
+      guaranteed: 10  # Mbps
+      maximum: 50
+    coverage:
+      area_type: "industrial_zone"
+      mobility: "stationary"
+  resourceAllocation:
+    compute:
+      upf_instances: 2
+      cpu_cores: 8
+      memory_gb: 16
+    network:
+      dedicated_bandwidth: 100  # MHz
+      priority: 1  # highest priority
+      preemption_capability: true
+  qosProfile:
+    5qi: 82  # Industrial automation
+    priority: 15
+    packet_delay_budget: 1  # ms
+    packet_error_rate: 1e-6
+  nfDeployment:
+    upf:
+      placement: "edge"
+      replicas: 2
+      resources:
+        cpu: "4"
+        memory: "8Gi"
+      config:
+        buffer_size: "minimal"
+        processing_priority: "realtime"
+    smf:
+      placement: "regional"
+      replicas: 1
+      resources:
+        cpu: "2" 
+        memory: "4Gi"`,
+			Explanation: "URLLC slice configuration optimized for industrial automation with ultra-low latency, high reliability, and edge UPF placement for minimal processing delay.",
+		},
+	}
+
+	// RAN Optimization Examples  
+	t.examples["ran_optimization_intent"] = []PromptExample{
+		{
+			Input: "Optimize handover parameters to reduce call drops in high mobility scenario",
+			Output: `apiVersion: ran.nephoran.io/v1
+kind: HandoverOptimization
+metadata:
+  name: mobility-optimization
+  namespace: ran
+spec:
+  targetScenario: "high_mobility"
+  optimizationObjective:
+    primary: "minimize_call_drops"
+    secondary: "minimize_handover_delay"
+  cellParameters:
+    - parameter: "a3Offset"
+      current_value: 3  # dB
+      optimized_value: 2  # dB  
+      rationale: "Reduce offset to trigger handover earlier in high mobility"
+    - parameter: "hysteresis"
+      current_value: 2  # dB
+      optimized_value: 1  # dB
+      rationale: "Lower hysteresis for faster handover decisions"
+    - parameter: "timeToTrigger"
+      current_value: 320  # ms
+      optimized_value: 160  # ms
+      rationale: "Shorter TTT for high mobility scenarios"
+  measurementConfiguration:
+    a1Threshold: -110  # dBm
+    a2Threshold: -115  # dBm
+    a3Offset: 2        # dB (optimized)
+    a5Threshold1: -110 # dBm
+    a5Threshold2: -105 # dBm
+  algorithmParameters:
+    velocityThreshold: 60  # km/h
+    rsrpMargin: 3         # dB
+    loadBalancingWeight: 0.3
+  validationKPIs:
+    handover_success_rate: ">95%"
+    call_drop_rate: "<1%"
+    handover_latency: "<50ms"
+  rollbackTriggers:
+    call_drop_rate_increase: ">20%"
+    handover_ping_pong_rate: ">5%"`,
+			Explanation: "Handover optimization configuration for high mobility scenarios with adjusted measurement parameters, reduced thresholds for faster decisions, and clear validation criteria.",
+		},
+	}
 }
 
-// GetTemplate retrieves a template by ID
-func (r *TelecomPromptRegistry) GetTemplate(id string) (*TelecomPromptTemplate, error) {
-	template, exists := r.templates[id]
-	if !exists {
-		return nil, fmt.Errorf("template not found: %s", id)
+// GetSystemPrompt returns the system prompt for a given intent type
+func (t *TelecomPromptTemplates) GetSystemPrompt(intentType string) string {
+	if prompt, exists := t.systemPrompts[intentType]; exists {
+		return prompt
 	}
-	return template, nil
+	return t.systemPrompts["oran_network_intent"] // default
 }
 
-// GetTemplatesByDomain retrieves all templates for a domain
-func (r *TelecomPromptRegistry) GetTemplatesByDomain(domain string) []*TelecomPromptTemplate {
-	return r.domains[domain]
+// GetUserPrompt returns the user prompt template for a given intent type
+func (t *TelecomPromptTemplates) GetUserPrompt(intentType string) string {
+	if prompt, exists := t.userPrompts[intentType]; exists {
+		return prompt
+	}
+	return t.userPrompts["network_intent_processing"] // default
 }
 
-// GetTemplatesByIntent retrieves templates matching an intent type
-func (r *TelecomPromptRegistry) GetTemplatesByIntent(intentType string) []*TelecomPromptTemplate {
-	var matches []*TelecomPromptTemplate
-	for _, template := range r.templates {
-		if template.IntentType == intentType {
-			matches = append(matches, template)
-		}
+// GetExamples returns examples for few-shot prompting
+func (t *TelecomPromptTemplates) GetExamples(intentType string) []PromptExample {
+	if examples, exists := t.examples[intentType]; exists {
+		return examples
 	}
-	return matches
+	return []PromptExample{} // empty if not found
 }
 
-// BuildPrompt builds a complete prompt from a template with variables
-func (r *TelecomPromptRegistry) BuildPrompt(templateID string, variables map[string]interface{}) (string, error) {
-	template, err := r.GetTemplate(templateID)
-	if err != nil {
-		return "", err
-	}
-	
-	// Validate required variables
-	for varName, varDef := range template.Variables {
-		if varDef.Required {
-			if _, exists := variables[varName]; !exists {
-				return "", fmt.Errorf("required variable missing: %s", varName)
-			}
-		}
-	}
-	
-	// Build the prompt
-	prompt := template.SystemPrompt + "\n\n" + template.BasePrompt
-	
-	// Replace variables
-	for varName, value := range variables {
-		placeholder := fmt.Sprintf("{{%s}}", varName)
-		var replacement string
-		
-		switch v := value.(type) {
-		case string:
-			replacement = v
-		case []string:
-			replacement = strings.Join(v, ", ")
-		default:
-			jsonBytes, _ := json.Marshal(v)
-			replacement = string(jsonBytes)
-		}
-		
-		prompt = strings.ReplaceAll(prompt, placeholder, replacement)
-	}
-	
-	// Add examples if token budget allows
-	if template.Examples != nil && len(template.Examples) > 0 {
-		prompt += "\n\n## Examples:\n"
-		for i, example := range template.Examples {
-			if i >= 2 { // Limit examples to control token usage
-				break
-			}
-			prompt += fmt.Sprintf("\n### Example %d:\n", i+1)
-			prompt += fmt.Sprintf("Context: %s\n", example.Context)
-			prompt += fmt.Sprintf("Intent: %s\n", example.Intent)
-			prompt += fmt.Sprintf("Response:\n%s\n", example.Response)
+// BuildPrompt constructs a complete prompt with system message, examples, and user input
+func (t *TelecomPromptTemplates) BuildPrompt(intentType string, context TelecomContext, userIntent string) string {
+	var builder strings.Builder
+
+	// Add system prompt
+	systemPrompt := t.GetSystemPrompt(intentType)
+	builder.WriteString("## System Instructions\n")
+	builder.WriteString(systemPrompt)
+	builder.WriteString("\n\n")
+
+	// Add examples for few-shot learning
+	examples := t.GetExamples(intentType)
+	if len(examples) > 0 {
+		builder.WriteString("## Examples\n\n")
+		for i, example := range examples {
+			builder.WriteString(fmt.Sprintf("### Example %d\n", i+1))
+			builder.WriteString(fmt.Sprintf("**Input:** %s\n\n", example.Input))
+			builder.WriteString(fmt.Sprintf("**Output:**\n```yaml\n%s\n```\n\n", example.Output))
 			if example.Explanation != "" {
-				prompt += fmt.Sprintf("Explanation: %s\n", example.Explanation)
+				builder.WriteString(fmt.Sprintf("**Explanation:** %s\n\n", example.Explanation))
 			}
 		}
 	}
-	
-	return prompt, nil
+
+	// Add current context
+	builder.WriteString("## Current Network Context\n\n")
+	builder.WriteString(t.formatContext(context))
+	builder.WriteString("\n")
+
+	// Add user intent
+	builder.WriteString("## User Intent\n")
+	builder.WriteString(userIntent)
+	builder.WriteString("\n\n")
+
+	// Add response format instructions
+	builder.WriteString("## Response Requirements\n")
+	builder.WriteString("Please provide your response in valid YAML format with:\n")
+	builder.WriteString("1. Detailed configuration parameters\n")
+	builder.WriteString("2. Explanatory comments for each major section\n")
+	builder.WriteString("3. Compliance references to relevant standards\n")
+	builder.WriteString("4. Risk assessment and mitigation strategies\n")
+	builder.WriteString("5. Validation and testing recommendations\n")
+
+	return builder.String()
 }
 
-// ValidateResponse validates a response against template rules
-func (r *TelecomPromptRegistry) ValidateResponse(templateID string, response interface{}) (bool, []string) {
-	template, err := r.GetTemplate(templateID)
-	if err != nil {
-		return false, []string{err.Error()}
+// formatContext formats the telecom context into a readable string
+func (t *TelecomPromptTemplates) formatContext(context TelecomContext) string {
+	var builder strings.Builder
+
+	// Network Functions
+	if len(context.NetworkFunctions) > 0 {
+		builder.WriteString("**Network Functions:**\n")
+		for _, nf := range context.NetworkFunctions {
+			builder.WriteString(fmt.Sprintf("- %s (%s): Status=%s, Load=%.1f%%, Location=%s\n",
+				nf.Name, nf.Type, nf.Status, nf.Load, nf.Location))
+		}
+		builder.WriteString("\n")
 	}
-	
-	var errors []string
-	
-	// Apply validation rules
-	for _, rule := range template.ValidationRules {
-		// This is a simplified validation - in production, you'd implement
-		// more sophisticated validation logic
-		switch rule.Type {
-		case "required":
-			// Check if required field exists
-			// Implementation would depend on response structure
-		case "interface":
-			// Validate O-RAN interfaces
-			// Implementation would check for specific ports/protocols
+
+	// Active Slices
+	if len(context.ActiveSlices) > 0 {
+		builder.WriteString("**Active Network Slices:**\n")
+		for _, slice := range context.ActiveSlices {
+			builder.WriteString(fmt.Sprintf("- Slice %s (%s): Throughput=%.1fMbps, Latency=%.1fms, Reliability=%.3f%%, UEs=%d\n",
+				slice.ID, slice.Type, slice.Throughput, slice.Latency, slice.Reliability, slice.ConnectedUEs))
+		}
+		builder.WriteString("\n")
+	}
+
+	// E2 Nodes
+	if len(context.E2Nodes) > 0 {
+		builder.WriteString("**E2 Nodes:**\n")
+		for _, node := range context.E2Nodes {
+			builder.WriteString(fmt.Sprintf("- %s (%s): Status=%s, RRC=%s, Cell=%s\n",
+				node.ID, node.Type, node.Status, node.RRCState, node.CellID))
+		}
+		builder.WriteString("\n")
+	}
+
+	// Alarms
+	if len(context.Alarms) > 0 {
+		builder.WriteString("**Active Alarms:**\n")
+		for _, alarm := range context.Alarms {
+			builder.WriteString(fmt.Sprintf("- [%s] %s: %s (%s)\n",
+				alarm.Severity, alarm.Source, alarm.Description, alarm.Timestamp.Format("2006-01-02 15:04:05")))
+		}
+		builder.WriteString("\n")
+	}
+
+	// Performance KPIs
+	if len(context.PerformanceKPIs) > 0 {
+		builder.WriteString("**Performance KPIs:**\n")
+		for kpi, value := range context.PerformanceKPIs {
+			builder.WriteString(fmt.Sprintf("- %s: %.3f\n", kpi, value))
+		}
+		builder.WriteString("\n")
+	}
+
+	return builder.String()
+}
+
+// ValidatePrompt validates a prompt for telecom domain compliance
+func (t *TelecomPromptTemplates) ValidatePrompt(prompt string) []string {
+	var issues []string
+
+	// Check for required telecom keywords
+	requiredKeywords := []string{"network", "configuration", "interface"}
+	for _, keyword := range requiredKeywords {
+		if !strings.Contains(strings.ToLower(prompt), keyword) {
+			issues = append(issues, fmt.Sprintf("Missing required keyword: %s", keyword))
 		}
 	}
-	
-	return len(errors) == 0, errors
-}
 
-// EstimateTokenUsage estimates the token usage for a template
-func (r *TelecomPromptRegistry) EstimateTokenUsage(templateID string, includeExamples bool) (int, error) {
-	template, err := r.GetTemplate(templateID)
-	if err != nil {
-		return 0, err
+	// Check prompt length
+	if len(prompt) < 100 {
+		issues = append(issues, "Prompt too short for complex telecom intent")
 	}
-	
-	baseEstimate := template.TokenEstimate
-	
-	if includeExamples && len(template.Examples) > 0 {
-		// Add roughly 500 tokens per example
-		baseEstimate += len(template.Examples) * 500
-	}
-	
-	return baseEstimate, nil
-}
 
-// GetAllTemplates returns all registered templates
-func (r *TelecomPromptRegistry) GetAllTemplates() map[string]*TelecomPromptTemplate {
-	return r.templates
-}
-
-// ExportTemplate exports a template to JSON
-func (r *TelecomPromptRegistry) ExportTemplate(templateID string) ([]byte, error) {
-	template, err := r.GetTemplate(templateID)
-	if err != nil {
-		return nil, err
+	if len(prompt) > 10000 {
+		issues = append(issues, "Prompt too long, may exceed token limits")
 	}
-	
-	return json.MarshalIndent(template, "", "  ")
-}
 
-// ImportTemplate imports a template from JSON
-func (r *TelecomPromptRegistry) ImportTemplate(data []byte) error {
-	var template TelecomPromptTemplate
-	if err := json.Unmarshal(data, &template); err != nil {
-		return fmt.Errorf("failed to unmarshal template: %w", err)
+	// Check for standards references
+	standards := []string{"3gpp", "o-ran", "etsi", "ietf"}
+	hasStandards := false
+	for _, standard := range standards {
+		if strings.Contains(strings.ToLower(prompt), standard) {
+			hasStandards = true
+			break
+		}
 	}
-	
-	return r.RegisterTemplate(&template)
+	if !hasStandards {
+		issues = append(issues, "Consider including relevant standards references")
+	}
+
+	return issues
 }

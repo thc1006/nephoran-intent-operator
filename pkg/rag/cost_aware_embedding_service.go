@@ -3,1119 +3,746 @@ package rag
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"math"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
 )
 
-// CostAwareEmbeddingService extends EmbeddingService with advanced cost optimization
+// CostAwareEmbeddingService provides intelligent embedding provider selection
 type CostAwareEmbeddingService struct {
-	*EmbeddingService
-	costOptimizer    *CostOptimizer
-	providerMonitor  *ProviderMonitor
-	fallbackManager  *FallbackManager
-	budgetManager    *BudgetManager
+	logger           *zap.Logger
+	providers        map[string]EmbeddingProvider
+	providerConfigs  map[string]*ProviderConfig
+	costTracker      *CostTracker
+	healthMonitor    *HealthMonitor
 	circuitBreakers  map[string]*CircuitBreaker
+	fallbackChains   map[string][]string
+	metrics          *costAwareMetrics
 	mu               sync.RWMutex
 }
 
-// CostOptimizer manages cost optimization strategies
-type CostOptimizer struct {
-	config           *CostOptimizerConfig
-	logger           *slog.Logger
-	costHistory      *CostHistory
-	providerMetrics  map[string]*ProviderMetrics
-	mu               sync.RWMutex
+// ProviderConfig holds configuration for each embedding provider
+type ProviderConfig struct {
+	Name             string
+	CostPerToken     float64
+	CostPerRequest   float64
+	MaxTokensPerReq  int
+	Priority         int
+	QualityScore     float64
+	LatencyTarget    time.Duration
+	Enabled          bool
 }
 
-// CostOptimizerConfig holds configuration for cost optimization
-type CostOptimizerConfig struct {
-	// Cost optimization strategies
-	OptimizationStrategy string  `json:"optimization_strategy"` // "aggressive", "balanced", "quality_first"
-	CostWeight           float64 `json:"cost_weight"`           // Weight for cost in provider selection (0-1)
-	PerformanceWeight    float64 `json:"performance_weight"`    // Weight for performance (0-1)
-	QualityWeight        float64 `json:"quality_weight"`        // Weight for quality (0-1)
-	
-	// Budget management
-	EnableBudgetTracking bool    `json:"enable_budget_tracking"`
-	HourlyBudget         float64 `json:"hourly_budget"`
-	DailyBudget          float64 `json:"daily_budget"`
-	MonthlyBudget        float64 `json:"monthly_budget"`
-	BudgetAlertThreshold float64 `json:"budget_alert_threshold"` // Alert when X% of budget used
-	
-	// Provider selection
-	MinProviderScore     float64       `json:"min_provider_score"`      // Minimum score for provider selection
-	ProviderTimeout      time.Duration `json:"provider_timeout"`        // Timeout for provider health checks
-	RebalanceInterval    time.Duration `json:"rebalance_interval"`      // How often to rebalance provider selection
-	
-	// Circuit breaker configuration
-	CircuitBreakerThreshold int           `json:"circuit_breaker_threshold"` // Failures before opening circuit
-	CircuitBreakerTimeout   time.Duration `json:"circuit_breaker_timeout"`   // Time before attempting to close circuit
-	CircuitBreakerMaxRetries int          `json:"circuit_breaker_max_retries"` // Max retries in half-open state
-}
-
-// ProviderMonitor monitors provider performance and health
-type ProviderMonitor struct {
-	metrics          map[string]*ProviderMetrics
-	healthChecks     map[string]*HealthCheckResult
-	performanceStats map[string]*PerformanceStats
-	mu               sync.RWMutex
-	logger           *slog.Logger
-}
-
-// ProviderMetrics tracks detailed metrics for each provider
-type ProviderMetrics struct {
-	// Cost metrics
-	TotalCost           float64   `json:"total_cost"`
-	AverageCostPerToken float64   `json:"average_cost_per_token"`
-	CostTrend           []float64 `json:"cost_trend"` // Historical cost data
-	
-	// Performance metrics
-	AverageLatency      time.Duration `json:"average_latency"`
-	P95Latency          time.Duration `json:"p95_latency"`
-	P99Latency          time.Duration `json:"p99_latency"`
-	SuccessRate         float64       `json:"success_rate"`
-	ErrorRate           float64       `json:"error_rate"`
-	
-	// Quality metrics
-	AverageQuality      float64   `json:"average_quality"`
-	QualityVariance     float64   `json:"quality_variance"`
-	QualityTrend        []float64 `json:"quality_trend"`
-	
-	// Usage metrics
-	RequestCount        int64     `json:"request_count"`
-	TokensProcessed     int64     `json:"tokens_processed"`
-	LastUsed            time.Time `json:"last_used"`
-	
-	// Health metrics
-	ConsecutiveFailures int       `json:"consecutive_failures"`
-	LastHealthCheck     time.Time `json:"last_health_check"`
-	HealthScore         float64   `json:"health_score"`
-}
-
-// HealthCheckResult represents the result of a provider health check
-type HealthCheckResult struct {
-	Provider    string        `json:"provider"`
-	Healthy     bool          `json:"healthy"`
-	Latency     time.Duration `json:"latency"`
-	Error       error         `json:"error,omitempty"`
-	Timestamp   time.Time     `json:"timestamp"`
-	Diagnostics map[string]interface{} `json:"diagnostics,omitempty"`
-}
-
-// PerformanceStats tracks performance statistics
-type PerformanceStats struct {
-	LatencyHistogram []time.Duration `json:"latency_histogram"`
-	ErrorTypes       map[string]int  `json:"error_types"`
-	ThroughputRate   float64         `json:"throughput_rate"` // Tokens per second
-}
-
-// FallbackManager manages fallback strategies
-type FallbackManager struct {
-	config          *FallbackConfig
-	fallbackChains  map[string][]string // Primary provider -> ordered fallback list
-	fallbackHistory map[string]*FallbackHistory
-	mu              sync.RWMutex
-	logger          *slog.Logger
-}
-
-// FallbackConfig holds fallback configuration
-type FallbackConfig struct {
-	EnableAutoFallback   bool          `json:"enable_auto_fallback"`
-	FallbackStrategy     string        `json:"fallback_strategy"`      // "cost_optimized", "performance_optimized", "quality_optimized"
-	MaxFallbackAttempts  int           `json:"max_fallback_attempts"`
-	FallbackTimeout      time.Duration `json:"fallback_timeout"`
-	PreserveBudget       bool          `json:"preserve_budget"`        // Don't use expensive fallbacks if budget is tight
-}
-
-// FallbackHistory tracks fallback usage
-type FallbackHistory struct {
-	FallbackCount    int                    `json:"fallback_count"`
-	SuccessfulFallbacks int                 `json:"successful_fallbacks"`
-	FallbackReasons  map[string]int         `json:"fallback_reasons"`
-	LastFallback     time.Time              `json:"last_fallback"`
-}
-
-// BudgetManager manages budget constraints
-type BudgetManager struct {
-	config         *BudgetConfig
-	currentSpend   *BudgetSpend
-	budgetAlerts   []BudgetAlert
-	spendHistory   map[string]float64 // date/hour -> spend amount
+// CostTracker tracks costs and budgets
+type CostTracker struct {
+	hourlyBudget   float64
+	dailyBudget    float64
+	monthlyBudget  float64
+	currentCosts   *CostAccumulator
+	historicalData map[string]*ProviderStats
 	mu             sync.RWMutex
-	logger         *slog.Logger
 }
 
-// BudgetConfig holds budget configuration
-type BudgetConfig struct {
-	HourlyLimit    float64 `json:"hourly_limit"`
-	DailyLimit     float64 `json:"daily_limit"`
-	MonthlyLimit   float64 `json:"monthly_limit"`
-	ReservePercent float64 `json:"reserve_percent"` // Reserve X% of budget for critical operations
-	AutoThrottle   bool    `json:"auto_throttle"`   // Automatically throttle when approaching limits
+// CostAccumulator tracks accumulated costs
+type CostAccumulator struct {
+	hourly  atomic.Value // float64
+	daily   atomic.Value // float64
+	monthly atomic.Value // float64
+	lastReset time.Time
 }
 
-// BudgetSpend tracks current spending
-type BudgetSpend struct {
-	HourlySpend  float64   `json:"hourly_spend"`
-	DailySpend   float64   `json:"daily_spend"`
-	MonthlySpend float64   `json:"monthly_spend"`
-	LastReset    time.Time `json:"last_reset"`
+// ProviderStats tracks provider performance statistics
+type ProviderStats struct {
+	TotalRequests   atomic.Int64
+	SuccessfulReqs  atomic.Int64
+	FailedReqs      atomic.Int64
+	TotalCost       atomic.Value // float64
+	TotalLatency    atomic.Int64 // nanoseconds
+	AverageQuality  atomic.Value // float64
+	LastUsed        atomic.Int64 // unix timestamp
 }
 
-// BudgetAlert represents a budget alert
-type BudgetAlert struct {
-	Type      string    `json:"type"` // "hourly", "daily", "monthly"
-	Threshold float64   `json:"threshold"`
-	Current   float64   `json:"current"`
-	Limit     float64   `json:"limit"`
-	Timestamp time.Time `json:"timestamp"`
-	Message   string    `json:"message"`
+// HealthMonitor monitors provider health
+type HealthMonitor struct {
+	healthChecks map[string]*HealthStatus
+	checkInterval time.Duration
+	mu           sync.RWMutex
 }
 
-// CircuitBreaker implements circuit breaker pattern for providers
+// HealthStatus represents provider health
+type HealthStatus struct {
+	Healthy       atomic.Bool
+	LastCheck     atomic.Int64 // unix timestamp
+	ConsecutiveFails atomic.Int32
+	ResponseTime  atomic.Int64 // milliseconds
+}
+
+// CircuitBreaker implements circuit breaker pattern
 type CircuitBreaker struct {
-	provider         string
-	state            CircuitState
-	failures         int
-	successCount     int
-	lastFailureTime  time.Time
-	lastAttemptTime  time.Time
-	config           *CircuitBreakerConfig
-	mu               sync.RWMutex
+	state           atomic.Int32 // 0=closed, 1=open, 2=half-open
+	failures        atomic.Int32
+	lastFailure     atomic.Int64 // unix timestamp
+	successCount    atomic.Int32
+	config          CircuitBreakerConfig
 }
-
-// CircuitState represents the state of a circuit breaker
-type CircuitState int
-
-const (
-	CircuitClosed CircuitState = iota
-	CircuitOpen
-	CircuitHalfOpen
-)
 
 // CircuitBreakerConfig holds circuit breaker configuration
 type CircuitBreakerConfig struct {
-	FailureThreshold int           `json:"failure_threshold"`
-	SuccessThreshold int           `json:"success_threshold"`
-	Timeout          time.Duration `json:"timeout"`
-	MaxRetries       int           `json:"max_retries"`
+	FailureThreshold int32
+	RecoveryTimeout  time.Duration
+	SuccessThreshold int32
 }
 
-// CostHistory tracks historical cost data
-type CostHistory struct {
-	hourlyHistory  map[string][]CostDataPoint
-	dailyHistory   map[string][]CostDataPoint
-	monthlyHistory map[string][]CostDataPoint
-	mu             sync.RWMutex
+// EmbeddingRequest represents a request for embeddings
+type EmbeddingRequest struct {
+	Text            string
+	MaxBudget       float64
+	QualityRequired float64
+	LatencyBudget   time.Duration
+	PreferredProvider string
 }
 
-// CostDataPoint represents a cost data point
-type CostDataPoint struct {
-	Timestamp    time.Time `json:"timestamp"`
-	Provider     string    `json:"provider"`
-	Cost         float64   `json:"cost"`
-	TokenCount   int       `json:"token_count"`
-	RequestCount int       `json:"request_count"`
+// EmbeddingResponse represents the embedding result
+type EmbeddingResponse struct {
+	Embeddings []float64
+	Provider   string
+	Cost       float64
+	Latency    time.Duration
+	Quality    float64
+}
+
+// costAwareMetrics tracks performance metrics
+type costAwareMetrics struct {
+	requestsTotal      prometheus.Counter
+	requestsPerProvider *prometheus.CounterVec
+	costTotal          prometheus.Counter
+	costPerProvider    *prometheus.CounterVec
+	providerLatency    *prometheus.HistogramVec
+	providerQuality    *prometheus.GaugeVec
+	budgetExceeded     prometheus.Counter
+	fallbacksUsed      prometheus.Counter
+	circuitBreakerTrips prometheus.Counter
 }
 
 // NewCostAwareEmbeddingService creates a new cost-aware embedding service
-func NewCostAwareEmbeddingService(baseService *EmbeddingService, config *CostOptimizerConfig) *CostAwareEmbeddingService {
+func NewCostAwareEmbeddingService(logger *zap.Logger) *CostAwareEmbeddingService {
+	metrics := &costAwareMetrics{
+		requestsTotal: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "embedding_requests_total",
+			Help: "Total number of embedding requests",
+		}),
+		requestsPerProvider: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "embedding_requests_per_provider_total",
+			Help: "Embedding requests per provider",
+		}, []string{"provider"}),
+		costTotal: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "embedding_cost_total",
+			Help: "Total cost of embeddings",
+		}),
+		costPerProvider: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "embedding_cost_per_provider_total",
+			Help: "Cost per embedding provider",
+		}, []string{"provider"}),
+		providerLatency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Name: "embedding_provider_latency_seconds",
+			Help: "Latency of embedding providers",
+			Buckets: prometheus.DefBuckets,
+		}, []string{"provider"}),
+		providerQuality: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "embedding_provider_quality",
+			Help: "Quality score of embedding providers",
+		}, []string{"provider"}),
+		budgetExceeded: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "embedding_budget_exceeded_total",
+			Help: "Number of times budget was exceeded",
+		}),
+		fallbacksUsed: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "embedding_fallbacks_used_total",
+			Help: "Number of times fallback providers were used",
+		}),
+		circuitBreakerTrips: prometheus.NewCounter(prometheus.CounterOpts{
+			Name: "embedding_circuit_breaker_trips_total",
+			Help: "Number of circuit breaker trips",
+		}),
+	}
+
+	// Register metrics
+	prometheus.MustRegister(
+		metrics.requestsTotal,
+		metrics.requestsPerProvider,
+		metrics.costTotal,
+		metrics.costPerProvider,
+		metrics.providerLatency,
+		metrics.providerQuality,
+		metrics.budgetExceeded,
+		metrics.fallbacksUsed,
+		metrics.circuitBreakerTrips,
+	)
+
 	service := &CostAwareEmbeddingService{
-		EmbeddingService: baseService,
-		costOptimizer:    NewCostOptimizer(config),
-		providerMonitor:  NewProviderMonitor(),
-		fallbackManager:  NewFallbackManager(&FallbackConfig{
-			EnableAutoFallback:  true,
-			FallbackStrategy:    "cost_optimized",
-			MaxFallbackAttempts: 3,
-			FallbackTimeout:     30 * time.Second,
-			PreserveBudget:      true,
-		}),
-		budgetManager:   NewBudgetManager(&BudgetConfig{
-			HourlyLimit:    config.HourlyBudget,
-			DailyLimit:     config.DailyBudget,
-			MonthlyLimit:   config.MonthlyBudget,
-			ReservePercent: 10.0,
-			AutoThrottle:   true,
-		}),
+		logger:          logger,
+		providers:       make(map[string]EmbeddingProvider),
+		providerConfigs: make(map[string]*ProviderConfig),
 		circuitBreakers: make(map[string]*CircuitBreaker),
+		fallbackChains:  make(map[string][]string),
+		metrics:         metrics,
+		costTracker: &CostTracker{
+			currentCosts: &CostAccumulator{
+				lastReset: time.Now(),
+			},
+			historicalData: make(map[string]*ProviderStats),
+		},
+		healthMonitor: &HealthMonitor{
+			healthChecks:  make(map[string]*HealthStatus),
+			checkInterval: 30 * time.Second,
+		},
 	}
-	
-	// Initialize circuit breakers for each provider
-	for name := range baseService.providers {
-		service.circuitBreakers[name] = NewCircuitBreaker(name, &CircuitBreakerConfig{
-			FailureThreshold: config.CircuitBreakerThreshold,
-			SuccessThreshold: 3,
-			Timeout:          config.CircuitBreakerTimeout,
-			MaxRetries:       config.CircuitBreakerMaxRetries,
-		})
-	}
-	
-	// Start monitoring and optimization routines
-	go service.startCostOptimizationLoop()
-	go service.startProviderMonitoring()
-	go service.startBudgetMonitoring()
-	
+
+	// Initialize atomic values
+	service.costTracker.currentCosts.hourly.Store(0.0)
+	service.costTracker.currentCosts.daily.Store(0.0)
+	service.costTracker.currentCosts.monthly.Store(0.0)
+
+	// Start background tasks
+	go service.monitorHealth()
+	go service.resetCostTracking()
+
 	return service
 }
 
-// GenerateEmbeddingsOptimized generates embeddings with cost optimization
-func (caes *CostAwareEmbeddingService) GenerateEmbeddingsOptimized(ctx context.Context, request *EmbeddingRequest) (*EmbeddingResponse, error) {
-	startTime := time.Now()
-	
-	// Check budget constraints
-	if !caes.budgetManager.CanProceed(request) {
-		return nil, fmt.Errorf("budget constraints exceeded")
-	}
-	
-	// Select optimal provider based on current conditions
-	provider, err := caes.selectOptimalProvider(ctx, request)
-	if err != nil {
-		return nil, fmt.Errorf("failed to select provider: %w", err)
-	}
-	
-	// Check circuit breaker
-	cb := caes.circuitBreakers[provider.GetName()]
-	if !cb.CanAttempt() {
-		caes.logger.Warn("Circuit breaker open for provider", "provider", provider.GetName())
-		// Try fallback
-		provider, err = caes.fallbackManager.GetFallbackProvider(provider.GetName(), caes.providers)
-		if err != nil {
-			return nil, fmt.Errorf("no available providers: %w", err)
+// ConfigureProvider adds or updates a provider configuration
+func (s *CostAwareEmbeddingService) ConfigureProvider(config ProviderConfig) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.providerConfigs[config.Name] = &config
+
+	// Initialize circuit breaker
+	if _, exists := s.circuitBreakers[config.Name]; !exists {
+		s.circuitBreakers[config.Name] = &CircuitBreaker{
+			config: CircuitBreakerConfig{
+				FailureThreshold: 5,
+				RecoveryTimeout:  30 * time.Second,
+				SuccessThreshold: 3,
+			},
 		}
 	}
-	
-	// Generate embeddings with selected provider
-	response, err := caes.generateWithProviderAndFallback(ctx, request, provider)
-	if err != nil {
-		cb.RecordFailure()
-		return nil, err
+
+	// Initialize health status
+	if _, exists := s.healthMonitor.healthChecks[config.Name]; !exists {
+		status := &HealthStatus{}
+		status.Healthy.Store(true)
+		s.healthMonitor.healthChecks[config.Name] = status
 	}
-	
-	cb.RecordSuccess()
-	
-	// Update metrics and budget
-	caes.updateCostMetrics(provider.GetName(), response.TokenUsage)
-	caes.budgetManager.RecordSpend(response.TokenUsage.EstimatedCost)
-	
-	// Monitor quality if enabled
-	if caes.config.EnableQualityCheck {
-		go caes.monitorEmbeddingQuality(response.Embeddings, request.Texts)
+
+	// Initialize provider stats
+	if _, exists := s.costTracker.historicalData[config.Name]; !exists {
+		stats := &ProviderStats{}
+		stats.TotalCost.Store(0.0)
+		stats.AverageQuality.Store(config.QualityScore)
+		s.costTracker.historicalData[config.Name] = stats
 	}
-	
-	response.ProcessingTime = time.Since(startTime)
-	return response, nil
+
+	s.logger.Info("Configured embedding provider",
+		zap.String("provider", config.Name),
+		zap.Float64("cost_per_token", config.CostPerToken),
+		zap.Float64("quality_score", config.QualityScore))
 }
 
-// selectOptimalProvider selects the best provider based on current conditions
-func (caes *CostAwareEmbeddingService) selectOptimalProvider(ctx context.Context, request *EmbeddingRequest) (EmbeddingProvider, error) {
-	caes.mu.RLock()
-	defer caes.mu.RUnlock()
-	
-	var candidates []ProviderScore
-	
-	for name, provider := range caes.providers {
-		// Skip unhealthy providers
-		if !caes.isProviderHealthy(name) {
-			continue
-		}
-		
-		// Skip providers with open circuit breakers
-		if cb, exists := caes.circuitBreakers[name]; exists && !cb.CanAttempt() {
-			continue
-		}
-		
-		// Calculate provider score
-		score := caes.calculateProviderScore(name, provider, request)
-		if score.TotalScore >= caes.costOptimizer.config.MinProviderScore {
-			candidates = append(candidates, score)
-		}
-	}
-	
-	if len(candidates) == 0 {
-		return nil, fmt.Errorf("no suitable providers available")
-	}
-	
-	// Sort by score (descending)
-	sort.Slice(candidates, func(i, j int) bool {
-		return candidates[i].TotalScore > candidates[j].TotalScore
-	})
-	
-	// Select best provider
-	selectedProvider := caes.providers[candidates[0].ProviderName]
-	
-	caes.logger.Info("Selected provider",
-		"provider", candidates[0].ProviderName,
-		"score", candidates[0].TotalScore,
-		"cost_score", candidates[0].CostScore,
-		"performance_score", candidates[0].PerformanceScore,
-		"quality_score", candidates[0].QualityScore)
-	
-	return selectedProvider, nil
+// SetBudgets sets cost budgets
+func (s *CostAwareEmbeddingService) SetBudgets(hourly, daily, monthly float64) {
+	s.costTracker.mu.Lock()
+	defer s.costTracker.mu.Unlock()
+
+	s.costTracker.hourlyBudget = hourly
+	s.costTracker.dailyBudget = daily
+	s.costTracker.monthlyBudget = monthly
 }
 
-// ProviderScore represents a provider's score for selection
-type ProviderScore struct {
-	ProviderName     string
-	TotalScore       float64
-	CostScore        float64
-	PerformanceScore float64
-	QualityScore     float64
-	HealthScore      float64
+// SetFallbackChain sets fallback providers for a primary provider
+func (s *CostAwareEmbeddingService) SetFallbackChain(primary string, fallbacks []string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.fallbackChains[primary] = fallbacks
 }
 
-// calculateProviderScore calculates a composite score for provider selection
-func (caes *CostAwareEmbeddingService) calculateProviderScore(name string, provider EmbeddingProvider, request *EmbeddingRequest) ProviderScore {
-	metrics := caes.providerMonitor.GetMetrics(name)
-	config := caes.costOptimizer.config
-	
-	// Calculate individual scores (0-1 scale)
-	costScore := caes.calculateCostScore(provider, metrics, request)
-	performanceScore := caes.calculatePerformanceScore(metrics)
-	qualityScore := caes.calculateQualityScore(metrics)
-	healthScore := caes.calculateHealthScore(name, metrics)
-	
-	// Apply weights based on optimization strategy
-	var totalScore float64
-	switch config.OptimizationStrategy {
-	case "aggressive":
-		// Heavily favor cost
-		totalScore = costScore*0.7 + performanceScore*0.2 + qualityScore*0.1
-	case "balanced":
-		// Balance all factors
-		totalScore = costScore*config.CostWeight + 
-			performanceScore*config.PerformanceWeight + 
-			qualityScore*config.QualityWeight
-	case "quality_first":
-		// Prioritize quality and performance
-		totalScore = costScore*0.2 + performanceScore*0.3 + qualityScore*0.5
-	default:
-		// Default balanced approach
-		totalScore = costScore*0.4 + performanceScore*0.3 + qualityScore*0.3
-	}
-	
-	// Apply health score as a multiplier
-	totalScore *= healthScore
-	
-	return ProviderScore{
-		ProviderName:     name,
-		TotalScore:       totalScore,
-		CostScore:        costScore,
-		PerformanceScore: performanceScore,
-		QualityScore:     qualityScore,
-		HealthScore:      healthScore,
-	}
-}
+// GetEmbeddings generates embeddings with cost optimization
+func (s *CostAwareEmbeddingService) GetEmbeddings(
+	ctx context.Context,
+	request EmbeddingRequest,
+) (*EmbeddingResponse, error) {
+	start := time.Now()
+	s.metrics.requestsTotal.Inc()
 
-// calculateCostScore calculates cost efficiency score
-func (caes *CostAwareEmbeddingService) calculateCostScore(provider EmbeddingProvider, metrics *ProviderMetrics, request *EmbeddingRequest) float64 {
-	// Estimate cost for this request
-	estimatedTokens := caes.estimateTokenCount(request.Texts)
-	estimatedCost := provider.GetCostEstimate(estimatedTokens)
-	
-	// Get budget remaining
-	budgetRemaining := caes.budgetManager.GetRemainingBudget("daily")
-	
-	// Calculate cost efficiency relative to budget
-	if budgetRemaining <= 0 {
-		return 0.0 // No budget left
+	// Select optimal provider
+	provider, providerName := s.selectProvider(request)
+	if provider == nil {
+		return nil, fmt.Errorf("no available provider found")
 	}
-	
-	costRatio := estimatedCost / budgetRemaining
-	if costRatio > 0.1 { // More than 10% of remaining budget
-		return 0.0
-	}
-	
-	// Calculate score based on relative cost
-	// Lower cost = higher score
-	maxAcceptableCost := budgetRemaining * 0.05 // 5% of remaining budget
-	if estimatedCost >= maxAcceptableCost {
-		return 0.0
-	}
-	
-	score := 1.0 - (estimatedCost / maxAcceptableCost)
-	
-	// Adjust based on historical cost trend
-	if len(metrics.CostTrend) > 0 {
-		avgCost := average(metrics.CostTrend)
-		if metrics.AverageCostPerToken < avgCost {
-			score *= 1.1 // Bonus for improving cost efficiency
-		}
-	}
-	
-	return math.Min(score, 1.0)
-}
 
-// calculatePerformanceScore calculates performance score
-func (caes *CostAwareEmbeddingService) calculatePerformanceScore(metrics *ProviderMetrics) float64 {
-	if metrics.RequestCount == 0 {
-		return 0.5 // Neutral score for new providers
-	}
-	
-	// Base score on latency
-	targetLatency := 500 * time.Millisecond
-	latencyScore := 1.0
-	if metrics.AverageLatency > targetLatency {
-		latencyScore = float64(targetLatency) / float64(metrics.AverageLatency)
-	}
-	
-	// Factor in success rate
-	successScore := metrics.SuccessRate
-	
-	// Combine scores
-	score := latencyScore*0.6 + successScore*0.4
-	
-	// Penalty for high error rate
-	if metrics.ErrorRate > 0.05 { // More than 5% errors
-		score *= (1.0 - metrics.ErrorRate)
-	}
-	
-	return math.Min(math.Max(score, 0.0), 1.0)
-}
-
-// calculateQualityScore calculates embedding quality score
-func (caes *CostAwareEmbeddingService) calculateQualityScore(metrics *ProviderMetrics) float64 {
-	if metrics.AverageQuality == 0 {
-		return 0.5 // Neutral score if no quality data
-	}
-	
-	// Base quality score
-	qualityScore := metrics.AverageQuality
-	
-	// Adjust for consistency (lower variance is better)
-	if metrics.QualityVariance > 0 {
-		consistencyScore := 1.0 / (1.0 + metrics.QualityVariance)
-		qualityScore = qualityScore*0.7 + consistencyScore*0.3
-	}
-	
-	// Consider quality trend
-	if len(metrics.QualityTrend) > 2 {
-		trend := calculateTrend(metrics.QualityTrend)
-		if trend > 0 {
-			qualityScore *= 1.1 // Bonus for improving quality
-		} else if trend < -0.1 {
-			qualityScore *= 0.9 // Penalty for declining quality
-		}
-	}
-	
-	return math.Min(math.Max(qualityScore, 0.0), 1.0)
-}
-
-// calculateHealthScore calculates provider health score
-func (caes *CostAwareEmbeddingService) calculateHealthScore(name string, metrics *ProviderMetrics) float64 {
-	// Check circuit breaker state
-	if cb, exists := caes.circuitBreakers[name]; exists {
-		switch cb.GetState() {
-		case CircuitOpen:
-			return 0.0
-		case CircuitHalfOpen:
-			return 0.5
-		}
-	}
-	
-	// Base health on recent performance
-	healthScore := 1.0
-	
-	// Penalty for consecutive failures
-	if metrics.ConsecutiveFailures > 0 {
-		healthScore *= math.Pow(0.8, float64(metrics.ConsecutiveFailures))
-	}
-	
-	// Consider time since last successful use
-	timeSinceLastUse := time.Since(metrics.LastUsed)
-	if timeSinceLastUse > 1*time.Hour {
-		// Decay score for unused providers
-		hoursUnused := timeSinceLastUse.Hours()
-		healthScore *= math.Exp(-hoursUnused / 24.0) // Exponential decay over 24 hours
-	}
-	
-	return math.Max(healthScore, 0.0)
-}
-
-// generateWithProviderAndFallback generates embeddings with automatic fallback
-func (caes *CostAwareEmbeddingService) generateWithProviderAndFallback(ctx context.Context, request *EmbeddingRequest, primaryProvider EmbeddingProvider) (*EmbeddingResponse, error) {
 	// Try primary provider
-	response, err := caes.tryProvider(ctx, request, primaryProvider)
+	response, err := s.tryProvider(ctx, provider, providerName, request)
 	if err == nil {
 		return response, nil
 	}
-	
-	caes.logger.Warn("Primary provider failed, attempting fallback",
-		"provider", primaryProvider.GetName(),
-		"error", err)
-	
-	// Record fallback attempt
-	caes.fallbackManager.RecordFallback(primaryProvider.GetName(), err.Error())
-	
-	// Get fallback chain
-	fallbackChain := caes.fallbackManager.GetFallbackChain(primaryProvider.GetName())
-	
-	// Try each fallback provider
-	for _, fallbackName := range fallbackChain {
-		fallbackProvider, exists := caes.providers[fallbackName]
-		if !exists {
+
+	// Try fallback providers
+	s.metrics.fallbacksUsed.Inc()
+	fallbacks := s.getFallbackChain(providerName)
+	for _, fallbackName := range fallbacks {
+		fallbackProvider := s.providers[fallbackName]
+		if fallbackProvider == nil {
 			continue
 		}
-		
-		// Check if fallback is healthy
-		if !caes.isProviderHealthy(fallbackName) {
-			continue
-		}
-		
-		// Check budget constraints for fallback
-		if caes.budgetManager.ShouldPreserveBudget() {
-			estimatedCost := fallbackProvider.GetCostEstimate(caes.estimateTokenCount(request.Texts))
-			if estimatedCost > caes.budgetManager.GetMaxAllowableSpend() {
-				caes.logger.Info("Skipping expensive fallback due to budget constraints",
-					"provider", fallbackName,
-					"estimated_cost", estimatedCost)
-				continue
-			}
-		}
-		
-		response, err = caes.tryProvider(ctx, request, fallbackProvider)
+
+		response, err = s.tryProvider(ctx, fallbackProvider, fallbackName, request)
 		if err == nil {
-			caes.logger.Info("Fallback provider succeeded", "provider", fallbackName)
+			s.logger.Info("Used fallback provider",
+				zap.String("primary", providerName),
+				zap.String("fallback", fallbackName))
 			return response, nil
 		}
-		
-		caes.logger.Warn("Fallback provider failed",
-			"provider", fallbackName,
-			"error", err)
 	}
-	
-	return nil, fmt.Errorf("all providers failed, last error: %w", err)
+
+	return nil, fmt.Errorf("all providers failed for request")
 }
 
-// tryProvider attempts to generate embeddings with a specific provider
-func (caes *CostAwareEmbeddingService) tryProvider(ctx context.Context, request *EmbeddingRequest, provider EmbeddingProvider) (*EmbeddingResponse, error) {
-	// Create timeout context
-	timeoutCtx, cancel := context.WithTimeout(ctx, caes.costOptimizer.config.ProviderTimeout)
-	defer cancel()
+// selectProvider selects the optimal provider based on constraints
+func (s *CostAwareEmbeddingService) selectProvider(request EmbeddingRequest) (EmbeddingProvider, string) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// If preferred provider is specified and available, use it
+	if request.PreferredProvider != "" {
+		if provider, exists := s.providers[request.PreferredProvider]; exists {
+			if s.isProviderAvailable(request.PreferredProvider) {
+				return provider, request.PreferredProvider
+			}
+		}
+	}
+
+	// Score and rank providers
+	type providerScore struct {
+		name     string
+		provider EmbeddingProvider
+		score    float64
+	}
+
+	var candidates []providerScore
+
+	for name, provider := range s.providers {
+		if !s.isProviderAvailable(name) {
+			continue
+		}
+
+		config := s.providerConfigs[name]
+		if config == nil || !config.Enabled {
+			continue
+		}
+
+		// Calculate provider score
+		score := s.calculateProviderScore(name, config, request)
+		candidates = append(candidates, providerScore{
+			name:     name,
+			provider: provider,
+			score:    score,
+		})
+	}
+
+	// Sort by score (higher is better)
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].score > candidates[j].score
+	})
+
+	if len(candidates) > 0 {
+		return candidates[0].provider, candidates[0].name
+	}
+
+	return nil, ""
+}
+
+// calculateProviderScore calculates a provider's suitability score
+func (s *CostAwareEmbeddingService) calculateProviderScore(
+	name string,
+	config *ProviderConfig,
+	request EmbeddingRequest,
+) float64 {
+	score := 100.0
+
+	// Cost factor (40% weight)
+	estimatedCost := s.estimateCost(config, request.Text)
+	if request.MaxBudget > 0 && estimatedCost > request.MaxBudget {
+		return 0 // Provider exceeds budget
+	}
+	costScore := math.Max(0, 1-estimatedCost/request.MaxBudget) * 40
+	score = score * (1 + costScore/100)
+
+	// Quality factor (30% weight)
+	if request.QualityRequired > 0 {
+		if config.QualityScore < request.QualityRequired {
+			return 0 // Provider doesn't meet quality requirements
+		}
+		qualityScore := config.QualityScore / request.QualityRequired * 30
+		score = score * (1 + qualityScore/100)
+	}
+
+	// Performance factor (20% weight)
+	stats := s.costTracker.historicalData[name]
+	if stats != nil {
+		successRate := float64(stats.SuccessfulReqs.Load()) / float64(stats.TotalRequests.Load()+1)
+		perfScore := successRate * 20
+		score = score * (1 + perfScore/100)
+	}
+
+	// Latency factor (10% weight)
+	if request.LatencyBudget > 0 && config.LatencyTarget > request.LatencyBudget {
+		latencyPenalty := float64(config.LatencyTarget-request.LatencyBudget) / float64(request.LatencyBudget)
+		score = score * (1 - latencyPenalty*0.1)
+	}
+
+	// Apply priority boost
+	score = score * (1 + float64(config.Priority)/100)
+
+	return score
+}
+
+// tryProvider attempts to get embeddings from a specific provider
+func (s *CostAwareEmbeddingService) tryProvider(
+	ctx context.Context,
+	provider EmbeddingProvider,
+	providerName string,
+	request EmbeddingRequest,
+) (*EmbeddingResponse, error) {
+	// Check circuit breaker
+	if !s.checkCircuitBreaker(providerName) {
+		return nil, fmt.Errorf("circuit breaker open for provider %s", providerName)
+	}
+
+	start := time.Now()
 	
-	// Generate embeddings
-	embeddings, usage, err := caes.generateEmbeddingsWithSpecificProvider(timeoutCtx, request.Texts, provider)
+	// Get embeddings
+	embeddings, err := provider.GetEmbeddings(ctx, []string{request.Text})
+	
+	duration := time.Since(start)
+	
+	// Update metrics
+	s.metrics.requestsPerProvider.WithLabelValues(providerName).Inc()
+	s.metrics.providerLatency.WithLabelValues(providerName).Observe(duration.Seconds())
+	
 	if err != nil {
+		s.recordFailure(providerName)
 		return nil, err
 	}
 	
-	// Create response
+	// Calculate cost
+	config := s.providerConfigs[providerName]
+	cost := s.estimateCost(config, request.Text)
+	
+	// Update cost tracking
+	s.updateCostTracking(providerName, cost)
+	
+	// Record success
+	s.recordSuccess(providerName, duration)
+	
+	// Assess quality
+	quality := s.assessQuality(embeddings[0])
+	
 	response := &EmbeddingResponse{
-		Embeddings:   embeddings,
-		TokenUsage:   usage,
-		ModelUsed:    provider.GetName(),
-		RequestID:    request.RequestID,
-		Metadata:     request.Metadata,
+		Embeddings: embeddings[0],
+		Provider:   providerName,
+		Cost:       cost,
+		Latency:    duration,
+		Quality:    quality,
 	}
 	
 	return response, nil
 }
 
-// isProviderHealthy checks if a provider is healthy
-func (caes *CostAwareEmbeddingService) isProviderHealthy(providerName string) bool {
-	health := caes.providerMonitor.GetHealthStatus(providerName)
-	return health != nil && health.Healthy
+// estimateCost estimates the cost for a request
+func (s *CostAwareEmbeddingService) estimateCost(config *ProviderConfig, text string) float64 {
+	// Simple token estimation (rough approximation)
+	tokenCount := len(text) / 4
+	return config.CostPerRequest + (float64(tokenCount) * config.CostPerToken)
 }
 
-// updateCostMetrics updates cost-related metrics
-func (caes *CostAwareEmbeddingService) updateCostMetrics(provider string, usage TokenUsage) {
-	caes.costOptimizer.RecordCost(provider, usage.EstimatedCost, usage.TotalTokens)
-	caes.providerMonitor.UpdateMetrics(provider, usage)
-}
-
-// monitorEmbeddingQuality monitors the quality of generated embeddings
-func (caes *CostAwareEmbeddingService) monitorEmbeddingQuality(embeddings [][]float32, texts []string) {
-	// This runs asynchronously to not block the main request
-	quality := caes.qualityAssess.AssessQuality(embeddings, texts)
+// assessQuality assesses the quality of embeddings
+func (s *CostAwareEmbeddingService) assessQuality(embeddings []float64) float64 {
+	// Simple quality assessment based on embedding properties
+	// In practice, this would use more sophisticated methods
 	
-	// Update provider quality metrics
-	// Note: This assumes we can determine which provider was used
-	// In practice, this would need to be passed through
-}
-
-// Background routines
-
-func (caes *CostAwareEmbeddingService) startCostOptimizationLoop() {
-	ticker := time.NewTicker(caes.costOptimizer.config.RebalanceInterval)
-	defer ticker.Stop()
+	// Check embedding magnitude
+	magnitude := 0.0
+	for _, val := range embeddings {
+		magnitude += val * val
+	}
+	magnitude = math.Sqrt(magnitude)
 	
-	for range ticker.C {
-		caes.rebalanceProviders()
-	}
-}
-
-func (caes *CostAwareEmbeddingService) startProviderMonitoring() {
-	ticker := time.NewTicker(1 * time.Minute)
-	defer ticker.Stop()
-	
-	for range ticker.C {
-		caes.performProviderHealthChecks()
-	}
-}
-
-func (caes *CostAwareEmbeddingService) startBudgetMonitoring() {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-	
-	for range ticker.C {
-		caes.checkBudgetAlerts()
-	}
-}
-
-func (caes *CostAwareEmbeddingService) rebalanceProviders() {
-	// Analyze current provider performance and costs
-	// Adjust fallback chains and preferences
-	caes.logger.Info("Rebalancing providers based on performance and cost")
-	
-	// Implementation would analyze metrics and update provider preferences
-}
-
-func (caes *CostAwareEmbeddingService) performProviderHealthChecks() {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	
-	for name, provider := range caes.providers {
-		go func(providerName string, p EmbeddingProvider) {
-			health := caes.providerMonitor.CheckProviderHealth(ctx, providerName, p)
-			if !health.Healthy {
-				caes.logger.Warn("Provider health check failed",
-					"provider", providerName,
-					"error", health.Error)
-			}
-		}(name, provider)
-	}
-}
-
-func (caes *CostAwareEmbeddingService) checkBudgetAlerts() {
-	alerts := caes.budgetManager.CheckAlerts()
-	for _, alert := range alerts {
-		caes.logger.Warn("Budget alert",
-			"type", alert.Type,
-			"message", alert.Message,
-			"current", alert.Current,
-			"limit", alert.Limit)
-	}
-}
-
-// Helper functions
-
-func average(values []float64) float64 {
-	if len(values) == 0 {
-		return 0
-	}
-	sum := 0.0
-	for _, v := range values {
-		sum += v
-	}
-	return sum / float64(len(values))
-}
-
-func calculateTrend(values []float64) float64 {
-	if len(values) < 2 {
-		return 0
-	}
-	// Simple linear trend
-	firstHalf := average(values[:len(values)/2])
-	secondHalf := average(values[len(values)/2:])
-	return (secondHalf - firstHalf) / firstHalf
-}
-
-// Component implementations
-
-func NewCostOptimizer(config *CostOptimizerConfig) *CostOptimizer {
-	return &CostOptimizer{
-		config:          config,
-		logger:          slog.Default().With("component", "cost-optimizer"),
-		costHistory:     NewCostHistory(),
-		providerMetrics: make(map[string]*ProviderMetrics),
-	}
-}
-
-func NewProviderMonitor() *ProviderMonitor {
-	return &ProviderMonitor{
-		metrics:          make(map[string]*ProviderMetrics),
-		healthChecks:     make(map[string]*HealthCheckResult),
-		performanceStats: make(map[string]*PerformanceStats),
-		logger:           slog.Default().With("component", "provider-monitor"),
-	}
-}
-
-func NewFallbackManager(config *FallbackConfig) *FallbackManager {
-	return &FallbackManager{
-		config:          config,
-		fallbackChains:  make(map[string][]string),
-		fallbackHistory: make(map[string]*FallbackHistory),
-		logger:          slog.Default().With("component", "fallback-manager"),
-	}
-}
-
-func NewBudgetManager(config *BudgetConfig) *BudgetManager {
-	return &BudgetManager{
-		config:       config,
-		currentSpend: &BudgetSpend{LastReset: time.Now()},
-		spendHistory: make(map[string]float64),
-		logger:       slog.Default().With("component", "budget-manager"),
-	}
-}
-
-func NewCircuitBreaker(provider string, config *CircuitBreakerConfig) *CircuitBreaker {
-	return &CircuitBreaker{
-		provider: provider,
-		state:    CircuitClosed,
-		config:   config,
-	}
-}
-
-func NewCostHistory() *CostHistory {
-	return &CostHistory{
-		hourlyHistory:  make(map[string][]CostDataPoint),
-		dailyHistory:   make(map[string][]CostDataPoint),
-		monthlyHistory: make(map[string][]CostDataPoint),
-	}
-}
-
-// ProviderMonitor methods
-
-func (pm *ProviderMonitor) GetMetrics(provider string) *ProviderMetrics {
-	pm.mu.RLock()
-	defer pm.mu.RUnlock()
-	
-	metrics, exists := pm.metrics[provider]
-	if !exists {
-		return &ProviderMetrics{
-			SuccessRate:    1.0,
-			AverageQuality: 0.8,
-		}
-	}
-	return metrics
-}
-
-func (pm *ProviderMonitor) GetHealthStatus(provider string) *HealthCheckResult {
-	pm.mu.RLock()
-	defer pm.mu.RUnlock()
-	
-	return pm.healthChecks[provider]
-}
-
-func (pm *ProviderMonitor) CheckProviderHealth(ctx context.Context, provider string, p EmbeddingProvider) *HealthCheckResult {
-	startTime := time.Now()
-	
-	err := p.HealthCheck(ctx)
-	latency := time.Since(startTime)
-	
-	result := &HealthCheckResult{
-		Provider:  provider,
-		Healthy:   err == nil,
-		Latency:   latency,
-		Error:     err,
-		Timestamp: time.Now(),
+	// Check for reasonable values
+	if magnitude < 0.1 || magnitude > 10.0 {
+		return 0.5 // Low quality
 	}
 	
-	pm.mu.Lock()
-	pm.healthChecks[provider] = result
-	pm.mu.Unlock()
-	
-	return result
-}
-
-func (pm *ProviderMonitor) UpdateMetrics(provider string, usage TokenUsage) {
-	pm.mu.Lock()
-	defer pm.mu.Unlock()
-	
-	metrics, exists := pm.metrics[provider]
-	if !exists {
-		metrics = &ProviderMetrics{}
-		pm.metrics[provider] = metrics
+	// Check dimension
+	if len(embeddings) < 384 {
+		return 0.7 // Medium quality
 	}
 	
-	metrics.RequestCount++
-	metrics.TokensProcessed += int64(usage.TotalTokens)
-	metrics.TotalCost += usage.EstimatedCost
-	metrics.LastUsed = time.Now()
-	
-	// Update cost trend
-	metrics.CostTrend = append(metrics.CostTrend, usage.EstimatedCost)
-	if len(metrics.CostTrend) > 100 {
-		metrics.CostTrend = metrics.CostTrend[1:]
-	}
+	return 0.9 // High quality
 }
 
-// FallbackManager methods
-
-func (fm *FallbackManager) GetFallbackChain(provider string) []string {
-	fm.mu.RLock()
-	defer fm.mu.RUnlock()
-	
-	chain, exists := fm.fallbackChains[provider]
-	if !exists {
-		// Return default fallback order
-		return []string{"openai", "azure", "huggingface", "local"}
-	}
-	return chain
-}
-
-func (fm *FallbackManager) GetFallbackProvider(failedProvider string, availableProviders map[string]EmbeddingProvider) (EmbeddingProvider, error) {
-	chain := fm.GetFallbackChain(failedProvider)
-	
-	for _, providerName := range chain {
-		if providerName == failedProvider {
-			continue
-		}
-		
-		if provider, exists := availableProviders[providerName]; exists {
-			return provider, nil
-		}
-	}
-	
-	return nil, fmt.Errorf("no fallback providers available")
-}
-
-func (fm *FallbackManager) RecordFallback(provider string, reason string) {
-	fm.mu.Lock()
-	defer fm.mu.Unlock()
-	
-	history, exists := fm.fallbackHistory[provider]
-	if !exists {
-		history = &FallbackHistory{
-			FallbackReasons: make(map[string]int),
-		}
-		fm.fallbackHistory[provider] = history
-	}
-	
-	history.FallbackCount++
-	history.FallbackReasons[reason]++
-	history.LastFallback = time.Now()
-}
-
-// BudgetManager methods
-
-func (bm *BudgetManager) CanProceed(request *EmbeddingRequest) bool {
-	bm.mu.RLock()
-	defer bm.mu.RUnlock()
-	
-	// Check if any limits are exceeded
-	if bm.currentSpend.HourlySpend >= bm.config.HourlyLimit ||
-		bm.currentSpend.DailySpend >= bm.config.DailyLimit ||
-		bm.currentSpend.MonthlySpend >= bm.config.MonthlyLimit {
+// isProviderAvailable checks if a provider is available
+func (s *CostAwareEmbeddingService) isProviderAvailable(name string) bool {
+	// Check if provider exists
+	if _, exists := s.providers[name]; !exists {
 		return false
 	}
-	
+
+	// Check health status
+	if health, exists := s.healthMonitor.healthChecks[name]; exists {
+		if !health.Healthy.Load() {
+			return false
+		}
+	}
+
+	// Check circuit breaker
+	if !s.checkCircuitBreaker(name) {
+		return false
+	}
+
+	// Check budget
+	if !s.checkBudget() {
+		return false
+	}
+
 	return true
 }
 
-func (bm *BudgetManager) RecordSpend(amount float64) {
-	bm.mu.Lock()
-	defer bm.mu.Unlock()
-	
-	now := time.Now()
-	
-	// Reset counters if needed
-	if now.Hour() != bm.currentSpend.LastReset.Hour() {
-		bm.currentSpend.HourlySpend = 0
-	}
-	if now.Day() != bm.currentSpend.LastReset.Day() {
-		bm.currentSpend.DailySpend = 0
-	}
-	if now.Month() != bm.currentSpend.LastReset.Month() {
-		bm.currentSpend.MonthlySpend = 0
-	}
-	
-	bm.currentSpend.HourlySpend += amount
-	bm.currentSpend.DailySpend += amount
-	bm.currentSpend.MonthlySpend += amount
-	bm.currentSpend.LastReset = now
-	
-	// Record in history
-	hourKey := now.Format("2006-01-02-15")
-	dayKey := now.Format("2006-01-02")
-	bm.spendHistory[hourKey] += amount
-	bm.spendHistory[dayKey] += amount
-}
-
-func (bm *BudgetManager) GetRemainingBudget(period string) float64 {
-	bm.mu.RLock()
-	defer bm.mu.RUnlock()
-	
-	switch period {
-	case "hourly":
-		return bm.config.HourlyLimit - bm.currentSpend.HourlySpend
-	case "daily":
-		return bm.config.DailyLimit - bm.currentSpend.DailySpend
-	case "monthly":
-		return bm.config.MonthlyLimit - bm.currentSpend.MonthlySpend
-	default:
-		return 0
-	}
-}
-
-func (bm *BudgetManager) ShouldPreserveBudget() bool {
-	bm.mu.RLock()
-	defer bm.mu.RUnlock()
-	
-	// Check if we're close to any limit
-	hourlyPercent := bm.currentSpend.HourlySpend / bm.config.HourlyLimit
-	dailyPercent := bm.currentSpend.DailySpend / bm.config.DailyLimit
-	monthlyPercent := bm.currentSpend.MonthlySpend / bm.config.MonthlyLimit
-	
-	threshold := (100.0 - bm.config.ReservePercent) / 100.0
-	
-	return hourlyPercent > threshold || dailyPercent > threshold || monthlyPercent > threshold
-}
-
-func (bm *BudgetManager) GetMaxAllowableSpend() float64 {
-	remaining := bm.GetRemainingBudget("daily")
-	reserve := bm.config.DailyLimit * (bm.config.ReservePercent / 100.0)
-	
-	allowable := remaining - reserve
-	if allowable < 0 {
-		return 0
-	}
-	return allowable
-}
-
-func (bm *BudgetManager) CheckAlerts() []BudgetAlert {
-	bm.mu.Lock()
-	defer bm.mu.Unlock()
-	
-	var alerts []BudgetAlert
-	
-	// Check hourly
-	if bm.currentSpend.HourlySpend > bm.config.HourlyLimit*0.8 {
-		alerts = append(alerts, BudgetAlert{
-			Type:      "hourly",
-			Threshold: 0.8,
-			Current:   bm.currentSpend.HourlySpend,
-			Limit:     bm.config.HourlyLimit,
-			Timestamp: time.Now(),
-			Message:   fmt.Sprintf("Hourly spend at %.1f%% of limit", (bm.currentSpend.HourlySpend/bm.config.HourlyLimit)*100),
-		})
-	}
-	
-	// Check daily
-	if bm.currentSpend.DailySpend > bm.config.DailyLimit*0.8 {
-		alerts = append(alerts, BudgetAlert{
-			Type:      "daily",
-			Threshold: 0.8,
-			Current:   bm.currentSpend.DailySpend,
-			Limit:     bm.config.DailyLimit,
-			Timestamp: time.Now(),
-			Message:   fmt.Sprintf("Daily spend at %.1f%% of limit", (bm.currentSpend.DailySpend/bm.config.DailyLimit)*100),
-		})
-	}
-	
-	return alerts
-}
-
-// CircuitBreaker methods
-
-func (cb *CircuitBreaker) CanAttempt() bool {
-	cb.mu.RLock()
-	defer cb.mu.RUnlock()
-	
-	switch cb.state {
-	case CircuitClosed:
+// checkCircuitBreaker checks if circuit breaker allows requests
+func (s *CostAwareEmbeddingService) checkCircuitBreaker(name string) bool {
+	breaker, exists := s.circuitBreakers[name]
+	if !exists {
 		return true
-	case CircuitOpen:
-		// Check if timeout has passed
-		if time.Since(cb.lastFailureTime) > cb.config.Timeout {
-			cb.mu.RUnlock()
-			cb.mu.Lock()
-			cb.state = CircuitHalfOpen
-			cb.successCount = 0
-			cb.mu.Unlock()
-			cb.mu.RLock()
+	}
+
+	state := breaker.state.Load()
+	switch state {
+	case 0: // Closed
+		return true
+	case 1: // Open
+		// Check if recovery timeout has passed
+		lastFailure := time.Unix(breaker.lastFailure.Load(), 0)
+		if time.Since(lastFailure) > breaker.config.RecoveryTimeout {
+			breaker.state.Store(2) // Move to half-open
 			return true
 		}
 		return false
-	case CircuitHalfOpen:
-		return cb.successCount < cb.config.MaxRetries
+	case 2: // Half-open
+		return true
+	default:
+		return false
 	}
-	
-	return false
 }
 
-func (cb *CircuitBreaker) RecordSuccess() {
-	cb.mu.Lock()
-	defer cb.mu.Unlock()
-	
-	cb.lastAttemptTime = time.Now()
-	
-	switch cb.state {
-	case CircuitHalfOpen:
-		cb.successCount++
-		if cb.successCount >= cb.config.SuccessThreshold {
-			cb.state = CircuitClosed
-			cb.failures = 0
-			cb.successCount = 0
+// checkBudget checks if we're within budget limits
+func (s *CostAwareEmbeddingService) checkBudget() bool {
+	s.costTracker.mu.RLock()
+	defer s.costTracker.mu.RUnlock()
+
+	hourly := s.costTracker.currentCosts.hourly.Load().(float64)
+	daily := s.costTracker.currentCosts.daily.Load().(float64)
+	monthly := s.costTracker.currentCosts.monthly.Load().(float64)
+
+	if s.costTracker.hourlyBudget > 0 && hourly >= s.costTracker.hourlyBudget {
+		s.metrics.budgetExceeded.Inc()
+		return false
+	}
+	if s.costTracker.dailyBudget > 0 && daily >= s.costTracker.dailyBudget {
+		s.metrics.budgetExceeded.Inc()
+		return false
+	}
+	if s.costTracker.monthlyBudget > 0 && monthly >= s.costTracker.monthlyBudget {
+		s.metrics.budgetExceeded.Inc()
+		return false
+	}
+
+	return true
+}
+
+// updateCostTracking updates cost tracking
+func (s *CostAwareEmbeddingService) updateCostTracking(provider string, cost float64) {
+	// Update current costs
+	for {
+		oldHourly := s.costTracker.currentCosts.hourly.Load().(float64)
+		if s.costTracker.currentCosts.hourly.CompareAndSwap(oldHourly, oldHourly+cost) {
+			break
 		}
-	case CircuitClosed:
-		cb.failures = 0
 	}
-}
-
-func (cb *CircuitBreaker) RecordFailure() {
-	cb.mu.Lock()
-	defer cb.mu.Unlock()
-	
-	cb.lastAttemptTime = time.Now()
-	cb.lastFailureTime = time.Now()
-	cb.failures++
-	
-	switch cb.state {
-	case CircuitClosed:
-		if cb.failures >= cb.config.FailureThreshold {
-			cb.state = CircuitOpen
+	for {
+		oldDaily := s.costTracker.currentCosts.daily.Load().(float64)
+		if s.costTracker.currentCosts.daily.CompareAndSwap(oldDaily, oldDaily+cost) {
+			break
 		}
-	case CircuitHalfOpen:
-		cb.state = CircuitOpen
-		cb.successCount = 0
+	}
+	for {
+		oldMonthly := s.costTracker.currentCosts.monthly.Load().(float64)
+		if s.costTracker.currentCosts.monthly.CompareAndSwap(oldMonthly, oldMonthly+cost) {
+			break
+		}
+	}
+
+	// Update provider stats
+	if stats, exists := s.costTracker.historicalData[provider]; exists {
+		for {
+			oldCost := stats.TotalCost.Load().(float64)
+			if stats.TotalCost.CompareAndSwap(oldCost, oldCost+cost) {
+				break
+			}
+		}
+	}
+
+	// Update metrics
+	s.metrics.costTotal.Add(cost)
+	s.metrics.costPerProvider.WithLabelValues(provider).Add(cost)
+}
+
+// recordSuccess records a successful request
+func (s *CostAwareEmbeddingService) recordSuccess(provider string, duration time.Duration) {
+	if stats, exists := s.costTracker.historicalData[provider]; exists {
+		stats.TotalRequests.Add(1)
+		stats.SuccessfulReqs.Add(1)
+		stats.TotalLatency.Add(int64(duration))
+		stats.LastUsed.Store(time.Now().Unix())
+	}
+
+	// Update circuit breaker
+	if breaker, exists := s.circuitBreakers[provider]; exists {
+		breaker.failures.Store(0)
+		if breaker.state.Load() == 2 { // Half-open
+			breaker.successCount.Add(1)
+			if breaker.successCount.Load() >= breaker.config.SuccessThreshold {
+				breaker.state.Store(0) // Close circuit
+				breaker.successCount.Store(0)
+			}
+		}
 	}
 }
 
-func (cb *CircuitBreaker) GetState() CircuitState {
-	cb.mu.RLock()
-	defer cb.mu.RUnlock()
-	return cb.state
+// recordFailure records a failed request
+func (s *CostAwareEmbeddingService) recordFailure(provider string) {
+	if stats, exists := s.costTracker.historicalData[provider]; exists {
+		stats.TotalRequests.Add(1)
+		stats.FailedReqs.Add(1)
+	}
+
+	// Update circuit breaker
+	if breaker, exists := s.circuitBreakers[provider]; exists {
+		failures := breaker.failures.Add(1)
+		breaker.lastFailure.Store(time.Now().Unix())
+		
+		if failures >= breaker.config.FailureThreshold {
+			if breaker.state.CompareAndSwap(0, 1) { // Close to Open
+				s.metrics.circuitBreakerTrips.Inc()
+				s.logger.Warn("Circuit breaker opened",
+					zap.String("provider", provider),
+					zap.Int32("failures", failures))
+			}
+		}
+		
+		if breaker.state.Load() == 2 { // Half-open
+			breaker.state.Store(1) // Back to open
+			breaker.successCount.Store(0)
+		}
+	}
 }
 
-// CostOptimizer methods
+// getFallbackChain returns the fallback chain for a provider
+func (s *CostAwareEmbeddingService) getFallbackChain(provider string) []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.fallbackChains[provider]
+}
 
-func (co *CostOptimizer) RecordCost(provider string, cost float64, tokens int) {
-	co.mu.Lock()
-	defer co.mu.Unlock()
-	
-	dataPoint := CostDataPoint{
-		Timestamp:    time.Now(),
-		Provider:     provider,
-		Cost:         cost,
-		TokenCount:   tokens,
-		RequestCount: 1,
+// monitorHealth periodically checks provider health
+func (s *CostAwareEmbeddingService) monitorHealth() {
+	ticker := time.NewTicker(s.healthMonitor.checkInterval)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		s.mu.RLock()
+		providers := make(map[string]EmbeddingProvider)
+		for k, v := range s.providers {
+			providers[k] = v
+		}
+		s.mu.RUnlock()
+
+		for name, provider := range providers {
+			go s.checkProviderHealth(name, provider)
+		}
 	}
+}
+
+// checkProviderHealth checks the health of a single provider
+func (s *CostAwareEmbeddingService) checkProviderHealth(name string, provider EmbeddingProvider) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	start := time.Now()
 	
-	// Add to history
-	hourKey := dataPoint.Timestamp.Format("2006-01-02-15")
-	dayKey := dataPoint.Timestamp.Format("2006-01-02")
-	monthKey := dataPoint.Timestamp.Format("2006-01")
+	// Simple health check - try to get embeddings for a small text
+	_, err := provider.GetEmbeddings(ctx, []string{"health check"})
 	
-	co.costHistory.mu.Lock()
-	co.costHistory.hourlyHistory[hourKey] = append(co.costHistory.hourlyHistory[hourKey], dataPoint)
-	co.costHistory.dailyHistory[dayKey] = append(co.costHistory.dailyHistory[dayKey], dataPoint)
-	co.costHistory.monthlyHistory[monthKey] = append(co.costHistory.monthlyHistory[monthKey], dataPoint)
-	co.costHistory.mu.Unlock()
-	
-	// Update provider metrics
-	metrics, exists := co.providerMetrics[provider]
+	duration := time.Since(start)
+
+	health, exists := s.healthMonitor.healthChecks[name]
 	if !exists {
-		metrics = &ProviderMetrics{}
-		co.providerMetrics[provider] = metrics
+		return
 	}
-	
-	metrics.TotalCost += cost
-	metrics.TokensProcessed += int64(tokens)
-	if tokens > 0 {
-		metrics.AverageCostPerToken = metrics.TotalCost / float64(metrics.TokensProcessed)
+
+	health.LastCheck.Store(time.Now().Unix())
+	health.ResponseTime.Store(duration.Milliseconds())
+
+	if err != nil {
+		health.ConsecutiveFails.Add(1)
+		if health.ConsecutiveFails.Load() >= 3 {
+			health.Healthy.Store(false)
+			s.logger.Warn("Provider marked unhealthy",
+				zap.String("provider", name),
+				zap.Error(err))
+		}
+	} else {
+		health.ConsecutiveFails.Store(0)
+		health.Healthy.Store(true)
+	}
+}
+
+// resetCostTracking periodically resets cost accumulators
+func (s *CostAwareEmbeddingService) resetCostTracking() {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		now := time.Now()
+		
+		// Reset hourly costs
+		if now.Hour() != s.costTracker.currentCosts.lastReset.Hour() {
+			s.costTracker.currentCosts.hourly.Store(0.0)
+		}
+		
+		// Reset daily costs
+		if now.Day() != s.costTracker.currentCosts.lastReset.Day() {
+			s.costTracker.currentCosts.daily.Store(0.0)
+		}
+		
+		// Reset monthly costs
+		if now.Month() != s.costTracker.currentCosts.lastReset.Month() {
+			s.costTracker.currentCosts.monthly.Store(0.0)
+		}
+		
+		s.costTracker.currentCosts.lastReset = now
 	}
 }

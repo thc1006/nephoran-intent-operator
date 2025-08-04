@@ -1,0 +1,265 @@
+# Prompt Optimization Configuration for Nephoran Intent Operator
+# This configuration defines best practices and settings for LLM prompt management
+
+prompt_optimization:
+  # Token budget management
+  token_budgets:
+    minimal:
+      max_tokens: 2000
+      reserved_for_response: 500
+      context_allocation: 1000
+      system_prompt_allocation: 500
+      
+    standard:
+      max_tokens: 4000
+      reserved_for_response: 1000
+      context_allocation: 2000
+      system_prompt_allocation: 1000
+      
+    comprehensive:
+      max_tokens: 8000
+      reserved_for_response: 2000
+      context_allocation: 4000
+      system_prompt_allocation: 2000
+
+  # Model-specific configurations
+  model_configs:
+    gpt-4o:
+      context_window: 128000
+      optimal_prompt_length: 4000
+      temperature: 0.3
+      top_p: 0.9
+      frequency_penalty: 0.1
+      presence_penalty: 0.1
+      
+    gpt-4o-mini:
+      context_window: 128000
+      optimal_prompt_length: 3000
+      temperature: 0.3
+      top_p: 0.9
+      
+    claude-3-haiku:
+      context_window: 200000
+      optimal_prompt_length: 5000
+      temperature: 0.2
+      
+  # Telecom domain priorities
+  domain_priorities:
+    O-RAN:
+      weight: 1.0
+      required_knowledge:
+        - "Near-RT RIC and xApp architecture"
+        - "E2, A1, O1 interfaces"
+        - "O-RAN Alliance specifications"
+        - "Multi-vendor interoperability"
+      key_terms:
+        - "xApp"
+        - "rApp"
+        - "E2 node"
+        - "RIC"
+        - "O-DU"
+        - "O-CU"
+        - "O-RU"
+        
+    5G-Core:
+      weight: 0.95
+      required_knowledge:
+        - "Service Based Architecture (SBA)"
+        - "Network Function types (AMF, SMF, UPF, etc.)"
+        - "3GPP standards R15/R16/R17"
+        - "Network slicing"
+      key_terms:
+        - "AMF"
+        - "SMF"
+        - "UPF"
+        - "PCF"
+        - "NRF"
+        - "NSSF"
+        - "SBI"
+        
+    Network-Slicing:
+      weight: 0.9
+      required_knowledge:
+        - "S-NSSAI (SST and SD)"
+        - "Slice types (eMBB, URLLC, mMTC)"
+        - "Resource isolation"
+        - "QoS parameters"
+      key_terms:
+        - "SST"
+        - "SD"
+        - "S-NSSAI"
+        - "NSI"
+        - "NSSI"
+        - "slice isolation"
+
+  # Context injection strategies
+  context_strategies:
+    relevance_based:
+      min_relevance_score: 0.7
+      max_documents: 5
+      diversity_factor: 0.3
+      
+    token_optimized:
+      compression_enabled: true
+      compression_levels:
+        light: 0.9     # Keep 90% of content
+        moderate: 0.7  # Keep 70% of content
+        heavy: 0.5     # Keep 50% of content
+      
+    hybrid:
+      use_relevance: true
+      use_compression: true
+      balance_factor: 0.6  # 60% relevance, 40% token efficiency
+
+  # Prompt templates settings
+  template_selection:
+    auto_select: true
+    selection_criteria:
+      - domain_match
+      - complexity_match
+      - token_budget_fit
+      
+    fallback_template: "baseline"
+    
+  # Quality thresholds
+  quality_thresholds:
+    technical_accuracy: 0.8
+    compliance_score: 0.75
+    completeness_score: 0.85
+    format_validity: 1.0
+    
+  # A/B testing configuration
+  ab_testing:
+    enabled: true
+    min_samples_per_variant: 10
+    confidence_level: 0.95
+    metrics_to_track:
+      - overall_score
+      - technical_accuracy
+      - response_time
+      - token_usage
+      - error_rate
+      
+  # Performance optimization
+  performance:
+    cache_enabled: true
+    cache_ttl: 900  # 15 minutes
+    parallel_evaluations: true
+    max_concurrent_requests: 10
+    timeout_seconds: 30
+    
+  # Monitoring and alerting
+  monitoring:
+    metrics_collection: true
+    alert_thresholds:
+      error_rate: 0.1
+      avg_response_time: 5.0
+      token_usage_ratio: 0.9
+      
+# Best practices for prompt engineering
+best_practices:
+  system_prompts:
+    - "Always include domain expertise context"
+    - "Specify output format explicitly"
+    - "Include compliance requirements"
+    - "Set clear boundaries and constraints"
+    - "Use role-based instructions"
+    
+  user_prompts:
+    - "Be specific about the intent"
+    - "Include relevant context"
+    - "Specify any constraints or requirements"
+    - "Use consistent terminology"
+    - "Provide examples when helpful"
+    
+  context_injection:
+    - "Prioritize most relevant documents"
+    - "Maintain diversity in sources"
+    - "Include network state when applicable"
+    - "Compress intelligently to save tokens"
+    - "Always validate context quality"
+    
+  response_validation:
+    - "Verify technical accuracy"
+    - "Check compliance with standards"
+    - "Validate output format"
+    - "Ensure completeness"
+    - "Test edge cases"
+
+# Optimization strategies
+optimization_strategies:
+  iterative_refinement:
+    description: "Continuously improve prompts based on evaluation results"
+    steps:
+      1: "Baseline evaluation"
+      2: "Identify weaknesses"
+      3: "Create variants"
+      4: "A/B test"
+      5: "Implement winner"
+      6: "Monitor performance"
+      
+  token_efficiency:
+    description: "Optimize token usage while maintaining quality"
+    techniques:
+      - "Compress system prompts"
+      - "Use structured formats"
+      - "Implement dynamic context"
+      - "Cache common patterns"
+      - "Batch similar requests"
+      
+  domain_specialization:
+    description: "Create specialized prompts for different domains"
+    approach:
+      - "Separate O-RAN and 5G Core prompts"
+      - "Use domain-specific examples"
+      - "Include relevant standards"
+      - "Focus on key terminology"
+      - "Validate with domain experts"
+
+# Compliance and standards
+compliance:
+  standards:
+    3GPP:
+      versions: ["R15", "R16", "R17"]
+      priority: high
+      validation_required: true
+      
+    O-RAN:
+      versions: ["G-release", "F-release"]
+      priority: high
+      validation_required: true
+      
+    ETSI:
+      versions: ["NFV", "MEC"]
+      priority: medium
+      validation_required: false
+      
+  validation_rules:
+    - "Check interface definitions"
+    - "Verify protocol compliance"
+    - "Validate configuration parameters"
+    - "Ensure security requirements"
+    - "Check versioning compatibility"
+
+# Usage guidelines
+usage_guidelines:
+  development:
+    - "Test prompts with multiple models"
+    - "Use A/B testing for major changes"
+    - "Monitor token usage closely"
+    - "Document prompt versions"
+    - "Maintain prompt library"
+    
+  production:
+    - "Use cached prompts when possible"
+    - "Implement fallback strategies"
+    - "Monitor performance metrics"
+    - "Set up alerts for anomalies"
+    - "Regular prompt audits"
+    
+  maintenance:
+    - "Review prompt performance weekly"
+    - "Update for new standards"
+    - "Refine based on user feedback"
+    - "Archive deprecated prompts"
+    - "Maintain change log"
