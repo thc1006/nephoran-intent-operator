@@ -292,6 +292,11 @@ func (rp *RAGPipeline) initializeComponents() error {
 	// Initialize chunking service
 	rp.chunkingService = NewChunkingService(rp.config.ChunkingConfig)
 
+	// Load secrets from files
+	if err := LoadRAGPipelineSecrets(rp.config, rp.logger); err != nil {
+		rp.logger.Warn("Failed to load some secrets from files", "error", err.Error())
+	}
+
 	// Initialize embedding service
 	rp.embeddingService = NewEmbeddingService(rp.config.EmbeddingConfig)
 

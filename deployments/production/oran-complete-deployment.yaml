@@ -1,0 +1,902 @@
+# Nephoran Intent Operator - Complete O-RAN Production Deployment
+# This file contains all O-RAN components with production-grade resource limits,
+# security contexts, monitoring, and high availability configurations.
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-oran
+  labels:
+    name: nephoran-oran
+    app.kubernetes.io/name: nephoran-oran
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    security.nephoran.com/workload-type: oran-interface
+  annotations:
+    nephoran.com/description: "Nephoran O-RAN Interface Components"
+    nephoran.com/owner: "nephoran-system"
+
+---
+# Resource Quota for the namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: oran-resource-quota
+  namespace: nephoran-oran
+  labels:
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  hard:
+    requests.cpu: "4"
+    requests.memory: "8Gi"
+    requests.storage: "50Gi"
+    limits.cpu: "8"
+    limits.memory: "16Gi"
+    persistentvolumeclaims: "10"
+    pods: "20"
+    services: "10"
+    secrets: "20"
+    configmaps: "20"
+
+---
+# Limit Range for the namespace
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: oran-limit-range
+  namespace: nephoran-oran
+  labels:
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  limits:
+  - type: Container
+    default:
+      cpu: "1000m"
+      memory: "1Gi"
+      ephemeral-storage: "2Gi"
+    defaultRequest:
+      cpu: "250m"
+      memory: "256Mi"
+      ephemeral-storage: "512Mi"
+    max:
+      cpu: "2000m"
+      memory: "4Gi"
+      ephemeral-storage: "8Gi"
+    min:
+      cpu: "100m"
+      memory: "128Mi"
+      ephemeral-storage: "256Mi"
+  - type: Pod
+    max:
+      cpu: "4000m"
+      memory: "8Gi"
+      ephemeral-storage: "16Gi"
+
+---
+# Network Policy for O-RAN namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: oran-namespace-netpol
+  namespace: nephoran-oran
+  labels:
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  
+  ingress:
+  # Allow traffic from Nephoran components
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: default
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: nephoran-intent-operator
+  
+  # Allow monitoring from monitoring namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+  
+  egress:
+  # Allow DNS
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  
+  # Allow HTTPS for external APIs
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  
+  # Allow internal cluster communication
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8082
+    - protocol: TCP
+      port: 830  # NETCONF
+    - protocol: TCP
+      port: 38000  # E2
+
+---
+# Priority Class for O-RAN workloads
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: oran-critical
+  labels:
+    app.kubernetes.io/part-of: nephoran-intent-operator
+value: 1000
+globalDefault: false
+description: "Priority class for critical O-RAN interface components"
+
+---
+# Service Account for O-RAN Adaptor
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oran-adaptor-sa
+  namespace: nephoran-oran
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+automountServiceAccountToken: true
+
+---
+# RBAC for O-RAN Adaptor
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: oran-adaptor-role
+  labels:
+    app.kubernetes.io/part-of: nephoran-intent-operator
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["nephoran.com"]
+  resources: ["managedelements", "networkintents", "e2nodesets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oran-adaptor-rolebinding
+  labels:
+    app.kubernetes.io/part-of: nephoran-intent-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: oran-adaptor-role
+subjects:
+- kind: ServiceAccount
+  name: oran-adaptor-sa
+  namespace: nephoran-oran
+
+---
+# ConfigMap for O-RAN Adaptor
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oran-adaptor-config
+  namespace: nephoran-oran
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  # Production Configuration
+  log_level: "info"
+  log_format: "json"
+  structured_logging: "true"
+  
+  # A1 Interface Configuration
+  a1_ric_url: "https://a1-ric.oran-production.svc.cluster.local:8443"
+  a1_api_version: "v1"
+  a1_timeout: "30s"
+  a1_tls_enabled: "true"
+  a1_mtls_enabled: "true"
+  
+  # E2 Interface Configuration  
+  e2_ric_url: "https://e2-ric.oran-production.svc.cluster.local:38443"
+  e2_timeout: "30s"
+  e2_heartbeat_interval: "30s"
+  e2_tls_enabled: "true"
+  e2_mtls_enabled: "true"
+  
+  # O1 Interface Configuration
+  o1_netconf_host: "o1-managed-element.oran-production.svc.cluster.local"
+  o1_netconf_port: "830"
+  o1_tls_enabled: "true"
+  o1_yang_models_path: "/etc/yang-models"
+  
+  # O2 Interface Configuration
+  o2_ims_url: "https://o2-ims.oran-production.svc.cluster.local:8443"
+  o2_api_version: "v1"
+  o2_timeout: "60s"
+  o2_tls_enabled: "true"
+  o2_mtls_enabled: "true"
+  
+  # Circuit Breaker Configuration
+  circuit_breaker_enabled: "true"
+  circuit_breaker_failure_threshold: "5"
+  circuit_breaker_success_threshold: "3"
+  circuit_breaker_timeout: "60s"
+  circuit_breaker_half_open_max_calls: "10"
+  
+  # Retry Configuration
+  max_retries: "3"
+  retry_initial_delay: "1s"
+  retry_max_delay: "30s"
+  retry_backoff_factor: "2.0"
+  retry_jitter_enabled: "true"
+  
+  # Health Check Configuration
+  health_check_enabled: "true"
+  health_check_interval: "30s"
+  health_check_timeout: "10s"
+  dependency_check_enabled: "true"
+  dependency_check_timeout: "5s"
+  
+  # Monitoring Configuration
+  metrics_enabled: "true"
+  metrics_path: "/metrics"
+  metrics_port: "8082"
+  metrics_interval: "15s"
+  tracing_enabled: "true"
+  jaeger_endpoint: "http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
+  
+  # Performance Configuration
+  max_concurrent_requests: "200"
+  request_timeout: "30s"
+  keep_alive_timeout: "60s"
+  read_header_timeout: "10s"
+  write_timeout: "30s"
+  
+  # O-RAN Compliance
+  oran_compliance_version: "O-RAN.WG1.O1-Interface.0-v05.00"
+  oran_vendor_name: "Nephoran"
+  oran_vendor_version: "1.0.0"
+
+---
+# Secret for O-RAN Adaptor
+apiVersion: v1
+kind: Secret
+metadata:
+  name: oran-credentials
+  namespace: nephoran-oran
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+type: Opaque
+stringData:
+  # Production credentials - replace with actual values
+  o1_username: "oran-admin"
+  o1_password: "change-me-in-production"
+  a1_api_key: "change-me-in-production"
+  e2_api_key: "change-me-in-production"
+  o2_api_key: "change-me-in-production"
+  ric_auth_token: "change-me-in-production"
+  ims_auth_token: "change-me-in-production"
+
+---
+# TLS Certificate Secret (should be managed by cert-manager in production)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: oran-tls-certs
+  namespace: nephoran-oran
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    cert-manager.io/issuer: "oran-ca-issuer"
+    cert-manager.io/common-name: "oran-adaptor.nephoran-oran.svc.cluster.local"
+    cert-manager.io/alt-names: "oran-adaptor,oran-adaptor.nephoran-oran,oran-adaptor.nephoran-oran.svc"
+type: kubernetes.io/tls
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t  # Replace with actual certificate
+  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t  # Replace with actual private key
+  ca.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t   # Replace with actual CA certificate
+
+---
+# O-RAN Adaptor Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oran-adaptor
+  namespace: nephoran-oran
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    version: v1.0.0
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/version: v1.0.0
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    nephoran.com/component: "oran-adaptor"
+    nephoran.com/enhanced: "true"
+    config.kubernetes.io/depends-on: "v1/Secret/oran-credentials,v1/ConfigMap/oran-adaptor-config"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: oran-adaptor
+  template:
+    metadata:
+      labels:
+        app: oran-adaptor
+        component: oran-interface
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/metrics"
+        config.kubernetes.io/reload: "true"
+        security.nephoran.com/profile: "restricted"
+    spec:
+      serviceAccountName: oran-adaptor-sa
+      priorityClassName: oran-critical
+      
+      # Security Context - Pod Level
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: "OnRootMismatch"
+        seccompProfile:
+          type: RuntimeDefault
+        supplementalGroups: []
+      
+      # DNS Configuration
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+        - name: ndots
+          value: "2"
+        - name: edns0
+      
+      # Topology Spread Constraints
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: oran-adaptor
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app: oran-adaptor
+      
+      containers:
+      - name: oran-adaptor
+        image: thc1006/nephoran-oran-adaptor:v1.0.0
+        imagePullPolicy: IfNotPresent
+        
+        # Security Context - Container Level
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          seccompProfile:
+            type: RuntimeDefault
+        
+        # Ports
+        ports:
+        - name: http
+          containerPort: 8082
+          protocol: TCP
+        - name: metrics
+          containerPort: 8082
+          protocol: TCP
+        
+        # Environment Variables
+        env:
+        - name: PORT
+          value: "8082"
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: oran-adaptor-config
+              key: log_level
+        - name: LOG_FORMAT
+          valueFrom:
+            configMapKeyRef:
+              name: oran-adaptor-config
+              key: log_format
+        - name: SERVICE_VERSION
+          value: "v1.0.0"
+        - name: GRACEFUL_SHUTDOWN_TIMEOUT
+          value: "30s"
+        
+        # Pod Information
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        
+        # Configuration from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: oran-adaptor-config
+        
+        # Resource Requirements
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+            ephemeral-storage: 4Gi
+        
+        # Health Checks
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-liveness-probe"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+            scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-readiness-probe"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+        
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-startup-probe"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 30
+          successThreshold: 1
+        
+        # Volume Mounts
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+        - name: var-run
+          mountPath: /var/run
+          readOnly: false
+        - name: cache
+          mountPath: /cache
+          readOnly: false
+        - name: oran-config
+          mountPath: /config
+          readOnly: true
+        - name: yang-models
+          mountPath: /etc/yang-models
+          readOnly: true
+        - name: tls-certs
+          mountPath: /etc/certs
+          readOnly: true
+        - name: credentials
+          mountPath: /etc/credentials
+          readOnly: true
+      
+      # Termination Grace Period
+      terminationGracePeriodSeconds: 60
+      
+      # Restart Policy
+      restartPolicy: Always
+      
+      # Affinity Rules
+      affinity:
+        # Pod Anti-Affinity for High Availability
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - oran-adaptor
+              topologyKey: kubernetes.io/hostname
+          - weight: 50
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - oran-adaptor
+              topologyKey: topology.kubernetes.io/zone
+        
+        # Node Affinity for preferred scheduling
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: nephoran.com/node-type
+                operator: In
+                values:
+                - oran-processing
+          - weight: 50
+            preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/worker
+                operator: Exists
+      
+      # Tolerations
+      tolerations:
+      - key: "nephoran.com/oran-workload"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      
+      # Volumes
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+          medium: Memory
+      - name: var-run
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: cache
+        emptyDir:
+          sizeLimit: 2Gi
+      - name: oran-config
+        configMap:
+          name: oran-adaptor-config
+          defaultMode: 0444
+      - name: yang-models
+        configMap:
+          name: oran-yang-models
+          defaultMode: 0444
+      - name: tls-certs
+        secret:
+          secretName: oran-tls-certs
+          defaultMode: 0400
+      - name: credentials
+        secret:
+          secretName: oran-credentials
+          defaultMode: 0400
+
+---
+# Service for O-RAN Adaptor
+apiVersion: v1
+kind: Service
+metadata:
+  name: oran-adaptor
+  namespace: nephoran-oran
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8082"
+    prometheus.io/path: "/metrics"
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internal
+spec:
+  type: ClusterIP
+  sessionAffinity: None
+  ports:
+  - name: http
+    port: 8082
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 8082
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: oran-adaptor
+
+---
+# Headless Service for StatefulSet-like behavior
+apiVersion: v1
+kind: Service
+metadata:
+  name: oran-adaptor-headless
+  namespace: nephoran-oran
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: false
+  ports:
+  - name: http
+    port: 8082
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: oran-adaptor
+
+---
+# Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: oran-adaptor-pdb
+  namespace: nephoran-oran
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: oran-adaptor
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: oran-adaptor-hpa
+  namespace: nephoran-oran
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: oran-adaptor
+  
+  minReplicas: 3
+  maxReplicas: 20
+  
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 4
+        periodSeconds: 30
+      selectPolicy: Max
+
+---
+# Service Monitor for Prometheus
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: oran-adaptor
+  namespace: nephoran-oran
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: oran-adaptor
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 15s
+    scrapeTimeout: 10s
+    honorLabels: true
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'nephoran_oran_.*'
+      action: keep
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+    - targetLabel: service
+      replacement: oran-adaptor
+
+---
+# Grafana Dashboard ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oran-adaptor-dashboard
+  namespace: nephoran-oran
+  labels:
+    app: oran-adaptor
+    grafana_dashboard: "1"
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "O-RAN Adaptor Dashboard",
+        "tags": ["nephoran", "oran", "adaptor"],
+        "style": "dark",
+        "timezone": "browser",
+        "editable": true,
+        "hideControls": false,
+        "graphTooltip": 1,
+        "panels": [
+          {
+            "title": "O-RAN Interface Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "nephoran_oran_health_check_status",
+                "legendFormat": "{{interface}}"
+              }
+            ]
+          },
+          {
+            "title": "Circuit Breaker States",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "nephoran_a1_circuit_breaker_state",
+                "legendFormat": "A1 Interface"
+              },
+              {
+                "expr": "nephoran_e2_circuit_breaker_state", 
+                "legendFormat": "E2 Interface"
+              }
+            ]
+          },
+          {
+            "title": "Message Throughput",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "rate(nephoran_oran_throughput_messages_per_second[5m])",
+                "legendFormat": "{{interface}} - {{direction}}"
+              }
+            ]
+          },
+          {
+            "title": "Error Rate",
+            "type": "graph", 
+            "targets": [
+              {
+                "expr": "nephoran_oran_error_rate_percent",
+                "legendFormat": "{{interface}} - {{error_type}}"
+              }
+            ]
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }

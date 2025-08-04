@@ -1,16 +1,5 @@
 package llm
 
-import (
-	"context"
-	
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-)
-
-// ClientInterface defines the interface for an LLM client.
-// This interface extends the shared interface to maintain backward compatibility
-type ClientInterface interface {
-	shared.ClientInterface
-}
-
-// ClientInterface embeds shared.ClientInterface for compatibility
-// Type assertion is not needed since ClientInterface embeds shared.ClientInterface
+// DEPRECATED: This package's ClientInterface is redundant.
+// Use github.com/thc1006/nephoran-intent-operator/pkg/shared.ClientInterface directly.
+// This package is kept for backward compatibility but should be phased out.

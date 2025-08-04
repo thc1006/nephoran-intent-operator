@@ -11,13 +11,10 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
@@ -114,17 +111,29 @@ type EdgeCapabilities struct {
 	IoTGateway           bool     `json:"iot_gateway"`            // IoT device management
 	NetworkFunctions     []string `json:"network_functions"`      // Supported NFs
 	AcceleratorTypes     []string `json:"accelerator_types"`      // GPU, FPGA, etc.
+	ComputeCores          int      `json:"compute_cores"`
+	MemoryGB              float64  `json:"memory_gb"`
+	StorageGB             float64  `json:"storage_gb"`
+	GPUEnabled            bool     `json:"gpu_enabled"`
+	GPUMemoryGB           float64  `json:"gpu_memory_gb"`
+	MLFrameworks          []string `json:"ml_frameworks"`
+	AcceleratorType       string   `json:"accelerator_type"`
+	CacheEnabled          bool     `json:"cache_enabled"`
+	CacheSizeGB           float64  `json:"cache_size_gb"`
 }
 
 // EdgeResources tracks resource availability
 type EdgeResources struct {
-	CPU              int     `json:"cpu"`               // CPU cores
-	Memory           int64   `json:"memory"`            // Memory in bytes
-	Storage          int64   `json:"storage"`           // Storage in bytes
-	GPU              int     `json:"gpu"`               // GPU units
-	NetworkBandwidth int     `json:"network_bandwidth"` // Mbps
-	Accelerators     int     `json:"accelerators"`      // FPGA/other accelerators
-	Utilization      ResourceUtilization `json:"utilization"`
+	CPU                int     `json:"cpu"`               // CPU cores
+	Memory             int64   `json:"memory"`            // Memory in bytes
+	Storage            int64   `json:"storage"`           // Storage in bytes
+	GPU                int     `json:"gpu"`               // GPU units
+	NetworkBandwidth   int     `json:"network_bandwidth"` // Mbps
+	Accelerators       int     `json:"accelerators"`      // FPGA/other accelerators
+	Utilization        ResourceUtilization `json:"utilization"`
+	CPUUtilization     float64 `json:"cpu_utilization"`
+	MemoryUtilization  float64 `json:"memory_utilization"`
+	StorageUtilization float64 `json:"storage_utilization"`
 }
 
 // ResourceUtilization tracks current resource usage
@@ -185,10 +194,18 @@ type EdgeHealthMetrics struct {
 	TemperatureCelsius float64   `json:"temperature_celsius"`
 	PowerConsumption  float64   `json:"power_consumption"`   // Watts
 	LastHealthCheck   time.Time `json:"last_health_check"`
+	LastCheck         time.Time `json:"last_check"`
+	Latency           float64   `json:"latency"`
+	PacketLoss        float64   `json:"packet_loss"`
+	Jitter            float64   `json:"jitter"`
+	Availability      float64   `json:"availability"`
+	ConnectionCount   int       `json:"connection_count"`
+	ActiveSessions    int       `json:"active_sessions"`
 }
 
 // EdgeService represents services running on edge nodes
 type EdgeService struct {
+	ID            string            `json:"id"`
 	Name          string            `json:"name"`
 	Type          string            `json:"type"`          // AI/ML, Caching, Processing
 	Status        string            `json:"status"`
@@ -196,6 +213,7 @@ type EdgeService struct {
 	Configuration map[string]string `json:"configuration"`
 	HealthEndpoint string           `json:"health_endpoint"`
 	Metrics       ServiceMetrics    `json:"metrics"`
+	Endpoint      string            `json:"endpoint"`
 }
 
 // ServiceMetrics tracks edge service performance

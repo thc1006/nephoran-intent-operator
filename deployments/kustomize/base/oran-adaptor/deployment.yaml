@@ -4,8 +4,24 @@ metadata:
   name: oran-adaptor
   labels:
     app: oran-adaptor
+    component: oran-interface
+    version: v1.0.0
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/version: v1.0.0
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    nephoran.com/component: "oran-adaptor"
+    nephoran.com/enhanced: "true"
+    config.kubernetes.io/depends-on: "v1/Secret/oran-credentials,v1/ConfigMap/oran-adaptor-config"
 spec:
-  replicas: 1
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: oran-adaptor
@@ -13,23 +29,277 @@ spec:
     metadata:
       labels:
         app: oran-adaptor
+        component: oran-interface
+        version: v1.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: oran-adaptor-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: oran-adaptor
         image: thc1006/nephoran-oran-adaptor:latest
+        imagePullPolicy: Always
         command: ["/oran-adaptor"]
         ports:
-        - containerPort: 8082
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: 8082
-          initialDelaySeconds: 5
-          periodSeconds: 10
+        - name: http
+          containerPort: 8082
+          protocol: TCP
+        - name: metrics
+          containerPort: 8082
+          protocol: TCP
+        env:
+        # Service Configuration
+        - name: PORT
+          value: "8082"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: SERVICE_VERSION
+          value: "v1.0.0"
+        - name: GRACEFUL_SHUTDOWN_TIMEOUT
+          value: "30s"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        
+        # O-RAN Interface Configuration
+        - name: A1_ENABLED
+          value: "true"
+        - name: E2_ENABLED
+          value: "true"
+        - name: O1_ENABLED
+          value: "true"
+        - name: O2_ENABLED
+          value: "true"
+        
+        # A1 Interface Configuration
+        - name: A1_RIC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: oran-adaptor-config
+              key: a1_ric_url
+        - name: A1_API_VERSION
+          value: "v1"
+        - name: A1_TIMEOUT
+          value: "30s"
+        
+        # E2 Interface Configuration
+        - name: E2_RIC_URL
+          valueFrom:
+            configMapKeyRef:
+              name: oran-adaptor-config
+              key: e2_ric_url
+        - name: E2_TIMEOUT
+          value: "30s"
+        - name: E2_HEARTBEAT_INTERVAL
+          value: "30s"
+        
+        # O1 Interface Configuration
+        - name: O1_NETCONF_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: oran-adaptor-config
+              key: o1_netconf_host
+        - name: O1_NETCONF_PORT
+          value: "830"
+        - name: O1_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: oran-credentials
+              key: o1_username
+        - name: O1_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: oran-credentials
+              key: o1_password
+        
+        # O2 Interface Configuration
+        - name: O2_IMS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: oran-adaptor-config
+              key: o2_ims_url
+        - name: O2_API_VERSION
+          value: "v1"
+        - name: O2_TIMEOUT
+          value: "60s"
+        
+        # Circuit Breaker Configuration
+        - name: CIRCUIT_BREAKER_ENABLED
+          value: "true"
+        - name: CIRCUIT_BREAKER_THRESHOLD
+          value: "5"
+        - name: CIRCUIT_BREAKER_TIMEOUT
+          value: "60s"
+        
+        # Retry Configuration
+        - name: MAX_RETRIES
+          value: "3"
+        - name: RETRY_DELAY
+          value: "1s"
+        - name: RETRY_BACKOFF
+          value: "exponential"
+        
+        # Health Check Configuration
+        - name: HEALTH_CHECK_INTERVAL
+          value: "30s"
+        - name: DEPENDENCY_CHECK_ENABLED
+          value: "true"
+        
+        # Monitoring Configuration
+        - name: METRICS_ENABLED
+          value: "true"
+        - name: TRACING_ENABLED
+          value: "true"
+        - name: JAEGER_ENDPOINT
+          value: "http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
+        
+        # Security Configuration
+        - name: TLS_ENABLED
+          value: "true"
+        - name: MTLS_ENABLED
+          value: "false"
+        
+        # Health Checks
         livenessProbe:
           httpGet:
             path: /healthz
-            port: 8082
-          initialDelaySeconds: 15
-          periodSeconds: 20
+            port: http
+            scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-liveness-probe"
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: http
+            scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-readiness-probe"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+        
+        # Startup Probe for slow-starting containers
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: http
+            scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-startup-probe"
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 30
+          successThreshold: 1
+        
+        # Resource Requirements
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+            ephemeral-storage: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+            ephemeral-storage: 2Gi
+        
+        # Security Context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+        
+        # Volume Mounts
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+        - name: var-run
+          mountPath: /var/run
+          readOnly: false
+        - name: oran-config
+          mountPath: /config
+          readOnly: true
+        - name: tls-certs
+          mountPath: /etc/certs
+          readOnly: true
+      
+      # Pod-level configurations
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 60
+      
+      # Anti-affinity for high availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - oran-adaptor
+              topologyKey: kubernetes.io/hostname
+      
+      # Tolerations for dedicated nodes
+      tolerations:
+      - key: "nephoran.com/oran-workload"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      
+      # Node Selection
+      nodeSelector:
+        nephoran.com/node-type: "oran-processing"
+      
+      # Volumes
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 512Mi
+      - name: var-run
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: oran-config
+        configMap:
+          name: oran-adaptor-config
+          defaultMode: 0444
+      - name: tls-certs
+        secret:
+          secretName: oran-tls-certs
+          defaultMode: 0400

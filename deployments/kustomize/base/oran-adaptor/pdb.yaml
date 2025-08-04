@@ -1,0 +1,15 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: oran-adaptor-pdb
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: oran-adaptor

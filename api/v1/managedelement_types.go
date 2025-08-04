@@ -21,11 +21,29 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// SecretReference references a Kubernetes Secret for authentication credentials
+type SecretReference struct {
+	// Name is the name of the secret
+	Name string `json:"name"`
+	// Namespace is the namespace of the secret (defaults to the ManagedElement's namespace)
+	Namespace string `json:"namespace,omitempty"`
+	// Key is the key within the secret data
+	Key string `json:"key"`
+}
+
 // ManagedElementCredentials defines authentication credentials for a managed element
+// Credentials should be stored in Kubernetes Secrets and referenced here
 type ManagedElementCredentials struct {
-	Username   string `json:"username,omitempty"`
-	Password   string `json:"password,omitempty"`
-	PrivateKey string `json:"privateKey,omitempty"`
+	// UsernameRef references a secret containing the username
+	UsernameRef *SecretReference `json:"usernameRef,omitempty"`
+	// PasswordRef references a secret containing the password
+	PasswordRef *SecretReference `json:"passwordRef,omitempty"`
+	// PrivateKeyRef references a secret containing the private key
+	PrivateKeyRef *SecretReference `json:"privateKeyRef,omitempty"`
+	// ClientCertificateRef references a secret containing the client certificate
+	ClientCertificateRef *SecretReference `json:"clientCertificateRef,omitempty"`
+	// ClientKeyRef references a secret containing the client key
+	ClientKeyRef *SecretReference `json:"clientKeyRef,omitempty"`
 }
 
 // ManagedElementSpec defines the desired state of ManagedElement

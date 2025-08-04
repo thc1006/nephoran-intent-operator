@@ -572,6 +572,15 @@ func NewE2APEncoder() *E2APEncoder {
 	encoder.registerCodec(&RICControlAcknowledgeCodec{})
 	encoder.registerCodec(&RICControlFailureCodec{})
 	encoder.registerCodec(&RICIndicationCodec{})
+	encoder.registerCodec(&RICServiceUpdateCodec{})
+	encoder.registerCodec(&RICServiceUpdateAcknowledgeCodec{})
+	encoder.registerCodec(&RICServiceUpdateFailureCodec{})
+	encoder.registerCodec(&RICSubscriptionDeleteRequestCodec{})
+	encoder.registerCodec(&RICSubscriptionDeleteResponseCodec{})
+	encoder.registerCodec(&RICSubscriptionDeleteFailureCodec{})
+	encoder.registerCodec(&ResetRequestCodec{})
+	encoder.registerCodec(&ResetResponseCodec{})
+	encoder.registerCodec(&ErrorIndicationCodec{})
 
 	return encoder
 }
@@ -711,6 +720,153 @@ func CreateRICControlRequest(requestID RICRequestID, functionID RANFunctionID, h
 			RANFunctionID:     functionID,
 			RICControlHeader:  header,
 			RICControlMessage: message,
+		},
+		Timestamp: time.Now(),
+	}
+}
+
+// Additional E2AP message structures for complete implementation
+
+// RICServiceUpdate represents RIC Service Update message
+type RICServiceUpdate struct {
+	GlobalE2NodeID               GlobalE2NodeID            `json:"global_e2_node_id"`
+	RANFunctionsAdded            []RANFunctionItem         `json:"ran_functions_added,omitempty"`
+	RANFunctionsModified         []RANFunctionItem         `json:"ran_functions_modified,omitempty"`
+	RANFunctionsDeleted          []RANFunctionIDItem       `json:"ran_functions_deleted,omitempty"`
+	E2NodeComponentConfigAdditionList []E2NodeComponentConfigurationItem `json:"e2_node_component_config_addition_list,omitempty"`
+	E2NodeComponentConfigUpdateList   []E2NodeComponentConfigurationItem `json:"e2_node_component_config_update_list,omitempty"`
+	E2NodeComponentConfigRemovalList  []E2NodeComponentConfigurationItem `json:"e2_node_component_config_removal_list,omitempty"`
+}
+
+// RICServiceUpdateAcknowledge represents RIC Service Update Acknowledge message
+type RICServiceUpdateAcknowledge struct {
+	RANFunctionsAccepted         []RANFunctionIDItem       `json:"ran_functions_accepted,omitempty"`
+	RANFunctionsRejected         []RANFunctionIDCause      `json:"ran_functions_rejected,omitempty"`
+	E2NodeComponentConfigAdditionAckList []E2NodeComponentConfigurationAck `json:"e2_node_component_config_addition_ack_list,omitempty"`
+	E2NodeComponentConfigUpdateAckList   []E2NodeComponentConfigurationAck `json:"e2_node_component_config_update_ack_list,omitempty"`
+	E2NodeComponentConfigRemovalAckList  []E2NodeComponentConfigurationAck `json:"e2_node_component_config_removal_ack_list,omitempty"`
+}
+
+// RICServiceUpdateFailure represents RIC Service Update Failure message
+type RICServiceUpdateFailure struct {
+	Cause                        E2APCause                 `json:"cause"`
+	TimeToWait                   *TimeToWait               `json:"time_to_wait,omitempty"`
+	CriticalityDiagnostics       *CriticalityDiagnostics   `json:"criticality_diagnostics,omitempty"`
+}
+
+// RICSubscriptionDeleteRequest represents RIC Subscription Delete Request message
+type RICSubscriptionDeleteRequest struct {
+	RICRequestID    RICRequestID    `json:"ric_request_id"`
+	RANFunctionID   RANFunctionID   `json:"ran_function_id"`
+}
+
+// RICSubscriptionDeleteResponse represents RIC Subscription Delete Response message
+type RICSubscriptionDeleteResponse struct {
+	RICRequestID    RICRequestID    `json:"ric_request_id"`
+	RANFunctionID   RANFunctionID   `json:"ran_function_id"`
+}
+
+// RICSubscriptionDeleteFailure represents RIC Subscription Delete Failure message
+type RICSubscriptionDeleteFailure struct {
+	RICRequestID           RICRequestID            `json:"ric_request_id"`
+	RANFunctionID          RANFunctionID           `json:"ran_function_id"`
+	Cause                  E2APCause               `json:"cause"`
+	CriticalityDiagnostics *CriticalityDiagnostics `json:"criticality_diagnostics,omitempty"`
+}
+
+// ResetRequest represents Reset Request message
+type ResetRequest struct {
+	TransactionID int32      `json:"transaction_id"`
+	Cause         E2APCause  `json:"cause"`
+}
+
+// ResetResponse represents Reset Response message
+type ResetResponse struct {
+	TransactionID int32      `json:"transaction_id"`
+}
+
+// ErrorIndication represents Error Indication message
+type ErrorIndication struct {
+	TransactionID          *int32                  `json:"transaction_id,omitempty"`
+	RICRequestID           *RICRequestID           `json:"ric_request_id,omitempty"`
+	RANFunctionID          *RANFunctionID          `json:"ran_function_id,omitempty"`
+	Cause                  E2APCause               `json:"cause"`
+	CriticalityDiagnostics *CriticalityDiagnostics `json:"criticality_diagnostics,omitempty"`
+}
+
+// E2NodeComponentConfigurationAck represents E2 node component configuration acknowledgment
+type E2NodeComponentConfigurationAck struct {
+	E2NodeComponentInterfaceType E2NodeComponentInterfaceType `json:"e2_node_component_interface_type"`
+	E2NodeComponentID            E2NodeComponentID            `json:"e2_node_component_id"`
+	E2NodeComponentConfigurationAck E2NodeComponentConfigurationStatus `json:"e2_node_component_configuration_ack"`
+}
+
+// E2NodeComponentConfigurationStatus represents configuration status
+type E2NodeComponentConfigurationStatus struct {
+	UpdateOutcome E2NodeComponentUpdateOutcome `json:"update_outcome"`
+	FailureCause  *E2APCause                   `json:"failure_cause,omitempty"`
+}
+
+// E2NodeComponentUpdateOutcome represents update outcome
+type E2NodeComponentUpdateOutcome int
+
+const (
+	E2NodeComponentUpdateOutcomeSuccess E2NodeComponentUpdateOutcome = iota
+	E2NodeComponentUpdateOutcomeFailure
+)
+
+// Helper functions for creating additional E2AP messages
+
+// CreateRICServiceUpdate creates a new RIC Service Update message
+func CreateRICServiceUpdate(nodeID GlobalE2NodeID) *E2APMessage {
+	return &E2APMessage{
+		MessageType:   E2APMessageTypeRICServiceUpdate,
+		ProcedureCode: 7,
+		Criticality:   CriticalityReject,
+		Payload: &RICServiceUpdate{
+			GlobalE2NodeID: nodeID,
+		},
+		Timestamp: time.Now(),
+	}
+}
+
+// CreateRICSubscriptionDeleteRequest creates a new RIC Subscription Delete Request message
+func CreateRICSubscriptionDeleteRequest(requestID RICRequestID, functionID RANFunctionID) *E2APMessage {
+	return &E2APMessage{
+		MessageType:   E2APMessageTypeRICSubscriptionDeleteRequest,
+		ProcedureCode: 8,
+		Criticality:   CriticalityReject,
+		Payload: &RICSubscriptionDeleteRequest{
+			RICRequestID:  requestID,
+			RANFunctionID: functionID,
+		},
+		Timestamp: time.Now(),
+	}
+}
+
+// CreateResetRequest creates a new Reset Request message
+func CreateResetRequest(transactionID int32, cause E2APCause) *E2APMessage {
+	return &E2APMessage{
+		MessageType:   E2APMessageTypeResetRequest,
+		TransactionID: transactionID,
+		ProcedureCode: 9,
+		Criticality:   CriticalityReject,
+		Payload: &ResetRequest{
+			TransactionID: transactionID,
+			Cause:         cause,
+		},
+		Timestamp: time.Now(),
+	}
+}
+
+// CreateErrorIndication creates a new Error Indication message
+func CreateErrorIndication(cause E2APCause) *E2APMessage {
+	return &E2APMessage{
+		MessageType:   E2APMessageTypeErrorIndication,
+		ProcedureCode: 10,
+		Criticality:   CriticalityIgnore,
+		Payload: &ErrorIndication{
+			Cause: cause,
 		},
 		Timestamp: time.Now(),
 	}

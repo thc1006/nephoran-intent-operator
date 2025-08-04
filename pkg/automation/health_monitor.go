@@ -2,11 +2,9 @@ package automation
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"

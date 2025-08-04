@@ -1,0 +1,1685 @@
+openapi: 3.0.3
+info:
+  title: Nephoran Intent Operator - Microservices API
+  description: |
+    Complete API specification for all Nephoran Intent Operator microservices.
+    This specification defines clear boundaries, data models, and interaction patterns
+    for scalable telecom network automation.
+    
+    ## Service Architecture
+    
+    The Nephoran Intent Operator consists of four core microservices:
+    
+    1. **LLM-Processor**: Natural language processing and intent conversion
+    2. **Nephio-Bridge**: Kubernetes orchestration and package management  
+    3. **ORAN-Adaptor**: O-RAN protocol handling and network element management
+    4. **RAG-API**: Knowledge retrieval and augmented generation
+    
+    ## Service Communication Patterns
+    
+    - **Synchronous**: HTTP/REST for real-time operations
+    - **Asynchronous**: Event-driven via Kubernetes events and webhooks
+    - **Streaming**: Server-Sent Events for real-time updates
+    
+  version: 3.0.0
+  contact:
+    name: Nephoran Development Team
+    email: support@nephoran.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: http://llm-processor:8080
+    description: LLM Processor Service
+  - url: http://nephio-bridge:8081  
+    description: Nephio Bridge Service
+  - url: http://oran-adaptor:8082
+    description: ORAN Adaptor Service
+  - url: http://rag-api:8083
+    description: RAG API Service
+  - url: http://localhost:8080
+    description: Local development (LLM Processor)
+
+tags:
+  - name: LLM Processing
+    description: Natural language intent processing operations
+  - name: Intent Management
+    description: Network intent lifecycle management
+  - name: Package Management  
+    description: Nephio package generation and deployment
+  - name: ORAN Operations
+    description: O-RAN network element management
+  - name: Knowledge Retrieval
+    description: RAG-based knowledge and document retrieval
+  - name: Health & Monitoring
+    description: Health checks and service monitoring
+  - name: Authentication
+    description: Service authentication and authorization
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ==================== LLM PROCESSOR SERVICE ====================
+  /llm/process:
+    post:
+      summary: Process natural language intent
+      description: Convert natural language intents into structured network operations
+      tags:
+        - LLM Processing
+      operationId: processIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntentProcessingRequest'
+      responses:
+        '200':
+          description: Intent processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentProcessingResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /llm/stream:
+    post:
+      summary: Stream intent processing
+      description: Real-time streaming processing with Server-Sent Events
+      tags:
+        - LLM Processing
+      operationId: streamIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StreamProcessingRequest'
+      responses:
+        '200':
+          description: Streaming session established
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-Sent Events stream
+
+  # ==================== NEPHIO BRIDGE SERVICE ====================
+  /nephio/intents:
+    get:
+      summary: List network intents
+      description: Retrieve all network intents with filtering and pagination
+      tags:
+        - Intent Management
+      operationId: listNetworkIntents
+      parameters:
+        - name: namespace
+          in: query
+          description: Filter by Kubernetes namespace
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by intent status
+          schema:
+            type: string
+            enum: [pending, processing, completed, failed]
+        - name: limit
+          in: query
+          description: Maximum number of intents to return
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+        - name: offset
+          in: query
+          description: Number of intents to skip
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Network intents retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntentList'
+
+    post:
+      summary: Create network intent
+      description: Create a new network intent for processing
+      tags:
+        - Intent Management
+      operationId: createNetworkIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkIntentRequest'
+      responses:
+        '201':
+          description: Network intent created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Intent already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /nephio/intents/{intentId}:
+    get:
+      summary: Get network intent
+      description: Retrieve a specific network intent by ID
+      tags:
+        - Intent Management
+      operationId: getNetworkIntent
+      parameters:
+        - name: intentId
+          in: path
+          required: true
+          description: Network intent identifier
+          schema:
+            type: string
+            pattern: '^[a-z0-9-]+$'
+      responses:
+        '200':
+          description: Network intent retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update network intent
+      description: Update an existing network intent
+      tags:
+        - Intent Management
+      operationId: updateNetworkIntent
+      parameters:
+        - name: intentId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkIntentRequest'
+      responses:
+        '200':
+          description: Network intent updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+
+    delete:
+      summary: Delete network intent
+      description: Delete a network intent and associated resources
+      tags:
+        - Intent Management
+      operationId: deleteNetworkIntent
+      parameters:
+        - name: intentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Network intent deleted successfully
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /nephio/packages:
+    get:
+      summary: List Nephio packages
+      description: Retrieve generated Nephio packages
+      tags:
+        - Package Management
+      operationId: listNephioPackages
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [draft, proposed, approved, published]
+      responses:
+        '200':
+          description: Nephio packages retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NephioPackageList'
+
+    post:
+      summary: Generate Nephio package
+      description: Generate a new Nephio package from network intent
+      tags:
+        - Package Management
+      operationId: generateNephioPackage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackageGenerationRequest'
+      responses:
+        '201':
+          description: Nephio package generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NephioPackage'
+
+  /nephio/packages/{packageId}/deploy:
+    post:
+      summary: Deploy Nephio package
+      description: Deploy a Nephio package to target cluster
+      tags:
+        - Package Management
+      operationId: deployNephioPackage
+      parameters:
+        - name: packageId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PackageDeploymentRequest'
+      responses:
+        '202':
+          description: Package deployment initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeploymentStatus'
+
+  # ==================== ORAN ADAPTOR SERVICE ====================
+  /oran/elements:
+    get:
+      summary: List managed elements
+      description: Retrieve all O-RAN managed elements
+      tags:
+        - ORAN Operations
+      operationId: listManagedElements
+      parameters:
+        - name: element_type
+          in: query
+          description: Filter by element type
+          schema:
+            type: string
+            enum: [cu, du, ru, near-rt-ric, non-rt-ric]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, maintenance, error]
+      responses:
+        '200':
+          description: Managed elements retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedElementList'
+
+    post:
+      summary: Create managed element
+      description: Register a new O-RAN managed element
+      tags:
+        - ORAN Operations
+      operationId: createManagedElement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManagedElementRequest'
+      responses:
+        '201':
+          description: Managed element created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedElement'
+
+  /oran/elements/{elementId}:
+    get:
+      summary: Get managed element
+      description: Retrieve a specific managed element
+      tags:
+        - ORAN Operations
+      operationId: getManagedElement
+      parameters:
+        - name: elementId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Managed element retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagedElement'
+
+  /oran/a1/policy-types:
+    get:
+      summary: List A1 policy types
+      description: Retrieve available A1 policy types
+      tags:
+        - ORAN Operations
+      operationId: listA1PolicyTypes
+      responses:
+        '200':
+          description: A1 policy types retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A1PolicyTypeList'
+
+    post:
+      summary: Create A1 policy type
+      description: Create a new A1 policy type
+      tags:
+        - ORAN Operations
+      operationId: createA1PolicyType
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/A1PolicyTypeRequest'
+      responses:
+        '201':
+          description: A1 policy type created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A1PolicyType'
+
+  /oran/a1/policies:
+    get:
+      summary: List A1 policy instances
+      description: Retrieve A1 policy instances
+      tags:
+        - ORAN Operations
+      operationId: listA1PolicyInstances
+      parameters:
+        - name: policy_type_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [enforced, not_enforced, error]
+      responses:
+        '200':
+          description: A1 policy instances retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A1PolicyInstanceList'
+
+    post:
+      summary: Create A1 policy instance
+      description: Create a new A1 policy instance
+      tags:
+        - ORAN Operations
+      operationId: createA1PolicyInstance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/A1PolicyInstanceRequest'
+      responses:
+        '201':
+          description: A1 policy instance created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/A1PolicyInstance'
+
+  /oran/e2/subscriptions:
+    get:
+      summary: List E2 subscriptions
+      description: Retrieve E2 subscriptions
+      tags:
+        - ORAN Operations
+      operationId: listE2Subscriptions
+      responses:
+        '200':
+          description: E2 subscriptions retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E2SubscriptionList'
+
+    post:
+      summary: Create E2 subscription
+      description: Create a new E2 subscription
+      tags:
+        - ORAN Operations
+      operationId: createE2Subscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/E2SubscriptionRequest'
+      responses:
+        '201':
+          description: E2 subscription created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E2Subscription'
+
+  # ==================== RAG API SERVICE ====================
+  /rag/search:
+    post:
+      summary: Search knowledge base
+      description: Perform vector search in telecom knowledge base
+      tags:
+        - Knowledge Retrieval
+      operationId: searchKnowledgeBase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KnowledgeSearchRequest'
+      responses:
+        '200':
+          description: Search completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KnowledgeSearchResponse'
+
+  /rag/query:
+    post:
+      summary: Process RAG query
+      description: Process query with retrieval-augmented generation
+      tags:
+        - Knowledge Retrieval
+      operationId: processRAGQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RAGQueryRequest'
+      responses:
+        '200':
+          description: RAG query processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RAGQueryResponse'
+
+  /rag/documents:
+    get:
+      summary: List documents
+      description: Retrieve documents in the knowledge base
+      tags:
+        - Knowledge Retrieval
+      operationId: listDocuments
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [Configuration, Optimization, Troubleshooting, Standards]
+        - name: technology
+          in: query
+          schema:
+            type: string
+            enum: [5G, 4G, O-RAN, vRAN]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: Documents retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentList'
+
+    post:
+      summary: Add document
+      description: Add a new document to the knowledge base
+      tags:
+        - Knowledge Retrieval
+      operationId: addDocument
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentRequest'
+      responses:
+        '201':
+          description: Document added successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Document'
+
+  # ==================== CROSS-SERVICE HEALTH ENDPOINTS ====================
+  /health:
+    get:
+      summary: Multi-service health check
+      description: Check health of all services
+      tags:
+        - Health & Monitoring
+      operationId: multiServiceHealthCheck
+      security: []
+      responses:
+        '200':
+          description: Service health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MultiServiceHealthResponse'
+
+  /metrics:
+    get:
+      summary: Cross-service metrics
+      description: Get aggregated metrics from all services
+      tags:
+        - Health & Monitoring
+      operationId: getCrossServiceMetrics
+      security: []
+      responses:
+        '200':
+          description: Aggregated service metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrossServiceMetrics'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # ==================== LLM PROCESSOR SCHEMAS ====================
+    IntentProcessingRequest:
+      type: object
+      required:
+        - intent
+      properties:
+        intent:
+          type: string
+          description: Natural language intent to process
+          example: "Deploy 5G core AMF with 3 replicas for network slice eMBB"
+        context:
+          type: object
+          description: Additional context for processing
+          properties:
+            namespace:
+              type: string
+              example: telecom-core
+            priority:
+              type: string
+              enum: [low, medium, high, critical]
+              example: high
+            user_id:
+              type: string
+              example: operator-001
+        config:
+          type: object
+          properties:
+            enable_rag:
+              type: boolean
+              default: true
+            max_tokens:
+              type: integer
+              default: 2048
+
+    IntentProcessingResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          description: Processed structured output
+        structured_output:
+          $ref: '#/components/schemas/StructuredIntent'
+        processing_time:
+          type: string
+          example: "2.345s"  
+        request_id:
+          type: string
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        metadata:
+          type: object
+          properties:
+            tokens_used:
+              type: integer
+            model_used:
+              type: string
+            rag_context_used:
+              type: boolean
+
+    StreamProcessingRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Natural language query for streaming
+        intent_type:
+          type: string
+          enum: [network_configuration, network_deployment, policy_management]
+        session_id:
+          type: string
+        enable_rag:
+          type: boolean
+          default: true
+
+    StructuredIntent:
+      type: object
+      properties:
+        action:
+          type: string
+          enum: [deploy, configure, scale, delete, update]
+          example: deploy
+        target:
+          type: object
+          properties:
+            type:
+              type: string
+              example: NetworkFunction
+            name:
+              type: string
+              example: amf
+            version:
+              type: string
+              example: "1.0.0"
+        parameters:
+          type: object
+          additionalProperties: true
+          example:
+            replicas: 3
+            resources:
+              cpu: "2"
+              memory: "4Gi"
+        constraints:
+          type: object
+          properties:
+            namespace:
+              type: string
+            node_selector:
+              type: object
+              additionalProperties:
+                type: string
+            tolerations:
+              type: array
+              items:
+                type: object
+
+    # ==================== NEPHIO BRIDGE SCHEMAS ====================
+    NetworkIntentRequest:
+      type: object
+      required:
+        - name
+        - spec
+      properties:
+        name:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+          example: "embb-network-slice"
+        namespace:
+          type: string
+          default: default
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        spec:
+          $ref: '#/components/schemas/NetworkIntentSpec'
+
+    NetworkIntentSpec:
+      type: object
+      required:
+        - intent
+      properties:
+        intent:
+          type: string
+          description: Natural language network intent
+          example: "Deploy enhanced mobile broadband network slice with high throughput"
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+          default: medium
+        target_clusters:
+          type: array
+          items:
+            type: string
+          example: ["cluster-1", "cluster-2"]
+        network_functions:
+          type: array
+          items:
+            $ref: '#/components/schemas/NetworkFunctionSpec'
+        policies:
+          type: array
+          items:
+            $ref: '#/components/schemas/PolicySpec'
+
+    NetworkFunctionSpec:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          example: amf
+        type:
+          type: string
+          enum: [AMF, SMF, UPF, PCF, UDM, UDR, AUSF, NRF, NSSF]
+          example: AMF
+        version:
+          type: string
+          example: "1.0.0"
+        replicas:
+          type: integer
+          minimum: 1
+          default: 1
+        resources:
+          $ref: '#/components/schemas/ResourceRequirements'
+        configuration:
+          type: object
+          additionalProperties: true
+
+    PolicySpec:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [QoS, Security, Scaling, Routing]
+        parameters:
+          type: object
+          additionalProperties: true
+
+    ResourceRequirements:
+      type: object
+      properties:
+        requests:
+          type: object
+          properties:
+            cpu:
+              type: string
+              example: "1"
+            memory:
+              type: string
+              example: "2Gi"
+        limits:
+          type: object
+          properties:
+            cpu:
+              type: string
+              example: "2"
+            memory:
+              type: string
+              example: "4Gi"
+
+    NetworkIntent:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        namespace:
+          type: string
+        spec:
+          $ref: '#/components/schemas/NetworkIntentSpec'
+        status:
+          $ref: '#/components/schemas/NetworkIntentStatus'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    NetworkIntentStatus:
+      type: object
+      properties:
+        phase:
+          type: string
+          enum: [pending, processing, completed, failed, cancelled]
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Condition'
+        processed_intent:
+          $ref: '#/components/schemas/StructuredIntent'
+        deployment_status:
+          type: object
+          properties:
+            ready_replicas:
+              type: integer
+            total_replicas:
+              type: integer
+            ready_packages:
+              type: integer
+            total_packages:
+              type: integer
+
+    NetworkIntentList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NetworkIntent'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+
+    # ==================== PACKAGE MANAGEMENT SCHEMAS ====================
+    PackageGenerationRequest:
+      type: object
+      required:
+        - intent_id
+        - target_clusters
+      properties:
+        intent_id:
+          type: string
+        target_clusters:
+          type: array
+          items:
+            type: string
+        package_name:
+          type: string
+        package_version:
+          type: string
+          default: "v1.0.0"
+        generate_variants:
+          type: boolean
+          default: false
+
+    NephioPackage:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        version:
+          type: string
+        status:
+          type: string
+          enum: [draft, proposed, approved, published]
+        intent_reference:
+          type: string
+        target_clusters:
+          type: array
+          items:
+            type: string
+        manifests:
+          type: array
+          items:
+            $ref: '#/components/schemas/KubernetesManifest'
+        created_at:
+          type: string
+          format: date-time
+
+    NephioPackageList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NephioPackage'
+        total:
+          type: integer
+
+    PackageDeploymentRequest:
+      type: object
+      required:
+        - target_cluster
+      properties:
+        target_cluster:
+          type: string
+        namespace:
+          type: string
+          default: default
+        dry_run:
+          type: boolean
+          default: false
+        force:
+          type: boolean
+          default: false
+
+    DeploymentStatus:
+      type: object
+      properties:
+        deployment_id:
+          type: string
+        status:
+          type: string
+          enum: [initiated, in_progress, completed, failed]
+        target_cluster:
+          type: string
+        progress:
+          type: object
+          properties:
+            total_resources:
+              type: integer
+            deployed_resources:
+              type: integer
+            failed_resources:
+              type: integer
+
+    KubernetesManifest:
+      type: object
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+        api_version:
+          type: string
+        content:
+          type: string
+          description: YAML manifest content
+
+    # ==================== ORAN ADAPTOR SCHEMAS ====================
+    ManagedElementRequest:
+      type: object
+      required:
+        - name
+        - element_type
+        - host
+      properties:
+        name:
+          type: string
+          pattern: '^[a-z0-9-]+$'
+        element_type:
+          type: string
+          enum: [cu, du, ru, near-rt-ric, non-rt-ric]
+        host:
+          type: string
+          format: hostname
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+          default: 80
+        credentials:
+          $ref: '#/components/schemas/ElementCredentials'
+        configuration:
+          type: object
+          additionalProperties: true
+
+    ElementCredentials:
+      type: object
+      properties:
+        username_secret:
+          $ref: '#/components/schemas/SecretReference'
+        password_secret:
+          $ref: '#/components/schemas/SecretReference'
+        certificate_secret:
+          $ref: '#/components/schemas/SecretReference'
+
+    SecretReference:
+      type: object
+      required:
+        - name
+        - key
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        key:
+          type: string
+
+    ManagedElement:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        element_type:
+          type: string
+          enum: [cu, du, ru, near-rt-ric, non-rt-ric]
+        host:
+          type: string
+        port:
+          type: integer
+        status:
+          $ref: '#/components/schemas/ElementStatus'
+        capabilities:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+        last_seen:
+          type: string
+          format: date-time
+
+    ElementStatus:
+      type: object
+      properties:
+        phase:
+          type: string
+          enum: [active, inactive, maintenance, error]
+        health:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Condition'
+        connectivity:
+          type: object
+          properties:
+            a1_available:
+              type: boolean
+            e2_available:
+              type: boolean
+            o1_available:
+              type: boolean
+
+    ManagedElementList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ManagedElement'
+        total:
+          type: integer
+
+    # ==================== A1 POLICY SCHEMAS ====================
+    A1PolicyTypeRequest:
+      type: object
+      required:
+        - name
+        - policy_schema
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        policy_schema:
+          type: object
+          description: JSON schema for policy validation
+        create_schema:
+          type: object
+          description: JSON schema for policy creation
+
+    A1PolicyType:
+      type: object
+      properties:
+        policy_type_id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        policy_schema:
+          type: object
+        create_schema:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+
+    A1PolicyTypeList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/A1PolicyType'
+        total:
+          type: integer
+
+    A1PolicyInstanceRequest:
+      type: object
+      required:
+        - policy_type_id
+        - policy_data
+      properties:
+        policy_instance_id:
+          type: string
+        policy_type_id:
+          type: integer
+        policy_data:
+          type: object
+          description: Policy-specific configuration data
+
+    A1PolicyInstance:
+      type: object
+      properties:
+        policy_instance_id:
+          type: string
+        policy_type_id:
+          type: integer
+        policy_data:
+          type: object
+        status:
+          $ref: '#/components/schemas/A1PolicyStatus'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    A1PolicyStatus:
+      type: object
+      properties:
+        enforcement_status:
+          type: string
+          enum: [enforced, not_enforced, error]
+        enforcement_reason:
+          type: string
+        last_modified:
+          type: string
+          format: date-time
+
+    A1PolicyInstanceList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/A1PolicyInstance'
+        total:
+          type: integer
+
+    # ==================== E2 SUBSCRIPTION SCHEMAS ====================
+    E2SubscriptionRequest:
+      type: object
+      required:
+        - node_id
+        - event_triggers
+      properties:
+        node_id:
+          type: string
+        event_triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/E2EventTrigger'
+        reporting_period:
+          type: integer
+          description: Reporting period in milliseconds
+        node_function_id:
+          type: integer
+
+    E2EventTrigger:
+      type: object
+      required:
+        - interface_type
+        - interface_direction
+      properties:
+        interface_type:
+          type: string
+          enum: [NG, Xn, F1, E1, F2]
+        interface_direction:
+          type: string
+          enum: [incoming, outgoing]
+        interface_message_type:
+          type: integer
+        interface_procedure_id:  
+          type: integer
+
+    E2Subscription:
+      type: object
+      properties:
+        subscription_id:
+          type: string
+        node_id:
+          type: string
+        event_triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/E2EventTrigger'
+        reporting_period:
+          type: integer
+        status:
+          type: string
+          enum: [active, inactive, error]
+        created_at:
+          type: string
+          format: date-time
+
+    E2SubscriptionList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/E2Subscription'
+        total:
+          type: integer
+
+    # ==================== RAG API SCHEMAS ====================
+    KnowledgeSearchRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Search query text
+        limit:
+          type: integer
+          default: 10
+          maximum: 50
+        filters:
+          type: object
+          properties:
+            category:
+              type: string
+              enum: [Configuration, Optimization, Troubleshooting, Standards]
+            technology:
+              type: array
+              items:
+                type: string 
+                enum: [5G, 4G, O-RAN, vRAN]
+            source:
+              type: array
+              items:
+                type: string
+        use_hybrid_search:
+          type: boolean
+          default: true
+        min_confidence:
+          type: number
+          format: float
+          default: 0.5
+
+    KnowledgeSearchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+        total_results:
+          type: integer
+        search_time:
+          type: string
+        query:
+          type: string
+
+    SearchResult:
+      type: object
+      properties:
+        document:
+          $ref: '#/components/schemas/Document'
+        score:
+          type: number
+          format: float
+        highlights:
+          type: array
+          items:
+            type: string
+
+    RAGQueryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+        context:
+          type: string
+        intent_type:
+          type: string
+          enum: [configuration, optimization, troubleshooting, monitoring]
+        max_results:
+          type: integer
+          default: 10
+        enable_reranking:
+          type: boolean
+          default: true
+        include_source_refs:
+          type: boolean
+          default: true
+
+    RAGQueryResponse:
+      type: object
+      properties:
+        answer:
+          type: string
+        source_documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchResult'
+        confidence:
+          type: number
+          format: float
+        processing_time:
+          type: string
+        retrieval_time:
+          type: string
+        generation_time:
+          type: string
+        query:
+          type: string
+        metadata:
+          type: object
+
+    DocumentRequest:
+      type: object
+      required:
+        - title
+        - content
+        - source
+      properties:
+        title:
+          type: string
+        content:
+          type: string
+        source:
+          type: string
+        category:
+          type: string
+          enum: [Configuration, Optimization, Troubleshooting, Standards]
+        technology:
+          type: array
+          items:
+            type: string
+            enum: [5G, 4G, O-RAN, vRAN]
+        version:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+
+    Document:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        source:
+          type: string
+        category:
+          type: string
+        technology:
+          type: array
+          items:
+            type: string
+        version:
+          type: string
+        metadata:
+          type: object
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    DocumentList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Document'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+
+    # ==================== COMMON SCHEMAS ====================
+    Condition:
+      type: object
+      properties:
+        type:
+          type: string
+        status:
+          type: string
+          enum: [True, False, Unknown]
+        reason:
+          type: string
+        message:
+          type: string
+        last_transition_time:
+          type: string
+          format: date-time
+
+    MultiServiceHealthResponse:
+      type: object
+      properties:
+        overall_status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        services:
+          type: object
+          properties:
+            llm_processor:
+              $ref: '#/components/schemas/ServiceHealth'
+            nephio_bridge:
+              $ref: '#/components/schemas/ServiceHealth'
+            oran_adaptor:
+              $ref: '#/components/schemas/ServiceHealth'
+            rag_api:
+              $ref: '#/components/schemas/ServiceHealth'
+        dependencies:
+          type: object
+          properties:
+            weaviate:
+              $ref: '#/components/schemas/DependencyHealth'
+            kubernetes:
+              $ref: '#/components/schemas/DependencyHealth'
+            git:
+              $ref: '#/components/schemas/DependencyHealth'
+
+    ServiceHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy, unavailable]
+        version:
+          type: string
+        uptime:
+          type: string
+        response_time:
+          type: string
+        last_check:
+          type: string
+          format: date-time
+
+    DependencyHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy, unavailable]
+        response_time:
+          type: string
+        last_check:
+          type: string
+          format: date-time
+        error_message:
+          type: string
+
+    CrossServiceMetrics:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        services:
+          type: object
+          properties:
+            llm_processor:
+              $ref: '#/components/schemas/ServiceMetrics'
+            nephio_bridge:
+              $ref: '#/components/schemas/ServiceMetrics'
+            oran_adaptor:
+              $ref: '#/components/schemas/ServiceMetrics'
+            rag_api:
+              $ref: '#/components/schemas/ServiceMetrics'
+        system:
+          type: object
+          properties:
+            total_requests:
+              type: integer
+            total_errors:
+              type: integer
+            average_response_time:
+              type: string
+            error_rate:
+              type: number
+              format: float
+
+    ServiceMetrics:
+      type: object
+      properties:
+        requests_total:
+          type: integer
+        requests_per_second:
+          type: number
+          format: float
+        errors_total:
+          type: integer
+        error_rate:
+          type: number
+          format: float
+        average_response_time:
+          type: string
+        p95_response_time:
+          type: string
+        active_connections:
+          type: integer
+        uptime:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: INVALID_INPUT
+            type:
+              type: string
+              example: validation_error
+            message:
+              type: string
+              example: Required field 'intent' is missing
+            details:
+              type: object
+              additionalProperties: true
+            timestamp:
+              type: string
+              format: date-time
+            request_id:
+              type: string
+            service:
+              type: string
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    RateLimitExceeded:
+      description: Too many requests - Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Request limit per minute
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests in current window
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retrying
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    ServiceUnavailable:
+      description: Service unavailable - Circuit breaker open or dependencies unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

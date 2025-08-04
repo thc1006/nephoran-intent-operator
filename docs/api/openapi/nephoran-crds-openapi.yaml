@@ -1,0 +1,1042 @@
+openapi: 3.0.3
+info:
+  title: Nephoran Custom Resource Definitions API
+  description: |
+    OpenAPI specification for Nephoran Intent Operator Custom Resource Definitions (CRDs).
+    These CRDs enable declarative management of network intents and O-RAN E2 node sets
+    within a Kubernetes environment.
+  version: 1.0.0
+  contact:
+    name: Nephoran Development Team
+    email: support@nephoran.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: https://kubernetes.default.svc
+    description: Kubernetes API server
+
+tags:
+  - name: NetworkIntent
+    description: Natural language network intent processing
+  - name: E2NodeSet
+    description: O-RAN E2 node set management
+  - name: ManagedElement
+    description: Telecom managed element resources
+
+paths:
+  /apis/nephoran.com/v1/namespaces/{namespace}/networkintents:
+    get:
+      summary: List NetworkIntents
+      description: List all NetworkIntent resources in a namespace
+      tags:
+        - NetworkIntent
+      operationId: listNamespacedNetworkIntents
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/labelSelector'
+        - $ref: '#/components/parameters/fieldSelector'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/continue'
+      responses:
+        '200':
+          description: List of NetworkIntents
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntentList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create NetworkIntent
+      description: Create a new NetworkIntent resource
+      tags:
+        - NetworkIntent
+      operationId: createNamespacedNetworkIntent
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkIntent'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/NetworkIntent'
+      responses:
+        '201':
+          description: NetworkIntent created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /apis/nephoran.com/v1/namespaces/{namespace}/networkintents/{name}:
+    get:
+      summary: Get NetworkIntent
+      description: Get a specific NetworkIntent resource
+      tags:
+        - NetworkIntent
+      operationId: getNamespacedNetworkIntent
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/name'
+      responses:
+        '200':
+          description: NetworkIntent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update NetworkIntent
+      description: Update an existing NetworkIntent resource
+      tags:
+        - NetworkIntent
+      operationId: updateNamespacedNetworkIntent
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/name'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkIntent'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/NetworkIntent'
+      responses:
+        '200':
+          description: NetworkIntent updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    patch:
+      summary: Patch NetworkIntent
+      description: Partially update a NetworkIntent resource
+      tags:
+        - NetworkIntent
+      operationId: patchNamespacedNetworkIntent
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/name'
+      requestBody:
+        required: true
+        content:
+          application/json-patch+json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/JSONPatchOperation'
+          application/merge-patch+json:
+            schema:
+              $ref: '#/components/schemas/NetworkIntent'
+      responses:
+        '200':
+          description: NetworkIntent patched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete NetworkIntent
+      description: Delete a NetworkIntent resource
+      tags:
+        - NetworkIntent
+      operationId: deleteNamespacedNetworkIntent
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/name'
+      responses:
+        '200':
+          description: NetworkIntent deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /apis/nephoran.com/v1/namespaces/{namespace}/networkintents/{name}/status:
+    get:
+      summary: Get NetworkIntent status
+      description: Get the status subresource of a NetworkIntent
+      tags:
+        - NetworkIntent
+      operationId: getNamespacedNetworkIntentStatus
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/name'
+      responses:
+        '200':
+          description: NetworkIntent status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update NetworkIntent status
+      description: Update the status subresource of a NetworkIntent
+      tags:
+        - NetworkIntent
+      operationId: updateNamespacedNetworkIntentStatus
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/name'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkIntent'
+      responses:
+        '200':
+          description: NetworkIntent status updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /apis/nephoran.com/v1/namespaces/{namespace}/e2nodesets:
+    get:
+      summary: List E2NodeSets
+      description: List all E2NodeSet resources in a namespace
+      tags:
+        - E2NodeSet
+      operationId: listNamespacedE2NodeSets
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/labelSelector'
+        - $ref: '#/components/parameters/fieldSelector'
+        - $ref: '#/components/parameters/limit'
+        - $ref: '#/components/parameters/continue'
+      responses:
+        '200':
+          description: List of E2NodeSets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E2NodeSetList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      summary: Create E2NodeSet
+      description: Create a new E2NodeSet resource
+      tags:
+        - E2NodeSet
+      operationId: createNamespacedE2NodeSet
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/E2NodeSet'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/E2NodeSet'
+      responses:
+        '201':
+          description: E2NodeSet created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E2NodeSet'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /apis/nephoran.com/v1/namespaces/{namespace}/e2nodesets/{name}:
+    get:
+      summary: Get E2NodeSet
+      description: Get a specific E2NodeSet resource
+      tags:
+        - E2NodeSet
+      operationId: getNamespacedE2NodeSet
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/name'
+      responses:
+        '200':
+          description: E2NodeSet details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E2NodeSet'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      summary: Update E2NodeSet
+      description: Update an existing E2NodeSet resource
+      tags:
+        - E2NodeSet
+      operationId: updateNamespacedE2NodeSet
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/name'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/E2NodeSet'
+          application/yaml:
+            schema:
+              $ref: '#/components/schemas/E2NodeSet'
+      responses:
+        '200':
+          description: E2NodeSet updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E2NodeSet'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    patch:
+      summary: Patch E2NodeSet
+      description: Partially update a E2NodeSet resource
+      tags:
+        - E2NodeSet
+      operationId: patchNamespacedE2NodeSet
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/name'
+      requestBody:
+        required: true
+        content:
+          application/json-patch+json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/JSONPatchOperation'
+          application/merge-patch+json:
+            schema:
+              $ref: '#/components/schemas/E2NodeSet'
+      responses:
+        '200':
+          description: E2NodeSet patched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E2NodeSet'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      summary: Delete E2NodeSet
+      description: Delete a E2NodeSet resource
+      tags:
+        - E2NodeSet
+      operationId: deleteNamespacedE2NodeSet
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/name'
+      responses:
+        '200':
+          description: E2NodeSet deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /apis/nephoran.com/v1/namespaces/{namespace}/e2nodesets/{name}/scale:
+    put:
+      summary: Scale E2NodeSet
+      description: Scale the number of replicas in a E2NodeSet
+      tags:
+        - E2NodeSet
+      operationId: scaleNamespacedE2NodeSet
+      parameters:
+        - $ref: '#/components/parameters/namespace'
+        - $ref: '#/components/parameters/name'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Scale'
+      responses:
+        '200':
+          description: E2NodeSet scaled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Scale'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    namespace:
+      name: namespace
+      in: path
+      required: true
+      description: Namespace of the resource
+      schema:
+        type: string
+        example: default
+
+    name:
+      name: name
+      in: path
+      required: true
+      description: Name of the resource
+      schema:
+        type: string
+        example: example-intent
+
+    labelSelector:
+      name: labelSelector
+      in: query
+      description: Label selector for filtering resources
+      schema:
+        type: string
+        example: "app=myapp,environment=production"
+
+    fieldSelector:
+      name: fieldSelector
+      in: query
+      description: Field selector for filtering resources
+      schema:
+        type: string
+        example: "metadata.name=example"
+
+    limit:
+      name: limit
+      in: query
+      description: Maximum number of resources to return
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 500
+        default: 100
+
+    continue:
+      name: continue
+      in: query
+      description: Continue token for paginated results
+      schema:
+        type: string
+
+  schemas:
+    NetworkIntent:
+      type: object
+      required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+      properties:
+        apiVersion:
+          type: string
+          enum: ["nephoran.com/v1"]
+          example: "nephoran.com/v1"
+        kind:
+          type: string
+          enum: ["NetworkIntent"]
+          example: "NetworkIntent"
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/NetworkIntentSpec'
+        status:
+          $ref: '#/components/schemas/NetworkIntentStatus'
+
+    NetworkIntentList:
+      type: object
+      required:
+        - apiVersion
+        - kind
+        - items
+      properties:
+        apiVersion:
+          type: string
+          example: "nephoran.com/v1"
+        kind:
+          type: string
+          example: "NetworkIntentList"
+        metadata:
+          $ref: '#/components/schemas/ListMeta'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NetworkIntent'
+
+    NetworkIntentSpec:
+      type: object
+      required:
+        - intent
+      properties:
+        intent:
+          type: string
+          description: The original natural language intent from the user
+          example: "Deploy AMF with 3 replicas for network slice eMBB with high throughput requirements"
+        parameters:
+          type: object
+          description: Structured parameters translated from the intent by the LLM
+          additionalProperties: true
+          example:
+            networkFunction: "AMF"
+            replicas: 3
+            namespace: "telecom-core"
+            resources:
+              cpu: "2000m"
+              memory: "4Gi"
+            networkSlice:
+              type: "eMBB"
+              sla:
+                latency: "20ms"
+                throughput: "1Gbps"
+        priority:
+          type: string
+          description: Processing priority
+          enum: ["low", "medium", "high", "critical"]
+          default: "medium"
+          example: "high"
+        config:
+          type: object
+          description: Processing configuration
+          properties:
+            llmModel:
+              type: string
+              default: "gpt-4o-mini"
+              example: "gpt-4o-mini"
+            timeout:
+              type: string
+              default: "60s"
+              example: "60s"
+            retries:
+              type: integer
+              default: 3
+              example: 3
+            enableRag:
+              type: boolean
+              default: true
+              example: true
+
+    NetworkIntentStatus:
+      type: object
+      properties:
+        phase:
+          type: string
+          description: Current phase of the NetworkIntent processing
+          enum: ["Pending", "Processing", "Processed", "Deploying", "Deployed", "Failed"]
+          example: "Processed"
+        conditions:
+          type: array
+          description: Conditions represent the latest available observations of an object's state
+          items:
+            $ref: '#/components/schemas/Condition'
+        observedGeneration:
+          type: integer
+          format: int64
+          description: The generation of the most recently observed NetworkIntent
+          example: 1
+        processingStartTime:
+          type: string
+          format: date-time
+          description: When the intent processing started
+          example: "2025-01-30T10:30:15Z"
+        processingCompletionTime:
+          type: string
+          format: date-time
+          description: When the intent processing completed
+          example: "2025-01-30T10:30:17Z"
+        deploymentStartTime:
+          type: string
+          format: date-time
+          description: When the GitOps deployment started
+          example: "2025-01-30T10:30:20Z"
+        deploymentCompletionTime:
+          type: string
+          format: date-time
+          description: When the GitOps deployment completed
+          example: "2025-01-30T10:31:00Z"
+        gitCommitHash:
+          type: string
+          description: Commit hash of the deployed configuration
+          example: "abc123def456"
+        lastRetryTime:
+          type: string
+          format: date-time
+          description: Last time a retry was attempted
+          example: "2025-01-30T10:29:00Z"
+        processingInfo:
+          type: object
+          description: Processing metadata
+          properties:
+            llmModel:
+              type: string
+              example: "gpt-4o-mini"
+            processingTime:
+              type: string
+              example: "2.3s"
+            tokensUsed:
+              type: integer
+              example: 1456
+            confidenceScore:
+              type: number
+              format: float
+              example: 0.94
+            requestID:
+              type: string
+              example: "req-12345"
+            ragEnhanced:
+              type: boolean
+              example: true
+        generatedResources:
+          type: array
+          description: List of generated Kubernetes resources
+          items:
+            type: object
+            properties:
+              apiVersion:
+                type: string
+                example: "apps/v1"
+              kind:
+                type: string
+                example: "Deployment"
+              name:
+                type: string
+                example: "amf-deployment"
+              namespace:
+                type: string
+                example: "telecom-core"
+
+    E2NodeSet:
+      type: object
+      required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+      properties:
+        apiVersion:
+          type: string
+          enum: ["nephoran.com/v1"]
+          example: "nephoran.com/v1"
+        kind:
+          type: string
+          enum: ["E2NodeSet"]
+          example: "E2NodeSet"
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/E2NodeSetSpec'
+        status:
+          $ref: '#/components/schemas/E2NodeSetStatus'
+
+    E2NodeSetList:
+      type: object
+      required:
+        - apiVersion
+        - kind
+        - items
+      properties:
+        apiVersion:
+          type: string
+          example: "nephoran.com/v1"
+        kind:
+          type: string
+          example: "E2NodeSetList"
+        metadata:
+          $ref: '#/components/schemas/ListMeta'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/E2NodeSet'
+
+    E2NodeSetSpec:
+      type: object
+      required:
+        - replicas
+      properties:
+        replicas:
+          type: integer
+          format: int32
+          minimum: 0
+          description: Number of simulated E2 Nodes to run
+          example: 5
+        nodeTemplate:
+          type: object
+          description: Template for E2 node configuration
+          properties:
+            metadata:
+              type: object
+              properties:
+                labels:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  example:
+                    type: "gNB-simulator"
+                    version: "v1.0"
+                    environment: "production"
+            spec:
+              type: object
+              properties:
+                e2Connection:
+                  type: object
+                  properties:
+                    ricEndpoint:
+                      type: string
+                      example: "http://near-rt-ric:8080"
+                    nodeId:
+                      type: string
+                      example: "auto-generated"
+                    plmnId:
+                      type: string
+                      example: "12345"
+                    ricId:
+                      type: string
+                      example: "gnb-ric-001"
+                resources:
+                  type: object
+                  properties:
+                    requests:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                          example: "100m"
+                        memory:
+                          type: string
+                          example: "256Mi"
+                    limits:
+                      type: object
+                      properties:
+                        cpu:
+                          type: string
+                          example: "500m"
+                        memory:
+                          type: string
+                          example: "1Gi"
+                config:
+                  type: object
+                  properties:
+                    cellCount:
+                      type: integer
+                      example: 3
+                    bandwidth:
+                      type: string
+                      example: "100MHz"
+                    txPower:
+                      type: string
+                      example: "20dBm"
+                    frequency:
+                      type: string
+                      example: "3500MHz"
+                    serviceModels:
+                      type: array
+                      items:
+                        type: string
+                      example: ["KPM", "RC"]
+
+    E2NodeSetStatus:
+      type: object
+      properties:
+        replicas:
+          type: integer
+          format: int32
+          description: Current number of replicas
+          example: 5
+        readyReplicas:
+          type: integer
+          format: int32
+          description: Number of E2 Nodes that are ready
+          example: 5
+        availableReplicas:
+          type: integer
+          format: int32
+          description: Number of available replicas
+          example: 5
+        unavailableReplicas:
+          type: integer
+          format: int32
+          description: Number of unavailable replicas
+          example: 0
+        conditions:
+          type: array
+          description: Conditions represent the latest available observations
+          items:
+            $ref: '#/components/schemas/Condition'
+        nodeStatus:
+          type: array
+          description: Status of individual E2 nodes
+          items:
+            type: object
+            properties:
+              nodeId:
+                type: string
+                example: "gnb-001"
+              status:
+                type: string
+                enum: ["Running", "Starting", "Failed", "Unknown"]
+                example: "Running"
+              configMapName:
+                type: string
+                example: "e2node-gnb-001"
+              e2ConnectionStatus:
+                type: string
+                enum: ["Connected", "Connecting", "Disconnected", "Error"]
+                example: "Connected"
+              lastSeen:
+                type: string
+                format: date-time
+                example: "2025-01-30T10:35:15Z"
+              metrics:
+                type: object
+                properties:
+                  cpu:
+                    type: string
+                    example: "150m"
+                  memory:
+                    type: string
+                    example: "312Mi"
+
+    ObjectMeta:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Name of the resource
+          example: "example-intent"
+        namespace:
+          type: string
+          description: Namespace of the resource
+          example: "default"
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: Labels for the resource
+          example:
+            app: "nephoran"
+            component: "intent-processor"
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+          description: Annotations for the resource
+          example:
+            "nephoran.com/processed-by": "llm-processor-v2"
+        uid:
+          type: string
+          description: Unique identifier
+          example: "12345678-1234-1234-1234-123456789012"
+        resourceVersion:
+          type: string
+          description: Resource version for optimistic concurrency control
+          example: "12345"
+        generation:
+          type: integer
+          format: int64
+          description: Generation number
+          example: 1
+        creationTimestamp:
+          type: string
+          format: date-time
+          description: Creation timestamp
+          example: "2025-01-30T10:30:00Z"
+
+    ListMeta:
+      type: object
+      properties:
+        resourceVersion:
+          type: string
+          description: Resource version for the list
+          example: "12345"
+        continue:
+          type: string
+          description: Continue token for pagination
+          example: "eyJzdGFydCI6MTAwfQ=="
+
+    Condition:
+      type: object
+      required:
+        - type
+        - status
+        - lastTransitionTime
+        - reason
+        - message
+      properties:
+        type:
+          type: string
+          description: Type of condition
+          example: "LLMProcessed"
+        status:
+          type: string
+          enum: ["True", "False", "Unknown"]
+          description: Status of the condition
+          example: "True"
+        lastTransitionTime:
+          type: string
+          format: date-time
+          description: Last time the condition changed
+          example: "2025-01-30T10:30:15Z"
+        reason:
+          type: string
+          description: Reason for the condition
+          example: "IntentProcessedSuccessfully"
+        message:
+          type: string
+          description: Human-readable message
+          example: "Intent successfully processed with RAG enhancement"
+        observedGeneration:
+          type: integer
+          format: int64
+          description: Generation observed by the controller
+          example: 1
+
+    Scale:
+      type: object
+      required:
+        - spec
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          type: object
+          required:
+            - replicas
+          properties:
+            replicas:
+              type: integer
+              format: int32
+              minimum: 0
+              description: Desired number of replicas
+              example: 8
+        status:
+          type: object
+          properties:
+            replicas:
+              type: integer
+              format: int32
+              description: Current number of replicas
+              example: 5
+
+    Status:
+      type: object
+      properties:
+        kind:
+          type: string
+          example: "Status"
+        apiVersion:
+          type: string
+          example: "v1"
+        metadata:
+          type: object
+        status:
+          type: string
+          enum: ["Success", "Failure"]
+          example: "Success"
+        message:
+          type: string
+          example: "NetworkIntent 'example-intent' deleted"
+        reason:
+          type: string
+          example: "Deleted"
+        code:
+          type: integer
+          example: 200
+
+    JSONPatchOperation:
+      type: object
+      required:
+        - op
+        - path
+      properties:
+        op:
+          type: string
+          enum: ["add", "remove", "replace", "move", "copy", "test"]
+          description: JSON Patch operation
+          example: "replace"
+        path:
+          type: string
+          description: JSON Pointer path
+          example: "/spec/replicas"
+        value:
+          description: Value for the operation
+          example: 5
+        from:
+          type: string
+          description: Source path for move/copy operations
+          example: "/spec/oldReplicas"
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Status'
+    Unauthorized:
+      description: Unauthorized - Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Status'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Status'
+    Conflict:
+      description: Conflict - Resource already exists or version mismatch
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Status'

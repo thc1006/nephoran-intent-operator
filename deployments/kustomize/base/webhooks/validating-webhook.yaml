@@ -1,0 +1,177 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-webhook-service
+  namespace: nephoran-system
+spec:
+  ports:
+  - name: webhook
+    port: 443
+    targetPort: 9443
+  selector:
+    app: nephoran-webhook
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephoran-webhook
+  namespace: nephoran-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nephoran-webhook
+  template:
+    metadata:
+      labels:
+        app: nephoran-webhook
+    spec:
+      serviceAccountName: nephoran-webhook
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: webhook
+        image: ghcr.io/thc1006/nephoran-intent-operator/webhook:v1.0.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9443
+          name: webhook
+          protocol: TCP
+        env:
+        - name: TLS_CERT_PATH
+          value: "/certs/tls.crt"
+        - name: TLS_KEY_PATH
+          value: "/certs/tls.key"
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: /certs
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9443
+            scheme: HTTPS
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 9443
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 250m
+            memory: 64Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: nephoran-webhook-certs
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephoran-webhook
+  namespace: nephoran-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-webhook-role
+  namespace: nephoran-system
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["nephoran-webhook-certs"]
+  verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-webhook-rb
+  namespace: nephoran-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nephoran-webhook-role
+subjects:
+- kind: ServiceAccount
+  name: nephoran-webhook
+  namespace: nephoran-system
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: nephoran-validating-webhook
+webhooks:
+- name: validate.managedelements.nephoran.com
+  clientConfig:
+    service:
+      name: nephoran-webhook-service
+      namespace: nephoran-system
+      path: "/validate/managedelements"
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCi4uLgotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["nephoran.com"]
+    apiVersions: ["v1"]
+    resources: ["managedelements"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
+  namespaceSelector:
+    matchLabels:
+      nephoran.com/webhook-enabled: "true"
+- name: validate.e2nodesets.nephoran.com
+  clientConfig:
+    service:
+      name: nephoran-webhook-service
+      namespace: nephoran-system
+      path: "/validate/e2nodesets"
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCi4uLgotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["nephoran.com"]
+    apiVersions: ["v1"]
+    resources: ["e2nodesets"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
+  namespaceSelector:
+    matchLabels:
+      nephoran.com/webhook-enabled: "true"
+- name: validate.secrets.nephoran.com
+  clientConfig:
+    service:
+      name: nephoran-webhook-service
+      namespace: nephoran-system
+      path: "/validate/secrets"
+    caBundle: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCi4uLgotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: [""]
+    apiVersions: ["v1"]
+    resources: ["secrets"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
+  namespaceSelector:
+    matchLabels:
+      nephoran.com/webhook-enabled: "true"
+  objectSelector:
+    matchLabels:
+      nephoran.com/managed: "true"

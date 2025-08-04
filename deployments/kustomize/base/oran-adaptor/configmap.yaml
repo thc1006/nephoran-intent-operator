@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oran-adaptor-config
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  # A1 Interface Configuration
+  a1_ric_url: "http://a1-ric.oran.svc.cluster.local:8080"
+  a1_policy_endpoint: "/a1-p/v1"
+  a1_healthcheck_endpoint: "/a1-p/v1/healthcheck"
+  
+  # E2 Interface Configuration
+  e2_ric_url: "http://e2-ric.oran.svc.cluster.local:38000"
+  e2_subscription_endpoint: "/v1/subscriptions"
+  e2_control_endpoint: "/v1/control"
+  e2_healthcheck_endpoint: "/v1/health"
+  
+  # O1 Interface Configuration
+  o1_netconf_host: "o1-managed-element.oran.svc.cluster.local"
+  o1_yang_models_path: "/etc/yang-models"
+  o1_capabilities_file: "/config/o1-capabilities.xml"
+  
+  # O2 Interface Configuration
+  o2_ims_url: "http://o2-ims.oran.svc.cluster.local:8080"
+  o2_inventory_endpoint: "/o2ims-infrastructureInventory/v1"
+  o2_monitoring_endpoint: "/o2ims-infrastructureMonitoring/v1"
+  
+  # Circuit Breaker Configuration
+  circuit_breaker_failure_threshold: "5"
+  circuit_breaker_success_threshold: "3"
+  circuit_breaker_timeout_seconds: "60"
+  circuit_breaker_half_open_max_calls: "10"
+  
+  # Retry Configuration
+  retry_max_attempts: "3"
+  retry_initial_delay_ms: "1000"
+  retry_max_delay_ms: "30000"
+  retry_backoff_multiplier: "2.0"
+  retry_jitter_enabled: "true"
+  
+  # Health Check Configuration
+  health_check_interval_seconds: "30"
+  health_check_timeout_seconds: "10"
+  dependency_check_parallel: "true"
+  dependency_check_timeout_seconds: "5"
+  
+  # Metrics Configuration
+  metrics_path: "/metrics"
+  metrics_port: "8082"
+  metrics_interval_seconds: "15"
+  
+  # Logging Configuration
+  log_level: "info"
+  log_format: "json"
+  log_output: "stdout"
+  structured_logging: "true"
+  
+  # TLS Configuration
+  tls_cert_path: "/etc/certs/tls.crt"
+  tls_key_path: "/etc/certs/tls.key"
+  tls_ca_path: "/etc/certs/ca.crt"
+  tls_verify_client_cert: "false"
+  
+  # Performance Tuning
+  max_concurrent_requests: "100"
+  request_timeout_seconds: "30"
+  keep_alive_timeout_seconds: "60"
+  read_header_timeout_seconds: "10"
+  write_timeout_seconds: "30"
+  
+  # O-RAN Specific Configuration
+  oran_compliance_version: "O-RAN.WG1.O1-Interface.0-v05.00"
+  oran_vendor_name: "Nephoran"
+  oran_vendor_version: "1.0.0"
+  oran_supported_functions: "A1,E2,O1,O2"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oran-yang-models
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  # O1 YANG Models Configuration
+  o1-capabilities.xml: |
+    <?xml version="1.0" encoding="UTF-8"?>
+    <hello xmlns="urn:ietf:params:xml:ns:netconf:base:1.0">
+      <capabilities>
+        <capability>urn:ietf:params:netconf:base:1.0</capability>
+        <capability>urn:ietf:params:netconf:base:1.1</capability>
+        <capability>urn:ietf:params:netconf:capability:startup:1.0</capability>
+        <capability>urn:ietf:params:netconf:capability:candidate:1.0</capability>
+        <capability>urn:ietf:params:netconf:capability:validate:1.1</capability>
+        <capability>urn:ietf:params:netconf:capability:notification:1.0</capability>
+        <capability>urn:o-ran:hardware:1.0</capability>
+        <capability>urn:o-ran:software-management:1.0</capability>
+        <capability>urn:o-ran:fm:1.0</capability>
+        <capability>urn:o-ran:performance-management:1.0</capability>
+        <capability>urn:o-ran:lbm:1.0</capability>
+        <capability>urn:o-ran:supervision:1.0</capability>
+      </capabilities>
+    </hello>
+  
+  supported-models.yaml: |
+    yang_models:
+      - name: "o-ran-hardware"
+        version: "1.0"
+        namespace: "urn:o-ran:hardware:1.0"
+        description: "O-RAN Hardware model"
+      - name: "o-ran-software-management"  
+        version: "1.0"
+        namespace: "urn:o-ran:software-management:1.0"
+        description: "O-RAN Software Management model"
+      - name: "o-ran-fm"
+        version: "1.0" 
+        namespace: "urn:o-ran:fm:1.0"
+        description: "O-RAN Fault Management model"
+      - name: "o-ran-performance-management"
+        version: "1.0"
+        namespace: "urn:o-ran:performance-management:1.0" 
+        description: "O-RAN Performance Management model"
+      - name: "o-ran-lbm"
+        version: "1.0"
+        namespace: "urn:o-ran:lbm:1.0"
+        description: "O-RAN Load Balancing Management model"
+      - name: "o-ran-supervision"
+        version: "1.0"
+        namespace: "urn:o-ran:supervision:1.0"
+        description: "O-RAN Supervision model"

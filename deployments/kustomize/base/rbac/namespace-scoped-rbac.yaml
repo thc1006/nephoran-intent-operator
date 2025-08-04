@@ -1,0 +1,228 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-system
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# ServiceAccount for LLM Processor
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: llm-processor
+  namespace: nephoran-system
+---
+# Role for LLM Processor (namespace-scoped)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: llm-processor-role
+  namespace: nephoran-system
+rules:
+# Access to secrets for API keys
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["llm-api-keys", "jwt-secret", "api-keys", "oauth2-credentials"]
+  verbs: ["get"]
+# Access to configmaps for configuration
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["llm-processor-config", "oauth2-config", "oauth2-environment"]
+  verbs: ["get", "list", "watch"]
+# Create events for auditing
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+# RoleBinding for LLM Processor
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: llm-processor-rb
+  namespace: nephoran-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: llm-processor-role
+subjects:
+- kind: ServiceAccount
+  name: llm-processor
+  namespace: nephoran-system
+---
+# ServiceAccount for RAG API
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rag-api
+  namespace: nephoran-system
+---
+# Role for RAG API (namespace-scoped)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rag-api-role
+  namespace: nephoran-system
+rules:
+# Access to secrets for API keys
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["rag-api-keys"]
+  verbs: ["get"]
+# Access to configmaps for configuration
+- apiGroups: [""]
+  resources: ["configmaps"]
+  resourceNames: ["rag-config"]
+  verbs: ["get", "list", "watch"]
+# Create events for auditing
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+# RoleBinding for RAG API
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rag-api-rb
+  namespace: nephoran-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rag-api-role
+subjects:
+- kind: ServiceAccount
+  name: rag-api
+  namespace: nephoran-system
+---
+# ServiceAccount for ORAN Adaptor (namespace-scoped)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oran-adaptor-ns
+  namespace: nephoran-system
+---
+# Role for ORAN Adaptor (namespace-scoped)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: oran-adaptor-ns-role
+  namespace: nephoran-system
+rules:
+# Access to secrets for credentials
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["managedelement-credentials", "oran-tls-certs"]
+  verbs: ["get"]
+# Access to configmaps
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+# Create events
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+# Monitor pods in namespace
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+# Service discovery
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+---
+# RoleBinding for ORAN Adaptor (namespace-scoped)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: oran-adaptor-ns-rb
+  namespace: nephoran-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: oran-adaptor-ns-role
+subjects:
+- kind: ServiceAccount
+  name: oran-adaptor-ns
+  namespace: nephoran-system
+---
+# ServiceAccount for Nephio Bridge
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephio-bridge
+  namespace: nephoran-system
+---
+# Role for Nephio Bridge
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephio-bridge-role
+  namespace: nephoran-system
+rules:
+# Access to configmaps
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+# Create events
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+# RoleBinding for Nephio Bridge
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephio-bridge-rb
+  namespace: nephoran-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nephio-bridge-role
+subjects:
+- kind: ServiceAccount
+  name: nephio-bridge
+  namespace: nephoran-system
+---
+# ServiceAccount for Document Processor
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: document-processor
+  namespace: nephoran-system
+---
+# Role for Document Processor
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: document-processor-role
+  namespace: nephoran-system
+rules:
+# Access to secrets for API keys
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["document-processor-keys"]
+  verbs: ["get"]
+# Access to configmaps
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+# Create events
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+# RoleBinding for Document Processor
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: document-processor-rb
+  namespace: nephoran-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: document-processor-role
+subjects:
+- kind: ServiceAccount
+  name: document-processor
+  namespace: nephoran-system

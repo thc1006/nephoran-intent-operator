@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
+	"math/rand"
 	"net/http"
 	"sync"
 	"time"
@@ -13,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
@@ -197,16 +200,33 @@ type E2Adaptor struct {
 	mutex               sync.RWMutex
 	heartbeatInterval   time.Duration
 	maxRetries          int
+	
+	// Circuit breaker and resilience
+	circuitBreaker      *llm.CircuitBreaker
+	retryConfig         *RetryConfig
+	encoder             *E2APEncoder
 }
 
 // E2AdaptorConfig holds configuration for the E2 adaptor
+// RetryConfig holds retry configuration
+type RetryConfig struct {
+	MaxRetries      int           `json:"max_retries"`
+	InitialDelay    time.Duration `json:"initial_delay"`
+	MaxDelay        time.Duration `json:"max_delay"`
+	BackoffFactor   float64       `json:"backoff_factor"`
+	Jitter          bool          `json:"jitter"`
+	RetryableErrors []string      `json:"retryable_errors"`
+}
+
 type E2AdaptorConfig struct {
-	RICURL              string
-	APIVersion          string
-	Timeout             time.Duration
-	HeartbeatInterval   time.Duration
-	MaxRetries          int
-	TLSConfig           *oran.TLSConfig
+	RICURL                  string
+	APIVersion              string
+	Timeout                 time.Duration
+	HeartbeatInterval       time.Duration
+	MaxRetries              int
+	TLSConfig               *oran.TLSConfig
+	CircuitBreakerConfig    *llm.CircuitBreakerConfig
+	RetryConfig             *RetryConfig
 }
 
 // NewE2Adaptor creates a new E2 adaptor following O-RAN specifications
@@ -221,6 +241,41 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 		}
 	}
 	
+	// Set default retry configuration
+	if config.RetryConfig == nil {
+		config.RetryConfig = &RetryConfig{
+			MaxRetries:    3,
+			InitialDelay:  1 * time.Second,
+			MaxDelay:      30 * time.Second,
+			BackoffFactor: 2.0,
+			Jitter:        true,
+			RetryableErrors: []string{
+				"connection refused",
+				"timeout",
+				"temporary failure",
+				"service unavailable",
+			},
+		}
+	}
+
+	// Set default circuit breaker configuration
+	if config.CircuitBreakerConfig == nil {
+		config.CircuitBreakerConfig = &llm.CircuitBreakerConfig{
+			FailureThreshold:    5,
+			FailureRate:         0.5,
+			MinimumRequestCount: 10,
+			Timeout:             config.Timeout,
+			HalfOpenTimeout:     60 * time.Second,
+			SuccessThreshold:    3,
+			HalfOpenMaxRequests: 5,
+			ResetTimeout:        60 * time.Second,
+			SlidingWindowSize:   100,
+			EnableHealthCheck:   true,
+			HealthCheckInterval: 30 * time.Second,
+			HealthCheckTimeout:  10 * time.Second,
+		}
+	}
+	
 	httpClient := &http.Client{
 		Timeout: config.Timeout,
 	}
@@ -229,6 +284,12 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 	if config.TLSConfig != nil {
 		// TODO: Configure TLS transport based on O-RAN security requirements
 	}
+
+	// Create circuit breaker
+	circuitBreaker := llm.NewCircuitBreaker("e2-adaptor", config.CircuitBreakerConfig)
+
+	// Create E2AP encoder
+	encoder := NewE2APEncoder()
 	
 	adaptor := &E2Adaptor{
 		httpClient:        httpClient,
@@ -239,6 +300,9 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 		subscriptions:    make(map[string]map[string]*E2Subscription),
 		heartbeatInterval: config.HeartbeatInterval,
 		maxRetries:       config.MaxRetries,
+		circuitBreaker:   circuitBreaker,
+		retryConfig:      config.RetryConfig,
+		encoder:          encoder,
 	}
 	
 	// Start background heartbeat monitoring
@@ -1024,4 +1088,163 @@ func CreateDefaultE2NodeFunction() *E2NodeFunction {
 			LastHeartbeat: time.Now(),
 		},
 	}
+}
+
+// Retry and Circuit Breaker Helper Methods
+
+// executeWithRetry executes an operation with exponential backoff retry
+func (e *E2Adaptor) executeWithRetry(ctx context.Context, operation func() error) error {
+	return e.circuitBreaker.Execute(ctx, func(ctx context.Context) (interface{}, error) {
+		var lastErr error
+		
+		for attempt := 0; attempt <= e.retryConfig.MaxRetries; attempt++ {
+			if attempt > 0 {
+				delay := e.calculateBackoffDelay(attempt)
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(delay):
+				}
+			}
+			
+			if err := operation(); err != nil {
+				lastErr = err
+				if !e.isRetryableError(err) {
+					return nil, err
+				}
+				continue
+			}
+			
+			return nil, nil
+		}
+		
+		return nil, fmt.Errorf("operation failed after %d attempts: %w", e.retryConfig.MaxRetries+1, lastErr)
+	})
+}
+
+// calculateBackoffDelay calculates the delay for exponential backoff with jitter
+func (e *E2Adaptor) calculateBackoffDelay(attempt int) time.Duration {
+	delay := time.Duration(float64(e.retryConfig.InitialDelay) * math.Pow(e.retryConfig.BackoffFactor, float64(attempt-1)))
+	
+	if delay > e.retryConfig.MaxDelay {
+		delay = e.retryConfig.MaxDelay
+	}
+	
+	if e.retryConfig.Jitter {
+		jitter := time.Duration(rand.Float64() * float64(delay) * 0.1)
+		delay += jitter
+	}
+	
+	return delay
+}
+
+// isRetryableError checks if an error is retryable based on configuration
+func (e *E2Adaptor) isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	errMsg := err.Error()
+	for _, retryableErr := range e.retryConfig.RetryableErrors {
+		if contains(errMsg, retryableErr) {
+			return true
+		}
+	}
+	
+	return false
+}
+
+// contains checks if a string contains a substring (case-insensitive)
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && 
+		   (s == substr || 
+		    len(s) > len(substr) && 
+		    (s[:len(substr)] == substr || 
+		     s[len(s)-len(substr):] == substr || 
+		     indexOf(s, substr) >= 0))
+}
+
+// indexOf returns the index of substr in s, or -1 if not found
+func indexOf(s, substr string) int {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
+}
+
+// sendE2APMessage sends an E2AP message with circuit breaker and retry protection
+func (e *E2Adaptor) sendE2APMessage(ctx context.Context, nodeID string, message *E2APMessage) (*E2APMessage, error) {
+	logger := log.FromContext(ctx)
+	
+	var response *E2APMessage
+	err := e.executeWithRetry(ctx, func() error {
+		// Encode the message
+		messageBytes, err := e.encoder.EncodeMessage(message)
+		if err != nil {
+			return fmt.Errorf("failed to encode E2AP message: %w", err)
+		}
+		
+		// Create HTTP request
+		url := fmt.Sprintf("%s/api/%s/nodes/%s/messages", e.ricURL, e.apiVersion, nodeID)
+		req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(messageBytes))
+		if err != nil {
+			return fmt.Errorf("failed to create HTTP request: %w", err)
+		}
+		
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+		
+		// Send request
+		resp, err := e.httpClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("HTTP request failed: %w", err)
+		}
+		defer resp.Body.Close()
+		
+		if resp.StatusCode >= 400 {
+			return fmt.Errorf("HTTP request failed with status %d", resp.StatusCode)
+		}
+		
+		// Read response
+		responseBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read response body: %w", err)
+		}
+		
+		// Decode response
+		if len(responseBody) > 0 {
+			response, err = e.encoder.DecodeMessage(responseBody)
+			if err != nil {
+				return fmt.Errorf("failed to decode E2AP response: %w", err)
+			}
+		}
+		
+		logger.Info("E2AP message sent successfully", 
+			"nodeID", nodeID, 
+			"messageType", message.MessageType,
+			"transactionID", message.TransactionID)
+		
+		return nil
+	})
+	
+	if err != nil {
+		logger.Error(err, "Failed to send E2AP message", 
+			"nodeID", nodeID, 
+			"messageType", message.MessageType)
+		return nil, err
+	}
+	
+	return response, nil
+}
+
+// GetCircuitBreakerStats returns circuit breaker statistics
+func (e *E2Adaptor) GetCircuitBreakerStats() map[string]interface{} {
+	return e.circuitBreaker.GetStats()
+}
+
+// ResetCircuitBreaker manually resets the circuit breaker
+func (e *E2Adaptor) ResetCircuitBreaker() {
+	e.circuitBreaker.Reset()
 }

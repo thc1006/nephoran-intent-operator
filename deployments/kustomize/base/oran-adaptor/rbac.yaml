@@ -8,9 +8,33 @@ kind: ClusterRole
 metadata:
   name: oran-adaptor-role
 rules:
-- apiGroups: ["*"]
-  resources: ["*"]
-  verbs: ["*"]
+# Nephoran CRDs
+- apiGroups: ["nephoran.com"]
+  resources: ["managedelements", "managedelements/status", "e2nodesets", "e2nodesets/status"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Core resources for configuration
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+# Deployments for managed elements
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+# Service discovery
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+# Pod monitoring
+- apiGroups: [""]
+  resources: ["pods", "pods/log"]
+  verbs: ["get", "list", "watch"]
+# Network policies for O-RAN communication
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

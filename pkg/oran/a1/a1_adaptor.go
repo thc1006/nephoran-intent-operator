@@ -6,12 +6,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
+	"math/rand"
 	"net/http"
+	"sync"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 // A1PolicyType represents an A1 policy type
@@ -65,18 +69,39 @@ type A1AdaptorInterface interface {
 
 // A1Adaptor implements the A1 interface for Near-RT RIC communication
 type A1Adaptor struct {
-	httpClient *http.Client
-	ricURL     string
-	apiVersion string
-	timeout    time.Duration
+	httpClient     *http.Client
+	ricURL         string
+	apiVersion     string
+	timeout        time.Duration
+	
+	// Resilience components
+	circuitBreaker *llm.CircuitBreaker
+	retryConfig    *RetryConfig
+	
+	// Policy management
+	policyTypes    map[int]*A1PolicyType
+	policyInstances map[string]*A1PolicyInstance
+	mutex          sync.RWMutex
+}
+
+// RetryConfig holds retry configuration for A1 interface
+type RetryConfig struct {
+	MaxRetries      int           `json:"max_retries"`
+	InitialDelay    time.Duration `json:"initial_delay"`
+	MaxDelay        time.Duration `json:"max_delay"`
+	BackoffFactor   float64       `json:"backoff_factor"`
+	Jitter          bool          `json:"jitter"`
+	RetryableErrors []string      `json:"retryable_errors"`
 }
 
 // A1AdaptorConfig holds configuration for the A1 adaptor
 type A1AdaptorConfig struct {
-	RICURL     string
-	APIVersion string
-	Timeout    time.Duration
-	TLSConfig  *TLSConfig
+	RICURL                  string
+	APIVersion              string
+	Timeout                 time.Duration
+	TLSConfig               *TLSConfig
+	CircuitBreakerConfig    *llm.CircuitBreakerConfig
+	RetryConfig             *RetryConfig
 }
 
 // TLSConfig holds TLS configuration
@@ -172,6 +197,41 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 		}
 	}
 	
+	// Set default retry configuration
+	if config.RetryConfig == nil {
+		config.RetryConfig = &RetryConfig{
+			MaxRetries:    3,
+			InitialDelay:  1 * time.Second,
+			MaxDelay:      30 * time.Second,
+			BackoffFactor: 2.0,
+			Jitter:        true,
+			RetryableErrors: []string{
+				"connection refused",
+				"timeout",
+				"temporary failure",
+				"service unavailable",
+			},
+		}
+	}
+
+	// Set default circuit breaker configuration
+	if config.CircuitBreakerConfig == nil {
+		config.CircuitBreakerConfig = &llm.CircuitBreakerConfig{
+			FailureThreshold:    5,
+			FailureRate:         0.5,
+			MinimumRequestCount: 10,
+			Timeout:             config.Timeout,
+			HalfOpenTimeout:     60 * time.Second,
+			SuccessThreshold:    3,
+			HalfOpenMaxRequests: 5,
+			ResetTimeout:        60 * time.Second,
+			SlidingWindowSize:   100,
+			EnableHealthCheck:   true,
+			HealthCheckInterval: 30 * time.Second,
+			HealthCheckTimeout:  10 * time.Second,
+		}
+	}
+	
 	httpClient := &http.Client{
 		Timeout: config.Timeout,
 	}
@@ -180,12 +240,19 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 	if config.TLSConfig != nil {
 		// TODO: Configure TLS transport
 	}
+
+	// Create circuit breaker
+	circuitBreaker := llm.NewCircuitBreaker("a1-adaptor", config.CircuitBreakerConfig)
 	
 	return &A1Adaptor{
-		httpClient: httpClient,
-		ricURL:     config.RICURL,
-		apiVersion: config.APIVersion,
-		timeout:    config.Timeout,
+		httpClient:      httpClient,
+		ricURL:          config.RICURL,
+		apiVersion:      config.APIVersion,
+		timeout:         config.Timeout,
+		circuitBreaker:  circuitBreaker,
+		retryConfig:     config.RetryConfig,
+		policyTypes:     make(map[int]*A1PolicyType),
+		policyInstances: make(map[string]*A1PolicyInstance),
 	}, nil
 }
 
@@ -1203,4 +1270,184 @@ func (o *SMOPolicyOrchestrator) validateResourceAvailability(ctx context.Context
 	}
 	
 	return nil
+}
+
+// Retry and Circuit Breaker Helper Methods for A1 Adaptor
+
+// executeWithRetry executes an operation with exponential backoff retry
+func (a *A1Adaptor) executeWithRetry(ctx context.Context, operation func() error) error {
+	_, err := a.circuitBreaker.Execute(ctx, func(ctx context.Context) (interface{}, error) {
+		var lastErr error
+		
+		for attempt := 0; attempt <= a.retryConfig.MaxRetries; attempt++ {
+			if attempt > 0 {
+				delay := a.calculateBackoffDelay(attempt)
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(delay):
+				}
+			}
+			
+			if err := operation(); err != nil {
+				lastErr = err
+				if !a.isRetryableError(err) {
+					return nil, err
+				}
+				continue
+			}
+			
+			return nil, nil
+		}
+		
+		return nil, fmt.Errorf("operation failed after %d attempts: %w", a.retryConfig.MaxRetries+1, lastErr)
+	})
+	
+	return err
+}
+
+// calculateBackoffDelay calculates the delay for exponential backoff with jitter
+func (a *A1Adaptor) calculateBackoffDelay(attempt int) time.Duration {
+	delay := time.Duration(float64(a.retryConfig.InitialDelay) * math.Pow(a.retryConfig.BackoffFactor, float64(attempt-1)))
+	
+	if delay > a.retryConfig.MaxDelay {
+		delay = a.retryConfig.MaxDelay
+	}
+	
+	if a.retryConfig.Jitter {
+		jitter := time.Duration(rand.Float64() * float64(delay) * 0.1)
+		delay += jitter
+	}
+	
+	return delay
+}
+
+// isRetryableError checks if an error is retryable based on configuration
+func (a *A1Adaptor) isRetryableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	errMsg := err.Error()
+	for _, retryableErr := range a.retryConfig.RetryableErrors {
+		if contains(errMsg, retryableErr) {
+			return true
+		}
+	}
+	
+	return false
+}
+
+// contains checks if a string contains a substring (case-insensitive)
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && 
+		   (s == substr || 
+		    len(s) > len(substr) && 
+		    (s[:len(substr)] == substr || 
+		     s[len(s)-len(substr):] == substr || 
+		     indexOf(s, substr) >= 0))
+}
+
+// indexOf returns the index of substr in s, or -1 if not found
+func indexOf(s, substr string) int {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
+}
+
+// GetCircuitBreakerStats returns circuit breaker statistics
+func (a *A1Adaptor) GetCircuitBreakerStats() map[string]interface{} {
+	return a.circuitBreaker.GetStats()
+}
+
+// ResetCircuitBreaker manually resets the circuit breaker
+func (a *A1Adaptor) ResetCircuitBreaker() {
+	a.circuitBreaker.Reset()
+}
+
+// Enhanced Policy Management Methods with Circuit Breaker Protection
+
+// createPolicyTypeWithRetry creates a policy type with retry and circuit breaker protection
+func (a *A1Adaptor) createPolicyTypeWithRetry(ctx context.Context, policyType *A1PolicyType) error {
+	return a.executeWithRetry(ctx, func() error {
+		jsonData, err := json.Marshal(policyType)
+		if err != nil {
+			return fmt.Errorf("failed to marshal policy type: %w", err)
+		}
+
+		url := fmt.Sprintf("%s/a1-p/policytypes/%d", a.ricURL, policyType.PolicyTypeID)
+		req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(jsonData))
+		if err != nil {
+			return fmt.Errorf("failed to create HTTP request: %w", err)
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := a.httpClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("HTTP request failed: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode >= 400 {
+			return fmt.Errorf("failed to create policy type, status: %d", resp.StatusCode)
+		}
+
+		// Cache the policy type locally
+		a.mutex.Lock()
+		a.policyTypes[policyType.PolicyTypeID] = policyType
+		a.mutex.Unlock()
+
+		return nil
+	})
+}
+
+// createPolicyInstanceWithRetry creates a policy instance with retry and circuit breaker protection
+func (a *A1Adaptor) createPolicyInstanceWithRetry(ctx context.Context, policyTypeID int, policyInstanceID string, policyData map[string]interface{}) error {
+	return a.executeWithRetry(ctx, func() error {
+		jsonData, err := json.Marshal(policyData)
+		if err != nil {
+			return fmt.Errorf("failed to marshal policy data: %w", err)
+		}
+
+		url := fmt.Sprintf("%s/a1-p/policytypes/%d/policies/%s", a.ricURL, policyTypeID, policyInstanceID)
+		req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(jsonData))
+		if err != nil {
+			return fmt.Errorf("failed to create HTTP request: %w", err)
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := a.httpClient.Do(req)
+		if err != nil {
+			return fmt.Errorf("HTTP request failed: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode >= 400 {
+			return fmt.Errorf("failed to create policy instance, status: %d", resp.StatusCode)
+		}
+
+		// Cache the policy instance locally
+		policyInstance := &A1PolicyInstance{
+			PolicyInstanceID: policyInstanceID,
+			PolicyTypeID:     policyTypeID,
+			PolicyData:       policyData,
+			Status: A1PolicyStatus{
+				EnforcementStatus: "ENFORCED",
+				LastModified:      time.Now(),
+			},
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
+		}
+
+		a.mutex.Lock()
+		a.policyInstances[policyInstanceID] = policyInstance
+		a.mutex.Unlock()
+
+		return nil
+	})
 }

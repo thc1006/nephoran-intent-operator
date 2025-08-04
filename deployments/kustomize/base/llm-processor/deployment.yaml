@@ -91,12 +91,8 @@ spec:
         # Enhanced Security Configuration
         - name: API_KEY_REQUIRED
           value: "false"
-        - name: API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: llm-credentials
-              key: api_key
-              optional: true
+        - name: API_KEY_SECRET_PATH
+          value: "/secrets/api-keys/api-key"
         
         # CORS Configuration
         - name: CORS_ENABLED
@@ -116,20 +112,10 @@ spec:
             configMapKeyRef:
               name: llm-processor-config
               key: mistral_api_url
-        - name: MISTRAL_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: llm-credentials
-              key: mistral_api_key
         
         # OpenAI Configuration (Fallback)
         - name: OPENAI_API_URL
           value: "https://api.openai.com/v1/chat/completions"
-        - name: OPENAI_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: llm-credentials
-              key: openai_api_key
         
         # RAG API Configuration
         - name: RAG_API_URL
@@ -191,11 +177,16 @@ spec:
             configMapKeyRef:
               name: oauth2-environment
               key: AUTH_CONFIG_FILE
-        - name: JWT_SECRET_KEY
+        - name: JWT_SECRET_KEY_PATH
+          value: "/secrets/jwt/jwt-secret-key"
+        # Secret Management Configuration
+        - name: USE_KUBERNETES_SECRETS
+          value: "true"
+        - name: SECRET_NAMESPACE
           valueFrom:
-            secretKeyRef:
-              name: oauth2-secrets
-              key: jwt-secret-key
+            fieldRef:
+              fieldPath: metadata.namespace
+        
         - name: RBAC_ENABLED
           valueFrom:
             configMapKeyRef:
@@ -228,11 +219,8 @@ spec:
             configMapKeyRef:
               name: oauth2-environment
               key: AZURE_CLIENT_ID
-        - name: AZURE_CLIENT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: oauth2-secrets
-              key: azure-client-secret
+        - name: AZURE_CLIENT_SECRET_PATH
+          value: "/secrets/oauth2/client-secret"
         - name: AZURE_TENANT_ID
           valueFrom:
             configMapKeyRef:
@@ -321,6 +309,18 @@ spec:
         - name: oauth2-config
           mountPath: /config
           readOnly: true
+        - name: llm-api-keys
+          mountPath: /secrets/llm
+          readOnly: true
+        - name: api-keys
+          mountPath: /secrets/api-keys
+          readOnly: true
+        - name: jwt-secret
+          mountPath: /secrets/jwt
+          readOnly: true
+        - name: oauth2-credentials
+          mountPath: /secrets/oauth2
+          readOnly: true
       
       # Pod-level configurations
       restartPolicy: Always
@@ -363,3 +363,21 @@ spec:
         configMap:
           name: oauth2-config
           defaultMode: 0444
+      - name: llm-api-keys
+        secret:
+          secretName: llm-api-keys
+          defaultMode: 0400
+      - name: api-keys
+        secret:
+          secretName: api-keys
+          defaultMode: 0400
+          optional: true
+      - name: jwt-secret
+        secret:
+          secretName: jwt-secret
+          defaultMode: 0400
+      - name: oauth2-credentials
+        secret:
+          secretName: oauth2-credentials
+          defaultMode: 0400
+          optional: true

@@ -1,0 +1,883 @@
+openapi: 3.0.3
+info:
+  title: Nephoran LLM Processor Service API
+  description: |
+    Enterprise-grade LLM processing service for the Nephoran Intent Operator.
+    This service processes natural language intents and converts them to structured network operations.
+  version: 2.0.0
+  contact:
+    name: Nephoran Development Team
+    email: support@nephoran.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: http://llm-processor:8080
+    description: Default service endpoint
+  - url: http://localhost:8080
+    description: Local development endpoint
+  - url: https://llm-processor.nephoran.com
+    description: Production endpoint
+
+tags:
+  - name: Processing
+    description: Intent processing operations
+  - name: Streaming
+    description: Real-time streaming operations
+  - name: Health
+    description: Health check endpoints
+  - name: Monitoring
+    description: Metrics and monitoring endpoints
+  - name: Authentication
+    description: OAuth2 authentication endpoints
+  - name: Administration
+    description: Administrative operations
+
+security:
+  - BearerAuth: []
+  - OAuth2: [operator]
+
+paths:
+  /process:
+    post:
+      summary: Process natural language intent
+      description: Convert natural language intents into structured network operations
+      tags:
+        - Processing
+      operationId: processIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessIntentRequest'
+      responses:
+        '200':
+          description: Intent processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessIntentResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /stream:
+    post:
+      summary: Stream intent processing
+      description: Real-time streaming processing with Server-Sent Events
+      tags:
+        - Streaming
+      operationId: streamIntent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StreamIntentRequest'
+      responses:
+        '200':
+          description: Streaming session established
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-Sent Events stream
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /healthz:
+    get:
+      summary: Liveness probe
+      description: Check if the service is alive
+      tags:
+        - Health
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  /readyz:
+    get:
+      summary: Readiness probe
+      description: Check if the service is ready to handle requests
+      tags:
+        - Health
+      operationId: readinessCheck
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessStatus'
+        '503':
+          description: Service not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessStatus'
+
+  /status:
+    get:
+      summary: Service status
+      description: Get detailed service status information
+      tags:
+        - Monitoring
+      operationId: getStatus
+      security:
+        - BearerAuth: []
+        - OAuth2: [admin]
+      responses:
+        '200':
+          description: Service status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceStatus'
+
+  /metrics:
+    get:
+      summary: Service metrics
+      description: Get service metrics in JSON or Prometheus format
+      tags:
+        - Monitoring
+      operationId: getMetrics
+      security: []
+      parameters:
+        - name: format
+          in: query
+          description: Metrics format
+          schema:
+            type: string
+            enum: [json, prometheus]
+            default: json
+      responses:
+        '200':
+          description: Metrics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceMetrics'
+            text/plain:
+              schema:
+                type: string
+                description: Prometheus format metrics
+
+  /circuit-breaker/status:
+    get:
+      summary: Circuit breaker status
+      description: Get circuit breaker status and health
+      tags:
+        - Administration
+      operationId: getCircuitBreakerStatus
+      security:
+        - BearerAuth: []
+        - OAuth2: [admin]
+      responses:
+        '200':
+          description: Circuit breaker status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CircuitBreakerStatus'
+
+  /circuit-breaker/control:
+    post:
+      summary: Control circuit breaker
+      description: Reset or force open circuit breaker
+      tags:
+        - Administration
+      operationId: controlCircuitBreaker
+      security:
+        - BearerAuth: []
+        - OAuth2: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CircuitBreakerControl'
+      responses:
+        '200':
+          description: Circuit breaker action completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CircuitBreakerActionResponse'
+
+  /auth/login/{provider}:
+    get:
+      summary: Initiate OAuth2 login
+      description: Redirect to OAuth2 provider for authentication
+      tags:
+        - Authentication
+      operationId: loginProvider
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          description: OAuth2 provider name
+          schema:
+            type: string
+            enum: [azure, google, okta, keycloak]
+      responses:
+        '302':
+          description: Redirect to OAuth2 provider
+          headers:
+            Location:
+              schema:
+                type: string
+                description: OAuth2 provider authorization URL
+
+  /auth/callback/{provider}:
+    get:
+      summary: OAuth2 callback
+      description: Handle OAuth2 provider callback
+      tags:
+        - Authentication
+      operationId: callbackProvider
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          description: OAuth2 provider name
+          schema:
+            type: string
+            enum: [azure, google, okta, keycloak]
+        - name: code
+          in: query
+          required: true
+          description: Authorization code
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          description: State parameter
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: Exchange refresh token for new access token
+      tags:
+        - Authentication
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokenResponse'
+
+  /auth/userinfo:
+    get:
+      summary: Get user information
+      description: Get authenticated user information
+      tags:
+        - Authentication
+      operationId: getUserInfo
+      responses:
+        '200':
+          description: User information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserInfo'
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      description: Logout and invalidate tokens
+      tags:
+        - Authentication
+      operationId: logoutUser
+      responses:
+        '200':
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: success
+                  message:
+                    type: string
+                    example: Logged out successfully
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: /auth/login/{provider}
+          tokenUrl: /auth/callback/{provider}
+          scopes:
+            operator: Process intents and view status
+            admin: Full administrative access
+
+  schemas:
+    ProcessIntentRequest:
+      type: object
+      required:
+        - intent
+      properties:
+        intent:
+          type: string
+          description: Natural language intent to process
+          example: "Deploy AMF with 3 replicas for network slice eMBB with high throughput requirements"
+        metadata:
+          type: object
+          description: Additional metadata for processing
+          properties:
+            namespace:
+              type: string
+              example: telecom-core
+            priority:
+              type: string
+              enum: [low, medium, high, critical]
+              example: high
+            user_id:
+              type: string
+              example: operator-001
+        config:
+          type: object
+          description: Processing configuration
+          properties:
+            model:
+              type: string
+              default: gpt-4o-mini
+              example: gpt-4o-mini
+            max_tokens:
+              type: integer
+              default: 2048
+              example: 2048
+            enable_rag:
+              type: boolean
+              default: true
+              example: true
+
+    ProcessIntentResponse:
+      type: object
+      properties:
+        result:
+          type: string
+          description: Processed result
+          example: "Generated Kubernetes YAML configuration for AMF deployment..."
+        status:
+          type: string
+          enum: [success, error]
+          example: success
+        processing_time:
+          type: string
+          example: "2.345s"
+        request_id:
+          type: string
+          example: "req-1641024000123456789"
+        metadata:
+          type: object
+          properties:
+            tokens_used:
+              type: integer
+              example: 1456
+            model_used:
+              type: string
+              example: gpt-4o-mini
+            confidence_score:
+              type: number
+              format: float
+              example: 0.94
+            rag_context_used:
+              type: boolean
+              example: true
+            context_length:
+              type: integer
+              example: 4096
+        structured_output:
+          type: object
+          description: Structured representation of the processed intent
+          properties:
+            action:
+              type: string
+              example: deploy
+            resources:
+              type: array
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    example: Deployment
+                  name:
+                    type: string
+                    example: amf-deployment
+                  replicas:
+                    type: integer
+                    example: 3
+                  namespace:
+                    type: string
+                    example: telecom-core
+
+    StreamIntentRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Natural language query for streaming
+          example: "Configure complete 5G network slice for enhanced mobile broadband"
+        intent_type:
+          type: string
+          enum: [network_configuration, network_deployment, scaling_operations, policy_management]
+          example: network_configuration
+        model_name:
+          type: string
+          default: gpt-4o-mini
+          example: gpt-4o-mini
+        max_tokens:
+          type: integer
+          default: 4096
+          example: 4096
+        enable_rag:
+          type: boolean
+          default: true
+          example: true
+        session_id:
+          type: string
+          description: Unique session identifier
+          example: session_demo_001
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+          example: healthy
+        version:
+          type: string
+          example: v2.0.0
+        uptime:
+          type: string
+          example: "2h34m18s"
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-30T10:30:15Z"
+
+    ReadinessStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+          example: ready
+        version:
+          type: string
+          example: v2.0.0
+        dependencies:
+          type: object
+          properties:
+            rag_api:
+              type: string
+              enum: [healthy, unhealthy, unavailable]
+              example: healthy
+            circuit_breaker:
+              type: string
+              enum: [closed, open, half-open]
+              example: closed
+            token_manager:
+              type: string
+              enum: [operational, degraded, failed]
+              example: operational
+            openai_api:
+              type: string
+              enum: [available, unavailable, unknown]
+              example: available
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-30T10:30:15Z"
+
+    ServiceStatus:
+      type: object
+      properties:
+        service:
+          type: string
+          example: llm-processor
+        version:
+          type: string
+          example: v2.0.0
+        uptime:
+          type: string
+          example: "2h34m18s"
+        healthy:
+          type: boolean
+          example: true
+        ready:
+          type: boolean
+          example: true
+        backend_type:
+          type: string
+          example: rag
+        model:
+          type: string
+          example: gpt-4o-mini
+        rag_enabled:
+          type: boolean
+          example: true
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-30T10:30:15Z"
+
+    ServiceMetrics:
+      type: object
+      properties:
+        service:
+          type: string
+          example: llm-processor
+        version:
+          type: string
+          example: v2.0.0
+        uptime:
+          type: string
+          example: "2h34m18s"
+        supported_models:
+          type: array
+          items:
+            type: string
+          example: ["gpt-4o", "gpt-4o-mini", "claude-3-haiku"]
+        circuit_breakers:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/CircuitBreakerMetrics'
+        streaming:
+          type: object
+          properties:
+            active_streams:
+              type: integer
+              example: 3
+            total_streams:
+              type: integer
+              example: 127
+            completed_streams:
+              type: integer
+              example: 124
+            average_stream_time:
+              type: string
+              example: "2.1s"
+            total_bytes_streamed:
+              type: integer
+              example: 2048576
+        context_builder:
+          type: object
+          properties:
+            total_requests:
+              type: integer
+              example: 451
+            successful_builds:
+              type: integer
+              example: 449
+            average_build_time:
+              type: string
+              example: "245ms"
+            average_context_size:
+              type: integer
+              example: 4096
+            truncation_rate:
+              type: number
+              format: float
+              example: 0.12
+
+    CircuitBreakerStatus:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/CircuitBreakerInfo'
+
+    CircuitBreakerInfo:
+      type: object
+      properties:
+        name:
+          type: string
+          example: llm-processor
+        state:
+          type: string
+          enum: [closed, open, half-open]
+          example: closed
+        failure_count:
+          type: integer
+          example: 2
+        success_count:
+          type: integer
+          example: 847
+        failure_rate:
+          type: number
+          format: float
+          example: 0.0023
+        total_requests:
+          type: integer
+          example: 849
+        last_failure_time:
+          type: string
+          format: date-time
+          example: "2025-01-30T09:15:32Z"
+        last_success_time:
+          type: string
+          format: date-time
+          example: "2025-01-30T10:29:45Z"
+        uptime:
+          type: string
+          example: "2h34m18s"
+        average_latency:
+          type: string
+          example: "1.23s"
+
+    CircuitBreakerMetrics:
+      type: object
+      properties:
+        state:
+          type: string
+          enum: [closed, open, half-open]
+          example: closed
+        failure_count:
+          type: integer
+          example: 2
+        success_count:
+          type: integer
+          example: 847
+        failure_rate:
+          type: number
+          format: float
+          example: 0.0023
+        total_requests:
+          type: integer
+          example: 849
+        last_failure_time:
+          type: string
+          format: date-time
+          example: "2025-01-30T09:15:32Z"
+
+    CircuitBreakerControl:
+      type: object
+      required:
+        - action
+        - circuit_name
+      properties:
+        action:
+          type: string
+          enum: [reset, force_open]
+          description: Action to perform on circuit breaker
+          example: reset
+        circuit_name:
+          type: string
+          description: Name of circuit breaker to control
+          example: llm-processor
+
+    CircuitBreakerActionResponse:
+      type: object
+      properties:
+        circuit_name:
+          type: string
+          example: llm-processor
+        action:
+          type: string
+          example: reset
+        previous_state:
+          type: string
+          example: open
+        new_state:
+          type: string
+          example: closed
+        timestamp:
+          type: string
+          format: date-time
+          example: "2025-01-30T10:30:15Z"
+
+    AuthTokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refresh_token:
+          type: string
+          description: JWT refresh token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        expires_in:
+          type: integer
+          description: Token expiration time in seconds
+          example: 3600
+        token_type:
+          type: string
+          example: Bearer
+        user_info:
+          $ref: '#/components/schemas/UserInfo'
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          description: JWT refresh token
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    UserInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: user-123
+        email:
+          type: string
+          format: email
+          example: operator@company.com
+        name:
+          type: string
+          example: Network Operator
+        roles:
+          type: array
+          items:
+            type: string
+          example: [operator]
+        permissions:
+          type: array
+          items:
+            type: string
+          example: [process_intents, view_status]
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: INTENT_PROCESSING_FAILED
+            type:
+              type: string
+              example: processing_error
+            message:
+              type: string
+              example: Failed to process network intent due to invalid parameters
+            details:
+              type: object
+              additionalProperties: true
+            timestamp:
+              type: string
+              format: date-time
+              example: "2025-01-30T10:30:15Z"
+            request_id:
+              type: string
+              example: req-12345
+            correlation_id:
+              type: string
+              example: corr-67890
+
+  responses:
+    BadRequest:
+      description: Bad request - Invalid input parameters
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Unauthorized - Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Forbidden:
+      description: Forbidden - Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    RateLimitExceeded:
+      description: Too many requests - Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+          description: Request limit per minute
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+          description: Remaining requests in current window
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+          description: Unix timestamp when rate limit resets
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds to wait before retrying
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    ServiceUnavailable:
+      description: Service unavailable - Circuit breaker open or dependencies unavailable
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'

@@ -26,9 +26,17 @@ type NetworkIntentSpec struct {
 	// The original natural language intent from the user.
 	Intent string `json:"intent"`
 
+	// Type of the intent (e.g., "low-latency", "high-throughput", "ml-inference")
+	// +optional
+	IntentType string `json:"intentType,omitempty"`
+
 	// Structured parameters translated from the intent by the LLM.
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Parameters runtime.RawExtension `json:"parameters,omitempty"`
+
+	// Map of string parameters for easier access in tests
+	// +optional
+	ParametersMap map[string]string `json:"parametersMap,omitempty"`
 }
 
 // NetworkIntentStatus defines the observed state of NetworkIntent

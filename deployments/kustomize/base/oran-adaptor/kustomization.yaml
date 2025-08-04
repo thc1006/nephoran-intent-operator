@@ -1,5 +1,62 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+
+metadata:
+  name: oran-adaptor
+  labels:
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+
 resources:
 - deployment.yaml
+- service.yaml
+- configmap.yaml
+- secrets.yaml
 - rbac.yaml
+- networkpolicy.yaml
+- pdb.yaml
+- hpa.yaml
+- servicemonitor.yaml
+
+commonLabels:
+  app: oran-adaptor
+  component: oran-interface
+  app.kubernetes.io/name: oran-adaptor
+  app.kubernetes.io/component: oran-interface
+  app.kubernetes.io/part-of: nephoran-intent-operator
+
+namePrefix: ""
+nameSuffix: ""
+
+images:
+- name: thc1006/nephoran-oran-adaptor
+  newTag: latest
+
+configMapGenerator:
+- name: oran-adaptor-version
+  literals:
+  - version=v1.0.0
+  - build-date=2025-01-04
+  - git-commit=unknown
+
+secretGenerator:
+- name: oran-adaptor-runtime-secrets
+  type: Opaque
+  literals:
+  - runtime-token=generate-me-on-deployment
+
+patches:
+- target:
+    kind: Deployment
+    name: oran-adaptor
+  patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: DEPLOYMENT_TIME
+        value: "2025-01-04T10:00:00Z"
+
+replicas:
+- name: oran-adaptor
+  count: 2

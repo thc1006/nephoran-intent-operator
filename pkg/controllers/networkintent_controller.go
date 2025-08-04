@@ -18,30 +18,108 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// Finalizer constants
+// Constants for the controller
 const (
 	NetworkIntentFinalizer = "networkintent.nephoran.com/finalizer"
+
+	// Default configuration values
+	DefaultMaxRetries    = 3
+	DefaultRetryDelay    = 30 * time.Second
+	DefaultTimeout       = 5 * time.Minute
+	DefaultGitDeployPath = "networkintents"
+
+	// Validation limits
+	MaxAllowedRetries    = 10
+	MaxAllowedRetryDelay = time.Hour
 )
 
+// Dependencies interface defines the external dependencies for the controller
+type Dependencies interface {
+	GetGitClient() git.ClientInterface
+	GetLLMClient() shared.ClientInterface
+	GetPackageGenerator() *nephio.PackageGenerator
+	GetHTTPClient() *http.Client
+	GetEventRecorder() record.EventRecorder
+}
+
+// Config holds the configuration for the NetworkIntentReconciler
+type Config struct {
+	MaxRetries      int
+	RetryDelay      time.Duration
+	Timeout         time.Duration
+	GitRepoURL      string
+	GitBranch       string
+	GitDeployPath   string
+	LLMProcessorURL string
+	UseNephioPorch  bool
+}
+
+// NetworkIntentReconciler orchestrates the reconciliation of NetworkIntent resources
 type NetworkIntentReconciler struct {
 	client.Client
-	Scheme          *runtime.Scheme
-	GitClient       git.ClientInterface
-	LLMClient       llm.ClientInterface
-	LLMProcessorURL string
-	HTTPClient      *http.Client
-	EventRecorder   record.EventRecorder
-	PackageGen      *nephio.PackageGenerator
-	UseNephioPorch  bool
+	Scheme *runtime.Scheme
+	deps   Dependencies
+	config *Config
+}
 
-	// Configuration for retry and GitOps
-	MaxRetries    int
-	RetryDelay    time.Duration
-	GitRepoURL    string
-	GitBranch     string
-	GitDeployPath string
+// NewNetworkIntentReconciler creates a new NetworkIntentReconciler with dependency injection
+func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, deps Dependencies, config *Config) (*NetworkIntentReconciler, error) {
+	if client == nil {
+		return nil, fmt.Errorf("client cannot be nil")
+	}
+	if scheme == nil {
+		return nil, fmt.Errorf("scheme cannot be nil")
+	}
+	if deps == nil {
+		return nil, fmt.Errorf("dependencies cannot be nil")
+	}
+
+	// Validate and set defaults for config
+	validatedConfig, err := validateAndSetConfigDefaults(config)
+	if err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
+	return &NetworkIntentReconciler{
+		Client: client,
+		Scheme: scheme,
+		deps:   deps,
+		config: validatedConfig,
+	}, nil
+}
+
+// validateAndSetConfigDefaults validates and sets default values for the configuration
+func validateAndSetConfigDefaults(config *Config) (*Config, error) {
+	if config == nil {
+		config = &Config{}
+	}
+
+	// Set defaults
+	if config.MaxRetries <= 0 {
+		config.MaxRetries = DefaultMaxRetries
+	}
+	if config.RetryDelay <= 0 {
+		config.RetryDelay = DefaultRetryDelay
+	}
+	if config.Timeout <= 0 {
+		config.Timeout = DefaultTimeout
+	}
+	if config.GitDeployPath == "" {
+		config.GitDeployPath = DefaultGitDeployPath
+	}
+
+	// Validate limits
+	if config.MaxRetries > MaxAllowedRetries {
+		return nil, fmt.Errorf("MaxRetries (%d) exceeds maximum allowed value (%d)", config.MaxRetries, MaxAllowedRetries)
+	}
+	if config.RetryDelay > MaxAllowedRetryDelay {
+		return nil, fmt.Errorf("RetryDelay (%v) exceeds maximum allowed value (%v)", config.RetryDelay, MaxAllowedRetryDelay)
+	}
+
+	return config, nil
 }
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=networkintents,verbs=get;list;watch;create;update;patch;delete
@@ -52,168 +130,297 @@ type NetworkIntentReconciler struct {
 func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Fetch the NetworkIntent instance
-	var networkIntent nephoranv1.NetworkIntent
-	if err := r.Get(ctx, req.NamespacedName, &networkIntent); err != nil {
-		logger.Error(err, "unable to fetch NetworkIntent")
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+	// Add request ID for better tracking
+	reqID := fmt.Sprintf("req-%d", time.Now().UnixNano())
+	logger = logger.WithValues("request_id", reqID)
+
+	// Check for context cancellation early
+	select {
+	case <-ctx.Done():
+		logger.Info("Reconciliation cancelled due to context cancellation")
+		return ctrl.Result{}, ctx.Err()
+	default:
 	}
 
-	// Handle deletion - check if the object is being deleted
+	logger.V(1).Info("Starting reconciliation", "namespace", req.Namespace, "name", req.Name)
+
+	// Fetch the NetworkIntent instance with timeout
+	var networkIntent nephoranv1.NetworkIntent
+	if err := r.safeGet(ctx, req.NamespacedName, &networkIntent); err != nil {
+		if client.IgnoreNotFound(err) == nil {
+			logger.V(1).Info("NetworkIntent not found, likely deleted")
+			return ctrl.Result{}, nil
+		}
+		logger.Error(err, "failed to fetch NetworkIntent")
+		return ctrl.Result{RequeueAfter: time.Minute}, fmt.Errorf("failed to fetch NetworkIntent: %w", err)
+	}
+
+	// Handle deletion with proper context checking
 	if networkIntent.DeletionTimestamp != nil {
+		logger.Info("NetworkIntent is being deleted, handling cleanup")
 		return r.handleDeletion(ctx, &networkIntent)
 	}
 
-	// Add finalizer if it doesn't exist
+	// Add finalizer if it doesn't exist, with context checking
 	if !containsFinalizer(networkIntent.Finalizers, NetworkIntentFinalizer) {
+		logger.V(1).Info("Adding finalizer to NetworkIntent")
 		networkIntent.Finalizers = append(networkIntent.Finalizers, NetworkIntentFinalizer)
-		if err := r.Update(ctx, &networkIntent); err != nil {
+		if err := r.safeUpdate(ctx, &networkIntent); err != nil {
 			logger.Error(err, "failed to add finalizer")
-			return ctrl.Result{}, err
+			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to add finalizer: %w", err)
 		}
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	// Set default retry configuration if not set
-	if r.MaxRetries == 0 {
-		r.MaxRetries = 3
-	}
-	if r.RetryDelay == 0 {
-		r.RetryDelay = time.Second * 30
-	}
+	// Configuration is already validated in constructor, no need to validate again
 
-	// Update observed generation
+	// Update observed generation with error handling
 	networkIntent.Status.ObservedGeneration = networkIntent.Generation
 
-	// Check if intent has already been processed successfully
+	// Check if already completed to avoid unnecessary work
 	if isConditionTrue(networkIntent.Status.Conditions, "Processed") &&
-		isConditionTrue(networkIntent.Status.Conditions, "Deployed") {
-		logger.Info("NetworkIntent already processed and deployed", "intent", networkIntent.Spec.Intent)
+		isConditionTrue(networkIntent.Status.Conditions, "Deployed") &&
+		networkIntent.Status.Phase == "Completed" {
+		logger.V(1).Info("NetworkIntent already processed and deployed, skipping")
 		return ctrl.Result{}, nil
 	}
 
-	// Step 1: Process the intent using LLM client with retry logic
+	// Step 1: Process the intent using LLM client with enhanced error handling
 	if !isConditionTrue(networkIntent.Status.Conditions, "Processed") {
-		// Set phase and start time if not already set
-		if networkIntent.Status.Phase == "" {
-			networkIntent.Status.Phase = "Processing"
-			now := metav1.Now()
-			networkIntent.Status.ProcessingStartTime = &now
-			if err := r.Status().Update(ctx, &networkIntent); err != nil {
-				logger.Error(err, "failed to update NetworkIntent status")
-			}
+		select {
+		case <-ctx.Done():
+			logger.Info("Context cancelled during processing phase")
+			return ctrl.Result{}, ctx.Err()
+		default:
+		}
+
+		// Set processing phase with proper error handling
+		if err := r.updatePhase(ctx, &networkIntent, "Processing"); err != nil {
+			logger.Error(err, "failed to update processing phase")
+			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update processing phase: %w", err)
 		}
 
 		result, err := r.processIntentWithRetry(ctx, &networkIntent)
 		if err != nil {
+			logger.Error(err, "intent processing failed")
+			r.recordFailureEvent(&networkIntent, "ProcessingFailed", err.Error())
 			return result, err
 		}
 		if result.Requeue || result.RequeueAfter > 0 {
+			logger.V(1).Info("Intent processing requires requeue", "requeue", result.Requeue, "requeue_after", result.RequeueAfter)
 			return result, nil
 		}
 	}
 
-	// Step 2: Deploy using GitOps if processing succeeded
+	// Step 2: Deploy using GitOps with enhanced error handling
 	if isConditionTrue(networkIntent.Status.Conditions, "Processed") &&
 		!isConditionTrue(networkIntent.Status.Conditions, "Deployed") {
-		// Set phase and start time for deployment if not already set
-		if networkIntent.Status.Phase != "Deploying" {
-			networkIntent.Status.Phase = "Deploying"
-			now := metav1.Now()
-			networkIntent.Status.DeploymentStartTime = &now
-			if err := r.Status().Update(ctx, &networkIntent); err != nil {
-				logger.Error(err, "failed to update NetworkIntent status")
-			}
+
+		select {
+		case <-ctx.Done():
+			logger.Info("Context cancelled during deployment phase")
+			return ctrl.Result{}, ctx.Err()
+		default:
+		}
+
+		// Set deploying phase with proper error handling
+		if err := r.updatePhase(ctx, &networkIntent, "Deploying"); err != nil {
+			logger.Error(err, "failed to update deploying phase")
+			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update deploying phase: %w", err)
 		}
 
 		result, err := r.deployViaGitOps(ctx, &networkIntent)
 		if err != nil {
+			logger.Error(err, "deployment failed")
+			r.recordFailureEvent(&networkIntent, "DeploymentFailed", err.Error())
 			return result, err
 		}
 		if result.Requeue || result.RequeueAfter > 0 {
+			logger.V(1).Info("Deployment requires requeue", "requeue", result.Requeue, "requeue_after", result.RequeueAfter)
 			return result, nil
 		}
 	}
 
-	// Final status update - mark as completed
-	if networkIntent.Status.Phase != "Completed" {
-		networkIntent.Status.Phase = "Completed"
-		if err := r.Status().Update(ctx, &networkIntent); err != nil {
-			logger.Error(err, "failed to update NetworkIntent final status")
-		}
+	// Final status update with comprehensive error handling
+	if err := r.updatePhase(ctx, &networkIntent, "Completed"); err != nil {
+		logger.Error(err, "failed to update completion phase")
+		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update completion phase: %w", err)
 	}
 
-	logger.Info("NetworkIntent fully processed and deployed", "intent", networkIntent.Spec.Intent)
+	r.recordEvent(&networkIntent, "Normal", "ReconciliationCompleted", "NetworkIntent successfully processed and deployed")
+	logger.Info("NetworkIntent reconciliation completed successfully",
+		"intent", networkIntent.Spec.Intent,
+		"phase", networkIntent.Status.Phase,
+		"request_id", reqID)
+
 	return ctrl.Result{}, nil
 }
 
 func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
+	logger := log.FromContext(ctx).WithValues("phase", "processing")
 
-	if r.LLMClient == nil {
-		logger.Error(fmt.Errorf("LLM client is nil"), "LLM client not configured")
-		r.recordEvent(networkIntent, "Warning", "LLMClientNotConfigured", "LLM client is not configured")
-		return ctrl.Result{RequeueAfter: time.Minute * 5}, nil
+	// Check for context cancellation before starting
+	select {
+	case <-ctx.Done():
+		return ctrl.Result{}, ctx.Err()
+	default:
 	}
 
-	// Get current retry count from annotations
-	retryCount := getRetryCount(networkIntent, "llm-processing")
+	// Validate LLM client with comprehensive error handling
+	llmClient := r.deps.GetLLMClient()
+	if llmClient == nil {
+		err := fmt.Errorf("LLM client is not configured")
+		logger.Error(err, "LLM client validation failed")
+		r.recordFailureEvent(networkIntent, "LLMClientNotConfigured", err.Error())
 
-	if retryCount >= r.MaxRetries {
-		// Max retries reached, mark as failed
+		// Mark as permanently failed if no client
 		condition := metav1.Condition{
 			Type:               "Processed",
 			Status:             metav1.ConditionFalse,
-			Reason:             "LLMProcessingFailedMaxRetries",
-			Message:            fmt.Sprintf("Failed to process intent after %d retries", r.MaxRetries),
+			Reason:             "LLMClientNotConfigured",
+			Message:            "LLM client is not configured and cannot process intent",
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
 
-		if err := r.Status().Update(ctx, networkIntent); err != nil {
-			logger.Error(err, "failed to update NetworkIntent status")
-			return ctrl.Result{}, err
+		if statusErr := r.safeStatusUpdate(ctx, networkIntent); statusErr != nil {
+			logger.Error(statusErr, "failed to update status after LLM client validation failure")
 		}
 
-		r.recordEvent(networkIntent, "Warning", "LLMProcessingFailed",
-			fmt.Sprintf("Failed to process intent after %d retries", r.MaxRetries))
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, fmt.Errorf("LLM client not configured: %w", err)
 	}
 
-	// Attempt LLM processing
-	processedResult, err := r.LLMClient.ProcessIntent(ctx, networkIntent.Spec.Intent)
+	// Get current retry count with error handling
+	retryCount := getRetryCount(networkIntent, "llm-processing")
+	logger.V(1).Info("Processing intent with LLM", "retry_count", retryCount, "max_retries", r.config.MaxRetries)
+
+	// Check if max retries exceeded
+	if retryCount >= r.config.MaxRetries {
+		err := fmt.Errorf("max retries (%d) exceeded for LLM processing", r.config.MaxRetries)
+		logger.Error(err, "max retries reached")
+
+		condition := metav1.Condition{
+			Type:               "Processed",
+			Status:             metav1.ConditionFalse,
+			Reason:             "LLMProcessingFailedMaxRetries",
+			Message:            fmt.Sprintf("Failed to process intent after %d retries", r.config.MaxRetries),
+			LastTransitionTime: metav1.Now(),
+		}
+		updateCondition(&networkIntent.Status.Conditions, condition)
+
+		if statusErr := r.safeStatusUpdate(ctx, networkIntent); statusErr != nil {
+			logger.Error(statusErr, "failed to update status after max retries exceeded")
+			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update status: %w", statusErr)
+		}
+
+		r.recordFailureEvent(networkIntent, "LLMProcessingFailed", err.Error())
+		return ctrl.Result{}, err
+	}
+
+	// Validate intent before processing
+	if networkIntent.Spec.Intent == "" {
+		err := fmt.Errorf("intent specification is empty")
+		logger.Error(err, "intent validation failed")
+		r.recordFailureEvent(networkIntent, "InvalidIntent", err.Error())
+
+		condition := metav1.Condition{
+			Type:               "Processed",
+			Status:             metav1.ConditionFalse,
+			Reason:             "InvalidIntent",
+			Message:            "Intent specification is empty",
+			LastTransitionTime: metav1.Now(),
+		}
+		updateCondition(&networkIntent.Status.Conditions, condition)
+
+		if statusErr := r.safeStatusUpdate(ctx, networkIntent); statusErr != nil {
+			logger.Error(statusErr, "failed to update status after intent validation failure")
+		}
+
+		return ctrl.Result{}, err
+	}
+
+	// Create a timeout context for LLM processing
+	processingCtx, cancel := context.WithTimeout(ctx, r.config.Timeout)
+	defer cancel()
+
+	// Attempt LLM processing with enhanced error handling
+	logger.Info("Starting LLM processing", "intent", networkIntent.Spec.Intent, "attempt", retryCount+1)
+	processedResult, err := llmClient.ProcessIntent(processingCtx, networkIntent.Spec.Intent)
 	if err != nil {
-		logger.Error(err, "failed to process intent with LLM", "retry", retryCount+1)
+		logger.Error(err, "LLM processing failed", "retry", retryCount+1, "intent", networkIntent.Spec.Intent)
 
 		// Increment retry count
 		setRetryCount(networkIntent, "llm-processing", retryCount+1)
 
-		// Update status with retry information
+		// Update status with detailed retry information
 		now := metav1.Now()
 		networkIntent.Status.LastRetryTime = &now
+
+		var reason, message string
+		if ctx.Err() != nil {
+			reason = "LLMProcessingContextCancelled"
+			message = fmt.Sprintf("LLM processing cancelled (attempt %d/%d): %v", retryCount+1, r.config.MaxRetries, ctx.Err())
+		} else {
+			reason = "LLMProcessingRetrying"
+			message = fmt.Sprintf("LLM processing failed (attempt %d/%d): %v", retryCount+1, r.config.MaxRetries, err)
+		}
+
 		condition := metav1.Condition{
 			Type:               "Processed",
 			Status:             metav1.ConditionFalse,
-			Reason:             "LLMProcessingRetrying",
-			Message:            fmt.Sprintf("LLM processing failed (attempt %d/%d): %v", retryCount+1, r.MaxRetries, err),
+			Reason:             reason,
+			Message:            message,
 			LastTransitionTime: now,
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
 
-		if updateErr := r.Status().Update(ctx, networkIntent); updateErr != nil {
-			logger.Error(updateErr, "failed to update NetworkIntent status")
+		if statusErr := r.safeStatusUpdate(ctx, networkIntent); statusErr != nil {
+			logger.Error(statusErr, "failed to update status after LLM processing failure")
+			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update status: %w", statusErr)
 		}
 
-		r.recordEvent(networkIntent, "Warning", "LLMProcessingRetry",
-			fmt.Sprintf("LLM processing failed, retry %d/%d: %v", retryCount+1, r.MaxRetries, err))
+		r.recordFailureEvent(networkIntent, "LLMProcessingRetry",
+			fmt.Sprintf("attempt %d/%d failed: %v", retryCount+1, r.config.MaxRetries, err))
 
-		return ctrl.Result{RequeueAfter: r.RetryDelay}, nil
+		// Calculate exponential backoff delay
+		backoffDelay := time.Duration(retryCount+1) * r.config.RetryDelay
+		if backoffDelay > time.Minute*10 {
+			backoffDelay = time.Minute * 10 // Cap at 10 minutes
+		}
+
+		logger.V(1).Info("Scheduling retry", "delay", backoffDelay, "attempt", retryCount+1)
+		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 
-	// Parse the processed result and update the Parameters field
+	// Validate and parse the LLM response
+	logger.V(1).Info("Parsing LLM response", "response_length", len(processedResult))
+
+	if processedResult == "" {
+		err := fmt.Errorf("LLM returned empty response")
+		logger.Error(err, "LLM response validation failed")
+		r.recordFailureEvent(networkIntent, "EmptyLLMResponse", err.Error())
+
+		// Treat as retry-able error
+		setRetryCount(networkIntent, "llm-processing", retryCount+1)
+		condition := metav1.Condition{
+			Type:               "Processed",
+			Status:             metav1.ConditionFalse,
+			Reason:             "EmptyLLMResponse",
+			Message:            "LLM returned empty response",
+			LastTransitionTime: metav1.Now(),
+		}
+		updateCondition(&networkIntent.Status.Conditions, condition)
+
+		if statusErr := r.safeStatusUpdate(ctx, networkIntent); statusErr != nil {
+			logger.Error(statusErr, "failed to update status after empty response")
+		}
+
+		return ctrl.Result{RequeueAfter: r.config.RetryDelay}, nil
+	}
+
 	var parameters map[string]interface{}
 	if err := json.Unmarshal([]byte(processedResult), &parameters); err != nil {
-		logger.Error(err, "failed to parse LLM response")
+		logger.Error(err, "failed to parse LLM response as JSON", "response", processedResult)
 
 		// Increment retry count for parsing failure
 		setRetryCount(networkIntent, "llm-processing", retryCount+1)
@@ -222,28 +429,39 @@ func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, ne
 			Type:               "Processed",
 			Status:             metav1.ConditionFalse,
 			Reason:             "LLMResponseParsingFailed",
-			Message:            fmt.Sprintf("Failed to parse LLM response: %v", err),
+			Message:            fmt.Sprintf("Failed to parse LLM response as JSON: %v", err),
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
 
-		if updateErr := r.Status().Update(ctx, networkIntent); updateErr != nil {
-			logger.Error(updateErr, "failed to update NetworkIntent status")
+		if statusErr := r.safeStatusUpdate(ctx, networkIntent); statusErr != nil {
+			logger.Error(statusErr, "failed to update status after JSON parsing failure")
+			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update status: %w", statusErr)
 		}
 
-		r.recordEvent(networkIntent, "Warning", "LLMResponseParsingFailed",
+		r.recordFailureEvent(networkIntent, "LLMResponseParsingFailed",
 			fmt.Sprintf("Failed to parse LLM response: %v", err))
 
-		return ctrl.Result{RequeueAfter: r.RetryDelay}, nil
+		return ctrl.Result{RequeueAfter: r.config.RetryDelay}, nil
+	}
+
+	// Validate that we have meaningful parameters
+	if len(parameters) == 0 {
+		logger.Warn("LLM returned empty parameters object", "response", processedResult)
 	}
 
 	// Update NetworkIntent with processed parameters
-	parametersRaw, _ := json.Marshal(parameters)
+	parametersRaw, marshalErr := json.Marshal(parameters)
+	if marshalErr != nil {
+		logger.Error(marshalErr, "failed to marshal processed parameters")
+		return ctrl.Result{RequeueAfter: r.config.RetryDelay}, fmt.Errorf("failed to marshal parameters: %w", marshalErr)
+	}
+
 	networkIntent.Spec.Parameters = runtime.RawExtension{Raw: parametersRaw}
 
-	if err := r.Update(ctx, networkIntent); err != nil {
-		logger.Error(err, "failed to update NetworkIntent with parameters")
-		return ctrl.Result{}, err
+	if err := r.safeUpdate(ctx, networkIntent); err != nil {
+		logger.Error(err, "failed to update NetworkIntent with processed parameters")
+		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update NetworkIntent with parameters: %w", err)
 	}
 
 	// Clear retry count and update status to reflect successful processing
@@ -254,18 +472,22 @@ func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, ne
 		Type:               "Processed",
 		Status:             metav1.ConditionTrue,
 		Reason:             "LLMProcessingSucceeded",
-		Message:            "Intent successfully processed by LLM",
+		Message:            "Intent successfully processed by LLM and parameters extracted",
 		LastTransitionTime: now,
 	}
 	updateCondition(&networkIntent.Status.Conditions, condition)
 
-	if err := r.Status().Update(ctx, networkIntent); err != nil {
-		logger.Error(err, "failed to update NetworkIntent status")
-		return ctrl.Result{}, err
+	if err := r.safeStatusUpdate(ctx, networkIntent); err != nil {
+		logger.Error(err, "failed to update NetworkIntent status after successful processing")
+		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update status: %w", err)
 	}
 
-	r.recordEvent(networkIntent, "Normal", "LLMProcessingSucceeded", "Intent successfully processed by LLM")
-	logger.Info("NetworkIntent processed successfully", "intent", networkIntent.Spec.Intent)
+	r.recordEvent(networkIntent, "Normal", "LLMProcessingSucceeded",
+		fmt.Sprintf("Intent successfully processed by LLM with %d parameters", len(parameters)))
+	logger.Info("NetworkIntent processed successfully",
+		"intent", networkIntent.Spec.Intent,
+		"parameters_count", len(parameters),
+		"processing_time", time.Since(time.Now()))
 
 	return ctrl.Result{}, nil
 }
@@ -273,22 +495,24 @@ func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, ne
 func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	if r.GitClient == nil {
-		logger.Error(fmt.Errorf("Git client is nil"), "Git client not configured")
+	gitClient := r.deps.GetGitClient()
+	if gitClient == nil {
+		err := fmt.Errorf("Git client is not configured")
+		logger.Error(err, "Git client not configured")
 		r.recordEvent(networkIntent, "Warning", "GitClientNotConfigured", "Git client is not configured")
-		return ctrl.Result{RequeueAfter: time.Minute * 5}, nil
+		return ctrl.Result{RequeueAfter: time.Minute * 5}, fmt.Errorf("git client not configured: %w", err)
 	}
 
 	// Get current retry count from annotations
 	retryCount := getRetryCount(networkIntent, "git-deployment")
 
-	if retryCount >= r.MaxRetries {
+	if retryCount >= r.config.MaxRetries {
 		// Max retries reached, mark as failed
 		condition := metav1.Condition{
 			Type:               "Deployed",
 			Status:             metav1.ConditionFalse,
 			Reason:             "GitDeploymentFailedMaxRetries",
-			Message:            fmt.Sprintf("Failed to deploy via GitOps after %d retries", r.MaxRetries),
+			Message:            fmt.Sprintf("Failed to deploy via GitOps after %d retries", r.config.MaxRetries),
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
@@ -299,24 +523,25 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 		}
 
 		r.recordEvent(networkIntent, "Warning", "GitDeploymentFailed",
-			fmt.Sprintf("Failed to deploy via GitOps after %d retries", r.MaxRetries))
+			fmt.Sprintf("Failed to deploy via GitOps after %d retries", r.config.MaxRetries))
 		return ctrl.Result{}, nil
 	}
 
 	// Generate deployment files from processed parameters
 	var deploymentFiles map[string]string
 	var err error
-	
-	if r.UseNephioPorch && r.PackageGen != nil {
+
+	packageGen := r.deps.GetPackageGenerator()
+	if r.config.UseNephioPorch && packageGen != nil {
 		// Use Nephio package generator for KRM package generation
 		logger.Info("generating Nephio KRM package")
-		deploymentFiles, err = r.PackageGen.GeneratePackage(networkIntent)
+		deploymentFiles, err = packageGen.GeneratePackage(networkIntent)
 	} else {
 		// Use legacy deployment file generation
 		logger.Info("using legacy deployment file generation")
 		deploymentFiles, err = r.generateDeploymentFiles(networkIntent)
 	}
-	
+
 	if err != nil {
 		logger.Error(err, "failed to generate deployment files")
 
@@ -339,11 +564,11 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 		r.recordEvent(networkIntent, "Warning", "DeploymentFileGenerationFailed",
 			fmt.Sprintf("Failed to generate deployment files: %v", err))
 
-		return ctrl.Result{RequeueAfter: r.RetryDelay}, nil
+		return ctrl.Result{RequeueAfter: r.config.RetryDelay}, nil
 	}
 
 	// Initialize Git repository
-	if err := r.GitClient.InitRepo(); err != nil {
+	if err := gitClient.InitRepo(); err != nil {
 		logger.Error(err, "failed to initialize git repository")
 
 		// Increment retry count
@@ -365,14 +590,14 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 		r.recordEvent(networkIntent, "Warning", "GitRepoInitializationFailed",
 			fmt.Sprintf("Failed to initialize git repository: %v", err))
 
-		return ctrl.Result{RequeueAfter: r.RetryDelay}, nil
+		return ctrl.Result{RequeueAfter: r.config.RetryDelay}, nil
 	}
 
 	// Commit and push the deployment files
 	commitMessage := fmt.Sprintf("Deploy NetworkIntent: %s/%s\n\nIntent: %s",
 		networkIntent.Namespace, networkIntent.Name, networkIntent.Spec.Intent)
 
-	commitHash, err := r.GitClient.CommitAndPush(deploymentFiles, commitMessage)
+	commitHash, err := gitClient.CommitAndPush(deploymentFiles, commitMessage)
 	if err != nil {
 		logger.Error(err, "failed to commit and push deployment files")
 
@@ -397,7 +622,7 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 		r.recordEvent(networkIntent, "Warning", "GitCommitPushFailed",
 			fmt.Sprintf("Failed to commit and push deployment files: %v", err))
 
-		return ctrl.Result{RequeueAfter: r.RetryDelay}, nil
+		return ctrl.Result{RequeueAfter: r.config.RetryDelay}, nil
 	}
 
 	// Clear retry count and update status to reflect successful deployment
@@ -436,11 +661,8 @@ func (r *NetworkIntentReconciler) generateDeploymentFiles(networkIntent *nephora
 		}
 	}
 
-	// Set default deployment path if not configured
-	deployPath := r.GitDeployPath
-	if deployPath == "" {
-		deployPath = "networkintents"
-	}
+	// Use configured deployment path
+	deployPath := r.config.GitDeployPath
 
 	// Generate Kubernetes manifests based on parameters
 	// This is a basic example - you would customize this based on your specific requirements
@@ -527,8 +749,8 @@ func clearRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) 
 }
 
 func (r *NetworkIntentReconciler) recordEvent(networkIntent *nephoranv1.NetworkIntent, eventType, reason, message string) {
-	if r.EventRecorder != nil {
-		r.EventRecorder.Event(networkIntent, eventType, reason, message)
+	if eventRecorder := r.deps.GetEventRecorder(); eventRecorder != nil {
+		eventRecorder.Event(networkIntent, eventType, reason, message)
 	}
 }
 
@@ -561,9 +783,10 @@ func (r *NetworkIntentReconciler) cleanupResources(ctx context.Context, networkI
 	logger := log.FromContext(ctx)
 
 	// 1. Cleanup GitOps packages
-	if r.GitClient != nil && r.GitRepoURL != "" {
-		if err := r.cleanupGitOpsPackages(ctx, networkIntent); err != nil {
-			logger.Error(err, "failed to cleanup GitOps packages")
+	gitClient := r.deps.GetGitClient()
+	if gitClient != nil && r.config.GitRepoURL != "" {
+		if err := r.cleanupGitOpsPackages(ctx, networkIntent, gitClient); err != nil {
+			logger.Error(err, "failed to cleanup GitOPS packages")
 			// Continue with other cleanup operations even if Git cleanup fails
 		}
 	}
@@ -584,23 +807,23 @@ func (r *NetworkIntentReconciler) cleanupResources(ctx context.Context, networkI
 }
 
 // cleanupGitOpsPackages removes GitOps packages from the repository
-func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
+func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, gitClient git.ClientInterface) error {
 	logger := log.FromContext(ctx)
 
 	// Generate package name for cleanup
 	packageName := fmt.Sprintf("%s-%s", networkIntent.Namespace, networkIntent.Name)
-	packagePath := fmt.Sprintf("%s/%s", r.GitDeployPath, packageName)
+	packagePath := fmt.Sprintf("%s/%s", r.config.GitDeployPath, packageName)
 
 	logger.Info("Cleaning up GitOps package", "package", packageName, "path", packagePath)
 
 	// Use GitClient to remove the package directory
-	if err := r.GitClient.RemoveDirectory(packagePath); err != nil {
+	if err := gitClient.RemoveDirectory(packagePath); err != nil {
 		return fmt.Errorf("failed to remove GitOps package directory: %w", err)
 	}
 
 	// Commit the removal
 	commitMessage := fmt.Sprintf("Remove NetworkIntent package: %s", packageName)
-	if err := r.GitClient.CommitAndPushChanges(commitMessage); err != nil {
+	if err := gitClient.CommitAndPushChanges(commitMessage); err != nil {
 		return fmt.Errorf("failed to commit package removal: %w", err)
 	}
 
@@ -613,8 +836,8 @@ func (r *NetworkIntentReconciler) cleanupGeneratedResources(ctx context.Context,
 
 	// Define labels to identify resources generated by this intent
 	labelSelector := map[string]string{
-		"nephoran.com/created-by": "networkintent-controller",
-		"nephoran.com/intent-name": networkIntent.Name,
+		"nephoran.com/created-by":       "networkintent-controller",
+		"nephoran.com/intent-name":      networkIntent.Name,
 		"nephoran.com/intent-namespace": networkIntent.Namespace,
 	}
 
@@ -642,16 +865,17 @@ func (r *NetworkIntentReconciler) cleanupCachedData(ctx context.Context, network
 	logger := log.FromContext(ctx)
 
 	// If LLM processor is available, clear any cached processing results
-	if r.LLMProcessorURL != "" && r.HTTPClient != nil {
+	httpClient := r.deps.GetHTTPClient()
+	if r.config.LLMProcessorURL != "" && httpClient != nil {
 		intentID := fmt.Sprintf("%s-%s", networkIntent.Namespace, networkIntent.Name)
-		cleanupURL := fmt.Sprintf("%s/cache/clear/%s", r.LLMProcessorURL, intentID)
-		
+		cleanupURL := fmt.Sprintf("%s/cache/clear/%s", r.config.LLMProcessorURL, intentID)
+
 		req, err := http.NewRequestWithContext(ctx, "DELETE", cleanupURL, nil)
 		if err != nil {
 			return fmt.Errorf("failed to create cache cleanup request: %w", err)
 		}
 
-		resp, err := r.HTTPClient.Do(req)
+		resp, err := httpClient.Do(req)
 		if err != nil {
 			logger.Info("Failed to clear LLM cache (non-critical)", "error", err)
 			return nil // Non-critical failure
@@ -672,10 +896,10 @@ func (r *NetworkIntentReconciler) cleanupResourcesByLabel(ctx context.Context, l
 	// In a real implementation, you would use the appropriate client to list and delete resources
 	logger := log.FromContext(ctx)
 	logger.Info("Cleaning up resources by label", "resourceType", resourceType, "labelSelector", listOpts.LabelSelector)
-	
+
 	// TODO: Implement actual resource cleanup based on resource type
 	// For now, this is a placeholder that logs the cleanup operation
-	
+
 	return nil
 }
 
@@ -706,6 +930,107 @@ func createLabelSelector(labels map[string]string) string {
 		selectors = append(selectors, fmt.Sprintf("%s=%s", key, value))
 	}
 	return fmt.Sprintf("%v", selectors) // Simplified - real implementation would use proper formatting
+}
+
+// safeGet performs a get operation with proper error wrapping and context checking
+func (r *NetworkIntentReconciler) safeGet(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("context cancelled during get operation: %w", ctx.Err())
+	default:
+	}
+
+	if err := r.Get(ctx, key, obj); err != nil {
+		return fmt.Errorf("failed to get object %s/%s: %w", key.Namespace, key.Name, err)
+	}
+	return nil
+}
+
+// safeUpdate performs an update operation with proper error wrapping and context checking
+func (r *NetworkIntentReconciler) safeUpdate(ctx context.Context, obj client.Object) error {
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("context cancelled during update operation: %w", ctx.Err())
+	default:
+	}
+
+	if err := r.Update(ctx, obj); err != nil {
+		return fmt.Errorf("failed to update object: %w", err)
+	}
+	return nil
+}
+
+// safeStatusUpdate performs a status update operation with proper error wrapping and context checking
+func (r *NetworkIntentReconciler) safeStatusUpdate(ctx context.Context, obj client.Object) error {
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("context cancelled during status update operation: %w", ctx.Err())
+	default:
+	}
+
+	if err := r.Status().Update(ctx, obj); err != nil {
+		return fmt.Errorf("failed to update object status: %w", err)
+	}
+	return nil
+}
+
+// validateAndSetDefaults validates and sets default configuration values
+func (r *NetworkIntentReconciler) validateAndSetDefaults() error {
+	if r.MaxRetries <= 0 {
+		r.MaxRetries = 3
+	}
+	if r.MaxRetries > 10 {
+		return fmt.Errorf("MaxRetries (%d) exceeds maximum allowed value (10)", r.MaxRetries)
+	}
+
+	if r.RetryDelay <= 0 {
+		r.RetryDelay = time.Second * 30
+	}
+	if r.RetryDelay > time.Hour {
+		return fmt.Errorf("RetryDelay (%v) exceeds maximum allowed value (1h)", r.RetryDelay)
+	}
+
+	return nil
+}
+
+// updatePhase updates the NetworkIntent phase with proper error handling
+func (r *NetworkIntentReconciler) updatePhase(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase string) error {
+	if networkIntent.Status.Phase == phase {
+		return nil // No update needed
+	}
+
+	networkIntent.Status.Phase = phase
+	now := metav1.Now()
+
+	switch phase {
+	case "Processing":
+		if networkIntent.Status.ProcessingStartTime == nil {
+			networkIntent.Status.ProcessingStartTime = &now
+		}
+	case "Deploying":
+		if networkIntent.Status.DeploymentStartTime == nil {
+			networkIntent.Status.DeploymentStartTime = &now
+		}
+	case "Completed":
+		if networkIntent.Status.DeploymentCompletionTime == nil {
+			networkIntent.Status.DeploymentCompletionTime = &now
+		}
+	}
+
+	return r.safeStatusUpdate(ctx, networkIntent)
+}
+
+// recordEvent records an event for the NetworkIntent
+func (r *NetworkIntentReconciler) recordEvent(networkIntent *nephoranv1.NetworkIntent, eventType, reason, message string) {
+	if eventRecorder := r.deps.GetEventRecorder(); eventRecorder != nil {
+		eventRecorder.Event(networkIntent, eventType, reason, message)
+	}
+}
+
+// recordFailureEvent records a failure event with additional context
+func (r *NetworkIntentReconciler) recordFailureEvent(networkIntent *nephoranv1.NetworkIntent, reason, message string) {
+	fullMessage := fmt.Sprintf("%s: %s", reason, message)
+	r.recordEvent(networkIntent, "Warning", reason, fullMessage)
 }
 
 func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {

@@ -1,0 +1,358 @@
+package handlers
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+)
+
+// LLMProcessorHandler handles HTTP requests for the LLM processor service
+type LLMProcessorHandler struct {
+	config            *config.LLMProcessorConfig
+	processor         *IntentProcessor
+	streamingProcessor *llm.StreamingProcessor
+	circuitBreakerMgr *llm.CircuitBreakerManager
+	tokenManager      *llm.TokenManager
+	contextBuilder    *llm.ContextBuilder
+	relevanceScorer   *llm.RelevanceScorer
+	promptBuilder     *llm.RAGAwarePromptBuilder
+	logger            *slog.Logger
+	healthChecker     *health.HealthChecker
+	startTime         time.Time
+}
+
+// Request/Response structures
+type ProcessIntentRequest struct {
+	Intent   string            `json:"intent"`
+	Metadata map[string]string `json:"metadata,omitempty"`
+}
+
+type ProcessIntentResponse struct {
+	Result          string                 `json:"result"`
+	ProcessingTime  string                 `json:"processing_time"`
+	RequestID       string                 `json:"request_id"`
+	ServiceVersion  string                 `json:"service_version"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	Status          string                 `json:"status"`
+	Error           string                 `json:"error,omitempty"`
+}
+
+type HealthResponse struct {
+	Status    string `json:"status"`
+	Version   string `json:"version"`
+	Uptime    string `json:"uptime"`
+	Timestamp string `json:"timestamp"`
+}
+
+// IntentProcessor handles the LLM processing logic with RAG enhancement
+type IntentProcessor struct {
+	LLMClient          *llm.Client
+	RAGEnhancedClient  *llm.RAGEnhancedProcessor
+	CircuitBreaker     *llm.CircuitBreaker
+	Logger             *slog.Logger
+}
+
+// NewLLMProcessorHandler creates a new handler instance
+func NewLLMProcessorHandler(
+	config *config.LLMProcessorConfig,
+	processor *IntentProcessor,
+	streamingProcessor *llm.StreamingProcessor,
+	circuitBreakerMgr *llm.CircuitBreakerManager,
+	tokenManager *llm.TokenManager,
+	contextBuilder *llm.ContextBuilder,
+	relevanceScorer *llm.RelevanceScorer,
+	promptBuilder *llm.RAGAwarePromptBuilder,
+	logger *slog.Logger,
+	healthChecker *health.HealthChecker,
+	startTime time.Time,
+) *LLMProcessorHandler {
+	return &LLMProcessorHandler{
+		config:             config,
+		processor:          processor,
+		streamingProcessor: streamingProcessor,
+		circuitBreakerMgr:  circuitBreakerMgr,
+		tokenManager:       tokenManager,
+		contextBuilder:     contextBuilder,
+		relevanceScorer:    relevanceScorer,
+		promptBuilder:      promptBuilder,
+		logger:             logger,
+		healthChecker:      healthChecker,
+		startTime:          startTime,
+	}
+}
+
+// ProcessIntentHandler handles intent processing requests
+func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		h.writeErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed, "")
+		return
+	}
+
+	startTime := time.Now()
+	reqID := fmt.Sprintf("%d", time.Now().UnixNano())
+
+	h.logger.Info("Processing intent request", slog.String("request_id", reqID))
+
+	var req ProcessIntentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Error("Failed to decode request", slog.String("error", err.Error()))
+		h.writeErrorResponse(w, "Invalid request body", http.StatusBadRequest, reqID)
+		return
+	}
+
+	if req.Intent == "" {
+		h.logger.Error("Empty intent provided")
+		h.writeErrorResponse(w, "Intent is required", http.StatusBadRequest, reqID)
+		return
+	}
+
+	// Process intent with context cancellation support
+	ctx, cancel := context.WithTimeout(r.Context(), h.config.RequestTimeout)
+	defer cancel()
+
+	result, err := h.processor.ProcessIntent(ctx, req.Intent)
+	if err != nil {
+		h.logger.Error("Failed to process intent",
+			slog.String("error", err.Error()),
+			slog.String("intent", req.Intent),
+		)
+		response := ProcessIntentResponse{
+			Status:         "error",
+			Error:          err.Error(),
+			RequestID:      reqID,
+			ServiceVersion: h.config.ServiceVersion,
+			ProcessingTime: time.Since(startTime).String(),
+		}
+		h.writeJSONResponse(w, response, http.StatusInternalServerError)
+		return
+	}
+
+	response := ProcessIntentResponse{
+		Result:         result,
+		Status:         "success",
+		ProcessingTime: time.Since(startTime).String(),
+		RequestID:      reqID,
+		ServiceVersion: h.config.ServiceVersion,
+	}
+
+	h.writeJSONResponse(w, response, http.StatusOK)
+
+	h.logger.Info("Intent processed successfully",
+		slog.String("request_id", reqID),
+		slog.Duration("processing_time", time.Since(startTime)),
+	)
+}
+
+// StatusHandler returns service status information
+func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Request) {
+	status := map[string]interface{}{
+		"service":         "llm-processor",
+		"version":         h.config.ServiceVersion,
+		"uptime":          time.Since(h.startTime).String(),
+		"healthy":         h.healthChecker.IsHealthy(),
+		"ready":           h.healthChecker.IsReady(),
+		"backend_type":    h.config.LLMBackendType,
+		"model":           h.config.LLMModelName,
+		"rag_enabled":     h.config.RAGEnabled,
+		"timestamp":       time.Now().UTC().Format(time.RFC3339),
+	}
+
+	h.writeJSONResponse(w, status, http.StatusOK)
+}
+
+// StreamingHandler handles Server-Sent Events streaming requests
+func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		h.writeErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed, "")
+		return
+	}
+
+	if h.streamingProcessor == nil {
+		h.writeErrorResponse(w, "Streaming not enabled", http.StatusServiceUnavailable, "")
+		return
+	}
+
+	var req llm.StreamingRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.Error("Failed to decode streaming request", slog.String("error", err.Error()))
+		h.writeErrorResponse(w, "Invalid request body", http.StatusBadRequest, "")
+		return
+	}
+
+	if req.Query == "" {
+		h.writeErrorResponse(w, "Query is required", http.StatusBadRequest, "")
+		return
+	}
+
+	// Set defaults
+	if req.ModelName == "" {
+		req.ModelName = h.config.LLMModelName
+	}
+	if req.MaxTokens == 0 {
+		req.MaxTokens = h.config.LLMMaxTokens
+	}
+
+	h.logger.Info("Starting streaming request",
+		"query", req.Query,
+		"model", req.ModelName,
+		"enable_rag", req.EnableRAG,
+	)
+
+	// Add timeout context for streaming
+	ctx, cancel := context.WithTimeout(r.Context(), h.config.StreamTimeout)
+	defer cancel()
+
+	// Update request with context
+	r = r.WithContext(ctx)
+
+	err := h.streamingProcessor.HandleStreamingRequest(w, r, &req)
+	if err != nil {
+		h.logger.Error("Streaming request failed", slog.String("error", err.Error()))
+		// Error handling is done within HandleStreamingRequest
+	}
+}
+
+// MetricsHandler provides comprehensive metrics
+func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Request) {
+	metrics := map[string]interface{}{
+		"service": "llm-processor",
+		"version": h.config.ServiceVersion,
+		"uptime":  time.Since(h.startTime).String(),
+	}
+
+	// Add token manager metrics
+	if h.tokenManager != nil {
+		metrics["supported_models"] = h.tokenManager.GetSupportedModels()
+	}
+
+	// Add circuit breaker metrics
+	if h.circuitBreakerMgr != nil {
+		metrics["circuit_breakers"] = h.circuitBreakerMgr.GetAllStats()
+	}
+
+	// Add streaming metrics
+	if h.streamingProcessor != nil {
+		metrics["streaming"] = h.streamingProcessor.GetMetrics()
+	}
+
+	// Add context builder metrics
+	if h.contextBuilder != nil {
+		metrics["context_builder"] = h.contextBuilder.GetMetrics()
+	}
+
+	// Add relevance scorer metrics
+	if h.relevanceScorer != nil {
+		metrics["relevance_scorer"] = h.relevanceScorer.GetMetrics()
+	}
+
+	// Add prompt builder metrics
+	if h.promptBuilder != nil {
+		metrics["prompt_builder"] = h.promptBuilder.GetMetrics()
+	}
+
+	h.writeJSONResponse(w, metrics, http.StatusOK)
+}
+
+// CircuitBreakerStatusHandler provides circuit breaker status and control
+func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if h.circuitBreakerMgr == nil {
+		h.writeErrorResponse(w, "Circuit breaker manager not available", http.StatusServiceUnavailable, "")
+		return
+	}
+
+	// Handle POST requests for circuit breaker operations
+	if r.Method == http.MethodPost {
+		var req struct {
+			Action string `json:"action"`
+			Name   string `json:"name"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			h.writeErrorResponse(w, "Invalid request body", http.StatusBadRequest, "")
+			return
+		}
+
+		cb, exists := h.circuitBreakerMgr.Get(req.Name)
+		if !exists {
+			h.writeErrorResponse(w, "Circuit breaker not found", http.StatusNotFound, "")
+			return
+		}
+
+		switch req.Action {
+		case "reset":
+			cb.Reset()
+			h.logger.Info("Circuit breaker reset", "name", req.Name)
+		case "force_open":
+			cb.ForceOpen()
+			h.logger.Info("Circuit breaker forced open", "name", req.Name)
+		default:
+			h.writeErrorResponse(w, "Invalid action", http.StatusBadRequest, "")
+			return
+		}
+
+		h.writeJSONResponse(w, map[string]string{"status": "success"}, http.StatusOK)
+		return
+	}
+
+	// Handle GET requests for status
+	stats := h.circuitBreakerMgr.GetAllStats()
+	h.writeJSONResponse(w, stats, http.StatusOK)
+}
+
+// ProcessIntent processes an intent using the configured processor
+func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	p.Logger.Debug("Processing intent with enhanced client", slog.String("intent", intent))
+
+	// Use circuit breaker for fault tolerance
+	operation := func(ctx context.Context) (interface{}, error) {
+		// Try RAG-enhanced processing first if available
+		if p.RAGEnhancedClient != nil {
+			result, err := p.RAGEnhancedClient.ProcessIntent(ctx, intent)
+			if err == nil {
+				return result, nil
+			}
+			p.Logger.Warn("RAG-enhanced processing failed, falling back to base client", "error", err)
+		}
+
+		// Fallback to base LLM client
+		return p.LLMClient.ProcessIntent(ctx, intent)
+	}
+
+	result, err := p.CircuitBreaker.Execute(ctx, operation)
+	if err != nil {
+		return "", fmt.Errorf("LLM processing failed: %w", err)
+	}
+
+	return result.(string), nil
+}
+
+// Helper methods
+
+func (h *LLMProcessorHandler) writeJSONResponse(w http.ResponseWriter, data interface{}, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		h.logger.Error("Failed to encode JSON response", slog.String("error", err.Error()))
+	}
+}
+
+func (h *LLMProcessorHandler) writeErrorResponse(w http.ResponseWriter, message string, statusCode int, requestID string) {
+	response := map[string]interface{}{
+		"error":     message,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+	
+	if requestID != "" {
+		response["request_id"] = requestID
+		w.Header().Set("X-Request-ID", requestID)
+	}
+
+	h.writeJSONResponse(w, response, statusCode)
+}

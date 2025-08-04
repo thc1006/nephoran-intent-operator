@@ -2,7 +2,6 @@ package automation
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -178,18 +177,7 @@ type PredictionModel struct {
 	Thresholds     map[string]float64 `json:"thresholds"`
 }
 
-// AutomatedRemediation performs intelligent remediation actions
-type AutomatedRemediation struct {
-	mu                     sync.RWMutex
-	config                 *SelfHealingConfig
-	logger                 *slog.Logger
-	k8sClient              kubernetes.Interface
-	ctrlClient             client.Client
-	activeRemediations     map[string]*RemediationSession
-	remediationStrategies  map[string]*RemediationStrategy
-	learningEngine         *LearningEngine
-	rollbackManager        *RollbackManager
-}
+// AutomatedRemediation is defined in automated_remediation.go
 
 type RemediationSession struct {
 	ID              string                 `json:"id"`

@@ -276,7 +276,62 @@ dev-setup: setup-dev ## Extended development setup with additional tools
 	go install github.com/securecodewarrior/sast-scan@latest
 
 # Enhanced testing targets
-test-all: test-integration benchmark security-scan validate-build ## Run all tests including benchmarks and security
+test-unit: ## Run unit tests with coverage
+	@echo "--- Running Unit Tests with Coverage ---"
+	go test -v -race -coverprofile=coverage.out -covermode=atomic ./pkg/...
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated in coverage.html"
+
+test-unit-ci: ## Run unit tests for CI with coverage threshold
+	@echo "--- Running Unit Tests for CI ---"
+	go test -v -race -coverprofile=coverage.out -covermode=atomic ./pkg/...
+	@echo "--- Checking Coverage Threshold (90%) ---"
+	@go tool cover -func=coverage.out | grep total | awk '{print $$3}' | sed 's/%//' | awk '{if ($$1 < 90) exit 1}'
+
+test-coverage: ## Generate comprehensive coverage report
+	@echo "--- Generating Comprehensive Coverage Report ---"
+	@echo "Testing individual packages..."
+	@mkdir -p coverage/
+	@for pkg in $$(go list ./pkg/...); do \
+		echo "Testing $$pkg..."; \
+		go test -v -race -coverprofile=coverage/$$(echo $$pkg | sed 's/.*\///').out -covermode=atomic $$pkg || true; \
+	done
+	@echo "Merging coverage profiles..."
+	@echo "mode: atomic" > coverage/merged.out
+	@grep -h -v "mode: atomic" coverage/*.out >> coverage/merged.out 2>/dev/null || true
+	@go tool cover -html=coverage/merged.out -o coverage/coverage.html
+	@go tool cover -func=coverage/merged.out > coverage/coverage.txt
+	@echo "--- Coverage Summary ---"
+	@tail -1 coverage/coverage.txt
+	@echo "Detailed coverage report: coverage/coverage.html"
+	@echo "Coverage summary: coverage/coverage.txt"
+
+test-rag: ## Run RAG package tests specifically
+	@echo "--- Running RAG Package Tests ---"
+	go test -v -race -coverprofile=coverage/rag.out -covermode=atomic ./pkg/rag/...
+	go tool cover -html=coverage/rag.out -o coverage/rag_coverage.html
+	@echo "RAG coverage report: coverage/rag_coverage.html"
+
+test-security: ## Run Security package tests specifically  
+	@echo "--- Running Security Package Tests ---"
+	go test -v -race -coverprofile=coverage/security.out -covermode=atomic ./pkg/security/...
+	go tool cover -html=coverage/security.out -o coverage/security_coverage.html
+	@echo "Security coverage report: coverage/security_coverage.html"
+
+test-integration-full: ## Run comprehensive integration tests
+	@echo "--- Running Comprehensive Integration Tests ---"
+	@echo "--- Setting up envtest ---"
+	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+ifeq ($(OS),Windows_NT)
+	$(shell go env GOPATH)\bin\setup-envtest.exe use 1.29.0 --bin-dir $(shell go env GOPATH)\bin
+	set KUBEBUILDER_ASSETS=$(shell $(shell go env GOPATH)\bin\setup-envtest.exe use 1.29.0 --bin-dir $(shell go env GOPATH)\bin -p path) && go test -v -race -coverprofile=coverage/integration.out -covermode=atomic ./tests/integration/...
+else
+	$(shell go env GOPATH)/bin/setup-envtest use 1.29.0 --bin-dir $(shell go env GOPATH)/bin
+	KUBEBUILDER_ASSETS=$(shell $(shell go env GOPATH)/bin/setup-envtest use 1.29.0 --bin-dir $(shell go env GOPATH)/bin -p path) go test -v -race -coverprofile=coverage/integration.out -covermode=atomic ./tests/integration/...
+endif
+	@echo "Integration tests completed"
+
+test-all: test-coverage test-integration-full benchmark security-scan validate-build ## Run all tests including benchmarks and security
 	@echo "--- All Tests Completed ---"
 
 # Build integrity and security

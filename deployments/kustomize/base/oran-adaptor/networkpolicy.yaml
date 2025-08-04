@@ -1,0 +1,99 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: oran-adaptor-netpol
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  podSelector:
+    matchLabels:
+      app: oran-adaptor
+  policyTypes:
+  - Ingress
+  - Egress
+  
+  ingress:
+  # Allow traffic from other Nephoran components
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: nephoran-intent-operator
+    ports:
+    - protocol: TCP
+      port: 8082
+  
+  # Allow monitoring traffic from Prometheus
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 8082
+  
+  # Allow health checks from Kubernetes API server
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 8082
+  
+  egress:
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  
+  # Allow HTTPS outbound for external API calls
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  
+  # Allow HTTP outbound for internal service communication
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8000
+    - protocol: TCP
+      port: 8001
+    - protocol: TCP
+      port: 8082
+  
+  # Allow O1 NETCONF communication
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 830
+  
+  # Allow E2 interface communication
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 38000
+    - protocol: TCP
+      port: 36421
+    - protocol: TCP
+      port: 36422
+  
+  # Allow tracing to Jaeger
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 14268

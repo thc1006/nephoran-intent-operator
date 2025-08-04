@@ -48,7 +48,7 @@ func NewFailurePrediction(config *SelfHealingConfig, logger *slog.Logger) (*Fail
 	}
 
 	// Initialize prediction models for each component
-	for componentName, componentConfig := range config.ComponentConfigs {
+	for componentName := range config.ComponentConfigs {
 		model := &PredictionModel{
 			Name:             fmt.Sprintf("%s-predictor", componentName),
 			Component:        componentName,

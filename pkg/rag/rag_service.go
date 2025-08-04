@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
@@ -19,6 +20,7 @@ type RAGService struct {
 	config         *RAGConfig
 	logger         *slog.Logger
 	metrics        *RAGMetrics
+	errorBuilder   *errors.ErrorBuilder
 	mutex          sync.RWMutex
 }
 
@@ -103,12 +105,15 @@ func NewRAGService(weaviateClient *WeaviateClient, llmClient shared.ClientInterf
 		config = getDefaultRAGConfig()
 	}
 
+	logger := slog.Default().With("component", "rag-service")
+
 	return &RAGService{
 		weaviateClient: weaviateClient,
 		llmClient:      llmClient,
 		config:         config,
-		logger:         slog.Default().With("component", "rag-service"),
+		logger:         logger,
 		metrics:        &RAGMetrics{LastUpdated: time.Now()},
+		errorBuilder:   errors.NewErrorBuilder("rag-service", "", logger),
 	}
 }
 
@@ -138,12 +143,22 @@ func getDefaultRAGConfig() *RAGConfig {
 func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*RAGResponse, error) {
 	startTime := time.Now()
 	
-	// Validate request
+	// Update error builder operation
+	eb := errors.NewErrorBuilder("rag-service", "ProcessQuery", rs.logger)
+	
+	// Check for context cancellation early
+	select {
+	case <-ctx.Done():
+		return nil, eb.ContextCancelledError(ctx)
+	default:
+	}
+	
+	// Validate request with standardized errors
 	if request == nil {
-		return nil, fmt.Errorf("RAG request cannot be nil")
+		return nil, eb.RequiredFieldError("request")
 	}
 	if request.Query == "" {
-		return nil, fmt.Errorf("query cannot be empty")
+		return nil, eb.RequiredFieldError("query")
 	}
 
 	// Set defaults
@@ -186,7 +201,17 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 		rs.updateMetrics(func(m *RAGMetrics) {
 			m.FailedQueries++
 		})
-		return nil, fmt.Errorf("failed to retrieve documents: %w", err)
+		
+		// Check if context was cancelled during search
+		select {
+		case <-ctx.Done():
+			return nil, eb.ContextCancelledError(ctx)
+		default:
+		}
+		
+		return nil, eb.ExternalServiceError("weaviate", err).
+			WithMetadata("search_query", request.Query).
+			WithMetadata("max_results", request.MaxResults)
 	}
 	retrievalTime := time.Since(retrievalStart)
 
@@ -213,7 +238,18 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 		rs.updateMetrics(func(m *RAGMetrics) {
 			m.FailedQueries++
 		})
-		return nil, fmt.Errorf("failed to generate response: %w", err)
+		
+		// Check if context was cancelled during LLM processing
+		select {
+		case <-ctx.Done():
+			return nil, eb.ContextCancelledError(ctx)
+		default:
+		}
+		
+		return nil, eb.ExternalServiceError("llm", err).
+			WithMetadata("query", request.Query).
+			WithMetadata("intent_type", request.IntentType).
+			WithMetadata("context_length", len(context))
 	}
 	generationTime := time.Since(generationStart)
 

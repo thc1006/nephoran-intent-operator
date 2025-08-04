@@ -572,19 +572,65 @@ func (sp *StreamingProcessor) heartbeatRoutine(session *StreamingSession, done <
 	}
 }
 
-// maintenanceRoutine performs background maintenance tasks
+// maintenanceRoutine performs background maintenance tasks with context support
 func (sp *StreamingProcessor) maintenanceRoutine() {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 	
-	for range ticker.C {
-		sp.cleanupExpiredSessions()
-		sp.updateActiveStreamCount()
+	// Create a context for the maintenance routine that can be cancelled
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	
+	sp.logger.Info("Starting maintenance routine")
+	
+	for {
+		select {
+		case <-ticker.C:
+			// Check if any cleanup operations are needed
+			sp.cleanupExpiredSessions(ctx)
+			sp.updateActiveStreamCount()
+			sp.performMaintenanceTasks(ctx)
+			
+		case <-ctx.Done():
+			sp.logger.Info("Maintenance routine cancelled")
+			return
+		}
 	}
 }
 
-// cleanupExpiredSessions removes expired or stale sessions
-func (sp *StreamingProcessor) cleanupExpiredSessions() {
+// performMaintenanceTasks performs additional maintenance with context awareness
+func (sp *StreamingProcessor) performMaintenanceTasks(ctx context.Context) {
+	select {
+	case <-ctx.Done():
+		return
+	default:
+	}
+	
+	// Update metrics timestamp
+	sp.updateMetrics(func(m *StreamingMetrics) {
+		m.LastUpdated = time.Now()
+	})
+	
+	// Log current status
+	sp.mutex.RLock()
+	activeCount := len(sp.activeStreams)
+	sp.mutex.RUnlock()
+	
+	if activeCount > 0 {
+		sp.logger.V(1).Info("Maintenance check", 
+			"active_streams", activeCount,
+			"max_concurrent", sp.config.MaxConcurrentStreams)
+	}
+}
+
+// cleanupExpiredSessions removes expired or stale sessions with context support
+func (sp *StreamingProcessor) cleanupExpiredSessions(ctx context.Context) {
+	select {
+	case <-ctx.Done():
+		return
+	default:
+	}
+	
 	sp.mutex.Lock()
 	defer sp.mutex.Unlock()
 	

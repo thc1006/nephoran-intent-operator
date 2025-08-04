@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: oran-adaptor
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8082"
+    prometheus.io/path: "/metrics"
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8082
+    targetPort: http
+    protocol: TCP
+  - name: metrics
+    port: 8082
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app: oran-adaptor
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oran-adaptor-headless
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - name: http
+    port: 8082
+    targetPort: http
+    protocol: TCP
+  selector:
+    app: oran-adaptor

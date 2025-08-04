@@ -1,0 +1,84 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: oran-adaptor-hpa
+  labels:
+    app: oran-adaptor
+    component: oran-interface
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: oran-adaptor
+  
+  minReplicas: 2
+  maxReplicas: 10
+  
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  
+  # Custom metrics for O-RAN interface load
+  - type: Pods
+    pods:
+      metric:
+        name: nephoran_oran_concurrent_connections
+      target:
+        type: AverageValue
+        averageValue: "80"
+  
+  - type: Pods
+    pods:
+      metric:
+        name: nephoran_oran_throughput_messages_per_second
+      target:
+        type: AverageValue
+        averageValue: "50"
+  
+  # Error rate scaling
+  - type: Pods
+    pods:
+      metric:
+        name: nephoran_oran_error_rate_percent
+      target:
+        type: AverageValue
+        averageValue: "5"
+  
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Min
+    
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 4
+        periodSeconds: 30
+      selectPolicy: Max

@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 )
 
 // AuthConfig holds authentication configuration
@@ -64,9 +66,12 @@ const (
 
 // LoadAuthConfig loads authentication configuration from environment and file
 func LoadAuthConfig() (*AuthConfig, error) {
-	config := &AuthConfig{
+	// Load JWT secret key from file or env
+	jwtSecretKey, _ := config.LoadJWTSecretKeyFromFile()
+
+	authConfig := &AuthConfig{
 		Enabled:      getBoolEnv("AUTH_ENABLED", false),
-		JWTSecretKey: getEnv("JWT_SECRET_KEY", ""),
+		JWTSecretKey: jwtSecretKey,
 		TokenTTL:     getDurationEnv("TOKEN_TTL", 24*time.Hour),
 		RefreshTTL:   getDurationEnv("REFRESH_TTL", 7*24*time.Hour),
 		Providers:    make(map[string]ProviderConfig),
@@ -85,24 +90,24 @@ func LoadAuthConfig() (*AuthConfig, error) {
 	}
 
 	// Load provider configurations
-	if err := config.loadProviders(); err != nil {
+	if err := authConfig.loadProviders(); err != nil {
 		return nil, fmt.Errorf("failed to load providers: %w", err)
 	}
 
 	// Load from config file if specified
 	configFile := getEnv("AUTH_CONFIG_FILE", "")
 	if configFile != "" {
-		if err := config.loadFromFile(configFile); err != nil {
+		if err := authConfig.loadFromFile(configFile); err != nil {
 			return nil, fmt.Errorf("failed to load config file: %w", err)
 		}
 	}
 
 	// Validate configuration
-	if err := config.validate(); err != nil {
+	if err := authConfig.validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	return config, nil
+	return authConfig, nil
 }
 
 // loadProviders loads OAuth2 provider configurations from environment
@@ -113,7 +118,7 @@ func (c *AuthConfig) loadProviders() error {
 			Enabled:      getBoolEnv("AZURE_ENABLED", true),
 			Type:         "azure-ad",
 			ClientID:     azureClientID,
-			ClientSecret: getEnv("AZURE_CLIENT_SECRET", ""),
+			ClientSecret: getOAuth2ClientSecret("azure"),
 			TenantID:     getEnv("AZURE_TENANT_ID", ""),
 			Scopes:       getStringSliceEnv("AZURE_SCOPES", []string{"openid", "profile", "email", "User.Read"}),
 		}
@@ -125,7 +130,7 @@ func (c *AuthConfig) loadProviders() error {
 			Enabled:      getBoolEnv("OKTA_ENABLED", true),
 			Type:         "okta",
 			ClientID:     oktaClientID,
-			ClientSecret: getEnv("OKTA_CLIENT_SECRET", ""),
+			ClientSecret: getOAuth2ClientSecret("okta"),
 			Domain:       getEnv("OKTA_DOMAIN", ""),
 			Scopes:       getStringSliceEnv("OKTA_SCOPES", []string{"openid", "profile", "email", "groups"}),
 		}
@@ -137,7 +142,7 @@ func (c *AuthConfig) loadProviders() error {
 			Enabled:      getBoolEnv("KEYCLOAK_ENABLED", true),
 			Type:         "keycloak",
 			ClientID:     keycloakClientID,
-			ClientSecret: getEnv("KEYCLOAK_CLIENT_SECRET", ""),
+			ClientSecret: getOAuth2ClientSecret("keycloak"),
 			BaseURL:      getEnv("KEYCLOAK_BASE_URL", ""),
 			Realm:        getEnv("KEYCLOAK_REALM", "master"),
 			Scopes:       getStringSliceEnv("KEYCLOAK_SCOPES", []string{"openid", "profile", "email", "roles"}),
@@ -150,7 +155,7 @@ func (c *AuthConfig) loadProviders() error {
 			Enabled:      getBoolEnv("GOOGLE_ENABLED", true),
 			Type:         "google",
 			ClientID:     googleClientID,
-			ClientSecret: getEnv("GOOGLE_CLIENT_SECRET", ""),
+			ClientSecret: getOAuth2ClientSecret("google"),
 			Scopes:       getStringSliceEnv("GOOGLE_SCOPES", []string{"openid", "profile", "email"}),
 		}
 	}
@@ -161,7 +166,7 @@ func (c *AuthConfig) loadProviders() error {
 			Enabled:      getBoolEnv("CUSTOM_ENABLED", true),
 			Type:         "custom",
 			ClientID:     customClientID,
-			ClientSecret: getEnv("CUSTOM_CLIENT_SECRET", ""),
+			ClientSecret: getOAuth2ClientSecret("custom"),
 			AuthURL:      getEnv("CUSTOM_AUTH_URL", ""),
 			TokenURL:     getEnv("CUSTOM_TOKEN_URL", ""),
 			UserInfoURL:  getEnv("CUSTOM_USERINFO_URL", ""),
@@ -366,6 +371,16 @@ func getStringSliceEnv(key string, defaultValue []string) []string {
 		}
 	}
 	return defaultValue
+}
+
+// getOAuth2ClientSecret loads OAuth2 client secret from file or environment
+func getOAuth2ClientSecret(provider string) string {
+	secret, err := config.LoadOAuth2ClientSecretFromFile(provider)
+	if err != nil {
+		// Return empty string if not found - validation will catch this later
+		return ""
+	}
+	return secret
 }
 
 // ToOAuth2Config converts AuthConfig to OAuth2Config

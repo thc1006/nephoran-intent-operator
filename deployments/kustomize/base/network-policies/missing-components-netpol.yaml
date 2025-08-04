@@ -1,0 +1,264 @@
+# Network Policy for RAG API
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rag-api-netpol
+  namespace: nephoran-system
+spec:
+  podSelector:
+    matchLabels:
+      app: rag-api
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from LLM processor
+  - from:
+    - podSelector:
+        matchLabels:
+          app: llm-processor
+    ports:
+    - protocol: TCP
+      port: 5001
+  # Allow health checks from kubelet
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 5001
+  egress:
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow connections to Weaviate
+  - to:
+    - podSelector:
+        matchLabels:
+          app: weaviate
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow connections to document processor
+  - to:
+    - podSelector:
+        matchLabels:
+          app: document-processor
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Allow HTTPS for external embedding APIs
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Network Policy for Weaviate
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: weaviate-netpol
+  namespace: nephoran-system
+spec:
+  podSelector:
+    matchLabels:
+      app: weaviate
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from RAG API
+  - from:
+    - podSelector:
+        matchLabels:
+          app: rag-api
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow traffic from document processor
+  - from:
+    - podSelector:
+        matchLabels:
+          app: document-processor
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow health checks
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow cluster-internal communication (for clustering)
+  - to:
+    - podSelector:
+        matchLabels:
+          app: weaviate
+    ports:
+    - protocol: TCP
+      port: 7000
+    - protocol: TCP
+      port: 7001
+---
+# Network Policy for Document Processor
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: document-processor-netpol
+  namespace: nephoran-system
+spec:
+  podSelector:
+    matchLabels:
+      app: document-processor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from RAG API
+  - from:
+    - podSelector:
+        matchLabels:
+          app: rag-api
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Allow health checks
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow connections to Weaviate
+  - to:
+    - podSelector:
+        matchLabels:
+          app: weaviate
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow HTTPS for external API calls (document processing APIs)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Network Policy for Nephio Bridge
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephio-bridge-netpol
+  namespace: nephoran-system
+spec:
+  podSelector:
+    matchLabels:
+      app: nephio-bridge
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow traffic from ORAN adaptor
+  - from:
+    - podSelector:
+        matchLabels:
+          app: oran-adaptor
+    ports:
+    - protocol: TCP
+      port: 8081
+  # Allow health checks
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 8081
+  # Allow external webhook calls (from Nephio)
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8081
+  egress:
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow connections to Kubernetes API
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 6443
+  # Allow connections to LLM processor
+  - to:
+    - podSelector:
+        matchLabels:
+          app: llm-processor
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow HTTPS for external Nephio API calls
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Default deny-all network policy for the namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: nephoran-system
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  egress:
+  # Allow DNS for all pods (required for service discovery)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
