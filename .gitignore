@@ -42,4 +42,16 @@ pip-wheel-metadata/
 /build
 /dist
 mcp.json
-.kiro/settings/mcp.json
+.kiro/settings/mcp.json.mcp.json
+
+.mcp.json
+*.token
+.env.local
+
+# Prevent accidental token files
+*token*
+*secret*
+*key*
+.env
+.env.*
+onc

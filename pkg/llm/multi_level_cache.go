@@ -11,6 +11,19 @@ import (
 	"time"
 )
 
+// MultiLevelCacheEntry represents an entry in the multi-level cache
+type MultiLevelCacheEntry struct {
+	Key          string                 `json:"key"`
+	Value        interface{}            `json:"value"`
+	CreatedAt    time.Time              `json:"created_at"`
+	ExpiresAt    time.Time              `json:"expires_at"`
+	AccessCount  int64                  `json:"access_count"`
+	LastAccessed time.Time              `json:"last_accessed"`
+	Size         int                    `json:"size"`
+	Compressed   bool                   `json:"compressed"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+}
+
 // MultiLevelCache implements a multi-tier caching system with Redis and in-memory layers
 type MultiLevelCache struct {
 	l1Cache    *InMemoryCache
@@ -82,22 +95,11 @@ type CacheMetrics struct {
 	mutex            sync.RWMutex
 }
 
-// CacheEntry represents a cached item with metadata
-type CacheEntry struct {
-	Key          string                 `json:"key"`
-	Value        interface{}            `json:"value"`
-	CreatedAt    time.Time              `json:"created_at"`
-	ExpiresAt    time.Time              `json:"expires_at"`
-	AccessCount  int64                  `json:"access_count"`
-	LastAccessed time.Time              `json:"last_accessed"`
-	Size         int64                  `json:"size"`
-	Compressed   bool                   `json:"compressed"`
-	Metadata     map[string]interface{} `json:"metadata"`
-}
+// Note: Using MultiLevelCacheEntry to avoid conflicts with CacheEntry from llm.go
 
 // InMemoryCache implements L1 in-memory cache
 type InMemoryCache struct {
-	data       map[string]*CacheEntry
+	data       map[string]*MultiLevelCacheEntry
 	capacity   int
 	evictList  *EvictionList
 	mutex      sync.RWMutex
@@ -201,7 +203,7 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 		data, err := mlc.l2Cache.Get(ctx, key)
 		if err == nil && data != nil {
 			// Deserialize the data
-			var entry CacheEntry
+			var entry MultiLevelCacheEntry
 			if err := json.Unmarshal(data, &entry); err != nil {
 				mlc.logger.Warn("Failed to deserialize L2 cache entry", "key", key, "error", err)
 			} else {
@@ -264,14 +266,14 @@ func (mlc *MultiLevelCache) Set(ctx context.Context, key string, value interface
 	size := mlc.calculateSize(value)
 	
 	// Create cache entry
-	entry := &CacheEntry{
+	entry := &MultiLevelCacheEntry{
 		Key:          key,
 		Value:        value,
 		CreatedAt:    time.Now(),
 		ExpiresAt:    time.Now().Add(ttl),
 		AccessCount:  0,
 		LastAccessed: time.Now(),
-		Size:         size,
+		Size:         int(size),
 		Compressed:   false,
 		Metadata:     make(map[string]interface{}),
 	}
@@ -533,7 +535,7 @@ func (mlc *MultiLevelCache) Close() error {
 // NewInMemoryCache creates a new in-memory cache
 func NewInMemoryCache(capacity int) *InMemoryCache {
 	return &InMemoryCache{
-		data:      make(map[string]*CacheEntry),
+		data:      make(map[string]*MultiLevelCacheEntry),
 		capacity:  capacity,
 		evictList: NewEvictionList(),
 	}
@@ -582,14 +584,14 @@ func (imc *InMemoryCache) Set(key string, value interface{}, ttl time.Duration) 
 	}
 	
 	// Create new entry
-	entry := &CacheEntry{
+	entry := &MultiLevelCacheEntry{
 		Key:          key,
 		Value:        value,
 		CreatedAt:    time.Now(),
 		ExpiresAt:    time.Now().Add(ttl),
 		AccessCount:  0,
 		LastAccessed: time.Now(),
-		Size:         int64(len(fmt.Sprintf("%v", value))), // Simple size estimation
+		Size:         int(int64(len(fmt.Sprintf("%v", value)))), // Simple size estimation
 	}
 	
 	imc.data[key] = entry
@@ -617,7 +619,7 @@ func (imc *InMemoryCache) Clear() {
 	imc.mutex.Lock()
 	defer imc.mutex.Unlock()
 	
-	imc.data = make(map[string]*CacheEntry)
+	imc.data = make(map[string]*MultiLevelCacheEntry)
 	imc.evictList = NewEvictionList()
 }
 

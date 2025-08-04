@@ -2,12 +2,14 @@ package nephio
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
 	"text/template"
 
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 )
 
@@ -45,8 +47,14 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 	}
 	files[filepath.Join(packagePath, "Kptfile")] = kptfile
 	
-	// Generate package resources based on intent type
-	switch intent.Spec.Type {
+	// Generate package resources based on intent parameters
+	// Determine the type from the parameters
+	intentType, err := pg.determineIntentType(intent)
+	if err != nil {
+		return nil, fmt.Errorf("failed to determine intent type: %w", err)
+	}
+
+	switch intentType {
 	case "deployment":
 		resources, err := pg.generateDeploymentResources(intent)
 		if err != nil {
@@ -72,7 +80,7 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 			files[filepath.Join(packagePath, path)] = content
 		}
 	default:
-		return nil, fmt.Errorf("unsupported intent type: %s", intent.Spec.Type)
+		return nil, fmt.Errorf("unsupported intent type: %s", intentType)
 	}
 	
 	// Generate README
@@ -272,6 +280,49 @@ data:
 	return nil
 }
 
+// determineIntentType analyzes the intent to determine its type
+func (pg *PackageGenerator) determineIntentType(intent *v1.NetworkIntent) (string, error) {
+	// Extract parameters
+	params, err := pg.extractParameters(intent.Spec.Parameters)
+	if err != nil {
+		return "", fmt.Errorf("failed to extract parameters: %w", err)
+	}
+
+	// Check for type field in parameters
+	if intentType, ok := params["type"].(string); ok {
+		return intentType, nil
+	}
+
+	// Fallback: determine type based on content
+	intentText := strings.ToLower(intent.Spec.Intent)
+	if strings.Contains(intentText, "deploy") || strings.Contains(intentText, "create") {
+		return "deployment", nil
+	}
+	if strings.Contains(intentText, "scale") || strings.Contains(intentText, "replica") {
+		return "scaling", nil
+	}
+	if strings.Contains(intentText, "policy") || strings.Contains(intentText, "rule") {
+		return "policy", nil
+	}
+
+	// Default to deployment
+	return "deployment", nil
+}
+
+// extractParameters safely extracts parameters from runtime.RawExtension
+func (pg *PackageGenerator) extractParameters(params runtime.RawExtension) (map[string]interface{}, error) {
+	if params.Raw == nil {
+		return make(map[string]interface{}), nil
+	}
+
+	var result map[string]interface{}
+	if err := json.Unmarshal(params.Raw, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+	}
+
+	return result, nil
+}
+
 // generateKptfile generates the Kptfile for the package
 func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, error) {
 	data := map[string]interface{}{
@@ -294,9 +345,9 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 	resources := make(map[string]string)
 	
 	// Parse structured parameters
-	params := intent.Spec.Parameters
-	if params == nil {
-		return nil, fmt.Errorf("no parameters found in intent")
+	params, err := pg.extractParameters(intent.Spec.Parameters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract parameters: %w", err)
 	}
 	
 	// Extract deployment details from parameters
@@ -305,7 +356,7 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 	// Generate deployment YAML
 	var buf bytes.Buffer
 	if err := pg.templates["deployment"].Execute(&buf, deploymentData); err != nil {
-		return "", fmt.Errorf("failed to execute deployment template: %w", err)
+		return nil, fmt.Errorf("failed to execute deployment template: %w", err)
 	}
 	resources["deployment.yaml"] = strings.TrimSpace(buf.String())
 	
@@ -313,7 +364,7 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 	buf.Reset()
 	serviceData := extractServiceData(params)
 	if err := pg.templates["service"].Execute(&buf, serviceData); err != nil {
-		return "", fmt.Errorf("failed to execute service template: %w", err)
+		return nil, fmt.Errorf("failed to execute service template: %w", err)
 	}
 	resources["service.yaml"] = strings.TrimSpace(buf.String())
 	
@@ -321,7 +372,7 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 	if oranConfig := extractORANConfig(params); oranConfig != nil {
 		buf.Reset()
 		if err := pg.templates["configmap"].Execute(&buf, oranConfig); err != nil {
-			return "", fmt.Errorf("failed to execute configmap template: %w", err)
+			return nil, fmt.Errorf("failed to execute configmap template: %w", err)
 		}
 		resources["oran-config.yaml"] = strings.TrimSpace(buf.String())
 	}
@@ -338,9 +389,9 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 	resources := make(map[string]string)
 	
 	// Generate HPA or patch for scaling
-	params := intent.Spec.Parameters
-	if params == nil {
-		return nil, fmt.Errorf("no parameters found in intent")
+	params, err := pg.extractParameters(intent.Spec.Parameters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract parameters: %w", err)
 	}
 	
 	// Generate scaling patch
@@ -358,9 +409,9 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 	
-	params := intent.Spec.Parameters
-	if params == nil {
-		return nil, fmt.Errorf("no parameters found in intent")
+	params, err := pg.extractParameters(intent.Spec.Parameters)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract parameters: %w", err)
 	}
 	
 	// Generate NetworkPolicy or other policy resources
@@ -381,14 +432,19 @@ func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (m
 
 // generateReadme generates the README for the package
 func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, error) {
+	params, err := pg.extractParameters(intent.Spec.Parameters)
+	if err != nil {
+		return "", fmt.Errorf("failed to extract parameters: %w", err)
+	}
+
 	data := map[string]interface{}{
 		"Name":                intent.Name,
 		"Intent":              intent.Spec.Intent,
-		"GeneratedAt":         intent.Status.LastProcessed.Format("2006-01-02 15:04:05 UTC"),
+		"GeneratedAt":         "Generated at package creation", // Use placeholder since LastProcessed may not be available
 		"Description":         fmt.Sprintf("This package was automatically generated from the NetworkIntent '%s'", intent.Name),
 		"Contents":            "- Kubernetes manifests\n- O-RAN configuration\n- Network slice parameters\n- Setters for customization",
-		"ORANDetails":         extractORANDetails(intent.Spec.Parameters),
-		"NetworkSliceDetails": extractNetworkSliceDetails(intent.Spec.Parameters),
+		"ORANDetails":         extractORANDetails(params),
+		"NetworkSliceDetails": extractNetworkSliceDetails(params),
 	}
 	
 	var buf bytes.Buffer
@@ -551,6 +607,9 @@ func extractA1Policy(params map[string]interface{}) map[string]interface{} {
 }
 
 func extractORANDetails(params map[string]interface{}) string {
+	if params == nil {
+		return "No O-RAN specific configuration in this package"
+	}
 	details := []string{}
 	
 	if _, ok := params["o1_config"]; ok {
@@ -571,6 +630,9 @@ func extractORANDetails(params map[string]interface{}) string {
 }
 
 func extractNetworkSliceDetails(params map[string]interface{}) string {
+	if params == nil {
+		return "No network slice configuration in this package"
+	}
 	if slice, ok := params["network_slice"]; ok {
 		sliceMap := slice.(map[string]interface{})
 		return fmt.Sprintf(`- Slice ID: %s

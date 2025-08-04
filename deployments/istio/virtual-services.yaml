@@ -1,0 +1,290 @@
+# Nephoran Intent Operator - Istio Virtual Services Configuration
+# Phase 4 Enterprise Architecture - Advanced Traffic Management
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: llm-processor-vs
+  namespace: nephoran-system
+spec:
+  hosts:
+  - llm-processor
+  - llm-processor.nephoran-system.svc.cluster.local
+  http:
+  - match:
+    - headers:
+        x-priority:
+          exact: high
+    route:
+    - destination:
+        host: llm-processor
+        subset: v2
+      weight: 100
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+  - match:
+    - headers:
+        x-canary:
+          exact: "true"
+    route:
+    - destination:
+        host: llm-processor
+        subset: canary
+      weight: 20
+    - destination:
+        host: llm-processor
+        subset: stable
+      weight: 80
+  - route:
+    - destination:
+        host: llm-processor
+        subset: stable
+      weight: 100
+    timeout: 60s
+    retries:
+      attempts: 3
+      perTryTimeout: 20s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: rag-api-vs
+  namespace: nephoran-system
+spec:
+  hosts:
+  - rag-api
+  - rag-api.nephoran-system.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: "/v1/query"
+    route:
+    - destination:
+        host: rag-api
+        subset: stable
+    timeout: 30s
+    retries:
+      attempts: 2
+      perTryTimeout: 15s
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 5s
+  - match:
+    - uri:
+        prefix: "/v1/embed"
+    route:
+    - destination:
+        host: rag-api
+        subset: stable
+    timeout: 45s
+    retries:
+      attempts: 3
+      perTryTimeout: 15s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: weaviate-vs
+  namespace: nephoran-system
+spec:
+  hosts:
+  - weaviate
+  - weaviate.nephoran-system.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: "/v1/objects"
+      method:
+        exact: POST
+    route:
+    - destination:
+        host: weaviate
+        subset: write
+    timeout: 30s
+  - match:
+    - uri:
+        prefix: "/v1/objects"
+      method:
+        exact: GET
+    route:
+    - destination:
+        host: weaviate
+        subset: read
+      weight: 33
+    - destination:
+        host: weaviate
+        subset: read-replica-1
+      weight: 33
+    - destination:
+        host: weaviate
+        subset: read-replica-2
+      weight: 34
+    timeout: 10s
+    retries:
+      attempts: 2
+      perTryTimeout: 5s
+  - route:
+    - destination:
+        host: weaviate
+        subset: stable
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: nephio-bridge-vs
+  namespace: nephoran-system
+spec:
+  hosts:
+  - nephio-bridge
+  - nephio-bridge.nephoran-system.svc.cluster.local
+  http:
+  - match:
+    - headers:
+        x-intent-type:
+          exact: network-deployment
+    route:
+    - destination:
+        host: nephio-bridge
+        subset: deployment-handler
+    timeout: 120s
+  - match:
+    - headers:
+        x-intent-type:
+          exact: network-scaling
+    route:
+    - destination:
+        host: nephio-bridge
+        subset: scaling-handler
+    timeout: 60s
+  - route:
+    - destination:
+        host: nephio-bridge
+        subset: stable
+    timeout: 90s
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: oran-adaptor-vs
+  namespace: nephoran-system
+spec:
+  hosts:
+  - oran-adaptor
+  - oran-adaptor.nephoran-system.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: "/a1/"
+    route:
+    - destination:
+        host: oran-adaptor
+        subset: a1-interface
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+  - match:
+    - uri:
+        prefix: "/o1/"
+    route:
+    - destination:
+        host: oran-adaptor
+        subset: o1-interface
+    timeout: 45s
+    retries:
+      attempts: 2
+      perTryTimeout: 20s
+  - match:
+    - uri:
+        prefix: "/o2/"
+    route:
+    - destination:
+        host: oran-adaptor
+        subset: o2-interface
+    timeout: 60s
+  - route:
+    - destination:
+        host: oran-adaptor
+        subset: stable
+---
+# External Service Virtual Service for OpenAI API
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: openai-api-vs
+  namespace: nephoran-system
+spec:
+  hosts:
+  - api.openai.com
+  http:
+  - match:
+    - uri:
+        prefix: "/v1/chat/completions"
+    route:
+    - destination:
+        host: api.openai.com
+        port:
+          number: 443
+    timeout: 60s
+    retries:
+      attempts: 3
+      perTryTimeout: 20s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+---
+# Multi-cluster Virtual Service for Global Deployment
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: global-nephoran-vs
+  namespace: nephoran-system
+spec:
+  hosts:
+  - global.nephoran.io
+  gateways:
+  - nephoran-gateway
+  http:
+  - match:
+    - headers:
+        x-region:
+          exact: us-east
+    route:
+    - destination:
+        host: nephoran-us-east.local
+        subset: production
+      weight: 100
+  - match:
+    - headers:
+        x-region:
+          exact: eu-west
+    route:
+    - destination:
+        host: nephoran-eu-west.local
+        subset: production
+      weight: 100
+  - match:
+    - headers:
+        x-region:
+          exact: asia-pacific
+    route:
+    - destination:
+        host: nephoran-asia-pacific.local
+        subset: production
+      weight: 100
+  - route:
+    - destination:
+        host: nephoran-us-east.local
+        subset: production
+      weight: 40
+    - destination:
+        host: nephoran-eu-west.local
+        subset: production
+      weight: 30
+    - destination:
+        host: nephoran-asia-pacific.local
+        subset: production
+      weight: 30

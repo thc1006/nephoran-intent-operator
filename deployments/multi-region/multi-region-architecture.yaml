@@ -1,0 +1,346 @@
+# Nephoran Intent Operator - Multi-Region Architecture Configuration
+# Phase 4 Enterprise Architecture - Global Deployment Capabilities
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-global
+  labels:
+    istio-injection: enabled
+    nephoran.io/region: global
+    nephoran.io/tier: control-plane
+---
+# Global Control Plane Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-global-config
+  namespace: nephoran-global
+data:
+  regions.yaml: |
+    regions:
+      us-east-1:
+        name: "US East (Primary)"
+        endpoint: "https://us-east-1.nephoran.io"
+        priority: 1
+        capacity:
+          max_intents_per_minute: 1000
+          max_concurrent_deployments: 500
+        features:
+          - "primary-control-plane"
+          - "global-state-store"
+          - "ml-training"
+        availability_zones:
+          - us-east-1a
+          - us-east-1b
+          - us-east-1c
+      eu-west-1:
+        name: "EU West"
+        endpoint: "https://eu-west-1.nephoran.io"
+        priority: 2
+        capacity:
+          max_intents_per_minute: 800
+          max_concurrent_deployments: 400
+        features:
+          - "gdpr-compliant"
+          - "regional-ml-inference"
+        availability_zones:
+          - eu-west-1a
+          - eu-west-1b
+          - eu-west-1c
+      ap-southeast-1:
+        name: "Asia Pacific"
+        endpoint: "https://ap-southeast-1.nephoran.io"
+        priority: 3
+        capacity:
+          max_intents_per_minute: 600
+          max_concurrent_deployments: 300
+        features:
+          - "low-latency-oran"
+          - "edge-computing"
+        availability_zones:
+          - ap-southeast-1a
+          - ap-southeast-1b
+      us-west-2:
+        name: "US West (DR)"
+        endpoint: "https://us-west-2.nephoran.io"
+        priority: 4
+        capacity:
+          max_intents_per_minute: 500
+          max_concurrent_deployments: 250
+        features:
+          - "disaster-recovery"
+          - "backup-control-plane"
+        availability_zones:
+          - us-west-2a
+          - us-west-2b
+  routing_policy.yaml: |
+    routing:
+      strategy: "latency-optimized"
+      failover:
+        enabled: true
+        health_check_interval: 10s
+        failure_threshold: 3
+        recovery_time: 30s
+      load_balancing:
+        algorithm: "weighted-round-robin"
+        weights:
+          us-east-1: 40
+          eu-west-1: 30
+          ap-southeast-1: 20
+          us-west-2: 10
+      geo_routing:
+        enabled: true
+        rules:
+          - source: "NA"
+            preferred: ["us-east-1", "us-west-2"]
+          - source: "EU"
+            preferred: ["eu-west-1", "us-east-1"]
+          - source: "APAC"
+            preferred: ["ap-southeast-1", "us-west-2"]
+---
+# Global Service Mesh Configuration
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  name: nephoran-global-mesh
+  namespace: istio-system
+spec:
+  values:
+    pilot:
+      env:
+        PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION: true
+        PILOT_ENABLE_CROSS_CLUSTER_WORKLOAD_ENTRY: true
+    global:
+      meshID: nephoran-global-mesh
+      multiCluster:
+        clusterName: global-control-plane
+      network: nephoran-global-network
+---
+# Multi-Region Service Discovery
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: global-regions
+  namespace: nephoran-global
+spec:
+  hosts:
+  - us-east-1.nephoran.local
+  - eu-west-1.nephoran.local
+  - ap-southeast-1.nephoran.local
+  - us-west-2.nephoran.local
+  location: MESH_EXTERNAL
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  - number: 15443
+    name: mtls
+    protocol: TLS
+  resolution: DNS
+  endpoints:
+  # US East Region
+  - address: us-east-1.nephoran.io
+    priority: 1
+    weight: 40
+    labels:
+      region: us-east-1
+      zone: us-east-1a
+  - address: us-east-1-b.nephoran.io
+    priority: 1
+    weight: 40
+    labels:
+      region: us-east-1
+      zone: us-east-1b
+  # EU West Region
+  - address: eu-west-1.nephoran.io
+    priority: 2
+    weight: 30
+    labels:
+      region: eu-west-1
+      zone: eu-west-1a
+  - address: eu-west-1-b.nephoran.io
+    priority: 2
+    weight: 30
+    labels:
+      region: eu-west-1
+      zone: eu-west-1b
+  # Asia Pacific Region
+  - address: ap-southeast-1.nephoran.io
+    priority: 3
+    weight: 20
+    labels:
+      region: ap-southeast-1
+      zone: ap-southeast-1a
+  # US West Region (DR)
+  - address: us-west-2.nephoran.io
+    priority: 4
+    weight: 10
+    labels:
+      region: us-west-2
+      zone: us-west-2a
+---
+# Global Load Balancer Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-global-lb
+  namespace: nephoran-global
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+spec:
+  type: LoadBalancer
+  selector:
+    app: global-gateway
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8443
+    protocol: TCP
+  - name: grpc
+    port: 50051
+    targetPort: 50051
+    protocol: TCP
+---
+# Global State Store (CockroachDB)
+apiVersion: v1
+kind: Service
+metadata:
+  name: global-state-store
+  namespace: nephoran-global
+spec:
+  clusterIP: None
+  selector:
+    app: cockroachdb
+  ports:
+  - name: grpc
+    port: 26257
+    targetPort: 26257
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: cockroachdb
+  namespace: nephoran-global
+spec:
+  serviceName: global-state-store
+  replicas: 3
+  selector:
+    matchLabels:
+      app: cockroachdb
+  template:
+    metadata:
+      labels:
+        app: cockroachdb
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: cockroachdb
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: cockroachdb
+        image: cockroachdb/cockroach:v23.1.0
+        ports:
+        - containerPort: 26257
+          name: grpc
+        - containerPort: 8080
+          name: http
+        livenessProbe:
+          httpGet:
+            path: "/health"
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: "/health?ready=1"
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        volumeMounts:
+        - name: datadir
+          mountPath: /cockroach/cockroach-data
+        env:
+        - name: COCKROACH_CHANNEL
+          value: kubernetes-multiregion
+        command:
+        - "/bin/bash"
+        - "-ecx"
+        - |
+          exec /cockroach/cockroach start \
+            --logtostderr \
+            --certs-dir=/cockroach/cockroach-certs \
+            --advertise-addr=$(hostname -f) \
+            --http-addr=0.0.0.0 \
+            --join=cockroachdb-0.global-state-store,cockroachdb-1.global-state-store,cockroachdb-2.global-state-store \
+            --locality=region=global,zone=$(hostname) \
+            --cache=.25 \
+            --max-sql-memory=.25
+        resources:
+          requests:
+            cpu: "2"
+            memory: "8Gi"
+          limits:
+            cpu: "4"
+            memory: "16Gi"
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 100Gi
+---
+# Global Traffic Policy
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: global-traffic-policy
+  namespace: nephoran-global
+spec:
+  hosts:
+  - "*.nephoran.io"
+  location: MESH_EXTERNAL
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  resolution: DNS
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: global-traffic-dr
+  namespace: nephoran-global
+spec:
+  host: "*.nephoran.io"
+  trafficPolicy:
+    tls:
+      mode: SIMPLE
+      sni: nephoran.io
+    connectionPool:
+      tcp:
+        maxConnections: 1000
+      http:
+        http2MaxRequests: 1000
+        maxRequestsPerConnection: 2
+    loadBalancer:
+      consistentHash:
+        httpHeaderName: "x-session-affinity"
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+      splitExternalLocalOriginErrors: true

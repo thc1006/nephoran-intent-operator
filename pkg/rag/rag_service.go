@@ -2,20 +2,19 @@ package rag
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // RAGService provides Retrieval-Augmented Generation capabilities for telecom domain
 type RAGService struct {
 	weaviateClient *WeaviateClient
-	llmClient      llm.Client
+	llmClient      shared.ClientInterface
 	config         *RAGConfig
 	logger         *slog.Logger
 	metrics        *RAGMetrics
@@ -98,7 +97,7 @@ type RAGResponse struct {
 }
 
 // NewRAGService creates a new RAG service instance
-func NewRAGService(weaviateClient *WeaviateClient, llmClient llm.Client, config *RAGConfig) *RAGService {
+func NewRAGService(weaviateClient *WeaviateClient, llmClient shared.ClientInterface, config *RAGConfig) *RAGService {
 	if config == nil {
 		config = getDefaultRAGConfig()
 	}

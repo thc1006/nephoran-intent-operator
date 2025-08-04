@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nephoran/intent-operator/pkg/rag"
-	"github.com/nephoran/intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 // MockLLMService simulates LLM service behavior

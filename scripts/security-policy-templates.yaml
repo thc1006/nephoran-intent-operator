@@ -1,0 +1,560 @@
+# Nephoran Intent Operator Security Policy Templates
+# Production-grade security policies for Phase 3 optimization
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: security-baseline-config
+  namespace: nephoran-system
+data:
+  # Network Security Configuration
+  network_policies_enabled: "true"
+  default_deny_enabled: "true"
+  pod_security_standards: "restricted"
+  service_mesh_enabled: "true"
+  tls_min_version: "1.3"
+  
+  # Authentication and Authorization
+  rbac_strict_mode: "true"
+  service_account_auto_mount: "false"
+  api_key_rotation_days: "30"
+  jwt_expiration_hours: "24"
+  oauth2_state_entropy: "256"
+  
+  # Pod Security Configuration
+  run_as_non_root: "true"
+  read_only_root_filesystem: "true"
+  allow_privilege_escalation: "false"
+  seccomp_profile: "runtime/default"
+  apparmor_profile: "runtime/default"
+  
+  # Resource Limits and Constraints
+  memory_limit_enforcement: "true"
+  cpu_limit_enforcement: "true"
+  storage_limit_enforcement: "true"
+  pid_limit_enforcement: "true"
+  
+  # Container Security
+  image_pull_policy: "Always"
+  image_vulnerability_scanning: "true"
+  container_image_signing: "true"
+  base_image_updates: "weekly"
+  trusted_registry_only: "true"
+  
+  # Audit and Monitoring
+  audit_logging_enabled: "true"
+  audit_log_level: "metadata"
+  audit_retention_days: "90"
+  security_monitoring_enabled: "true"
+  anomaly_detection_enabled: "true"
+
+---
+# Default Deny Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-default-deny
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+
+---
+# Allow Internal Communication Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-allow-internal
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: nephoran-intent-operator
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-system
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - namespaceSelector:
+        matchLabels:
+          name: istio-system
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-system
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+  # Allow external HTTPS for API calls
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+
+---
+# LLM Processor Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: llm-processor-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: llm-processor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: nephio-bridge
+    ports:
+    - protocol: TCP
+      port: 8080
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: rag-api
+    ports:
+    - protocol: TCP
+      port: 8080
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # OpenAI API
+
+---
+# RAG API Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rag-api-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: rag-api
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: llm-processor
+    ports:
+    - protocol: TCP
+      port: 8080
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: weaviate
+    ports:
+    - protocol: TCP
+      port: 8080
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443  # External APIs
+
+---
+# Weaviate Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: weaviate-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: weaviate
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: rag-api
+    ports:
+    - protocol: TCP
+      port: 8080
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 2112  # Metrics
+  egress:
+  # Allow internal cluster communication for replication
+  - to:
+    - podSelector:
+        matchLabels:
+          app: weaviate
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 7000
+    - protocol: TCP
+      port: 7001
+
+---
+# Pod Security Policy (for clusters supporting PSP)
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: nephoran-restricted-psp
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: true
+  seLinux:
+    rule: 'RunAsAny'
+  seccompProfile:
+    type: 'RuntimeDefault'
+
+---
+# Security Context Constraints (for OpenShift)
+apiVersion: security.openshift.io/v1
+kind: SecurityContextConstraints
+metadata:
+  name: nephoran-restricted-scc
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+allowHostDirVolumePlugin: false
+allowHostIPC: false
+allowHostNetwork: false
+allowHostPID: false
+allowHostPorts: false
+allowPrivilegedContainer: false
+allowedCapabilities: null
+defaultAddCapabilities: null
+fsGroup:
+  type: MustRunAs
+  ranges:
+  - min: 1
+    max: 65535
+readOnlyRootFilesystem: true
+requiredDropCapabilities:
+- ALL
+runAsUser:
+  type: MustRunAsNonRoot
+seLinuxContext:
+  type: MustRunAs
+supplementalGroups:
+  type: MustRunAs
+  ranges:
+  - min: 1
+    max: 65535
+volumes:
+- configMap
+- downwardAPI
+- emptyDir
+- persistentVolumeClaim
+- projected
+- secret
+users:
+- system:serviceaccount:nephoran-system:nephio-bridge
+- system:serviceaccount:nephoran-system:llm-processor
+- system:serviceaccount:nephoran-system:rag-api
+- system:serviceaccount:nephoran-system:weaviate
+
+---
+# Service Account for Nephio Bridge with minimal permissions
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephio-bridge
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: controller
+automountServiceAccountToken: true
+
+---
+# Service Account for LLM Processor
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: llm-processor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: llm
+automountServiceAccountToken: false
+
+---
+# Service Account for RAG API
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rag-api
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rag
+automountServiceAccountToken: false
+
+---
+# Service Account for Weaviate
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: weaviate
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: vector-db
+automountServiceAccountToken: false
+
+---
+# RBAC for Nephio Bridge - Minimal required permissions
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: nephoran-system
+  name: nephio-bridge-role
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+rules:
+# NetworkIntent management
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents/status"]
+  verbs: ["get", "update", "patch"]
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents/finalizers"]
+  verbs: ["update"]
+# E2NodeSet management
+- apiGroups: ["nephoran.com"]
+  resources: ["e2nodesets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["nephoran.com"]
+  resources: ["e2nodesets/status"]
+  verbs: ["get", "update", "patch"]
+- apiGroups: ["nephoran.com"]
+  resources: ["e2nodesets/finalizers"]
+  verbs: ["update"]
+# ManagedElement management
+- apiGroups: ["nephoran.com"]
+  resources: ["managedelements"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["nephoran.com"]
+  resources: ["managedelements/status"]
+  verbs: ["get", "update", "patch"]
+- apiGroups: ["nephoran.com"]
+  resources: ["managedelements/finalizers"]
+  verbs: ["update"]
+# ConfigMap management for E2 nodes
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Events for status reporting
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create"]
+# Secrets for configuration (read-only)
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+
+---
+# RBAC Binding for Nephio Bridge
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephio-bridge-rolebinding
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+subjects:
+- kind: ServiceAccount
+  name: nephio-bridge
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: nephio-bridge-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Cluster Role for Leader Election
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-leader-election-role
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create"]
+
+---
+# Cluster Role Binding for Leader Election
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-leader-election-rolebinding
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nephoran-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: nephio-bridge
+  namespace: nephoran-system
+
+---
+# Certificate for TLS encryption
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nephoran-tls-cert
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+type: kubernetes.io/tls
+data:
+  # These will be generated by cert-manager or manual certificate creation
+  tls.crt: ""
+  tls.key: ""
+
+---
+# Admission Controller Webhook Configuration (if needed)
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: nephoran-validation-webhook
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: security
+webhooks:
+- name: networkintent.nephoran.com
+  clientConfig:
+    service:
+      name: nephoran-webhook-service
+      namespace: nephoran-system
+      path: "/validate-nephoran-com-v1-networkintent"
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["nephoran.com"]
+    apiVersions: ["v1"]
+    resources: ["networkintents"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
+
+---
+# Monitoring ServiceMonitor for security metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nephoran-security-metrics
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      security.nephoran.com/monitored: "true"
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: https
+    tlsConfig:
+      insecureSkipVerify: false

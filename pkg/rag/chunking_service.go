@@ -4,14 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"math"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 	"unicode"
-	"unicode/utf8"
 )
 
 // ChunkingService provides intelligent document chunking for telecom specifications
@@ -211,41 +208,6 @@ func NewChunkingService(config *ChunkingConfig) *ChunkingService {
 	}
 }
 
-// getDefaultChunkingConfig returns default configuration for the chunking service
-func getDefaultChunkingConfig() *ChunkingConfig {
-	return &ChunkingConfig{
-		ChunkSize:               512,   // Optimized for telecom domain (512 tokens)
-		ChunkOverlap:            50,    // Optimized overlap (50 tokens)
-		MinChunkSize:            50,    // Smaller minimum for technical content
-		MaxChunkSize:            1024,  // Reasonable maximum
-		PreserveHierarchy:       true,
-		MaxHierarchyDepth:       10,
-		IncludeParentContext:    true,
-		UseSemanticBoundaries:   true,
-		SentenceBoundaryWeight:  1.0,
-		ParagraphBoundaryWeight: 2.0,
-		SectionBoundaryWeight:   3.0,
-		PreserveTechnicalTerms:  true,
-		TechnicalTermPatterns: []string{
-			`\b[A-Z]{2,}(?:-[A-Z]{2,})*\b`,           // Acronyms like RAN, AMF, SMF
-			`\b\d+G\b`,                               // Technology generations like 5G, 4G
-			`\b(?:Rel|Release)[-\s]*\d+\b`,           // Release versions
-			`\b[vV]\d+\.\d+(?:\.\d+)?\b`,            // Version numbers
-			`\b\d+\.\d+\.\d+\b`,                     // Specification numbers
-			`\b[A-Z]+\d+\b`,                         // Standards like TS38.300
-		},
-		PreserveTablesAndFigures: true,
-		PreserveCodeBlocks:       true,
-		MinContentRatio:          0.5,
-		MaxEmptyLines:            3,
-		FilterNoiseContent:       true,
-		BatchSize:                10,
-		MaxConcurrency:           5,
-		AddSectionHeaders:        true,
-		AddDocumentMetadata:      true,
-		AddChunkMetadata:         true,
-	}
-}
 
 // ChunkDocument processes a loaded document and returns intelligent chunks
 func (cs *ChunkingService) ChunkDocument(ctx context.Context, doc *LoadedDocument) ([]*DocumentChunk, error) {
@@ -347,7 +309,7 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 	lines := strings.Split(content, "\n")
 	var currentOffset int
 
-	for i, line := range lines {
+	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		
 		// Skip empty lines

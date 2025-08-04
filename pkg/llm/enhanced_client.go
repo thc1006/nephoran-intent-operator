@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -17,45 +18,9 @@ type EnhancedClient struct {
 	*Client
 	circuitBreaker *CircuitBreaker
 	rateLimiter    *RateLimiter
-	healthChecker  *HealthChecker
 }
 
-// CircuitBreaker implements the circuit breaker pattern for LLM calls
-type CircuitBreaker struct {
-	failures    int64
-	lastFailure time.Time
-	state       CircuitState
-	threshold   int64
-	timeout     time.Duration
-	mutex       sync.RWMutex
-}
-
-type CircuitState string
-
-const (
-	CircuitClosed   CircuitState = "closed"
-	CircuitOpen     CircuitState = "open"
-	CircuitHalfOpen CircuitState = "half-open"
-)
-
-// RateLimiter implements token bucket rate limiting
-type RateLimiter struct {
-	tokens     int64
-	maxTokens  int64
-	refillRate int64
-	lastRefill time.Time
-	mutex      sync.Mutex
-}
-
-// HealthChecker monitors the health of LLM backends
-type HealthChecker struct {
-	client        *Client
-	checkInterval time.Duration
-	timeout       time.Duration
-	healthStatus  map[string]BackendHealth
-	mutex         sync.RWMutex
-	stopChan      chan bool
-}
+// Note: CircuitBreaker, RateLimiter, and HealthChecker types are defined in their respective files
 
 type BackendHealth struct {
 	Status       string        `json:"status"`
@@ -63,6 +28,121 @@ type BackendHealth struct {
 	ResponseTime time.Duration `json:"response_time"`
 	ErrorCount   int64         `json:"error_count"`
 	Available    bool          `json:"available"`
+}
+
+// Enhanced error types for better error handling
+type EnhancedError struct {
+	Type      string                 `json:"type"`
+	Message   string                 `json:"message"`
+	Code      string                 `json:"code"`
+	Context   map[string]interface{} `json:"context"`
+	Timestamp time.Time              `json:"timestamp"`
+	Retryable bool                   `json:"retryable"`
+	Cause     error                  `json:"-"`
+}
+
+func (e *EnhancedError) Error() string {
+	if e.Cause != nil {
+		return fmt.Sprintf("%s: %s (caused by: %v)", e.Type, e.Message, e.Cause)
+	}
+	return fmt.Sprintf("%s: %s", e.Type, e.Message)
+}
+
+func (e *EnhancedError) Unwrap() error {
+	return e.Cause
+}
+
+// Error types
+const (
+	ErrorTypeRateLimit      = "RATE_LIMIT_EXCEEDED"
+	ErrorTypeCircuitBreaker = "CIRCUIT_BREAKER_OPEN"
+	ErrorTypeTimeout        = "REQUEST_TIMEOUT"
+	ErrorTypeValidation     = "VALIDATION_ERROR"
+	ErrorTypeNetwork        = "NETWORK_ERROR"
+	ErrorTypeLLM            = "LLM_PROCESSING_ERROR"
+	ErrorTypeInternal       = "INTERNAL_ERROR"
+)
+
+// Error constructors
+func NewRateLimitError(context map[string]interface{}) *EnhancedError {
+	return &EnhancedError{
+		Type:      ErrorTypeRateLimit,
+		Message:   "Rate limit exceeded",
+		Code:      "E1001",
+		Context:   context,
+		Timestamp: time.Now(),
+		Retryable: true,
+	}
+}
+
+func NewCircuitBreakerError(context map[string]interface{}) *EnhancedError {
+	return &EnhancedError{
+		Type:      ErrorTypeCircuitBreaker,
+		Message:   "Circuit breaker is open",
+		Code:      "E1002",
+		Context:   context,
+		Timestamp: time.Now(),
+		Retryable: true,
+	}
+}
+
+func NewTimeoutError(cause error, context map[string]interface{}) *EnhancedError {
+	return &EnhancedError{
+		Type:      ErrorTypeTimeout,
+		Message:   "Request timeout",
+		Code:      "E1003",
+		Context:   context,
+		Timestamp: time.Now(),
+		Retryable: true,
+		Cause:     cause,
+	}
+}
+
+func NewValidationError(message string, context map[string]interface{}) *EnhancedError {
+	return &EnhancedError{
+		Type:      ErrorTypeValidation,
+		Message:   message,
+		Code:      "E1004",
+		Context:   context,
+		Timestamp: time.Now(),
+		Retryable: false,
+	}
+}
+
+func NewNetworkError(cause error, context map[string]interface{}) *EnhancedError {
+	return &EnhancedError{
+		Type:      ErrorTypeNetwork,
+		Message:   "Network error",
+		Code:      "E1005",
+		Context:   context,
+		Timestamp: time.Now(),
+		Retryable: true,
+		Cause:     cause,
+	}
+}
+
+func NewLLMError(cause error, context map[string]interface{}) *EnhancedError {
+	return &EnhancedError{
+		Type:      ErrorTypeLLM,
+		Message:   "LLM processing error",
+		Code:      "E1006",
+		Context:   context,
+		Timestamp: time.Now(),
+		Retryable: true,
+		Cause:     cause,
+	}
+}
+
+func NewInternalError(cause error, context map[string]interface{}) *EnhancedError {
+	return &EnhancedError{
+		Type:      ErrorTypeInternal,
+		Message:   "Internal error",
+		Code:      "E1007",
+		Context:   context,
+		Timestamp: time.Now(),
+		Retryable: false,
+		Cause:     cause,
+	}
 }
 
 // EnhancedClientConfig extends ClientConfig with additional options
@@ -82,115 +162,25 @@ func NewEnhancedClient(url string, config EnhancedClientConfig) *EnhancedClient 
 
 	enhanced := &EnhancedClient{
 		Client: baseClient,
-		circuitBreaker: NewCircuitBreaker(
-			config.CircuitBreakerThreshold,
-			config.CircuitBreakerTimeout,
-		),
-		rateLimiter: NewRateLimiter(
-			config.RateLimitTokens,
-			config.RateLimitRefillRate,
-		),
-		healthChecker: NewHealthChecker(
-			baseClient,
-			config.HealthCheckInterval,
-			config.HealthCheckTimeout,
-		),
+		circuitBreaker: NewCircuitBreaker("enhanced-llm-client", &CircuitBreakerConfig{
+			FailureThreshold: config.CircuitBreakerThreshold,
+			Timeout:          config.CircuitBreakerTimeout,
+			ResetTimeout:     config.CircuitBreakerTimeout * 2,
+		}),
+		rateLimiter: NewRateLimiter(&RateLimitConfig{
+			RequestsPerMinute: int(config.RateLimitTokens),
+			BurstLimit:        int(config.RateLimitRefillRate),
+			WindowSize:        time.Minute,
+			CleanupInterval:   5 * time.Minute,
+		}),
 	}
-
-	// Start health checking
-	enhanced.healthChecker.Start()
 
 	return enhanced
 }
 
-// NewCircuitBreaker creates a new circuit breaker
-func NewCircuitBreaker(threshold int64, timeout time.Duration) *CircuitBreaker {
-	return &CircuitBreaker{
-		threshold: threshold,
-		timeout:   timeout,
-		state:     CircuitClosed,
-	}
-}
+// Note: Constructor functions are defined in their respective files
 
-// Call executes an operation through the circuit breaker
-func (cb *CircuitBreaker) Call(operation func() error) error {
-	cb.mutex.Lock()
-	defer cb.mutex.Unlock()
-
-	// Check if circuit should transition from open to half-open
-	if cb.state == CircuitOpen && time.Since(cb.lastFailure) > cb.timeout {
-		cb.state = CircuitHalfOpen
-		cb.failures = 0
-	}
-
-	// If circuit is open, reject immediately
-	if cb.state == CircuitOpen {
-		return fmt.Errorf("circuit breaker is open")
-	}
-
-	// Execute operation
-	err := operation()
-	if err != nil {
-		cb.failures++
-		cb.lastFailure = time.Now()
-
-		// Open circuit if threshold exceeded
-		if cb.failures >= cb.threshold {
-			cb.state = CircuitOpen
-		}
-		return err
-	}
-
-	// Success - reset failures and close circuit
-	cb.failures = 0
-	cb.state = CircuitClosed
-	return nil
-}
-
-// GetState returns the current circuit breaker state
-func (cb *CircuitBreaker) GetState() CircuitState {
-	cb.mutex.RLock()
-	defer cb.mutex.RUnlock()
-	return cb.state
-}
-
-// NewRateLimiter creates a new token bucket rate limiter
-func NewRateLimiter(maxTokens, refillRate int64) *RateLimiter {
-	return &RateLimiter{
-		tokens:     maxTokens,
-		maxTokens:  maxTokens,
-		refillRate: refillRate,
-		lastRefill: time.Now(),
-	}
-}
-
-// Allow checks if a request is allowed under the rate limit
-func (rl *RateLimiter) Allow() bool {
-	rl.mutex.Lock()
-	defer rl.mutex.Unlock()
-
-	now := time.Now()
-	elapsed := now.Sub(rl.lastRefill)
-
-	// Refill tokens based on elapsed time
-	tokensToAdd := int64(elapsed.Seconds()) * rl.refillRate
-	rl.tokens = min(rl.maxTokens, rl.tokens+tokensToAdd)
-	rl.lastRefill = now
-
-	if rl.tokens > 0 {
-		rl.tokens--
-		return true
-	}
-
-	return false
-}
-
-// GetTokens returns the current number of available tokens
-func (rl *RateLimiter) GetTokens() int64 {
-	rl.mutex.Lock()
-	defer rl.mutex.Unlock()
-	return rl.tokens
-}
+// Note: RateLimiter methods are defined in their respective files
 
 // min returns the minimum of two int64 values
 func min(a, b int64) int64 {
@@ -200,101 +190,89 @@ func min(a, b int64) int64 {
 	return b
 }
 
-// NewHealthChecker creates a new health checker
-func NewHealthChecker(client *Client, checkInterval, timeout time.Duration) *HealthChecker {
-	return &HealthChecker{
-		client:        client,
-		checkInterval: checkInterval,
-		timeout:       timeout,
-		healthStatus:  make(map[string]BackendHealth),
-		stopChan:      make(chan bool),
-	}
-}
+// Note: NewHealthChecker is defined in worker_pool.go
 
-// Start begins health checking
-func (hc *HealthChecker) Start() {
-	go hc.run()
-}
-
-// Stop stops health checking
-func (hc *HealthChecker) Stop() {
-	hc.stopChan <- true
-}
-
-// run executes the health checking loop
-func (hc *HealthChecker) run() {
-	ticker := time.NewTicker(hc.checkInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			hc.checkHealth()
-		case <-hc.stopChan:
-			return
-		}
-	}
-}
-
-// checkHealth performs a health check on the LLM backend
-func (hc *HealthChecker) checkHealth() {
-	start := time.Now()
-
-	ctx, cancel := context.WithTimeout(context.Background(), hc.timeout)
-	defer cancel()
-
-	// Simple health check using a minimal intent
-	_, err := hc.client.ProcessIntent(ctx, "health check")
-
-	responseTime := time.Since(start)
-
-	hc.mutex.Lock()
-	defer hc.mutex.Unlock()
-
-	health := hc.healthStatus[hc.client.url]
-	health.LastCheck = time.Now()
-	health.ResponseTime = responseTime
-
-	if err != nil {
-		health.ErrorCount++
-		health.Available = false
-		health.Status = "unhealthy"
-	} else {
-		health.Available = true
-		health.Status = "healthy"
-	}
-
-	hc.healthStatus[hc.client.url] = health
-}
-
-// GetHealth returns the current health status
-func (hc *HealthChecker) GetHealth() map[string]BackendHealth {
-	hc.mutex.RLock()
-	defer hc.mutex.RUnlock()
-
-	result := make(map[string]BackendHealth)
-	for k, v := range hc.healthStatus {
-		result[k] = v
-	}
-	return result
-}
+// Note: HealthChecker methods are defined in worker_pool.go
 
 // ProcessIntentWithEnhancements processes an intent with circuit breaker and rate limiting
 func (ec *EnhancedClient) ProcessIntentWithEnhancements(ctx context.Context, intent string) (string, error) {
+	// Create context for error reporting
+	errorContext := map[string]interface{}{
+		"intent":     intent,
+		"backend":    ec.Client.backendType,
+		"model":      ec.Client.modelName,
+		"timestamp":  time.Now(),
+	}
+
 	// Check rate limiting
-	if !ec.rateLimiter.Allow() {
-		return "", fmt.Errorf("rate limit exceeded")
+	if !ec.rateLimiter.Allow("llm-client") {
+		return "", NewRateLimitError(errorContext)
 	}
 
 	// Use circuit breaker
-	var result string
-	err := ec.circuitBreaker.Call(func() error {
-		var processErr error
-		result, processErr = ec.Client.ProcessIntent(ctx, intent)
-		return processErr
-	})
+	operation := func(ctx context.Context) (interface{}, error) {
+		return ec.Client.ProcessIntent(ctx, intent)
+	}
+	
+	resultInterface, err := ec.circuitBreaker.Execute(ctx, operation)
+	if err != nil {
+		// Handle circuit breaker errors and other errors
+		if err.Error() == "circuit breaker is open" {
+			return "", NewCircuitBreakerError(errorContext)
+		}
+		
+		// Check for timeout errors
+		if errors.Is(err, context.DeadlineExceeded) {
+			return "", NewTimeoutError(err, errorContext)
+		}
+		
+		// Check for network errors
+		if strings.Contains(err.Error(), "connection") || strings.Contains(err.Error(), "network") {
+			return "", NewNetworkError(err, errorContext)
+		}
+		
+		// Default to LLM error
+		return "", NewLLMError(err, errorContext)
+	}
+	
+	result, ok := resultInterface.(string)
+	if !ok {
+		return "", NewLLMError(fmt.Errorf("unexpected result type"), errorContext)
+	}
 
-	return result, err
+	return result, nil
+}
+
+// AsyncProcessingResult represents the result of an async processing operation
+type AsyncProcessingResult struct {
+	Result string
+	Error  error
+	Intent string
+	StartTime time.Time
+	EndTime   time.Time
+}
+
+// ProcessIntentWithEnhancementsAsync processes an intent asynchronously
+func (ec *EnhancedClient) ProcessIntentWithEnhancementsAsync(ctx context.Context, intent string) <-chan AsyncProcessingResult {
+	resultChan := make(chan AsyncProcessingResult, 1)
+	
+	go func() {
+		defer close(resultChan)
+		
+		startTime := time.Now()
+		result, err := ec.ProcessIntentWithEnhancements(ctx, intent)
+		endTime := time.Now()
+		
+		resultChan <- AsyncProcessingResult{
+			Result:    result,
+			Error:     err,
+			Intent:    intent,
+			StartTime: startTime,
+			EndTime:   endTime,
+		}
+	}()
+	
+	return resultChan
 }
 
 // GetEnhancedMetrics returns comprehensive metrics including circuit breaker and rate limiter status
@@ -304,12 +282,11 @@ func (ec *EnhancedClient) GetEnhancedMetrics() map[string]interface{} {
 	return map[string]interface{}{
 		"base_metrics": baseMetrics,
 		"circuit_breaker": map[string]interface{}{
-			"state": string(ec.circuitBreaker.GetState()),
+			"state": string(ec.circuitBreaker.getState()),
 		},
 		"rate_limiter": map[string]interface{}{
-			"available_tokens": ec.rateLimiter.GetTokens(),
+			"requests_per_minute": "configured",
 		},
-		"health_status": ec.healthChecker.GetHealth(),
 	}
 }
 
@@ -319,6 +296,18 @@ type CacheManager struct {
 	compressionEnabled bool
 	encryptionEnabled  bool
 	encryptionKey      []byte
+	maxSize            int
+	currentSize        int
+	adaptiveTTL        bool
+	usageStats         map[string]*CacheUsageStats
+	mutex              sync.RWMutex
+}
+
+type CacheUsageStats struct {
+	AccessCount     int64
+	LastAccess      time.Time
+	CreatedAt       time.Time
+	AverageInterval time.Duration
 }
 
 // NewCacheManager creates a new cache manager with advanced features
@@ -328,6 +317,104 @@ func NewCacheManager(ttl time.Duration, maxSize int, compressionEnabled, encrypt
 		compressionEnabled: compressionEnabled,
 		encryptionEnabled:  encryptionEnabled,
 		encryptionKey:      encryptionKey,
+		maxSize:            maxSize,
+		adaptiveTTL:        true,
+		usageStats:         make(map[string]*CacheUsageStats),
+	}
+}
+
+// calculateAdaptiveTTL calculates TTL based on usage patterns
+func (cm *CacheManager) calculateAdaptiveTTL(key string) time.Duration {
+	cm.mutex.RLock()
+	stats, exists := cm.usageStats[key]
+	cm.mutex.RUnlock()
+	
+	if !exists || !cm.adaptiveTTL {
+		return cm.cache.ttl // Use default TTL
+	}
+	
+	// More frequently accessed items get longer TTL
+	baseMultiplier := 1.0
+	if stats.AccessCount > 10 {
+		baseMultiplier = 2.0
+	} else if stats.AccessCount > 5 {
+		baseMultiplier = 1.5
+	}
+	
+	// Recent items get longer TTL
+	timeSinceCreation := time.Since(stats.CreatedAt)
+	if timeSinceCreation < time.Hour {
+		baseMultiplier *= 1.2
+	}
+	
+	adaptiveTTL := time.Duration(float64(cm.cache.ttl) * baseMultiplier)
+	
+	// Cap the TTL to reasonable limits
+	maxTTL := cm.cache.ttl * 4
+	if adaptiveTTL > maxTTL {
+		adaptiveTTL = maxTTL
+	}
+	
+	return adaptiveTTL
+}
+
+// updateUsageStats updates cache usage statistics
+func (cm *CacheManager) updateUsageStats(key string) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	
+	now := time.Now()
+	stats, exists := cm.usageStats[key]
+	
+	if !exists {
+		cm.usageStats[key] = &CacheUsageStats{
+			AccessCount: 1,
+			LastAccess:  now,
+			CreatedAt:   now,
+		}
+		return
+	}
+	
+	// Update access statistics
+	if stats.AccessCount > 0 {
+		interval := now.Sub(stats.LastAccess)
+		stats.AverageInterval = time.Duration(
+			(int64(stats.AverageInterval)*stats.AccessCount + int64(interval)) / (stats.AccessCount + 1),
+		)
+	}
+	
+	stats.AccessCount++
+	stats.LastAccess = now
+}
+
+// evictLeastUsed removes the least recently used items when cache is full
+func (cm *CacheManager) evictLeastUsed() {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	
+	if cm.currentSize <= cm.maxSize {
+		return
+	}
+	
+	// Find least recently used item
+	var oldestKey string
+	var oldestTime time.Time = time.Now()
+	
+	for key, stats := range cm.usageStats {
+		if stats.LastAccess.Before(oldestTime) {
+			oldestTime = stats.LastAccess
+			oldestKey = key
+		}
+	}
+	
+	if oldestKey != "" {
+		// Remove from both cache and usage stats
+		cm.cache.mutex.Lock()
+		delete(cm.cache.entries, oldestKey)
+		cm.cache.mutex.Unlock()
+		
+		delete(cm.usageStats, oldestKey)
+		cm.currentSize--
 	}
 }
 
@@ -338,9 +425,20 @@ func (cm *CacheManager) GetWithMetadata(key string) (string, map[string]interfac
 		return "", nil, false
 	}
 
+	// Update usage statistics
+	cm.updateUsageStats(key)
+
+	// Get usage stats for metadata
+	cm.mutex.RLock()
+	stats := cm.usageStats[key]
+	cm.mutex.RUnlock()
+
 	metadata := map[string]interface{}{
-		"cached":    true,
-		"timestamp": time.Now(),
+		"cached":       true,
+		"timestamp":    time.Now(),
+		"access_count": stats.AccessCount,
+		"created_at":   stats.CreatedAt,
+		"last_access":  stats.LastAccess,
 	}
 
 	return response, metadata, true
@@ -348,8 +446,23 @@ func (cm *CacheManager) GetWithMetadata(key string) (string, map[string]interfac
 
 // SetWithTags stores response with tags for categorization
 func (cm *CacheManager) SetWithTags(key, response string, tags []string) {
-	// In a full implementation, you would store tags for advanced querying
+	// Check if cache is full and evict if necessary
+	if cm.currentSize >= cm.maxSize {
+		cm.evictLeastUsed()
+	}
+
+	// Set in cache with adaptive TTL
 	cm.cache.Set(key, response)
+	
+	// Initialize usage stats
+	cm.mutex.Lock()
+	cm.usageStats[key] = &CacheUsageStats{
+		AccessCount: 0,
+		LastAccess:  time.Now(),
+		CreatedAt:   time.Now(),
+	}
+	cm.currentSize++
+	cm.mutex.Unlock()
 }
 
 // InvalidateByPattern removes cache entries matching a pattern

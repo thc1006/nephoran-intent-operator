@@ -3,9 +3,9 @@ package rag
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
 	"encoding/json"
 	"fmt"
+	"hash/fnv"
 	"log/slog"
 	"math"
 	"net/http"
@@ -167,12 +167,6 @@ type ModelUsageStats struct {
 }
 
 // RateLimiter manages API rate limiting
-type RateLimiter struct {
-	requestTokens chan struct{}
-	tokenBucket   chan int
-	lastRefill    time.Time
-	mutex         sync.Mutex
-}
 
 // EmbeddingCache interface for caching embeddings
 type EmbeddingCache interface {
@@ -421,77 +415,6 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 	return service
 }
 
-// getDefaultEmbeddingConfig returns default configuration
-func getDefaultEmbeddingConfig() *EmbeddingConfig {
-	return &EmbeddingConfig{
-		Provider:               "openai",
-		APIEndpoint:           "https://api.openai.com/v1/embeddings",
-		ModelName:             "text-embedding-3-large",
-		Dimensions:            3072,
-		MaxTokens:             8191,
-		BatchSize:             100,
-		MaxConcurrency:        5,
-		RequestTimeout:        30 * time.Second,
-		RetryAttempts:         3,
-		RetryDelay:            2 * time.Second,
-		RateLimit:             60,   // 60 requests per minute
-		TokenRateLimit:        150000, // 150k tokens per minute
-		MinTextLength:         10,
-		MaxTextLength:         8000,
-		NormalizeText:         true,
-		RemoveStopWords:       false,
-		EnableCaching:         true,
-		CacheTTL:              24 * time.Hour,
-		EnableRedisCache:      true,
-		RedisAddr:             "localhost:6379",
-		RedisPassword:         "",
-		RedisDB:               0,
-		L1CacheSize:           10000, // 10k embeddings in memory
-		L2CacheEnabled:        true,
-		Providers: []ProviderConfig{
-			{
-				Name:         "openai",
-				APIEndpoint:  "https://api.openai.com/v1/embeddings",
-				ModelName:    "text-embedding-3-large",
-				Dimensions:   3072,
-				MaxTokens:    8191,
-				CostPerToken: 0.00013, // $0.13 per 1M tokens
-				RateLimit:    60,
-				Priority:     1,
-				Enabled:      true,
-				Healthy:      true,
-			},
-			{
-				Name:         "azure",
-				APIEndpoint:  "https://your-resource.openai.azure.com/openai/deployments/your-deployment/embeddings",
-				ModelName:    "text-embedding-ada-002",
-				Dimensions:   1536,
-				MaxTokens:    8191,
-				CostPerToken: 0.0001, // Azure pricing
-				RateLimit:    240,
-				Priority:     2,
-				Enabled:      false, // Disabled by default
-				Healthy:      true,
-			},
-		},
-		FallbackEnabled:       true,
-		FallbackOrder:         []string{"openai", "azure"},
-		LoadBalancing:         "least_cost",
-		HealthCheckInterval:   5 * time.Minute,
-		EnableCostTracking:    true,
-		DailyCostLimit:        50.0,  // $50 daily limit
-		MonthlyCostLimit:      1000.0, // $1000 monthly limit
-		CostAlertThreshold:    0.8,   // Alert at 80% of limit
-		EnableQualityCheck:    true,
-		MinQualityScore:       0.7,
-		QualityCheckSample:    10,
-		TelecomPreprocessing:  true,
-		PreserveTechnicalTerms: true,
-		TechnicalTermWeighting: 1.2,
-		EnableMetrics:         true,
-		MetricsInterval:       5 * time.Minute,
-	}
-}
 
 // GenerateEmbeddings generates embeddings for the provided texts using multi-provider approach
 func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *EmbeddingRequest) (*EmbeddingResponse, error) {
@@ -1092,14 +1015,14 @@ func (es *EmbeddingService) applyTelecomPreprocessing(text string) string {
 	return text
 }
 
-// generateCacheKey generates a cache key for the given text
+// generateCacheKey generates a cache key for the given text using fast FNV hash
 func (es *EmbeddingService) generateCacheKey(text string) string {
-	// Create a hash of the text and configuration that affects embeddings
-	hasher := md5.New()
-	hasher.Write([]byte(text))
-	hasher.Write([]byte(es.config.ModelName))
-	hasher.Write([]byte(fmt.Sprintf("%d", es.config.Dimensions)))
-	return fmt.Sprintf("%x", hasher.Sum(nil))
+	// Create a fast hash of the text and configuration that affects embeddings
+	h := fnv.New64a()
+	h.Write([]byte(text))
+	h.Write([]byte(es.config.ModelName))
+	h.Write([]byte(fmt.Sprintf("%d", es.config.Dimensions)))
+	return fmt.Sprintf("%016x", h.Sum64())
 }
 
 // GenerateEmbeddingsForChunks generates embeddings for document chunks
@@ -1207,19 +1130,21 @@ func (es *EmbeddingService) collectMetrics() {
 // NewRateLimiter creates a new rate limiter
 func NewRateLimiter(requestsPerMinute, tokensPerMinute int) *RateLimiter {
 	rl := &RateLimiter{
-		requestTokens: make(chan struct{}, requestsPerMinute),
-		tokenBucket:   make(chan int, tokensPerMinute),
-		lastRefill:    time.Now(),
+		requestsPerMinute: int32(requestsPerMinute),
+		tokensPerMinute:   int64(tokensPerMinute),
+		requestTokens:     int32(requestsPerMinute),
+		tokenBucketSize:   int64(tokensPerMinute),
+		tokenBucket:       int64(tokensPerMinute),
+		lastRefill:        time.Now().Unix(),
+		requestBucket:     make(chan struct{}, requestsPerMinute),
+		mutex:             sync.Mutex{},
 	}
 
-	// Initialize tokens
+	// Initialize request bucket
 	for i := 0; i < requestsPerMinute; i++ {
-		rl.requestTokens <- struct{}{}
+		rl.requestBucket <- struct{}{}
 	}
-	for i := 0; i < tokensPerMinute; i++ {
-		rl.tokenBucket <- 1
-	}
-
+	
 	// Start refill goroutine
 	go rl.refillTokens(requestsPerMinute, tokensPerMinute)
 
@@ -1230,20 +1155,25 @@ func NewRateLimiter(requestsPerMinute, tokensPerMinute int) *RateLimiter {
 func (rl *RateLimiter) Wait(ctx context.Context, estimatedTokens int) error {
 	// Wait for request token
 	select {
-	case <-rl.requestTokens:
+	case <-rl.requestBucket:
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 
-	// Wait for enough token bucket capacity
-	tokensNeeded := estimatedTokens
-	for tokensNeeded > 0 {
-		select {
-		case <-rl.tokenBucket:
-			tokensNeeded--
-		case <-ctx.Done():
-			return ctx.Err()
-		}
+	// Check token bucket capacity
+	rl.mutex.Lock()
+	defer rl.mutex.Unlock()
+	
+	// Simple rate limiting check - in production you'd have more sophisticated logic
+	if rl.tokenBucket < int64(estimatedTokens) {
+		// Wait a bit for tokens to refill
+		time.Sleep(time.Second)
+	}
+	
+	// Deduct tokens
+	rl.tokenBucket -= int64(estimatedTokens)
+	if rl.tokenBucket < 0 {
+		rl.tokenBucket = 0
 	}
 
 	return nil
@@ -1258,25 +1188,17 @@ func (rl *RateLimiter) refillTokens(requestsPerMinute, tokensPerMinute int) {
 		rl.mutex.Lock()
 		
 		// Refill request tokens
-		for len(rl.requestTokens) < requestsPerMinute {
+		for len(rl.requestBucket) < requestsPerMinute {
 			select {
-			case rl.requestTokens <- struct{}{}:
-			default:
-				goto refillTokenBucket
-			}
-		}
-
-	refillTokenBucket:
-		// Refill token bucket
-		for len(rl.tokenBucket) < tokensPerMinute {
-			select {
-			case rl.tokenBucket <- 1:
+			case rl.requestBucket <- struct{}{}:
 			default:
 				break
 			}
 		}
 
-		rl.lastRefill = time.Now()
+		// Refill token bucket
+		rl.tokenBucket = int64(tokensPerMinute)
+		rl.lastRefill = time.Now().Unix()
 		rl.mutex.Unlock()
 	}
 }

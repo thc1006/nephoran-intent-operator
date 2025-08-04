@@ -1,0 +1,956 @@
+---
+# Namespace for logging components (if not already created)
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-logging
+  labels:
+    app.kubernetes.io/name: logging
+    app.kubernetes.io/part-of: nephoran-intent-operator
+---
+# ServiceAccount for logging components
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephoran-logging
+  namespace: nephoran-logging
+---
+# ClusterRole for log collection access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-logging
+rules:
+- apiGroups: [""]
+  resources: ["pods", "namespaces", "nodes"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "daemonsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch"]
+---
+# ClusterRoleBinding for logging
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-logging
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nephoran-logging
+subjects:
+- kind: ServiceAccount
+  name: nephoran-logging
+  namespace: nephoran-logging
+---
+# Elasticsearch StatefulSet for log storage
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: elasticsearch
+  namespace: nephoran-logging
+  labels:
+    app: elasticsearch
+    component: logging
+spec:
+  serviceName: elasticsearch
+  replicas: 3
+  selector:
+    matchLabels:
+      app: elasticsearch
+  template:
+    metadata:
+      labels:
+        app: elasticsearch
+    spec:
+      serviceAccountName: nephoran-logging
+      initContainers:
+      - name: increase-vm-max-map
+        image: busybox:1.36
+        command: ["sysctl", "-w", "vm.max_map_count=262144"]
+        securityContext:
+          privileged: true
+      - name: increase-fd-ulimit
+        image: busybox:1.36
+        command: ["sh", "-c", "ulimit -n 65536"]
+        securityContext:
+          privileged: true
+      containers:
+      - name: elasticsearch
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+        ports:
+        - containerPort: 9200
+          name: rest
+        - containerPort: 9300
+          name: inter-node
+        env:
+        - name: cluster.name
+          value: "nephoran-logging"
+        - name: node.name
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: discovery.seed_hosts
+          value: "elasticsearch-0.elasticsearch,elasticsearch-1.elasticsearch,elasticsearch-2.elasticsearch"
+        - name: cluster.initial_master_nodes
+          value: "elasticsearch-0,elasticsearch-1,elasticsearch-2"
+        - name: ES_JAVA_OPTS
+          value: "-Xms2g -Xmx2g"
+        - name: network.host
+          value: "0.0.0.0"
+        - name: xpack.security.enabled
+          value: "false"
+        - name: xpack.monitoring.collection.enabled
+          value: "true"
+        - name: logger.org.elasticsearch.discovery
+          value: "DEBUG"
+        volumeMounts:
+        - name: elasticsearch-data
+          mountPath: /usr/share/elasticsearch/data
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 3Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        livenessProbe:
+          httpGet:
+            path: /_cluster/health
+            port: 9200
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /_cluster/health?wait_for_status=yellow
+            port: 9200
+          initialDelaySeconds: 30
+          periodSeconds: 10
+  volumeClaimTemplates:
+  - metadata:
+      name: elasticsearch-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 50Gi
+      storageClassName: standard
+---
+# Elasticsearch Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: nephoran-logging
+  labels:
+    app: elasticsearch
+    component: logging
+spec:
+  selector:
+    app: elasticsearch
+  clusterIP: None
+  ports:
+  - name: rest
+    port: 9200
+    targetPort: 9200
+  - name: inter-node
+    port: 9300
+    targetPort: 9300
+---
+# Elasticsearch Client Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-client
+  namespace: nephoran-logging
+  labels:
+    app: elasticsearch
+    component: logging
+spec:
+  selector:
+    app: elasticsearch
+  type: ClusterIP
+  ports:
+  - name: rest
+    port: 9200
+    targetPort: 9200
+---
+# Kibana Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kibana
+  namespace: nephoran-logging
+  labels:
+    app: kibana
+    component: logging
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kibana
+  template:
+    metadata:
+      labels:
+        app: kibana
+    spec:
+      containers:
+      - name: kibana
+        image: docker.elastic.co/kibana/kibana:8.11.0
+        ports:
+        - containerPort: 5601
+          name: ui
+        env:
+        - name: ELASTICSEARCH_HOSTS
+          value: "http://elasticsearch-client:9200"
+        - name: SERVER_NAME
+          value: "kibana"
+        - name: SERVER_HOST
+          value: "0.0.0.0"
+        - name: XPACK_SECURITY_ENABLED
+          value: "false"
+        - name: XPACK_MONITORING_ENABLED
+          value: "true"
+        - name: KIBANA_DEFAULTAPPID
+          value: "discover"
+        - name: LOGGING_QUIET
+          value: "false"
+        volumeMounts:
+        - name: kibana-config
+          mountPath: /usr/share/kibana/config/kibana.yml
+          subPath: kibana.yml
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /api/status
+            port: 5601
+          initialDelaySeconds: 120
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /api/status
+            port: 5601
+          initialDelaySeconds: 60
+          periodSeconds: 10
+      volumes:
+      - name: kibana-config
+        configMap:
+          name: kibana-config
+---
+# Kibana Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  namespace: nephoran-logging
+  labels:
+    app: kibana
+    component: logging
+spec:
+  selector:
+    app: kibana
+  type: ClusterIP
+  ports:
+  - name: ui
+    port: 5601
+    targetPort: 5601
+---
+# Kibana Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kibana-config
+  namespace: nephoran-logging
+data:
+  kibana.yml: |
+    server.name: kibana
+    server.host: "0.0.0.0"
+    elasticsearch.hosts: ["http://elasticsearch-client:9200"]
+    xpack.monitoring.ui.container.elasticsearch.enabled: true
+    xpack.security.enabled: false
+    xpack.encryptedSavedObjects.encryptionKey: "nephoran-kibana-encryption-key-32-chars"
+    logging.appenders.console.type: console
+    logging.appenders.console.layout.type: json
+    logging.root.level: info
+    
+    # Enhanced logging configuration for Nephoran
+    logging.loggers:
+      - name: plugins.security
+        level: info
+      - name: elasticsearch
+        level: info
+    
+    # Index patterns
+    kibana.index: ".kibana"
+    kibana.defaultRoute: "/app/discover"
+    
+    # Enhanced UI configuration
+    server.maxPayloadBytes: 1048576
+    server.shutdownTimeout: "5s"
+    elasticsearch.requestTimeout: 90000
+    elasticsearch.shardTimeout: 30000
+    
+    # Telemetry
+    telemetry.enabled: false
+    newsfeed.enabled: false
+---
+# Fluentd DaemonSet for log collection
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  namespace: nephoran-logging
+  labels:
+    app: fluentd
+    component: logging
+spec:
+  selector:
+    matchLabels:
+      app: fluentd
+  template:
+    metadata:
+      labels:
+        app: fluentd
+    spec:
+      serviceAccountName: nephoran-logging
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/control-plane
+        effect: NoSchedule
+      containers:
+      - name: fluentd
+        image: fluent/fluentd-kubernetes-daemonset:v1.16-debian-elasticsearch7-1
+        env:
+        - name: FLUENT_ELASTICSEARCH_HOST
+          value: "elasticsearch-client"
+        - name: FLUENT_ELASTICSEARCH_PORT
+          value: "9200"
+        - name: FLUENT_ELASTICSEARCH_SCHEME
+          value: "http"
+        - name: FLUENTD_SYSTEMD_CONF
+          value: "disable"
+        - name: FLUENT_CONTAINER_TAIL_EXCLUDE_PATH
+          value: "/var/log/containers/fluent*"
+        - name: FLUENT_CONTAINER_TAIL_PARSER_TYPE
+          value: "cri"
+        - name: FLUENT_ELASTICSEARCH_SSL_VERIFY
+          value: "false"
+        - name: FLUENT_ELASTICSEARCH_RELOAD_CONNECTIONS
+          value: "false"
+        - name: FLUENT_ELASTICSEARCH_RECONNECT_ON_ERROR
+          value: "true"
+        - name: FLUENT_ELASTICSEARCH_RELOAD_ON_FAILURE
+          value: "true"
+        - name: FLUENT_ELASTICSEARCH_LOG_ES_400_REASON
+          value: "true"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+        - name: varlog
+          mountPath: /var/log
+        - name: varlibdockercontainers
+          mountPath: /var/lib/docker/containers
+          readOnly: true
+        - name: fluentd-config
+          mountPath: /fluentd/etc/fluent.conf
+          subPath: fluent.conf
+        - name: systemd
+          mountPath: /var/log/journal
+          readOnly: true
+        livenessProbe:
+          exec:
+            command:
+            - '/bin/sh'
+            - '-c'
+            - >
+              LIVENESS_THRESHOLD_SECONDS=${LIVENESS_THRESHOLD_SECONDS:-300};
+              STUCK_THRESHOLD_SECONDS=${LIVENESS_THRESHOLD_SECONDS:-1800};
+              if [ ! -e /var/log/fluentd-buffers ];
+              then
+                exit 1;
+              fi;
+              touch -d "${STUCK_THRESHOLD_SECONDS} seconds ago" /tmp/marker-stuck;
+              if [[ -z "$(find /var/log/fluentd-buffers -type f -newer /tmp/marker-stuck -print -quit)" ]];
+              then
+                rm -rf /var/log/fluentd-buffers;
+                exit 1;
+              fi;
+              touch -d "${LIVENESS_THRESHOLD_SECONDS} seconds ago" /tmp/marker-liveness;
+              if [[ -z "$(find /var/log/fluentd-buffers -type f -newer /tmp/marker-liveness -print -quit)" ]];
+              then
+                exit 1;
+              fi;
+          initialDelaySeconds: 60
+          periodSeconds: 60
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: varlibdockercontainers
+        hostPath:
+          path: /var/lib/docker/containers
+      - name: fluentd-config
+        configMap:
+          name: fluentd-config
+      - name: systemd
+        hostPath:
+          path: /run/log/journal
+---
+# Fluentd Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: nephoran-logging
+data:
+  fluent.conf: |
+    # Ignore fluentd own events
+    <match fluent.**>
+      @type null
+    </match>
+
+    # Enhanced Kubernetes container logs with comprehensive parsing
+    <source>
+      @type tail
+      @id in_tail_container_logs
+      path /var/log/containers/*.log
+      pos_file /var/log/fluentd-containers.log.pos
+      tag "kubernetes.*"
+      exclude_path ["/var/log/containers/fluent*"]
+      read_from_head true
+      <parse>
+        @type multi_format
+        <pattern>
+          format cri
+          time_key time
+          time_format %Y-%m-%dT%H:%M:%S.%N%:z
+        </pattern>
+        <pattern>
+          format json
+          time_key time
+          time_format %Y-%m-%dT%H:%M:%S.%N%:z
+        </pattern>
+        <pattern>
+          format /^(?<time>.+) (?<stream>stdout|stderr) [^ ]* (?<log>.*)$/
+          time_format %Y-%m-%dT%H:%M:%S.%N%:z
+        </pattern>
+      </parse>
+    </source>
+
+    # Enhanced Nephoran-specific log processing
+    <filter kubernetes.**nephoran**>
+      @type record_transformer
+      <record>
+        application nephoran-intent-operator
+        component ${record["kubernetes"]["container_name"]}
+        namespace ${record["kubernetes"]["namespace_name"]}
+        pod_name ${record["kubernetes"]["pod_name"]}
+        node_name ${record["kubernetes"]["host"]}
+        cluster_name nephoran-production
+        environment production
+        log_source kubernetes
+        log_level ${record.dig("log", "level") || "INFO"}
+      </record>
+    </filter>
+
+    # Structured log parsing for Nephoran components
+    <filter kubernetes.**nephio-bridge**>
+      @type parser
+      key_name log
+      reserve_data true
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_key timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%L%z
+        </pattern>
+        <pattern>
+          format regexp
+          expression /^(?<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\s+(?<level>\w+)\s+(?<component>\w+)\s+(?<message>.*)$/
+          time_key timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%L%z
+        </pattern>
+      </parse>
+    </filter>
+
+    <filter kubernetes.**llm-processor**>
+      @type parser
+      key_name log
+      reserve_data true
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_key timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%L%z
+        </pattern>
+        <pattern>
+          format regexp
+          expression /^(?<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\s+(?<level>\w+)\s+(?<intent_id>[\w-]+)?\s*(?<message>.*)$/
+          time_key timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%L%z
+        </pattern>
+      </parse>
+    </filter>
+
+    <filter kubernetes.**rag-api**>
+      @type parser
+      key_name log
+      reserve_data true
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_key timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%L%z
+        </pattern>
+        <pattern>
+          format regexp
+          expression /^(?<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2},\d{3})\s+(?<level>\w+)\s+(?<module>[\w.]+)\s+(?<message>.*)$/
+          time_key timestamp
+          time_format %Y-%m-%d %H:%M:%S,%L
+        </pattern>
+      </parse>
+    </filter>
+
+    <filter kubernetes.**oran-adaptor**>
+      @type parser
+      key_name log
+      reserve_data true
+      <parse>
+        @type multi_format
+        <pattern>
+          format json
+          time_key timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%L%z
+        </pattern>
+        <pattern>
+          format regexp
+          expression /^(?<timestamp>\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)\s+(?<level>\w+)\s+(?<interface>A1|O1|O2|E2)?\s*(?<message>.*)$/
+          time_key timestamp
+          time_format %Y-%m-%dT%H:%M:%S.%L%z
+        </pattern>
+      </parse>
+    </filter>
+
+    # Enhanced Weaviate log processing
+    <filter kubernetes.**weaviate**>
+      @type record_transformer
+      <record>
+        service_type vector_database
+        database_type weaviate
+      </record>
+    </filter>
+
+    # Kubernetes metadata enrichment
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+      @id filter_kube_metadata
+      kubernetes_url "#{ENV['KUBERNETES_SERVICE_HOST']}:#{ENV['KUBERNETES_SERVICE_PORT_HTTPS']}"
+      verify_ssl "#{ENV['KUBERNETES_VERIFY_SSL'] || true}"
+      ca_file "#{ENV['KUBERNETES_CA_FILE']}"
+      skip_labels false
+      skip_container_metadata false
+      skip_master_url false
+      skip_namespace_metadata false
+    </filter>
+
+    # Security and sensitive data filtering
+    <filter kubernetes.**>
+      @type grep
+      <exclude>
+        key log
+        pattern /password|secret|token|key|credential/i
+      </exclude>
+    </filter>
+
+    # Log level standardization
+    <filter kubernetes.**>
+      @type record_transformer
+      <record>
+        log_level ${record.dig("log_level") || record.dig("level") || "INFO"}
+      </record>
+      remove_keys level
+    </filter>
+
+    # Error and critical log detection
+    <filter kubernetes.**>
+      @type record_transformer
+      <record>
+        is_error ${record.dig("log_level") =~ /ERROR|FATAL|CRITICAL/i ? true : false}
+        is_warning ${record.dig("log_level") =~ /WARN|WARNING/i ? true : false}
+      </record>
+    </filter>
+
+    # Systemd journal logs for node-level monitoring
+    <source>
+      @type systemd
+      @id in_systemd_kubelet
+      matches [{ "_SYSTEMD_UNIT": "kubelet.service" }]
+      <storage>
+        @type local
+        persistent true
+        path /var/log/fluentd-journald-kubelet.pos
+      </storage>
+      <entry>
+        fields_strip_underscores true
+        field_map {"MESSAGE": "message", "_HOSTNAME": "hostname", "_SYSTEMD_UNIT": "systemd_unit"}
+      </entry>
+      tag systemd.kubelet
+      read_from_head true
+    </source>
+
+    <source>
+      @type systemd
+      @id in_systemd_docker
+      matches [{ "_SYSTEMD_UNIT": "docker.service" }]
+      <storage>
+        @type local
+        persistent true
+        path /var/log/fluentd-journald-docker.pos
+      </storage>
+      <entry>
+        fields_strip_underscores true
+        field_map {"MESSAGE": "message", "_HOSTNAME": "hostname", "_SYSTEMD_UNIT": "systemd_unit"}
+      </entry>
+      tag systemd.docker
+      read_from_head true
+    </source>
+
+    # Output to Elasticsearch with enhanced index strategy
+    <match kubernetes.**nephoran**>
+      @type elasticsearch
+      @id out_es_nephoran
+      @log_level info
+      include_tag_key true
+      host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
+      port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
+      path "#{ENV['FLUENT_ELASTICSEARCH_PATH']}"
+      scheme "#{ENV['FLUENT_ELASTICSEARCH_SCHEME'] || 'http'}"
+      ssl_verify "#{ENV['FLUENT_ELASTICSEARCH_SSL_VERIFY'] || 'true'}"
+      ssl_version "#{ENV['FLUENT_ELASTICSEARCH_SSL_VERSION'] || 'TLSv1_2'}"
+      reload_connections "#{ENV['FLUENT_ELASTICSEARCH_RELOAD_CONNECTIONS'] || 'false'}"
+      reconnect_on_error "#{ENV['FLUENT_ELASTICSEARCH_RECONNECT_ON_ERROR'] || 'true'}"
+      reload_on_failure "#{ENV['FLUENT_ELASTICSEARCH_RELOAD_ON_FAILURE'] || 'true'}"
+      log_es_400_reason "#{ENV['FLUENT_ELASTICSEARCH_LOG_ES_400_REASON'] || 'false'}"
+      logstash_prefix nephoran-logs
+      logstash_dateformat %Y.%m.%d
+      logstash_format true
+      index_name nephoran-logs
+      type_name _doc
+      <buffer>
+        flush_thread_count 8
+        flush_interval 5s
+        chunk_limit_size 2M
+        queue_limit_length 32
+        retry_max_interval 30
+        retry_forever true
+      </buffer>
+    </match>
+
+    <match kubernetes.**>
+      @type elasticsearch
+      @id out_es_general
+      @log_level info
+      include_tag_key true
+      host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
+      port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
+      path "#{ENV['FLUENT_ELASTICSEARCH_PATH']}"
+      scheme "#{ENV['FLUENT_ELASTICSEARCH_SCHEME'] || 'http'}"
+      ssl_verify "#{ENV['FLUENT_ELASTICSEARCH_SSL_VERIFY'] || 'true'}"
+      ssl_version "#{ENV['FLUENT_ELASTICSEARCH_SSL_VERSION'] || 'TLSv1_2'}"
+      reload_connections "#{ENV['FLUENT_ELASTICSEARCH_RELOAD_CONNECTIONS'] || 'false'}"
+      reconnect_on_error "#{ENV['FLUENT_ELASTICSEARCH_RECONNECT_ON_ERROR'] || 'true'}"
+      reload_on_failure "#{ENV['FLUENT_ELASTICSEARCH_RELOAD_ON_FAILURE'] || 'true'}"
+      log_es_400_reason "#{ENV['FLUENT_ELASTICSEARCH_LOG_ES_400_REASON'] || 'false'}"
+      logstash_prefix kubernetes-logs
+      logstash_dateformat %Y.%m.%d
+      logstash_format true
+      index_name kubernetes-logs
+      type_name _doc
+      <buffer>
+        flush_thread_count 8
+        flush_interval 10s
+        chunk_limit_size 2M
+        queue_limit_length 32
+        retry_max_interval 30
+        retry_forever true
+      </buffer>
+    </match>
+
+    <match systemd.**>
+      @type elasticsearch
+      @id out_es_systemd
+      @log_level info
+      include_tag_key true
+      host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
+      port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
+      path "#{ENV['FLUENT_ELASTICSEARCH_PATH']}"
+      scheme "#{ENV['FLUENT_ELASTICSEARCH_SCHEME'] || 'http'}"
+      ssl_verify "#{ENV['FLUENT_ELASTICSEARCH_SSL_VERIFY'] || 'true'}"
+      ssl_version "#{ENV['FLUENT_ELASTICSEARCH_SSL_VERSION'] || 'TLSv1_2'}"
+      reload_connections "#{ENV['FLUENT_ELASTICSEARCH_RELOAD_CONNECTIONS'] || 'false'}"
+      reconnect_on_error "#{ENV['FLUENT_ELASTICSEARCH_RECONNECT_ON_ERROR'] || 'true'}"
+      reload_on_failure "#{ENV['FLUENT_ELASTICSEARCH_RELOAD_ON_FAILURE'] || 'true'}"
+      log_es_400_reason "#{ENV['FLUENT_ELASTICSEARCH_LOG_ES_400_REASON'] || 'false'}"
+      logstash_prefix systemd-logs
+      logstash_dateformat %Y.%m.%d
+      logstash_format true
+      index_name systemd-logs
+      type_name _doc
+      <buffer>
+        flush_thread_count 4
+        flush_interval 30s
+        chunk_limit_size 2M
+        queue_limit_length 16
+        retry_max_interval 30
+        retry_forever true
+      </buffer>
+    </match>
+---
+# Index Templates for Elasticsearch
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch-index-templates
+  namespace: nephoran-logging
+data:
+  nephoran-logs-template.json: |
+    {
+      "index_patterns": ["nephoran-logs-*"],
+      "template": {
+        "settings": {
+          "number_of_shards": 2,
+          "number_of_replicas": 1,
+          "index.refresh_interval": "5s",
+          "index.max_result_window": 50000
+        },
+        "mappings": {
+          "properties": {
+            "@timestamp": {
+              "type": "date"
+            },
+            "application": {
+              "type": "keyword"
+            },
+            "component": {
+              "type": "keyword"
+            },
+            "namespace": {
+              "type": "keyword"
+            },
+            "pod_name": {
+              "type": "keyword"
+            },
+            "node_name": {
+              "type": "keyword"
+            },
+            "cluster_name": {
+              "type": "keyword"
+            },
+            "environment": {
+              "type": "keyword"
+            },
+            "log_level": {
+              "type": "keyword"
+            },
+            "log_source": {
+              "type": "keyword"
+            },
+            "intent_id": {
+              "type": "keyword"
+            },
+            "interface": {
+              "type": "keyword"
+            },
+            "message": {
+              "type": "text",
+              "analyzer": "standard"
+            },
+            "is_error": {
+              "type": "boolean"
+            },
+            "is_warning": {
+              "type": "boolean"
+            },
+            "service_type": {
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    }
+  
+  kubernetes-logs-template.json: |
+    {
+      "index_patterns": ["kubernetes-logs-*"],
+      "template": {
+        "settings": {
+          "number_of_shards": 1,
+          "number_of_replicas": 1,
+          "index.refresh_interval": "10s"
+        },
+        "mappings": {
+          "properties": {
+            "@timestamp": {
+              "type": "date"
+            },
+            "kubernetes": {
+              "properties": {
+                "namespace_name": {
+                  "type": "keyword"
+                },
+                "pod_name": {
+                  "type": "keyword"
+                },
+                "container_name": {
+                  "type": "keyword"
+                },
+                "host": {
+                  "type": "keyword"
+                }
+              }
+            },
+            "log": {
+              "type": "text"
+            },
+            "stream": {
+              "type": "keyword"
+            }
+          }
+        }
+      }
+    }
+---
+# Kibana Index Patterns and Dashboards Setup Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kibana-setup
+  namespace: nephoran-logging
+  labels:
+    app: kibana-setup
+    component: logging
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: kibana-setup
+        image: curlimages/curl:8.4.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Waiting for Kibana to be ready..."
+          until curl -f http://kibana:5601/api/status; do
+            echo "Kibana not ready, waiting..."
+            sleep 10
+          done
+          
+          echo "Creating Nephoran index pattern..."
+          curl -X POST "http://kibana:5601/api/saved_objects/index-pattern/nephoran-logs-*" \
+            -H "Content-Type: application/json" \
+            -H "kbn-xsrf: true" \
+            -d '{
+              "attributes": {
+                "title": "nephoran-logs-*",
+                "timeFieldName": "@timestamp",
+                "fields": "[{\"name\":\"@timestamp\",\"type\":\"date\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"application\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"component\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"log_level\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"message\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":false},{\"name\":\"intent_id\",\"type\":\"string\",\"searchable\":true,\"aggregatable\":true},{\"name\":\"is_error\",\"type\":\"boolean\",\"searchable\":true,\"aggregatable\":true}]"
+              }
+            }'
+          
+          echo "Creating Kubernetes index pattern..."
+          curl -X POST "http://kibana:5601/api/saved_objects/index-pattern/kubernetes-logs-*" \
+            -H "Content-Type: application/json" \
+            -H "kbn-xsrf: true" \
+            -d '{
+              "attributes": {
+                "title": "kubernetes-logs-*",
+                "timeFieldName": "@timestamp"
+              }
+            }'
+          
+          echo "Setting default index pattern..."
+          curl -X POST "http://kibana:5601/api/kibana/settings/defaultIndex" \
+            -H "Content-Type: application/json" \
+            -H "kbn-xsrf: true" \
+            -d '{
+              "value": "nephoran-logs-*"
+            }'
+          
+          echo "Kibana setup completed successfully"
+---
+# ServiceMonitor for Elasticsearch metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: elasticsearch
+  namespace: nephoran-logging
+  labels:
+    app: elasticsearch
+    component: logging
+spec:
+  selector:
+    matchLabels:
+      app: elasticsearch
+  endpoints:
+  - port: rest
+    interval: 30s
+    path: /_prometheus/metrics
+---
+# Network Policy for logging namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: logging-network-policy
+  namespace: nephoran-logging
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-system
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-monitoring
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-logging
+    - podSelector: {}
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-system
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+    - protocol: UDP
+      port: 53

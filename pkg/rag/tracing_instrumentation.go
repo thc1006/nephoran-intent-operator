@@ -306,13 +306,13 @@ func (tm *TracingManager) InstrumentRetrieval(ctx context.Context, query string,
 		if len(documents) > 0 {
 			totalScore := 0.0
 			for _, doc := range documents {
-				totalScore += doc.Score
+				totalScore += float64(doc.Score)
 			}
 			avgScore := totalScore / float64(len(documents))
 			
 			span.SetAttributes(
 				attribute.Float64("retrieval.avg_score", avgScore),
-				attribute.Float64("retrieval.top_score", documents[0].Score),
+				attribute.Float64("retrieval.top_score", float64(documents[0].Score)),
 			)
 		}
 	}
@@ -396,18 +396,18 @@ func (tm *TracingManager) InstrumentRAGQuery(ctx context.Context, query string, 
 		
 		if response != nil {
 			span.SetAttributes(
-				attribute.Int("rag.response_length", len(response.GeneratedText)),
-				attribute.Int("rag.sources_used", len(response.Sources)),
-				attribute.Float64("rag.confidence_score", response.ConfidenceScore),
+				attribute.Int("rag.response_length", len(response.Answer)),
+				attribute.Int("rag.sources_used", len(response.SourceDocuments)),
+				attribute.Float64("rag.confidence_score", float64(response.Confidence)),
 			)
 			
 			// Add source quality metrics
-			if len(response.Sources) > 0 {
+			if len(response.SourceDocuments) > 0 {
 				totalScore := 0.0
-				for _, source := range response.Sources {
-					totalScore += source.RelevanceScore
+				for _, source := range response.SourceDocuments {
+					totalScore += float64(source.Score)
 				}
-				avgRelevance := totalScore / float64(len(response.Sources))
+				avgRelevance := totalScore / float64(len(response.SourceDocuments))
 				
 				span.SetAttributes(
 					attribute.Float64("rag.avg_source_relevance", avgRelevance),

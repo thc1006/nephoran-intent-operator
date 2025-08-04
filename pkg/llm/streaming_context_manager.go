@@ -72,16 +72,7 @@ type StreamingContext struct {
 	mutex         sync.RWMutex
 }
 
-// ContextRequest represents a request for context management
-type ContextRequest struct {
-	ID          string        `json:"id"`
-	Content     string        `json:"content"`
-	ModelName   string        `json:"model_name"`
-	TTL         time.Duration `json:"ttl,omitempty"`
-	Priority    int           `json:"priority,omitempty"`
-	Compress    bool          `json:"compress,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-}
+// Note: ContextRequest is already defined in context_builder.go
 
 // ContextResponse represents the response from context operations
 type ContextResponse struct {
@@ -158,22 +149,19 @@ func (scm *StreamingContextManager) StoreContext(ctx context.Context, request *C
 	}
 	
 	// Calculate token count
-	tokenCount := scm.tokenManager.EstimateTokensForModel(request.Content, request.ModelName)
+	tokenCount := scm.tokenManager.EstimateTokensForModel(request.Query, request.ModelName)
 	
 	// Compress content if requested and beneficial
-	content := request.Content
+	content := request.Query
 	isCompressed := false
-	if request.Compress && scm.config.EnableCompression && len(content) > 1000 {
+	if scm.config.EnableCompression && len(content) > 1000 {
 		// In a real implementation, you would use actual compression
 		// For now, we'll just mark it as compressed
 		isCompressed = true
 	}
 	
 	// Determine TTL
-	ttl := request.TTL
-	if ttl == 0 {
-		ttl = scm.config.DefaultTTL
-	}
+	ttl := scm.config.DefaultTTL
 	if ttl > scm.config.MaxTTL {
 		ttl = scm.config.MaxTTL
 	}
@@ -181,7 +169,7 @@ func (scm *StreamingContextManager) StoreContext(ctx context.Context, request *C
 	// Create context
 	now := time.Now()
 	streamingContext := &StreamingContext{
-		ID:           request.ID,
+		ID:           request.RequestID,
 		Content:      content,
 		TokenCount:   tokenCount,
 		CreatedAt:    now,
@@ -189,14 +177,18 @@ func (scm *StreamingContextManager) StoreContext(ctx context.Context, request *C
 		TTL:          ttl,
 		AccessCount:  0,
 		Size:         int64(len(content)),
-		Metadata:     request.Metadata,
+		Metadata:     map[string]interface{}{
+			"intent_type": request.IntentType,
+			"model_name":  request.ModelName,
+			"max_tokens":  request.MaxTokens,
+		},
 		IsCompressed: isCompressed,
 	}
 	
 	// Store context
 	scm.mutex.Lock()
-	existingContext, exists := scm.contexts[request.ID]
-	scm.contexts[request.ID] = streamingContext
+	existingContext, exists := scm.contexts[request.RequestID]
+	scm.contexts[request.RequestID] = streamingContext
 	scm.mutex.Unlock()
 	
 	// Update metrics
@@ -214,7 +206,7 @@ func (scm *StreamingContextManager) StoreContext(ctx context.Context, request *C
 	})
 	
 	scm.logger.Debug("Context stored",
-		"context_id", request.ID,
+		"context_id", request.RequestID,
 		"token_count", tokenCount,
 		"size_bytes", streamingContext.Size,
 		"ttl", ttl,
@@ -505,15 +497,15 @@ func (scm *StreamingContextManager) validateContextRequest(request *ContextReque
 	if request == nil {
 		return fmt.Errorf("context request cannot be nil")
 	}
-	if request.ID == "" {
+	if request.RequestID == "" {
 		return fmt.Errorf("context ID cannot be empty")
 	}
-	if request.Content == "" {
+	if request.Query == "" {
 		return fmt.Errorf("context content cannot be empty")
 	}
-	if len(request.Content) > scm.config.MaxContextSize {
+	if len(request.Query) > scm.config.MaxContextSize {
 		return fmt.Errorf("context content exceeds maximum size: %d > %d", 
-			len(request.Content), scm.config.MaxContextSize)
+			len(request.Query), scm.config.MaxContextSize)
 	}
 	return nil
 }

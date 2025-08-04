@@ -2,7 +2,6 @@ package llm
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -10,11 +9,12 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // RAGEnhancedProcessor provides LLM processing enhanced with RAG capabilities
 type RAGEnhancedProcessor struct {
-	baseClient    Client
+	baseClient    shared.ClientInterface
 	ragService    *rag.RAGService
 	weaviateClient *rag.WeaviateClient
 	config        *RAGProcessorConfig
@@ -73,7 +73,7 @@ type EnhancedResponse struct {
 
 // NewRAGEnhancedProcessor creates a new RAG-enhanced LLM processor
 func NewRAGEnhancedProcessor(
-	baseClient Client,
+	baseClient shared.ClientInterface,
 	weaviateClient *rag.WeaviateClient,
 	ragService *rag.RAGService,
 	config *RAGProcessorConfig,
@@ -458,6 +458,37 @@ func (rep *RAGEnhancedProcessor) ValidateConfig() error {
 	return nil
 }
 
+// ProcessIntentStream processes an intent with streaming response
+func (rep *RAGEnhancedProcessor) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
+	// For now, delegate to base client
+	return rep.baseClient.ProcessIntentStream(ctx, prompt, chunks)
+}
+
+// GetSupportedModels returns the list of supported models
+func (rep *RAGEnhancedProcessor) GetSupportedModels() []string {
+	return rep.baseClient.GetSupportedModels()
+}
+
+// GetModelCapabilities returns the capabilities of a specific model
+func (rep *RAGEnhancedProcessor) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
+	return rep.baseClient.GetModelCapabilities(modelName)
+}
+
+// ValidateModel validates if a model is supported
+func (rep *RAGEnhancedProcessor) ValidateModel(modelName string) error {
+	return rep.baseClient.ValidateModel(modelName)
+}
+
+// EstimateTokens estimates the number of tokens in the given text
+func (rep *RAGEnhancedProcessor) EstimateTokens(text string) int {
+	return rep.baseClient.EstimateTokens(text)
+}
+
+// GetMaxTokens returns the maximum tokens for a model
+func (rep *RAGEnhancedProcessor) GetMaxTokens(modelName string) int {
+	return rep.baseClient.GetMaxTokens(modelName)
+}
+
 // Close cleans up resources
 func (rep *RAGEnhancedProcessor) Close() error {
 	rep.logger.Info("Closing RAG enhanced processor")
@@ -478,5 +509,5 @@ func (rep *RAGEnhancedProcessor) Close() error {
 	return nil
 }
 
-// Ensure RAGEnhancedProcessor implements the Client interface
-var _ Client = (*RAGEnhancedProcessor)(nil)
+// Ensure RAGEnhancedProcessor implements the ClientInterface
+var _ ClientInterface = (*RAGEnhancedProcessor)(nil)

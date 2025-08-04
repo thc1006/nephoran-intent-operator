@@ -1,0 +1,165 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oauth2-config
+  namespace: nephoran-system
+data:
+  auth-config.json: |
+    {
+      "enabled": true,
+      "jwt_secret_key": "your-secret-key-will-be-replaced-by-secret",
+      "token_ttl": "24h",
+      "refresh_ttl": "168h",
+      "providers": {
+        "azure-ad": {
+          "enabled": true,
+          "type": "azure-ad",
+          "client_id": "your-azure-client-id",
+          "client_secret": "your-azure-client-secret",
+          "tenant_id": "your-azure-tenant-id",
+          "scopes": ["openid", "profile", "email", "User.Read"]
+        },
+        "okta": {
+          "enabled": false,
+          "type": "okta",
+          "client_id": "your-okta-client-id",
+          "client_secret": "your-okta-client-secret",
+          "domain": "your-okta-domain.okta.com",
+          "scopes": ["openid", "profile", "email", "groups"]
+        },
+        "keycloak": {
+          "enabled": false,
+          "type": "keycloak",
+          "client_id": "nephoran-intent-operator",
+          "client_secret": "your-keycloak-client-secret",
+          "base_url": "https://your-keycloak.company.com",
+          "realm": "telecom",
+          "scopes": ["openid", "profile", "email", "roles"]
+        },
+        "google": {
+          "enabled": false,
+          "type": "google",
+          "client_id": "your-google-client-id",
+          "client_secret": "your-google-client-secret",
+          "scopes": ["openid", "profile", "email"]
+        }
+      },
+      "rbac": {
+        "enabled": true,
+        "default_role": "viewer",
+        "role_mapping": {
+          "Global Administrator": ["admin"],
+          "Network Administrator": ["operator"],
+          "Telecom Operator": ["network-operator"],
+          "Read Only": ["viewer"]
+        },
+        "group_mapping": {
+          "Nephoran-Admins": ["admin"],
+          "Telecom-Operators": ["operator"],
+          "Network-Engineers": ["network-operator"],
+          "Viewers": ["viewer"]
+        },
+        "admin_roles": ["admin", "system-admin", "nephoran-admin"],
+        "operator_roles": ["operator", "network-operator", "telecom-operator"],
+        "readonly_roles": ["viewer", "readonly", "guest"],
+        "permissions": {
+          "admin": [
+            "intent:create",
+            "intent:read", 
+            "intent:update",
+            "intent:delete",
+            "e2nodes:manage",
+            "metrics:view",
+            "system:manage",
+            "users:manage",
+            "logs:view",
+            "secrets:manage"
+          ],
+          "operator": [
+            "intent:create",
+            "intent:read",
+            "intent:update", 
+            "intent:delete",
+            "e2nodes:manage",
+            "metrics:view",
+            "logs:view"
+          ],
+          "network-operator": [
+            "intent:create",
+            "intent:read",
+            "intent:update",
+            "e2nodes:manage", 
+            "metrics:view"
+          ],
+          "viewer": [
+            "intent:read",
+            "metrics:view"
+          ]
+        }
+      },
+      "admin_users": ["admin@company.com", "system@nephoran.com"],
+      "operator_users": ["operator@company.com", "engineer@company.com"]
+    }
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: oauth2-secrets
+  namespace: nephoran-system
+type: Opaque
+data:
+  # Base64 encoded values - replace with actual values
+  jwt-secret-key: # echo -n "your-256-bit-secret-key-here" | base64
+  azure-client-secret: # echo -n "your-azure-client-secret" | base64
+  okta-client-secret: # echo -n "your-okta-client-secret" | base64
+  keycloak-client-secret: # echo -n "your-keycloak-client-secret" | base64
+  google-client-secret: # echo -n "your-google-client-secret" | base64
+stringData:
+  # Example JWT secret key (replace with actual secure key)
+  jwt-secret-key: "nephoran-jwt-secret-key-256-bit-minimum-length-for-security-compliance"
+  # Add your actual OAuth2 provider secrets here
+  azure-client-secret: "placeholder-azure-secret"
+  okta-client-secret: "placeholder-okta-secret"
+  keycloak-client-secret: "placeholder-keycloak-secret"
+  google-client-secret: "placeholder-google-secret"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oauth2-environment
+  namespace: nephoran-system
+data:
+  # Authentication Configuration
+  AUTH_ENABLED: "false"  # Set to "true" to enable OAuth2
+  REQUIRE_AUTH: "true"
+  AUTH_CONFIG_FILE: "/config/auth-config.json"
+  
+  # Azure AD Configuration (if enabled)
+  AZURE_ENABLED: "true"
+  AZURE_CLIENT_ID: "your-azure-client-id"
+  AZURE_TENANT_ID: "your-azure-tenant-id"
+  AZURE_SCOPES: "openid,profile,email,User.Read"
+  
+  # Okta Configuration (if enabled) 
+  OKTA_ENABLED: "false"
+  OKTA_CLIENT_ID: "your-okta-client-id"
+  OKTA_DOMAIN: "your-company.okta.com"
+  OKTA_SCOPES: "openid,profile,email,groups"
+  
+  # Keycloak Configuration (if enabled)
+  KEYCLOAK_ENABLED: "false"
+  KEYCLOAK_CLIENT_ID: "nephoran-intent-operator"
+  KEYCLOAK_BASE_URL: "https://keycloak.company.com"
+  KEYCLOAK_REALM: "telecom"
+  KEYCLOAK_SCOPES: "openid,profile,email,roles"
+  
+  # Google Configuration (if enabled)
+  GOOGLE_ENABLED: "false"
+  GOOGLE_CLIENT_ID: "your-google-client-id"
+  GOOGLE_SCOPES: "openid,profile,email"
+  
+  # RBAC Configuration
+  RBAC_ENABLED: "true"
+  DEFAULT_ROLE: "viewer"
+  ADMIN_USERS: "admin@company.com,system@nephoran.com"
+  OPERATOR_USERS: "operator@company.com,engineer@company.com"

@@ -1,0 +1,496 @@
+# Nephoran Intent Operator - Multi-Region Monitoring Dashboard
+# Phase 4 Enterprise Architecture - Global Observability
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-region-grafana-dashboard
+  namespace: nephoran-global
+  labels:
+    grafana_dashboard: "1"
+data:
+  multi-region-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Multi-Region Overview",
+        "tags": ["nephoran", "multi-region", "global"],
+        "timezone": "UTC",
+        "refresh": "30s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Global Request Rate",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(rate(nephoran_requests_total[5m]))",
+                "legendFormat": "Requests/sec"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "reqps",
+                "min": 0,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 50},
+                    {"color": "red", "value": 100}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Global Success Rate",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+            "targets": [
+              {
+                "expr": "sum(rate(nephoran_requests_total{status=\"success\"}[5m])) / sum(rate(nephoran_requests_total[5m])) * 100",
+                "legendFormat": "Success Rate %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 95},
+                    {"color": "green", "value": 98}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 3,
+            "title": "Active Regions",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "count(up{job=~\"nephoran.*\"} == 1)",
+                "legendFormat": "Healthy Regions"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "min": 0,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 2},
+                    {"color": "green", "value": 3}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Global P95 Latency",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(nephoran_request_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "P95 Latency"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s",
+                "min": 0,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 2},
+                    {"color": "red", "value": 5}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 5,
+            "title": "Regional Request Distribution",
+            "type": "piechart",
+            "gridPos": {"h": 8, "w": 8, "x": 0, "y": 4},
+            "targets": [
+              {
+                "expr": "sum(rate(nephoran_requests_total[5m])) by (region)",
+                "legendFormat": "{{region}}"
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Regional Latency Comparison",
+            "type": "bargauge",
+            "gridPos": {"h": 8, "w": 8, "x": 8, "y": 4},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(nephoran_request_duration_seconds_bucket[5m])) by (region, le))",
+                "legendFormat": "{{region}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s",
+                "min": 0,
+                "max": 5,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 2}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 7,
+            "title": "Regional Success Rates",
+            "type": "bargauge",
+            "gridPos": {"h": 8, "w": 8, "x": 16, "y": 4},
+            "targets": [
+              {
+                "expr": "sum(rate(nephoran_requests_total{status=\"success\"}[5m])) by (region) / sum(rate(nephoran_requests_total[5m])) by (region) * 100",
+                "legendFormat": "{{region}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 95},
+                    {"color": "green", "value": 98}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 8,
+            "title": "Global Request Rate Over Time",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+            "targets": [
+              {
+                "expr": "sum(rate(nephoran_requests_total[5m])) by (region)",
+                "legendFormat": "{{region}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Requests/sec",
+                "min": 0
+              }
+            ],
+            "legend": {
+              "show": true,
+              "values": true,
+              "current": true,
+              "max": true,
+              "avg": true
+            }
+          },
+          {
+            "id": 9,
+            "title": "Cross-Region Failover Events",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+            "targets": [
+              {
+                "expr": "increase(nephoran_failover_events_total[5m])",
+                "legendFormat": "{{source_region}} -> {{target_region}}"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Failover Events",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 10,
+            "title": "Regional Resource Utilization",
+            "type": "heatmap",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+            "targets": [
+              {
+                "expr": "avg(rate(container_cpu_usage_seconds_total{namespace=\"nephoran-system\"}[5m])) by (region) * 100",
+                "legendFormat": "{{region}} CPU"
+              },
+              {
+                "expr": "avg(container_memory_usage_bytes{namespace=\"nephoran-system\"}) by (region) / avg(container_spec_memory_limit_bytes{namespace=\"nephoran-system\"}) by (region) * 100",
+                "legendFormat": "{{region}} Memory"
+              }
+            ]
+          },
+          {
+            "id": 11,
+            "title": "Global Cost Analysis",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+            "targets": [
+              {
+                "expr": "sum(increase(nephoran_cost_dollars_total[1h])) by (region)",
+                "legendFormat": "{{region}} Cost/hour"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Cost ($)",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 12,
+            "title": "Intent Processing Pipeline Health",
+            "type": "table",
+            "gridPos": {"h": 6, "w": 24, "x": 0, "y": 28},
+            "targets": [
+              {
+                "expr": "up{job=~\"nephoran.*\"}",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {
+                    "__name__": true,
+                    "Time": true
+                  },
+                  "renameByName": {
+                    "instance": "Endpoint",
+                    "job": "Service",
+                    "region": "Region",
+                    "Value": "Status"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "templating": {
+          "list": [
+            {
+              "name": "region",
+              "type": "query",
+              "query": "label_values(nephoran_requests_total, region)",
+              "refresh": 1,
+              "includeAll": true,
+              "allValue": ".*"
+            }
+          ]
+        }
+      }
+    }
+---
+# Multi-Region Prometheus Recording Rules
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-region-recording-rules
+  namespace: nephoran-global
+data:
+  multi-region-rules.yaml: |
+    groups:
+    - name: nephoran.multi-region.rules
+      interval: 30s
+      rules:
+      # Global aggregation rules
+      - record: nephoran:global:request_rate
+        expr: sum(rate(nephoran_requests_total[5m]))
+      
+      - record: nephoran:global:success_rate
+        expr: sum(rate(nephoran_requests_total{status="success"}[5m])) / sum(rate(nephoran_requests_total[5m]))
+      
+      - record: nephoran:global:error_rate
+        expr: sum(rate(nephoran_requests_total{status!="success"}[5m])) / sum(rate(nephoran_requests_total[5m]))
+      
+      - record: nephoran:global:p95_latency
+        expr: histogram_quantile(0.95, sum(rate(nephoran_request_duration_seconds_bucket[5m])) by (le))
+      
+      - record: nephoran:global:p99_latency
+        expr: histogram_quantile(0.99, sum(rate(nephoran_request_duration_seconds_bucket[5m])) by (le))
+      
+      # Regional aggregation rules
+      - record: nephoran:region:request_rate
+        expr: sum(rate(nephoran_requests_total[5m])) by (region)
+      
+      - record: nephoran:region:success_rate
+        expr: sum(rate(nephoran_requests_total{status="success"}[5m])) by (region) / sum(rate(nephoran_requests_total[5m])) by (region)
+      
+      - record: nephoran:region:p95_latency
+        expr: histogram_quantile(0.95, sum(rate(nephoran_request_duration_seconds_bucket[5m])) by (region, le))
+      
+      - record: nephoran:region:availability_score
+        expr: |
+          (
+            nephoran:region:success_rate * 0.5 +
+            (1 - (nephoran:region:p95_latency / 5)) * 0.3 +
+            (1 - nephoran:region:error_rate) * 0.2
+          )
+      
+      # Cost analysis rules
+      - record: nephoran:region:cost_per_hour
+        expr: sum(increase(nephoran_cost_dollars_total[1h])) by (region)
+      
+      - record: nephoran:region:cost_per_request
+        expr: nephoran:region:cost_per_hour / (nephoran:region:request_rate * 3600)
+      
+      # Capacity utilization rules
+      - record: nephoran:region:cpu_utilization
+        expr: avg(rate(container_cpu_usage_seconds_total{namespace="nephoran-system"}[5m])) by (region) * 100
+      
+      - record: nephoran:region:memory_utilization
+        expr: avg(container_memory_usage_bytes{namespace="nephoran-system"}) by (region) / avg(container_spec_memory_limit_bytes{namespace="nephoran-system"}) by (region) * 100
+      
+      # Traffic distribution rules
+      - record: nephoran:region:traffic_percentage
+        expr: nephoran:region:request_rate / on() nephoran:global:request_rate * 100
+      
+      # Health and failover rules
+      - record: nephoran:region:health_score
+        expr: up{job=~"nephoran.*"} * nephoran:region:availability_score
+      
+      - record: nephoran:region:failover_candidate
+        expr: nephoran:region:health_score < 0.8
+---
+# Multi-Region Alert Rules
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: multi-region-alert-rules
+  namespace: nephoran-global
+data:
+  multi-region-alerts.yaml: |
+    groups:
+    - name: nephoran.multi-region.alerts
+      rules:
+      # Global alerts
+      - alert: GlobalRequestRateHigh
+        expr: nephoran:global:request_rate > 200
+        for: 5m
+        labels:
+          severity: warning
+          component: global-traffic
+        annotations:
+          summary: "Global request rate is very high"
+          description: "Global request rate is {{ $value }} requests/sec, exceeding 200 req/sec threshold"
+      
+      - alert: GlobalSuccessRateLow
+        expr: nephoran:global:success_rate < 0.95
+        for: 2m
+        labels:
+          severity: critical
+          component: global-traffic
+        annotations:
+          summary: "Global success rate below SLA"
+          description: "Global success rate is {{ $value | humanizePercentage }}, below 95% SLA"
+      
+      - alert: GlobalLatencyHigh
+        expr: nephoran:global:p95_latency > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: global-traffic
+        annotations:
+          summary: "Global P95 latency is high"
+          description: "Global P95 latency is {{ $value }}s, exceeding 5s threshold"
+      
+      # Regional alerts
+      - alert: RegionDown
+        expr: up{job=~"nephoran.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: regional-health
+        annotations:
+          summary: "Region {{ $labels.region }} is down"
+          description: "Region {{ $labels.region }} has been down for more than 1 minute"
+      
+      - alert: RegionSuccessRateLow
+        expr: nephoran:region:success_rate < 0.90
+        for: 3m
+        labels:
+          severity: warning
+          component: regional-health
+        annotations:
+          summary: "Region {{ $labels.region }} success rate low"
+          description: "Region {{ $labels.region }} success rate is {{ $value | humanizePercentage }}, below 90%"
+      
+      - alert: RegionLatencyHigh
+        expr: nephoran:region:p95_latency > 3
+        for: 5m
+        labels:
+          severity: warning
+          component: regional-performance
+        annotations:
+          summary: "Region {{ $labels.region }} latency high"
+          description: "Region {{ $labels.region }} P95 latency is {{ $value }}s, exceeding 3s"
+      
+      - alert: RegionResourceExhaustion
+        expr: nephoran:region:cpu_utilization > 90 or nephoran:region:memory_utilization > 90
+        for: 5m
+        labels:
+          severity: critical
+          component: regional-capacity
+        annotations:
+          summary: "Region {{ $labels.region }} resource exhaustion"
+          description: "Region {{ $labels.region }} resource utilization is critical"
+      
+      # Cross-region alerts
+      - alert: MultipleRegionsDown
+        expr: count(up{job=~"nephoran.*"} == 0) >= 2
+        for: 1m
+        labels:
+          severity: critical
+          component: multi-region
+        annotations:
+          summary: "Multiple regions are down"
+          description: "{{ $value }} regions are currently down, triggering emergency procedures"
+      
+      - alert: TrafficImbalance
+        expr: abs(nephoran:region:traffic_percentage - 25) > 40
+        for: 10m
+        labels:
+          severity: warning
+          component: traffic-distribution
+        annotations:
+          summary: "Traffic imbalance detected"
+          description: "Region {{ $labels.region }} is handling {{ $value }}% of traffic, significantly deviating from expected 25%"
+      
+      - alert: FailoverRateHigh
+        expr: rate(nephoran_failover_events_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: failover
+        annotations:
+          summary: "High failover rate detected"
+          description: "Failover rate is {{ $value }} events/sec, indicating instability"

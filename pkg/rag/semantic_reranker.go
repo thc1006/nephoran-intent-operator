@@ -3,6 +3,7 @@ package rag
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"log/slog"
 	"math"
 	"sort"
@@ -246,19 +247,13 @@ func (sr *SemanticReranker) calculateCrossEncoderScore(ctx context.Context, quer
 	return score, nil
 }
 
-// generateCacheKey generates a cache key for cross-encoder scores
+// generateCacheKey generates a cache key for cross-encoder scores using fast FNV hash
 func (sr *SemanticReranker) generateCacheKey(query, content string) string {
-	// Simple hash-based key
-	return fmt.Sprintf("%x", hash(query+"|"+content))
-}
-
-// hash is a simple hash function
-func hash(s string) uint32 {
-	h := uint32(0)
-	for _, c := range s {
-		h = h*31 + uint32(c)
-	}
-	return h
+	h := fnv.New64a()
+	h.Write([]byte(query))
+	h.Write([]byte("|"))
+	h.Write([]byte(content))
+	return fmt.Sprintf("%016x", h.Sum64())
 }
 
 // calculateLexicalSimilarity calculates lexical similarity using keyword matching

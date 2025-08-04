@@ -1,11 +1,9 @@
 package llm
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -15,7 +13,7 @@ import (
 
 // StreamingProcessor handles Server-Sent Events (SSE) streaming for real-time LLM responses
 type StreamingProcessor struct {
-	baseClient        Client
+	baseClient        ClientInterface
 	contextManager    *StreamingContextManager
 	tokenManager      *TokenManager
 	config            *StreamingConfig
@@ -133,7 +131,7 @@ type SSEEvent struct {
 }
 
 // NewStreamingProcessor creates a new streaming processor
-func NewStreamingProcessor(baseClient Client, tokenManager *TokenManager, config *StreamingConfig) *StreamingProcessor {
+func NewStreamingProcessor(baseClient *Client, tokenManager *TokenManager, config *StreamingConfig) *StreamingProcessor {
 	if config == nil {
 		config = getDefaultStreamingConfig()
 	}

@@ -1,0 +1,1267 @@
+---
+# Business Continuity Planning for Nephoran Intent Operator
+# This configuration implements comprehensive incident response, recovery procedures, and business impact management
+
+# Namespace for business continuity components
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-bcp
+  labels:
+    app.kubernetes.io/name: business-continuity
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    environment: production
+---
+# ServiceAccount for business continuity operations
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephoran-bcp-operator
+  namespace: nephoran-bcp
+  labels:
+    app: business-continuity
+    component: operator
+---
+# ClusterRole for business continuity operations
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-bcp-operator
+rules:
+# Access to monitor all system resources for business impact assessment
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents", "e2nodesets", "managedelements"]
+  verbs: ["get", "list", "watch"]
+# Access to create jobs for recovery operations
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Access to monitoring resources for business metrics
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors", "prometheusrules"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+# ClusterRoleBinding for business continuity operator
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-bcp-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nephoran-bcp-operator
+subjects:
+- kind: ServiceAccount
+  name: nephoran-bcp-operator
+  namespace: nephoran-bcp
+---
+# Business Continuity Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: business-continuity-config
+  namespace: nephoran-bcp
+  labels:
+    app: business-continuity
+    component: configuration
+data:
+  # Recovery Time Objective (RTO) and Recovery Point Objective (RPO) Configuration
+  rto-rpo-config.yaml: |
+    recovery_objectives:
+      # RTO targets by service criticality
+      rto_targets:
+        critical_services:
+          target_minutes: 5
+          services:
+            - "nephio-bridge"
+            - "llm-processor"
+            - "weaviate"
+          escalation_threshold_minutes: 10
+          
+        important_services:
+          target_minutes: 15
+          services:
+            - "rag-api"
+            - "oran-adaptor"
+            - "prometheus"
+          escalation_threshold_minutes: 30
+          
+        standard_services:
+          target_minutes: 60
+          services:
+            - "grafana"
+            - "kibana"
+            - "elasticsearch"
+          escalation_threshold_minutes: 120
+          
+      # RPO targets by data type
+      rpo_targets:
+        configuration_data:
+          target_minutes: 1
+          backup_frequency: "continuous"
+          replication: "synchronous"
+          
+        intent_processing_data:
+          target_minutes: 5
+          backup_frequency: "5m"
+          replication: "asynchronous"
+          
+        knowledge_base_data:
+          target_minutes: 15
+          backup_frequency: "hourly"
+          replication: "asynchronous"
+          
+        monitoring_data:
+          target_minutes: 60
+          backup_frequency: "daily"
+          replication: "none"
+          
+    # Business impact thresholds
+    business_impact:
+      revenue_impact_per_hour:
+        critical: 50000  # $50k/hour
+        high: 10000      # $10k/hour
+        medium: 2000     # $2k/hour
+        low: 500         # $500/hour
+        
+      customer_impact:
+        critical: "All customers affected"
+        high: "Major customers affected"
+        medium: "Some customers affected"
+        low: "Minimal customer impact"
+        
+      regulatory_impact:
+        critical: "Compliance violation risk"
+        high: "Audit findings risk"
+        medium: "Minor compliance concern"
+        low: "No regulatory impact"
+
+  # Incident Response Procedures Configuration
+  incident-response-config.yaml: |
+    incident_response:
+      severity_levels:
+        sev0:
+          name: "Critical System Outage"
+          description: "Complete system failure affecting all users"
+          response_time_minutes: 5
+          escalation_path: ["oncall_engineer", "engineering_manager", "cto"]
+          communication_channels: ["pagerduty", "slack_critical", "email_executives"]
+          
+        sev1:
+          name: "Major Service Degradation"
+          description: "Significant impact to core functionality"
+          response_time_minutes: 15
+          escalation_path: ["oncall_engineer", "engineering_manager"]
+          communication_channels: ["slack_critical", "email_team"]
+          
+        sev2:
+          name: "Minor Service Impact"
+          description: "Limited functionality affected"
+          response_time_minutes: 60
+          escalation_path: ["oncall_engineer"]
+          communication_channels: ["slack_alerts"]
+          
+        sev3:
+          name: "Monitoring Alert"
+          description: "Early warning or non-customer facing issue"
+          response_time_minutes: 240
+          escalation_path: ["oncall_engineer"]
+          communication_channels: ["slack_info"]
+          
+      response_procedures:
+        initial_response:
+          - "Acknowledge incident within SLA"
+          - "Assess severity and impact"
+          - "Establish incident command if SEV0/SEV1"
+          - "Create incident channel"
+          - "Begin status page updates"
+          
+        investigation:
+          - "Gather system metrics and logs"
+          - "Check recent deployments and changes"
+          - "Validate monitoring and alerting"
+          - "Identify root cause"
+          - "Document findings"
+          
+        resolution:
+          - "Implement immediate mitigation"
+          - "Test resolution in staging if possible"
+          - "Deploy fix to production"
+          - "Validate system recovery"
+          - "Update stakeholders"
+          
+        post_incident:
+          - "Conduct post-mortem within 48 hours"
+          - "Document lessons learned"
+          - "Create action items"
+          - "Update runbooks and procedures"
+          - "Schedule follow-up review"
+          
+    communication_templates:
+      initial_notification:
+        title: "Incident {{ incident_id }}: {{ title }}"
+        body: |
+          We are investigating reports of {{ description }}.
+          
+          Status: {{ status }}
+          Impact: {{ impact }}
+          ETA: {{ eta }}
+          
+          We will provide updates every {{ update_frequency }} minutes.
+          
+      status_update:
+        title: "Update on Incident {{ incident_id }}"
+        body: |
+          Update on {{ title }}:
+          
+          Current Status: {{ current_status }}
+          Progress: {{ progress_description }}
+          Next Update: {{ next_update_time }}
+          
+      resolution_notification:
+        title: "Resolved: Incident {{ incident_id }}"
+        body: |
+          The incident has been resolved.
+          
+          Summary: {{ resolution_summary }}
+          Duration: {{ incident_duration }}
+          Root Cause: {{ root_cause }}
+          
+          A post-mortem will be conducted and shared within 48 hours.
+
+  # Service Restoration Procedures
+  service-restoration-config.yaml: |
+    restoration_procedures:
+      automated_recovery:
+        enabled: true
+        max_attempts: 3
+        backoff_multiplier: 2
+        initial_delay_seconds: 30
+        
+        steps:
+          - name: "health_check"
+            description: "Verify service health endpoints"
+            timeout_seconds: 30
+            
+          - name: "dependency_check"
+            description: "Validate all service dependencies"
+            timeout_seconds: 60
+            
+          - name: "data_consistency_check"
+            description: "Verify data integrity"
+            timeout_seconds: 120
+            
+          - name: "integration_test"
+            description: "Run integration test suite"
+            timeout_seconds: 300
+            
+          - name: "load_test"
+            description: "Validate performance under load"
+            timeout_seconds: 600
+            
+      manual_validation:
+        required_for_severity: ["sev0", "sev1"]
+        validation_steps:
+          - name: "business_function_test"
+            description: "Test end-to-end business functionality"
+            owner: "engineering_manager"
+            
+          - name: "customer_impact_assessment"
+            description: "Validate customer-facing functionality"
+            owner: "product_manager"
+            
+          - name: "security_validation"
+            description: "Confirm security controls are functional"
+            owner: "security_engineer"
+            
+          - name: "compliance_check"
+            description: "Verify regulatory compliance requirements"
+            owner: "compliance_officer"
+            
+      rollback_procedures:
+        automatic_rollback:
+          enabled: true
+          triggers:
+            - "health_check_failure"
+            - "integration_test_failure"
+            - "critical_error_rate_threshold"
+            
+        rollback_steps:
+          - "Stop traffic to failed deployment"
+          - "Revert to previous known good configuration"
+          - "Restore from last valid backup if needed"
+          - "Validate system health"
+          - "Resume normal operations"
+
+  # Business Impact Assessment Configuration
+  impact-assessment-config.yaml: |
+    business_impact_assessment:
+      impact_categories:
+        customer_experience:
+          metrics:
+            - "user_login_success_rate"
+            - "intent_processing_success_rate"
+            - "average_response_time"
+            - "error_rate"
+          thresholds:
+            critical: "< 50% success rate or > 10s response time"
+            high: "< 80% success rate or > 5s response time"
+            medium: "< 95% success rate or > 2s response time"
+            low: "> 95% success rate and < 2s response time"
+            
+        revenue_impact:
+          calculation_method: "intent_volume * avg_revenue_per_intent * downtime_hours"
+          base_metrics:
+            intent_volume_per_hour: 1000
+            avg_revenue_per_intent: 2.50
+            peak_hour_multiplier: 2.0
+            
+        operational_impact:
+          metrics:
+            - "manual_operations_required"
+            - "support_ticket_volume"
+            - "engineering_time_diverted"
+          cost_calculations:
+            manual_operation_cost_per_hour: 150
+            support_overhead_multiplier: 1.5
+            engineering_cost_per_hour: 200
+            
+        regulatory_compliance:
+          requirements:
+            - name: "data_protection"
+              impact_if_violated: "GDPR fines up to 4% of revenue"
+              monitoring_metrics: ["data_encryption_status", "access_log_integrity"]
+              
+            - name: "telecom_compliance"
+              impact_if_violated: "FCC enforcement actions"
+              monitoring_metrics: ["network_availability", "service_quality"]
+              
+            - name: "financial_compliance"
+              impact_if_violated: "SOX audit findings"
+              monitoring_metrics: ["audit_log_completeness", "change_approval_tracking"]
+
+---
+# Incident Response Automation Controller
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: incident-response-controller
+  namespace: nephoran-bcp
+  labels:
+    app: incident-response
+    component: automation
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: incident-response
+  template:
+    metadata:
+      labels:
+        app: incident-response
+    spec:
+      serviceAccountName: nephoran-bcp-operator
+      containers:
+      - name: incident-controller
+        image: alpine/curl:8.4.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          #!/bin/sh
+          echo "🚨 Starting Incident Response Automation Controller"
+          
+          # Function to assess incident severity
+          assess_incident_severity() {
+            local alert_name=$1
+            local service=$2
+            local metrics=$3
+            
+            echo "🔍 Assessing incident severity for $alert_name"
+            
+            # Get current system metrics
+            error_rate=$(curl -s "http://prometheus.nephoran-monitoring:9090/api/v1/query?query=rate(nephoran_errors_total[5m])" | jq -r '.data.result[0].value[1] // "0"')
+            response_time=$(curl -s "http://prometheus.nephoran-monitoring:9090/api/v1/query?query=histogram_quantile(0.95,rate(nephoran_request_duration_seconds_bucket[5m]))" | jq -r '.data.result[0].value[1] // "0"')
+            availability=$(curl -s "http://prometheus.nephoran-monitoring:9090/api/v1/query?query=avg(up{job=~\"nephoran.*\"})" | jq -r '.data.result[0].value[1] // "1"')
+            
+            # Determine severity based on metrics
+            if (( $(echo "$availability < 0.5" | bc -l) )) || (( $(echo "$error_rate > 0.5" | bc -l) )); then
+              echo "SEV0"
+            elif (( $(echo "$availability < 0.8" | bc -l) )) || (( $(echo "$error_rate > 0.2" | bc -l) )) || (( $(echo "$response_time > 10" | bc -l) )); then
+              echo "SEV1"
+            elif (( $(echo "$availability < 0.95" | bc -l) )) || (( $(echo "$error_rate > 0.05" | bc -l) )) || (( $(echo "$response_time > 5" | bc -l) )); then
+              echo "SEV2"
+            else
+              echo "SEV3"
+            fi
+          }
+          
+          # Function to calculate business impact
+          calculate_business_impact() {
+            local severity=$1
+            local duration_minutes=$2
+            
+            echo "💰 Calculating business impact for $severity incident lasting $duration_minutes minutes"
+            
+            # Base impact calculations
+            local intent_volume_per_hour=1000
+            local revenue_per_intent=2.50
+            local duration_hours=$(echo "$duration_minutes / 60" | bc -l)
+            
+            case $severity in
+              "SEV0")
+                impact_percentage=100
+                customer_impact="All customers affected"
+                ;;
+              "SEV1")
+                impact_percentage=50
+                customer_impact="Major customers affected"
+                ;;
+              "SEV2")
+                impact_percentage=20
+                customer_impact="Some customers affected"
+                ;;
+              "SEV3")
+                impact_percentage=5
+                customer_impact="Minimal customer impact"
+                ;;
+            esac
+            
+            revenue_impact=$(echo "$intent_volume_per_hour * $revenue_per_intent * $duration_hours * $impact_percentage / 100" | bc -l)
+            
+            cat <<EOF > /tmp/business_impact.json
+{
+  "incident_severity": "$severity",
+  "duration_minutes": $duration_minutes,
+  "revenue_impact_usd": $revenue_impact,
+  "customer_impact": "$customer_impact",
+  "calculated_at": "$(date -Iseconds)"
+}
+EOF
+            
+            echo "📊 Business impact: \$$(printf "%.2f" $revenue_impact) revenue loss, $customer_impact"
+          }
+          
+          # Function to create incident
+          create_incident() {
+            local incident_id=$1
+            local severity=$2
+            local title=$3
+            local description=$4
+            
+            echo "📝 Creating incident $incident_id with severity $severity"
+            
+            # Create incident record
+            cat <<EOF > /tmp/incident_${incident_id}.json
+{
+  "incident_id": "$incident_id",
+  "severity": "$severity", 
+  "title": "$title",
+  "description": "$description",
+  "status": "investigating",
+  "created_at": "$(date -Iseconds)",
+  "response_team": [],
+  "timeline": [
+    {
+      "timestamp": "$(date -Iseconds)",
+      "event": "incident_created",
+      "description": "Incident automatically created by monitoring system"
+    }
+  ]
+}
+EOF
+            
+            # Store incident in ConfigMap
+            kubectl create configmap incident-${incident_id} \
+              --from-file=/tmp/incident_${incident_id}.json \
+              --namespace=nephoran-bcp
+              
+            echo "✅ Incident $incident_id created and stored"
+          }
+          
+          # Function to send notifications
+          send_incident_notifications() {
+            local incident_id=$1
+            local severity=$2
+            local title=$3
+            local description=$4
+            
+            echo "📢 Sending notifications for $severity incident"
+            
+            case $severity in
+              "SEV0"|"SEV1")
+                # Critical notifications - PagerDuty, Slack, Email
+                curl -X POST "$PAGERDUTY_WEBHOOK" \
+                  -H 'Content-type: application/json' \
+                  --data "{
+                    \"routing_key\": \"$PAGERDUTY_ROUTING_KEY\",
+                    \"event_action\": \"trigger\",
+                    \"dedup_key\": \"$incident_id\",
+                    \"payload\": {
+                      \"summary\": \"$title\",
+                      \"severity\": \"critical\",
+                      \"source\": \"nephoran-monitoring\"
+                    }
+                  }"
+                
+                curl -X POST "$SLACK_CRITICAL_WEBHOOK" \
+                  -H 'Content-type: application/json' \
+                  --data "{\"text\":\"🚨 $severity INCIDENT: $title\\n\\nDescription: $description\\nIncident ID: $incident_id\\n\\n@channel @oncall-engineer\"}"
+                ;;
+              "SEV2")
+                # Warning notifications - Slack only
+                curl -X POST "$SLACK_ALERTS_WEBHOOK" \
+                  -H 'Content-type: application/json' \
+                  --data "{\"text\":\"⚠️ $severity: $title\\n\\nDescription: $description\\nIncident ID: $incident_id\"}"
+                ;;
+              "SEV3")
+                # Info notifications - Info channel only
+                curl -X POST "$SLACK_INFO_WEBHOOK" \
+                  -H 'Content-type: application/json' \
+                  --data "{\"text\":\"ℹ️ $severity: $title\\n\\nIncident ID: $incident_id\"}"
+                ;;
+            esac
+            
+            echo "✅ Notifications sent for incident $incident_id"
+          }
+          
+          # Function to initiate automated recovery
+          initiate_automated_recovery() {
+            local incident_id=$1
+            local severity=$2
+            local affected_service=$3
+            
+            echo "🔄 Initiating automated recovery for $affected_service"
+            
+            # Create recovery job
+            cat <<EOF | kubectl apply -f -
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: recovery-${incident_id}
+  namespace: nephoran-bcp
+  labels:
+    incident-id: ${incident_id}
+    recovery-type: automated
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: recovery
+        image: alpine/curl:8.4.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "🚑 Starting automated recovery for incident ${incident_id}"
+          
+          # Health check
+          if curl -f -s --max-time 30 "http://${affected_service}.nephoran-system:8080/healthz"; then
+            echo "✅ Service ${affected_service} health check passed"
+          else
+            echo "❌ Service ${affected_service} health check failed - attempting restart"
+            kubectl rollout restart deployment/${affected_service} -n nephoran-system
+            sleep 60
+          fi
+          
+          # Integration test
+          echo "🧪 Running integration tests..."
+          # Simplified integration test - would be more comprehensive in production
+          if curl -f -s --max-time 30 "http://${affected_service}.nephoran-system:8080/readyz"; then
+            echo "✅ Integration tests passed"
+          else
+            echo "❌ Integration tests failed"
+            exit 1
+          fi
+          
+          echo "✅ Automated recovery completed for incident ${incident_id}"
+EOF
+            
+            echo "✅ Recovery job created for incident $incident_id"
+          }
+          
+          # Function to monitor for new incidents
+          monitor_incidents() {
+            echo "👀 Monitoring for new incidents..."
+            
+            # Query Prometheus for active alerts
+            alerts=$(curl -s "http://prometheus.nephoran-monitoring:9090/api/v1/alerts" | jq -r '.data.alerts[] | select(.state=="firing") | .labels.alertname')
+            
+            for alert in $alerts; do
+              # Check if we already have an incident for this alert
+              if ! kubectl get configmap -n nephoran-bcp | grep -q "incident-$alert"; then
+                echo "🆕 New alert detected: $alert"
+                
+                # Get alert details
+                alert_details=$(curl -s "http://prometheus.nephoran-monitoring:9090/api/v1/alerts" | jq -r --arg alert "$alert" '.data.alerts[] | select(.labels.alertname==$alert)')
+                
+                service=$(echo "$alert_details" | jq -r '.labels.service // "unknown"')
+                severity=$(assess_incident_severity "$alert" "$service" "$alert_details")
+                
+                # Generate incident ID
+                incident_id="INC-$(date +%Y%m%d-%H%M%S)-$(echo $alert | tr '[:upper:]' '[:lower:]')"
+                
+                # Create incident
+                create_incident "$incident_id" "$severity" "$alert" "Automated incident created for alert: $alert"
+                
+                # Send notifications
+                send_incident_notifications "$incident_id" "$severity" "$alert" "Alert detected in monitoring system"
+                
+                # Calculate business impact
+                calculate_business_impact "$severity" 0
+                
+                # Initiate automated recovery for SEV1/SEV2 incidents
+                if [ "$severity" = "SEV1" ] || [ "$severity" = "SEV2" ]; then
+                  initiate_automated_recovery "$incident_id" "$severity" "$service"
+                fi
+              fi
+            done
+          }
+          
+          # Main monitoring loop
+          while true; do
+            monitor_incidents
+            sleep 60  # Check every minute
+          done
+        env:
+        - name: PAGERDUTY_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: bcp-notification-secrets
+              key: pagerduty-webhook
+        - name: PAGERDUTY_ROUTING_KEY
+          valueFrom:
+            secretKeyRef:
+              name: bcp-notification-secrets
+              key: pagerduty-routing-key
+        - name: SLACK_CRITICAL_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: bcp-notification-secrets
+              key: slack-critical-webhook
+        - name: SLACK_ALERTS_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: bcp-notification-secrets
+              key: slack-alerts-webhook
+        - name: SLACK_INFO_WEBHOOK
+          valueFrom:
+            secretKeyRef:
+              name: bcp-notification-secrets
+              key: slack-info-webhook
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+
+---
+# Business Impact Assessment Controller
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: business-impact-controller
+  namespace: nephoran-bcp
+  labels:
+    app: business-impact
+    component: assessment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: business-impact
+  template:
+    metadata:
+      labels:
+        app: business-impact
+    spec:
+      serviceAccountName: nephoran-bcp-operator
+      containers:
+      - name: impact-assessor
+        image: alpine/curl:8.4.0
+        command:
+        - /bin/sh
+        - -c
+        - |
+          #!/bin/sh
+          echo "📊 Starting Business Impact Assessment Controller"
+          
+          # Function to assess customer impact
+          assess_customer_impact() {
+            local incident_id=$1
+            
+            echo "👥 Assessing customer impact for incident $incident_id"
+            
+            # Get current system metrics
+            success_rate=$(curl -s "http://prometheus.nephoran-monitoring:9090/api/v1/query?query=rate(nephoran_requests_success_total[5m])/rate(nephoran_requests_total[5m])" | jq -r '.data.result[0].value[1] // "1"')
+            active_users=$(curl -s "http://prometheus.nephoran-monitoring:9090/api/v1/query?query=nephoran_active_users" | jq -r '.data.result[0].value[1] // "0"')
+            error_rate=$(curl -s "http://prometheus.nephoran-monitoring:9090/api/v1/query?query=rate(nephoran_errors_total[5m])" | jq -r '.data.result[0].value[1] // "0"')
+            
+            # Calculate impact metrics
+            affected_users=$(echo "$active_users * (1 - $success_rate)" | bc -l)
+            
+            if (( $(echo "$success_rate < 0.5" | bc -l) )); then
+              impact_level="critical"
+              impact_description="All customers experiencing service failures"
+            elif (( $(echo "$success_rate < 0.8" | bc -l) )); then
+              impact_level="high"
+              impact_description="Major customers experiencing service degradation"
+            elif (( $(echo "$success_rate < 0.95" | bc -l) )); then
+              impact_level="medium"
+              impact_description="Some customers experiencing intermittent issues"
+            else
+              impact_level="low"
+              impact_description="Minimal customer impact detected"
+            fi
+            
+            cat <<EOF > /tmp/customer_impact_${incident_id}.json
+{
+  "incident_id": "$incident_id",
+  "assessment_time": "$(date -Iseconds)",
+  "success_rate": $success_rate,
+  "active_users": $active_users,
+  "affected_users": $affected_users,
+  "impact_level": "$impact_level",
+  "impact_description": "$impact_description"
+}
+EOF
+            
+            echo "📋 Customer impact: $impact_level - $impact_description"
+          }
+          
+          # Function to calculate revenue impact
+          calculate_revenue_impact() {
+            local incident_id=$1
+            local duration_minutes=$2
+            
+            echo "💰 Calculating revenue impact for incident $incident_id"
+            
+            # Business metrics (would come from actual business systems)
+            intent_volume_per_hour=1000
+            revenue_per_intent=2.50
+            current_hour=$(date +%H)
+            
+            # Peak hour adjustment
+            if [ $current_hour -ge 9 ] && [ $current_hour -le 17 ]; then
+              peak_multiplier=2.0
+            else
+              peak_multiplier=1.0
+            fi
+            
+            # Get current success rate
+            success_rate=$(curl -s "http://prometheus.nephoran-monitoring:9090/api/v1/query?query=rate(nephoran_requests_success_total[5m])/rate(nephoran_requests_total[5m])" | jq -r '.data.result[0].value[1] // "1"')
+            
+            # Calculate lost revenue
+            duration_hours=$(echo "$duration_minutes / 60" | bc -l)
+            impact_factor=$(echo "1 - $success_rate" | bc -l)
+            lost_revenue=$(echo "$intent_volume_per_hour * $revenue_per_intent * $duration_hours * $impact_factor * $peak_multiplier" | bc -l)
+            
+            cat <<EOF > /tmp/revenue_impact_${incident_id}.json
+{
+  "incident_id": "$incident_id",
+  "assessment_time": "$(date -Iseconds)",
+  "duration_minutes": $duration_minutes,
+  "success_rate": $success_rate,
+  "impact_factor": $impact_factor,
+  "peak_multiplier": $peak_multiplier,
+  "lost_revenue_usd": $lost_revenue
+}
+EOF
+            
+            echo "💵 Revenue impact: \$$(printf "%.2f" $lost_revenue) lost revenue"
+          }
+          
+          # Function to assess operational impact
+          assess_operational_impact() {
+            local incident_id=$1
+            
+            echo "⚙️ Assessing operational impact for incident $incident_id"
+            
+            # Count manual operations required
+            manual_ops_count=0
+            support_tickets=0
+            
+            # Check for increased manual operations (simplified)
+            failed_intents=$(curl -s "http://prometheus.nephoran-monitoring:9090/api/v1/query?query=rate(nephoran_networkintent_failed_total[5m])" | jq -r '.data.result[0].value[1] // "0"')
+            manual_ops_count=$(echo "$failed_intents * 5" | bc -l)  # Estimate 5 minutes manual work per failed intent
+            
+            # Estimate support overhead
+            error_rate=$(curl -s "http://prometheus.nephoran-monitoring:9090/api/v1/query?query=rate(nephoran_errors_total[5m])" | jq -r '.data.result[0].value[1] // "0"')
+            support_tickets=$(echo "$error_rate * 10" | bc -l)  # Estimate support tickets based on error rate
+            
+            # Calculate operational costs
+            manual_cost_per_hour=150
+            support_cost_per_ticket=50
+            engineering_cost_per_hour=200
+            
+            manual_cost=$(echo "$manual_ops_count * $manual_cost_per_hour / 60" | bc -l)
+            support_cost=$(echo "$support_tickets * $support_cost_per_ticket" | bc -l)
+            engineering_cost=$(echo "2 * $engineering_cost_per_hour" | bc -l)  # 2 engineers working on incident
+            
+            total_operational_cost=$(echo "$manual_cost + $support_cost + $engineering_cost" | bc -l)
+            
+            cat <<EOF > /tmp/operational_impact_${incident_id}.json
+{
+  "incident_id": "$incident_id",
+  "assessment_time": "$(date -Iseconds)",
+  "manual_operations_hours": $manual_ops_count,
+  "support_tickets_generated": $support_tickets,
+  "engineering_hours_diverted": 2,
+  "total_operational_cost_usd": $total_operational_cost
+}
+EOF
+            
+            echo "🔧 Operational impact: \$$(printf "%.2f" $total_operational_cost) operational cost"
+          }
+          
+          # Function to generate comprehensive business impact report
+          generate_impact_report() {
+            local incident_id=$1
+            local duration_minutes=$2
+            
+            echo "📊 Generating comprehensive business impact report for $incident_id"
+            
+            # Run all assessments
+            assess_customer_impact "$incident_id"
+            calculate_revenue_impact "$incident_id" "$duration_minutes"
+            assess_operational_impact "$incident_id"
+            
+            # Combine into comprehensive report
+            customer_impact=$(cat /tmp/customer_impact_${incident_id}.json)
+            revenue_impact=$(cat /tmp/revenue_impact_${incident_id}.json)
+            operational_impact=$(cat /tmp/operational_impact_${incident_id}.json)
+            
+            cat <<EOF > /tmp/business_impact_report_${incident_id}.json
+{
+  "incident_id": "$incident_id",
+  "report_generated": "$(date -Iseconds)",
+  "duration_minutes": $duration_minutes,
+  "customer_impact": $customer_impact,
+  "revenue_impact": $revenue_impact,
+  "operational_impact": $operational_impact,
+  "summary": {
+    "total_cost_impact": $(echo "$(echo "$revenue_impact" | jq -r '.lost_revenue_usd') + $(echo "$operational_impact" | jq -r '.total_operational_cost_usd')" | bc -l),
+    "customer_impact_level": "$(echo "$customer_impact" | jq -r '.impact_level')",
+    "business_priority": "high"
+  }
+}
+EOF
+            
+            # Store report in ConfigMap
+            kubectl create configmap business-impact-report-${incident_id} \
+              --from-file=/tmp/business_impact_report_${incident_id}.json \
+              --namespace=nephoran-bcp \
+              --dry-run=client -o yaml | kubectl apply -f -
+              
+            echo "✅ Business impact report generated and stored for incident $incident_id"
+          }
+          
+          # Main assessment loop
+          while true; do
+            echo "🔍 Checking for active incidents requiring impact assessment..."
+            
+            # Get all incident ConfigMaps
+            incidents=$(kubectl get configmaps -n nephoran-bcp -l incident-id --no-headers | awk '{print $1}' | grep '^incident-')
+            
+            for incident_cm in $incidents; do
+              incident_id=$(echo $incident_cm | sed 's/incident-//')
+              
+              # Check if we already have a business impact report
+              if ! kubectl get configmap "business-impact-report-$incident_id" -n nephoran-bcp >/dev/null 2>&1; then
+                echo "📋 Creating business impact assessment for incident $incident_id"
+                
+                # Get incident details
+                incident_data=$(kubectl get configmap "$incident_cm" -n nephoran-bcp -o jsonpath='{.data.*}')
+                created_at=$(echo "$incident_data" | jq -r '.created_at')
+                
+                # Calculate incident duration
+                created_timestamp=$(date -d "$created_at" +%s)
+                current_timestamp=$(date +%s)
+                duration_minutes=$(( (current_timestamp - created_timestamp) / 60 ))
+                
+                # Generate impact report
+                generate_impact_report "$incident_id" "$duration_minutes"
+              fi
+            done
+            
+            # Update business impact every 15 minutes
+            sleep 900
+          done
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 300m
+            memory: 256Mi
+
+---
+# Communication and Escalation Procedures
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: communication-escalation-config
+  namespace: nephoran-bcp
+  labels:
+    app: business-continuity
+    component: communication
+data:
+  escalation-matrix.yaml: |
+    escalation_procedures:
+      # Escalation paths by severity
+      sev0_escalation:
+        immediate: ["oncall_engineer"]
+        5_minutes: ["engineering_manager", "sre_lead"]
+        15_minutes: ["engineering_director", "product_manager"]
+        30_minutes: ["cto", "ceo"]
+        60_minutes: ["board_notification"]
+        
+      sev1_escalation:
+        immediate: ["oncall_engineer"]
+        15_minutes: ["engineering_manager"]
+        60_minutes: ["engineering_director"]
+        120_minutes: ["cto"]
+        
+      sev2_escalation:
+        immediate: ["oncall_engineer"]
+        60_minutes: ["engineering_manager"]
+        240_minutes: ["engineering_director"]
+        
+    # Communication channels
+    communication_channels:
+      pagerduty:
+        severity_levels: ["sev0", "sev1"]
+        escalation_policy: "nephoran-critical"
+        
+      slack_critical:
+        channel: "#nephoran-critical"
+        severity_levels: ["sev0", "sev1"]
+        mentions: ["@channel", "@oncall-engineer"]
+        
+      slack_alerts:
+        channel: "#nephoran-alerts"
+        severity_levels: ["sev2"]
+        mentions: ["@oncall-engineer"]
+        
+      email_executives:
+        recipients: ["cto@nephoran.com", "ceo@nephoran.com"]
+        severity_levels: ["sev0"]
+        
+      status_page:
+        url: "https://status.nephoran.com"
+        auto_update: true
+        severity_levels: ["sev0", "sev1", "sev2"]
+        
+    # Stakeholder groups
+    stakeholder_groups:
+      engineering:
+        members: ["oncall_engineer", "engineering_manager", "sre_lead"]
+        notification_methods: ["pagerduty", "slack"]
+        
+      product:
+        members: ["product_manager", "product_director"]
+        notification_methods: ["email", "slack"]
+        
+      executive:
+        members: ["cto", "ceo"]
+        notification_methods: ["email", "phone"]
+        
+      customers:
+        notification_methods: ["status_page", "email_notifications"]
+        sla_update_frequency: "15_minutes"
+
+---
+# Service Restoration Validation Jobs
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: restoration-validation
+  namespace: nephoran-bcp
+  labels:
+    app: business-continuity
+    component: validation
+spec:
+  schedule: "*/15 * * * *"  # Every 15 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: nephoran-bcp-operator
+          restartPolicy: OnFailure
+          containers:
+          - name: validation
+            image: alpine/curl:8.4.0
+            command:
+            - /bin/sh
+            - -c
+            - |
+              #!/bin/sh
+              echo "🔍 Starting Service Restoration Validation"
+              
+              # Function to validate service restoration
+              validate_service_restoration() {
+                local service=$1
+                local namespace=$2
+                
+                echo "✅ Validating restoration of $service in $namespace"
+                
+                # Check deployment status
+                deployment_status=$(kubectl get deployment $service -n $namespace -o jsonpath='{.status.conditions[?(@.type=="Available")].status}')
+                ready_replicas=$(kubectl get deployment $service -n $namespace -o jsonpath='{.status.readyReplicas}')
+                desired_replicas=$(kubectl get deployment $service -n $namespace -o jsonpath='{.status.replicas}')
+                
+                if [ "$deployment_status" = "True" ] && [ "$ready_replicas" = "$desired_replicas" ]; then
+                  echo "✅ Deployment $service is healthy ($ready_replicas/$desired_replicas replicas ready)"
+                else
+                  echo "❌ Deployment $service is unhealthy ($ready_replicas/$desired_replicas replicas ready)"
+                  return 1
+                fi
+                
+                # Check service health endpoint
+                if curl -f -s --max-time 30 "http://$service.$namespace.svc.cluster.local:8080/healthz" >/dev/null; then
+                  echo "✅ Health endpoint for $service is responding"
+                else
+                  echo "❌ Health endpoint for $service is not responding"
+                  return 1
+                fi
+                
+                # Check readiness endpoint
+                if curl -f -s --max-time 30 "http://$service.$namespace.svc.cluster.local:8080/readyz" >/dev/null; then
+                  echo "✅ Readiness endpoint for $service is responding"
+                else
+                  echo "❌ Readiness endpoint for $service is not responding"
+                  return 1
+                fi
+                
+                return 0
+              }
+              
+              # Function to run integration tests
+              run_integration_tests() {
+                echo "🧪 Running integration tests..."
+                
+                # Test NetworkIntent processing
+                test_intent_id="test-$(date +%s)"
+                
+                cat <<EOF | kubectl apply -f -
+              apiVersion: nephoran.com/v1
+              kind: NetworkIntent
+              metadata:
+                name: $test_intent_id
+                namespace: nephoran-system
+              spec:
+                description: "Integration test intent for business continuity validation"
+                priority: low
+              EOF
+                
+                # Wait for processing
+                sleep 30
+                
+                # Check if intent was processed
+                intent_status=$(kubectl get networkintent $test_intent_id -n nephoran-system -o jsonpath='{.status.phase}' 2>/dev/null || echo "NotFound")
+                
+                if [ "$intent_status" = "Completed" ] || [ "$intent_status" = "Processing" ]; then
+                  echo "✅ NetworkIntent integration test passed"
+                  integration_test_result="pass"
+                else
+                  echo "❌ NetworkIntent integration test failed (status: $intent_status)"
+                  integration_test_result="fail"
+                fi
+                
+                # Cleanup test intent
+                kubectl delete networkintent $test_intent_id -n nephoran-system 2>/dev/null || true
+                
+                return $([ "$integration_test_result" = "pass" ] && echo 0 || echo 1)
+              }
+              
+              # Main validation process
+              validation_time=$(date -Iseconds)
+              validation_results=""
+              overall_status="healthy"
+              
+              echo "🔍 Validating critical services..."
+              
+              # Validate each critical service
+              for service in nephio-bridge llm-processor rag-api weaviate; do
+                if validate_service_restoration "$service" "nephoran-system"; then
+                  validation_results="$validation_results\n✅ $service: healthy"
+                else
+                  validation_results="$validation_results\n❌ $service: unhealthy"
+                  overall_status="degraded"
+                fi
+              done
+              
+              # Run integration tests
+              if run_integration_tests; then
+                validation_results="$validation_results\n✅ Integration tests: passed"
+              else
+                validation_results="$validation_results\n❌ Integration tests: failed"
+                overall_status="degraded"
+              fi
+              
+              # Create validation report
+              cat <<EOF > /tmp/validation_report.json
+              {
+                "validation_time": "$validation_time",
+                "overall_status": "$overall_status",
+                "service_validations": {
+                  "nephio_bridge": "$(validate_service_restoration nephio-bridge nephoran-system >/dev/null && echo healthy || echo unhealthy)",
+                  "llm_processor": "$(validate_service_restoration llm-processor nephoran-system >/dev/null && echo healthy || echo unhealthy)",
+                  "rag_api": "$(validate_service_restoration rag-api nephoran-system >/dev/null && echo healthy || echo unhealthy)",
+                  "weaviate": "$(validate_service_restoration weaviate nephoran-system >/dev/null && echo healthy || echo unhealthy)"
+                },
+                "integration_tests": {
+                  "networkintent_processing": "$(run_integration_tests >/dev/null && echo pass || echo fail)"
+                }
+              }
+              EOF
+              
+              # Store validation report
+              kubectl create configmap validation-report-$(date +%Y%m%d-%H%M%S) \
+                --from-file=/tmp/validation_report.json \
+                --namespace=nephoran-bcp \
+                --dry-run=client -o yaml | kubectl apply -f -
+              
+              echo "📊 Validation Summary:"
+              echo -e "$validation_results"
+              echo "Overall Status: $overall_status"
+              
+              # Alert if system is degraded
+              if [ "$overall_status" = "degraded" ]; then
+                curl -X POST "$SLACK_ALERTS_WEBHOOK" \
+                  -H 'Content-type: application/json' \
+                  --data "{\"text\":\"⚠️ Service restoration validation detected system degradation\\n\\nValidation Time: $validation_time\\nDetails: Check validation report for specifics\"}"
+              fi
+              
+              echo "✅ Service restoration validation completed"
+            env:
+            - name: SLACK_ALERTS_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: bcp-notification-secrets
+                  key: slack-alerts-webhook
+
+---
+# Secret for BCP notification credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: bcp-notification-secrets
+  namespace: nephoran-bcp
+type: Opaque
+stringData:
+  pagerduty-webhook: "https://events.pagerduty.com/v2/enqueue"
+  pagerduty-routing-key: "your-pagerduty-routing-key"
+  slack-critical-webhook: "https://hooks.slack.com/services/YOUR/CRITICAL/WEBHOOK"
+  slack-alerts-webhook: "https://hooks.slack.com/services/YOUR/ALERTS/WEBHOOK"
+  slack-info-webhook: "https://hooks.slack.com/services/YOUR/INFO/WEBHOOK"
+
+---
+# ServiceMonitor for BCP metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: business-continuity-monitoring
+  namespace: nephoran-bcp
+  labels:
+    app: business-continuity
+    component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: business-continuity
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+
+---
+# PrometheusRule for BCP alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: business-continuity-rules
+  namespace: nephoran-bcp
+  labels:
+    app: business-continuity
+    component: alerting
+spec:
+  groups:
+  - name: nephoran.bcp.alerts
+    rules:
+    - alert: RTOTargetExceeded
+      expr: nephoran_incident_duration_minutes > 5
+      for: 1m
+      labels:
+        severity: critical
+        alert_type: rto_violation
+      annotations:
+        summary: "RTO target exceeded"
+        description: "Incident {{ $labels.incident_id }} has exceeded RTO target of 5 minutes"
+        
+    - alert: BusinessImpactHigh
+      expr: nephoran_business_impact_cost_usd > 10000
+      for: 1m
+      labels:
+        severity: critical
+        alert_type: business_impact
+      annotations:
+        summary: "High business impact detected"
+        description: "Business impact cost is ${{ $value }}, exceeding $10,000 threshold"
+        
+    - alert: IncidentEscalationRequired
+      expr: nephoran_incident_unresolved_minutes > 30
+      for: 1m
+      labels:
+        severity: warning
+        alert_type: escalation
+      annotations:
+        summary: "Incident escalation required"
+        description: "Incident {{ $labels.incident_id }} has been unresolved for {{ $value }} minutes"
+
+---
+# Network Policy for BCP namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: bcp-network-policy
+  namespace: nephoran-bcp
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-monitoring
+    - podSelector: {}
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-system
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-monitoring
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80
+    - protocol: UDP
+      port: 53

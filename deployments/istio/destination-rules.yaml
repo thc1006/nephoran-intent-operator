@@ -1,0 +1,277 @@
+# Nephoran Intent Operator - Istio Destination Rules
+# Phase 4 Enterprise Architecture - Service Subsets and Load Balancing
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: llm-processor-dr
+  namespace: nephoran-system
+spec:
+  host: llm-processor.nephoran-system.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 2
+        h2UpgradePolicy: UPGRADE
+    loadBalancer:
+      consistentHash:
+        httpHeaderName: "x-session-id"
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+      splitExternalLocalOriginErrors: true
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+    trafficPolicy:
+      connectionPool:
+        tcp:
+          maxConnections: 50
+  - name: v2
+    labels:
+      version: v2
+    trafficPolicy:
+      connectionPool:
+        tcp:
+          maxConnections: 30
+  - name: canary
+    labels:
+      version: canary
+    trafficPolicy:
+      connectionPool:
+        tcp:
+          maxConnections: 20
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: rag-api-dr
+  namespace: nephoran-system
+spec:
+  host: rag-api.nephoran-system.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 200
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 200
+        maxRequestsPerConnection: 2
+    loadBalancer:
+      simple: LEAST_REQUEST
+    outlierDetection:
+      consecutiveErrors: 10
+      interval: 30s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 50
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: weaviate-dr
+  namespace: nephoran-system
+spec:
+  host: weaviate.nephoran-system.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 300
+      http:
+        http1MaxPendingRequests: 200
+        http2MaxRequests: 300
+    loadBalancer:
+      consistentHash:
+        httpQueryParameterName: "class"
+    outlierDetection:
+      consecutiveErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 30
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+  - name: write
+    labels:
+      role: master
+  - name: read
+    labels:
+      role: read
+  - name: read-replica-1
+    labels:
+      role: read-replica
+      replica: "1"
+  - name: read-replica-2
+    labels:
+      role: read-replica
+      replica: "2"
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: nephio-bridge-dr
+  namespace: nephoran-system
+spec:
+  host: nephio-bridge.nephoran-system.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 50
+      http:
+        http1MaxPendingRequests: 25
+        http2MaxRequests: 50
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 60s
+      baseEjectionTime: 120s
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+  - name: deployment-handler
+    labels:
+      handler: deployment
+  - name: scaling-handler
+    labels:
+      handler: scaling
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: oran-adaptor-dr
+  namespace: nephoran-system
+spec:
+  host: oran-adaptor.nephoran-system.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 60s
+  subsets:
+  - name: stable
+    labels:
+      version: stable
+  - name: a1-interface
+    labels:
+      interface: a1
+  - name: o1-interface
+    labels:
+      interface: o1
+  - name: o2-interface
+    labels:
+      interface: o2
+---
+# External Service Destination Rule
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: openai-api-dr
+  namespace: nephoran-system
+spec:
+  host: api.openai.com
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 10
+      http:
+        http1MaxPendingRequests: 10
+        http2MaxRequests: 20
+        maxRequestsPerConnection: 1
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutiveErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+    tls:
+      mode: SIMPLE
+      sni: api.openai.com
+---
+# Multi-cluster Destination Rules
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: nephoran-us-east-dr
+  namespace: nephoran-system
+spec:
+  host: nephoran-us-east.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 200
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 60s
+  subsets:
+  - name: production
+    labels:
+      env: production
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: nephoran-eu-west-dr
+  namespace: nephoran-system
+spec:
+  host: nephoran-eu-west.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 200
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 60s
+  subsets:
+  - name: production
+    labels:
+      env: production
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: nephoran-asia-pacific-dr
+  namespace: nephoran-system
+spec:
+  host: nephoran-asia-pacific.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 200
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 60s
+  subsets:
+  - name: production
+    labels:
+      env: production

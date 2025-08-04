@@ -1,0 +1,464 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: distributed-tracing-instrumentation
+  namespace: nephoran-system
+  labels:
+    app: nephoran-intent-operator
+    component: tracing
+    app.kubernetes.io/name: distributed-tracing
+    app.kubernetes.io/component: instrumentation
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  # Nephio Bridge Controller Tracing Configuration
+  nephio-bridge-tracing.yaml: |
+    # OpenTelemetry configuration for Nephio Bridge
+    tracing:
+      enabled: true
+      service_name: "nephio-bridge"
+      service_version: "v1.0.0"
+      environment: "production"
+      
+      # OTLP Exporter configuration
+      otlp:
+        endpoint: "http://opentelemetry-collector.nephoran-monitoring.svc.cluster.local:4317"
+        protocol: "grpc"
+        compression: "gzip"
+        timeout: "10s"
+        
+      # Sampling configuration
+      sampling:
+        type: "parentbased_traceidratio"
+        ratio: 0.1  # 10% sampling rate
+        
+      # Resource attributes
+      resource_attributes:
+        service.namespace: "nephoran-system"
+        service.instance.id: "${K8S_POD_NAME}"
+        k8s.pod.name: "${K8S_POD_NAME}"
+        k8s.namespace.name: "${K8S_POD_NAMESPACE}"
+        k8s.node.name: "${K8S_NODE_NAME}"
+        k8s.cluster.name: "nephoran-production"
+        
+      # Custom span attributes for NetworkIntent processing
+      custom_attributes:
+        nephoran.intent.type: "network_intent"
+        nephoran.controller.name: "networkintent-controller"
+        nephoran.reconcile.generation: "auto"
+        
+      # Instrumented components
+      instrumentation:
+        http_client: true
+        grpc_client: true
+        kubernetes_client: true
+        database: false
+        custom_spans: true
+        
+      # Span processors
+      span_processors:
+        - type: "batch"
+          config:
+            max_queue_size: 2048
+            batch_timeout: "5s"
+            export_timeout: "30s"
+            max_export_batch_size: 512
+
+  # LLM Processor Service Tracing Configuration
+  llm-processor-tracing.yaml: |
+    # OpenTelemetry configuration for LLM Processor
+    tracing:
+      enabled: true
+      service_name: "llm-processor"
+      service_version: "v1.0.0"
+      environment: "production"
+      
+      # OTLP Exporter configuration
+      otlp:
+        endpoint: "http://opentelemetry-collector.nephoran-monitoring.svc.cluster.local:4317"
+        protocol: "grpc"
+        compression: "gzip"
+        timeout: "10s"
+        
+      # Sampling configuration (higher rate for LLM tracing)
+      sampling:
+        type: "parentbased_traceidratio"
+        ratio: 0.2  # 20% sampling rate for LLM operations
+        
+      # Resource attributes
+      resource_attributes:
+        service.namespace: "nephoran-system"
+        service.instance.id: "${K8S_POD_NAME}"
+        llm.provider: "openai"
+        llm.model: "gpt-4o-mini"
+        
+      # Custom span attributes for LLM processing
+      custom_attributes:
+        nephoran.llm.provider: "openai"
+        nephoran.llm.model: "gpt-4o-mini"
+        nephoran.processing.type: "intent_to_parameters"
+        nephoran.cache.enabled: "true"
+        
+      # HTTP instrumentation for RAG API calls
+      http_instrumentation:
+        capture_request_headers:
+          - "x-intent-id"
+          - "x-correlation-id"
+          - "content-type"
+          - "authorization"
+        capture_response_headers:
+          - "x-processing-time"
+          - "x-cache-status"
+          - "x-model-used"
+        capture_request_body: false  # Privacy consideration
+        capture_response_body: false # Privacy consideration
+        
+      # Instrumented components
+      instrumentation:
+        http_client: true
+        http_server: true
+        grpc_client: true
+        json_rpc: true
+        custom_spans: true
+
+  # RAG API Service Tracing Configuration
+  rag-api-tracing.yaml: |
+    # OpenTelemetry configuration for RAG API (Python Flask)
+    tracing:
+      enabled: true
+      service_name: "rag-api"
+      service_version: "v1.0.0"
+      environment: "production"
+      
+      # OTLP Exporter configuration
+      otlp:
+        endpoint: "http://opentelemetry-collector.nephoran-monitoring.svc.cluster.local:4318"
+        protocol: "http/protobuf"
+        compression: "gzip"
+        timeout: "10s"
+        
+      # Sampling configuration
+      sampling:
+        type: "parentbased_traceidratio"
+        ratio: 0.15  # 15% sampling rate
+        
+      # Resource attributes
+      resource_attributes:
+        service.namespace: "nephoran-system"
+        service.instance.id: "${K8S_POD_NAME}"
+        rag.vector_db: "weaviate"
+        rag.llm_provider: "openai"
+        
+      # Custom span attributes for RAG processing
+      custom_attributes:
+        nephoran.rag.query_type: "semantic_search"
+        nephoran.rag.vector_db: "weaviate"
+        nephoran.rag.embedding_model: "text-embedding-3-large"
+        nephoran.rag.retrieval_k: "10"
+        
+      # Flask instrumentation
+      flask_instrumentation:
+        capture_request_headers:
+          - "x-intent-id"
+          - "x-user-id"
+          - "x-correlation-id"
+          - "content-type"
+        capture_response_headers:
+          - "x-processing-time"
+          - "x-cache-status"
+          - "x-retrieval-count"
+        exclude_urls:
+          - "/health"
+          - "/metrics"
+          - "/favicon.ico"
+          
+      # Database instrumentation for Weaviate
+      database_instrumentation:
+        capture_statement: false  # Vector queries can be large
+        capture_statement_summary: true
+        
+      # Instrumented libraries
+      instrumentation:
+        flask: true
+        requests: true
+        urllib3: true
+        sqlite3: false
+        redis: true
+        custom_spans: true
+
+  # O-RAN Adaptor Tracing Configuration
+  oran-adaptor-tracing.yaml: |
+    # OpenTelemetry configuration for O-RAN Adaptor
+    tracing:
+      enabled: true
+      service_name: "oran-adaptor"
+      service_version: "v1.0.0"
+      environment: "production"
+      
+      # OTLP Exporter configuration
+      otlp:
+        endpoint: "http://opentelemetry-collector.nephoran-monitoring.svc.cluster.local:4317"
+        protocol: "grpc"
+        compression: "gzip"
+        timeout: "10s"
+        
+      # Sampling configuration
+      sampling:
+        type: "parentbased_traceidratio"
+        ratio: 0.1  # 10% sampling rate
+        
+      # Resource attributes
+      resource_attributes:
+        service.namespace: "nephoran-system"
+        service.instance.id: "${K8S_POD_NAME}"
+        oran.interface_version: "v1.0"
+        
+      # Custom span attributes for O-RAN operations
+      custom_attributes:
+        nephoran.oran.interface: "multi"
+        nephoran.oran.a1.enabled: "true"
+        nephoran.oran.o1.enabled: "true"
+        nephoran.oran.o2.enabled: "true"
+        nephoran.oran.e2.enabled: "true"
+        
+      # HTTP instrumentation for O-RAN interfaces
+      http_instrumentation:
+        capture_request_headers:
+          - "x-correlation-id"
+          - "x-o-ran-policy-id"
+          - "content-type"
+          - "authorization"
+        capture_response_headers:
+          - "x-processing-time"
+          - "x-policy-status"
+          - "x-interface-health"
+        
+      # Interface-specific configurations
+      interfaces:
+        a1:
+          capture_policy_operations: true
+          capture_policy_ids: true
+          capture_ric_endpoints: false  # Security consideration
+        o1:
+          capture_management_operations: true
+          capture_fault_events: true
+          capture_config_changes: true
+        o2:
+          capture_deployment_operations: true
+          capture_resource_status: true
+        e2:
+          capture_control_operations: true
+          capture_subscription_ids: true
+
+  # Weaviate Tracing Configuration
+  weaviate-tracing.yaml: |
+    # OpenTelemetry configuration for Weaviate (external service)
+    tracing:
+      enabled: true
+      service_name: "weaviate"
+      service_version: "v1.21.0"
+      environment: "production"
+      
+      # OTLP Exporter configuration
+      otlp:
+        endpoint: "http://opentelemetry-collector.nephoran-monitoring.svc.cluster.local:4317"
+        protocol: "grpc"
+        
+      # Sampling configuration (lower rate for vector DB)
+      sampling:
+        type: "parentbased_traceidratio"
+        ratio: 0.05  # 5% sampling rate
+        
+      # Resource attributes
+      resource_attributes:
+        service.namespace: "nephoran-system"
+        service.instance.id: "${K8S_POD_NAME}"
+        vector_db.type: "weaviate"
+        vector_db.version: "v1.21.0"
+
+---
+# Patch configurations for existing deployments to add tracing
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tracing-deployment-patches
+  namespace: nephoran-system
+  labels:
+    app: nephoran-intent-operator
+    component: tracing-patches
+data:
+  # Environment variables patch for Nephio Bridge
+  nephio-bridge-env-patch.yaml: |
+    spec:
+      template:
+        spec:
+          containers:
+          - name: nephio-bridge
+            env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://opentelemetry-collector.nephoran-monitoring.svc.cluster.local:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "nephio-bridge"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=nephoran-system,service.version=v1.0.0,deployment.environment=production"
+            - name: OTEL_PROPAGATORS
+              value: "tracecontext,baggage,b3"
+            - name: OTEL_TRACES_SAMPLER
+              value: "parentbased_traceidratio"
+            - name: OTEL_TRACES_SAMPLER_ARG
+              value: "0.1"
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+
+  # Environment variables patch for LLM Processor
+  llm-processor-env-patch.yaml: |
+    spec:
+      template:
+        spec:
+          containers:
+          - name: llm-processor
+            env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://opentelemetry-collector.nephoran-monitoring.svc.cluster.local:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "llm-processor"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=nephoran-system,service.version=v1.0.0,deployment.environment=production"
+            - name: OTEL_PROPAGATORS
+              value: "tracecontext,baggage,b3"
+            - name: OTEL_TRACES_SAMPLER
+              value: "parentbased_traceidratio"
+            - name: OTEL_TRACES_SAMPLER_ARG
+              value: "0.2"
+            - name: OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT
+              value: "128"
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+  # Environment variables patch for RAG API
+  rag-api-env-patch.yaml: |
+    spec:
+      template:
+        spec:
+          containers:
+          - name: rag-api
+            env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://opentelemetry-collector.nephoran-monitoring.svc.cluster.local:4318"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "http/protobuf"
+            - name: OTEL_SERVICE_NAME
+              value: "rag-api"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=nephoran-system,service.version=v1.0.0,deployment.environment=production"
+            - name: OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED
+              value: "true"
+            - name: OTEL_TRACES_SAMPLER
+              value: "parentbased_traceidratio"
+            - name: OTEL_TRACES_SAMPLER_ARG
+              value: "0.15"
+            - name: OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_REQUEST
+              value: "x-intent-id,x-user-id,x-correlation-id"
+            - name: OTEL_INSTRUMENTATION_HTTP_CAPTURE_HEADERS_SERVER_RESPONSE
+              value: "x-processing-time,x-cache-status"
+
+  # Environment variables patch for O-RAN Adaptor
+  oran-adaptor-env-patch.yaml: |
+    spec:
+      template:
+        spec:
+          containers:
+          - name: oran-adaptor
+            env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://opentelemetry-collector.nephoran-monitoring.svc.cluster.local:4317"
+            - name: OTEL_SERVICE_NAME
+              value: "oran-adaptor"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "service.namespace=nephoran-system,service.version=v1.0.0,deployment.environment=production"
+            - name: OTEL_PROPAGATORS
+              value: "tracecontext,baggage,b3"
+            - name: OTEL_TRACES_SAMPLER
+              value: "parentbased_traceidratio"
+            - name: OTEL_TRACES_SAMPLER_ARG
+              value: "0.1"
+
+---
+# Custom Resource Definition for Trace Correlation
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: tracecorrelations.monitoring.nephoran.com
+spec:
+  group: monitoring.nephoran.com
+  versions:
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              intentId:
+                type: string
+                description: "NetworkIntent ID for correlation"
+              traceId:
+                type: string
+                description: "OpenTelemetry trace ID"
+              parentSpanId:
+                type: string
+                description: "Parent span ID for correlation"
+              serviceChain:
+                type: array
+                items:
+                  type: string
+                description: "Ordered list of services in the request chain"
+              startTime:
+                type: string
+                format: date-time
+                description: "Request start timestamp"
+              endTime:
+                type: string
+                format: date-time
+                description: "Request end timestamp"
+              status:
+                type: string
+                enum: ["active", "completed", "failed"]
+                description: "Trace correlation status"
+          status:
+            type: object
+            properties:
+              correlationStatus:
+                type: string
+              traceUrl:
+                type: string
+              totalSpans:
+                type: integer
+              errorSpans:
+                type: integer
+  scope: Namespaced
+  names:
+    plural: tracecorrelations
+    singular: tracecorrelation
+    kind: TraceCorrelation
+    shortNames:
+    - tc
+    - traces

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // RAGAwarePromptBuilder builds telecom-specific prompts with RAG context integration
@@ -127,7 +127,7 @@ type PromptRequest struct {
 	Query            string                   `json:"query"`
 	IntentType       string                   `json:"intent_type"`
 	ModelName        string                   `json:"model_name"`
-	RAGContext       []*rag.SearchResult      `json:"rag_context"`
+	RAGContext       []*shared.SearchResult   `json:"rag_context"`
 	Domain           string                   `json:"domain,omitempty"`
 	ExistingContext  string                   `json:"existing_context,omitempty"`
 	TemplateType     string                   `json:"template_type,omitempty"`
@@ -436,7 +436,7 @@ func (pb *RAGAwarePromptBuilder) getTemplateType(request *PromptRequest) string 
 }
 
 // processRAGContext processes RAG context and creates formatted context text
-func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*rag.SearchResult, modelName string) (string, []string, []string) {
+func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*shared.SearchResult, modelName string) (string, []string, []string) {
 	if len(ragContext) == 0 {
 		return "", nil, nil
 	}
@@ -446,7 +446,7 @@ func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*rag.SearchResul
 	var sources []string
 	
 	// Filter by relevance threshold
-	filteredContext := make([]*rag.SearchResult, 0)
+	filteredContext := make([]*shared.SearchResult, 0)
 	for _, result := range ragContext {
 		if result.Score >= pb.config.ContextRelevanceThreshold {
 			filteredContext = append(filteredContext, result)
@@ -494,7 +494,7 @@ func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*rag.SearchResul
 }
 
 // formatDocumentForContext formats a document for inclusion in context
-func (pb *RAGAwarePromptBuilder) formatDocumentForContext(result *rag.SearchResult, index int) string {
+func (pb *RAGAwarePromptBuilder) formatDocumentForContext(result *shared.SearchResult, index int) string {
 	doc := result.Document
 	
 	var parts []string

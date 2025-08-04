@@ -1,0 +1,265 @@
+# Nephoran Intent Operator - Istio Security Policies
+# Phase 4 Enterprise Architecture - Zero Trust Security Model
+---
+# Namespace-wide mTLS enforcement
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: nephoran-system
+spec:
+  mtls:
+    mode: STRICT
+---
+# Service-specific mTLS configuration
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: llm-processor-mtls
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: llm-processor
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    8080:
+      mode: STRICT
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: weaviate-mtls
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: weaviate
+  mtls:
+    mode: STRICT
+---
+# Authorization Policies
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: nephoran-system
+spec:
+  {}
+---
+# Allow traffic from ingress gateway
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-ingress-gateway
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: llm-processor
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["istio-system"]
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/v1/*", "/health", "/metrics"]
+---
+# LLM Processor authorization
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: llm-processor-authz
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: llm-processor
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/nephio-bridge"]
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/v1/process", "/v1/intent"]
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/monitoring"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/metrics", "/health"]
+---
+# RAG API authorization
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: rag-api-authz
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: rag-api
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/llm-processor"]
+    to:
+    - operation:
+        methods: ["POST", "GET"]
+        paths: ["/v1/query", "/v1/embed"]
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/nephio-bridge"]
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/v1/knowledge/*"]
+---
+# Weaviate authorization
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: weaviate-authz
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: weaviate
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/rag-api"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/v1/objects/*", "/v1/graphql"]
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/backup-operator"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/v1/backups/*"]
+---
+# Nephio Bridge authorization
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: nephio-bridge-authz
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: nephio-bridge
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        namespaces: ["kube-system"]
+        principals: ["cluster.local/ns/kube-system/sa/kube-controller-manager"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "PATCH"]
+        paths: ["/apis/*"]
+---
+# O-RAN Adaptor authorization
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: oran-adaptor-authz
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: oran-adaptor
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/nephio-bridge"]
+    to:
+    - operation:
+        methods: ["POST", "PUT", "DELETE"]
+        paths: ["/a1/*", "/o1/*", "/o2/*"]
+  - from:
+    - source:
+        principals: ["cluster.local/ns/oran-system/sa/near-rt-ric"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/a1/policies/*"]
+---
+# External service authorization
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-egress-openai
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: llm-processor
+  action: ALLOW
+  rules:
+  - to:
+    - operation:
+        hosts: ["api.openai.com"]
+        methods: ["POST"]
+        paths: ["/v1/chat/completions", "/v1/embeddings"]
+---
+# Request Authentication for JWT
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: jwt-auth
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: llm-processor
+  jwtRules:
+  - issuer: "https://auth.nephoran.io"
+    jwksUri: "https://auth.nephoran.io/.well-known/jwks.json"
+    audiences:
+    - "nephoran-intent-operator"
+    forwardOriginalToken: true
+---
+# Multi-tenancy authorization
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: tenant-isolation
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: llm-processor
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        requestPrincipals: ["*"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+    when:
+    - key: request.auth.claims[tenant_id]
+      values: ["*"]
+    - key: request.headers[x-tenant-id]
+      values: ["*"]
+  - from:
+    - source:
+        requestPrincipals: ["admin@nephoran.io/*"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/*"]

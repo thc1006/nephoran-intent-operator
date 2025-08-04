@@ -1,0 +1,651 @@
+# Nephoran Intent Operator - Edge Computing Monitoring Dashboard
+# Phase 4 Enterprise Architecture - Edge Observability and Analytics
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-monitoring-dashboard
+  namespace: nephoran-edge
+  labels:
+    grafana_dashboard: "1"
+data:
+  edge-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Edge Computing Overview",
+        "tags": ["nephoran", "edge", "oran", "distributed"],
+        "timezone": "UTC",
+        "refresh": "15s",
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Edge Nodes Status",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+            "targets": [
+              {
+                "expr": "count(up{job=\"edge-cloud-sync\"} == 1)",
+                "legendFormat": "Active Nodes"
+              },
+              {
+                "expr": "count(up{job=\"edge-metrics-collector\"} == 1)",
+                "legendFormat": "Monitored Nodes"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "min": 0,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 2},
+                    {"color": "green", "value": 5}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 2,
+            "title": "Edge Zone Distribution",
+            "type": "piechart",
+            "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
+            "targets": [
+              {
+                "expr": "count(up{job=\"edge-metrics-collector\"}) by (edge_zone)",
+                "legendFormat": "{{edge_zone}}"
+              }
+            ]
+          },
+          {
+            "id": 3,
+            "title": "O-RAN Functions Health",
+            "type": "bargauge",
+            "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
+            "targets": [
+              {
+                "expr": "edge_oran_function_status{status=\"active\"}",
+                "legendFormat": "{{function}} - {{instance}}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "min": 0,
+                "max": 1,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 4,
+            "title": "Edge Processing Latency",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(edge_intent_processing_duration_seconds_bucket[5m]))",
+                "legendFormat": "P95 Latency"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "s",
+                "min": 0,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 0.005},
+                    {"color": "red", "value": 0.01}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 5,
+            "title": "Edge-Cloud Sync Status",
+            "type": "table",
+            "gridPos": {"h": 6, "w": 12, "x": 0, "y": 4},
+            "targets": [
+              {
+                "expr": "edge_cloud_last_sync_timestamp",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {
+                    "__name__": true,
+                    "Time": true
+                  },
+                  "renameByName": {
+                    "instance": "Edge Node",
+                    "edge_zone": "Zone",
+                    "Value": "Last Sync"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": 6,
+            "title": "Edge Resource Utilization",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+            "targets": [
+              {
+                "expr": "edge_node_cpu_utilization",
+                "legendFormat": "{{instance}} CPU"
+              },
+              {
+                "expr": "edge_node_memory_utilization",
+                "legendFormat": "{{instance}} Memory"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Utilization %",
+                "min": 0,
+                "max": 100
+              }
+            ],
+            "thresholds": [
+              {
+                "value": 80,
+                "colorMode": "critical",
+                "op": "gt"
+              }
+            ]
+          },
+          {
+            "id": 7,
+            "title": "Edge Intent Processing Rate",
+            "type": "graph", 
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+            "targets": [
+              {
+                "expr": "rate(edge_intent_processing_total[5m])",
+                "legendFormat": "{{instance}} - Processed"
+              },
+              {
+                "expr": "rate(edge_intent_processing_failures_total[5m])",
+                "legendFormat": "{{instance}} - Failed"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Intents/sec",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 8,
+            "title": "O-RAN Function Metrics",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 8, "x": 0, "y": 18},
+            "targets": [
+              {
+                "expr": "edge_oran_throughput_mbps",
+                "legendFormat": "{{function}} Throughput"
+              },
+              {
+                "expr": "edge_oran_connected_ues",
+                "legendFormat": "{{function}} UEs"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Throughput (Mbps) / UEs",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 9,
+            "title": "Edge ML Inference Performance",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 8, "x": 8, "y": 18},
+            "targets": [
+              {
+                "expr": "rate(edge_ml_inference_requests_total[5m])",
+                "legendFormat": "{{model}} Requests/sec"
+              },
+              {
+                "expr": "histogram_quantile(0.95, rate(edge_ml_inference_duration_seconds_bucket[5m]))",
+                "legendFormat": "{{model}} P95 Latency"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Requests/sec",
+                "min": 0
+              },
+              {
+                "label": "Latency (s)",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 10,
+            "title": "Edge Cache Performance",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 8, "x": 16, "y": 18},
+            "targets": [
+              {
+                "expr": "edge_cache_hit_rate",
+                "legendFormat": "{{instance}} Hit Rate"
+              },
+              {
+                "expr": "edge_cache_size_bytes / 1024 / 1024 / 1024",
+                "legendFormat": "{{instance}} Size (GB)"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Hit Rate / Size",
+                "min": 0
+              }
+            ]
+          },
+          {
+            "id": 11,
+            "title": "Edge Network Quality",
+            "type": "heatmap",
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 26},
+            "targets": [
+              {
+                "expr": "edge_network_latency_ms",
+                "legendFormat": "{{instance}} Latency"
+              },
+              {
+                "expr": "edge_network_packet_loss_percent",
+                "legendFormat": "{{instance}} Packet Loss"
+              }
+            ]
+          },
+          {
+            "id": 12,
+            "title": "Edge Service Health Matrix",
+            "type": "table",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 26},
+            "targets": [
+              {
+                "expr": "up{job=~\"edge.*\"}",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {
+                    "__name__": true,
+                    "Time": true
+                  },
+                  "renameByName": {
+                    "instance": "Service",
+                    "job": "Component",
+                    "edge_zone": "Zone",
+                    "Value": "Status"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "id": 13,
+            "title": "Autonomous Operation Status",
+            "type": "stat",
+            "gridPos": {"h": 4, "w": 12, "x": 0, "y": 34},
+            "targets": [
+              {
+                "expr": "edge_autonomous_mode_enabled",
+                "legendFormat": "Autonomous Mode"
+              },
+              {
+                "expr": "count(edge_offline_operations_total)",
+                "legendFormat": "Offline Capable Nodes"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "short",
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "id": 14,
+            "title": "Data Synchronization Metrics",
+            "type": "graph",
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 34},
+            "targets": [
+              {
+                "expr": "rate(edge_cloud_sync_bytes_total[5m])",
+                "legendFormat": "{{instance}} Sync Rate (bytes/s)"
+              },
+              {
+                "expr": "edge_cloud_sync_queue_depth",
+                "legendFormat": "{{instance}} Queue Depth"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Bytes/sec / Queue Items",
+                "min": 0
+              }
+            ]
+          }
+        ],
+        "templating": {
+          "list": [
+            {
+              "name": "edge_zone",
+              "type": "query",
+              "query": "label_values(up{job=\"edge-metrics-collector\"}, edge_zone)",
+              "refresh": 1,
+              "includeAll": true,
+              "allValue": ".*"
+            },
+            {
+              "name": "edge_node",
+              "type": "query", 
+              "query": "label_values(up{job=\"edge-metrics-collector\"}, instance)",
+              "refresh": 1,
+              "includeAll": true,
+              "allValue": ".*"
+            }
+          ]
+        }
+      }
+    }
+---
+# Edge Computing Prometheus Recording Rules
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-recording-rules
+  namespace: nephoran-edge
+data:
+  edge-rules.yaml: |
+    groups:
+    - name: nephoran.edge.rules
+      interval: 15s
+      rules:
+      # Edge node health aggregation
+      - record: nephoran:edge:node_health_score
+        expr: |
+          (
+            (1 - edge_node_cpu_utilization / 100) * 0.3 +
+            (1 - edge_node_memory_utilization / 100) * 0.3 +
+            edge_network_quality_score * 0.2 +
+            edge_oran_function_health_avg * 0.2
+          )
+      
+      # Edge zone aggregations
+      - record: nephoran:edge:zone_capacity_utilization
+        expr: avg(edge_node_cpu_utilization) by (edge_zone)
+      
+      - record: nephoran:edge:zone_intent_rate
+        expr: sum(rate(edge_intent_processing_total[5m])) by (edge_zone)
+      
+      - record: nephoran:edge:zone_success_rate
+        expr: |
+          sum(rate(edge_intent_processing_total{status="success"}[5m])) by (edge_zone) / 
+          sum(rate(edge_intent_processing_total[5m])) by (edge_zone)
+      
+      # O-RAN function aggregations
+      - record: nephoran:edge:oran_total_ues
+        expr: sum(edge_oran_connected_ues) by (edge_zone)
+      
+      - record: nephoran:edge:oran_total_throughput
+        expr: sum(edge_oran_throughput_mbps) by (edge_zone)
+      
+      - record: nephoran:edge:oran_avg_latency
+        expr: avg(edge_oran_latency_ms) by (edge_zone)
+      
+      # ML inference performance
+      - record: nephoran:edge:ml_inference_rate
+        expr: sum(rate(edge_ml_inference_requests_total[5m])) by (edge_zone, model)
+      
+      - record: nephoran:edge:ml_inference_p95_latency
+        expr: histogram_quantile(0.95, sum(rate(edge_ml_inference_duration_seconds_bucket[5m])) by (edge_zone, model, le))
+      
+      # Cache performance
+      - record: nephoran:edge:cache_hit_rate
+        expr: avg(edge_cache_hit_rate) by (edge_zone)
+      
+      - record: nephoran:edge:cache_utilization
+        expr: avg(edge_cache_size_bytes / edge_cache_max_size_bytes * 100) by (edge_zone)
+      
+      # Synchronization health
+      - record: nephoran:edge:sync_lag_seconds
+        expr: time() - edge_cloud_last_sync_timestamp
+      
+      - record: nephoran:edge:sync_success_rate
+        expr: |
+          sum(rate(edge_cloud_sync_success_total[5m])) by (edge_zone) /
+          sum(rate(edge_cloud_sync_attempts_total[5m])) by (edge_zone)
+      
+      # Autonomous operation metrics
+      - record: nephoran:edge:autonomous_operation_ratio
+        expr: |
+          sum(edge_autonomous_operations_total) by (edge_zone) /
+          sum(edge_total_operations_total) by (edge_zone)
+      
+      - record: nephoran:edge:offline_capability_score
+        expr: |
+          avg(edge_offline_cache_available_hours / 72) by (edge_zone)
+---
+# Edge Alert Rules
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: edge-alert-rules
+  namespace: nephoran-edge
+data:
+  edge-alerts.yaml: |
+    groups:
+    - name: nephoran.edge.alerts
+      rules:
+      # Critical edge alerts
+      - alert: EdgeNodeDown
+        expr: up{job="edge-metrics-collector"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: edge-node
+        annotations:
+          summary: "Edge node {{ $labels.instance }} is down"
+          description: "Edge node {{ $labels.instance }} in zone {{ $labels.edge_zone }} has been down for more than 1 minute"
+          runbook_url: "https://docs.nephoran.com/runbooks/edge-node-down"
+      
+      - alert: EdgeZoneUnavailable
+        expr: count(up{job="edge-metrics-collector"} == 1) by (edge_zone) == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: edge-zone
+        annotations:
+          summary: "Edge zone {{ $labels.edge_zone }} completely unavailable"
+          description: "All edge nodes in zone {{ $labels.edge_zone }} are down"
+      
+      - alert: EdgeLatencyExceeded
+        expr: nephoran:edge:oran_avg_latency > 10
+        for: 3m
+        labels:
+          severity: warning
+          component: edge-performance
+        annotations:
+          summary: "Edge zone {{ $labels.edge_zone }} latency too high"
+          description: "Average O-RAN latency in zone {{ $labels.edge_zone }} is {{ $value }}ms, exceeding 10ms threshold"
+      
+      # O-RAN function alerts
+      - alert: EdgeORANFunctionDown
+        expr: edge_oran_function_status{status!="active"} == 1
+        for: 30s
+        labels:
+          severity: critical
+          component: edge-oran
+        annotations:
+          summary: "O-RAN function {{ $labels.function }} down"
+          description: "O-RAN function {{ $labels.function }} on edge node {{ $labels.instance }} is not active"
+      
+      - alert: EdgeORANThroughputLow
+        expr: nephoran:edge:oran_total_throughput < 100
+        for: 5m
+        labels:
+          severity: warning
+          component: edge-oran
+        annotations:
+          summary: "O-RAN throughput low in zone {{ $labels.edge_zone }}"
+          description: "Total O-RAN throughput in zone {{ $labels.edge_zone }} is {{ $value }}Mbps, below 100Mbps threshold"
+      
+      # Resource alerts
+      - alert: EdgeResourceExhaustion
+        expr: nephoran:edge:zone_capacity_utilization > 90
+        for: 5m
+        labels:
+          severity: critical
+          component: edge-resources
+        annotations:
+          summary: "Edge zone {{ $labels.edge_zone }} resource exhaustion"
+          description: "Zone {{ $labels.edge_zone }} CPU utilization is {{ $value }}%, exceeding 90%"
+      
+      - alert: EdgeMemoryHigh
+        expr: edge_node_memory_utilization > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: edge-resources
+        annotations:
+          summary: "Edge node {{ $labels.instance }} memory high"
+          description: "Edge node {{ $labels.instance }} memory utilization is {{ $value }}%"
+      
+      # ML inference alerts
+      - alert: EdgeMLInferenceDown
+        expr: up{job="edge-ml-service"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          component: edge-ml
+        annotations:
+          summary: "Edge ML inference service down"
+          description: "ML inference service on {{ $labels.instance }} is not responding"
+      
+      - alert: EdgeMLLatencyHigh
+        expr: nephoran:edge:ml_inference_p95_latency > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: edge-ml
+        annotations:
+          summary: "Edge ML inference latency high"
+          description: "P95 ML inference latency for {{ $labels.model }} is {{ $value }}s, exceeding 100ms"
+      
+      # Synchronization alerts
+      - alert: EdgeCloudSyncFailed
+        expr: nephoran:edge:sync_success_rate < 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: edge-sync
+        annotations:
+          summary: "Edge-cloud sync success rate low"
+          description: "Sync success rate for zone {{ $labels.edge_zone }} is {{ $value | humanizePercentage }}, below 90%"
+      
+      - alert: EdgeSyncLagHigh
+        expr: nephoran:edge:sync_lag_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+          component: edge-sync
+        annotations:
+          summary: "Edge sync lag high"
+          description: "Edge node {{ $labels.instance }} sync lag is {{ $value }}s, exceeding 5 minutes"
+      
+      # Cache performance alerts
+      - alert: EdgeCacheHitRateLow
+        expr: nephoran:edge:cache_hit_rate < 0.7
+        for: 10m
+        labels:
+          severity: warning
+          component: edge-cache
+        annotations:
+          summary: "Edge cache hit rate low"
+          description: "Cache hit rate in zone {{ $labels.edge_zone }} is {{ $value | humanizePercentage }}, below 70%"
+      
+      - alert: EdgeCacheFull
+        expr: nephoran:edge:cache_utilization > 95
+        for: 5m
+        labels:
+          severity: warning
+          component: edge-cache
+        annotations:
+          summary: "Edge cache nearly full"
+          description: "Cache utilization in zone {{ $labels.edge_zone }} is {{ $value }}%, exceeding 95%"
+      
+      # Network quality alerts
+      - alert: EdgeNetworkLatencyHigh
+        expr: edge_network_latency_ms > 20
+        for: 3m
+        labels:
+          severity: warning
+          component: edge-network
+        annotations:
+          summary: "Edge network latency high"
+          description: "Network latency on {{ $labels.instance }} is {{ $value }}ms, exceeding 20ms"
+      
+      - alert: EdgePacketLossHigh
+        expr: edge_network_packet_loss_percent > 1
+        for: 3m
+        labels:
+          severity: warning
+          component: edge-network
+        annotations:
+          summary: "Edge network packet loss high"
+          description: "Packet loss on {{ $labels.instance }} is {{ $value }}%, exceeding 1%"
+      
+      # Autonomous operation alerts
+      - alert: EdgeAutonomousModeFailed
+        expr: edge_autonomous_mode_enabled == 0 and edge_cloud_connectivity == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: edge-autonomous
+        annotations:
+          summary: "Edge autonomous mode failed to activate"
+          description: "Edge node {{ $labels.instance }} lost cloud connectivity but autonomous mode did not activate"
+      
+      - alert: EdgeOfflineCapacityLow
+        expr: nephoran:edge:offline_capability_score < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: edge-autonomous
+        annotations:
+          summary: "Edge offline capacity low"
+          description: "Edge zone {{ $labels.edge_zone }} offline capability is {{ $value | humanizePercentage }}, below 50%"

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // ContextBuilder manages context injection and assembly for RAG-enhanced LLM processing
@@ -107,7 +108,7 @@ type ContextRequest struct {
 	IntentType       string             `json:"intent_type"`
 	ModelName        string             `json:"model_name"`
 	MaxTokens        int                `json:"max_tokens"`
-	SearchResults    []*rag.SearchResult `json:"search_results"`
+	SearchResults    []*shared.SearchResult `json:"search_results"`
 	ExistingContext  string             `json:"existing_context"`
 	RequireSources   []string           `json:"require_sources"`
 	ExcludeSources   []string           `json:"exclude_sources"`
@@ -203,7 +204,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, request *ContextRequ
 	}
 	
 	// Select documents that fit within token budget
-	selectedDocs, totalTokens := cb.selectDocumentsForContext(scoredDocs, availableTokens, request.ModelName)
+	selectedDocs, _ := cb.selectDocumentsForContext(scoredDocs, availableTokens, request.ModelName)
 	
 	// Build the final context
 	contextText, sourceRefs := cb.assembleContext(selectedDocs, request)
@@ -304,7 +305,7 @@ func (cb *ContextBuilder) scoreAndRankDocuments(ctx context.Context, request *Co
 		relevanceReq := &RelevanceRequest{
 			Query:         request.Query,
 			IntentType:    request.IntentType,
-			Document:      searchResult.Document,
+			Document:      convertSharedToRagDocument(searchResult.Document),
 			Position:      i,
 			OriginalScore: searchResult.Score,
 			Context:       request.ExistingContext,
@@ -329,7 +330,7 @@ func (cb *ContextBuilder) scoreAndRankDocuments(ctx context.Context, request *Co
 		}
 		
 		scoredDoc := &ScoredDocument{
-			Document:       searchResult.Document,
+			Document:       convertSharedToRagDocument(searchResult.Document),
 			RelevanceScore: score,
 			OriginalScore:  searchResult.Score,
 			Position:       i,
@@ -410,11 +411,15 @@ func (cb *ContextBuilder) selectDocumentsForContext(scoredDocs []*ScoredDocument
 						Source:          doc.Document.Source,
 						Category:        doc.Document.Category,
 						Version:         doc.Document.Version,
-						Technology:      doc.Document.Technology,
+						Keywords:        doc.Document.Keywords,
+						Language:        doc.Document.Language,
+						DocumentType:    doc.Document.DocumentType,
 						NetworkFunction: doc.Document.NetworkFunction,
+						Technology:      doc.Document.Technology,
+						UseCase:         doc.Document.UseCase,
+						Confidence:      doc.Document.Confidence,
+						Timestamp:       doc.Document.Timestamp,
 						Metadata:        doc.Document.Metadata,
-						CreatedAt:       doc.Document.CreatedAt,
-						UpdatedAt:       doc.Document.UpdatedAt,
 					}
 					truncatedDoc.TokenCount = cb.tokenManager.EstimateTokensForModel(truncatedContent, modelName)
 					selected = append(selected, &truncatedDoc)
@@ -609,6 +614,31 @@ func (cb *ContextBuilder) calculateAverageRelevance(docs []*ScoredDocument) floa
 	}
 	
 	return total / float32(len(docs))
+}
+
+// convertSharedToRagDocument converts shared.TelecomDocument to rag.TelecomDocument
+func convertSharedToRagDocument(sharedDoc *shared.TelecomDocument) *rag.TelecomDocument {
+	if sharedDoc == nil {
+		return nil
+	}
+	
+	return &rag.TelecomDocument{
+		ID:              sharedDoc.ID,
+		Content:         sharedDoc.Content,
+		Title:           sharedDoc.Title,
+		Source:          sharedDoc.Source,
+		Category:        sharedDoc.Category,
+		Version:         sharedDoc.Version,
+		Keywords:        sharedDoc.Keywords,
+		Language:        sharedDoc.Language,
+		DocumentType:    sharedDoc.DocumentType,
+		NetworkFunction: sharedDoc.NetworkFunction,
+		Technology:      sharedDoc.Technology,
+		UseCase:         sharedDoc.UseCase,
+		Confidence:      sharedDoc.Confidence,
+		Timestamp:       sharedDoc.UpdatedAt, // Use UpdatedAt as Timestamp
+		Metadata:        sharedDoc.Metadata,
+	}
 }
 
 // updateMetrics safely updates metrics

@@ -1,0 +1,669 @@
+# Nephoran Intent Operator Disaster Recovery CronJobs
+# Automated DR operations for production environments
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dr-automation-config
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+data:
+  dr-schedule.yaml: |
+    # Nephoran Intent Operator DR Schedule Configuration
+    schedule:
+      # Full backup schedule (daily at 2 AM UTC)
+      full_backup:
+        enabled: true
+        cron: "0 2 * * *"
+        retention_days: 30
+        
+      # Incremental backup schedule (every 6 hours)
+      incremental_backup:
+        enabled: true
+        cron: "0 */6 * * *"
+        retention_days: 7
+        
+      # DR testing schedule (monthly on first Sunday at 3 AM UTC)
+      dr_test:
+        enabled: true
+        cron: "0 3 1-7 * 0"
+        test_type: "partial"
+        
+      # Backup verification (daily at 3 AM UTC)
+      backup_verification:
+        enabled: true
+        cron: "0 3 * * *"
+        
+      # Cleanup old backups (weekly on Sunday at 4 AM UTC)
+      cleanup:
+        enabled: true
+        cron: "0 4 * * 0"
+        keep_days: 90
+
+    notifications:
+      # Slack webhook for notifications
+      slack:
+        enabled: false
+        webhook_url: ""
+        channel: "#nephoran-ops"
+        
+      # Email notifications
+      email:
+        enabled: false
+        smtp_server: ""
+        smtp_port: 587
+        username: ""
+        password: ""
+        to_addresses: ["ops@nephoran.com"]
+
+    monitoring:
+      # Prometheus metrics
+      prometheus:
+        enabled: true
+        pushgateway_url: "http://prometheus-pushgateway:9091"
+        
+      # Health check endpoint
+      health_check:
+        enabled: true
+        port: 8090
+        path: "/health"
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephoran-dr-operator
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+automountServiceAccountToken: true
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: nephoran-system
+  name: nephoran-dr-role
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+rules:
+# Full access to all Nephoran resources for backup/restore
+- apiGroups: ["nephoran.com"]
+  resources: ["*"]
+  verbs: ["*"]
+# Access to standard Kubernetes resources for backup
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "secrets", "persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["networking.k8s.io"]
+  resources: ["ingresses", "networkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Access to events for logging
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+# Access to namespaces for DR testing
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch", "create", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-dr-cluster-role
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+rules:
+# Access to CRDs for backup/restore
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Access to cluster-level RBAC for backup
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["clusterroles", "clusterrolebindings"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Access to storage classes for backup validation
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-dr-rolebinding
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+subjects:
+- kind: ServiceAccount
+  name: nephoran-dr-operator
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: nephoran-dr-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-dr-cluster-rolebinding
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+subjects:
+- kind: ServiceAccount
+  name: nephoran-dr-operator
+  namespace: nephoran-system
+roleRef:
+  kind: ClusterRole
+  name: nephoran-dr-cluster-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# Full Backup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nephoran-full-backup
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM UTC
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 7200  # 2 hours timeout
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: nephoran-intent-operator
+            app.kubernetes.io/component: disaster-recovery
+            job-type: full-backup
+        spec:
+          serviceAccountName: nephoran-dr-operator
+          restartPolicy: OnFailure
+          containers:
+          - name: dr-backup
+            image: nephoran/dr-operator:latest
+            imagePullPolicy: Always
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              echo "Starting Nephoran full backup job..."
+              
+              # Set environment variables
+              export NAMESPACE=nephoran-system
+              export BACKUP_DIR=/var/nephoran/backups
+              export S3_BUCKET=${S3_BUCKET:-nephoran-dr-backups}
+              export DR_REGION=${DR_REGION:-us-west-2}
+              
+              # Create backup directory
+              mkdir -p $BACKUP_DIR
+              
+              # Execute disaster recovery system
+              /scripts/disaster-recovery-system.sh
+              
+              echo "Full backup job completed"
+            env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: dr-automation-config
+                  key: s3_bucket
+                  optional: true
+            - name: DR_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: dr-automation-config
+                  key: dr_region
+                  optional: true
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: access-key-id
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: secret-access-key
+                  optional: true
+            resources:
+              requests:
+                memory: "1Gi"
+                cpu: "500m"
+              limits:
+                memory: "4Gi"
+                cpu: "2000m"
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /var/nephoran/backups
+            - name: dr-scripts
+              mountPath: /scripts
+            - name: dr-config
+              mountPath: /etc/nephoran
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: nephoran-backup-pvc
+          - name: dr-scripts
+            configMap:
+              name: dr-scripts
+              defaultMode: 0755
+          - name: dr-config
+            configMap:
+              name: dr-automation-config
+
+---
+# Incremental Backup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nephoran-incremental-backup
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800  # 30 minutes timeout
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: nephoran-intent-operator
+            app.kubernetes.io/component: disaster-recovery
+            job-type: incremental-backup
+        spec:
+          serviceAccountName: nephoran-dr-operator
+          restartPolicy: OnFailure
+          containers:
+          - name: dr-incremental-backup
+            image: nephoran/dr-operator:latest
+            imagePullPolicy: Always
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              echo "Starting Nephoran incremental backup job..."
+              
+              export NAMESPACE=nephoran-system
+              export BACKUP_DIR=/var/nephoran/backups
+              
+              # Execute incremental backup
+              /scripts/dr-automation-scheduler.sh incremental_backup
+              
+              echo "Incremental backup job completed"
+            env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "250m"
+              limits:
+                memory: "2Gi"
+                cpu: "1000m"
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /var/nephoran/backups
+            - name: dr-scripts
+              mountPath: /scripts
+            - name: dr-config
+              mountPath: /etc/nephoran
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: nephoran-backup-pvc
+          - name: dr-scripts
+            configMap:
+              name: dr-scripts
+              defaultMode: 0755
+          - name: dr-config
+            configMap:
+              name: dr-automation-config
+
+---
+# DR Test CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nephoran-dr-test
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+spec:
+  schedule: "0 3 1-7 * 0"  # Monthly on first Sunday at 3 AM UTC
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 3600  # 1 hour timeout
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: nephoran-intent-operator
+            app.kubernetes.io/component: disaster-recovery
+            job-type: dr-test
+        spec:
+          serviceAccountName: nephoran-dr-operator
+          restartPolicy: OnFailure
+          containers:
+          - name: dr-test
+            image: nephoran/dr-operator:latest
+            imagePullPolicy: Always
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              echo "Starting Nephoran DR test job..."
+              
+              export NAMESPACE=nephoran-system
+              export BACKUP_DIR=/var/nephoran/backups
+              
+              # Execute DR test
+              /scripts/dr-automation-scheduler.sh dr_test
+              
+              echo "DR test job completed"
+            env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            resources:
+              requests:
+                memory: "512Mi"
+                cpu: "250m"
+              limits:
+                memory: "2Gi"
+                cpu: "1000m"
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /var/nephoran/backups
+            - name: dr-scripts
+              mountPath: /scripts
+            - name: dr-config
+              mountPath: /etc/nephoran
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: nephoran-backup-pvc
+          - name: dr-scripts
+            configMap:
+              name: dr-scripts
+              defaultMode: 0755
+          - name: dr-config
+            configMap:
+              name: dr-automation-config
+
+---
+# Backup Verification CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nephoran-backup-verification
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+spec:
+  schedule: "0 3 * * *"  # Daily at 3 AM UTC
+  timeZone: "UTC"
+  concurrencyPolicy: Allow
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 1800  # 30 minutes timeout
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: nephoran-intent-operator
+            app.kubernetes.io/component: disaster-recovery
+            job-type: backup-verification
+        spec:
+          serviceAccountName: nephoran-dr-operator
+          restartPolicy: OnFailure
+          containers:
+          - name: backup-verification
+            image: nephoran/dr-operator:latest
+            imagePullPolicy: Always
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              echo "Starting Nephoran backup verification job..."
+              
+              export NAMESPACE=nephoran-system
+              export BACKUP_DIR=/var/nephoran/backups
+              
+              # Execute backup verification
+              /scripts/dr-automation-scheduler.sh verify_backups
+              
+              echo "Backup verification job completed"
+            env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "1Gi"
+                cpu: "500m"
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /var/nephoran/backups
+            - name: dr-scripts
+              mountPath: /scripts
+            - name: dr-config
+              mountPath: /etc/nephoran
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: nephoran-backup-pvc
+          - name: dr-scripts
+            configMap:
+              name: dr-scripts
+              defaultMode: 0755
+          - name: dr-config
+            configMap:
+              name: dr-automation-config
+
+---
+# Backup Cleanup CronJob
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nephoran-backup-cleanup
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+spec:
+  schedule: "0 4 * * 0"  # Weekly on Sunday at 4 AM UTC
+  timeZone: "UTC"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 2
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 3600  # 1 hour timeout
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: nephoran-intent-operator
+            app.kubernetes.io/component: disaster-recovery
+            job-type: backup-cleanup
+        spec:
+          serviceAccountName: nephoran-dr-operator
+          restartPolicy: OnFailure
+          containers:
+          - name: backup-cleanup
+            image: nephoran/dr-operator:latest
+            imagePullPolicy: Always
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              echo "Starting Nephoran backup cleanup job..."
+              
+              export NAMESPACE=nephoran-system
+              export BACKUP_DIR=/var/nephoran/backups
+              export S3_BUCKET=${S3_BUCKET:-nephoran-dr-backups}
+              
+              # Execute backup cleanup
+              /scripts/dr-automation-scheduler.sh cleanup
+              
+              echo "Backup cleanup job completed"
+            env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: S3_BUCKET
+              valueFrom:
+                configMapKeyRef:
+                  name: dr-automation-config
+                  key: s3_bucket
+                  optional: true
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: access-key-id
+                  optional: true
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: aws-credentials
+                  key: secret-access-key
+                  optional: true
+            resources:
+              requests:
+                memory: "256Mi"
+                cpu: "100m"
+              limits:
+                memory: "1Gi"
+                cpu: "500m"
+            volumeMounts:
+            - name: backup-storage
+              mountPath: /var/nephoran/backups
+            - name: dr-scripts
+              mountPath: /scripts
+            - name: dr-config
+              mountPath: /etc/nephoran
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: nephoran-backup-pvc
+          - name: dr-scripts
+            configMap:
+              name: dr-scripts
+              defaultMode: 0755
+          - name: dr-config
+            configMap:
+              name: dr-automation-config
+
+---
+# Persistent Volume Claim for backup storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nephoran-backup-pvc
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: fast-ssd  # Use appropriate storage class
+
+---
+# Service for DR health monitoring
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-dr-health
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+spec:
+  selector:
+    job-type: dr-health
+  ports:
+  - name: health
+    port: 8090
+    targetPort: 8090
+    protocol: TCP
+  type: ClusterIP
+
+---
+# ServiceMonitor for Prometheus monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nephoran-dr-metrics
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: disaster-recovery
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/component: disaster-recovery
+  endpoints:
+  - port: health
+    interval: 30s
+    path: /metrics
+    scheme: http

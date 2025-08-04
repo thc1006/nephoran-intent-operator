@@ -1,0 +1,48 @@
+Nephoran Intent Operator Dependency Update Report
+Generated: Wed Jul 30 09:31:15 PM UTC 2025
+Mode: DRY RUN
+
+=== Security-Critical Dependencies ===
+cloud.google.com/go/auth/oauth2adapt v0.2.2
+github.com/ProtonMail/go-crypto v1.1.6
+github.com/gogo/protobuf v1.3.2
+github.com/golang-jwt/jwt/v4 v4.5.0
+github.com/golang-jwt/jwt/v5 v5.3.0
+github.com/golang/protobuf v1.5.4
+github.com/grpc-ecosystem/go-grpc-middleware v1.3.0
+github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0
+github.com/grpc-ecosystem/grpc-gateway v1.16.0
+github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0
+github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10
+github.com/tmc/grpc-websocket-proxy v0.0.0-20220101234140-673ab2c3ae75
+go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.53.0
+go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.27.0
+golang.org/x/crypto v0.28.0
+golang.org/x/oauth2 v0.30.0
+google.golang.org/grpc v1.68.1
+google.golang.org/protobuf v1.36.6
+
+=== Kubernetes Dependencies ===
+k8s.io/api v0.31.4
+k8s.io/apiextensions-apiserver v0.31.4
+k8s.io/apimachinery v0.31.4
+k8s.io/apiserver v0.31.4
+k8s.io/client-go v0.31.4
+k8s.io/code-generator v0.31.4
+k8s.io/component-base v0.31.4
+k8s.io/gengo/v2 v2.0.0-20240826214909-a7b603a56eb7
+k8s.io/klog/v2 v2.130.1
+k8s.io/kms v0.31.4
+k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff
+k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
+sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.3
+sigs.k8s.io/controller-runtime v0.19.7
+sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3
+sigs.k8s.io/randfill v1.0.0
+sigs.k8s.io/structured-merge-diff/v4 v4.6.0
+sigs.k8s.io/yaml v1.4.0
+
+=== Dependency Summary ===
+Total dependencies: 372
+Indirect dependencies: 0
+

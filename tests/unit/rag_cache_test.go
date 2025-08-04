@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/nephoran/intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // RedisCacheTestSuite tests Redis cache functionality

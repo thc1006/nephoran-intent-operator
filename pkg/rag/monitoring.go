@@ -36,34 +36,6 @@ type RAGMonitor struct {
 	systemResourceGauges    map[string]prometheus.Gauge
 }
 
-// MonitoringConfig holds monitoring configuration
-type MonitoringConfig struct {
-	// Server configuration
-	MetricsPort     int    `json:"metrics_port"`
-	MetricsPath     string `json:"metrics_path"`
-	HealthCheckPath string `json:"health_check_path"`
-	
-	// Collection intervals
-	MetricsInterval     time.Duration `json:"metrics_interval"`
-	HealthCheckInterval time.Duration `json:"health_check_interval"`
-	
-	// Alerting configuration
-	EnableAlerting      bool                           `json:"enable_alerting"`
-	AlertThresholds     map[string]AlertThreshold      `json:"alert_thresholds"`
-	AlertWebhooks       []string                       `json:"alert_webhooks"`
-	
-	// Log configuration
-	EnableStructuredLogs bool   `json:"enable_structured_logs"`
-	LogLevel            string `json:"log_level"`
-	
-	// Trace sampling
-	TraceSampleRate     float64 `json:"trace_sample_rate"`
-	EnableDistributedTracing bool `json:"enable_distributed_tracing"`
-	
-	// Performance monitoring
-	EnableResourceMonitoring bool `json:"enable_resource_monitoring"`
-	ResourceMonitoringInterval time.Duration `json:"resource_monitoring_interval"`
-}
 
 // AlertThreshold defines thresholds for alerting
 type AlertThreshold struct {
@@ -177,47 +149,6 @@ func NewRAGMonitor(config *MonitoringConfig) *RAGMonitor {
 	return monitor
 }
 
-// getDefaultMonitoringConfig returns default monitoring configuration
-func getDefaultMonitoringConfig() *MonitoringConfig {
-	return &MonitoringConfig{
-		MetricsPort:              8080,
-		MetricsPath:             "/metrics",
-		HealthCheckPath:         "/health",
-		MetricsInterval:         30 * time.Second,
-		HealthCheckInterval:     60 * time.Second,
-		EnableAlerting:          true,
-		AlertThresholds: map[string]AlertThreshold{
-			"query_latency_p95": {
-				MetricName:    "rag_query_latency_seconds",
-				Threshold:     2.0, // 2 seconds
-				Comparison:    "greater",
-				WindowMinutes: 5,
-				Severity:      "warning",
-			},
-			"error_rate": {
-				MetricName:    "rag_error_rate",
-				Threshold:     0.05, // 5%
-				Comparison:    "greater",
-				WindowMinutes: 5,
-				Severity:      "critical",
-			},
-			"cache_hit_rate": {
-				MetricName:    "rag_cache_hit_rate",
-				Threshold:     0.8, // 80%
-				Comparison:    "less",
-				WindowMinutes: 10,
-				Severity:      "warning",
-			},
-		},
-		AlertWebhooks:               []string{},
-		EnableStructuredLogs:        true,
-		LogLevel:                   "info",
-		TraceSampleRate:            0.1,
-		EnableDistributedTracing:   false,
-		EnableResourceMonitoring:   true,
-		ResourceMonitoringInterval: 30 * time.Second,
-	}
-}
 
 // initializePrometheusMetrics initializes all Prometheus metrics
 func (rm *RAGMonitor) initializePrometheusMetrics() {

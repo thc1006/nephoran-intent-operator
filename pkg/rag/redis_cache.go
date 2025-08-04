@@ -1,6 +1,7 @@
 package rag
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"crypto/md5"
@@ -205,35 +206,6 @@ func NewRedisCache(config *RedisCacheConfig) (*RedisCache, error) {
 	return cache, nil
 }
 
-// getDefaultRedisCacheConfig returns default Redis cache configuration
-func getDefaultRedisCacheConfig() *RedisCacheConfig {
-	return &RedisCacheConfig{
-		Address:            "localhost:6379",
-		Password:           "",
-		Database:           0,
-		PoolSize:           10,
-		MinIdleConns:       5,
-		MaxRetries:         3,
-		DialTimeout:        5 * time.Second,
-		ReadTimeout:        3 * time.Second,
-		WriteTimeout:       3 * time.Second,
-		IdleTimeout:        5 * time.Minute,
-		DefaultTTL:         1 * time.Hour,
-		MaxKeyLength:       250,
-		EnableMetrics:      true,
-		KeyPrefix:          "nephoran:rag:",
-		EmbeddingTTL:       24 * time.Hour,
-		DocumentTTL:        6 * time.Hour,
-		QueryResultTTL:     30 * time.Minute,
-		ContextTTL:         15 * time.Minute,
-		EnableCompression:  true,
-		CompressionLevel:   6,
-		MaxValueSize:       10 * 1024 * 1024, // 10MB
-		EnableCleanup:      true,
-		CleanupInterval:    1 * time.Hour,
-		MaxMemoryThreshold: 0.8, // 80% of max memory
-	}
-}
 
 // Embedding cache methods
 
@@ -660,7 +632,7 @@ func (rc *RedisCache) performCleanup(ctx context.Context) error {
 	rc.logger.Debug("Starting cache cleanup")
 
 	// Get memory usage
-	info, err := rc.client.Info(ctx, "memory").Result()
+	_, err := rc.client.Info(ctx, "memory").Result()
 	if err != nil {
 		return fmt.Errorf("failed to get Redis memory info: %w", err)
 	}
@@ -758,7 +730,7 @@ func (rc *RedisCache) GetHealthStatus(ctx context.Context) map[string]interface{
 		"status":     status,
 		"healthy":    healthy,
 		"ping_time":  pingTime,
-		"error":      func() string { if err != nil { return err.Error() } return "" }(),
+		"error":      func() string { if err != nil { return err.Error() }; return "" }(),
 		"metrics": map[string]interface{}{
 			"hit_rate":       metrics.HitRate,
 			"total_requests": metrics.TotalRequests,
@@ -1286,32 +1258,26 @@ type RedisEmbeddingCacheAdapter struct {
 
 // Get implements RedisEmbeddingCache interface
 func (a *RedisEmbeddingCacheAdapter) Get(key string) ([]float32, bool, error) {
-	entry, found := a.cache.GetEmbedding(context.Background(), key, "default")
+	embedding, found := a.cache.GetEmbedding(context.Background(), key, "default")
 	if !found {
 		return nil, false, nil
 	}
-	return entry.Embedding, true, nil
+	return embedding, true, nil
 }
 
 // Set implements RedisEmbeddingCache interface
 func (a *RedisEmbeddingCacheAdapter) Set(key string, embedding []float32, ttl time.Duration) error {
-	entry := EmbeddingCacheEntry{
-		Text:      key,
-		Embedding: embedding,
-		ModelName: "default",
-		CreatedAt: time.Now(),
-	}
-	return a.cache.SetEmbedding(context.Background(), key, "default", entry)
+	return a.cache.SetEmbedding(context.Background(), key, "default", embedding)
 }
 
 // Delete implements RedisEmbeddingCache interface
 func (a *RedisEmbeddingCacheAdapter) Delete(key string) error {
-	return a.cache.DeleteEmbedding(context.Background(), key, "default")
+	return a.cache.Delete(context.Background(), "embeddings", key)
 }
 
 // Clear implements RedisEmbeddingCache interface
 func (a *RedisEmbeddingCacheAdapter) Clear() error {
-	return a.cache.ClearCategory(context.Background(), "embedding")
+	return a.cache.Clear(context.Background(), "embeddings")
 }
 
 // Stats implements RedisEmbeddingCache interface

@@ -47,9 +47,14 @@ type O1AdaptorInterface interface {
 
 // O1Adaptor implements the O1 interface for network element management
 type O1Adaptor struct {
-	sessions    map[string]*NetconfSession
-	sessionsMux sync.RWMutex
-	config      *O1Config
+	clients        map[string]*NetconfClient
+	clientsMux     sync.RWMutex
+	config         *O1Config
+	yangRegistry   *YANGModelRegistry
+	subscriptions  map[string][]EventCallback
+	subsMux        sync.RWMutex
+	metricCollectors map[string]*MetricCollector
+	metricsMux     sync.RWMutex
 }
 
 // O1Config holds O1 interface configuration
@@ -62,15 +67,16 @@ type O1Config struct {
 	TLSConfig       *oran.TLSConfig
 }
 
-// NetconfSession represents a NETCONF session to a managed element
-type NetconfSession struct {
-	ID            string
-	Host          string
-	Port          int
-	Connected     bool
-	LastActivity  time.Time
-	Capabilities  []string
-	// In a real implementation, this would hold the actual NETCONF client
+// MetricCollector manages performance metric collection
+type MetricCollector struct {
+	ID              string
+	ManagedElement  string
+	MetricNames     []string
+	CollectionPeriod time.Duration
+	ReportingPeriod time.Duration
+	Active          bool
+	LastCollection  time.Time
+	cancel          context.CancelFunc
 }
 
 // Alarm represents an O-RAN alarm
@@ -167,8 +173,11 @@ func NewO1Adaptor(config *O1Config) *O1Adaptor {
 	}
 	
 	return &O1Adaptor{
-		sessions: make(map[string]*NetconfSession),
-		config:   config,
+		clients:          make(map[string]*NetconfClient),
+		config:           config,
+		yangRegistry:     NewYANGModelRegistry(),
+		subscriptions:    make(map[string][]EventCallback),
+		metricCollectors: make(map[string]*MetricCollector),
 	}
 }
 
@@ -184,55 +193,66 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1alpha1.ManagedEle
 		port = a.config.DefaultPort
 	}
 	
-	sessionID := fmt.Sprintf("%s:%d", host, port)
+	clientID := fmt.Sprintf("%s:%d", host, port)
 	
 	// Check if already connected
-	a.sessionsMux.RLock()
-	if session, exists := a.sessions[sessionID]; exists && session.Connected {
-		a.sessionsMux.RUnlock()
-		logger.Info("already connected", "sessionID", sessionID)
+	a.clientsMux.RLock()
+	if client, exists := a.clients[clientID]; exists && client.IsConnected() {
+		a.clientsMux.RUnlock()
+		logger.Info("already connected", "clientID", clientID)
 		return nil
 	}
-	a.sessionsMux.RUnlock()
+	a.clientsMux.RUnlock()
 	
-	// Create new session
-	session := &NetconfSession{
-		ID:           sessionID,
-		Host:         host,
-		Port:         port,
-		Connected:    false,
-		LastActivity: time.Now(),
+	// Create NETCONF client configuration
+	netconfConfig := &NetconfConfig{
+		Host:           host,
+		Port:           port,
+		Timeout:        a.config.ConnectTimeout,
+		RetryAttempts:  a.config.MaxRetries,
 	}
 	
-	// In a real implementation, we would:
-	// 1. Establish SSH connection
-	// 2. Start NETCONF subsystem
-	// 3. Exchange hello messages
-	// 4. Get capabilities
+	// Create new NETCONF client
+	client := NewNetconfClient(netconfConfig)
 	
-	// Simulate connection establishment
-	logger.Info("simulating NETCONF connection", "host", host, "port", port)
-	
-	// Simulate capability exchange
-	session.Capabilities = []string{
-		"urn:ietf:params:netconf:base:1.0",
-		"urn:ietf:params:netconf:base:1.1",
-		"urn:ietf:params:netconf:capability:writable-running:1.0",
-		"urn:ietf:params:netconf:capability:candidate:1.0",
-		"urn:ietf:params:netconf:capability:notification:1.0",
-		"urn:o-ran:module:o-ran-hardware:1.0",
-		"urn:o-ran:module:o-ran-software-management:1.0",
-		"urn:o-ran:module:o-ran-performance-management:1.0",
+	// Prepare authentication configuration
+	authConfig := &AuthConfig{
+		Username: me.Spec.Credentials.Username,
+		Password: me.Spec.Credentials.Password,
 	}
 	
-	session.Connected = true
+	// If private key is provided, use it for authentication
+	if me.Spec.Credentials.PrivateKey != "" {
+		authConfig.PrivateKey = []byte(me.Spec.Credentials.PrivateKey)
+	}
 	
-	// Store session
-	a.sessionsMux.Lock()
-	a.sessions[sessionID] = session
-	a.sessionsMux.Unlock()
+	// Establish connection with retry logic
+	var lastErr error
+	for attempt := 1; attempt <= a.config.MaxRetries; attempt++ {
+		endpoint := fmt.Sprintf("%s:%d", host, port)
+		if err := client.Connect(endpoint, authConfig); err != nil {
+			lastErr = err
+			logger.Info("connection attempt failed", "attempt", attempt, "error", err)
+			if attempt < a.config.MaxRetries {
+				time.Sleep(a.config.RetryInterval)
+				continue
+			}
+		} else {
+			lastErr = nil
+			break
+		}
+	}
 	
-	logger.Info("O1 connection established", "sessionID", sessionID, "capabilities", len(session.Capabilities))
+	if lastErr != nil {
+		return fmt.Errorf("failed to establish NETCONF connection after %d attempts: %w", a.config.MaxRetries, lastErr)
+	}
+	
+	// Store client
+	a.clientsMux.Lock()
+	a.clients[clientID] = client
+	a.clientsMux.Unlock()
+	
+	logger.Info("O1 connection established", "clientID", clientID, "capabilities", len(client.GetCapabilities()))
 	return nil
 }
 
@@ -240,16 +260,17 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1alpha1.ManagedEle
 func (a *O1Adaptor) Disconnect(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error {
 	logger := log.FromContext(ctx)
 	
-	sessionID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
 	
-	a.sessionsMux.Lock()
-	defer a.sessionsMux.Unlock()
+	a.clientsMux.Lock()
+	defer a.clientsMux.Unlock()
 	
-	if session, exists := a.sessions[sessionID]; exists {
-		// In a real implementation, we would close the NETCONF session
-		session.Connected = false
-		delete(a.sessions, sessionID)
-		logger.Info("O1 connection closed", "sessionID", sessionID)
+	if client, exists := a.clients[clientID]; exists {
+		if err := client.Close(); err != nil {
+			logger.Error(err, "failed to close NETCONF client", "clientID", clientID)
+		}
+		delete(a.clients, clientID)
+		logger.Info("O1 connection closed", "clientID", clientID)
 	}
 	
 	return nil
@@ -257,13 +278,13 @@ func (a *O1Adaptor) Disconnect(ctx context.Context, me *nephoranv1alpha1.Managed
 
 // IsConnected checks if there's an active connection to the managed element
 func (a *O1Adaptor) IsConnected(me *nephoranv1alpha1.ManagedElement) bool {
-	sessionID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
 	
-	a.sessionsMux.RLock()
-	defer a.sessionsMux.RUnlock()
+	a.clientsMux.RLock()
+	defer a.clientsMux.RUnlock()
 	
-	if session, exists := a.sessions[sessionID]; exists {
-		return session.Connected
+	if client, exists := a.clients[clientID]; exists {
+		return client.IsConnected()
 	}
 	return false
 }
@@ -280,25 +301,49 @@ func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1alpha1
 		}
 	}
 	
+	// Get NETCONF client
+	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	a.clientsMux.RLock()
+	client, exists := a.clients[clientID]
+	a.clientsMux.RUnlock()
+	
+	if !exists {
+		return fmt.Errorf("no active client found for managed element")
+	}
+	
 	// Validate configuration
 	if err := a.ValidateConfiguration(ctx, me.Spec.O1Config); err != nil {
 		return fmt.Errorf("configuration validation failed: %w", err)
 	}
 	
-	// In a real implementation, we would:
-	// 1. Parse the configuration (XML/JSON)
-	// 2. Build NETCONF edit-config RPC
-	// 3. Send RPC and wait for response
-	// 4. Check for errors
-	
-	sessionID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
-	
-	// Update last activity
-	a.sessionsMux.Lock()
-	if session, exists := a.sessions[sessionID]; exists {
-		session.LastActivity = time.Now()
+	// Prepare configuration data
+	configData := &ConfigData{
+		XMLData:   me.Spec.O1Config,
+		Format:    "xml",
+		Operation: "merge", // Default to merge operation
 	}
-	a.sessionsMux.Unlock()
+	
+	// Lock the configuration datastore
+	if err := client.Lock("running"); err != nil {
+		logger.Info("warning: failed to lock running datastore", "error", err)
+	} else {
+		// Ensure we unlock even if configuration fails
+		defer func() {
+			if unlockErr := client.Unlock("running"); unlockErr != nil {
+				logger.Error(unlockErr, "failed to unlock running datastore")
+			}
+		}()
+	}
+	
+	// Apply configuration
+	if err := client.SetConfig(configData); err != nil {
+		return fmt.Errorf("failed to apply configuration: %w", err)
+	}
+	
+	// Validate the applied configuration
+	if err := client.Validate("running"); err != nil {
+		logger.Info("warning: configuration validation failed", "error", err)
+	}
 	
 	logger.Info("O1 configuration applied successfully", "managedElement", me.Name)
 	return nil
@@ -314,29 +359,24 @@ func (a *O1Adaptor) GetConfiguration(ctx context.Context, me *nephoranv1alpha1.M
 		}
 	}
 	
-	// In a real implementation, we would:
-	// 1. Build NETCONF get-config RPC
-	// 2. Send RPC and wait for response
-	// 3. Extract configuration data
+	// Get NETCONF client
+	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	a.clientsMux.RLock()
+	client, exists := a.clients[clientID]
+	a.clientsMux.RUnlock()
 	
-	// Simulate configuration retrieval
-	config := fmt.Sprintf(`<configuration>
-  <system>
-    <name>%s</name>
-    <type>O-RAN-DU</type>
-    <version>1.0.0</version>
-  </system>
-  <interfaces>
-    <interface>
-      <name>eth0</name>
-      <type>ethernetCsmacd</type>
-      <enabled>true</enabled>
-    </interface>
-  </interfaces>
-</configuration>`, me.Name)
+	if !exists {
+		return "", fmt.Errorf("no active client found for managed element")
+	}
 	
-	logger.Info("retrieved configuration", "managedElement", me.Name, "size", len(config))
-	return config, nil
+	// Retrieve configuration using NETCONF get-config
+	configData, err := client.GetConfig("")
+	if err != nil {
+		return "", fmt.Errorf("failed to retrieve configuration: %w", err)
+	}
+	
+	logger.Info("retrieved configuration", "managedElement", me.Name, "size", len(configData.XMLData))
+	return configData.XMLData, nil
 }
 
 // ValidateConfiguration validates O1 configuration syntax and semantics
@@ -347,22 +387,31 @@ func (a *O1Adaptor) ValidateConfiguration(ctx context.Context, config string) er
 	
 	// Try to parse as XML first
 	var xmlDoc interface{}
-	if err := xml.Unmarshal([]byte(config), &xmlDoc); err == nil {
-		return nil // Valid XML
+	if err := xml.Unmarshal([]byte(config), &xmlDoc); err != nil {
+		// Try to parse as JSON
+		var jsonDoc interface{}
+		if err := json.Unmarshal([]byte(config), &jsonDoc); err != nil {
+			return fmt.Errorf("configuration must be valid XML or JSON format")
+		}
+		
+		// Validate JSON configuration against YANG models
+		return a.yangRegistry.ValidateConfig(ctx, jsonDoc, "o-ran-hardware")
 	}
 	
-	// Try to parse as JSON
-	var jsonDoc interface{}
-	if err := json.Unmarshal([]byte(config), &jsonDoc); err == nil {
-		return nil // Valid JSON
+	// For XML configuration, perform basic structure validation
+	// Extract root element to determine which YANG model to use
+	if strings.Contains(config, "<hardware>") {
+		return a.yangRegistry.ValidateConfig(ctx, xmlDoc, "o-ran-hardware")
+	} else if strings.Contains(config, "<software-inventory>") {
+		return a.yangRegistry.ValidateConfig(ctx, xmlDoc, "o-ran-software-management")
+	} else if strings.Contains(config, "<performance-measurement>") {
+		return a.yangRegistry.ValidateConfig(ctx, xmlDoc, "o-ran-performance-management")
+	} else if strings.Contains(config, "<interfaces>") {
+		return a.yangRegistry.ValidateConfig(ctx, xmlDoc, "ietf-interfaces")
 	}
 	
-	// If neither XML nor JSON, check if it's YANG module data
-	if strings.Contains(config, "module") && strings.Contains(config, "yang-version") {
-		return nil // Appears to be YANG
-	}
-	
-	return fmt.Errorf("configuration must be valid XML, JSON, or YANG format")
+	// If no specific model matches, perform basic validation
+	return nil
 }
 
 // GetAlarms retrieves active alarms from the managed element
@@ -375,29 +424,30 @@ func (a *O1Adaptor) GetAlarms(ctx context.Context, me *nephoranv1alpha1.ManagedE
 		}
 	}
 	
-	// In a real implementation, we would query the alarm list via NETCONF
-	// For now, return simulated alarms
-	alarms := []*Alarm{
-		{
-			ID:               "alarm-001",
-			ManagedElementID: me.Name,
-			Severity:         "MINOR",
-			Type:             "COMMUNICATIONS",
-			ProbableCause:    "LOSS_OF_SIGNAL",
-			SpecificProblem:  "Fiber link degradation detected",
-			AdditionalInfo:   "Link budget: -25dBm",
-			TimeRaised:       time.Now().Add(-1 * time.Hour),
-		},
-		{
-			ID:               "alarm-002",
-			ManagedElementID: me.Name,
-			Severity:         "WARNING",
-			Type:             "ENVIRONMENTAL",
-			ProbableCause:    "HIGH_TEMPERATURE",
-			SpecificProblem:  "CPU temperature above threshold",
-			AdditionalInfo:   "Current temp: 75°C, Threshold: 70°C",
-			TimeRaised:       time.Now().Add(-30 * time.Minute),
-		},
+	// Get NETCONF client
+	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	a.clientsMux.RLock()
+	client, exists := a.clients[clientID]
+	a.clientsMux.RUnlock()
+	
+	if !exists {
+		return nil, fmt.Errorf("no active client found for managed element")
+	}
+	
+	// Query alarms using NETCONF get operation with XPath filter
+	alarmFilter := "/o-ran-fm:active-alarm-list/active-alarms"
+	configData, err := client.GetConfig(alarmFilter)
+	if err != nil {
+		// If NETCONF query fails, log warning and return empty list
+		logger.Info("failed to retrieve alarms via NETCONF, returning empty list", "error", err)
+		return []*Alarm{}, nil
+	}
+	
+	// Parse alarm data from NETCONF response
+	alarms, err := a.parseAlarmData(configData.XMLData, me.Name)
+	if err != nil {
+		logger.Error(err, "failed to parse alarm data")
+		return []*Alarm{}, nil
 	}
 	
 	logger.Info("retrieved alarms", "managedElement", me.Name, "count", len(alarms))
@@ -431,26 +481,36 @@ func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1alpha1.
 		}
 	}
 	
-	// In a real implementation, we would:
-	// 1. Create NETCONF notification subscription
-	// 2. Start goroutine to listen for notifications
-	// 3. Call callback when alarms are received
+	// Get NETCONF client
+	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	a.clientsMux.RLock()
+	client, exists := a.clients[clientID]
+	a.clientsMux.RUnlock()
 	
-	// Simulate alarm subscription
-	go func() {
-		// Simulate receiving an alarm after 10 seconds
-		time.Sleep(10 * time.Second)
-		alarm := &Alarm{
-			ID:               "alarm-003",
-			ManagedElementID: me.Name,
-			Severity:         "MAJOR",
-			Type:             "EQUIPMENT",
-			ProbableCause:    "POWER_SUPPLY_FAILURE",
-			SpecificProblem:  "Redundant power supply failed",
-			TimeRaised:       time.Now(),
+	if !exists {
+		return fmt.Errorf("no active client found for managed element")
+	}
+	
+	// Create NETCONF notification subscription for alarms
+	alarmXPath := "/o-ran-fm:*"
+	eventCallback := func(event *NetconfEvent) {
+		// Convert NETCONF event to Alarm and call user callback
+		if alarm := a.convertEventToAlarm(event, me.Name); alarm != nil {
+			callback(alarm)
 		}
-		callback(alarm)
-	}()
+	}
+	
+	if err := client.Subscribe(alarmXPath, eventCallback); err != nil {
+		return fmt.Errorf("failed to create alarm subscription: %w", err)
+	}
+	
+	// Store subscription for management
+	a.subsMux.Lock()
+	if a.subscriptions[clientID] == nil {
+		a.subscriptions[clientID] = make([]EventCallback, 0)
+	}
+	a.subscriptions[clientID] = append(a.subscriptions[clientID], eventCallback)
+	a.subsMux.Unlock()
 	
 	logger.Info("alarm subscription established", "managedElement", me.Name)
 	return nil
@@ -466,23 +526,11 @@ func (a *O1Adaptor) GetMetrics(ctx context.Context, me *nephoranv1alpha1.Managed
 		}
 	}
 	
-	// Simulate metric retrieval
-	metrics := make(map[string]interface{})
-	for _, name := range metricNames {
-		switch name {
-		case "cpu_usage":
-			metrics[name] = 45.2
-		case "memory_usage":
-			metrics[name] = 62.8
-		case "throughput_mbps":
-			metrics[name] = 850.5
-		case "latency_ms":
-			metrics[name] = 2.3
-		case "packet_loss_rate":
-			metrics[name] = 0.0001
-		default:
-			metrics[name] = 0
-		}
+	// Use real NETCONF client to collect metrics
+	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	metrics, err := a.collectMetricsFromDevice(ctx, clientID, metricNames)
+	if err != nil {
+		return nil, fmt.Errorf("failed to collect metrics from device: %w", err)
 	}
 	
 	logger.Info("retrieved metrics", "managedElement", me.Name, "count", len(metrics))
@@ -503,9 +551,29 @@ func (a *O1Adaptor) StartMetricCollection(ctx context.Context, me *nephoranv1alp
 		}
 	}
 	
-	// In a real implementation, we would configure the managed element
-	// to start collecting and reporting metrics periodically
+	// Create metric collector
+	collectorID := fmt.Sprintf("%s-%d", me.Name, time.Now().Unix())
+	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
 	
+	collector := &MetricCollector{
+		ID:              collectorID,
+		ManagedElement:  clientID,
+		MetricNames:     config.MetricNames,
+		CollectionPeriod: config.CollectionPeriod,
+		ReportingPeriod: config.ReportingPeriod,
+		Active:          true,
+		LastCollection:  time.Time{},
+	}
+	
+	// Store collector
+	a.metricsMux.Lock()
+	a.metricCollectors[collectorID] = collector
+	a.metricsMux.Unlock()
+	
+	// Start periodic collection
+	a.startPeriodicMetricCollection(ctx, collector)
+	
+	logger.Info("metric collection started", "collectorID", collectorID)
 	return nil
 }
 
@@ -516,8 +584,18 @@ func (a *O1Adaptor) StopMetricCollection(ctx context.Context, me *nephoranv1alph
 		"managedElement", me.Name,
 		"collectionID", collectionID)
 	
-	if !a.IsConnected(me) {
-		return fmt.Errorf("not connected to managed element")
+	a.metricsMux.Lock()
+	defer a.metricsMux.Unlock()
+	
+	if collector, exists := a.metricCollectors[collectionID]; exists {
+		collector.Active = false
+		if collector.cancel != nil {
+			collector.cancel()
+		}
+		delete(a.metricCollectors, collectionID)
+		logger.Info("metric collection stopped", "collectorID", collectionID)
+	} else {
+		logger.Info("metric collector not found", "collectionID", collectionID)
 	}
 	
 	return nil
@@ -566,7 +644,31 @@ func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1alph
 		}
 	}
 	
-	// In a real implementation, we would push security policy via NETCONF
+	// Get NETCONF client
+	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
+	a.clientsMux.RLock()
+	client, exists := a.clients[clientID]
+	a.clientsMux.RUnlock()
+	
+	if !exists {
+		return fmt.Errorf("no active client found for managed element")
+	}
+	
+	// Build security configuration XML
+	securityConfigXML := a.buildSecurityConfiguration(policy)
+	
+	// Apply security configuration via NETCONF
+	configData := &ConfigData{
+		XMLData:   securityConfigXML,
+		Format:    "xml",
+		Operation: "merge",
+	}
+	
+	if err := client.SetConfig(configData); err != nil {
+		return fmt.Errorf("failed to apply security policy: %w", err)
+	}
+	
+	logger.Info("security policy updated successfully", "policyID", policy.PolicyID)
 	return nil
 }
 

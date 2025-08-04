@@ -1,0 +1,651 @@
+# Nephoran Intent Operator - Istio Service Mesh Configuration
+# Phase 4 Advanced Enterprise Architecture - Service Mesh Integration
+---
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  name: nephoran-control-plane
+  namespace: istio-system
+spec:
+  # Istio configuration for Nephoran Intent Operator
+  values:
+    global:
+      meshID: nephoran-mesh
+      multiCluster:
+        clusterName: nephoran-primary
+      network: nephoran-network
+      # Enable enhanced security
+      defaultPodDisruptionBudget:
+        enabled: true
+      proxy:
+        # Resource optimization for telecom workloads
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 2000m
+            memory: 1Gi
+        # Enhanced proxy configuration
+        privileged: false
+        enableCoreDump: false
+        # Logging configuration
+        logLevel: warning
+        componentLogLevel: "misc:info"
+      
+  components:
+    pilot:
+      k8s:
+        resources:
+          requests:
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        # High availability for production
+        replicaCount: 3
+        hpaSpec:
+          maxReplicas: 5
+          minReplicas: 3
+          scaleTargetRef:
+            apiVersion: apps/v1
+            kind: Deployment
+            name: istiod
+          metrics:
+          - type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 80
+        env:
+          - name: PILOT_TRACE_SAMPLING
+            value: "1.0"
+          - name: PILOT_ENABLE_WORKLOAD_ENTRY_AUTOREGISTRATION
+            value: "true"
+          - name: PILOT_ENABLE_CROSS_CLUSTER_WORKLOAD_ENTRY
+            value: "true"
+        
+    ingressGateways:
+    - name: istio-ingressgateway
+      enabled: true
+      k8s:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 2000m
+            memory: 1Gi
+        replicaCount: 3
+        hpaSpec:
+          maxReplicas: 5
+          minReplicas: 3
+        service:
+          type: LoadBalancer
+          ports:
+          - port: 15021
+            targetPort: 15021
+            name: status-port
+          - port: 80
+            targetPort: 8080
+            name: http2
+          - port: 443
+            targetPort: 8443
+            name: https
+          - port: 31400
+            targetPort: 31400
+            name: tcp
+          # O-RAN specific ports
+          - port: 9090
+            targetPort: 9090
+            name: metrics
+          - port: 8080
+            targetPort: 8080
+            name: rag-api
+          - port: 8081
+            targetPort: 8081
+            name: llm-processor
+            
+    egressGateways:
+    - name: istio-egressgateway
+      enabled: true
+      k8s:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 2000m
+            memory: 1Gi
+        replicaCount: 2
+        service:
+          ports:
+          - port: 80
+            name: http2
+          - port: 443
+            name: https
+          - port: 15443
+            targetPort: 15443
+            name: tls
+
+  # Mesh configuration
+  meshConfig:
+    # Enhanced security
+    defaultConfig:
+      # Automatic sidecar injection
+      holdApplicationUntilProxyStarts: true
+      # Tracing configuration
+      tracing:
+        sampling: 100.0
+        custom_tags:
+          nephoran_component:
+            header:
+              name: "x-nephoran-component"
+          nephoran_intent_id:
+            header:
+              name: "x-intent-id"
+          nephoran_trace_id:
+            header:
+              name: "x-trace-id"
+      # Enhanced proxy metadata
+      proxyMetadata:
+        BOOTSTRAP_XDS_AGENT: true
+        PILOT_ENABLE_CROSS_CLUSTER_WORKLOAD_ENTRY: true
+        PILOT_ENABLE_REMOTE_JWKS_ASYNC_FETCH: true
+      # Resource configuration
+      concurrency: 2
+      proxyStatsMatcher:
+        inclusion:
+          regexps:
+          - ".*circuit_breakers.*"
+          - ".*upstream_rq_retry.*"
+          - ".*upstream_rq_pending.*"
+          - ".*_cx_.*"
+    # Trust domain for enhanced security
+    trustDomain: cluster.local
+    # Service discovery
+    defaultServiceExportTo:
+      - "."
+    defaultVirtualServiceExportTo:
+      - "."
+    defaultDestinationRuleExportTo:
+      - "."
+    # Access logging
+    accessLogFile: /dev/stdout
+    accessLogFormat: |
+      [%START_TIME%] "%REQ(:METHOD)% %REQ(X-ENVOY-ORIGINAL-PATH?:PATH)% %PROTOCOL%"
+      %RESPONSE_CODE% %RESPONSE_FLAGS% %BYTES_RECEIVED% %BYTES_SENT%
+      %DURATION% %RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)% "%REQ(X-FORWARDED-FOR)%"
+      "%REQ(USER-AGENT)%" "%REQ(X-REQUEST-ID)%" "%REQ(:AUTHORITY)%" "%UPSTREAM_HOST%"
+      nephoran_component="%REQ(x-nephoran-component)%" intent_id="%REQ(x-intent-id)%"
+    # Enable distributed tracing
+    extensionProviders:
+    - name: jaeger
+      envoyOtelAls:
+        service: jaeger-collector.istio-system.svc.cluster.local
+        port: 14268
+    - name: prometheus
+      prometheus:
+        configOverride:
+          metric_relabeling_configs:
+          - source_labels: [__name__]
+            regex: istio_.*
+            target_label: __tmp_istio_metric
+          - source_labels: [__tmp_istio_metric, nephoran_component]
+            regex: (.*);(.*)
+            target_label: component
+            replacement: ${2}
+
+---
+# Istio Gateway for Nephoran services
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: nephoran-gateway
+  namespace: nephoran-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  # HTTPS traffic
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: nephoran-tls-cert
+    hosts:
+    - "nephoran.example.com"
+    - "api.nephoran.example.com"
+    - "rag.nephoran.example.com"
+  # HTTP redirect to HTTPS
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "nephoran.example.com"
+    - "api.nephoran.example.com"
+    - "rag.nephoran.example.com"
+    tls:
+      httpsRedirect: true
+  # O-RAN API Gateway
+  - port:
+      number: 8080
+      name: oran-api
+      protocol: HTTP
+    hosts:
+    - "oran.nephoran.example.com"
+
+---
+# Virtual Service for Nephoran Intent Operator
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: nephoran-virtual-service
+  namespace: nephoran-system
+spec:
+  hosts:
+  - "nephoran.example.com"
+  - "api.nephoran.example.com"
+  gateways:
+  - nephoran-gateway
+  http:
+  # LLM Processor API routes
+  - match:
+    - uri:
+        prefix: /api/v1/llm
+    route:
+    - destination:
+        host: llm-processor.nephoran-system.svc.cluster.local
+        port:
+          number: 8080
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 5s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+    timeout: 30s
+    headers:
+      request:
+        add:
+          x-nephoran-component: llm-processor
+      response:
+        add:
+          x-nephoran-version: "v4.0"
+  
+  # RAG API routes
+  - match:
+    - uri:
+        prefix: /api/v1/rag
+    route:
+    - destination:
+        host: rag-api.nephoran-system.svc.cluster.local
+        port:
+          number: 8080
+    fault:
+      delay:
+        percentage:
+          value: 0.1
+        fixedDelay: 3s
+    retries:
+      attempts: 2
+      perTryTimeout: 15s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+    timeout: 60s
+    headers:
+      request:
+        add:
+          x-nephoran-component: rag-api
+  
+  # Nephio Bridge Controller routes
+  - match:
+    - uri:
+        prefix: /api/v1/controller
+    route:
+    - destination:
+        host: nephio-bridge.nephoran-system.svc.cluster.local
+        port:
+          number: 8080
+    retries:
+      attempts: 3
+      perTryTimeout: 30s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+    timeout: 120s
+    headers:
+      request:
+        add:
+          x-nephoran-component: nephio-bridge
+  
+  # Default route to dashboard/UI
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: nephoran-dashboard.nephoran-system.svc.cluster.local
+        port:
+          number: 80
+    headers:
+      request:
+        add:
+          x-nephoran-component: dashboard
+
+---
+# RAG API Virtual Service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: rag-api-virtual-service
+  namespace: nephoran-system
+spec:
+  hosts:
+  - "rag.nephoran.example.com"
+  gateways:
+  - nephoran-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /v1/query
+    route:
+    - destination:
+        host: rag-api.nephoran-system.svc.cluster.local
+        port:
+          number: 8080
+        subset: v1
+    fault:
+      abort:
+        percentage:
+          value: 0.1
+        httpStatus: 503
+    retries:
+      attempts: 3
+      perTryTimeout: 30s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+    timeout: 120s
+  - match:
+    - uri:
+        prefix: /health
+    route:
+    - destination:
+        host: rag-api.nephoran-system.svc.cluster.local
+        port:
+          number: 8080
+    retries:
+      attempts: 1
+      perTryTimeout: 5s
+    timeout: 10s
+
+---
+# O-RAN Virtual Service
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: oran-virtual-service
+  namespace: nephoran-system
+spec:
+  hosts:
+  - "oran.nephoran.example.com"
+  gateways:
+  - nephoran-gateway
+  http:
+  # A1 Interface routes
+  - match:
+    - uri:
+        prefix: /a1-p
+    route:
+    - destination:
+        host: oran-adaptor.nephoran-system.svc.cluster.local
+        port:
+          number: 8080
+    headers:
+      request:
+        add:
+          x-oran-interface: a1
+          x-nephoran-component: oran-adaptor
+  
+  # O1 Interface routes
+  - match:
+    - uri:
+        prefix: /o1/
+    route:
+    - destination:
+        host: oran-adaptor.nephoran-system.svc.cluster.local
+        port:
+          number: 8081
+    headers:
+      request:
+        add:
+          x-oran-interface: o1
+          x-nephoran-component: oran-adaptor
+  
+  # O2 Interface routes
+  - match:
+    - uri:
+        prefix: /o2/
+    route:
+    - destination:
+        host: oran-adaptor.nephoran-system.svc.cluster.local
+        port:
+          number: 8082
+    headers:
+      request:
+        add:
+          x-oran-interface: o2
+          x-nephoran-component: oran-adaptor
+
+---
+# Destination Rules for traffic policies
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: llm-processor-destination-rule
+  namespace: nephoran-system
+spec:
+  host: llm-processor.nephoran-system.svc.cluster.local
+  trafficPolicy:
+    # Load balancing
+    loadBalancer:
+      simple: LEAST_CONN
+    # Connection pool settings
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30s
+        keepalive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 2
+        maxRetries: 3
+        consecutiveGatewayErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+        maxEjectionPercent: 50
+        minHealthPercent: 50
+    # Circuit breaker
+    outlierDetection:
+      consecutiveGatewayErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: rag-api-destination-rule
+  namespace: nephoran-system
+spec:
+  host: rag-api.nephoran-system.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN
+    connectionPool:
+      tcp:
+        maxConnections: 50
+        connectTimeout: 60s
+      http:
+        http1MaxPendingRequests: 25
+        http2MaxRequests: 50
+        maxRequestsPerConnection: 10
+        maxRetries: 2
+        consecutiveGatewayErrors: 3
+        interval: 60s
+        baseEjectionTime: 60s
+    outlierDetection:
+      consecutiveGatewayErrors: 3
+      interval: 60s
+      baseEjectionTime: 60s
+      maxEjectionPercent: 30
+  subsets:
+  - name: v1
+    labels:
+      version: v1
+    trafficPolicy:
+      connectionPool:
+        tcp:
+          maxConnections: 25
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: weaviate-destination-rule
+  namespace: nephoran-system
+spec:
+  host: weaviate.nephoran-system.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: LEAST_CONN
+    connectionPool:
+      tcp:
+        maxConnections: 20
+        connectTimeout: 30s
+      http:
+        http1MaxPendingRequests: 10
+        http2MaxRequests: 20
+        maxRequestsPerConnection: 5
+        maxRetries: 1
+    outlierDetection:
+      consecutiveGatewayErrors: 2
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 20
+
+---
+# Service Entry for external dependencies
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: openai-api
+  namespace: nephoran-system
+spec:
+  hosts:
+  - api.openai.com
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+  resolution: DNS
+
+---
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: github-api
+  namespace: nephoran-system
+spec:
+  hosts:
+  - api.github.com
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+  resolution: DNS
+
+---
+# Egress policy for external services
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: openai-egress
+  namespace: nephoran-system
+spec:
+  hosts:
+  - api.openai.com
+  http:
+  - match:
+    - uri:
+        prefix: /v1/
+    route:
+    - destination:
+        host: api.openai.com
+        port:
+          number: 443
+    timeout: 60s
+    retries:
+      attempts: 3
+      perTryTimeout: 20s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+
+---
+# Telemetry configuration for enhanced observability
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: nephoran-telemetry
+  namespace: nephoran-system
+spec:
+  # Metrics configuration
+  metrics:
+  - providers:
+    - name: prometheus
+  - overrides:
+    - match:
+        metric: ALL_METRICS
+      tagOverrides:
+        nephoran_component:
+          value: "%{REQUEST_HEADERS['x-nephoran-component']}"
+        intent_id:
+          value: "%{REQUEST_HEADERS['x-intent-id']}"
+        oran_interface:
+          value: "%{REQUEST_HEADERS['x-oran-interface']}"
+  # Tracing configuration
+  tracing:
+  - providers:
+    - name: jaeger
+  # Access logging
+  accessLogging:
+  - providers:
+    - name: otel
+
+---
+# Workload Entry for external O-RAN components (if needed)
+apiVersion: networking.istio.io/v1beta1
+kind: WorkloadEntry
+metadata:
+  name: external-near-rt-ric
+  namespace: nephoran-system
+spec:
+  address: "near-rt-ric.oran.example.com"
+  ports:
+    http: 8080
+    grpc: 9090
+  labels:
+    app: near-rt-ric
+    component: oran-external
+    version: v1
+  serviceAccount: oran-external-sa

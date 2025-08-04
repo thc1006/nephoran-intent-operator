@@ -1,0 +1,348 @@
+# Nephoran Intent Operator - Regional Deployment Template
+# Phase 4 Enterprise Architecture - Per-Region Configuration
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-system
+  labels:
+    istio-injection: enabled
+    nephoran.io/region: ${REGION}
+    nephoran.io/tier: data-plane
+---
+# Regional Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-regional-config
+  namespace: nephoran-system
+data:
+  region.conf: |
+    region_id: ${REGION}
+    region_name: ${REGION_NAME}
+    global_endpoint: https://global.nephoran.io
+    local_endpoint: https://${REGION}.nephoran.io
+    
+    # Regional capacity limits
+    capacity:
+      max_concurrent_intents: ${MAX_CONCURRENT_INTENTS}
+      max_deployments_per_minute: ${MAX_DEPLOYMENTS_PER_MINUTE}
+      max_llm_requests_per_second: ${MAX_LLM_RPS}
+      max_vector_db_connections: ${MAX_VECTOR_CONNECTIONS}
+    
+    # Regional features
+    features:
+      edge_computing_enabled: ${EDGE_ENABLED}
+      local_ml_inference: ${LOCAL_ML_ENABLED}
+      data_residency_enforcement: ${DATA_RESIDENCY}
+      compliance_mode: ${COMPLIANCE_MODE}
+    
+    # Failover configuration
+    failover:
+      enabled: true
+      peer_regions:
+        - ${FAILOVER_REGION_1}
+        - ${FAILOVER_REGION_2}
+      health_check_interval: 10s
+      failover_threshold: 3
+---
+# Regional LLM Processor Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-processor-regional
+  namespace: nephoran-system
+  labels:
+    app: llm-processor
+    version: ${VERSION}
+    region: ${REGION}
+spec:
+  replicas: ${LLM_REPLICAS}
+  selector:
+    matchLabels:
+      app: llm-processor
+      region: ${REGION}
+  template:
+    metadata:
+      labels:
+        app: llm-processor
+        version: ${VERSION}
+        region: ${REGION}
+      annotations:
+        sidecar.istio.io/inject: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: llm-processor
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: llm-processor
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nephoran.io/region
+                operator: In
+                values: ["${REGION}"]
+      containers:
+      - name: llm-processor
+        image: ${REGISTRY}/nephoran/llm-processor:${VERSION}
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8090
+          name: metrics
+        env:
+        - name: REGION
+          value: ${REGION}
+        - name: GLOBAL_ENDPOINT
+          value: https://global.nephoran.io
+        - name: LOCAL_CACHE_ENABLED
+          value: "true"
+        - name: REGIONAL_MODEL_ENDPOINT
+          value: ${REGIONAL_MODEL_ENDPOINT}
+        - name: ENABLE_REGIONAL_FAILOVER
+          value: "true"
+        envFrom:
+        - configMapRef:
+            name: nephoran-regional-config
+        - secretRef:
+            name: llm-processor-secrets
+        resources:
+          requests:
+            cpu: ${LLM_CPU_REQUEST}
+            memory: ${LLM_MEMORY_REQUEST}
+          limits:
+            cpu: ${LLM_CPU_LIMIT}
+            memory: ${LLM_MEMORY_LIMIT}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        volumeMounts:
+        - name: cache
+          mountPath: /cache
+      volumes:
+      - name: cache
+        emptyDir:
+          sizeLimit: 10Gi
+---
+# Regional Weaviate Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weaviate-regional
+  namespace: nephoran-system
+  labels:
+    app: weaviate
+    region: ${REGION}
+spec:
+  replicas: ${WEAVIATE_REPLICAS}
+  selector:
+    matchLabels:
+      app: weaviate
+      region: ${REGION}
+  template:
+    metadata:
+      labels:
+        app: weaviate
+        region: ${REGION}
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: weaviate
+            topologyKey: kubernetes.io/hostname
+      containers:
+      - name: weaviate
+        image: semitechnologies/weaviate:${WEAVIATE_VERSION}
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: CLUSTER_HOSTNAME
+          value: weaviate-regional
+        - name: CLUSTER_GOSSIP_BIND_PORT
+          value: "7946"
+        - name: CLUSTER_DATA_BIND_PORT
+          value: "7947"
+        - name: AUTHENTICATION_APIKEY_ENABLED
+          value: "true"
+        - name: AUTHENTICATION_APIKEY_ALLOWED_KEYS
+          valueFrom:
+            secretKeyRef:
+              name: weaviate-api-keys
+              key: api-keys
+        - name: PERSISTENCE_DATA_PATH
+          value: "/var/lib/weaviate"
+        - name: ENABLE_MODULES
+          value: "text2vec-openai,generative-openai,backup-s3"
+        - name: BACKUP_S3_BUCKET
+          value: nephoran-backups-${REGION}
+        - name: BACKUP_S3_REGION
+          value: ${AWS_REGION}
+        - name: REPLICATION_FACTOR
+          value: "${WEAVIATE_REPLICATION_FACTOR}"
+        resources:
+          requests:
+            cpu: ${WEAVIATE_CPU_REQUEST}
+            memory: ${WEAVIATE_MEMORY_REQUEST}
+          limits:
+            cpu: ${WEAVIATE_CPU_LIMIT}
+            memory: ${WEAVIATE_MEMORY_LIMIT}
+        volumeMounts:
+        - name: weaviate-data
+          mountPath: /var/lib/weaviate
+        livenessProbe:
+          httpGet:
+            path: /v1/.well-known/ready
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /v1/.well-known/ready
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: weaviate-data
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: ${STORAGE_CLASS}
+      resources:
+        requests:
+          storage: ${WEAVIATE_STORAGE_SIZE}
+---
+# Regional Gateway
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: nephoran-regional-gateway
+  namespace: nephoran-system
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: nephoran-regional-tls
+      minProtocolVersion: TLSV1_3
+    hosts:
+    - "${REGION}.nephoran.io"
+    - "api-${REGION}.nephoran.io"
+  - port:
+      number: 15443
+      name: mtls
+      protocol: TLS
+    tls:
+      mode: ISTIO_MUTUAL
+    hosts:
+    - "*.nephoran.local"
+---
+# Regional Service Mesh Configuration
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: regional-routing
+  namespace: nephoran-system
+spec:
+  hosts:
+  - "${REGION}.nephoran.io"
+  gateways:
+  - nephoran-regional-gateway
+  http:
+  - match:
+    - headers:
+        x-failover:
+          exact: "true"
+    route:
+    - destination:
+        host: llm-processor
+        subset: regional-active
+      weight: 100
+    fault:
+      abort:
+        percentage:
+          value: 0.1
+        httpStatus: 503
+  - route:
+    - destination:
+        host: llm-processor
+        subset: regional
+      weight: 90
+    - destination:
+        host: llm-processor
+        subset: regional-canary
+      weight: 10
+---
+# Regional HPA Configuration
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: llm-processor-regional-hpa
+  namespace: nephoran-system
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: llm-processor-regional
+  minReplicas: ${HPA_MIN_REPLICAS}
+  maxReplicas: ${HPA_MAX_REPLICAS}
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: ${HPA_CPU_TARGET}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: ${HPA_MEMORY_TARGET}
+  - type: Pods
+    pods:
+      metric:
+        name: nephoran_regional_requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "${HPA_RPS_TARGET}"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: ${HPA_SCALE_DOWN_WINDOW}
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: ${HPA_SCALE_UP_WINDOW}
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
