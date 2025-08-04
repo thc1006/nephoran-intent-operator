@@ -87,6 +87,8 @@ type HealthStatus struct {
 	Status        string                 `json:"status"`
 	LastCheck     time.Time              `json:"last_check"`
 	ResponseTime  time.Duration          `json:"response_time"`
+	AverageLatency time.Duration          `json:"average_latency"`
+	ConsecutiveFailures int                   `json:"consecutive_failures"`
 	ErrorMessage  string                 `json:"error_message,omitempty"`
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
@@ -177,47 +179,6 @@ func NewRAGMonitor(config *MonitoringConfig) *RAGMonitor {
 	return monitor
 }
 
-// getDefaultMonitoringConfig returns default monitoring configuration
-func getDefaultMonitoringConfig() *MonitoringConfig {
-	return &MonitoringConfig{
-		MetricsPort:              8080,
-		MetricsPath:             "/metrics",
-		HealthCheckPath:         "/health",
-		MetricsInterval:         30 * time.Second,
-		HealthCheckInterval:     60 * time.Second,
-		EnableAlerting:          true,
-		AlertThresholds: map[string]AlertThreshold{
-			"query_latency_p95": {
-				MetricName:    "rag_query_latency_seconds",
-				Threshold:     2.0, // 2 seconds
-				Comparison:    "greater",
-				WindowMinutes: 5,
-				Severity:      "warning",
-			},
-			"error_rate": {
-				MetricName:    "rag_error_rate",
-				Threshold:     0.05, // 5%
-				Comparison:    "greater",
-				WindowMinutes: 5,
-				Severity:      "critical",
-			},
-			"cache_hit_rate": {
-				MetricName:    "rag_cache_hit_rate",
-				Threshold:     0.8, // 80%
-				Comparison:    "less",
-				WindowMinutes: 10,
-				Severity:      "warning",
-			},
-		},
-		AlertWebhooks:               []string{},
-		EnableStructuredLogs:        true,
-		LogLevel:                   "info",
-		TraceSampleRate:            0.1,
-		EnableDistributedTracing:   false,
-		EnableResourceMonitoring:   true,
-		ResourceMonitoringInterval: 30 * time.Second,
-	}
-}
 
 // initializePrometheusMetrics initializes all Prometheus metrics
 func (rm *RAGMonitor) initializePrometheusMetrics() {

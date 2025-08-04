@@ -1,7 +1,7 @@
 package nephio
 
 import (
-	"encoding/json"
+"encoding/json"
 	"bytes"
 	"fmt"
 	"path/filepath"

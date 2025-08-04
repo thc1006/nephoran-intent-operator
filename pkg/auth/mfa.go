@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pquerna/otp/totp"
 )
 
 // MFAManager handles multi-factor authentication
@@ -339,7 +340,7 @@ func (mfa *MFAManager) verifyTOTP(ctx context.Context, request *MFAVerificationR
 		return result, nil
 	}
 
-	valid := totp.Validate(request.Code, userSecret, time.Now())
+	valid := totp.Validate(request.Code, userSecret)
 	result.Valid = valid
 
 	if valid {

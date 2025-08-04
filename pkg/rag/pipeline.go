@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 
@@ -577,13 +578,6 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 	return nil
 }
 
-// min returns the minimum of two integers
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
 
 // ProcessQuery processes a query through the enhanced retrieval pipeline
 func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearchRequest) (*EnhancedSearchResponse, error) {
@@ -600,7 +594,7 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 	)
 
 	// Check cache first if enabled
-	if rp.redisCache != nil && request.UseCache {
+	if rp.redisCache != nil && rp.config.EnableCaching {
 		if cached, metadata, found := rp.redisCache.GetContext(ctx, request.Query, request.IntentType); found {
 			rp.logger.Debug("Query result found in cache", "query", request.Query)
 			
@@ -634,7 +628,7 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 	processingTime := time.Since(startTime)
 
 	// Cache the result if caching is enabled
-	if rp.redisCache != nil && request.UseCache {
+	if rp.redisCache != nil && rp.config.EnableCaching {
 		contextKey := request.IntentType
 		if contextKey == "" {
 			contextKey = "general"
@@ -681,7 +675,6 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 		EnableQueryEnhancement: true,
 		EnableReranking:        true,
 		RequiredContextLength:  rp.config.RetrievalConfig.MaxContextLength,
-		UseCache:              rp.config.EnableCaching,
 	}
 
 	// Classify intent type (simplified)
@@ -724,7 +717,7 @@ func (rp *RAGPipeline) convertChunkToTelecomDocument(chunk *DocumentChunk) *Tele
 		Category:        rp.getCategoryFromMetadata(chunk.DocumentMetadata),
 		Version:         rp.getVersionFromMetadata(chunk.DocumentMetadata),
 		Keywords:        chunk.TechnicalTerms,
-		Confidence:      chunk.QualityScore,
+		Confidence:      float32(chunk.QualityScore),
 		Language:        "en", // Default to English
 		DocumentType:    "chunk",
 		NetworkFunction: rp.getNetworkFunctionsFromMetadata(chunk.DocumentMetadata),
@@ -1103,9 +1096,10 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 
 	for _, doc := range job.Documents {
 		// Process document through pipeline
-		chunks, err := rp.chunkingService.ChunkDocument(doc.Content, &ChunkingRequest{
-			ChunkSize:    rp.config.ChunkingConfig.ChunkSize,
-			ChunkOverlap: rp.config.ChunkingConfig.ChunkOverlap,
+		chunks, err := rp.chunkingService.ChunkDocument(ctx, &LoadedDocument{
+			ID:      doc.ID,
+			Content: doc.Content,
+			Metadata: &DocumentMetadata{},
 		})
 		if err != nil {
 			processedDocs = append(processedDocs, ProcessedDocument{
@@ -1120,20 +1114,24 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 		embeddings := make([][]float32, 0, len(chunks))
 
 		for i, chunk := range chunks {
-			embedding, err := rp.embeddingService.GenerateEmbedding(ctx, chunk.Content)
+			embeddingResp, err := rp.embeddingService.GenerateEmbeddings(ctx, &EmbeddingRequest{
+				Texts: []string{chunk.Content},
+			})
 			if err != nil {
 				rp.logger.Warn("Failed to generate embedding for chunk", "chunk_index", i, "error", err)
 				continue
 			}
 
-			processedChunks = append(processedChunks, ProcessedChunk{
-				Content:    chunk.Content,
-				Embedding:  embedding,
-				Metadata:   chunk.Metadata,
-				ChunkIndex: i,
-				Quality:    chunk.Quality,
-			})
-			embeddings = append(embeddings, embedding)
+			if len(embeddingResp.Embeddings) > 0 {
+				processedChunks = append(processedChunks, ProcessedChunk{
+					Content:    chunk.Content,
+					Embedding:  embeddingResp.Embeddings[0],
+					Metadata:   make(map[string]interface{}),
+					ChunkIndex: i,
+					Quality:    float32(chunk.QualityScore),
+				})
+				embeddings = append(embeddings, embeddingResp.Embeddings[0])
+			}
 		}
 
 		processedDocs = append(processedDocs, ProcessedDocument{
@@ -1168,7 +1166,6 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 		EnableQueryEnhancement: true,
 		EnableReranking:        true,
 		RequiredContextLength:  job.Parameters.MaxResults,
-		UseCache:              rp.config.EnableCaching,
 	}
 
 	// Process query
@@ -1187,11 +1184,11 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 	retrievedDocs := make([]RetrievedDocument, len(response.Results))
 	for i, result := range response.Results {
 		retrievedDocs[i] = RetrievedDocument{
-			ID:       result.ID,
-			Content:  result.Content,
-			Score:    result.Score,
-			Source:   result.Source,
-			Metadata: result.Metadata,
+			ID:       result.SearchResult.Document.ID,
+			Content:  result.SearchResult.Document.Content,
+			Score:    result.SearchResult.Score,
+			Source:   result.SearchResult.Document.Source,
+			Metadata: make(map[string]interface{}),
 		}
 	}
 
@@ -1202,7 +1199,7 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 		Confidence:  response.AverageRelevanceScore,
 		ProcessTime: time.Since(startTime),
 		CacheHit:    false, // Would need to track this from ProcessQuery
-		Metadata:    response.ContextMetadata,
+		Metadata:    make(map[string]interface{}),
 	}
 
 	// Call callback with results

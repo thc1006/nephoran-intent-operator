@@ -11,10 +11,10 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -220,6 +220,16 @@ type Coordinate struct {
 	Longitude float64 `json:"longitude"`
 }
 
+// GeographicLocation represents a specific geographic location
+type GeographicLocation struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Altitude  float64 `json:"altitude,omitempty"` // meters above sea level
+	Country   string  `json:"country,omitempty"`
+	Region    string  `json:"region,omitempty"`
+	City      string  `json:"city,omitempty"`
+}
+
 // ServiceLevel defines the service level for edge zones
 type ServiceLevel string
 
@@ -250,19 +260,9 @@ func NewEdgeController(
 
 // SetupWithManager sets up the controller with the Manager
 func (r *EdgeController) SetupWithManager(mgr ctrl.Manager) error {
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoran.NetworkIntent{}).
-		Build(r)
-	
-	if err != nil {
-		return err
-	}
-
-	// Watch for edge-related events
-	return controller.Watch(
-		&source.Kind{Type: &nephoran.NetworkIntent{}},
-		&handler.EnqueueRequestForObject{},
-	)
+		Complete(r)
 }
 
 // Reconcile handles edge computing operations
@@ -297,7 +297,7 @@ func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (
 	
 	// Update intent status
 	intent.Status.Phase = "Deployed"
-	intent.Status.Message = fmt.Sprintf("Deployed to %d edge nodes", len(edgeNodes))
+	// Note: Message field not available in current API version
 	if err := r.Status().Update(ctx, &intent); err != nil {
 		log.Error(err, "Failed to update intent status")
 	}
@@ -679,7 +679,7 @@ func (r *EdgeController) triggerZoneScaling(ctx context.Context, zoneID string, 
 
 // requiresEdgeProcessing determines if an intent requires edge processing
 func (r *EdgeController) requiresEdgeProcessing(intent *nephoran.NetworkIntent) bool {
-	description := intent.Spec.Description
+	description := intent.Spec.Intent
 	
 	// Check for edge-related keywords
 	edgeKeywords := []string{
@@ -693,13 +693,11 @@ func (r *EdgeController) requiresEdgeProcessing(intent *nephoran.NetworkIntent) 
 		}
 	}
 	
-	// Check for low latency requirements
-	if intent.Spec.Parameters != nil {
-		if latency, exists := intent.Spec.Parameters["max_latency"]; exists {
-			if latency == "1ms" || latency == "5ms" || latency == "<10ms" {
-				return true
-			}
-		}
+	// Check for low latency requirements in the intent text
+	// Note: Parameters is a RawExtension and requires proper parsing
+	if contains(description, "1ms") || contains(description, "5ms") || contains(description, "<10ms") || 
+	   contains(description, "ultra-low latency") || contains(description, "URLLC") {
+		return true
 	}
 	
 	return false
@@ -752,7 +750,7 @@ func (r *EdgeController) isNodeSuitable(node *EdgeNode, intent *nephoran.Network
 	}
 	
 	// Check specific capabilities based on intent
-	description := intent.Spec.Description
+	description := intent.Spec.Intent
 	
 	if contains(description, "AI") || contains(description, "ML") {
 		if !node.Capabilities.ComputeIntensive {
@@ -804,7 +802,7 @@ func (r *EdgeController) calculateNodeScore(node *EdgeNode, intent *nephoran.Net
 	score += node.HealthMetrics.UptimePercent * 0.1
 	
 	// Bonus for specific capabilities
-	description := intent.Spec.Description
+	description := intent.Spec.Intent
 	if contains(description, "AI") && node.Capabilities.ComputeIntensive {
 		score += 50.0
 	}

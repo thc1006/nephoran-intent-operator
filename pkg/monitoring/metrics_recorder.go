@@ -2,15 +2,12 @@ package monitoring
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
 	"math"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 )
 

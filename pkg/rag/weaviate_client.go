@@ -24,9 +24,9 @@ type WeaviateClient struct {
 	client           *weaviate.Client
 	config           *WeaviateConfig
 	logger           *slog.Logger
-	healthStatus     *HealthStatus
+	healthStatus     *WeaviateHealthStatus
 	circuitBreaker   *CircuitBreaker
-	rateLimiter      *RateLimiter
+	rateLimiter      *WeaviateRateLimiter
 	embeddingFallback *EmbeddingFallback
 	mutex            sync.RWMutex
 }
@@ -50,7 +50,7 @@ const (
 )
 
 // RateLimiter implements token bucket rate limiting for OpenAI API calls
-type RateLimiter struct {
+type WeaviateRateLimiter struct {
 	requestsPerMinute int32
 	tokensPerMinute   int64
 	requestTokens     int32
@@ -128,12 +128,13 @@ type WeaviateConfig struct {
 }
 
 // HealthStatus represents the health status of the Weaviate cluster
-type HealthStatus struct {
+type WeaviateHealthStatus struct {
 	IsHealthy     bool              `json:"is_healthy"`
 	LastCheck     time.Time         `json:"last_check"`
 	Version       string            `json:"version"`
 	Nodes         []NodeStatus      `json:"nodes"`
 	Statistics    ClusterStatistics `json:"statistics"`
+	Details       string            `json:"details"`
 	ErrorCount    int64             `json:"error_count"`
 	LastError     error             `json:"last_error,omitempty"`
 }
@@ -306,7 +307,7 @@ func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
 		client: client,
 		config: config,
 		logger: slog.Default().With("component", "weaviate-client"),
-		healthStatus: &HealthStatus{
+		healthStatus: &WeaviateHealthStatus{
 			LastCheck: time.Now(),
 		},
 		circuitBreaker: &CircuitBreaker{
@@ -314,7 +315,7 @@ func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
 			timeout:      config.CircuitBreaker.Timeout,
 			currentState: CircuitClosed,
 		},
-		rateLimiter: &RateLimiter{
+		rateLimiter: &WeaviateRateLimiter{
 			requestsPerMinute: config.RateLimiting.RequestsPerMinute,
 			tokensPerMinute:   config.RateLimiting.TokensPerMinute,
 			requestBucket:     make(chan struct{}, config.RateLimiting.RequestsPerMinute),
@@ -776,7 +777,7 @@ func (wc *WeaviateClient) parseSearchResult(item map[string]interface{}) *Search
 }
 
 // buildWhereFilter constructs a WHERE filter from the query filters
-func (wc *WeaviateClient) buildWhereFilter(filters map[string]interface{}) *graphql.WhereArgumentBuilder {
+func (wc *WeaviateClient) buildWhereFilter(filters map[string]interface{}) interface{} {
 	if len(filters) == 0 {
 		return nil
 	}
@@ -844,7 +845,7 @@ func (wc *WeaviateClient) AddDocument(ctx context.Context, doc *TelecomDocument)
 }
 
 // GetHealthStatus returns the current health status of the Weaviate cluster
-func (wc *WeaviateClient) GetHealthStatus() *HealthStatus {
+func (wc *WeaviateClient) GetHealthStatus() *WeaviateHealthStatus {
 	wc.mutex.RLock()
 	defer wc.mutex.RUnlock()
 	

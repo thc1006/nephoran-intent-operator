@@ -151,6 +151,17 @@ func (p *OpenAIProvider) GetName() string {
 	return p.config.Name
 }
 
+func (p *OpenAIProvider) IsHealthy() bool {
+	// Simple health check - could be enhanced with actual API call
+	return p.httpClient != nil && p.config.APIKey != ""
+}
+
+func (p *OpenAIProvider) GetLatency() time.Duration {
+	// Return estimated latency for OpenAI API
+	// This could be measured dynamically in a real implementation
+	return 200 * time.Millisecond
+}
+
 // AzureOpenAIProvider implements the Azure OpenAI embedding provider
 type AzureOpenAIProvider struct {
 	config     ProviderConfig
@@ -290,6 +301,16 @@ func (p *AzureOpenAIProvider) GetName() string {
 	return p.config.Name
 }
 
+func (p *AzureOpenAIProvider) IsHealthy() bool {
+	// Simple health check - could be enhanced with actual API call
+	return p.httpClient != nil && p.config.APIKey != ""
+}
+
+func (p *AzureOpenAIProvider) GetLatency() time.Duration {
+	// Return estimated latency for Azure OpenAI API
+	return 250 * time.Millisecond
+}
+
 // LocalProvider implements a local embedding provider (placeholder for future implementation)
 type LocalProvider struct {
 	config ProviderConfig
@@ -346,6 +367,16 @@ func (p *LocalProvider) GetCostEstimate(tokenCount int) float64 {
 // GetName implements EmbeddingProvider
 func (p *LocalProvider) GetName() string {
 	return p.config.Name
+}
+
+func (p *LocalProvider) IsHealthy() bool {
+	// Local provider is always healthy if properly configured
+	return true
+}
+
+func (p *LocalProvider) GetLatency() time.Duration {
+	// Local provider should have very low latency
+	return 10 * time.Millisecond
 }
 
 // HuggingFaceProvider implements Hugging Face Inference API provider
@@ -452,6 +483,16 @@ func (p *HuggingFaceProvider) GetName() string {
 	return p.config.Name
 }
 
+func (p *HuggingFaceProvider) IsHealthy() bool {
+	// Simple health check
+	return p.httpClient != nil && p.config.APIKey != ""
+}
+
+func (p *HuggingFaceProvider) GetLatency() time.Duration {
+	// Return estimated latency for Hugging Face API
+	return 500 * time.Millisecond
+}
+
 // CohereProvider implements Cohere embedding provider
 type CohereProvider struct {
 	config     ProviderConfig
@@ -552,4 +593,14 @@ func (p *CohereProvider) GetCostEstimate(tokenCount int) float64 {
 // GetName implements EmbeddingProvider
 func (p *CohereProvider) GetName() string {
 	return p.config.Name
+}
+
+func (p *CohereProvider) IsHealthy() bool {
+	// Simple health check
+	return p.httpClient != nil && p.config.APIKey != ""
+}
+
+func (p *CohereProvider) GetLatency() time.Duration {
+	// Return estimated latency for Cohere API
+	return 300 * time.Millisecond
 }

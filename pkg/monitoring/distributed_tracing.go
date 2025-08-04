@@ -2,8 +2,7 @@ package monitoring
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+		"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -124,9 +123,7 @@ const (
 	AlertTypeCircuitBreaker  TraceAlertType = "circuit_breaker"
 )
 
-// AlertSeverity defines alert severity levels
-type AlertSeverity string
-
+// AlertSeverity constants for distributed tracing (using shared type from alerting.go)
 const (
 	SeverityLow      AlertSeverity = "low"
 	SeverityMedium   AlertSeverity = "medium"

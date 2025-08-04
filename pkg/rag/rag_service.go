@@ -170,7 +170,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 	// Step 1: Retrieve relevant documents
 	retrievalStart := time.Now()
-	searchQuery := &shared.SearchQuery{
+	searchQuery := &SearchQuery{
 		Query:         request.Query,
 		Limit:         request.MaxResults,
 		Filters:       rs.buildSearchFilters(request),
@@ -190,8 +190,19 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	}
 	retrievalTime := time.Since(retrievalStart)
 
-	// Step 2: Prepare context from retrieved documents
-	context, contextMetadata := rs.prepareContext(searchResponse.Results, request)
+	// Step 2: Convert local results to shared results and prepare context
+	sharedResults := make([]*shared.SearchResult, len(searchResponse.Results))
+	for i, result := range searchResponse.Results {
+		sharedResults[i] = &shared.SearchResult{
+			Document: &shared.TelecomDocument{
+				ID:      result.Document.ID,
+				Content: result.Document.Content,
+				Source:  result.Document.Source,
+			},
+			Score: result.Score,
+		}
+	}
+	context, contextMetadata := rs.prepareContext(sharedResults, request)
 
 	// Step 3: Generate response using LLM
 	generationStart := time.Now()
@@ -207,13 +218,13 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	generationTime := time.Since(generationStart)
 
 	// Step 4: Post-process and enhance the response
-	enhancedResponse := rs.enhanceResponse(llmResponse, searchResponse.Results, request)
+	enhancedResponse := rs.enhanceResponse(llmResponse, sharedResults, request)
 
 	// Create RAG response
 	ragResponse := &RAGResponse{
 		Answer:          enhancedResponse,
-		SourceDocuments: searchResponse.Results,
-		Confidence:      rs.calculateConfidence(searchResponse.Results),
+		SourceDocuments: sharedResults,
+		Confidence:      rs.calculateConfidence(sharedResults),
 		ProcessingTime:  time.Since(startTime),
 		RetrievalTime:   retrievalTime,
 		GenerationTime:  generationTime,

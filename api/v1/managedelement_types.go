@@ -21,9 +21,19 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// ManagedElementCredentials defines authentication credentials for a managed element
+type ManagedElementCredentials struct {
+	Username   string `json:"username,omitempty"`
+	Password   string `json:"password,omitempty"`
+	PrivateKey string `json:"privateKey,omitempty"`
+}
+
 // ManagedElementSpec defines the desired state of ManagedElement
 type ManagedElementSpec struct {
 	DeploymentName string `json:"deploymentName"`
+	Host string `json:"host"`
+	Port int `json:"port,omitempty"`
+	Credentials ManagedElementCredentials `json:"credentials"`
 	O1Config       string `json:"o1Config,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	A1Policy runtime.RawExtension `json:"a1Policy,omitempty"`

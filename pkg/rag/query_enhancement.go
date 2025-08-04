@@ -55,7 +55,7 @@ type SpellChecker struct {
 	dictionary     map[string]bool      // Valid telecom terms
 	corrections    map[string]string    // Common misspellings -> corrections
 	soundexMap     map[string][]string  // Phonetic similarity mapping
-	editDistance   int                  // Maximum edit distance for suggestions
+	maxEditDistance   int                  // Maximum edit distance for suggestions
 	mutex          sync.RWMutex
 }
 
@@ -273,7 +273,7 @@ func (qe *QueryEnhancer) enhanceWithContext(query string, history []string) stri
 	
 	for _, term := range contextTerms {
 		lowerTerm := strings.ToLower(term)
-		if !strings.Contains(lowerQuery, lowerTerm) && len(enhanced.split(" ")) < 20 { // Limit total query length
+		if !strings.Contains(lowerQuery, lowerTerm) && len(strings.Split(enhanced, " ")) < 20 { // Limit total query length
 			enhanced += " " + term
 		}
 	}
@@ -656,7 +656,7 @@ func NewSpellChecker() *SpellChecker {
 		dictionary:   make(map[string]bool),
 		corrections:  make(map[string]string),
 		soundexMap:   make(map[string][]string),
-		editDistance: 2,
+		maxEditDistance: 2,
 	}
 
 	sc.initializeDictionary()
@@ -778,12 +778,12 @@ func (sc *SpellChecker) CorrectQuery(query string) (string, map[string]string) {
 // findBestSuggestion finds the best spelling suggestion for a word
 func (sc *SpellChecker) findBestSuggestion(word string) string {
 	bestSuggestion := ""
-	minDistance := sc.editDistance + 1
+	minDistance := sc.maxEditDistance + 1
 
 	// Check all dictionary words
 	for dictWord := range sc.dictionary {
 		distance := sc.editDistance(word, dictWord)
-		if distance <= sc.editDistance && distance < minDistance {
+		if distance <= sc.maxEditDistance && distance < minDistance {
 			minDistance = distance
 			bestSuggestion = dictWord
 		}
@@ -813,7 +813,7 @@ func (sc *SpellChecker) editDistance(s1, s2 string) int {
 				cost = 1
 			}
 			
-			matrix[i][j] = min(
+			matrix[i][j] = min3(
 				matrix[i-1][j]+1,      // deletion
 				matrix[i][j-1]+1,      // insertion
 				matrix[i-1][j-1]+cost, // substitution
@@ -825,7 +825,7 @@ func (sc *SpellChecker) editDistance(s1, s2 string) int {
 }
 
 // min returns the minimum of three integers
-func min(a, b, c int) int {
+func min3(a, b, c int) int {
 	if a < b {
 		if a < c {
 			return a

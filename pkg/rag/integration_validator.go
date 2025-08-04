@@ -382,8 +382,6 @@ func (iv *IntegrationValidator) testRedisCache(ctx context.Context, cache *Redis
 	}
 
 	// Test basic cache operations
-	testKey := "validation_test_key"
-	testValue := "validation_test_value"
 
 	// Simple test (implementation would depend on cache interface)
 	iv.logger.Debug("Redis cache test passed")
@@ -399,7 +397,6 @@ func (iv *IntegrationValidator) testRetrievalService(ctx context.Context, retrie
 	searchRequest := &EnhancedSearchRequest{
 		Query:  "test query for validation",
 		Limit:  5,
-		UseCache: false,
 	}
 
 	_, err := retrieval.SearchEnhanced(ctx, searchRequest)
@@ -478,8 +475,8 @@ func (iv *IntegrationValidator) runSingleIntegrationTest(ctx context.Context, te
 
 // Integration test implementations
 func (iv *IntegrationValidator) testEndToEndDocumentProcessing(ctx context.Context, pipeline *RAGPipeline) error {
-	// Create a test document
-	testDoc := "Sample 3GPP specification content for testing the complete pipeline processing."
+	// Create a test document content
+	// testDoc := "Sample 3GPP specification content for testing the complete pipeline processing."
 	
 	// This would test the complete flow from document to query
 	// Implementation would depend on pipeline methods being available

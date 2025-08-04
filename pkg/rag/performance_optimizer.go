@@ -340,8 +340,7 @@ func (po *PerformanceOptimizer) optimizeLatency(pipeline *RAGPipeline, task *Opt
 
 	// Reduce timeouts for faster failure detection
 	if pipeline.config.EmbeddingConfig != nil {
-		pipeline.config.EmbeddingConfig.RequestTimeout = 
-			min(pipeline.config.EmbeddingConfig.RequestTimeout, 15*time.Second)
+			pipeline.config.EmbeddingConfig.RequestTimeout = minDuration(pipeline.config.EmbeddingConfig.RequestTimeout, 15*time.Second)
 	}
 
 	// Optimize cache to prioritize frequently accessed items
@@ -556,13 +555,6 @@ func (po *PerformanceOptimizer) calculateHealthScore(metrics *PerformanceMetrics
 	return score
 }
 
-// Helper function for minimum calculation
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
 
 // Helper function for minimum duration calculation
 func minDuration(a, b time.Duration) time.Duration {

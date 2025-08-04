@@ -1,0 +1,20 @@
+// getDefaultMonitoringConfig returns default configuration for monitoring
+func getDefaultMonitoringConfig() *MonitoringConfig {
+	return &MonitoringConfig{
+		MetricsPort:          8080,
+		MetricsPath:          "/metrics",
+		HealthCheckPath:      "/health",
+		MetricsInterval:      30 * time.Second,
+		HealthCheckInterval:  30 * time.Second,
+		EnableAlerting:       false,
+		AlertThresholds:      make(map[string]AlertThreshold),
+		AlertWebhooks:        []string{},
+		EnableStructuredLogs: true,
+		LogLevel:             "info",
+		TraceSampleRate:      0.1,
+		EnableDistributedTracing: false,
+		EnableResourceMonitoring: false,
+		ResourceMonitoringInterval: 60 * time.Second,
+	}
+}
+EOF < /dev/null

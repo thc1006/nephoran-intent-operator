@@ -233,6 +233,8 @@ type EmbeddingProvider interface {
 	HealthCheck(ctx context.Context) error
 	GetCostEstimate(tokenCount int) float64
 	GetName() string
+	IsHealthy() bool
+	GetLatency() time.Duration
 }
 
 // RedisEmbeddingCache interface for Redis-based caching
@@ -421,77 +423,6 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 	return service
 }
 
-// getDefaultEmbeddingConfig returns default configuration
-func getDefaultEmbeddingConfig() *EmbeddingConfig {
-	return &EmbeddingConfig{
-		Provider:               "openai",
-		APIEndpoint:           "https://api.openai.com/v1/embeddings",
-		ModelName:             "text-embedding-3-large",
-		Dimensions:            3072,
-		MaxTokens:             8191,
-		BatchSize:             100,
-		MaxConcurrency:        5,
-		RequestTimeout:        30 * time.Second,
-		RetryAttempts:         3,
-		RetryDelay:            2 * time.Second,
-		RateLimit:             60,   // 60 requests per minute
-		TokenRateLimit:        150000, // 150k tokens per minute
-		MinTextLength:         10,
-		MaxTextLength:         8000,
-		NormalizeText:         true,
-		RemoveStopWords:       false,
-		EnableCaching:         true,
-		CacheTTL:              24 * time.Hour,
-		EnableRedisCache:      true,
-		RedisAddr:             "localhost:6379",
-		RedisPassword:         "",
-		RedisDB:               0,
-		L1CacheSize:           10000, // 10k embeddings in memory
-		L2CacheEnabled:        true,
-		Providers: []ProviderConfig{
-			{
-				Name:         "openai",
-				APIEndpoint:  "https://api.openai.com/v1/embeddings",
-				ModelName:    "text-embedding-3-large",
-				Dimensions:   3072,
-				MaxTokens:    8191,
-				CostPerToken: 0.00013, // $0.13 per 1M tokens
-				RateLimit:    60,
-				Priority:     1,
-				Enabled:      true,
-				Healthy:      true,
-			},
-			{
-				Name:         "azure",
-				APIEndpoint:  "https://your-resource.openai.azure.com/openai/deployments/your-deployment/embeddings",
-				ModelName:    "text-embedding-ada-002",
-				Dimensions:   1536,
-				MaxTokens:    8191,
-				CostPerToken: 0.0001, // Azure pricing
-				RateLimit:    240,
-				Priority:     2,
-				Enabled:      false, // Disabled by default
-				Healthy:      true,
-			},
-		},
-		FallbackEnabled:       true,
-		FallbackOrder:         []string{"openai", "azure"},
-		LoadBalancing:         "least_cost",
-		HealthCheckInterval:   5 * time.Minute,
-		EnableCostTracking:    true,
-		DailyCostLimit:        50.0,  // $50 daily limit
-		MonthlyCostLimit:      1000.0, // $1000 monthly limit
-		CostAlertThreshold:    0.8,   // Alert at 80% of limit
-		EnableQualityCheck:    true,
-		MinQualityScore:       0.7,
-		QualityCheckSample:    10,
-		TelecomPreprocessing:  true,
-		PreserveTechnicalTerms: true,
-		TechnicalTermWeighting: 1.2,
-		EnableMetrics:         true,
-		MetricsInterval:       5 * time.Minute,
-	}
-}
 
 // GenerateEmbeddings generates embeddings for the provided texts using multi-provider approach
 func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *EmbeddingRequest) (*EmbeddingResponse, error) {
