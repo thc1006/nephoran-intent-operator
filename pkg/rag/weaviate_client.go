@@ -677,7 +677,7 @@ func (wc *WeaviateClient) Search(ctx context.Context, query *SearchQuery) (*Sear
 
 // parseSearchResult converts a GraphQL result item to a SearchResult
 func (wc *WeaviateClient) parseSearchResult(item map[string]interface{}) *SearchResult {
-	doc := &TelecomDocument{}
+	doc := &shared.TelecomDocument{}
 	result := &SearchResult{Document: doc}
 
 	// Parse document fields
