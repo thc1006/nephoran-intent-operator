@@ -262,8 +262,9 @@ claude
    - 包含所有可工作的命令和工作流程
    - 添加針對電信和 O-RAN 領域的專業指導
 
-2. **建立 COMPLETE_DEPLOYMENT_GUIDE.md**：
-   - 詳細的逐步部署說明
+2. **使用現有部署指南**：
+   - 參考 docs/NetworkIntent-Controller-Guide.md 獲取詳細的逐步部署說明
+   - 參考 docs/GitOps-Package-Generation.md 獲取 GitOps 相關部署資訊
    - 包含所有先決條件和環境設置
    - 提供故障排除指南和常見問題解決方案
    - 包含本地和雲端部署選項

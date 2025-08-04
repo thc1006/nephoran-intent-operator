@@ -14,7 +14,7 @@ spec:
     singular: managedelement
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - name: v1
     schema:
       openAPIV3Schema:
         description: ManagedElement is the Schema for the managedelements API

@@ -2,6 +2,7 @@ package git
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,15 +27,36 @@ type Client struct {
 	Branch   string
 	SshKey   string
 	RepoPath string
+	logger   *slog.Logger
 }
 
 // NewClient creates a new Git client.
 func NewClient(repoURL, branch, sshKey string) *Client {
+	// Create a default logger if none provided
+	logger := slog.Default().With("component", "git-client")
+	
 	return &Client{
 		RepoURL:  repoURL,
 		Branch:   branch,
 		SshKey:   sshKey,
 		RepoPath: "/tmp/deployment-repo",
+		logger:   logger,
+	}
+}
+
+// NewClientWithLogger creates a new Git client with a specific logger.
+func NewClientWithLogger(repoURL, branch, sshKey string, logger *slog.Logger) *Client {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	logger = logger.With("component", "git-client")
+	
+	return &Client{
+		RepoURL:  repoURL,
+		Branch:   branch,
+		SshKey:   sshKey,
+		RepoPath: "/tmp/deployment-repo",
+		logger:   logger,
 	}
 }
 
@@ -68,11 +90,26 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 	for path, content := range files {
 		fullPath := filepath.Join(c.RepoPath, path)
 		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+			c.logger.Error("Failed to create directory", 
+				"directory", filepath.Dir(fullPath),
+				"file_path", path,
+				"error", err,
+				"operation", "CommitAndPush")
 			return "", fmt.Errorf("failed to create directory for %s: %w", path, err)
 		}
 		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
+			c.logger.Error("Failed to write file", 
+				"filename", fullPath,
+				"relative_path", path,
+				"error", err,
+				"operation", "CommitAndPush")
 			return "", fmt.Errorf("failed to write file %s: %w", path, err)
 		}
+		c.logger.Debug("Successfully wrote file", 
+			"filename", fullPath,
+			"relative_path", path,
+			"size_bytes", len(content),
+			"operation", "CommitAndPush")
 		if _, err := w.Add(path); err != nil {
 			return "", fmt.Errorf("failed to add file %s: %w", path, err)
 		}
@@ -133,7 +170,7 @@ func (c *Client) CommitAndPushChanges(message string) error {
 		if strings.HasPrefix(file, ".git") {
 			continue
 		}
-		
+
 		// Stage only tracked files (modified, deleted, renamed)
 		fileStatus := status[file]
 		if fileStatus.Staging != git.Untracked && fileStatus.Worktree != git.Untracked {
@@ -182,8 +219,14 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 		return fmt.Errorf("failed to get worktree: %w", err)
 	}
 
-	// Remove directory from filesystem
+	// Check if directory exists before attempting removal
 	fullPath := filepath.Join(c.RepoPath, path)
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		// Directory doesn't exist, nothing to remove - this is not an error
+		return nil
+	}
+
+	// Remove directory from filesystem
 	if err := os.RemoveAll(fullPath); err != nil {
 		return fmt.Errorf("failed to remove directory %s: %w", fullPath, err)
 	}
@@ -195,6 +238,7 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 	}
 
 	// Stage all deletions within the removed directory
+	filesStaged := 0
 	for file := range status {
 		fileStatus := status[file]
 		// Stage files that are deleted and within the target path
@@ -202,7 +246,14 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 			if _, err := w.Add(file); err != nil {
 				return fmt.Errorf("failed to stage deletion of %s: %w", file, err)
 			}
+			filesStaged++
 		}
+	}
+
+	// If no files were staged for deletion, the directory was already empty or didn't contain tracked files
+	if filesStaged == 0 {
+		// No changes to commit, which is fine
+		return nil
 	}
 
 	// Commit the changes

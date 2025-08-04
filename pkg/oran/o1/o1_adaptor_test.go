@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -70,11 +70,11 @@ func TestNewO1Adaptor(t *testing.T) {
 func TestO1Adaptor_IsConnected(t *testing.T) {
 	adaptor := NewO1Adaptor(nil, nil)
 	
-	me := &nephoranv1alpha1.ManagedElement{
+	me := &nephoranv1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-element",
 		},
-		Spec: nephoranv1alpha1.ManagedElementSpec{
+		Spec: nephoranv1.ManagedElementSpec{
 			Host: "192.168.1.100",
 			Port: 830,
 		},

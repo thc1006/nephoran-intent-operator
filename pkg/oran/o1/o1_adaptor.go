@@ -14,38 +14,38 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 // O1AdaptorInterface defines the interface for O1 operations (FCAPS)
 type O1AdaptorInterface interface {
 	// Configuration Management (CM)
-	ApplyConfiguration(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error
-	GetConfiguration(ctx context.Context, me *nephoranv1alpha1.ManagedElement) (string, error)
+	ApplyConfiguration(ctx context.Context, me *nephoranv1.ManagedElement) error
+	GetConfiguration(ctx context.Context, me *nephoranv1.ManagedElement) (string, error)
 	ValidateConfiguration(ctx context.Context, config string) error
 	
 	// Fault Management (FM)
-	GetAlarms(ctx context.Context, me *nephoranv1alpha1.ManagedElement) ([]*Alarm, error)
-	ClearAlarm(ctx context.Context, me *nephoranv1alpha1.ManagedElement, alarmID string) error
-	SubscribeToAlarms(ctx context.Context, me *nephoranv1alpha1.ManagedElement, callback AlarmCallback) error
+	GetAlarms(ctx context.Context, me *nephoranv1.ManagedElement) ([]*Alarm, error)
+	ClearAlarm(ctx context.Context, me *nephoranv1.ManagedElement, alarmID string) error
+	SubscribeToAlarms(ctx context.Context, me *nephoranv1.ManagedElement, callback AlarmCallback) error
 	
 	// Performance Management (PM)
-	GetMetrics(ctx context.Context, me *nephoranv1alpha1.ManagedElement, metricNames []string) (map[string]interface{}, error)
-	StartMetricCollection(ctx context.Context, me *nephoranv1alpha1.ManagedElement, config *MetricConfig) error
-	StopMetricCollection(ctx context.Context, me *nephoranv1alpha1.ManagedElement, collectionID string) error
+	GetMetrics(ctx context.Context, me *nephoranv1.ManagedElement, metricNames []string) (map[string]interface{}, error)
+	StartMetricCollection(ctx context.Context, me *nephoranv1.ManagedElement, config *MetricConfig) error
+	StopMetricCollection(ctx context.Context, me *nephoranv1.ManagedElement, collectionID string) error
 	
 	// Accounting Management (AM)
-	GetUsageRecords(ctx context.Context, me *nephoranv1alpha1.ManagedElement, filter *UsageFilter) ([]*UsageRecord, error)
+	GetUsageRecords(ctx context.Context, me *nephoranv1.ManagedElement, filter *UsageFilter) ([]*UsageRecord, error)
 	
 	// Security Management (SM)
-	UpdateSecurityPolicy(ctx context.Context, me *nephoranv1alpha1.ManagedElement, policy *SecurityPolicy) error
-	GetSecurityStatus(ctx context.Context, me *nephoranv1alpha1.ManagedElement) (*SecurityStatus, error)
+	UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.ManagedElement, policy *SecurityPolicy) error
+	GetSecurityStatus(ctx context.Context, me *nephoranv1.ManagedElement) (*SecurityStatus, error)
 	
 	// Connection Management
-	Connect(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error
-	Disconnect(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error
-	IsConnected(me *nephoranv1alpha1.ManagedElement) bool
+	Connect(ctx context.Context, me *nephoranv1.ManagedElement) error
+	Disconnect(ctx context.Context, me *nephoranv1.ManagedElement) error
+	IsConnected(me *nephoranv1.ManagedElement) bool
 }
 
 // O1Adaptor implements the O1 interface for network element management
@@ -187,7 +187,7 @@ func NewO1Adaptor(config *O1Config, kubeClient client.Client) *O1Adaptor {
 }
 
 // resolveSecretValue resolves a secret value from Kubernetes Secret reference
-func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv1alpha1.SecretReference, defaultNamespace string) (string, error) {
+func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv1.SecretReference, defaultNamespace string) (string, error) {
 	if secretRef == nil {
 		return "", fmt.Errorf("secret reference is nil")
 	}
@@ -221,7 +221,7 @@ func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv
 }
 
 // buildTLSConfig builds TLS configuration from certificate references in credentials
-func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1alpha1.ManagedElement) (*tls.Config, error) {
+func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedElement) (*tls.Config, error) {
 	credentials := &me.Spec.Credentials
 	
 	// If no client certificate references, return basic TLS config
@@ -274,7 +274,7 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1alpha1.Man
 }
 
 // Connect establishes a NETCONF session to a managed element
-func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error {
+func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) error {
 	logger := log.FromContext(ctx)
 	logger.Info("establishing O1 connection", "managedElement", me.Name)
 	
@@ -387,7 +387,7 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1alpha1.ManagedEle
 }
 
 // Disconnect closes the NETCONF session
-func (a *O1Adaptor) Disconnect(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error {
+func (a *O1Adaptor) Disconnect(ctx context.Context, me *nephoranv1.ManagedElement) error {
 	logger := log.FromContext(ctx)
 	
 	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
@@ -407,7 +407,7 @@ func (a *O1Adaptor) Disconnect(ctx context.Context, me *nephoranv1alpha1.Managed
 }
 
 // IsConnected checks if there's an active connection to the managed element
-func (a *O1Adaptor) IsConnected(me *nephoranv1alpha1.ManagedElement) bool {
+func (a *O1Adaptor) IsConnected(me *nephoranv1.ManagedElement) bool {
 	clientID := fmt.Sprintf("%s:%d", me.Spec.Host, me.Spec.Port)
 	
 	a.clientsMux.RLock()
@@ -420,7 +420,7 @@ func (a *O1Adaptor) IsConnected(me *nephoranv1alpha1.ManagedElement) bool {
 }
 
 // ApplyConfiguration applies O1 configuration to the managed element
-func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error {
+func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.ManagedElement) error {
 	logger := log.FromContext(ctx)
 	logger.Info("applying O1 configuration", "managedElement", me.Name)
 	
@@ -480,7 +480,7 @@ func (a *O1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1alpha1
 }
 
 // GetConfiguration retrieves current configuration from the managed element
-func (a *O1Adaptor) GetConfiguration(ctx context.Context, me *nephoranv1alpha1.ManagedElement) (string, error) {
+func (a *O1Adaptor) GetConfiguration(ctx context.Context, me *nephoranv1.ManagedElement) (string, error) {
 	logger := log.FromContext(ctx)
 	
 	if !a.IsConnected(me) {
@@ -545,7 +545,7 @@ func (a *O1Adaptor) ValidateConfiguration(ctx context.Context, config string) er
 }
 
 // GetAlarms retrieves active alarms from the managed element
-func (a *O1Adaptor) GetAlarms(ctx context.Context, me *nephoranv1alpha1.ManagedElement) ([]*Alarm, error) {
+func (a *O1Adaptor) GetAlarms(ctx context.Context, me *nephoranv1.ManagedElement) ([]*Alarm, error) {
 	logger := log.FromContext(ctx)
 	
 	if !a.IsConnected(me) {
@@ -585,7 +585,7 @@ func (a *O1Adaptor) GetAlarms(ctx context.Context, me *nephoranv1alpha1.ManagedE
 }
 
 // ClearAlarm clears a specific alarm
-func (a *O1Adaptor) ClearAlarm(ctx context.Context, me *nephoranv1alpha1.ManagedElement, alarmID string) error {
+func (a *O1Adaptor) ClearAlarm(ctx context.Context, me *nephoranv1.ManagedElement, alarmID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("clearing alarm", "managedElement", me.Name, "alarmID", alarmID)
 	
@@ -601,7 +601,7 @@ func (a *O1Adaptor) ClearAlarm(ctx context.Context, me *nephoranv1alpha1.Managed
 }
 
 // SubscribeToAlarms sets up alarm notifications
-func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1alpha1.ManagedElement, callback AlarmCallback) error {
+func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1.ManagedElement, callback AlarmCallback) error {
 	logger := log.FromContext(ctx)
 	logger.Info("subscribing to alarms", "managedElement", me.Name)
 	
@@ -647,7 +647,7 @@ func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1alpha1.
 }
 
 // GetMetrics retrieves performance metrics
-func (a *O1Adaptor) GetMetrics(ctx context.Context, me *nephoranv1alpha1.ManagedElement, metricNames []string) (map[string]interface{}, error) {
+func (a *O1Adaptor) GetMetrics(ctx context.Context, me *nephoranv1.ManagedElement, metricNames []string) (map[string]interface{}, error) {
 	logger := log.FromContext(ctx)
 	
 	if !a.IsConnected(me) {
@@ -668,7 +668,7 @@ func (a *O1Adaptor) GetMetrics(ctx context.Context, me *nephoranv1alpha1.Managed
 }
 
 // StartMetricCollection starts periodic metric collection
-func (a *O1Adaptor) StartMetricCollection(ctx context.Context, me *nephoranv1alpha1.ManagedElement, config *MetricConfig) error {
+func (a *O1Adaptor) StartMetricCollection(ctx context.Context, me *nephoranv1.ManagedElement, config *MetricConfig) error {
 	logger := log.FromContext(ctx)
 	logger.Info("starting metric collection", 
 		"managedElement", me.Name,
@@ -708,7 +708,7 @@ func (a *O1Adaptor) StartMetricCollection(ctx context.Context, me *nephoranv1alp
 }
 
 // StopMetricCollection stops metric collection
-func (a *O1Adaptor) StopMetricCollection(ctx context.Context, me *nephoranv1alpha1.ManagedElement, collectionID string) error {
+func (a *O1Adaptor) StopMetricCollection(ctx context.Context, me *nephoranv1.ManagedElement, collectionID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("stopping metric collection", 
 		"managedElement", me.Name,
@@ -732,7 +732,7 @@ func (a *O1Adaptor) StopMetricCollection(ctx context.Context, me *nephoranv1alph
 }
 
 // GetUsageRecords retrieves accounting records
-func (a *O1Adaptor) GetUsageRecords(ctx context.Context, me *nephoranv1alpha1.ManagedElement, filter *UsageFilter) ([]*UsageRecord, error) {
+func (a *O1Adaptor) GetUsageRecords(ctx context.Context, me *nephoranv1.ManagedElement, filter *UsageFilter) ([]*UsageRecord, error) {
 	logger := log.FromContext(ctx)
 	
 	if !a.IsConnected(me) {
@@ -762,7 +762,7 @@ func (a *O1Adaptor) GetUsageRecords(ctx context.Context, me *nephoranv1alpha1.Ma
 }
 
 // UpdateSecurityPolicy updates security configuration
-func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1alpha1.ManagedElement, policy *SecurityPolicy) error {
+func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.ManagedElement, policy *SecurityPolicy) error {
 	logger := log.FromContext(ctx)
 	logger.Info("updating security policy", 
 		"managedElement", me.Name,
@@ -803,7 +803,7 @@ func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1alph
 }
 
 // GetSecurityStatus retrieves current security status
-func (a *O1Adaptor) GetSecurityStatus(ctx context.Context, me *nephoranv1alpha1.ManagedElement) (*SecurityStatus, error) {
+func (a *O1Adaptor) GetSecurityStatus(ctx context.Context, me *nephoranv1.ManagedElement) (*SecurityStatus, error) {
 	logger := log.FromContext(ctx)
 	
 	if !a.IsConnected(me) {

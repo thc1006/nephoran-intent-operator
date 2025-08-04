@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -13,7 +16,49 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/services"
 )
+
+// Type definitions for test requests and responses
+type NetworkIntentRequest struct {
+	Spec struct {
+		Intent string `json:"intent"`
+	} `json:"spec"`
+	Metadata struct {
+		Name       string `json:"name,omitempty"`
+		Namespace  string `json:"namespace,omitempty"`
+		UID        string `json:"uid,omitempty"`
+		Generation int64  `json:"generation,omitempty"`
+	} `json:"metadata"`
+}
+
+type NetworkIntentResponse struct {
+	Type             string      `json:"type"`
+	Name             string      `json:"name"`
+	Namespace        string      `json:"namespace"`
+	OriginalIntent   string      `json:"originalIntent"`
+	Spec             interface{} `json:"spec"`
+	ProcessingMetadata struct {
+		ModelUsed       string  `json:"modelUsed"`
+		ConfidenceScore float64 `json:"confidenceScore"`
+	} `json:"processingMetadata"`
+}
+
+type HealthResponse struct {
+	Status  string `json:"status"`
+	Version string `json:"version"`
+}
+
+type ReadinessResponse struct {
+	Status string `json:"status"`
+}
+
+type ErrorResponse struct {
+	ErrorCode string `json:"errorCode"`
+	Message   string `json:"message,omitempty"`
+}
 
 func TestE2E(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -22,9 +67,12 @@ func TestE2E(t *testing.T) {
 
 var _ = Describe("End-to-End LLM Processor Tests", func() {
 	var (
-		server     *httptest.Server
-		mockLLM    *httptest.Server
-		testConfig *Config
+		server      *httptest.Server
+		mockLLM     *httptest.Server
+		testConfig  *config.LLMProcessorConfig
+		testLogger  *slog.Logger
+		testService *services.LLMProcessorService
+		testHandler *handlers.LLMProcessorHandler
 	)
 
 	BeforeEach(func() {
@@ -56,21 +104,21 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 		}))
 
 		// Set up test configuration
-		testConfig = &Config{
+		testConfig = &config.LLMProcessorConfig{
 			Port:             "0", // Let the system choose a port
 			LogLevel:         "info",
 			ServiceVersion:   "test-v1.0.0",
 			GracefulShutdown: 5 * time.Second,
 
 			LLMBackendType: "openai",
+			LLMAPIKey:      "test-key", 
 			LLMModelName:   "test-model",
 			LLMTimeout:     10 * time.Second,
 			LLMMaxTokens:   1000,
 
-			OpenAIAPIURL: mockLLM.URL,
-			OpenAIAPIKey: "test-key",
-
-			RAGEnabled: false,
+			RAGEnabled:  false,
+			RAGAPIURL:   mockLLM.URL,
+			RAGTimeout:  10 * time.Second,
 
 			CircuitBreakerEnabled:   true,
 			CircuitBreakerThreshold: 5,
@@ -80,24 +128,41 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			RetryDelay:   100 * time.Millisecond,
 			RetryBackoff: "exponential",
 
-			MetricsEnabled: true,
 			CORSEnabled:    true,
-			APIKeyRequired: false,
+			AuthEnabled:    false,
+			RequireAuth:    false,
 
-			RequestLogEnabled: true,
+			RequestTimeout: 30 * time.Second,
 		}
 
-		// Set global config and processor
-		config = testConfig
-		processor = NewIntentProcessor(config)
+		// Initialize test logger
+		testLogger = slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
 
-		// Create test server
+		// Initialize service components
+		testService = services.NewLLMProcessorService(testConfig, testLogger)
+		ctx := context.Background()
+		err := testService.Initialize(ctx)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Get initialized components
+		processor, streamingProcessor, circuitBreakerMgr, tokenManager, contextBuilder, relevanceScorer, promptBuilder, healthChecker := testService.GetComponents()
+
+		// Create handler with initialized components
+		testHandler = handlers.NewLLMProcessorHandler(
+			testConfig, processor, streamingProcessor, circuitBreakerMgr,
+			tokenManager, contextBuilder, relevanceScorer, promptBuilder,
+			testLogger, healthChecker, time.Now(),
+		)
+
+		// Create test server with handler routes
 		mux := http.NewServeMux()
-		mux.HandleFunc("/process", chainMiddleware(processHandler, loggingMiddleware, corsMiddleware))
-		mux.HandleFunc("/healthz", chainMiddleware(healthzHandler, loggingMiddleware, corsMiddleware))
-		mux.HandleFunc("/readyz", chainMiddleware(readyzHandler, loggingMiddleware, corsMiddleware))
-		mux.HandleFunc("/info", chainMiddleware(infoHandler, loggingMiddleware, corsMiddleware))
-		mux.HandleFunc("/version", chainMiddleware(versionHandler, loggingMiddleware, corsMiddleware))
+		mux.HandleFunc("/process", testHandler.ProcessIntentHandler)
+		mux.HandleFunc("/healthz", healthChecker.HealthzHandler)
+		mux.HandleFunc("/readyz", healthChecker.ReadyzHandler)
+		mux.HandleFunc("/status", testHandler.StatusHandler)
+		mux.HandleFunc("/metrics", testHandler.MetricsHandler)
 
 		server = httptest.NewServer(mux)
 	})
@@ -105,6 +170,10 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 	AfterEach(func() {
 		server.Close()
 		mockLLM.Close()
+		if testService != nil {
+			ctx := context.Background()
+			testService.Shutdown(ctx)
+		}
 	})
 
 	Context("Service Health and Readiness", func() {

@@ -9,7 +9,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"k8s.io/client-go/kubernetes"
 
-	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // InstrumentedReconciler wraps a reconciler with monitoring instrumentation
@@ -75,13 +75,13 @@ func NewNetworkIntentInstrumentation(metrics *MetricsCollector) *NetworkIntentIn
 }
 
 // RecordIntentProcessingStart records the start of intent processing
-func (ni *NetworkIntentInstrumentation) RecordIntentProcessingStart(intent *nephoranv1alpha1.NetworkIntent) {
+func (ni *NetworkIntentInstrumentation) RecordIntentProcessingStart(intent *nephoranv1.NetworkIntent) {
 	intentType := "network_intent" // Default type since we don't have Spec.Type field
 	ni.Metrics.UpdateNetworkIntentStatus(intent.Name, intent.Namespace, intentType, "processing")
 }
 
 // RecordIntentProcessingComplete records the completion of intent processing
-func (ni *NetworkIntentInstrumentation) RecordIntentProcessingComplete(intent *nephoranv1alpha1.NetworkIntent, duration time.Duration, success bool) {
+func (ni *NetworkIntentInstrumentation) RecordIntentProcessingComplete(intent *nephoranv1.NetworkIntent, duration time.Duration, success bool) {
 	status := "completed"
 	if !success {
 		status = "failed"
@@ -103,7 +103,7 @@ func (ni *NetworkIntentInstrumentation) RecordLLMProcessing(model string, durati
 }
 
 // RecordRetry records a retry event
-func (ni *NetworkIntentInstrumentation) RecordRetry(intent *nephoranv1alpha1.NetworkIntent, reason string) {
+func (ni *NetworkIntentInstrumentation) RecordRetry(intent *nephoranv1.NetworkIntent, reason string) {
 	ni.Metrics.RecordNetworkIntentRetry(intent.Name, intent.Namespace, reason)
 }
 
@@ -125,7 +125,7 @@ func (e2i *E2NodeSetInstrumentation) RecordReconciliation(operation string, dura
 }
 
 // UpdateReplicaStatus updates replica status metrics
-func (e2i *E2NodeSetInstrumentation) UpdateReplicaStatus(e2nodeSet *nephoranv1alpha1.E2NodeSet) {
+func (e2i *E2NodeSetInstrumentation) UpdateReplicaStatus(e2nodeSet *nephoranv1.E2NodeSet) {
 	e2i.Metrics.UpdateE2NodeSetReplicas(
 		e2nodeSet.Name, 
 		e2nodeSet.Namespace, 
@@ -142,7 +142,7 @@ func (e2i *E2NodeSetInstrumentation) UpdateReplicaStatus(e2nodeSet *nephoranv1al
 }
 
 // RecordScalingEvent records a scaling event
-func (e2i *E2NodeSetInstrumentation) RecordScalingEvent(e2nodeSet *nephoranv1alpha1.E2NodeSet, oldReplicas, newReplicas int32) {
+func (e2i *E2NodeSetInstrumentation) RecordScalingEvent(e2nodeSet *nephoranv1.E2NodeSet, oldReplicas, newReplicas int32) {
 	direction := "up"
 	if newReplicas < oldReplicas {
 		direction = "down"

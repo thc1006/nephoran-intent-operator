@@ -25,6 +25,12 @@ type E2NodeSetSpec struct {
 	// Replicas is the number of simulated E2 Nodes to run.
 	// +kubebuilder:validation:Minimum=0
 	Replicas int32 `json:"replicas"`
+
+	// RicEndpoint is the Near-RT RIC endpoint for E2 connections.
+	// If not specified, defaults to "http://near-rt-ric:38080".
+	// +kubebuilder:validation:Pattern=`^https?://[a-zA-Z0-9.-]+:[0-9]+$`
+	// +optional
+	RicEndpoint string `json:"ricEndpoint,omitempty"`
 }
 
 // E2NodeSetStatus defines the observed state of E2NodeSet

@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 func TestNewE2Adaptor(t *testing.T) {
@@ -327,12 +327,12 @@ func TestE2Adaptor_ConfigureE2Interface(t *testing.T) {
 	e2ConfigRaw, err := json.Marshal(e2Config)
 	require.NoError(t, err)
 
-	me := &nephoranv1alpha1.ManagedElement{
+	me := &nephoranv1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-me",
 			Namespace: "default",
 		},
-		Spec: nephoranv1alpha1.ManagedElementSpec{
+		Spec: nephoranv1.ManagedElementSpec{
 			E2Configuration: runtime.RawExtension{
 				Raw: e2ConfigRaw,
 			},
@@ -397,12 +397,12 @@ func TestE2Adaptor_RemoveE2Interface(t *testing.T) {
 	e2ConfigRaw, err := json.Marshal(e2Config)
 	require.NoError(t, err)
 
-	me := &nephoranv1alpha1.ManagedElement{
+	me := &nephoranv1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-me",
 			Namespace: "default",
 		},
-		Spec: nephoranv1alpha1.ManagedElementSpec{
+		Spec: nephoranv1.ManagedElementSpec{
 			E2Configuration: runtime.RawExtension{
 				Raw: e2ConfigRaw,
 			},

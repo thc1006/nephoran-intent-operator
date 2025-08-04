@@ -1,6 +1,7 @@
-apiVersion: nephoran.com/v1alpha1
+apiVersion: nephoran.com/v1
 kind: E2NodeSet
 metadata:
   name: simulated-gnbs-2
 spec:
   replicas: 3
+  # ricEndpoint: "https://near-rt-ric.operator:9443"  # Optional: override default RIC endpoint

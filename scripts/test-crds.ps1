@@ -46,7 +46,7 @@ PREREQUISITES:
 # Test resource definitions
 $TEST_RESOURCES = @{
     "NetworkIntent" = @{
-        "apiVersion" = "nephoran.com/v1alpha1"
+        "apiVersion" = "nephoran.com/v1"
         "kind" = "NetworkIntent"
         "metadata" = @{
             "name" = "test-network-intent"
@@ -58,7 +58,7 @@ $TEST_RESOURCES = @{
         }
     }
     "E2NodeSet" = @{
-        "apiVersion" = "nephoran.com/v1alpha1"
+        "apiVersion" = "nephoran.com/v1"
         "kind" = "E2NodeSet"
         "metadata" = @{
             "name" = "test-e2nodeset"
@@ -84,7 +84,7 @@ $TEST_RESOURCES = @{
         }
     }
     "ManagedElement" = @{
-        "apiVersion" = "nephoran.com/v1alpha1"
+        "apiVersion" = "nephoran.com/v1"
         "kind" = "ManagedElement"
         "metadata" = @{
             "name" = "test-managed-element"
@@ -384,7 +384,7 @@ function Test-ResourceValidation {
     
     # Test invalid NetworkIntent (missing required fields)
     $invalidIntent = @{
-        "apiVersion" = "nephoran.com/v1alpha1"
+        "apiVersion" = "nephoran.com/v1"
         "kind" = "NetworkIntent"
         "metadata" = @{
             "name" = "invalid-intent"

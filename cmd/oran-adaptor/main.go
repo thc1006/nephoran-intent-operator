@@ -12,7 +12,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 )
 
@@ -23,7 +23,7 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(nephoranv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(nephoranv1.AddToScheme(scheme))
 }
 
 func main() {

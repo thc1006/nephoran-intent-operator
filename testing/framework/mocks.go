@@ -14,9 +14,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/mock"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
-	"k8s.io/client-go/kubernetes"
+	"github.com/weaviate/weaviate-go-client/v5/weaviate/graphql"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

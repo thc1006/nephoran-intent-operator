@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	corev1 "k8s.io/api/core/v1"
@@ -661,25 +661,36 @@ func (drm *DisasterRecoveryManager) isValidFailoverRegion(region string) bool {
 // S3BackupStore implements BackupStore for AWS S3
 type S3BackupStore struct {
 	config *BackupStorageConf
-	client *s3.S3
+	client *s3.Client
 	logger *slog.Logger
 }
 
 // NewS3BackupStore creates a new S3 backup store
-func NewS3BackupStore(config BackupStorageConf, logger *slog.Logger) *S3BackupStore {
-	sess := session.Must(session.NewSession(&aws.Config{
-		Region: aws.String(config.Region),
-	}))
+func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3BackupStore {
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(backupConfig.Region))
+	if err != nil {
+		logger.Error("failed to load AWS config", "error", err)
+		// Return a backup store with nil client - errors will be handled in methods
+		return &S3BackupStore{
+			config: &backupConfig,
+			client: nil,
+			logger: logger,
+		}
+	}
 
 	return &S3BackupStore{
-		config: &config,
-		client: s3.New(sess),
+		config: &backupConfig,
+		client: s3.NewFromConfig(cfg),
 		logger: logger,
 	}
 }
 
 // Upload uploads backup to S3
 func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
+	if s.client == nil {
+		return fmt.Errorf("S3 client not initialized")
+	}
+
 	// Marshal backup metadata
 	data, err := json.Marshal(backup)
 	if err != nil {
@@ -688,10 +699,10 @@ func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 
 	key := filepath.Join(s.config.Path, backup.ID, "metadata.json")
 	
-	_, err = s.client.PutObjectWithContext(ctx, &s3.PutObjectInput{
+	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.config.Bucket),
 		Key:    aws.String(key),
-		Body:   bytes.NewReader(data),
+		Body:   strings.NewReader(string(data)),
 	})
 
 	if err != nil {

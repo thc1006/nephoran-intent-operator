@@ -1,0 +1,53 @@
+# Example NetworkIntent resources demonstrating different intent types
+
+---
+# Deployment Intent - Default type for deploying new network functions
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: deploy-amf-intent
+  namespace: default
+spec:
+  intent: "Deploy AMF with 3 replicas for network slice eMBB with high throughput requirements"
+  intentType: "deployment"  # Explicitly set, but would default to this if omitted
+  parameters:
+    # Parameters would be populated by LLM processor based on the intent
+
+---
+# Scaling Intent - For scaling existing deployments
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: scale-smf-intent
+  namespace: default
+spec:
+  intent: "Scale SMF deployment to 5 replicas to handle increased traffic"
+  intentType: "scaling"
+  parameters:
+    # LLM would populate with target deployment and desired replicas
+
+---
+# Policy Intent - For applying network or A1 policies
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: slice-policy-intent
+  namespace: default
+spec:
+  intent: "Apply QoS policy for URLLC slice with latency requirement < 1ms"
+  intentType: "policy"
+  parameters:
+    # LLM would populate with policy specifications
+
+---
+# Example without intentType - defaults to deployment
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: default-type-intent
+  namespace: default
+spec:
+  intent: "Set up UPF for edge deployment"
+  # intentType is omitted, so it will default to "deployment"
+  parameters:
+    # Parameters for deployment configuration

@@ -51,6 +51,10 @@ type E2ManagerConfig struct {
 	ServiceModelDir     string
 	EnablePlugins       bool
 	PluginTimeout       time.Duration
+
+	// Simulation settings
+	SimulationMode      bool
+	SimulateRICCalls    bool
 }
 
 // E2ConnectionPool manages a pool of E2 connections with health monitoring
@@ -273,6 +277,8 @@ func NewE2Manager(config *E2ManagerConfig) (*E2Manager, error) {
 			ServiceModelDir:     "/etc/nephoran/service-models",
 			EnablePlugins:       true,
 			PluginTimeout:       10 * time.Second,
+			SimulationMode:      false,
+			SimulateRICCalls:    false,
 		}
 	}
 
@@ -344,12 +350,29 @@ func NewE2Manager(config *E2ManagerConfig) (*E2Manager, error) {
 
 // SetupE2Connection establishes an E2 connection to a node with comprehensive error handling
 func (m *E2Manager) SetupE2Connection(nodeID string, endpoint string) error {
+	// Input validation
+	if nodeID == "" {
+		return fmt.Errorf("node ID cannot be empty")
+	}
+	if endpoint == "" {
+		return fmt.Errorf("endpoint cannot be empty for node %s", nodeID)
+	}
+
+	// Log operation mode
+	if m.logger != nil {
+		operationType := "PRODUCTION"
+		if m.config.SimulationMode {
+			operationType = "SIMULATION"
+		}
+		m.logger.Printf("%s: Setting up E2 connection to node %s at endpoint %s", operationType, nodeID, endpoint)
+	}
+
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	// Check if connection already exists
 	if _, exists := m.adaptors[nodeID]; exists {
-		return fmt.Errorf("connection to node %s already exists", nodeID)
+		return fmt.Errorf("connection to node %s already exists at endpoint %s", nodeID, endpoint)
 	}
 
 	// Create adaptor configuration
@@ -388,6 +411,16 @@ func (m *E2Manager) SetupE2Connection(nodeID string, endpoint string) error {
 
 // SubscribeE2 creates a managed E2 subscription with comprehensive lifecycle management
 func (m *E2Manager) SubscribeE2(req *E2SubscriptionRequest) (*E2Subscription, error) {
+	// Log operation mode
+	if m.logger != nil {
+		operationType := "PRODUCTION"
+		if m.config.SimulationMode {
+			operationType = "SIMULATION"
+		}
+		m.logger.Printf("%s: Creating E2 subscription %s for node %s (RAN Function: %d)", 
+			operationType, req.SubscriptionID, req.NodeID, req.RanFunctionID)
+	}
+
 	m.mutex.RLock()
 	adaptor, exists := m.adaptors[req.NodeID]
 	m.mutex.RUnlock()
@@ -406,11 +439,20 @@ func (m *E2Manager) SubscribeE2(req *E2SubscriptionRequest) (*E2Subscription, er
 		ReportingPeriod: req.ReportingPeriod,
 	}
 
-	// Create subscription through adaptor
+	// Create subscription through adaptor (or simulate)
 	ctx := context.Background()
-	if err := adaptor.CreateSubscription(ctx, req.NodeID, subscription); err != nil {
-		m.metrics.SubscriptionsFailed++
-		return nil, fmt.Errorf("failed to create subscription: %w", err)
+	if m.config.SimulationMode || m.config.SimulateRICCalls {
+		if m.logger != nil {
+			m.logger.Printf("SIMULATION: Simulating E2 subscription creation for %s on node %s instead of making actual RIC call", 
+				req.SubscriptionID, req.NodeID)
+		}
+		// Simulate processing delay
+		time.Sleep(20 * time.Millisecond)
+	} else {
+		if err := adaptor.CreateSubscription(ctx, req.NodeID, subscription); err != nil {
+			m.metrics.SubscriptionsFailed++
+			return nil, fmt.Errorf("failed to create subscription %s on node %s: %w", req.SubscriptionID, req.NodeID, err)
+		}
 	}
 
 	// Create managed subscription
@@ -445,21 +487,69 @@ func (m *E2Manager) SubscribeE2(req *E2SubscriptionRequest) (*E2Subscription, er
 }
 
 // SendControlMessage sends a control message to an E2 node with retry logic
+// TODO: This method should accept a nodeID parameter to specify the target node
 func (m *E2Manager) SendControlMessage(ctx context.Context, controlReq *RICControlRequest) (*RICControlAcknowledge, error) {
-	// Extract node ID from the request ID or use a default approach
-	// For now, we'll use the first available node - this should be improved in production
-	m.mutex.RLock()
-	var nodeID string
-	var adaptor *E2Adaptor
-	for id, adapt := range m.adaptors {
-		nodeID = id
-		adaptor = adapt
-		break
+	// Log operation mode
+	if m.config.SimulationMode {
+		if m.logger != nil {
+			m.logger.Printf("SIMULATION MODE: Processing RIC Control Request (RequestorID: %d, InstanceID: %d, RANFunction: %d)", 
+				controlReq.RICRequestID.RICRequestorID, controlReq.RICRequestID.RICInstanceID, controlReq.RANFunctionID)
+		}
 	}
+
+	// Extract target node ID from control request header or use requestor ID mapping
+	// In production, the target node should be encoded in the control header or passed as parameter
+	var targetNodeID string
+	
+	// Try to extract node ID from control header (implementation-specific)
+	if len(controlReq.RICControlHeader) > 0 {
+		// This is a placeholder - in real implementation, parse the control header
+		// to extract the target node ID based on your specific encoding scheme
+		targetNodeID = m.extractNodeIDFromControlHeader(controlReq.RICControlHeader)
+	}
+
+	// If no node ID found in header, try to map from requestor ID
+	if targetNodeID == "" {
+		targetNodeID = m.mapRequestorIDToNodeID(controlReq.RICRequestID.RICRequestorID)
+	}
+
+	// Find the target adaptor
+	m.mutex.RLock()
+	adaptor, exists := m.adaptors[targetNodeID]
 	m.mutex.RUnlock()
 
-	if adaptor == nil {
-		return nil, fmt.Errorf("no E2 connections available")
+	if !exists || adaptor == nil {
+		// If no specific target found, check if we have any available nodes
+		m.mutex.RLock()
+		availableNodes := make([]string, 0, len(m.adaptors))
+		for nodeID := range m.adaptors {
+			availableNodes = append(availableNodes, nodeID)
+		}
+		m.mutex.RUnlock()
+
+		if len(availableNodes) == 0 {
+			return nil, fmt.Errorf("no E2 connections available")
+		}
+
+		// In production, this should be an error. For backward compatibility, warn and use first available
+		if m.logger != nil {
+			m.logger.Printf("WARNING: Target node ID '%s' not found. Available nodes: %v. Using first available node for backward compatibility", 
+				targetNodeID, availableNodes)
+		}
+		
+		targetNodeID = availableNodes[0]
+		adaptor = m.adaptors[targetNodeID]
+	}
+
+	// Log the target node for the operation
+	if m.logger != nil {
+		operationType := "PRODUCTION"
+		if m.config.SimulationMode {
+			operationType = "SIMULATION"
+		}
+		m.logger.Printf("%s: Sending RIC Control Message to node %s (RequestorID: %d, InstanceID: %d, RANFunction: %d)", 
+			operationType, targetNodeID, controlReq.RICRequestID.RICRequestorID, 
+			controlReq.RICRequestID.RICInstanceID, controlReq.RANFunctionID)
 	}
 
 	// Convert RICControlRequest to E2ControlRequest
@@ -489,10 +579,33 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, controlReq *RICContr
 		ControlAckRequest: controlReq.RICControlAckRequest != nil,
 	}
 
-	response, err := adaptor.SendControlRequest(ctx, nodeID, request)
-	if err != nil {
-		m.metrics.MessagesFailed++
-		return nil, fmt.Errorf("failed to send control message: %w", err)
+	// Handle simulation mode vs production mode
+	var response *E2ControlResponse
+	var err error
+
+	if m.config.SimulationMode || m.config.SimulateRICCalls {
+		// Simulate the RIC call instead of making actual request
+		if m.logger != nil {
+			m.logger.Printf("SIMULATION: Simulating RIC Control Request to node %s instead of making actual call", targetNodeID)
+		}
+		
+		response = &E2ControlResponse{
+			RequestID: request.RequestID,
+			Status: E2ControlStatus{
+				Result:           "SUCCESS",
+				CauseDescription: "Simulated RIC control response",
+			},
+		}
+		
+		// Simulate processing delay
+		time.Sleep(10 * time.Millisecond)
+	} else {
+		// Make actual RIC call
+		response, err = adaptor.SendControlRequest(ctx, targetNodeID, request)
+		if err != nil {
+			m.metrics.MessagesFailed++
+			return nil, fmt.Errorf("failed to send control message to node %s: %w", targetNodeID, err)
+		}
 	}
 
 	m.metrics.MessagesSent++
@@ -512,16 +625,72 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, controlReq *RICContr
 	return ack, nil
 }
 
+// extractNodeIDFromControlHeader extracts node ID from RIC control header
+// This is implementation-specific and should be adapted based on your control header encoding
+func (m *E2Manager) extractNodeIDFromControlHeader(controlHeader []byte) string {
+	// TODO: Implement actual parsing logic based on your control header format
+	// This is a placeholder implementation
+	
+	// For simulation mode, return empty to trigger fallback logic
+	if m.config.SimulationMode {
+		return ""
+	}
+
+	// Example: If the header contains node ID as a string prefix
+	// You would implement proper ASN.1 or custom parsing here
+	headerStr := string(controlHeader)
+	if len(headerStr) > 0 {
+		// Placeholder: extract node ID from header
+		// In real implementation, parse according to your encoding scheme
+		return ""
+	}
+	
+	return ""
+}
+
+// mapRequestorIDToNodeID maps a RIC requestor ID to a node ID
+// This should be implemented based on your system's requestor ID allocation scheme
+func (m *E2Manager) mapRequestorIDToNodeID(requestorID RICRequestorID) string {
+	// TODO: Implement actual mapping logic based on your requestor ID scheme
+	// This is a placeholder implementation
+	
+	// In simulation mode, return a default test node ID
+	if m.config.SimulationMode {
+		return "sim-node-001"
+	}
+
+	// Example mapping logic (adapt to your system):
+	// - Different ranges of requestor IDs could map to different nodes
+	// - You might have a lookup table or configuration mapping
+	
+	switch {
+	case requestorID >= 1 && requestorID <= 100:
+		return "node-gnb-001"
+	case requestorID >= 101 && requestorID <= 200:
+		return "node-gnb-002"
+	default:
+		// Return empty string to trigger fallback logic
+		return ""
+	}
+}
+
 // ListE2Nodes returns all registered E2 nodes with their status
 func (m *E2Manager) ListE2Nodes(ctx context.Context) ([]*E2Node, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
 
 	nodes := make([]*E2Node, 0, len(m.adaptors))
+	var retrievalErrors []string
+	
 	for nodeID, adaptor := range m.adaptors {
 		nodeInfo, err := adaptor.GetE2Node(ctx, nodeID)
 		if err != nil {
-			continue // Skip nodes that can't be retrieved
+			// Log the error but continue processing other nodes
+			if m.logger != nil {
+				m.logger.Printf("Warning: Failed to retrieve E2 node info for %s: %v", nodeID, err)
+			}
+			retrievalErrors = append(retrievalErrors, fmt.Sprintf("node %s: %v", nodeID, err))
+			continue
 		}
 
 		// Get health information
@@ -570,11 +739,27 @@ func (m *E2Manager) ListE2Nodes(ctx context.Context) ([]*E2Node, error) {
 		nodes = append(nodes, node)
 	}
 
+	// If there were retrieval errors but we got some nodes, log warning
+	if len(retrievalErrors) > 0 && m.logger != nil {
+		m.logger.Printf("ListE2Nodes completed with %d nodes retrieved and %d errors: %v", 
+			len(nodes), len(retrievalErrors), retrievalErrors)
+	}
+
+	// Return partial results if we have any nodes, even with some errors
 	return nodes, nil
 }
 
 // RegisterE2Node registers an E2 node with comprehensive function support
 func (m *E2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFunctions []RanFunction) error {
+	// Log operation mode
+	if m.logger != nil {
+		operationType := "PRODUCTION"
+		if m.config.SimulationMode {
+			operationType = "SIMULATION"
+		}
+		m.logger.Printf("%s: Registering E2 node %s with %d RAN functions", operationType, nodeID, len(ranFunctions))
+	}
+
 	m.mutex.RLock()
 	adaptor, exists := m.adaptors[nodeID]
 	m.mutex.RUnlock()
@@ -605,9 +790,17 @@ func (m *E2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFuncti
 		}
 	}
 
-	// Register with adaptor
-	if err := adaptor.RegisterE2Node(ctx, nodeID, functions); err != nil {
-		return fmt.Errorf("failed to register E2 node: %w", err)
+	// Register with adaptor (or simulate)
+	if m.config.SimulationMode || m.config.SimulateRICCalls {
+		if m.logger != nil {
+			m.logger.Printf("SIMULATION: Simulating E2 node registration for %s instead of making actual RIC call", nodeID)
+		}
+		// Simulate processing delay
+		time.Sleep(50 * time.Millisecond)
+	} else {
+		if err := adaptor.RegisterE2Node(ctx, nodeID, functions); err != nil {
+			return fmt.Errorf("failed to register E2 node %s with RIC: %w", nodeID, err)
+		}
 	}
 
 	// Update health status
@@ -644,27 +837,41 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 
 	// Log the start of deregistration
 	if m.logger != nil {
-		m.logger.Printf("Starting E2 node deregistration: %s", nodeID)
+		operationType := "PRODUCTION"
+		if m.config.SimulationMode {
+			operationType = "SIMULATION"
+		}
+		m.logger.Printf("%s: Starting E2 node deregistration: %s", operationType, nodeID)
 	}
 
 	// First, clean up all subscriptions for this node
 	m.subscriptionMgr.mutex.Lock()
 	subscriptionCount := 0
+	var subscriptionErrors []string
+	
 	if nodeSubs, exists := m.subscriptionMgr.subscriptions[nodeID]; exists {
 		subscriptionCount = len(nodeSubs)
 		for subscriptionID, managedSub := range nodeSubs {
 			// Update subscription state to deleting
 			m.updateSubscriptionState(nodeID, subscriptionID, SubscriptionStateDeleting, "Node deregistration in progress")
 
-			// Delete subscription from adaptor
-			if err := adaptor.DeleteSubscription(ctx, nodeID, subscriptionID); err != nil {
-				// Log error but continue with cleanup
+			// Delete subscription from adaptor (or simulate)
+			if m.config.SimulationMode || m.config.SimulateRICCalls {
 				if m.logger != nil {
-					m.logger.Printf("Warning: failed to delete subscription %s for node %s: %v", subscriptionID, nodeID, err)
+					m.logger.Printf("SIMULATION: Simulating subscription deletion for %s on node %s", subscriptionID, nodeID)
 				}
 			} else {
-				if m.logger != nil {
-					m.logger.Printf("Successfully deleted subscription %s for node %s", subscriptionID, nodeID)
+				if err := adaptor.DeleteSubscription(ctx, nodeID, subscriptionID); err != nil {
+					// Log error but continue with cleanup
+					errorMsg := fmt.Sprintf("failed to delete subscription %s: %v", subscriptionID, err)
+					subscriptionErrors = append(subscriptionErrors, errorMsg)
+					if m.logger != nil {
+						m.logger.Printf("Warning: %s for node %s", errorMsg, nodeID)
+					}
+				} else {
+					if m.logger != nil {
+						m.logger.Printf("Successfully deleted subscription %s for node %s", subscriptionID, nodeID)
+					}
 				}
 			}
 
@@ -677,6 +884,12 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 		
 		// Clear all subscriptions for this node
 		delete(m.subscriptionMgr.subscriptions, nodeID)
+		
+		// Log summary of subscription cleanup
+		if len(subscriptionErrors) > 0 && m.logger != nil {
+			m.logger.Printf("Node %s deregistration: cleaned %d subscriptions with %d errors: %v", 
+				nodeID, subscriptionCount, len(subscriptionErrors), subscriptionErrors)
+		}
 	}
 	m.subscriptionMgr.mutex.Unlock()
 
@@ -694,14 +907,22 @@ func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
 	delete(m.health.subscriptionHealth, nodeID)
 	m.health.mutex.Unlock()
 
-	// Deregister from the adaptor (calls Near-RT RIC)
-	if err := adaptor.DeregisterE2Node(ctx, nodeID); err != nil {
-		// Update metrics even if deregistration failed
-		m.metrics.ConnectionsFailed++
+	// Deregister from the adaptor (calls Near-RT RIC or simulate)
+	if m.config.SimulationMode || m.config.SimulateRICCalls {
 		if m.logger != nil {
-			m.logger.Printf("Failed to deregister E2 node %s from Near-RT RIC: %v", nodeID, err)
+			m.logger.Printf("SIMULATION: Simulating E2 node deregistration for %s instead of making actual RIC call", nodeID)
 		}
-		return fmt.Errorf("failed to deregister E2 node from Near-RT RIC: %w", err)
+		// Simulate processing delay
+		time.Sleep(30 * time.Millisecond)
+	} else {
+		if err := adaptor.DeregisterE2Node(ctx, nodeID); err != nil {
+			// Update metrics even if deregistration failed
+			m.metrics.ConnectionsFailed++
+			if m.logger != nil {
+				m.logger.Printf("Failed to deregister E2 node %s from Near-RT RIC: %v", nodeID, err)
+			}
+			return fmt.Errorf("failed to deregister E2 node %s from Near-RT RIC: %w", nodeID, err)
+		}
 	}
 
 	// Remove from local registry

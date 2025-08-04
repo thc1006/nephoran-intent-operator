@@ -258,7 +258,7 @@ function Test-CRDFunctionality {
     
     # Create a test NetworkIntent
     $testIntent = @"
-apiVersion: nephoran.com/v1alpha1
+apiVersion: nephoran.com/v1
 kind: NetworkIntent
 metadata:
   name: crd-test-intent

@@ -1,7 +1,8 @@
-apiVersion: nephoran.com/v1alpha1
+apiVersion: nephoran.com/v1
 kind: E2NodeSet
 metadata:
   name: test-e2nodeset
   namespace: default
 spec:
   replicas: 3
+  # ricEndpoint: "https://custom-ric:9443"  # Optional: override default RIC endpoint

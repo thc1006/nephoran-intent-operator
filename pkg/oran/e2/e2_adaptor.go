@@ -14,7 +14,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
@@ -143,8 +143,8 @@ type E2AdaptorInterface interface {
 	GetIndicationData(ctx context.Context, nodeID string, subscriptionID string) ([]*E2Indication, error)
 	
 	// High-level ManagedElement integration
-	ConfigureE2Interface(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error
-	RemoveE2Interface(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error
+	ConfigureE2Interface(ctx context.Context, me *nephoranv1.ManagedElement) error
+	RemoveE2Interface(ctx context.Context, me *nephoranv1.ManagedElement) error
 }
 
 // E2ConnectionState represents simple connection states
@@ -282,7 +282,22 @@ func NewE2Adaptor(config *E2AdaptorConfig) (*E2Adaptor, error) {
 	
 	// Configure TLS if provided
 	if config.TLSConfig != nil {
-		// TODO: Configure TLS transport based on O-RAN security requirements
+		// Validate TLS configuration
+		if err := oran.ValidateTLSConfig(config.TLSConfig); err != nil {
+			return nil, fmt.Errorf("invalid TLS configuration: %w", err)
+		}
+
+		// Build TLS configuration
+		tlsConfig, err := oran.BuildTLSConfig(config.TLSConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build TLS configuration: %w", err)
+		}
+
+		// Create HTTP transport with TLS configuration
+		transport := &http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+		httpClient.Transport = transport
 	}
 
 	// Create circuit breaker
@@ -816,7 +831,7 @@ func (e *E2Adaptor) GetIndicationData(ctx context.Context, nodeID string, subscr
 }
 
 // ConfigureE2Interface configures the E2 interface for a ManagedElement
-func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error {
+func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.ManagedElement) error {
 	logger := log.FromContext(ctx)
 	logger.Info("configuring E2 interface", "managedElement", me.ObjectMeta.Name)
 	
@@ -949,7 +964,7 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1alph
 }
 
 // RemoveE2Interface removes the E2 interface configuration for a ManagedElement
-func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error {
+func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1.ManagedElement) error {
 	logger := log.FromContext(ctx)
 	logger.Info("removing E2 interface", "managedElement", me.ObjectMeta.Name)
 	

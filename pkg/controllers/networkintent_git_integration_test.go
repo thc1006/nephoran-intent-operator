@@ -63,9 +63,9 @@ var _ = Describe("NetworkIntent Controller (GitOps Integration)", func() {
 
 		// === Test 1: Create a new deployment intent ===
 		By("Creating a NetworkIntent for a new deployment")
-		deploymentIntent := &nephoranv1alpha1.NetworkIntent{
+		deploymentIntent := &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{Name: intentName, Namespace: namespace},
-			Spec: nephoranv1alpha1.NetworkIntentSpec{
+			Spec: nephoranv1.NetworkIntentSpec{
 				Parameters: k8sruntime.RawExtension{
 					Raw: mustMarshal(NetworkFunctionDeploymentIntent{
 						Type: "NetworkFunctionDeployment", Name: nfName, Namespace: namespace,

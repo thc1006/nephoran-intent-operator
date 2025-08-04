@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
@@ -203,8 +203,8 @@ func TestA1AdaptorApplyPolicy(t *testing.T) {
 	ctx := context.Background()
 
 	// Create ManagedElement with A1 policy
-	me := &nephoranv1alpha1.ManagedElement{
-		Spec: nephoranv1alpha1.ManagedElementSpec{
+	me := &nephoranv1.ManagedElement{
+		Spec: nephoranv1.ManagedElementSpec{
 			A1Policy: runtime.RawExtension{
 				Raw: []byte(`{
 					"policy_type_id": 1000,
@@ -254,8 +254,8 @@ func TestA1AdaptorRemovePolicy(t *testing.T) {
 	ctx := context.Background()
 
 	// Create ManagedElement with A1 policy
-	me := &nephoranv1alpha1.ManagedElement{
-		Spec: nephoranv1alpha1.ManagedElementSpec{
+	me := &nephoranv1.ManagedElement{
+		Spec: nephoranv1.ManagedElementSpec{
 			A1Policy: runtime.RawExtension{
 				Raw: []byte(`{
 					"policy_type_id": 1000,
@@ -281,8 +281,8 @@ func TestA1AdaptorNoPolicyScenarios(t *testing.T) {
 
 	// Test ApplyPolicy with no policy
 	t.Run("ApplyPolicy with no policy", func(t *testing.T) {
-		me := &nephoranv1alpha1.ManagedElement{
-			Spec: nephoranv1alpha1.ManagedElementSpec{},
+		me := &nephoranv1.ManagedElement{
+			Spec: nephoranv1.ManagedElementSpec{},
 		}
 		me.Name = "test-me"
 
@@ -292,8 +292,8 @@ func TestA1AdaptorNoPolicyScenarios(t *testing.T) {
 
 	// Test RemovePolicy with no policy
 	t.Run("RemovePolicy with no policy", func(t *testing.T) {
-		me := &nephoranv1alpha1.ManagedElement{
-			Spec: nephoranv1alpha1.ManagedElementSpec{},
+		me := &nephoranv1.ManagedElement{
+			Spec: nephoranv1.ManagedElementSpec{},
 		}
 		me.Name = "test-me"
 

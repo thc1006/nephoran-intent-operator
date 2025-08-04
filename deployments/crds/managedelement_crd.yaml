@@ -5,7 +5,7 @@ metadata:
 spec:
   group: nephoran.com
   versions:
-    - name: v1alpha1
+    - name: v1
       served: true
       storage: true
       schema:

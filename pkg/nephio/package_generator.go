@@ -15,6 +15,11 @@ import (
 )
 
 // PackageGenerator generates Nephio KRM packages from NetworkIntent resources
+// It supports the following intent types:
+// - "deployment": Generates Deployment, Service, and ConfigMap resources
+// - "scaling": Generates scaling patches for existing deployments
+// - "policy": Generates NetworkPolicy and A1 policy resources
+// If no intent type is specified, it defaults to "deployment"
 type PackageGenerator struct {
 	templates map[string]*template.Template
 }
@@ -49,8 +54,11 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 	files[filepath.Join(packagePath, "Kptfile")] = kptfile
 	
 	// Generate package resources based on intent type
-	// For now, default to deployment type since intent.Spec.Type is temporarily disabled
-	intentType := "deployment" // TODO: Use intent.Spec.Type when available
+	// Use the IntentType from the spec, defaulting to "deployment" if empty
+	intentType := intent.Spec.IntentType
+	if intentType == "" {
+		intentType = "deployment"
+	}
 	
 	switch intentType {
 	case "deployment":

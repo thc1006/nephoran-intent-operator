@@ -30,7 +30,6 @@ type E2NodeSetReconciler struct {
 //+kubebuilder:rbac:groups=nephoran.com,resources=e2nodesets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=nephoran.com,resources=e2nodesets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=nephoran.com,resources=e2nodesets/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete // Required for NetworkIntent controller compatibility
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -110,7 +109,7 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 }
 
 func (r *E2NodeSetReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	// Use E2Manager instead of ConfigMaps
+	// Setup controller to watch E2NodeSet resources and delegate E2 operations to E2Manager
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.E2NodeSet{}).
 		Complete(r)
@@ -227,11 +226,19 @@ func (r *E2NodeSetReconciler) getE2NodePrefix(e2nodeSet *nephoranv1.E2NodeSet) s
 
 // getNearRTRICEndpoint returns the Near-RT RIC endpoint for E2 connections
 func (r *E2NodeSetReconciler) getNearRTRICEndpoint(e2nodeSet *nephoranv1.E2NodeSet) string {
-	// TODO: This could be configurable via annotations or spec in future
-	// For now, use a default endpoint
+	// Priority order:
+	// 1. Use spec.ricEndpoint if provided
+	// 2. Fall back to annotation for backward compatibility
+	// 3. Use default endpoint
+	
+	if e2nodeSet.Spec.RicEndpoint != "" {
+		return e2nodeSet.Spec.RicEndpoint
+	}
+	
 	if endpoint, ok := e2nodeSet.Annotations["nephoran.com/near-rt-ric-endpoint"]; ok {
 		return endpoint
 	}
+	
 	return "http://near-rt-ric:38080" // Default Near-RT RIC endpoint
 }
 

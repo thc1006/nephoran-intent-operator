@@ -20,9 +20,9 @@ These files contain overlapping content that has been consolidated:
 - `API_DOCUMENTATION.md` (root) - Duplicate of docs version
 - `API_REFERENCE.md` - Overlaps with API documentation
 
-**Deployment Guides (consolidated into `COMPLETE_DEPLOYMENT_GUIDE.md`):**
-- `DEPLOYMENT_GUIDE.md` - Basic deployment guide, superseded
-- `COMPLETE-SETUP-GUIDE.md` - Windows-specific, content merged
+**Deployment Guides (use current guides in docs/):**
+- `DEPLOYMENT_GUIDE.md` - Basic deployment guide, refer to `docs/NetworkIntent-Controller-Guide.md` and `docs/GitOps-Package-Generation.md` for current deployment information
+- `COMPLETE-SETUP-GUIDE.md` - Windows-specific, content should be integrated into current deployment guides
 
 **Template Files (move to `templates/` directory or remove if unused):**
 - `Makefile-Template.md` - Should be in templates directory
@@ -53,7 +53,7 @@ These appear to be temporary working files that can be removed:
 
 ### 2. Consolidate Deployment Documentation
 **Current state:**
-- `COMPLETE_DEPLOYMENT_GUIDE.md` - Comprehensive guide
+- Current deployment information is maintained in `docs/NetworkIntent-Controller-Guide.md` and `docs/GitOps-Package-Generation.md`
 - `DEPLOYMENT_GUIDE.md` - Basic guide
 - `COMPLETE-SETUP-GUIDE.md` - Windows setup
 - `docs/operations/01-production-deployment-guide.md` - Production specific

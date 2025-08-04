@@ -14,8 +14,9 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 // A1PolicyType represents an A1 policy type
@@ -63,8 +64,8 @@ type A1AdaptorInterface interface {
 	GetPolicyStatus(ctx context.Context, policyTypeID int, instanceID string) (*A1PolicyStatus, error)
 	
 	// High-level operations
-	ApplyPolicy(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error
-	RemovePolicy(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error
+	ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedElement) error
+	RemovePolicy(ctx context.Context, me *nephoranv1.ManagedElement) error
 }
 
 // A1Adaptor implements the A1 interface for Near-RT RIC communication
@@ -99,17 +100,9 @@ type A1AdaptorConfig struct {
 	RICURL                  string
 	APIVersion              string
 	Timeout                 time.Duration
-	TLSConfig               *TLSConfig
+	TLSConfig               *oran.TLSConfig
 	CircuitBreakerConfig    *llm.CircuitBreakerConfig
 	RetryConfig             *RetryConfig
-}
-
-// TLSConfig holds TLS configuration
-type TLSConfig struct {
-	CertFile   string
-	KeyFile    string
-	CAFile     string
-	SkipVerify bool
 }
 
 // SMOServiceRegistry represents the SMO service registry integration
@@ -238,7 +231,22 @@ func NewA1Adaptor(config *A1AdaptorConfig) (*A1Adaptor, error) {
 	
 	// Configure TLS if provided
 	if config.TLSConfig != nil {
-		// TODO: Configure TLS transport
+		// Validate TLS configuration
+		if err := oran.ValidateTLSConfig(config.TLSConfig); err != nil {
+			return nil, fmt.Errorf("invalid TLS configuration: %w", err)
+		}
+
+		// Build TLS configuration
+		tlsConfig, err := oran.BuildTLSConfig(config.TLSConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build TLS configuration: %w", err)
+		}
+
+		// Create HTTP transport with TLS configuration
+		transport := &http.Transport{
+			TLSClientConfig: tlsConfig,
+		}
+		httpClient.Transport = transport
 	}
 
 	// Create circuit breaker
@@ -545,7 +553,7 @@ func (a *A1Adaptor) GetPolicyStatus(ctx context.Context, policyTypeID int, insta
 }
 
 // ApplyPolicy applies an A1 policy from a ManagedElement
-func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error {
+func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedElement) error {
 	logger := log.FromContext(ctx)
 	logger.Info("applying A1 policy", "managedElement", me.Name)
 	
@@ -620,7 +628,7 @@ func (a *A1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1alpha1.Manage
 }
 
 // RemovePolicy removes an A1 policy from a ManagedElement
-func (a *A1Adaptor) RemovePolicy(ctx context.Context, me *nephoranv1alpha1.ManagedElement) error {
+func (a *A1Adaptor) RemovePolicy(ctx context.Context, me *nephoranv1.ManagedElement) error {
 	logger := log.FromContext(ctx)
 	logger.Info("removing A1 policy", "managedElement", me.Name)
 	

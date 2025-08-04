@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -885,6 +886,130 @@ var _ = Describe("E2NodeSet Controller", func() {
 			}, 2)
 
 			WaitForE2NodeSetReady(namespacedName, 2)
+		})
+	})
+
+	Context("RIC Endpoint Configuration", func() {
+		It("should use default RIC endpoint when ricEndpoint is not specified", func() {
+			By("creating an E2NodeSet without ricEndpoint")
+			e2nodeSet := CreateTestE2NodeSet("test-default-endpoint", testNamespace, 1)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			By("getting the RIC endpoint from controller")
+			endpoint := reconciler.getNearRTRICEndpoint(e2nodeSet)
+
+			By("verifying default RIC endpoint is used")
+			Expect(endpoint).To(Equal("http://near-rt-ric:38080"))
+		})
+
+		It("should use custom RIC endpoint when ricEndpoint is specified", func() {
+			By("creating an E2NodeSet with custom ricEndpoint")
+			e2nodeSet := CreateTestE2NodeSet("test-custom-endpoint", testNamespace, 1)
+			e2nodeSet.Spec.RicEndpoint = "https://custom-ric:9080"
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			By("getting the RIC endpoint from controller")
+			endpoint := reconciler.getNearRTRICEndpoint(e2nodeSet)
+
+			By("verifying custom RIC endpoint is used")
+			Expect(endpoint).To(Equal("https://custom-ric:9080"))
+		})
+
+		It("should prioritize spec ricEndpoint over annotation", func() {
+			By("creating an E2NodeSet with both ricEndpoint and annotation")
+			e2nodeSet := CreateTestE2NodeSet("test-priority", testNamespace, 1)
+			e2nodeSet.Spec.RicEndpoint = "https://spec-ric:9080"
+			if e2nodeSet.Annotations == nil {
+				e2nodeSet.Annotations = make(map[string]string)
+			}
+			e2nodeSet.Annotations["nephoran.com/near-rt-ric-endpoint"] = "https://annotation-ric:8080"
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			By("getting the RIC endpoint from controller")
+			endpoint := reconciler.getNearRTRICEndpoint(e2nodeSet)
+
+			By("verifying spec ricEndpoint takes priority")
+			Expect(endpoint).To(Equal("https://spec-ric:9080"))
+		})
+
+		It("should fall back to annotation when ricEndpoint is empty", func() {
+			By("creating an E2NodeSet with empty ricEndpoint but annotation set")
+			e2nodeSet := CreateTestE2NodeSet("test-annotation-fallback", testNamespace, 1)
+			e2nodeSet.Spec.RicEndpoint = ""
+			if e2nodeSet.Annotations == nil {
+				e2nodeSet.Annotations = make(map[string]string)
+			}
+			e2nodeSet.Annotations["nephoran.com/near-rt-ric-endpoint"] = "https://annotation-ric:8080"
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			By("getting the RIC endpoint from controller")
+			endpoint := reconciler.getNearRTRICEndpoint(e2nodeSet)
+
+			By("verifying annotation is used as fallback")
+			Expect(endpoint).To(Equal("https://annotation-ric:8080"))
+		})
+
+		It("should validate ricEndpoint format in spec", func() {
+			By("attempting to create E2NodeSet with invalid ricEndpoint format")
+			e2nodeSet := &nephoranv1.E2NodeSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-invalid-endpoint",
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						"test-resource": "true",
+						"test-suite":    "controller-suite",
+					},
+				},
+				Spec: nephoranv1.E2NodeSetSpec{
+					Replicas:    1,
+					RicEndpoint: "invalid-endpoint-format", // Should fail validation
+				},
+			}
+
+			By("verifying creation is rejected by validation")
+			err := k8sClient.Create(ctx, e2nodeSet)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("validation"))
+		})
+
+		It("should accept valid ricEndpoint formats", func() {
+			testCases := []struct {
+				name     string
+				endpoint string
+			}{
+				{"http endpoint", "http://ric-service:38080"},
+				{"https endpoint", "https://secure-ric:9443"},
+				{"numeric ip", "http://192.168.1.100:38080"},
+				{"domain with subdomain", "https://ric.telecom.example.com:8080"},
+			}
+
+			for _, tc := range testCases {
+				By(fmt.Sprintf("testing %s", tc.name))
+				e2nodeSet := &nephoranv1.E2NodeSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      fmt.Sprintf("test-valid-%s", strings.ReplaceAll(tc.name, " ", "-")),
+						Namespace: testNamespace,
+						Labels: map[string]string{
+							"test-resource": "true",
+							"test-suite":    "controller-suite",
+						},
+					},
+					Spec: nephoranv1.E2NodeSetSpec{
+						Replicas:    1,
+						RicEndpoint: tc.endpoint,
+					},
+				}
+
+				By("verifying creation succeeds")
+				Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+				By("verifying endpoint is retrieved correctly")
+				endpoint := reconciler.getNearRTRICEndpoint(e2nodeSet)
+				Expect(endpoint).To(Equal(tc.endpoint))
+
+				By("cleaning up test resource")
+				Expect(k8sClient.Delete(ctx, e2nodeSet)).To(Succeed())
+			}
 		})
 	})
 })

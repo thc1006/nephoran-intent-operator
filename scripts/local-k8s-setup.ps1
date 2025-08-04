@@ -464,7 +464,7 @@ function Validate-Setup {
     # Test sample CRD creation
     Write-Step "Testing CRD functionality..."
     $testIntent = @"
-apiVersion: nephoran.com/v1alpha1
+apiVersion: nephoran.com/v1
 kind: NetworkIntent
 metadata:
   name: test-intent

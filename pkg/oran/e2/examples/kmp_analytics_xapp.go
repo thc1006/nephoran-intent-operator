@@ -152,7 +152,7 @@ func (x *KMPAnalyticsXApp) Start(ctx context.Context) error {
 		EventTriggers: []e2.E2EventTrigger{
 			{
 				TriggerType: "periodic",
-				Parameters: map[string]interface{}{
+				Conditions: map[string]interface{}{
 					"measurement_types": []string{
 						"DRB.UEThpDl",         // Downlink UE throughput
 						"DRB.UEThpUl",         // Uplink UE throughput

@@ -169,6 +169,7 @@ func main() {
 
 	// Initialize clients with configuration
 	llmClient := llm.NewClient(cfg.LLMProcessorURL)
+	// Use the default constructor for now; the structured logger will be used internally
 	gitClient := git.NewClient(cfg.GitRepoURL, "main", cfg.GitToken)
 
 	// Initialize Nephio package generator if enabled

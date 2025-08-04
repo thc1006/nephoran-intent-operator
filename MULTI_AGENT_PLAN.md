@@ -54,7 +54,7 @@
 - 狀態：已完成 ✅
 - 生成的文檔：
   - CLAUDE.md - 更新為完整專案上下文指南
-  - COMPLETE_DEPLOYMENT_GUIDE.md - 詳細部署指南（本地和雲端）
+  - docs/NetworkIntent-Controller-Guide.md 和 docs/GitOps-Package-Generation.md - 詳細部署指南（本地和雲端）
   - API_DOCUMENTATION.md - 完整 API 文檔和範例
   - DEVELOPER_GUIDE.md - 新開發者快速上手指南
   - TROUBLESHOOTING_REFERENCE.md - 綜合故障排除參考

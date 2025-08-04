@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -753,48 +754,66 @@ func (r *NetworkIntentReconciler) handleDeletion(ctx context.Context, networkInt
 	logger := log.FromContext(ctx)
 	logger.Info("Handling NetworkIntent deletion", "intent", networkIntent.Name)
 
-	// Perform cleanup operations
+	// Perform cleanup operations - continue even if some cleanup fails
+	cleanupErrors := []error{}
 	if err := r.cleanupResources(ctx, networkIntent); err != nil {
-		logger.Error(err, "failed to cleanup resources")
+		logger.Error(err, "failed to cleanup resources, but continuing with finalizer removal")
 		r.recordEvent(networkIntent, "Warning", "CleanupFailed", fmt.Sprintf("Failed to cleanup resources: %v", err))
-		return ctrl.Result{RequeueAfter: time.Minute}, err
+		cleanupErrors = append(cleanupErrors, err)
+		// Continue to remove finalizer instead of returning error
 	}
 
-	// Remove finalizer to allow deletion
+	// Remove finalizer to allow deletion even if cleanup had issues
 	networkIntent.Finalizers = removeFinalizer(networkIntent.Finalizers, NetworkIntentFinalizer)
 	if err := r.Update(ctx, networkIntent); err != nil {
 		logger.Error(err, "failed to remove finalizer")
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("NetworkIntent cleanup completed", "intent", networkIntent.Name)
-	r.recordEvent(networkIntent, "Normal", "CleanupCompleted", "Successfully cleaned up resources")
+	if len(cleanupErrors) > 0 {
+		logger.Info("NetworkIntent cleanup completed with some errors", "intent", networkIntent.Name, "errors", len(cleanupErrors))
+		r.recordEvent(networkIntent, "Warning", "CleanupCompletedWithErrors", "Resource cleanup completed but some operations failed")
+	} else {
+		logger.Info("NetworkIntent cleanup completed successfully", "intent", networkIntent.Name)
+		r.recordEvent(networkIntent, "Normal", "CleanupCompleted", "Successfully cleaned up resources")
+	}
 	return ctrl.Result{}, nil
 }
 
 // cleanupResources performs cleanup of resources associated with the NetworkIntent
 func (r *NetworkIntentReconciler) cleanupResources(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
 	logger := log.FromContext(ctx)
+	var aggregatedErrors []error
 
 	// 1. Cleanup GitOps packages
 	gitClient := r.deps.GetGitClient()
 	if gitClient != nil && r.config.GitRepoURL != "" {
 		if err := r.cleanupGitOpsPackages(ctx, networkIntent, gitClient); err != nil {
-			logger.Error(err, "failed to cleanup GitOPS packages")
+			logger.Error(err, "failed to cleanup GitOps packages")
+			aggregatedErrors = append(aggregatedErrors, fmt.Errorf("GitOps cleanup failed: %w", err))
 			// Continue with other cleanup operations even if Git cleanup fails
 		}
+	} else {
+		logger.V(1).Info("Skipping GitOps cleanup - no Git client or repository configured")
 	}
 
 	// 2. Cleanup any generated ConfigMaps or Secrets
 	if err := r.cleanupGeneratedResources(ctx, networkIntent); err != nil {
 		logger.Error(err, "failed to cleanup generated resources")
-		return err
+		aggregatedErrors = append(aggregatedErrors, fmt.Errorf("generated resources cleanup failed: %w", err))
+		// Continue with cache cleanup even if this fails
 	}
 
 	// 3. Cleanup any cached data related to this intent
 	if err := r.cleanupCachedData(ctx, networkIntent); err != nil {
 		logger.Error(err, "failed to cleanup cached data")
-		// Continue - cache cleanup is not critical
+		aggregatedErrors = append(aggregatedErrors, fmt.Errorf("cache cleanup failed: %w", err))
+		// Cache cleanup is not critical - continue
+	}
+
+	// Return aggregated errors if any occurred, but allow the controller to continue
+	if len(aggregatedErrors) > 0 {
+		return fmt.Errorf("cleanup completed with %d errors: %v", len(aggregatedErrors), aggregatedErrors)
 	}
 
 	return nil
@@ -820,7 +839,10 @@ func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, net
 	// Initialize the repository first to ensure it's available
 	if err := gitClient.InitRepo(); err != nil {
 		logger.Error(err, "failed to initialize git repository for cleanup")
-		return fmt.Errorf("failed to initialize git repository for cleanup: %w", err)
+		// If we can't initialize the repo, the directory likely doesn't exist anyway
+		// Log the error but don't fail the cleanup
+		logger.V(1).Info("Git repository initialization failed, directory may not exist - skipping cleanup gracefully")
+		return nil // Return nil to indicate graceful skip
 	}
 
 	// Check context cancellation after repo initialization
@@ -831,13 +853,18 @@ func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, net
 	}
 
 	// Create commit message with detailed context
-	commitMessage := fmt.Sprintf("Remove NetworkIntent package: %s/%s\n\nIntent: %s\nCleanup triggered by NetworkIntent deletion", 
+	commitMessage := fmt.Sprintf("Remove NetworkIntent package: %s/%s\n\nIntent: %s\nCleanup triggered by NetworkIntent deletion",
 		networkIntent.Namespace, networkIntent.Name, networkIntent.Spec.Intent)
 
 	// Use GitClient to remove the package directory and commit in one operation
 	// The RemoveDirectory method handles both directory removal and commit/push
 	logger.V(1).Info("Removing directory from Git repository", "directory", packagePath)
 	if err := gitClient.RemoveDirectory(packagePath, commitMessage); err != nil {
+		// Check if this is a "directory doesn't exist" type error and handle gracefully
+		if isDirectoryNotExistError(err) {
+			logger.V(1).Info("GitOps package directory does not exist, cleanup not needed", "package", packageName, "path", packagePath)
+			return nil // Gracefully skip if directory doesn't exist
+		}
 		logger.Error(err, "failed to remove GitOps package directory", "package", packageName, "path", packagePath)
 		return fmt.Errorf("failed to remove GitOps package directory '%s': %w", packagePath, err)
 	}
@@ -1056,7 +1083,6 @@ func (r *NetworkIntentReconciler) safeStatusUpdate(ctx context.Context, obj clie
 	return nil
 }
 
-
 // updatePhase updates the NetworkIntent phase with proper error handling
 func (r *NetworkIntentReconciler) updatePhase(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase string) error {
 	if networkIntent.Status.Phase == phase {
@@ -1095,6 +1121,21 @@ func (r *NetworkIntentReconciler) recordEvent(networkIntent *nephoranv1.NetworkI
 func (r *NetworkIntentReconciler) recordFailureEvent(networkIntent *nephoranv1.NetworkIntent, reason, message string) {
 	fullMessage := fmt.Sprintf("%s: %s", reason, message)
 	r.recordEvent(networkIntent, "Warning", reason, fullMessage)
+}
+
+// isDirectoryNotExistError checks if an error indicates that a directory doesn't exist
+// This helps distinguish between "directory not found" and actual Git operation failures
+func isDirectoryNotExistError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errorStr := err.Error()
+	// Check for common "directory not exist" error patterns
+	return strings.Contains(errorStr, "no such file or directory") ||
+		strings.Contains(errorStr, "cannot find the path") ||
+		strings.Contains(errorStr, "does not exist") ||
+		strings.Contains(errorStr, "not found")
 }
 
 func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {

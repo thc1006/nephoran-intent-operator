@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -24,7 +24,7 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 	
 	// Create fake Kubernetes client with ManagedElement CRD
 	s := runtime.NewScheme()
-	err := nephoranv1alpha1.AddToScheme(s)
+	err := nephoranv1.AddToScheme(s)
 	require.NoError(t, err)
 	
 	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
@@ -34,12 +34,12 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 	
 	tests := []struct {
 		name           string
-		managedElement *nephoranv1alpha1.ManagedElement
-		testFunction   func(*testing.T, *O1Adaptor, *nephoranv1alpha1.ManagedElement)
+		managedElement *nephoranv1.ManagedElement
+		testFunction   func(*testing.T, *O1Adaptor, *nephoranv1.ManagedElement)
 	}{
 		{
 			name: "ManagedElement with complete O1 configuration",
-			managedElement: &nephoranv1alpha1.ManagedElement{
+			managedElement: &nephoranv1.ManagedElement{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-o-ran-du",
 					Namespace: "default",
@@ -48,10 +48,10 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 						"nephoran.com/type":      "network-function",
 					},
 				},
-				Spec: nephoranv1alpha1.ManagedElementSpec{
+				Spec: nephoranv1.ManagedElementSpec{
 					Host: "192.168.1.10",
 					Port: 830,
-					Credentials: nephoranv1alpha1.Credentials{
+					Credentials: nephoranv1.Credentials{
 						Username: "admin",
 						Password: "password",
 					},
@@ -67,7 +67,7 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 						</component>
 					</hardware>`,
 				},
-				Status: nephoranv1alpha1.ManagedElementStatus{
+				Status: nephoranv1.ManagedElementStatus{
 					Phase: "Pending",
 				},
 			},
@@ -75,7 +75,7 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 		},
 		{
 			name: "ManagedElement with JSON O1 configuration",
-			managedElement: &nephoranv1alpha1.ManagedElement{
+			managedElement: &nephoranv1.ManagedElement{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-o-ran-cu",
 					Namespace: "default",
@@ -84,10 +84,10 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 						"nephoran.com/type":      "network-function",
 					},
 				},
-				Spec: nephoranv1alpha1.ManagedElementSpec{
+				Spec: nephoranv1.ManagedElementSpec{
 					Host: "192.168.1.11",
 					Port: 830,
-					Credentials: nephoranv1alpha1.Credentials{
+					Credentials: nephoranv1.Credentials{
 						Username: "admin",
 						Password: "admin123",
 					},
@@ -107,7 +107,7 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 						}
 					}`,
 				},
-				Status: nephoranv1alpha1.ManagedElementStatus{
+				Status: nephoranv1.ManagedElementStatus{
 					Phase: "Pending",
 				},
 			},
@@ -115,7 +115,7 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 		},
 		{
 			name: "ManagedElement with performance monitoring configuration",
-			managedElement: &nephoranv1alpha1.ManagedElement{
+			managedElement: &nephoranv1.ManagedElement{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-performance-me",
 					Namespace: "default",
@@ -124,10 +124,10 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 						"nephoran.com/type":      "monitoring",
 					},
 				},
-				Spec: nephoranv1alpha1.ManagedElementSpec{
+				Spec: nephoranv1.ManagedElementSpec{
 					Host: "192.168.1.12",
 					Port: 830,
-					Credentials: nephoranv1alpha1.Credentials{
+					Credentials: nephoranv1.Credentials{
 						Username: "monitor",
 						Password: "monitor123",
 					},
@@ -168,7 +168,7 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 }
 
 // testO1ConfigurationApplication tests applying O1 configuration to a managed element
-func testO1ConfigurationApplication(t *testing.T, adaptor *O1Adaptor, me *nephoranv1alpha1.ManagedElement) {
+func testO1ConfigurationApplication(t *testing.T, adaptor *O1Adaptor, me *nephoranv1.ManagedElement) {
 	ctx := context.Background()
 
 	// Test configuration validation
@@ -202,7 +202,7 @@ func testO1ConfigurationApplication(t *testing.T, adaptor *O1Adaptor, me *nephor
 }
 
 // testO1JSONConfiguration tests JSON-based O1 configuration
-func testO1JSONConfiguration(t *testing.T, adaptor *O1Adaptor, me *nephoranv1alpha1.ManagedElement) {
+func testO1JSONConfiguration(t *testing.T, adaptor *O1Adaptor, me *nephoranv1.ManagedElement) {
 	ctx := context.Background()
 
 	// Test JSON configuration validation
@@ -220,7 +220,7 @@ func testO1JSONConfiguration(t *testing.T, adaptor *O1Adaptor, me *nephoranv1alp
 }
 
 // testO1PerformanceMonitoring tests performance monitoring configuration
-func testO1PerformanceMonitoring(t *testing.T, adaptor *O1Adaptor, me *nephoranv1alpha1.ManagedElement) {
+func testO1PerformanceMonitoring(t *testing.T, adaptor *O1Adaptor, me *nephoranv1.ManagedElement) {
 	ctx := context.Background()
 
 	// Test performance configuration validation
@@ -260,15 +260,15 @@ func TestO1AdaptorControllerCompatibility(t *testing.T) {
 
 	// Test ManagedElement specification validation
 	t.Run("managed_element_spec_validation", func(t *testing.T) {
-		validME := &nephoranv1alpha1.ManagedElement{
+		validME := &nephoranv1.ManagedElement{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "valid-element",
 				Namespace: "default",
 			},
-			Spec: nephoranv1alpha1.ManagedElementSpec{
+			Spec: nephoranv1.ManagedElementSpec{
 				Host: "192.168.1.100",
 				Port: 830,
-				Credentials: nephoranv1alpha1.Credentials{
+				Credentials: nephoranv1.Credentials{
 					Username: "admin",
 					Password: "password",
 				},
@@ -289,11 +289,11 @@ func TestO1AdaptorControllerCompatibility(t *testing.T) {
 
 	// Test status field compatibility
 	t.Run("status_field_compatibility", func(t *testing.T) {
-		me := &nephoranv1alpha1.ManagedElement{}
+		me := &nephoranv1.ManagedElement{}
 		
 		// Test that status fields can be set (as a controller would do)
 		me.Status.Phase = "Ready"
-		me.Status.Conditions = []nephoranv1alpha1.ManagedElementCondition{
+		me.Status.Conditions = []nephoranv1.ManagedElementCondition{
 			{
 				Type:   "ConfigurationApplied",
 				Status: "True",
@@ -316,14 +316,14 @@ func TestO1AdaptorWithMockNetconfServer(t *testing.T) {
 	
 	adaptor := NewO1Adaptor(nil, fakeClient)
 	
-	mockME := &nephoranv1alpha1.ManagedElement{
+	mockME := &nephoranv1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "mock-element",
 		},
-		Spec: nephoranv1alpha1.ManagedElementSpec{
+		Spec: nephoranv1.ManagedElementSpec{
 			Host: "localhost", // Non-existent NETCONF server
 			Port: 8300,        // Non-standard port to ensure failure
-			Credentials: nephoranv1alpha1.Credentials{
+			Credentials: nephoranv1.Credentials{
 				Username: "test",
 				Password: "test",
 			},
@@ -361,14 +361,14 @@ func TestO1AdaptorFCAPSOperations(t *testing.T) {
 	ctx := context.Background()
 	adaptor := NewO1Adaptor(nil, fakeClient)
 
-	me := &nephoranv1alpha1.ManagedElement{
+	me := &nephoranv1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "fcaps-test-element",
 		},
-		Spec: nephoranv1alpha1.ManagedElementSpec{
+		Spec: nephoranv1.ManagedElementSpec{
 			Host: "192.168.1.200",
 			Port: 830,
-			Credentials: nephoranv1alpha1.Credentials{
+			Credentials: nephoranv1.Credentials{
 				Username: "fcaps-user",
 				Password: "fcaps-pass",
 			},
@@ -496,23 +496,23 @@ func TestO1AdaptorResourceManagement(t *testing.T) {
 
 	// Test concurrent access safety
 	t.Run("concurrent_access", func(t *testing.T) {
-		me1 := &nephoranv1alpha1.ManagedElement{
+		me1 := &nephoranv1.ManagedElement{
 			ObjectMeta: metav1.ObjectMeta{Name: "concurrent-test-1"},
-			Spec: nephoranv1alpha1.ManagedElementSpec{
+			Spec: nephoranv1.ManagedElementSpec{
 				Host: "192.168.1.201",
 				Port: 830,
-				Credentials: nephoranv1alpha1.Credentials{
+				Credentials: nephoranv1.Credentials{
 					Username: "user1", Password: "pass1",
 				},
 			},
 		}
 
-		me2 := &nephoranv1alpha1.ManagedElement{
+		me2 := &nephoranv1.ManagedElement{
 			ObjectMeta: metav1.ObjectMeta{Name: "concurrent-test-2"},
-			Spec: nephoranv1alpha1.ManagedElementSpec{
+			Spec: nephoranv1.ManagedElementSpec{
 				Host: "192.168.1.202",
 				Port: 830,
-				Credentials: nephoranv1alpha1.Credentials{
+				Credentials: nephoranv1.Credentials{
 					Username: "user2", Password: "pass2",
 				},
 			},
