@@ -584,10 +584,12 @@ func (rs *RelevanceScorer) calculateVersionAuthority(version string) float64 {
 func (rs *RelevanceScorer) calculateRecencyScore(request *RelevanceRequest) float32 {
 	doc := request.Document
 	
-	// Use Timestamp if available
+	// Use UpdatedAt if available, otherwise CreatedAt
 	var docTime time.Time
-	if !doc.Timestamp.IsZero() {
-		docTime = doc.Timestamp
+	if !doc.UpdatedAt.IsZero() {
+		docTime = doc.UpdatedAt
+	} else if !doc.CreatedAt.IsZero() {
+		docTime = doc.CreatedAt
 	} else {
 		// No timestamp available, assume medium recency
 		return 0.5
@@ -627,7 +629,7 @@ func (rs *RelevanceScorer) calculateDomainScore(request *RelevanceRequest) float
 	matchCount := 0
 	
 	// Check domain keywords
-	for _, keywords := range rs.config.DomainKeywords {
+	for domain, keywords := range rs.config.DomainKeywords {
 		domainMatch := false
 		for _, keyword := range keywords {
 			if strings.Contains(query, keyword) && strings.Contains(content, keyword) {

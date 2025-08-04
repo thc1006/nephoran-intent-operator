@@ -446,7 +446,7 @@ func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*shared.SearchRe
 	var sources []string
 	
 	// Filter by relevance threshold
-	filteredContext := make([]*shared.SearchResult, 0)
+	filteredContext := make([]*rag.SearchResult, 0)
 	for _, result := range ragContext {
 		if result.Score >= pb.config.ContextRelevanceThreshold {
 			filteredContext = append(filteredContext, result)

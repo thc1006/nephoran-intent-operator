@@ -314,10 +314,11 @@ func (tb *TokenBlacklist) GetBlacklistStats(ctx context.Context) (*BlacklistMetr
 	stats := *tb.metrics
 
 	// Get Redis stats
-	_, err := tb.redisClient.Info(ctx, "keyspace").Result()
+	info, err := tb.redisClient.Info(ctx, "keyspace").Result()
 	if err == nil {
 		// Parse keyspace info for additional stats
 		// This is a simplified version
+		_ = info // Use the info variable to avoid unused variable error
 		stats.LastCleanup = time.Now()
 	}
 

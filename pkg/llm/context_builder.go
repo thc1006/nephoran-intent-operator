@@ -9,7 +9,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
@@ -204,7 +203,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, request *ContextRequ
 	}
 	
 	// Select documents that fit within token budget
-	selectedDocs, _ := cb.selectDocumentsForContext(scoredDocs, availableTokens, request.ModelName)
+	selectedDocs, totalTokens := cb.selectDocumentsForContext(scoredDocs, availableTokens, request.ModelName)
 	
 	// Build the final context
 	contextText, sourceRefs := cb.assembleContext(selectedDocs, request)
@@ -305,7 +304,7 @@ func (cb *ContextBuilder) scoreAndRankDocuments(ctx context.Context, request *Co
 		relevanceReq := &RelevanceRequest{
 			Query:         request.Query,
 			IntentType:    request.IntentType,
-			Document:      convertSharedToRagDocument(searchResult.Document),
+			Document:      searchResult.Document,
 			Position:      i,
 			OriginalScore: searchResult.Score,
 			Context:       request.ExistingContext,
@@ -330,7 +329,7 @@ func (cb *ContextBuilder) scoreAndRankDocuments(ctx context.Context, request *Co
 		}
 		
 		scoredDoc := &ScoredDocument{
-			Document:       convertSharedToRagDocument(searchResult.Document),
+			Document:       searchResult.Document,
 			RelevanceScore: score,
 			OriginalScore:  searchResult.Score,
 			Position:       i,
@@ -404,22 +403,18 @@ func (cb *ContextBuilder) selectDocumentsForContext(scoredDocs []*ScoredDocument
 				if truncatedContent != "" {
 					// Create a copy with truncated content
 					truncatedDoc := *doc
-					truncatedDoc.Document = &rag.TelecomDocument{
+					truncatedDoc.Document = &shared.TelecomDocument{
 						ID:              doc.Document.ID,
 						Title:           doc.Document.Title,
 						Content:         truncatedContent,
 						Source:          doc.Document.Source,
 						Category:        doc.Document.Category,
 						Version:         doc.Document.Version,
-						Keywords:        doc.Document.Keywords,
-						Language:        doc.Document.Language,
-						DocumentType:    doc.Document.DocumentType,
-						NetworkFunction: doc.Document.NetworkFunction,
 						Technology:      doc.Document.Technology,
-						UseCase:         doc.Document.UseCase,
-						Confidence:      doc.Document.Confidence,
-						Timestamp:       doc.Document.Timestamp,
+						NetworkFunction: doc.Document.NetworkFunction,
 						Metadata:        doc.Document.Metadata,
+						CreatedAt:       doc.Document.CreatedAt,
+						UpdatedAt:       doc.Document.UpdatedAt,
 					}
 					truncatedDoc.TokenCount = cb.tokenManager.EstimateTokensForModel(truncatedContent, modelName)
 					selected = append(selected, &truncatedDoc)
@@ -614,31 +609,6 @@ func (cb *ContextBuilder) calculateAverageRelevance(docs []*ScoredDocument) floa
 	}
 	
 	return total / float32(len(docs))
-}
-
-// convertSharedToRagDocument converts shared.TelecomDocument to rag.TelecomDocument
-func convertSharedToRagDocument(sharedDoc *shared.TelecomDocument) *rag.TelecomDocument {
-	if sharedDoc == nil {
-		return nil
-	}
-	
-	return &rag.TelecomDocument{
-		ID:              sharedDoc.ID,
-		Content:         sharedDoc.Content,
-		Title:           sharedDoc.Title,
-		Source:          sharedDoc.Source,
-		Category:        sharedDoc.Category,
-		Version:         sharedDoc.Version,
-		Keywords:        sharedDoc.Keywords,
-		Language:        sharedDoc.Language,
-		DocumentType:    sharedDoc.DocumentType,
-		NetworkFunction: sharedDoc.NetworkFunction,
-		Technology:      sharedDoc.Technology,
-		UseCase:         sharedDoc.UseCase,
-		Confidence:      sharedDoc.Confidence,
-		Timestamp:       sharedDoc.UpdatedAt, // Use UpdatedAt as Timestamp
-		Metadata:        sharedDoc.Metadata,
-	}
 }
 
 // updateMetrics safely updates metrics

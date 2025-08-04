@@ -1,7 +1,6 @@
 package monitoring
 
 import (
-	"context"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -13,23 +12,23 @@ import (
 type MetricsCollector struct {
 	// NetworkIntent metrics
 	NetworkIntentTotal         prometheus.Counter
-	NetworkIntentDuration      prometheus.HistogramVec
-	NetworkIntentStatus        prometheus.GaugeVec
-	NetworkIntentLLMDuration   prometheus.HistogramVec
-	NetworkIntentRetries       prometheus.CounterVec
+	NetworkIntentDuration      *prometheus.HistogramVec
+	NetworkIntentStatus        *prometheus.GaugeVec
+	NetworkIntentLLMDuration   *prometheus.HistogramVec
+	NetworkIntentRetries       *prometheus.CounterVec
 	
 	// E2NodeSet metrics
 	E2NodeSetTotal            prometheus.Counter
-	E2NodeSetReplicas         prometheus.GaugeVec
-	E2NodeSetReconcileDuration prometheus.HistogramVec
-	E2NodeSetScalingEvents    prometheus.CounterVec
+	E2NodeSetReplicas         *prometheus.GaugeVec
+	E2NodeSetReconcileDuration *prometheus.HistogramVec
+	E2NodeSetScalingEvents    *prometheus.CounterVec
 	
 	// O-RAN Interface metrics
-	ORANInterfaceRequests     prometheus.CounterVec
-	ORANInterfaceDuration     prometheus.HistogramVec
-	ORANInterfaceErrors       prometheus.CounterVec
-	ORANPolicyInstances       prometheus.GaugeVec
-	ORANConnectionStatus      prometheus.GaugeVec
+	ORANInterfaceRequests     *prometheus.CounterVec
+	ORANInterfaceDuration     *prometheus.HistogramVec
+	ORANInterfaceErrors       *prometheus.CounterVec
+	ORANPolicyInstances       *prometheus.GaugeVec
+	ORANConnectionStatus      *prometheus.GaugeVec
 	
 	// LLM and RAG metrics
 	LLMRequestsTotal          prometheus.Counter
@@ -43,15 +42,15 @@ type MetricsCollector struct {
 	// GitOps metrics
 	GitOpsPackagesGenerated   prometheus.Counter
 	GitOpsCommitDuration      prometheus.Histogram
-	GitOpsErrors              prometheus.CounterVec
-	GitOpsSyncStatus          prometheus.GaugeVec
+	GitOpsErrors              *prometheus.CounterVec
+	GitOpsSyncStatus          *prometheus.GaugeVec
 	
 	// System health metrics
-	ControllerHealthStatus    prometheus.GaugeVec
+	ControllerHealthStatus    *prometheus.GaugeVec
 	KubernetesAPILatency      prometheus.Histogram
-	ResourceUtilization       prometheus.GaugeVec
-	WorkerQueueDepth          prometheus.GaugeVec
-	WorkerQueueLatency        prometheus.HistogramVec
+	ResourceUtilization       *prometheus.GaugeVec
+	WorkerQueueDepth          *prometheus.GaugeVec
+	WorkerQueueLatency        *prometheus.HistogramVec
 }
 
 // NewMetricsCollector creates a new metrics collector with all Prometheus metrics

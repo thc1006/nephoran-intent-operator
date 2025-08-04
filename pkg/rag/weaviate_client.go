@@ -25,7 +25,7 @@ type WeaviateClient struct {
 	logger           *slog.Logger
 	healthStatus     *WeaviateHealthStatus
 	circuitBreaker   *CircuitBreaker
-	rateLimiter      *RateLimiter
+	rateLimiter      *WeaviateRateLimiter
 	embeddingFallback *EmbeddingFallback
 	mutex            sync.RWMutex
 }
@@ -49,7 +49,7 @@ const (
 )
 
 // RateLimiter implements token bucket rate limiting for OpenAI API calls
-type RateLimiter struct {
+type WeaviateRateLimiter struct {
 	requestsPerMinute int32
 	tokensPerMinute   int64
 	requestTokens     int32
@@ -303,7 +303,7 @@ func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
 			timeout:      config.CircuitBreaker.Timeout,
 			currentState: CircuitClosed,
 		},
-		rateLimiter: &RateLimiter{
+		rateLimiter: &WeaviateRateLimiter{
 			requestsPerMinute: config.RateLimiting.RequestsPerMinute,
 			tokensPerMinute:   config.RateLimiting.TokensPerMinute,
 			requestBucket:     make(chan struct{}, config.RateLimiting.RequestsPerMinute),

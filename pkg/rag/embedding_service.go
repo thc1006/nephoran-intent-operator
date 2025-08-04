@@ -167,6 +167,12 @@ type ModelUsageStats struct {
 }
 
 // RateLimiter manages API rate limiting
+type RateLimiter struct {
+	requestTokens chan struct{}
+	tokenBucket   chan int
+	lastRefill    time.Time
+	mutex         sync.Mutex
+}
 
 // EmbeddingCache interface for caching embeddings
 type EmbeddingCache interface {
@@ -1130,21 +1136,19 @@ func (es *EmbeddingService) collectMetrics() {
 // NewRateLimiter creates a new rate limiter
 func NewRateLimiter(requestsPerMinute, tokensPerMinute int) *RateLimiter {
 	rl := &RateLimiter{
-		requestsPerMinute: int32(requestsPerMinute),
-		tokensPerMinute:   int64(tokensPerMinute),
-		requestTokens:     int32(requestsPerMinute),
-		tokenBucketSize:   int64(tokensPerMinute),
-		tokenBucket:       int64(tokensPerMinute),
-		lastRefill:        time.Now().Unix(),
-		requestBucket:     make(chan struct{}, requestsPerMinute),
-		mutex:             sync.Mutex{},
+		requestTokens: make(chan struct{}, requestsPerMinute),
+		tokenBucket:   make(chan int, tokensPerMinute),
+		lastRefill:    time.Now(),
 	}
 
-	// Initialize request bucket
+	// Initialize tokens
 	for i := 0; i < requestsPerMinute; i++ {
-		rl.requestBucket <- struct{}{}
+		rl.requestTokens <- struct{}{}
 	}
-	
+	for i := 0; i < tokensPerMinute; i++ {
+		rl.tokenBucket <- 1
+	}
+
 	// Start refill goroutine
 	go rl.refillTokens(requestsPerMinute, tokensPerMinute)
 
@@ -1155,25 +1159,20 @@ func NewRateLimiter(requestsPerMinute, tokensPerMinute int) *RateLimiter {
 func (rl *RateLimiter) Wait(ctx context.Context, estimatedTokens int) error {
 	// Wait for request token
 	select {
-	case <-rl.requestBucket:
+	case <-rl.requestTokens:
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 
-	// Check token bucket capacity
-	rl.mutex.Lock()
-	defer rl.mutex.Unlock()
-	
-	// Simple rate limiting check - in production you'd have more sophisticated logic
-	if rl.tokenBucket < int64(estimatedTokens) {
-		// Wait a bit for tokens to refill
-		time.Sleep(time.Second)
-	}
-	
-	// Deduct tokens
-	rl.tokenBucket -= int64(estimatedTokens)
-	if rl.tokenBucket < 0 {
-		rl.tokenBucket = 0
+	// Wait for enough token bucket capacity
+	tokensNeeded := estimatedTokens
+	for tokensNeeded > 0 {
+		select {
+		case <-rl.tokenBucket:
+			tokensNeeded--
+		case <-ctx.Done():
+			return ctx.Err()
+		}
 	}
 
 	return nil
@@ -1188,17 +1187,25 @@ func (rl *RateLimiter) refillTokens(requestsPerMinute, tokensPerMinute int) {
 		rl.mutex.Lock()
 		
 		// Refill request tokens
-		for len(rl.requestBucket) < requestsPerMinute {
+		for len(rl.requestTokens) < requestsPerMinute {
 			select {
-			case rl.requestBucket <- struct{}{}:
+			case rl.requestTokens <- struct{}{}:
+			default:
+				goto refillTokenBucket
+			}
+		}
+
+	refillTokenBucket:
+		// Refill token bucket
+		for len(rl.tokenBucket) < tokensPerMinute {
+			select {
+			case rl.tokenBucket <- 1:
 			default:
 				break
 			}
 		}
 
-		// Refill token bucket
-		rl.tokenBucket = int64(tokensPerMinute)
-		rl.lastRefill = time.Now().Unix()
+		rl.lastRefill = time.Now()
 		rl.mutex.Unlock()
 	}
 }

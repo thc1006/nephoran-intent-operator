@@ -5,9 +5,9 @@ import (
 	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"k8s.io/client-go/kubernetes"
 
 	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
@@ -21,15 +21,12 @@ type InstrumentedReconciler struct {
 }
 
 // NewInstrumentedReconciler creates a new instrumented reconciler
-func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, metrics *MetricsCollector) *InstrumentedReconciler {
-	// Create a basic MetricsRecorder for health checker
-	metricsRecorder := NewMetricsRecorder(nil) // Use default config
-	
+func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, metrics *MetricsCollector, kubeClient kubernetes.Interface, metricsRecorder *MetricsRecorder) *InstrumentedReconciler {
 	return &InstrumentedReconciler{
 		Reconciler: reconciler,
 		Name:       name,
 		Metrics:    metrics,
-		HealthChecker: NewHealthChecker("1.0.0", nil, metricsRecorder), // version, kubeClient, metricsRecorder
+		HealthChecker: NewHealthChecker("1.0.0", kubeClient, metricsRecorder),
 	}
 }
 
@@ -79,7 +76,8 @@ func NewNetworkIntentInstrumentation(metrics *MetricsCollector) *NetworkIntentIn
 
 // RecordIntentProcessingStart records the start of intent processing
 func (ni *NetworkIntentInstrumentation) RecordIntentProcessingStart(intent *nephoranv1alpha1.NetworkIntent) {
-	ni.Metrics.UpdateNetworkIntentStatus(intent.Name, intent.Namespace, "network-intent", "processing")
+	intentType := "network_intent" // Default type since we don't have Spec.Type field
+	ni.Metrics.UpdateNetworkIntentStatus(intent.Name, intent.Namespace, intentType, "processing")
 }
 
 // RecordIntentProcessingComplete records the completion of intent processing
@@ -89,8 +87,9 @@ func (ni *NetworkIntentInstrumentation) RecordIntentProcessingComplete(intent *n
 		status = "failed"
 	}
 	
-	ni.Metrics.RecordNetworkIntentProcessed("network-intent", status, duration)
-	ni.Metrics.UpdateNetworkIntentStatus(intent.Name, intent.Namespace, "network-intent", status)
+	intentType := "network_intent" // Default type since we don't have Spec.Type field
+	ni.Metrics.RecordNetworkIntentProcessed(intentType, status, duration)
+	ni.Metrics.UpdateNetworkIntentStatus(intent.Name, intent.Namespace, intentType, status)
 }
 
 // RecordLLMProcessing records LLM processing metrics
@@ -291,13 +290,12 @@ type InstrumentationManager struct {
 }
 
 // NewInstrumentationManager creates a new instrumentation manager
-func NewInstrumentationManager() *InstrumentationManager {
+func NewInstrumentationManager(kubeClient kubernetes.Interface, metricsRecorder *MetricsRecorder) *InstrumentationManager {
 	metrics := NewMetricsCollector()
-	metricsRecorder := NewMetricsRecorder(nil)
-	healthChecker := NewHealthChecker("1.0.0", nil, metricsRecorder)
+	healthChecker := NewHealthChecker("1.0.0", kubeClient, metricsRecorder)
 	
-	// Register health checks with proper configuration structs
-	// Note: Health check functions need to be defined or removed if not implemented
+	// Register health checks (these are now handled internally by healthChecker)
+	// The health checks are registered automatically in the Start() method
 	
 	return &InstrumentationManager{
 		Metrics:                    metrics,
@@ -312,22 +310,8 @@ func NewInstrumentationManager() *InstrumentationManager {
 }
 
 // StartHealthChecks starts periodic health checks
-func (im *InstrumentationManager) StartHealthChecks(ctx context.Context, interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	go func() {
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				systemHealth := im.HealthChecker.GetSystemHealth()
-				if systemHealth.Status != HealthStatusHealthy {
-					log.FromContext(ctx).Info("system health check detected issues", "healthy_components", systemHealth.Summary.HealthyComponents, "total_components", systemHealth.Summary.TotalComponents)
-				}
-			}
-		}
-	}()
+func (im *InstrumentationManager) StartHealthChecks(ctx context.Context) error {
+	return im.HealthChecker.Start(ctx)
 }
 
 // GetMetricsCollector returns the metrics collector

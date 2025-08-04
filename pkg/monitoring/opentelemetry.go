@@ -132,7 +132,7 @@ func (otp *OpenTelemetryProvider) initTracing(res *resource.Resource) error {
 // initMetrics initializes OpenTelemetry metrics
 func (otp *OpenTelemetryProvider) initMetrics(res *resource.Resource) error {
 	// Create Prometheus exporter
-	exporter, err := prometheus.New()
+	_, err := prometheus.New()
 	if err != nil {
 		return fmt.Errorf("failed to create Prometheus exporter: %w", err)
 	}
@@ -235,7 +235,7 @@ func (nt *NetworkIntentTracer) AddSpanAttributes(span trace.Span, attrs ...attri
 // RecordError records an error in the span
 func (nt *NetworkIntentTracer) RecordError(span trace.Span, err error) {
 	span.RecordError(err)
-	span.SetStatus(trace.StatusError, err.Error())
+	span.SetStatus(codes.Error, err.Error())
 }
 
 // SetSpanStatus sets the span status
@@ -469,10 +469,10 @@ func TraceWithSpan(ctx context.Context, tracer trace.Tracer, spanName string, fn
 
 	if err := fn(ctx, span); err != nil {
 		span.RecordError(err)
-		span.SetStatus(trace.StatusError, err.Error())
+		span.SetStatus(codes.Error, err.Error())
 		return err
 	}
 
-	span.SetStatus(trace.StatusOK, "")
+	span.SetStatus(codes.Ok, "")
 	return nil
 }

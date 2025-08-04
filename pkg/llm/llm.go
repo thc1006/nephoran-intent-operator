@@ -826,81 +826,35 @@ func (c *Client) ProcessIntentStream(ctx context.Context, prompt string, chunks 
 	if err != nil {
 		return err
 	}
-	
-	// Send response as a single chunk
-	chunk := &shared.StreamingChunk{
-		Content:   response,
-		IsLast:    true,
-		Metadata:  map[string]interface{}{"model": c.modelName},
-		Timestamp: time.Now(),
-	}
-	
-	select {
-	case chunks <- chunk:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
-}
 
-// GetSupportedModels implements the ClientInterface method
-func (c *Client) GetSupportedModels() []string {
-	return []string{"gpt-4o-mini", "gpt-4o", "mistral-7b", "claude-3-haiku"}
-}
+	// Split response into chunks and send
+	chunkSize := 100
+	for i := 0; i < len(response); i += chunkSize {
+		end := i + chunkSize
+		if end > len(response) {
+			end = len(response)
+		}
 
-// GetModelCapabilities implements the ClientInterface method
-func (c *Client) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
-	capabilities := &shared.ModelCapabilities{
-		SupportsChat:      true,
-		SupportsFunction:  false,
-		SupportsStreaming: true,
-		Features:          map[string]interface{}{},
-	}
-	
-	switch modelName {
-	case "gpt-4o-mini":
-		capabilities.MaxTokens = 4096
-		capabilities.CostPerToken = 0.00015
-	case "gpt-4o":
-		capabilities.MaxTokens = 8192
-		capabilities.CostPerToken = 0.005
-	case "mistral-7b":
-		capabilities.MaxTokens = 4096
-		capabilities.CostPerToken = 0.0002
-	case "claude-3-haiku":
-		capabilities.MaxTokens = 4096
-		capabilities.CostPerToken = 0.00025
-	default:
-		return nil, fmt.Errorf("unsupported model: %s", modelName)
-	}
-	
-	return capabilities, nil
-}
+		chunk := &shared.StreamingChunk{
+			Type:    "content",
+			Content: response[i:end],
+			Index:   i / chunkSize,
+		}
 
-// ValidateModel implements the ClientInterface method
-func (c *Client) ValidateModel(modelName string) error {
-	supportedModels := c.GetSupportedModels()
-	for _, model := range supportedModels {
-		if model == modelName {
-			return nil
+		select {
+		case chunks <- chunk:
+		case <-ctx.Done():
+			return ctx.Err()
 		}
 	}
-	return fmt.Errorf("model %s is not supported", modelName)
-}
 
-// EstimateTokens implements the ClientInterface method
-func (c *Client) EstimateTokens(text string) int {
-	// Simple token estimation: roughly 1 token per 4 characters
-	return len(text) / 4
-}
-
-// GetMaxTokens implements the ClientInterface method
-func (c *Client) GetMaxTokens(modelName string) int {
-	capabilities, err := c.GetModelCapabilities(modelName)
-	if err != nil {
-		return 4096 // default
+	// Send completion chunk
+	chunks <- &shared.StreamingChunk{
+		Type:       "completion",
+		IsComplete: true,
 	}
-	return capabilities.MaxTokens
+
+	return nil
 }
 
 // Close implements the ClientInterface method
