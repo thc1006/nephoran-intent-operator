@@ -5,19 +5,19 @@ package edge
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
@@ -206,6 +206,15 @@ type ServiceMetrics struct {
 	CacheHitRate      float64 `json:"cache_hit_rate"`        // For caching services
 }
 
+// GeographicLocation represents a geographic location
+type GeographicLocation struct {
+	Continent     string  `json:"continent"`
+	Country       string  `json:"country"`
+	Latitude      float64 `json:"latitude"`
+	Longitude     float64 `json:"longitude"`
+	TimezoneOffset int    `json:"timezone_offset"`
+}
+
 // GeographicArea defines coverage area for edge zones
 type GeographicArea struct {
 	CenterLatitude  float64 `json:"center_latitude"`
@@ -250,19 +259,9 @@ func NewEdgeController(
 
 // SetupWithManager sets up the controller with the Manager
 func (r *EdgeController) SetupWithManager(mgr ctrl.Manager) error {
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoran.NetworkIntent{}).
-		Build(r)
-	
-	if err != nil {
-		return err
-	}
-
-	// Watch for edge-related events
-	return controller.Watch(
-		&source.Kind{Type: &nephoran.NetworkIntent{}},
-		&handler.EnqueueRequestForObject{},
-	)
+		Complete(r)
 }
 
 // Reconcile handles edge computing operations
@@ -297,7 +296,14 @@ func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (
 	
 	// Update intent status
 	intent.Status.Phase = "Deployed"
-	intent.Status.Message = fmt.Sprintf("Deployed to %d edge nodes", len(edgeNodes))
+	// Note: NetworkIntentStatus doesn't have a Message field, using conditions instead
+	condition := metav1.Condition{
+		Type:    "Deployed",
+		Status:  metav1.ConditionTrue,
+		Reason:  "EdgeDeploymentComplete",
+		Message: fmt.Sprintf("Deployed to %d edge nodes", len(edgeNodes)),
+	}
+	intent.Status.Conditions = append(intent.Status.Conditions, condition)
 	if err := r.Status().Update(ctx, &intent); err != nil {
 		log.Error(err, "Failed to update intent status")
 	}
@@ -423,8 +429,11 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 				},
 			},
 			Location: GeographicLocation{
-				Latitude:  40.7128,
-				Longitude: -74.0060, // New York
+				Continent:     "North America",
+				Country:       "United States",
+				Latitude:      40.7128,
+				Longitude:     -74.0060, // New York
+				TimezoneOffset: -5,
 			},
 			LastSeen: time.Now(),
 			HealthMetrics: EdgeHealthMetrics{
@@ -476,8 +485,11 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 				},
 			},
 			Location: GeographicLocation{
-				Latitude:  40.7589,
-				Longitude: -73.9851, // Manhattan
+				Continent:     "North America",
+				Country:       "United States",
+				Latitude:      40.7589,
+				Longitude:     -73.9851, // Manhattan
+				TimezoneOffset: -5,
 			},
 			LastSeen: time.Now(),
 			HealthMetrics: EdgeHealthMetrics{
@@ -679,7 +691,7 @@ func (r *EdgeController) triggerZoneScaling(ctx context.Context, zoneID string, 
 
 // requiresEdgeProcessing determines if an intent requires edge processing
 func (r *EdgeController) requiresEdgeProcessing(intent *nephoran.NetworkIntent) bool {
-	description := intent.Spec.Description
+	description := intent.Spec.Intent
 	
 	// Check for edge-related keywords
 	edgeKeywords := []string{
@@ -694,10 +706,15 @@ func (r *EdgeController) requiresEdgeProcessing(intent *nephoran.NetworkIntent) 
 	}
 	
 	// Check for low latency requirements
-	if intent.Spec.Parameters != nil {
-		if latency, exists := intent.Spec.Parameters["max_latency"]; exists {
-			if latency == "1ms" || latency == "5ms" || latency == "<10ms" {
-				return true
+	if intent.Spec.Parameters.Raw != nil {
+		var params map[string]interface{}
+		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err == nil {
+			if latency, exists := params["max_latency"]; exists {
+				if latencyStr, ok := latency.(string); ok {
+					if latencyStr == "1ms" || latencyStr == "5ms" || latencyStr == "<10ms" {
+						return true
+					}
+				}
 			}
 		}
 	}
@@ -752,7 +769,7 @@ func (r *EdgeController) isNodeSuitable(node *EdgeNode, intent *nephoran.Network
 	}
 	
 	// Check specific capabilities based on intent
-	description := intent.Spec.Description
+	description := intent.Spec.Intent
 	
 	if contains(description, "AI") || contains(description, "ML") {
 		if !node.Capabilities.ComputeIntensive {
@@ -804,7 +821,7 @@ func (r *EdgeController) calculateNodeScore(node *EdgeNode, intent *nephoran.Net
 	score += node.HealthMetrics.UptimePercent * 0.1
 	
 	// Bonus for specific capabilities
-	description := intent.Spec.Description
+	description := intent.Spec.Intent
 	if contains(description, "AI") && node.Capabilities.ComputeIntensive {
 		score += 50.0
 	}
@@ -879,20 +896,5 @@ func (r *EdgeController) GetEdgeZones() map[string]*EdgeZone {
 
 // contains checks if a string contains a substring (case-insensitive)
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && 
-		   (s == substr || 
-		    len(s) > len(substr) && 
-		    (s[:len(substr)] == substr || 
-		     s[len(s)-len(substr):] == substr ||
-		     containsMiddle(s, substr)))
-}
-
-// containsMiddle checks if substr exists in the middle of s
-func containsMiddle(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }

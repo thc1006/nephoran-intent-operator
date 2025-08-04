@@ -818,3 +818,96 @@ func isValidMemoryFormat(memory string) bool {
 
 	return false
 }
+
+// ProcessIntentStream implements the ClientInterface method for streaming
+func (c *Client) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
+	// For now, simulate streaming by sending the full response as chunks
+	response, err := c.ProcessIntent(ctx, prompt)
+	if err != nil {
+		return err
+	}
+	
+	// Send response as a single chunk
+	chunk := &shared.StreamingChunk{
+		Content:   response,
+		IsLast:    true,
+		Metadata:  map[string]interface{}{"model": c.modelName},
+		Timestamp: time.Now(),
+	}
+	
+	select {
+	case chunks <- chunk:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// GetSupportedModels implements the ClientInterface method
+func (c *Client) GetSupportedModels() []string {
+	return []string{"gpt-4o-mini", "gpt-4o", "mistral-7b", "claude-3-haiku"}
+}
+
+// GetModelCapabilities implements the ClientInterface method
+func (c *Client) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
+	capabilities := &shared.ModelCapabilities{
+		SupportsChat:      true,
+		SupportsFunction:  false,
+		SupportsStreaming: true,
+		Features:          map[string]interface{}{},
+	}
+	
+	switch modelName {
+	case "gpt-4o-mini":
+		capabilities.MaxTokens = 4096
+		capabilities.CostPerToken = 0.00015
+	case "gpt-4o":
+		capabilities.MaxTokens = 8192
+		capabilities.CostPerToken = 0.005
+	case "mistral-7b":
+		capabilities.MaxTokens = 4096
+		capabilities.CostPerToken = 0.0002
+	case "claude-3-haiku":
+		capabilities.MaxTokens = 4096
+		capabilities.CostPerToken = 0.00025
+	default:
+		return nil, fmt.Errorf("unsupported model: %s", modelName)
+	}
+	
+	return capabilities, nil
+}
+
+// ValidateModel implements the ClientInterface method
+func (c *Client) ValidateModel(modelName string) error {
+	supportedModels := c.GetSupportedModels()
+	for _, model := range supportedModels {
+		if model == modelName {
+			return nil
+		}
+	}
+	return fmt.Errorf("model %s is not supported", modelName)
+}
+
+// EstimateTokens implements the ClientInterface method
+func (c *Client) EstimateTokens(text string) int {
+	// Simple token estimation: roughly 1 token per 4 characters
+	return len(text) / 4
+}
+
+// GetMaxTokens implements the ClientInterface method
+func (c *Client) GetMaxTokens(modelName string) int {
+	capabilities, err := c.GetModelCapabilities(modelName)
+	if err != nil {
+		return 4096 // default
+	}
+	return capabilities.MaxTokens
+}
+
+// Close implements the ClientInterface method
+func (c *Client) Close() error {
+	// Close the HTTP client if needed
+	if c.httpClient != nil {
+		c.httpClient.CloseIdleConnections()
+	}
+	return nil
+}

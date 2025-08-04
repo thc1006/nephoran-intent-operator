@@ -1,8 +1,6 @@
 package llm
 
 import (
-	"context"
-	
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
@@ -13,4 +11,4 @@ type ClientInterface interface {
 }
 
 // Ensure our interface is compatible with the shared interface
-var _ shared.ClientInterface = (*ClientInterface)(nil)
+// Note: This compile-time check is not needed since ClientInterface embeds shared.ClientInterface

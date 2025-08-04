@@ -1,6 +1,7 @@
 package oran
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -797,7 +798,7 @@ func (c *SMOClient) put(ctx context.Context, url string, body, result interface{
 		return err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "PUT", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return err
 	}

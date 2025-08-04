@@ -4,17 +4,14 @@ package ml
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math"
-	"sort"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // OptimizationEngine provides AI/ML-driven network optimization capabilities
@@ -22,7 +19,7 @@ type OptimizationEngine struct {
 	prometheusClient v1.API
 	models          map[string]MLModel
 	config          *OptimizationConfig
-	logger          log.Logger
+	logger          *slog.Logger
 }
 
 // OptimizationConfig defines configuration for the ML optimization engine
@@ -179,7 +176,7 @@ type IntentClassificationModel struct {
 
 // NewOptimizationEngine creates a new AI/ML optimization engine
 func NewOptimizationEngine(config *OptimizationConfig) (*OptimizationEngine, error) {
-	logger := log.Log.WithName("optimization-engine")
+	logger := slog.Default().With("component", "optimization-engine")
 	
 	// Initialize Prometheus client
 	client, err := api.NewClient(api.Config{
@@ -238,7 +235,7 @@ func (oe *OptimizationEngine) OptimizeNetworkDeployment(ctx context.Context, int
 	// Gather historical data
 	historicalData, err := oe.gatherHistoricalData(ctx, intent)
 	if err != nil {
-		oe.logger.Error(err, "Failed to gather historical data")
+		oe.logger.Error("Failed to gather historical data", "error", err)
 		return nil, err
 	}
 	
@@ -252,7 +249,7 @@ func (oe *OptimizationEngine) OptimizeNetworkDeployment(ctx context.Context, int
 	if oe.config.EnablePredictiveScaling {
 		scalingRec, err := oe.generateScalingRecommendations(ctx, intent, historicalData)
 		if err != nil {
-			oe.logger.Error(err, "Failed to generate scaling recommendations")
+			oe.logger.Error("Failed to generate scaling recommendations", "error", err)
 		} else {
 			recommendations.ScalingParameters = scalingRec
 		}
@@ -262,7 +259,7 @@ func (oe *OptimizationEngine) OptimizeNetworkDeployment(ctx context.Context, int
 	if oe.config.EnableResourceOptim {
 		resourceRec, err := oe.generateResourceRecommendations(ctx, intent, historicalData)
 		if err != nil {
-			oe.logger.Error(err, "Failed to generate resource recommendations")
+			oe.logger.Error("Failed to generate resource recommendations", "error", err)
 		} else {
 			recommendations.ResourceAllocation = resourceRec
 		}
@@ -271,7 +268,7 @@ func (oe *OptimizationEngine) OptimizeNetworkDeployment(ctx context.Context, int
 	// Performance tuning
 	performanceRec, err := oe.generatePerformanceRecommendations(ctx, intent, historicalData)
 	if err != nil {
-		oe.logger.Error(err, "Failed to generate performance recommendations")
+		oe.logger.Error("Failed to generate performance recommendations", "error", err)
 	} else {
 		recommendations.PerformanceTuning = performanceRec
 	}
@@ -279,7 +276,7 @@ func (oe *OptimizationEngine) OptimizeNetworkDeployment(ctx context.Context, int
 	// Risk assessment
 	riskAssessment, err := oe.assessDeploymentRisk(ctx, intent, recommendations)
 	if err != nil {
-		oe.logger.Error(err, "Failed to assess deployment risk")
+		oe.logger.Error("Failed to assess deployment risk", "error", err)
 	} else {
 		recommendations.RiskAssessment = riskAssessment
 	}
@@ -774,7 +771,7 @@ func (oe *OptimizationEngine) UpdateModels(ctx context.Context) error {
 		oe.logger.Info("Updating model", "model", name)
 		
 		if err := model.UpdateModel(ctx); err != nil {
-			oe.logger.Error(err, "Failed to update model", "model", name)
+			oe.logger.Error("Failed to update model", "error", err, "model", name)
 			continue
 		}
 		
@@ -925,7 +922,7 @@ func (icm *IntentClassificationModel) Train(ctx context.Context, data []DataPoin
 
 func (icm *IntentClassificationModel) Predict(ctx context.Context, input interface{}) (interface{}, error) {
 	// Simplified intent classification
-	if intent, ok := input.(*NetworkIntent); ok {
+	if _, ok := input.(*NetworkIntent); ok {
 		return map[string]float64{
 			"deployment": 0.8,
 			"scaling":    0.6,

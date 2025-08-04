@@ -20,6 +20,12 @@ const (
 	AlertSeverityWarning  AlertSeverity = "warning"
 	AlertSeverityError    AlertSeverity = "error"
 	AlertSeverityCritical AlertSeverity = "critical"
+	
+	// Aliases for compatibility with distributed tracing
+	SeverityLow      AlertSeverity = "info"
+	SeverityMedium   AlertSeverity = "warning"
+	SeverityHigh     AlertSeverity = "error"
+	SeverityCritical AlertSeverity = "critical"
 )
 
 // AlertState represents the state of an alert

@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -865,7 +866,3 @@ func (rm *RollbackManager) executeRollbackAction(ctx context.Context, action Rol
 	return nil
 }
 
-// Add missing import
-import (
-	batchv1 "k8s.io/api/batch/v1"
-)

@@ -8,6 +8,7 @@ import (
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/exporters/prometheus"
@@ -24,17 +25,7 @@ const (
 	ServiceVersion = "1.0.0"
 )
 
-// TracingConfig holds OpenTelemetry configuration
-type TracingConfig struct {
-	ServiceName     string
-	ServiceVersion  string
-	Environment     string
-	JaegerEndpoint  string
-	SamplingRate    float64
-	EnableMetrics   bool
-	EnableTracing   bool
-	EnableLogging   bool
-}
+// TracingConfig defined in distributed_tracing.go to avoid duplication
 
 // OpenTelemetryProvider manages OpenTelemetry setup
 type OpenTelemetryProvider struct {
@@ -88,19 +79,7 @@ func NewOpenTelemetryProvider(config *TracingConfig) (*OpenTelemetryProvider, er
 	return otp, nil
 }
 
-// DefaultTracingConfig returns default tracing configuration
-func DefaultTracingConfig() *TracingConfig {
-	return &TracingConfig{
-		ServiceName:     ServiceName,
-		ServiceVersion:  ServiceVersion,
-		Environment:     getEnv("NEPHORAN_ENVIRONMENT", "production"),
-		JaegerEndpoint:  getEnv("JAEGER_ENDPOINT", "http://jaeger-collector:14268/api/traces"),
-		SamplingRate:    0.1, // 10% sampling rate
-		EnableMetrics:   true,
-		EnableTracing:   true,
-		EnableLogging:   true,
-	}
-}
+// DefaultTracingConfig defined in distributed_tracing.go to avoid duplication
 
 // initResource initializes OpenTelemetry resource
 func (otp *OpenTelemetryProvider) initResource() (*resource.Resource, error) {
@@ -260,7 +239,7 @@ func (nt *NetworkIntentTracer) RecordError(span trace.Span, err error) {
 }
 
 // SetSpanStatus sets the span status
-func (nt *NetworkIntentTracer) SetSpanStatus(span trace.Span, code trace.StatusCode, description string) {
+func (nt *NetworkIntentTracer) SetSpanStatus(span trace.Span, code codes.Code, description string) {
 	span.SetStatus(code, description)
 }
 

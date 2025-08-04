@@ -59,7 +59,9 @@
       "Bash(python -m pip:*)",
       "Bash(python:*)",
       "Bash(npx:*)",
-      "Bash(setx:*)"
+      "Bash(setx:*)",
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__read_multiple_files"
     ],
     "deny": []
   },

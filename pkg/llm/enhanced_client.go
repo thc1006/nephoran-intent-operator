@@ -18,45 +18,9 @@ type EnhancedClient struct {
 	*Client
 	circuitBreaker *CircuitBreaker
 	rateLimiter    *RateLimiter
-	healthChecker  *HealthChecker
 }
 
-// CircuitBreaker implements the circuit breaker pattern for LLM calls
-type CircuitBreaker struct {
-	failures    int64
-	lastFailure time.Time
-	state       CircuitState
-	threshold   int64
-	timeout     time.Duration
-	mutex       sync.RWMutex
-}
-
-type CircuitState string
-
-const (
-	CircuitClosed   CircuitState = "closed"
-	CircuitOpen     CircuitState = "open"
-	CircuitHalfOpen CircuitState = "half-open"
-)
-
-// RateLimiter implements token bucket rate limiting
-type RateLimiter struct {
-	tokens     int64
-	maxTokens  int64
-	refillRate int64
-	lastRefill time.Time
-	mutex      sync.Mutex
-}
-
-// HealthChecker monitors the health of LLM backends
-type HealthChecker struct {
-	client        *Client
-	checkInterval time.Duration
-	timeout       time.Duration
-	healthStatus  map[string]BackendHealth
-	mutex         sync.RWMutex
-	stopChan      chan bool
-}
+// Note: CircuitBreaker, RateLimiter, and HealthChecker types are defined in their respective files
 
 type BackendHealth struct {
 	Status       string        `json:"status"`
@@ -198,115 +162,25 @@ func NewEnhancedClient(url string, config EnhancedClientConfig) *EnhancedClient 
 
 	enhanced := &EnhancedClient{
 		Client: baseClient,
-		circuitBreaker: NewCircuitBreaker(
-			config.CircuitBreakerThreshold,
-			config.CircuitBreakerTimeout,
-		),
-		rateLimiter: NewRateLimiter(
-			config.RateLimitTokens,
-			config.RateLimitRefillRate,
-		),
-		healthChecker: NewHealthChecker(
-			baseClient,
-			config.HealthCheckInterval,
-			config.HealthCheckTimeout,
-		),
+		circuitBreaker: NewCircuitBreaker("enhanced-llm-client", &CircuitBreakerConfig{
+			FailureThreshold: config.CircuitBreakerThreshold,
+			Timeout:          config.CircuitBreakerTimeout,
+			ResetTimeout:     config.CircuitBreakerTimeout * 2,
+		}),
+		rateLimiter: NewRateLimiter(&RateLimitConfig{
+			RequestsPerMinute: int(config.RateLimitTokens),
+			BurstLimit:        int(config.RateLimitRefillRate),
+			WindowSize:        time.Minute,
+			CleanupInterval:   5 * time.Minute,
+		}),
 	}
-
-	// Start health checking
-	enhanced.healthChecker.Start()
 
 	return enhanced
 }
 
-// NewCircuitBreaker creates a new circuit breaker
-func NewCircuitBreaker(threshold int64, timeout time.Duration) *CircuitBreaker {
-	return &CircuitBreaker{
-		threshold: threshold,
-		timeout:   timeout,
-		state:     CircuitClosed,
-	}
-}
+// Note: Constructor functions are defined in their respective files
 
-// Call executes an operation through the circuit breaker
-func (cb *CircuitBreaker) Call(operation func() error) error {
-	cb.mutex.Lock()
-	defer cb.mutex.Unlock()
-
-	// Check if circuit should transition from open to half-open
-	if cb.state == CircuitOpen && time.Since(cb.lastFailure) > cb.timeout {
-		cb.state = CircuitHalfOpen
-		cb.failures = 0
-	}
-
-	// If circuit is open, reject immediately
-	if cb.state == CircuitOpen {
-		return fmt.Errorf("circuit breaker is open")
-	}
-
-	// Execute operation
-	err := operation()
-	if err != nil {
-		cb.failures++
-		cb.lastFailure = time.Now()
-
-		// Open circuit if threshold exceeded
-		if cb.failures >= cb.threshold {
-			cb.state = CircuitOpen
-		}
-		return err
-	}
-
-	// Success - reset failures and close circuit
-	cb.failures = 0
-	cb.state = CircuitClosed
-	return nil
-}
-
-// GetState returns the current circuit breaker state
-func (cb *CircuitBreaker) GetState() CircuitState {
-	cb.mutex.RLock()
-	defer cb.mutex.RUnlock()
-	return cb.state
-}
-
-// NewRateLimiter creates a new token bucket rate limiter
-func NewRateLimiter(maxTokens, refillRate int64) *RateLimiter {
-	return &RateLimiter{
-		tokens:     maxTokens,
-		maxTokens:  maxTokens,
-		refillRate: refillRate,
-		lastRefill: time.Now(),
-	}
-}
-
-// Allow checks if a request is allowed under the rate limit
-func (rl *RateLimiter) Allow() bool {
-	rl.mutex.Lock()
-	defer rl.mutex.Unlock()
-
-	now := time.Now()
-	elapsed := now.Sub(rl.lastRefill)
-
-	// Refill tokens based on elapsed time
-	tokensToAdd := int64(elapsed.Seconds()) * rl.refillRate
-	rl.tokens = min(rl.maxTokens, rl.tokens+tokensToAdd)
-	rl.lastRefill = now
-
-	if rl.tokens > 0 {
-		rl.tokens--
-		return true
-	}
-
-	return false
-}
-
-// GetTokens returns the current number of available tokens
-func (rl *RateLimiter) GetTokens() int64 {
-	rl.mutex.Lock()
-	defer rl.mutex.Unlock()
-	return rl.tokens
-}
+// Note: RateLimiter methods are defined in their respective files
 
 // min returns the minimum of two int64 values
 func min(a, b int64) int64 {
@@ -316,94 +190,9 @@ func min(a, b int64) int64 {
 	return b
 }
 
-// NewHealthChecker creates a new health checker
-func NewHealthChecker(client *Client, checkInterval, timeout time.Duration) *HealthChecker {
-	return &HealthChecker{
-		client:        client,
-		checkInterval: checkInterval,
-		timeout:       timeout,
-		healthStatus:  make(map[string]BackendHealth),
-		stopChan:      make(chan bool),
-	}
-}
+// Note: NewHealthChecker is defined in worker_pool.go
 
-// Start begins health checking
-func (hc *HealthChecker) Start() {
-	go hc.run()
-}
-
-// Stop stops health checking
-func (hc *HealthChecker) Stop() {
-	hc.stopChan <- true
-}
-
-// run executes the health checking loop
-func (hc *HealthChecker) run() {
-	ticker := time.NewTicker(hc.checkInterval)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			hc.checkHealth()
-		case <-hc.stopChan:
-			return
-		}
-	}
-}
-
-// checkHealth performs a health check on the LLM backend
-func (hc *HealthChecker) checkHealth() {
-	start := time.Now()
-
-	ctx, cancel := context.WithTimeout(context.Background(), hc.timeout)
-	defer cancel()
-
-	// Simple health check using a minimal intent
-	_, err := hc.client.ProcessIntent(ctx, "health check")
-
-	responseTime := time.Since(start)
-
-	hc.mutex.Lock()
-	defer hc.mutex.Unlock()
-
-	// Fix race condition: create new health status instead of modifying existing
-	url := hc.client.url
-	currentHealth, exists := hc.healthStatus[url]
-	
-	// Create new health status with atomic updates
-	newHealth := BackendHealth{
-		LastCheck:    time.Now(),
-		ResponseTime: responseTime,
-		Available:    err == nil,
-		ErrorCount:   currentHealth.ErrorCount, // Preserve error count
-	}
-	
-	if err != nil {
-		newHealth.ErrorCount++
-		newHealth.Status = "unhealthy"
-	} else {
-		newHealth.Status = "healthy"
-		// Reset error count on successful health check
-		if exists && currentHealth.ErrorCount > 0 {
-			newHealth.ErrorCount = 0
-		}
-	}
-
-	hc.healthStatus[url] = newHealth
-}
-
-// GetHealth returns the current health status
-func (hc *HealthChecker) GetHealth() map[string]BackendHealth {
-	hc.mutex.RLock()
-	defer hc.mutex.RUnlock()
-
-	result := make(map[string]BackendHealth)
-	for k, v := range hc.healthStatus {
-		result[k] = v
-	}
-	return result
-}
+// Note: HealthChecker methods are defined in worker_pool.go
 
 // ProcessIntentWithEnhancements processes an intent with circuit breaker and rate limiting
 func (ec *EnhancedClient) ProcessIntentWithEnhancements(ctx context.Context, intent string) (string, error) {
@@ -416,20 +205,18 @@ func (ec *EnhancedClient) ProcessIntentWithEnhancements(ctx context.Context, int
 	}
 
 	// Check rate limiting
-	if !ec.rateLimiter.Allow() {
+	if !ec.rateLimiter.Allow("llm-client") {
 		return "", NewRateLimitError(errorContext)
 	}
 
 	// Use circuit breaker
-	var result string
-	err := ec.circuitBreaker.Call(func() error {
-		var processErr error
-		result, processErr = ec.Client.ProcessIntent(ctx, intent)
-		return processErr
-	})
-
+	operation := func(ctx context.Context) (interface{}, error) {
+		return ec.Client.ProcessIntent(ctx, intent)
+	}
+	
+	resultInterface, err := ec.circuitBreaker.Execute(ctx, operation)
 	if err != nil {
-		// Check if it's a circuit breaker error
+		// Handle circuit breaker errors and other errors
 		if err.Error() == "circuit breaker is open" {
 			return "", NewCircuitBreakerError(errorContext)
 		}
@@ -446,6 +233,11 @@ func (ec *EnhancedClient) ProcessIntentWithEnhancements(ctx context.Context, int
 		
 		// Default to LLM error
 		return "", NewLLMError(err, errorContext)
+	}
+	
+	result, ok := resultInterface.(string)
+	if !ok {
+		return "", NewLLMError(fmt.Errorf("unexpected result type"), errorContext)
 	}
 
 	return result, nil
@@ -490,12 +282,11 @@ func (ec *EnhancedClient) GetEnhancedMetrics() map[string]interface{} {
 	return map[string]interface{}{
 		"base_metrics": baseMetrics,
 		"circuit_breaker": map[string]interface{}{
-			"state": string(ec.circuitBreaker.GetState()),
+			"state": string(ec.circuitBreaker.getState()),
 		},
 		"rate_limiter": map[string]interface{}{
-			"available_tokens": ec.rateLimiter.GetTokens(),
+			"requests_per_minute": "configured",
 		},
-		"health_status": ec.healthChecker.GetHealth(),
 	}
 }
 
