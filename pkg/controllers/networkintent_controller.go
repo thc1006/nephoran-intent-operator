@@ -600,7 +600,7 @@ func (r *NetworkIntentReconciler) cleanupGitOpsPackages(ctx context.Context, net
 
 	// Commit the removal
 	commitMessage := fmt.Sprintf("Remove NetworkIntent package: %s", packageName)
-	if err := r.GitClient.CommitAndPush(commitMessage); err != nil {
+	if err := r.GitClient.CommitAndPushChanges(commitMessage); err != nil {
 		return fmt.Errorf("failed to commit package removal: %w", err)
 	}
 

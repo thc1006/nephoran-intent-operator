@@ -108,13 +108,6 @@ type PipelineStatus struct {
 }
 
 // DocumentJob represents an async document processing job
-// Document represents a raw document to be processed
-type Document struct {
-	ID       string
-	Content  string
-	Metadata map[string]interface{}
-}
-
 type DocumentJob struct {
 	ID          string
 	Documents   []Document
@@ -601,7 +594,7 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 	)
 
 	// Check cache first if enabled
-	if rp.redisCache != nil {
+	if rp.redisCache != nil && rp.config.EnableCaching {
 		if cached, metadata, found := rp.redisCache.GetContext(ctx, request.Query, request.IntentType); found {
 			rp.logger.Debug("Query result found in cache", "query", request.Query)
 			
@@ -635,7 +628,7 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 	processingTime := time.Since(startTime)
 
 	// Cache the result if caching is enabled
-	if rp.redisCache != nil {
+	if rp.redisCache != nil && rp.config.EnableCaching {
 		contextKey := request.IntentType
 		if contextKey == "" {
 			contextKey = "general"
@@ -1103,13 +1096,11 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 
 	for _, doc := range job.Documents {
 		// Process document through pipeline
-		// Convert Document to LoadedDocument for chunking
-		loadedDoc := &LoadedDocument{
-			ID:       doc.ID,
-			Content:  doc.Content,
-			Metadata: &DocumentMetadata{}, // Basic metadata - could be enhanced
-		}
-		chunks, err := rp.chunkingService.ChunkDocument(ctx, loadedDoc)
+		chunks, err := rp.chunkingService.ChunkDocument(ctx, &LoadedDocument{
+			ID:      doc.ID,
+			Content: doc.Content,
+			Metadata: &DocumentMetadata{},
+		})
 		if err != nil {
 			processedDocs = append(processedDocs, ProcessedDocument{
 				ID:    doc.ID,
@@ -1123,44 +1114,24 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 		embeddings := make([][]float32, 0, len(chunks))
 
 		for i, chunk := range chunks {
-			embReq := &EmbeddingRequest{
-				Texts:    []string{chunk.Content},
-				UseCache: true,
-			}
-			embResp, err := rp.embeddingService.GenerateEmbeddings(ctx, embReq)
+			embeddingResp, err := rp.embeddingService.GenerateEmbeddings(ctx, &EmbeddingRequest{
+				Texts: []string{chunk.Content},
+			})
 			if err != nil {
 				rp.logger.Warn("Failed to generate embedding for chunk", "chunk_index", i, "error", err)
 				continue
 			}
-			if len(embResp.Embeddings) == 0 {
-				rp.logger.Warn("No embeddings returned for chunk", "chunk_index", i)
-				continue
-			}
-			embedding := embResp.Embeddings[0]
 
-			// Convert DocumentMetadata to map if it exists
-			var metadata map[string]interface{}
-			if chunk.DocumentMetadata != nil {
-				// Simple conversion - could be enhanced with a proper ToMap method
-				metadata = map[string]interface{}{
-					"source":            chunk.DocumentMetadata.Source,
-					"document_type":     chunk.DocumentMetadata.DocumentType,
-					"version":           chunk.DocumentMetadata.Version,
-					"working_group":     chunk.DocumentMetadata.WorkingGroup,
-					"category":          chunk.DocumentMetadata.Category,
-					"technologies":      chunk.DocumentMetadata.Technologies,
-					"network_functions": chunk.DocumentMetadata.NetworkFunctions,
-				}
+			if len(embeddingResp.Embeddings) > 0 {
+				processedChunks = append(processedChunks, ProcessedChunk{
+					Content:    chunk.Content,
+					Embedding:  embeddingResp.Embeddings[0],
+					Metadata:   make(map[string]interface{}),
+					ChunkIndex: i,
+					Quality:    float32(chunk.QualityScore),
+				})
+				embeddings = append(embeddings, embeddingResp.Embeddings[0])
 			}
-
-			processedChunks = append(processedChunks, ProcessedChunk{
-				Content:    chunk.Content,
-				Embedding:  embedding,
-				Metadata:   metadata,
-				ChunkIndex: i,
-				Quality:    float32(chunk.QualityScore),
-			})
-			embeddings = append(embeddings, embedding)
 		}
 
 		processedDocs = append(processedDocs, ProcessedDocument{
@@ -1212,33 +1183,12 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 	// Convert response to query result
 	retrievedDocs := make([]RetrievedDocument, len(response.Results))
 	for i, result := range response.Results {
-		// Access fields through the embedded SearchResult and its Document
-		doc := result.Document
-		if doc != nil {
-			retrievedDocs[i] = RetrievedDocument{
-				ID:       doc.ID,
-				Content:  doc.Content,
-				Score:    result.Score, // Score is from SearchResult
-				Source:   doc.Source,
-				Metadata: doc.Metadata,
-			}
-		} else {
-			// Handle case where document is nil
-			retrievedDocs[i] = RetrievedDocument{
-				Score: result.Score,
-			}
-		}
-	}
-
-	// Convert ContextMetadata to map if it exists
-	var metadata map[string]interface{}
-	if response.ContextMetadata != nil {
-		metadata = map[string]interface{}{
-			"document_count":       response.ContextMetadata.DocumentCount,
-			"total_length":         response.ContextMetadata.TotalLength,
-			"truncated_at":         response.ContextMetadata.TruncatedAt,
-			"technical_term_count": response.ContextMetadata.TechnicalTermCount,
-			"average_quality":      response.ContextMetadata.AverageQuality,
+		retrievedDocs[i] = RetrievedDocument{
+			ID:       result.SearchResult.Document.ID,
+			Content:  result.SearchResult.Document.Content,
+			Score:    result.SearchResult.Score,
+			Source:   result.SearchResult.Document.Source,
+			Metadata: make(map[string]interface{}),
 		}
 	}
 
@@ -1249,7 +1199,7 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 		Confidence:  response.AverageRelevanceScore,
 		ProcessTime: time.Since(startTime),
 		CacheHit:    false, // Would need to track this from ProcessQuery
-		Metadata:    metadata,
+		Metadata:    make(map[string]interface{}),
 	}
 
 	// Call callback with results

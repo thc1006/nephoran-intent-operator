@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "your_token_here"
+      }
+    },
+    "filesystem": {
+      "command": "cmd",
+      "args": [
+        "/c",
+        "npx",
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "c:\\Users\\tingy\\Desktop\\nephoran-intent-operator\\nephoran-intent-operator"
+      ]
+    },
+    "helm": {
+      "command": "python",
+      "args": ["mcp-helm-server.py"],
+      "env": {
+        "KUBECONFIG": ".kube/config"
+      }
+    }
+  }
+}

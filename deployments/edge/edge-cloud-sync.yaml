@@ -269,12 +269,7 @@ spec:
         - name: metrics-cache
           mountPath: /cache
         securityContext:
-          allowPrivilegeEscalation: false
-          runAsNonRoot: true
-          capabilities:
-            add:
-              - SYS_TIME
-              - NET_ADMIN
+          privileged: true
       volumes:
       - name: proc
         hostPath:

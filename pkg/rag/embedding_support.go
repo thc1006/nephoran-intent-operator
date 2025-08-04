@@ -2,131 +2,26 @@ package rag
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math"
+	"math/rand"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 )
 
-// Missing type definitions needed by this file
-
-// QualityTest represents a quality test function
-type QualityTest struct {
-	Name      string                   `json:"name"`
-	TestFunc  func([]float32) float64  `json:"-"`
-	Weight    float64                  `json:"weight"`
-	Threshold float64                  `json:"threshold"`
-}
-
-// QualityResult represents quality test results
-type QualityResult struct {
-	Timestamp  time.Time            `json:"timestamp"`
-	Provider   string               `json:"provider"`
-	Model      string               `json:"model"`
-	Score      float64              `json:"score"`
-	TestScores map[string]float64   `json:"test_scores"`
-	SampleSize int                  `json:"sample_size"`
-}
-
-// CacheNode represents a node in the LRU cache
-type CacheNode struct {
-	key    string
-	value  []float32
-	size   int64
-	expiry time.Time
-	prev   *CacheNode
-	next   *CacheNode
-}
-
-// LRUCache implements LRU caching for embeddings
-type LRUCache struct {
-	capacity int64
-	size     int64
-	items    map[string]*CacheNode
-	head     *CacheNode
-	tail     *CacheNode
-	mutex    sync.Mutex
-}
-
-// ProviderHealthStatus represents provider health status (renamed to avoid conflict)
-type ProviderHealthStatus struct {
-	IsHealthy           bool          `json:"is_healthy"`
-	LastCheck           time.Time     `json:"last_check"`
-	AverageLatency      time.Duration `json:"average_latency"`
-	ConsecutiveFailures int           `json:"consecutive_failures"`
-}
-
-// ProviderHealthMonitor monitors provider health
-type ProviderHealthMonitor struct {
-	healthChecks  map[string]*ProviderHealthStatus
-	checkInterval time.Duration
-	stopChan      chan struct{}
-	mutex         sync.RWMutex
-}
-
 // LoadBalancer manages provider selection and load distribution
 type LoadBalancer struct {
-	strategy   string
-	providers  []string
-	weights    map[string]float64
+	strategy  string
+	providers []string
+	weights   map[string]float64
 	currentIdx int
-	mutex      sync.RWMutex
+	mutex     sync.Mutex
 }
-
-// CostManager tracks and manages embedding costs
-type CostManager struct {
-	dailyLimits      map[string]float64
-	monthlyCosts     map[string]float64
-	currentCosts     map[string]float64
-	alertThresholds  map[string]float64
-	mutex            sync.RWMutex
-}
-
-// QualityManager manages embedding quality validation
-type QualityManager struct {
-	minQualityScore float64
-	sampleSize      int
-	validators      []func([]float32) float64
-	mutex           sync.RWMutex
-}
-
-// EmbeddingCacheManager manages embedding cache operations
-type EmbeddingCacheManager struct {
-	// l1Cache     *LRUEmbeddingCache
-	// l2Cache     *RedisCache
-	config      *CacheConfig
-	metrics     *CacheMetrics
-	mutex       sync.RWMutex
-}
-
-// CacheConfig holds cache configuration
-type CacheConfig struct {
-	L1Enabled       bool
-	L2Enabled       bool
-	L1MaxSize       int
-	L2MaxSize       int
-	DefaultTTL      time.Duration
-	EnableMetrics   bool
-}
-
-// CacheMetrics tracks cache performance
-type CacheMetrics struct {
-	HitCount       int64
-	MissCount      int64
-	TotalRequests  int64
-	LastUpdated    time.Time
-	L1Hits         int64
-	L1Misses       int64
-	L2Hits         int64
-	L2Misses       int64
-	L1HitRate      float64
-	L2HitRate      float64
-	TotalHitRate   float64
-}
-
-// LoadBalancer manages provider selection and load distribution
 func NewLoadBalancer(strategy string, providers []string) *LoadBalancer {
 	return &LoadBalancer{
 		strategy:  strategy,
@@ -189,14 +84,108 @@ func (lb *LoadBalancer) bestQuality(providers []string) string {
 	return providers[0]
 }
 
-// NewCostManager creates a new cost manager
+
+// CostManager tracks and manages embedding costs
+type CostManager struct {
+	dailySpend   map[string]float64
+	monthlySpend map[string]float64
+	limits       CostLimits
+	alerts       []CostAlert
+	mutex        sync.RWMutex
+}
+
+
+
+// QualityManager assesses and ensures embedding quality
+type QualityManager struct {
+	minScore    float64
+	sampleSize  int
+	testHistory []QualityResult
+	qualityTests []QualityTest
+	mutex       sync.RWMutex
+}
+
+// QualityResult represents quality assessment result
+type QualityResult struct {
+	Timestamp  time.Time           `json:"timestamp"`
+	Provider   string              `json:"provider"`
+	Model      string              `json:"model"`
+	Score      float64             `json:"score"`
+	TestScores map[string]float64  `json:"test_scores"`
+	SampleSize int                 `json:"sample_size"`
+}
+
+// QualityTest represents a quality test function
+type QualityTest struct {
+	Name      string
+	TestFunc  func([]float32) float64
+	Weight    float64
+	Threshold float64
+}
+
+// EmbeddingCacheManager manages multi-level caching
+type EmbeddingCacheManager struct {
+	l1Enabled bool
+	l2Enabled bool
+	l1Cache   *LRUCache
+	l2Cache   RedisEmbeddingCache
+	metrics   *CacheMetrics
+	mutex     sync.RWMutex
+}
+
+// CacheMetrics tracks cache performance
+type CacheMetrics struct {
+	L1Hits       int64
+	L1Misses     int64
+	L2Hits       int64
+	L2Misses     int64
+	L1HitRate    float64
+	L2HitRate    float64
+	TotalHitRate float64
+}
+
+// LRUCache implements an LRU cache for embeddings
+type LRUCache struct {
+	capacity int64
+	size     int64
+	items    map[string]*CacheNode
+	head     *CacheNode
+	tail     *CacheNode
+	mutex    sync.Mutex
+}
+
+// CacheNode represents a node in the LRU cache
+type CacheNode struct {
+	key    string
+	value  []float32
+	size   int64
+	expiry time.Time
+	prev   *CacheNode
+	next   *CacheNode
+}
+
+// ProviderHealthMonitor monitors provider health
+type ProviderHealthMonitor struct {
+	healthChecks  map[string]*HealthStatus
+	checkInterval time.Duration
+	stopChan      chan struct{}
+	mutex         sync.RWMutex
+}
+
+// Document represents a document for processing
+type Document struct {
+	ID       string                 `json:"id"`
+	Content  string                 `json:"content"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
+}
+
+
 func NewCostManager(limits CostLimits) *CostManager {
 	return &CostManager{
-		dailyLimits:     map[string]float64{"default": limits.DailyLimit},
-		monthlyCosts:    make(map[string]float64),
-		currentCosts:    make(map[string]float64),
-		alertThresholds: map[string]float64{"default": limits.AlertThreshold},
-		mutex:           sync.RWMutex{},
+		dailySpend:   make(map[string]float64),
+		monthlySpend: make(map[string]float64),
+		limits:       limits,
+		alerts:       []CostAlert{},
 	}
 }
 
@@ -208,17 +197,14 @@ func (cm *CostManager) CanAfford(estimatedCost float64) bool {
 	today := time.Now().Format("2006-01-02")
 	thisMonth := time.Now().Format("2006-01")
 
-	dailySpent := cm.currentCosts[today]
-	monthlySpent := cm.monthlyCosts[thisMonth]
+	dailySpent := cm.dailySpend[today]
+	monthlySpent := cm.monthlySpend[thisMonth]
 
-	dailyLimit := cm.dailyLimits["default"]
-	if dailyLimit > 0 && dailySpent+estimatedCost > dailyLimit {
+	if cm.limits.DailyLimit > 0 && dailySpent+estimatedCost > cm.limits.DailyLimit {
 		return false
 	}
 
-	// Check monthly limit if we have one
-	monthlyLimit := cm.dailyLimits["default"] * 30 // Approximate monthly limit
-	if monthlyLimit > 0 && monthlySpent+estimatedCost > monthlyLimit {
+	if cm.limits.MonthlyLimit > 0 && monthlySpent+estimatedCost > cm.limits.MonthlyLimit {
 		return false
 	}
 
@@ -233,56 +219,50 @@ func (cm *CostManager) RecordSpending(cost float64) {
 	today := time.Now().Format("2006-01-02")
 	thisMonth := time.Now().Format("2006-01")
 
-	cm.currentCosts[today] += cost
-	cm.monthlyCosts[thisMonth] += cost
+	cm.dailySpend[today] += cost
+	cm.monthlySpend[thisMonth] += cost
 
 	// Check for alerts
 	cm.checkAlerts(today, thisMonth)
 }
 
 func (cm *CostManager) checkAlerts(today, thisMonth string) {
-	dailySpent := cm.currentCosts[today]
-	monthlySpent := cm.monthlyCosts[thisMonth]
+	dailySpent := cm.dailySpend[today]
+	monthlySpent := cm.monthlySpend[thisMonth]
 
 	// Daily alerts
-	dailyLimit := cm.dailyLimits["default"]
-	alertThreshold := cm.alertThresholds["default"]
-	
-	if dailyLimit > 0 {
-		dailyPercent := dailySpent / dailyLimit
-		if dailyPercent >= alertThreshold {
+	if cm.limits.DailyLimit > 0 {
+		dailyPercent := dailySpent / cm.limits.DailyLimit
+		if dailyPercent >= cm.limits.AlertThreshold {
 			alert := CostAlert{
 				Timestamp: time.Now(),
 				Type:      "daily",
 				Message:   fmt.Sprintf("Daily spending has reached %.1f%% of limit", dailyPercent*100),
 				Amount:    dailySpent,
-				Limit:     dailyLimit,
+				Limit:     cm.limits.DailyLimit,
 			}
 			if dailyPercent >= 0.95 {
-				alert.Type = "threshold"
+				alert.Type = "critical"
 			}
-			// In production, you'd send this alert somewhere
-			_ = alert
+			cm.alerts = append(cm.alerts, alert)
 		}
 	}
 
 	// Monthly alerts
-	monthlyLimit := dailyLimit * 30 // Approximate monthly limit
-	if monthlyLimit > 0 {
-		monthlyPercent := monthlySpent / monthlyLimit
-		if monthlyPercent >= alertThreshold {
+	if cm.limits.MonthlyLimit > 0 {
+		monthlyPercent := monthlySpent / cm.limits.MonthlyLimit
+		if monthlyPercent >= cm.limits.AlertThreshold {
 			alert := CostAlert{
 				Timestamp: time.Now(),
 				Type:      "monthly",
 				Message:   fmt.Sprintf("Monthly spending has reached %.1f%% of limit", monthlyPercent*100),
 				Amount:    monthlySpent,
-				Limit:     monthlyLimit,
+				Limit:     cm.limits.MonthlyLimit,
 			}
 			if monthlyPercent >= 0.95 {
-				alert.Type = "threshold"
+				alert.Type = "critical"
 			}
-			// In production, you'd send this alert somewhere
-			_ = alert
+			cm.alerts = append(cm.alerts, alert)
 		}
 	}
 }
@@ -305,35 +285,49 @@ func (cm *CostManager) GetSummary() *CostSummary {
 	thisMonth := time.Now().Format("2006-01")
 
 	return &CostSummary{
-		DailySpending:   cm.currentCosts[today],
-		MonthlySpending: cm.monthlyCosts[thisMonth],
-		DailyLimit:      cm.dailyLimits["default"],
-		MonthlyLimit:    cm.dailyLimits["default"] * 30,
-		Alerts:          []CostAlert{}, // In production, you'd track these
+		DailySpending:   cm.dailySpend[today],
+		MonthlySpending: cm.monthlySpend[thisMonth],
+		DailyLimit:      cm.limits.DailyLimit,
+		MonthlyLimit:    cm.limits.MonthlyLimit,
+		Alerts:          cm.alerts,
 	}
 }
 
-// NewQualityManager creates a new quality manager
+// QualityManager assesses and ensures embedding quality
 func NewQualityManager(minScore float64, sampleSize int) *QualityManager {
 	qm := &QualityManager{
-		minQualityScore: minScore,
-		sampleSize:      sampleSize,
-		validators:      []func([]float32) float64{},
-		mutex:           sync.RWMutex{},
+		minScore:    minScore,
+		sampleSize:  sampleSize,
+		testHistory: []QualityResult{},
 	}
 
-	// Initialize validators
-	qm.validators = append(qm.validators, 
-		func(embedding []float32) float64 {
-			// Magnitude check
-			var magnitude float64
-			for _, v := range embedding {
-				magnitude += float64(v * v)
-			}
-			return math.Sqrt(magnitude)
-		})
-	
-	// Add more validators as needed
+	// Initialize quality tests
+	qm.qualityTests = []QualityTest{
+		{
+			Name:      "magnitude_check",
+			TestFunc:  qm.magnitudeTest,
+			Weight:    0.3,
+			Threshold: 0.5,
+		},
+		{
+			Name:      "dimensionality_check",
+			TestFunc:  qm.dimensionalityTest,
+			Weight:    0.2,
+			Threshold: 0.8,
+		},
+		{
+			Name:      "distribution_check",
+			TestFunc:  qm.distributionTest,
+			Weight:    0.3,
+			Threshold: 0.6,
+		},
+		{
+			Name:      "consistency_check",
+			TestFunc:  qm.consistencyTest,
+			Weight:    0.2,
+			Threshold: 0.7,
+		},
+	}
 
 	return qm
 }
@@ -343,19 +337,34 @@ func (qm *QualityManager) AssessQuality(embedding []float32, provider, model str
 	qm.mutex.Lock()
 	defer qm.mutex.Unlock()
 
+	testScores := make(map[string]float64)
 	totalScore := 0.0
-	count := 0
+	totalWeight := 0.0
 
-	// Run validators
-	for _, validator := range qm.validators {
-		score := validator(embedding)
-		totalScore += score
-		count++
+	for _, test := range qm.qualityTests {
+		score := test.TestFunc(embedding)
+		testScores[test.Name] = score
+		totalScore += score * test.Weight
+		totalWeight += test.Weight
 	}
 
-	finalScore := 0.0
-	if count > 0 {
-		finalScore = totalScore / float64(count)
+	finalScore := totalScore / totalWeight
+
+	// Record result
+	result := QualityResult{
+		Timestamp:  time.Now(),
+		Provider:   provider,
+		Model:      model,
+		Score:      finalScore,
+		TestScores: testScores,
+		SampleSize: 1,
+	}
+
+	qm.testHistory = append(qm.testHistory, result)
+
+	// Keep only recent history
+	if len(qm.testHistory) > 1000 {
+		qm.testHistory = qm.testHistory[len(qm.testHistory)-1000:]
 	}
 
 	return finalScore
@@ -438,53 +447,38 @@ func (qm *QualityManager) consistencyTest(embedding []float32) float64 {
 	return 1.0
 }
 
-// NewEmbeddingCacheManager creates a new cache manager
+// EmbeddingCacheManager manages multi-level caching
 func NewEmbeddingCacheManager(config *EmbeddingConfig) (*EmbeddingCacheManager, error) {
-	cacheConfig := &CacheConfig{
-		L1Enabled:     config.EnableCaching,
-		L2Enabled:     config.L2CacheEnabled,
-		L1MaxSize:     int(config.L1CacheSize),
-		DefaultTTL:    time.Hour,
-		EnableMetrics: true,
-	}
-	
 	manager := &EmbeddingCacheManager{
-		config:  cacheConfig,
-		metrics: &CacheMetrics{},
-		mutex:   sync.RWMutex{},
+		l1Enabled: config.EnableCaching,
+		l2Enabled: config.L2CacheEnabled,
+		metrics:   &CacheMetrics{},
 	}
 
-	// Initialize caches based on config
-	// In production, you'd initialize actual cache implementations
-	// For now, we'll skip the actual cache initialization
+	// Initialize L1 cache (in-memory)
+	if manager.l1Enabled {
+		manager.l1Cache = NewLRUCache(config.L1CacheSize)
+	}
 
-	return manager, nil
-}
-
-// Original cache initialization code follows...
-func initializeCaches(manager *EmbeddingCacheManager, config *EmbeddingConfig) error {
-	// Initialize L2 cache (Redis) if enabled
-	if config.L2CacheEnabled && config.EnableRedisCache {
+	// Initialize L2 cache (Redis)
+	if manager.l2Enabled && config.EnableRedisCache {
 		redisClient := redis.NewClient(&redis.Options{
 			Addr:     config.RedisAddr,
 			Password: config.RedisPassword,
 			DB:       config.RedisDB,
 		})
 
-		// Create Redis cache
-		// In production, you'd store this in the manager
-		// Note: RedisEmbeddingCache is an interface, not a struct
-		// The actual implementation would be provided by a concrete type
+		manager.l2Cache = NewRedisEmbeddingCache(config.RedisAddr, config.RedisPassword, config.RedisDB)
 
 		// Test Redis connection
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := redisClient.Ping(ctx).Err(); err != nil {
-			return fmt.Errorf("failed to connect to Redis: %w", err)
+			return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 		}
 	}
 
-	return nil
+	return manager, nil
 }
 
 // Get retrieves embedding from cache
@@ -492,12 +486,31 @@ func (ecm *EmbeddingCacheManager) Get(key string) ([]float32, bool) {
 	ecm.mutex.RLock()
 	defer ecm.mutex.RUnlock()
 
-	// Since l1Cache and l2Cache are commented out, we can't use them
-	// This is a placeholder implementation
-	ecm.metrics.TotalRequests++
-	ecm.metrics.MissCount++
-	ecm.metrics.LastUpdated = time.Now()
-	
+	// Try L1 cache first
+	if ecm.l1Enabled && ecm.l1Cache != nil {
+		if embedding, found := ecm.l1Cache.Get(key); found {
+			ecm.metrics.L1Hits++
+			ecm.updateHitRates()
+			return embedding, true
+		}
+		ecm.metrics.L1Misses++
+	}
+
+	// Try L2 cache
+	if ecm.l2Enabled && ecm.l2Cache != nil {
+		if embedding, found, err := ecm.l2Cache.Get(key); err == nil && found {
+			ecm.metrics.L2Hits++
+			// Promote to L1 cache
+			if ecm.l1Enabled && ecm.l1Cache != nil {
+				ecm.l1Cache.Set(key, embedding, time.Hour) // Use shorter TTL for L1
+			}
+			ecm.updateHitRates()
+			return embedding, true
+		}
+		ecm.metrics.L2Misses++
+	}
+
+	ecm.updateHitRates()
 	return nil, false
 }
 
@@ -506,10 +519,15 @@ func (ecm *EmbeddingCacheManager) Set(key string, embedding []float32, ttl time.
 	ecm.mutex.Lock()
 	defer ecm.mutex.Unlock()
 
-	// Since l1Cache and l2Cache are commented out, we can't use them
-	// This is a placeholder implementation
-	ecm.metrics.TotalRequests++
-	ecm.metrics.LastUpdated = time.Now()
+	// Store in L1 cache
+	if ecm.l1Enabled && ecm.l1Cache != nil {
+		ecm.l1Cache.Set(key, embedding, ttl)
+	}
+
+	// Store in L2 cache
+	if ecm.l2Enabled && ecm.l2Cache != nil {
+		ecm.l2Cache.Set(key, embedding, ttl)
+	}
 }
 
 func (ecm *EmbeddingCacheManager) updateHitRates() {
@@ -532,7 +550,7 @@ func (ecm *EmbeddingCacheManager) updateHitRates() {
 
 // Close closes the cache manager
 func (ecm *EmbeddingCacheManager) Close() error {
-	// Since l2Cache is commented out, there's nothing to close
+	// For now, just return nil - interface does not expose client directly
 	return nil
 }
 
@@ -640,7 +658,7 @@ func (cache *LRUCache) evictLRU() {
 // ProviderHealthMonitor monitors provider health
 func NewProviderHealthMonitor(checkInterval time.Duration) *ProviderHealthMonitor {
 	return &ProviderHealthMonitor{
-		healthChecks:  make(map[string]*ProviderHealthStatus),
+		healthChecks:  make(map[string]*HealthStatus),
 		checkInterval: checkInterval,
 		stopChan:      make(chan struct{}),
 	}
@@ -668,20 +686,14 @@ func (phm *ProviderHealthMonitor) checkProviderHealth(providers map[string]Embed
 	for name, provider := range providers {
 		status, exists := phm.healthChecks[name]
 		if !exists {
-			status = &ProviderHealthStatus{}
+			status = &HealthStatus{}
 			phm.healthChecks[name] = status
 		}
 
 		// Update health status
-		// Check health using the HealthCheck method
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		err := provider.HealthCheck(ctx)
-		cancel()
-		
-		status.IsHealthy = err == nil
+		status.IsHealthy = provider.IsHealthy()
 		status.LastCheck = time.Now()
-		// Note: Provider interface doesn't have GetLatency method
-		// status.AverageLatency would need to be tracked separately
+		status.AverageLatency = provider.GetLatency()
 
 		// Simple health check - you could implement more sophisticated checks
 		if status.IsHealthy {
@@ -693,12 +705,12 @@ func (phm *ProviderHealthMonitor) checkProviderHealth(providers map[string]Embed
 }
 
 // GetStatus returns health status for all providers
-func (phm *ProviderHealthMonitor) GetStatus() map[string]*ProviderHealthStatus {
+func (phm *ProviderHealthMonitor) GetStatus() map[string]*HealthStatus {
 	phm.mutex.RLock()
 	defer phm.mutex.RUnlock()
 
 	// Return a copy
-	status := make(map[string]*ProviderHealthStatus)
+	status := make(map[string]*HealthStatus)
 	for k, v := range phm.healthChecks {
 		statusCopy := *v
 		status[k] = &statusCopy
@@ -711,3 +723,4 @@ func (phm *ProviderHealthMonitor) GetStatus() map[string]*ProviderHealthStatus {
 func (phm *ProviderHealthMonitor) Stop() {
 	close(phm.stopChan)
 }
+

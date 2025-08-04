@@ -11,9 +11,12 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"golang.org/x/crypto/ssh"
 )
 
 // SecurityScanner performs comprehensive security assessments
@@ -50,31 +53,31 @@ type Credential struct {
 
 // Wordlists holds various wordlists for testing
 type Wordlists struct {
-	CommonPasswords  []string `json:"common_passwords"`
-	CommonPaths      []string `json:"common_paths"`
-	SQLInjection     []string `json:"sql_injection"`
-	XSSPayloads      []string `json:"xss_payloads"`
+	CommonPasswords []string `json:"common_passwords"`
+	CommonPaths     []string `json:"common_paths"`
+	SQLInjection    []string `json:"sql_injection"`
+	XSSPayloads     []string `json:"xss_payloads"`
 	CommandInjection []string `json:"command_injection"`
 }
 
 // ScanResults holds comprehensive scan results
 type ScanResults struct {
-	ScanID            string                 `json:"scan_id"`
-	StartTime         time.Time              `json:"start_time"`
-	EndTime           time.Time              `json:"end_time"`
-	Duration          time.Duration          `json:"duration"`
-	TotalTests        int                    `json:"total_tests"`
-	PassedTests       int                    `json:"passed_tests"`
-	FailedTests       int                    `json:"failed_tests"`
-	Vulnerabilities   []Vulnerability        `json:"vulnerabilities"`
-	OpenPorts         []Port                 `json:"open_ports"`
-	TLSFindings       []TLSFinding           `json:"tls_findings"`
-	AuthFindings      []AuthFinding          `json:"auth_findings"`
-	InjectionFindings []InjectionFinding     `json:"injection_findings"`
-	OWASPFindings     []OWASPFinding         `json:"owasp_findings"`
-	Configuration     map[string]interface{} `json:"configuration"`
-	RiskScore         float64                `json:"risk_score"`
-	Recommendations   []string               `json:"recommendations"`
+	ScanID            string                    `json:"scan_id"`
+	StartTime         time.Time                 `json:"start_time"`
+	EndTime           time.Time                 `json:"end_time"`
+	Duration          time.Duration             `json:"duration"`
+	TotalTests        int                       `json:"total_tests"`
+	PassedTests       int                       `json:"passed_tests"`
+	FailedTests       int                       `json:"failed_tests"`
+	Vulnerabilities   []Vulnerability           `json:"vulnerabilities"`
+	OpenPorts         []Port                    `json:"open_ports"`
+	TLSFindings       []TLSFinding              `json:"tls_findings"`
+	AuthFindings      []AuthFinding             `json:"auth_findings"`
+	InjectionFindings []InjectionFinding        `json:"injection_findings"`
+	OWASPFindings     []OWASPFinding            `json:"owasp_findings"`
+	Configuration     map[string]interface{}    `json:"configuration"`
+	RiskScore         float64                   `json:"risk_score"`
+	Recommendations   []string                  `json:"recommendations"`
 }
 
 // Vulnerability represents a security vulnerability
@@ -105,12 +108,12 @@ type Port struct {
 
 // TLSFinding represents TLS/SSL security findings
 type TLSFinding struct {
-	Issue       string    `json:"issue"`
-	Severity    string    `json:"severity"`
-	Description string    `json:"description"`
-	Protocol    string    `json:"protocol"`
-	Cipher      string    `json:"cipher"`
-	Certificate string    `json:"certificate"`
+	Issue       string   `json:"issue"`
+	Severity    string   `json:"severity"`
+	Description string   `json:"description"`
+	Protocol    string   `json:"protocol"`
+	Cipher      string   `json:"cipher"`
+	Certificate string   `json:"certificate"`
 	Expires     time.Time `json:"expires"`
 }
 
@@ -126,14 +129,14 @@ type AuthFinding struct {
 
 // InjectionFinding represents injection vulnerability findings
 type InjectionFinding struct {
-	Type      string `json:"type"`
-	Severity  string `json:"severity"`
-	URL       string `json:"url"`
-	Parameter string `json:"parameter"`
-	Payload   string `json:"payload"`
-	Response  string `json:"response"`
-	Evidence  string `json:"evidence"`
-	Confirmed bool   `json:"confirmed"`
+	Type        string `json:"type"`
+	Severity    string `json:"severity"`
+	URL         string `json:"url"`
+	Parameter   string `json:"parameter"`
+	Payload     string `json:"payload"`
+	Response    string `json:"response"`
+	Evidence    string `json:"evidence"`
+	Confirmed   bool   `json:"confirmed"`
 }
 
 // OWASPFinding represents OWASP Top 10 findings
@@ -171,16 +174,16 @@ func NewSecurityScanner(config *ScannerConfig) *SecurityScanner {
 		logger: slog.Default().With("component", "security-scanner"),
 		client: client,
 		results: &ScanResults{
-			ScanID:            generateScanID(),
-			StartTime:         time.Now(),
-			Vulnerabilities:   make([]Vulnerability, 0),
-			OpenPorts:         make([]Port, 0),
-			TLSFindings:       make([]TLSFinding, 0),
-			AuthFindings:      make([]AuthFinding, 0),
+			ScanID:          generateScanID(),
+			StartTime:       time.Now(),
+			Vulnerabilities: make([]Vulnerability, 0),
+			OpenPorts:       make([]Port, 0),
+			TLSFindings:     make([]TLSFinding, 0),
+			AuthFindings:    make([]AuthFinding, 0),
 			InjectionFindings: make([]InjectionFinding, 0),
-			OWASPFindings:     make([]OWASPFinding, 0),
-			Configuration:     make(map[string]interface{}),
-			Recommendations:   make([]string, 0),
+			OWASPFindings:   make([]OWASPFinding, 0),
+			Configuration:   make(map[string]interface{}),
+			Recommendations: make([]string, 0),
 		},
 	}
 }
@@ -235,7 +238,7 @@ func (ss *SecurityScanner) RunFullScan(ctx context.Context) (*ScanResults, error
 
 	// Run different types of scans concurrently
 	var wg sync.WaitGroup
-
+	
 	if ss.config.EnablePortScanning {
 		wg.Add(1)
 		go func() {
@@ -285,7 +288,7 @@ func (ss *SecurityScanner) RunFullScan(ctx context.Context) (*ScanResults, error
 	ss.calculateRiskScore()
 	ss.generateRecommendations()
 
-	ss.logger.Info("Security scan completed",
+	ss.logger.Info("Security scan completed", 
 		"duration", ss.results.Duration,
 		"vulnerabilities", len(ss.results.Vulnerabilities),
 		"risk_score", ss.results.RiskScore)
@@ -329,7 +332,7 @@ func (ss *SecurityScanner) runPortScan(ctx context.Context) {
 // scanPort scans a specific port
 func (ss *SecurityScanner) scanPort(ctx context.Context, host string, port int) {
 	address := fmt.Sprintf("%s:%d", host, port)
-
+	
 	conn, err := net.DialTimeout("tcp", address, 3*time.Second)
 	if err != nil {
 		return // Port closed or filtered
@@ -424,10 +427,10 @@ func (ss *SecurityScanner) testInjectionFlaws(ctx context.Context) {
 func (ss *SecurityScanner) testBrokenAuthentication(ctx context.Context) {
 	// Test for weak passwords
 	ss.testWeakPasswords(ctx, "/auth/login")
-
+	
 	// Test for session management issues
 	ss.testSessionManagement(ctx)
-
+	
 	// Test for authentication bypass
 	ss.testAuthBypass(ctx)
 }
@@ -448,10 +451,10 @@ func (ss *SecurityScanner) runAuthTests(ctx context.Context) {
 	for _, endpoint := range authEndpoints {
 		// Test for default credentials
 		ss.testDefaultCredentials(ctx, endpoint)
-
+		
 		// Test for brute force protection
 		ss.testBruteForceProtection(ctx, endpoint)
-
+		
 		// Test for password policy
 		ss.testPasswordPolicy(ctx, endpoint)
 	}
@@ -471,18 +474,18 @@ func (ss *SecurityScanner) runInjectionTests(ctx context.Context) {
 
 	for _, endpoint := range ss.config.Wordlists.CommonPaths {
 		fullURL := ss.config.BaseURL + endpoint
-
+		
 		for _, param := range testParams {
 			// SQL Injection
 			for _, payload := range ss.config.Wordlists.SQLInjection {
 				ss.testParameterInjection(ctx, fullURL, param, "sql", payload)
 			}
-
+			
 			// XSS
 			for _, payload := range ss.config.Wordlists.XSSPayloads {
 				ss.testParameterInjection(ctx, fullURL, param, "xss", payload)
 			}
-
+			
 			// Command Injection
 			for _, payload := range ss.config.Wordlists.CommandInjection {
 				ss.testParameterInjection(ctx, fullURL, param, "command", payload)
@@ -507,7 +510,7 @@ func (ss *SecurityScanner) runTLSTests(ctx context.Context) {
 			Description: "Service does not support HTTPS",
 			Protocol:    "HTTP",
 		}
-
+		
 		ss.mutex.Lock()
 		ss.results.TLSFindings = append(ss.results.TLSFindings, finding)
 		ss.mutex.Unlock()
@@ -522,7 +525,7 @@ func (ss *SecurityScanner) runTLSTests(ctx context.Context) {
 
 	// Test TLS configuration
 	ss.testTLSConfiguration(ctx, host, port)
-
+	
 	// Test certificate
 	ss.testCertificate(ctx, host, port)
 }
@@ -531,7 +534,7 @@ func (ss *SecurityScanner) runTLSTests(ctx context.Context) {
 
 func (ss *SecurityScanner) testEndpointWithPayload(ctx context.Context, endpoint, injectionType, payload string) {
 	fullURL := ss.config.BaseURL + endpoint
-
+	
 	// Test GET parameters
 	testURL := fmt.Sprintf("%s?test=%s", fullURL, url.QueryEscape(payload))
 	resp, err := ss.client.Get(testURL)
@@ -557,7 +560,7 @@ func (ss *SecurityScanner) testEndpointWithPayload(ctx context.Context, endpoint
 
 func (ss *SecurityScanner) analyzeInjectionResponse(testURL, method, payload, response, injectionType string) {
 	var indicators []string
-
+	
 	switch injectionType {
 	case "sql_injection":
 		indicators = []string{
@@ -635,7 +638,7 @@ func (ss *SecurityScanner) testDefaultCredentials(ctx context.Context, endpoint 
 
 func (ss *SecurityScanner) testParameterInjection(ctx context.Context, baseURL, param, injectionType, payload string) {
 	testURL := fmt.Sprintf("%s?%s=%s", baseURL, param, url.QueryEscape(payload))
-
+	
 	req, err := http.NewRequestWithContext(ctx, "GET", testURL, nil)
 	if err != nil {
 		return
@@ -660,7 +663,7 @@ func (ss *SecurityScanner) testTLSConfiguration(ctx context.Context, host, port 
 	}
 
 	for _, version := range weakVersions {
-		conn, err := tls.DialWithDialer(&net.Dialer{Timeout: 5 * time.Second},
+		conn, err := tls.DialWithDialer(&net.Dialer{Timeout: 5 * time.Second}, 
 			"tcp", host+":"+port, &tls.Config{
 				MaxVersion:         version,
 				InsecureSkipVerify: true,
@@ -668,7 +671,7 @@ func (ss *SecurityScanner) testTLSConfiguration(ctx context.Context, host, port 
 
 		if err == nil {
 			conn.Close()
-
+			
 			finding := TLSFinding{
 				Issue:       "WEAK_TLS_VERSION",
 				Severity:    "High",
@@ -684,7 +687,7 @@ func (ss *SecurityScanner) testTLSConfiguration(ctx context.Context, host, port 
 }
 
 func (ss *SecurityScanner) testCertificate(ctx context.Context, host, port string) {
-	conn, err := tls.DialWithDialer(&net.Dialer{Timeout: 5 * time.Second},
+	conn, err := tls.DialWithDialer(&net.Dialer{Timeout: 5 * time.Second}, 
 		"tcp", host+":"+port, &tls.Config{})
 	if err != nil {
 		return
@@ -697,7 +700,7 @@ func (ss *SecurityScanner) testCertificate(ctx context.Context, host, port strin
 	}
 
 	cert := certs[0]
-
+	
 	// Check certificate expiration
 	if time.Until(cert.NotAfter) < 30*24*time.Hour {
 		finding := TLSFinding{
@@ -843,7 +846,7 @@ func (ss *SecurityScanner) isInsecureService(port int) bool {
 func (ss *SecurityScanner) getBanner(conn net.Conn) string {
 	conn.SetReadDeadline(time.Now().Add(5 * time.Second))
 	scanner := bufio.NewScanner(conn)
-
+	
 	if scanner.Scan() {
 		return scanner.Text()
 	}
@@ -858,7 +861,7 @@ func getTLSVersionName(version uint16) string {
 		tls.VersionTLS12: "TLS 1.2",
 		tls.VersionTLS13: "TLS 1.3",
 	}
-
+	
 	if name, exists := versions[version]; exists {
 		return name
 	}
@@ -867,7 +870,7 @@ func getTLSVersionName(version uint16) string {
 
 func (ss *SecurityScanner) calculateRiskScore() {
 	var score float64
-
+	
 	// Calculate based on vulnerability severity
 	for _, vuln := range ss.results.Vulnerabilities {
 		switch vuln.Severity {
@@ -881,55 +884,54 @@ func (ss *SecurityScanner) calculateRiskScore() {
 			score += 1
 		}
 	}
-
+	
 	// Add scores for other findings
 	score += float64(len(ss.results.TLSFindings)) * 2
 	score += float64(len(ss.results.AuthFindings)) * 5
 	score += float64(len(ss.results.InjectionFindings)) * 8
 	score += float64(len(ss.results.OWASPFindings)) * 6
-
+	
 	// Normalize to 0-100 scale
 	if score > 100 {
 		score = 100
 	}
-
+	
 	ss.results.RiskScore = score
 }
 
 func (ss *SecurityScanner) generateRecommendations() {
 	recommendations := []string{}
-
+	
 	if len(ss.results.TLSFindings) > 0 {
 		recommendations = append(recommendations, "Upgrade TLS configuration and certificates")
 	}
-
+	
 	if len(ss.results.AuthFindings) > 0 {
 		recommendations = append(recommendations, "Strengthen authentication mechanisms")
 	}
-
+	
 	if len(ss.results.InjectionFindings) > 0 {
 		recommendations = append(recommendations, "Implement input validation and sanitization")
 	}
-
+	
 	if ss.results.RiskScore > 70 {
 		recommendations = append(recommendations, "Immediate security review required")
 	}
-
+	
 	ss.results.Recommendations = recommendations
 }
 
 // Helper methods (stubs for brevity)
 
-func (ss *SecurityScanner) testWeakPasswords(ctx context.Context, endpoint string)        {}
-func (ss *SecurityScanner) testSessionManagement(ctx context.Context)                     {}
-func (ss *SecurityScanner) testAuthBypass(ctx context.Context)                            {}
+func (ss *SecurityScanner) testWeakPasswords(ctx context.Context, endpoint string) {}
+func (ss *SecurityScanner) testSessionManagement(ctx context.Context) {}
+func (ss *SecurityScanner) testAuthBypass(ctx context.Context) {}
 func (ss *SecurityScanner) testBruteForceProtection(ctx context.Context, endpoint string) {}
-func (ss *SecurityScanner) testPasswordPolicy(ctx context.Context, endpoint string)       {}
-func (ss *SecurityScanner) testJWTVulnerabilities(ctx context.Context)                    {}
-func (ss *SecurityScanner) testPathForSensitiveData(ctx context.Context, path string, patterns []string) {
-}
+func (ss *SecurityScanner) testPasswordPolicy(ctx context.Context, endpoint string) {}
+func (ss *SecurityScanner) testJWTVulnerabilities(ctx context.Context) {}
+func (ss *SecurityScanner) testPathForSensitiveData(ctx context.Context, path string, patterns []string) {}
 func (ss *SecurityScanner) testXMLEndpoint(ctx context.Context, endpoint, payload string) {}
-func (ss *SecurityScanner) testConfigurationExposure(ctx context.Context, path string)    {}
+func (ss *SecurityScanner) testConfigurationExposure(ctx context.Context, path string) {}
 
 func min(a, b int) int {
 	if a < b {
@@ -949,7 +951,7 @@ func (ss *SecurityScanner) SaveReport(filename string) error {
 	if err != nil {
 		return err
 	}
-
+	
 	return writeFile(filename, report)
 }
 

@@ -25,11 +25,21 @@ const (
 	ServiceVersion = "1.0.0"
 )
 
-// TracingConfig defined in distributed_tracing.go to avoid duplication
+// OpenTelemetryConfig holds OpenTelemetry configuration
+type OpenTelemetryConfig struct {
+	ServiceName     string
+	ServiceVersion  string
+	Environment     string
+	JaegerEndpoint  string
+	SamplingRate    float64
+	EnableMetrics   bool
+	EnableTracing   bool
+	EnableLogging   bool
+}
 
 // OpenTelemetryProvider manages OpenTelemetry setup
 type OpenTelemetryProvider struct {
-	config          *TracingConfig
+	config          *OpenTelemetryConfig
 	tracerProvider  *sdktrace.TracerProvider
 	tracer          trace.Tracer
 	meter           metric.Meter
@@ -37,9 +47,9 @@ type OpenTelemetryProvider struct {
 }
 
 // NewOpenTelemetryProvider creates a new OpenTelemetry provider
-func NewOpenTelemetryProvider(config *TracingConfig) (*OpenTelemetryProvider, error) {
+func NewOpenTelemetryProvider(config *OpenTelemetryConfig) (*OpenTelemetryProvider, error) {
 	if config == nil {
-		config = DefaultTracingConfig()
+		config = DefaultOpenTelemetryConfig()
 	}
 
 	otp := &OpenTelemetryProvider{
@@ -79,7 +89,19 @@ func NewOpenTelemetryProvider(config *TracingConfig) (*OpenTelemetryProvider, er
 	return otp, nil
 }
 
-// DefaultTracingConfig defined in distributed_tracing.go to avoid duplication
+// DefaultOpenTelemetryConfig returns default OpenTelemetry configuration
+func DefaultOpenTelemetryConfig() *OpenTelemetryConfig {
+	return &OpenTelemetryConfig{
+		ServiceName:     ServiceName,
+		ServiceVersion:  ServiceVersion,
+		Environment:     getEnv("NEPHORAN_ENVIRONMENT", "production"),
+		JaegerEndpoint:  getEnv("JAEGER_ENDPOINT", "http://jaeger-collector:14268/api/traces"),
+		SamplingRate:    0.1, // 10% sampling rate
+		EnableMetrics:   true,
+		EnableTracing:   true,
+		EnableLogging:   true,
+	}
+}
 
 // initResource initializes OpenTelemetry resource
 func (otp *OpenTelemetryProvider) initResource() (*resource.Resource, error) {

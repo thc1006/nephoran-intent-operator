@@ -368,7 +368,7 @@ func (iv *IntegrationValidator) testWeaviateClient(ctx context.Context, client *
 	// Test health status
 	health := client.GetHealthStatus()
 	if !health.IsHealthy {
-		return fmt.Errorf("Weaviate client unhealthy: error count %d, last error: %v", health.ErrorCount, health.LastError)
+		return fmt.Errorf("Weaviate client unhealthy: %s", health.Details)
 	}
 
 	iv.logger.Debug("Weaviate client test passed")
@@ -382,8 +382,8 @@ func (iv *IntegrationValidator) testRedisCache(ctx context.Context, cache *Redis
 	}
 
 	// Test basic cache operations
-	// Note: Actual test implementation would depend on cache interface
-	// For now, we just check that the cache is not nil
+
+	// Simple test (implementation would depend on cache interface)
 	iv.logger.Debug("Redis cache test passed")
 	return nil
 }
@@ -475,8 +475,7 @@ func (iv *IntegrationValidator) runSingleIntegrationTest(ctx context.Context, te
 
 // Integration test implementations
 func (iv *IntegrationValidator) testEndToEndDocumentProcessing(ctx context.Context, pipeline *RAGPipeline) error {
-	// Create a test document
-	// Note: testDoc would be used in actual implementation
+	// Create a test document content
 	// testDoc := "Sample 3GPP specification content for testing the complete pipeline processing."
 	
 	// This would test the complete flow from document to query

@@ -470,7 +470,7 @@ var _ = Describe("CRD Validation and Schema Tests", func() {
 					},
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: "nephoran.com/v1alpha1",
+							APIVersion: "nephoran.com/v1",
 							Kind:       "ManagedElement",
 							Name:       managedElement.Name,
 							UID:        managedElement.UID,

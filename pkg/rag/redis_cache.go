@@ -1,7 +1,6 @@
 package rag
 
 import (
-	"bytes"
 	"compress/gzip"
 	"context"
 	"crypto/md5"
@@ -14,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	"bytes"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -1272,12 +1272,12 @@ func (a *RedisEmbeddingCacheAdapter) Set(key string, embedding []float32, ttl ti
 
 // Delete implements RedisEmbeddingCache interface
 func (a *RedisEmbeddingCacheAdapter) Delete(key string) error {
-	return a.cache.Delete(context.Background(), "embeddings", key)
+	return a.cache.Delete(context.Background(), "embedding", key)
 }
 
 // Clear implements RedisEmbeddingCache interface
 func (a *RedisEmbeddingCacheAdapter) Clear() error {
-	return a.cache.Clear(context.Background(), "embeddings")
+	return a.cache.Clear(context.Background(), "embedding")
 }
 
 // Stats implements RedisEmbeddingCache interface

@@ -1,6 +1,8 @@
 package llm
 
 import (
+	"context"
+	
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
@@ -9,3 +11,6 @@ import (
 type ClientInterface interface {
 	shared.ClientInterface
 }
+
+// ClientInterface embeds shared.ClientInterface for compatibility
+// Type assertion is not needed since ClientInterface embeds shared.ClientInterface

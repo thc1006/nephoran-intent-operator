@@ -1,6 +1,7 @@
 package rag
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"runtime"
@@ -339,9 +340,7 @@ func (po *PerformanceOptimizer) optimizeLatency(pipeline *RAGPipeline, task *Opt
 
 	// Reduce timeouts for faster failure detection
 	if pipeline.config.EmbeddingConfig != nil {
-		if pipeline.config.EmbeddingConfig.RequestTimeout > 15*time.Second {
-			pipeline.config.EmbeddingConfig.RequestTimeout = 15*time.Second
-		}
+			pipeline.config.EmbeddingConfig.RequestTimeout = minDuration(pipeline.config.EmbeddingConfig.RequestTimeout, 15*time.Second)
 	}
 
 	// Optimize cache to prioritize frequently accessed items

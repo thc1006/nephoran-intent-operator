@@ -124,6 +124,43 @@ spec:
                   - type
                   type: object
                 type: array
+              deploymentCompletionTime:
+                description: DeploymentCompletionTime indicates when the GitOps deployment
+                  completed
+                format: date-time
+                type: string
+              deploymentStartTime:
+                description: DeploymentStartTime indicates when the GitOps deployment
+                  started
+                format: date-time
+                type: string
+              gitCommitHash:
+                description: GitCommitHash represents the commit hash of the deployed
+                  configuration
+                type: string
+              lastRetryTime:
+                description: LastRetryTime indicates the last time a retry was attempted
+                format: date-time
+                type: string
+              observedGeneration:
+                description: ObservedGeneration reflects the generation of the most
+                  recently observed NetworkIntent
+                format: int64
+                type: integer
+              phase:
+                description: Phase represents the current phase of the NetworkIntent
+                  processing
+                type: string
+              processingCompletionTime:
+                description: ProcessingCompletionTime indicates when the intent processing
+                  completed
+                format: date-time
+                type: string
+              processingStartTime:
+                description: ProcessingStartTime indicates when the intent processing
+                  started
+                format: date-time
+                type: string
             type: object
         type: object
     served: true

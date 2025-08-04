@@ -254,48 +254,23 @@ func getDefaultRedisCacheConfig() *RedisCacheConfig {
 // getDefaultMonitoringConfig returns default configuration for monitoring
 func getDefaultMonitoringConfig() *MonitoringConfig {
 	return &MonitoringConfig{
-		EnableMetrics:               true,
-		MetricsPort:                 8080,
-		MetricsPath:                 "/metrics",
-		EnableHealthCheck:           true,
-		HealthCheckPath:             "/health",
-		HealthCheckInterval:         30 * time.Second,
-		EnableProfiling:             false, // Disabled by default for production
-		ProfilingPort:               6060,
-		LogLevel:                    "info",
-		LogFormat:                   "json",
-		EnableTracing:               false, // Can be enabled for debugging
-		TracingSampleRate:           0.1,
-		RetentionPeriod:             7 * 24 * time.Hour, // 7 days
-		EnableResourceMonitoring:    true,
-		EnableAlerting:              false, // Disabled by default
-		MetricsInterval:             15 * time.Second,
-		ResourceMonitoringInterval:  60 * time.Second,
-		AlertWebhooks:               []string{},
+		MetricsPort:          8080,
+		MetricsPath:          "/metrics",
+		HealthCheckPath:      "/health",
+		MetricsInterval:      30 * time.Second,
+		HealthCheckInterval:  30 * time.Second,
+		EnableAlerting:       false,
+		AlertThresholds:      make(map[string]AlertThreshold),
+		AlertWebhooks:        []string{},
+		EnableStructuredLogs: true,
+		LogLevel:             "info",
+		TraceSampleRate:      0.1,
+		EnableDistributedTracing: false,
+		EnableResourceMonitoring: false,
+		ResourceMonitoringInterval: 60 * time.Second,
 	}
 }
 
-// MonitoringConfig holds monitoring configuration
-type MonitoringConfig struct {
-	EnableMetrics               bool          `json:"enable_metrics"`
-	MetricsPort                 int           `json:"metrics_port"`
-	MetricsPath                 string        `json:"metrics_path"`
-	EnableHealthCheck           bool          `json:"enable_health_check"`
-	HealthCheckPath             string        `json:"health_check_path"`
-	HealthCheckInterval         time.Duration `json:"health_check_interval"`
-	EnableProfiling             bool          `json:"enable_profiling"`
-	ProfilingPort               int           `json:"profiling_port"`
-	LogLevel                    string        `json:"log_level"`
-	LogFormat                   string        `json:"log_format"`
-	EnableTracing               bool          `json:"enable_tracing"`
-	TracingSampleRate           float64       `json:"tracing_sample_rate"`
-	RetentionPeriod             time.Duration `json:"retention_period"`
-	EnableResourceMonitoring    bool          `json:"enable_resource_monitoring"`
-	EnableAlerting              bool          `json:"enable_alerting"`
-	MetricsInterval             time.Duration `json:"metrics_interval"`
-	ResourceMonitoringInterval  time.Duration `json:"resource_monitoring_interval"`
-	AlertWebhooks               []string      `json:"alert_webhooks"`
-}
 
 // DefaultPipelineConfiguration returns a complete default pipeline configuration
 func DefaultPipelineConfiguration() *PipelineConfig {
@@ -329,8 +304,6 @@ func ProductionPipelineConfiguration() *PipelineConfig {
 	
 	// Production optimizations
 	config.EnableMonitoring = true
-	config.MonitoringConfig.EnableProfiling = false
-	config.MonitoringConfig.EnableTracing = false
 	config.MonitoringConfig.LogLevel = "warn"
 	
 	// Higher performance settings
@@ -362,8 +335,6 @@ func DevelopmentPipelineConfiguration() *PipelineConfig {
 	config := DefaultPipelineConfiguration()
 	
 	// Development optimizations
-	config.MonitoringConfig.EnableProfiling = true
-	config.MonitoringConfig.EnableTracing = true
 	config.MonitoringConfig.LogLevel = "debug"
 	
 	// Smaller limits for development

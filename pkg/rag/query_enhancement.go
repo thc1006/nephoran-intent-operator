@@ -2,6 +2,7 @@ package rag
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"regexp"
 	"strings"
@@ -51,11 +52,11 @@ type SynonymExpander struct {
 
 // SpellChecker provides spell checking and correction for telecom terms
 type SpellChecker struct {
-	dictionary      map[string]bool      // Valid telecom terms
-	corrections     map[string]string    // Common misspellings -> corrections
-	soundexMap      map[string][]string  // Phonetic similarity mapping
-	maxEditDistance int                  // Maximum edit distance for suggestions
-	mutex           sync.RWMutex
+	dictionary     map[string]bool      // Valid telecom terms
+	corrections    map[string]string    // Common misspellings -> corrections
+	soundexMap     map[string][]string  // Phonetic similarity mapping
+	maxEditDistance   int                  // Maximum edit distance for suggestions
+	mutex          sync.RWMutex
 }
 
 // NewQueryEnhancer creates a new query enhancer
@@ -652,9 +653,9 @@ func (se *SynonymExpander) ExpandSynonyms(query, intentType string) (string, map
 // NewSpellChecker creates a new spell checker
 func NewSpellChecker() *SpellChecker {
 	sc := &SpellChecker{
-		dictionary:      make(map[string]bool),
-		corrections:     make(map[string]string),
-		soundexMap:      make(map[string][]string),
+		dictionary:   make(map[string]bool),
+		corrections:  make(map[string]string),
+		soundexMap:   make(map[string][]string),
 		maxEditDistance: 2,
 	}
 
@@ -823,7 +824,7 @@ func (sc *SpellChecker) editDistance(s1, s2 string) int {
 	return matrix[len1][len2]
 }
 
-// min3 returns the minimum of three integers
+// min returns the minimum of three integers
 func min3(a, b, c int) int {
 	if a < b {
 		if a < c {

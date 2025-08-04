@@ -2,7 +2,7 @@ package monitoring
 
 import (
 	"context"
-	"fmt"
+		"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -38,15 +38,9 @@ type TracingConfig struct {
 	Environment     string        `json:"environment"`
 	JaegerEndpoint  string        `json:"jaeger_endpoint"`
 	SamplingRatio   float64       `json:"sampling_ratio"`
-	SamplingRate    float64       `json:"sampling_rate"` // Alias for SamplingRatio for compatibility
 	BatchTimeout    time.Duration `json:"batch_timeout"`
 	MaxBatchSize    int           `json:"max_batch_size"`
 	MaxQueueSize    int           `json:"max_queue_size"`
-	
-	// OpenTelemetry feature flags
-	EnableMetrics   bool          `json:"enable_metrics"`
-	EnableTracing   bool          `json:"enable_tracing"`
-	EnableLogging   bool          `json:"enable_logging"`
 	
 	// Trace-based alerting configuration
 	AlertingEnabled     bool                      `json:"alerting_enabled"`
@@ -129,7 +123,13 @@ const (
 	AlertTypeCircuitBreaker  TraceAlertType = "circuit_breaker"
 )
 
-// Use AlertSeverity from alerting.go package
+// AlertSeverity constants for distributed tracing (using shared type from alerting.go)
+const (
+	SeverityLow      AlertSeverity = "low"
+	SeverityMedium   AlertSeverity = "medium"
+	SeverityHigh     AlertSeverity = "high"
+	SeverityCritical AlertSeverity = "critical"
+)
 
 // TraceAlertManager manages trace-based alerting
 type TraceAlertManager struct {
@@ -178,10 +178,6 @@ func DefaultTracingConfig() *TracingConfig {
 		Environment:    getEnv("NEPHORAN_ENVIRONMENT", "production"),
 		JaegerEndpoint: getEnv("JAEGER_ENDPOINT", "http://jaeger-collector:14268/api/traces"),
 		SamplingRatio:  0.1, // 10% sampling for production
-		SamplingRate:   0.1, // Alias for compatibility
-		EnableMetrics:  true,
-		EnableTracing:  true,
-		EnableLogging:  true,
 		BatchTimeout:   5 * time.Second,
 		MaxBatchSize:   512,
 		MaxQueueSize:   2048,
@@ -425,10 +421,7 @@ func (dt *DistributedTracer) analyzeSpan(activeSpan *ActiveSpan, err error) {
 
 	// Record metrics
 	if dt.metricsRecorder != nil {
-		// Use appropriate existing method
-		if spanMetrics.Status == codes.Error {
-			dt.metricsRecorder.RecordError(spanMetrics.Component, "span_error")
-		}
+		dt.metricsRecorder.RecordSpanMetrics(spanMetrics.Component, spanMetrics.OperationName, spanMetrics.Duration, spanMetrics.Status == codes.Error)
 	}
 }
 
@@ -557,7 +550,7 @@ func (sa *SpanAnalyzer) checkAnomalies(operationKey string, spanMetrics *SpanMet
 	// Calculate statistics for latency anomaly detection
 	if config.LatencyAnomalyEnabled {
 		mean, stdDev := calculateStatistics(latencies)
-		threshold := mean + time.Duration(float64(stdDev) * config.StandardDeviations)
+		threshold := mean + (stdDev * config.StandardDeviations)
 
 		if spanMetrics.Duration > threshold {
 			// This is a latency anomaly
@@ -573,7 +566,7 @@ func (sa *SpanAnalyzer) checkAnomalies(operationKey string, spanMetrics *SpanMet
 
 			// Record anomaly metric
 			if sa.metricsRecorder != nil {
-				sa.metricsRecorder.RecordAnomalyDetection("latency", "warning", spanMetrics.Component, "statistical_analysis")
+				sa.metricsRecorder.RecordAnomalyDetection("latency", operationKey, float64(spanMetrics.Duration.Milliseconds()))
 			}
 		}
 	}
@@ -601,7 +594,7 @@ func (tam *TraceAlertManager) FireAlert(ctx context.Context, alert *TraceAlert) 
 
 	// Record alert metric
 	if tam.metricsRecorder != nil {
-		tam.metricsRecorder.RecordAlert(string(alert.Severity), alert.Component)
+		tam.metricsRecorder.RecordTraceAlert(string(alert.AlertType), string(alert.Severity), alert.Component)
 	}
 
 	// Call alert handlers

@@ -36,6 +36,34 @@ type RAGMonitor struct {
 	systemResourceGauges    map[string]prometheus.Gauge
 }
 
+// MonitoringConfig holds monitoring configuration
+type MonitoringConfig struct {
+	// Server configuration
+	MetricsPort     int    `json:"metrics_port"`
+	MetricsPath     string `json:"metrics_path"`
+	HealthCheckPath string `json:"health_check_path"`
+	
+	// Collection intervals
+	MetricsInterval     time.Duration `json:"metrics_interval"`
+	HealthCheckInterval time.Duration `json:"health_check_interval"`
+	
+	// Alerting configuration
+	EnableAlerting      bool                           `json:"enable_alerting"`
+	AlertThresholds     map[string]AlertThreshold      `json:"alert_thresholds"`
+	AlertWebhooks       []string                       `json:"alert_webhooks"`
+	
+	// Log configuration
+	EnableStructuredLogs bool   `json:"enable_structured_logs"`
+	LogLevel            string `json:"log_level"`
+	
+	// Trace sampling
+	TraceSampleRate     float64 `json:"trace_sample_rate"`
+	EnableDistributedTracing bool `json:"enable_distributed_tracing"`
+	
+	// Performance monitoring
+	EnableResourceMonitoring bool `json:"enable_resource_monitoring"`
+	ResourceMonitoringInterval time.Duration `json:"resource_monitoring_interval"`
+}
 
 // AlertThreshold defines thresholds for alerting
 type AlertThreshold struct {
@@ -59,6 +87,8 @@ type HealthStatus struct {
 	Status        string                 `json:"status"`
 	LastCheck     time.Time              `json:"last_check"`
 	ResponseTime  time.Duration          `json:"response_time"`
+	AverageLatency time.Duration          `json:"average_latency"`
+	ConsecutiveFailures int                   `json:"consecutive_failures"`
 	ErrorMessage  string                 `json:"error_message,omitempty"`
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }

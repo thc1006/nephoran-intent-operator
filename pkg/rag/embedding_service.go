@@ -233,6 +233,8 @@ type EmbeddingProvider interface {
 	HealthCheck(ctx context.Context) error
 	GetCostEstimate(tokenCount int) float64
 	GetName() string
+	IsHealthy() bool
+	GetLatency() time.Duration
 }
 
 // RedisEmbeddingCache interface for Redis-based caching

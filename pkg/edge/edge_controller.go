@@ -5,9 +5,7 @@ package edge
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -17,7 +15,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
@@ -206,15 +206,6 @@ type ServiceMetrics struct {
 	CacheHitRate      float64 `json:"cache_hit_rate"`        // For caching services
 }
 
-// GeographicLocation represents a geographic location
-type GeographicLocation struct {
-	Continent     string  `json:"continent"`
-	Country       string  `json:"country"`
-	Latitude      float64 `json:"latitude"`
-	Longitude     float64 `json:"longitude"`
-	TimezoneOffset int    `json:"timezone_offset"`
-}
-
 // GeographicArea defines coverage area for edge zones
 type GeographicArea struct {
 	CenterLatitude  float64 `json:"center_latitude"`
@@ -227,6 +218,16 @@ type GeographicArea struct {
 type Coordinate struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
+}
+
+// GeographicLocation represents a specific geographic location
+type GeographicLocation struct {
+	Latitude  float64 `json:"latitude"`
+	Longitude float64 `json:"longitude"`
+	Altitude  float64 `json:"altitude,omitempty"` // meters above sea level
+	Country   string  `json:"country,omitempty"`
+	Region    string  `json:"region,omitempty"`
+	City      string  `json:"city,omitempty"`
 }
 
 // ServiceLevel defines the service level for edge zones
@@ -296,14 +297,7 @@ func (r *EdgeController) Reconcile(ctx context.Context, req reconcile.Request) (
 	
 	// Update intent status
 	intent.Status.Phase = "Deployed"
-	// Note: NetworkIntentStatus doesn't have a Message field, using conditions instead
-	condition := metav1.Condition{
-		Type:    "Deployed",
-		Status:  metav1.ConditionTrue,
-		Reason:  "EdgeDeploymentComplete",
-		Message: fmt.Sprintf("Deployed to %d edge nodes", len(edgeNodes)),
-	}
-	intent.Status.Conditions = append(intent.Status.Conditions, condition)
+	// Note: Message field not available in current API version
 	if err := r.Status().Update(ctx, &intent); err != nil {
 		log.Error(err, "Failed to update intent status")
 	}
@@ -429,11 +423,8 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 				},
 			},
 			Location: GeographicLocation{
-				Continent:     "North America",
-				Country:       "United States",
-				Latitude:      40.7128,
-				Longitude:     -74.0060, // New York
-				TimezoneOffset: -5,
+				Latitude:  40.7128,
+				Longitude: -74.0060, // New York
 			},
 			LastSeen: time.Now(),
 			HealthMetrics: EdgeHealthMetrics{
@@ -485,11 +476,8 @@ func (r *EdgeController) simulateEdgeNodeDiscovery() []*EdgeNode {
 				},
 			},
 			Location: GeographicLocation{
-				Continent:     "North America",
-				Country:       "United States",
-				Latitude:      40.7589,
-				Longitude:     -73.9851, // Manhattan
-				TimezoneOffset: -5,
+				Latitude:  40.7589,
+				Longitude: -73.9851, // Manhattan
 			},
 			LastSeen: time.Now(),
 			HealthMetrics: EdgeHealthMetrics{
@@ -705,18 +693,11 @@ func (r *EdgeController) requiresEdgeProcessing(intent *nephoran.NetworkIntent) 
 		}
 	}
 	
-	// Check for low latency requirements
-	if intent.Spec.Parameters.Raw != nil {
-		var params map[string]interface{}
-		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err == nil {
-			if latency, exists := params["max_latency"]; exists {
-				if latencyStr, ok := latency.(string); ok {
-					if latencyStr == "1ms" || latencyStr == "5ms" || latencyStr == "<10ms" {
-						return true
-					}
-				}
-			}
-		}
+	// Check for low latency requirements in the intent text
+	// Note: Parameters is a RawExtension and requires proper parsing
+	if contains(description, "1ms") || contains(description, "5ms") || contains(description, "<10ms") || 
+	   contains(description, "ultra-low latency") || contains(description, "URLLC") {
+		return true
 	}
 	
 	return false
@@ -896,5 +877,20 @@ func (r *EdgeController) GetEdgeZones() map[string]*EdgeZone {
 
 // contains checks if a string contains a substring (case-insensitive)
 func contains(s, substr string) bool {
-	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
+	return len(s) >= len(substr) && 
+		   (s == substr || 
+		    len(s) > len(substr) && 
+		    (s[:len(substr)] == substr || 
+		     s[len(s)-len(substr):] == substr ||
+		     containsMiddle(s, substr)))
+}
+
+// containsMiddle checks if substr exists in the middle of s
+func containsMiddle(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }

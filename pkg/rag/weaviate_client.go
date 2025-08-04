@@ -2,10 +2,12 @@ package rag
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
 	"math/rand"
+	"net/http"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -13,7 +15,6 @@ import (
 
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/auth"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/filters"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"github.com/weaviate/weaviate/entities/models"
 )
@@ -126,13 +127,14 @@ type WeaviateConfig struct {
 	} `json:"connection_pool"`
 }
 
-// WeaviateHealthStatus represents the health status of the Weaviate cluster
+// HealthStatus represents the health status of the Weaviate cluster
 type WeaviateHealthStatus struct {
 	IsHealthy     bool              `json:"is_healthy"`
 	LastCheck     time.Time         `json:"last_check"`
 	Version       string            `json:"version"`
 	Nodes         []NodeStatus      `json:"nodes"`
 	Statistics    ClusterStatistics `json:"statistics"`
+	Details       string            `json:"details"`
 	ErrorCount    int64             `json:"error_count"`
 	LastError     error             `json:"last_error,omitempty"`
 }
@@ -274,8 +276,17 @@ func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
 	}
 
 	// Create HTTP client with optimized settings
-	// Note: httpClient is not directly used with weaviate.NewClient in v4
-	// The client uses its own HTTP client configuration
+	httpClient := &http.Client{
+		Timeout: config.Timeout,
+		Transport: &http.Transport{
+			MaxIdleConns:          config.ConnectionPool.MaxIdleConns,
+			MaxConnsPerHost:       config.ConnectionPool.MaxConnsPerHost,
+			IdleConnTimeout:       config.ConnectionPool.IdleConnTimeout,
+			DisableCompression:    config.ConnectionPool.DisableCompression,
+			MaxIdleConnsPerHost:   10,
+			ResponseHeaderTimeout: 30 * time.Second,
+		},
+	}
 
 	// Create Weaviate client configuration
 	clientConfig := weaviate.Config{
@@ -283,6 +294,7 @@ func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
 		Scheme:     config.Scheme,
 		AuthConfig: authConfig,
 		Headers:    config.Headers,
+		Client:     httpClient,
 	}
 
 	// Create client
@@ -553,19 +565,24 @@ func (wc *WeaviateClient) Search(ctx context.Context, query *SearchQuery) (*Sear
 	}
 
 	// Build the GraphQL query
-	getBuilder := wc.client.GraphQL().Get().
-		WithClassName("TelecomKnowledge")
-	
+	var gqlQuery *graphql.NearTextArgumentBuilder
 	if query.HybridSearch {
 		// Use hybrid search
-		hybridArgument := &graphql.HybridArgumentBuilder{}
-		hybridArgument = hybridArgument.WithQuery(query.Query).WithAlpha(query.HybridAlpha)
-		getBuilder = getBuilder.WithHybrid(hybridArgument)
+		gqlQuery = wc.client.GraphQL().Get().
+			WithClassName("TelecomKnowledge").
+			WithHybrid(
+				wc.client.GraphQL().HybridArgumentBuilder().
+					WithQuery(query.Query).
+					WithAlpha(query.HybridAlpha),
+			)
 	} else {
 		// Use pure vector search
-		nearTextArgument := &graphql.NearTextArgumentBuilder{}
-		nearTextArgument = nearTextArgument.WithConcepts([]string{query.Query})
-		getBuilder = getBuilder.WithNearText(nearTextArgument)
+		gqlQuery = wc.client.GraphQL().Get().
+			WithClassName("TelecomKnowledge").
+			WithNearText(
+				wc.client.GraphQL().NearTextArgumentBuilder().
+					WithConcepts([]string{query.Query}),
+			)
 	}
 
 	// Add fields to retrieve
@@ -602,12 +619,12 @@ func (wc *WeaviateClient) Search(ctx context.Context, query *SearchQuery) (*Sear
 	if len(query.Filters) > 0 {
 		where := wc.buildWhereFilter(query.Filters)
 		if where != nil {
-			getBuilder = getBuilder.WithWhere(where)
+			gqlQuery = gqlQuery.WithWhere(where)
 		}
 	}
 
 	// Execute the query
-	result, err := getBuilder.
+	result, err := gqlQuery.
 		WithFields(fields...).
 		WithLimit(query.Limit).
 		WithOffset(query.Offset).
@@ -760,35 +777,27 @@ func (wc *WeaviateClient) parseSearchResult(item map[string]interface{}) *Search
 }
 
 // buildWhereFilter constructs a WHERE filter from the query filters
-func (wc *WeaviateClient) buildWhereFilter(filterMap map[string]interface{}) *filters.WhereBuilder {
-	if len(filterMap) == 0 {
+func (wc *WeaviateClient) buildWhereFilter(filters map[string]interface{}) interface{} {
+	if len(filters) == 0 {
 		return nil
 	}
 
 	// For now, implement basic filtering
 	// In a full implementation, you would build complex filters
-	var where *filters.WhereBuilder
-	
+	where := wc.client.GraphQL().WhereArgumentBuilder()
+
 	// Example: filter by source
-	if source, ok := filterMap["source"].(string); ok && source != "" {
-		sourceFilter := filters.Where().
-			WithPath([]string{"source"}).
-			WithOperator(filters.Equal).
-			WithValueString(source)
-		where = sourceFilter
+	if source, ok := filters["source"].(string); ok && source != "" {
+		where = where.WithPath([]string{"source"}).
+			WithOperator(graphql.Equal).
+			WithValueText(source)
 	}
 
 	// Example: filter by category
-	if category, ok := filterMap["category"].(string); ok && category != "" {
-		categoryFilter := filters.Where().
-			WithPath([]string{"category"}).
-			WithOperator(filters.Equal).
-			WithValueString(category)
-		// If we already have a filter, this would need to be combined with AND/OR logic
-		// For now, just use the category filter
-		if where == nil {
-			where = categoryFilter
-		}
+	if category, ok := filters["category"].(string); ok && category != "" {
+		where = where.WithPath([]string{"category"}).
+			WithOperator(graphql.Equal).
+			WithValueText(category)
 	}
 
 	return where
