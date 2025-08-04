@@ -1,7 +1,6 @@
 package monitoring
 
 import (
-	"context"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -13,23 +12,23 @@ import (
 type MetricsCollector struct {
 	// NetworkIntent metrics
 	NetworkIntentTotal         prometheus.Counter
-	NetworkIntentDuration      prometheus.HistogramVec
-	NetworkIntentStatus        prometheus.GaugeVec
-	NetworkIntentLLMDuration   prometheus.HistogramVec
-	NetworkIntentRetries       prometheus.CounterVec
+	NetworkIntentDuration      *prometheus.HistogramVec
+	NetworkIntentStatus        *prometheus.GaugeVec
+	NetworkIntentLLMDuration   *prometheus.HistogramVec
+	NetworkIntentRetries       *prometheus.CounterVec
 	
 	// E2NodeSet metrics
 	E2NodeSetTotal            prometheus.Counter
-	E2NodeSetReplicas         prometheus.GaugeVec
-	E2NodeSetReconcileDuration prometheus.HistogramVec
-	E2NodeSetScalingEvents    prometheus.CounterVec
+	E2NodeSetReplicas         *prometheus.GaugeVec
+	E2NodeSetReconcileDuration *prometheus.HistogramVec
+	E2NodeSetScalingEvents    *prometheus.CounterVec
 	
 	// O-RAN Interface metrics
-	ORANInterfaceRequests     prometheus.CounterVec
-	ORANInterfaceDuration     prometheus.HistogramVec
-	ORANInterfaceErrors       prometheus.CounterVec
-	ORANPolicyInstances       prometheus.GaugeVec
-	ORANConnectionStatus      prometheus.GaugeVec
+	ORANInterfaceRequests     *prometheus.CounterVec
+	ORANInterfaceDuration     *prometheus.HistogramVec
+	ORANInterfaceErrors       *prometheus.CounterVec
+	ORANPolicyInstances       *prometheus.GaugeVec
+	ORANConnectionStatus      *prometheus.GaugeVec
 	
 	// LLM and RAG metrics
 	LLMRequestsTotal          prometheus.Counter
@@ -43,15 +42,15 @@ type MetricsCollector struct {
 	// GitOps metrics
 	GitOpsPackagesGenerated   prometheus.Counter
 	GitOpsCommitDuration      prometheus.Histogram
-	GitOpsErrors              prometheus.CounterVec
-	GitOpsSyncStatus          prometheus.GaugeVec
+	GitOpsErrors              *prometheus.CounterVec
+	GitOpsSyncStatus          *prometheus.GaugeVec
 	
 	// System health metrics
-	ControllerHealthStatus    prometheus.GaugeVec
+	ControllerHealthStatus    *prometheus.GaugeVec
 	KubernetesAPILatency      prometheus.Histogram
-	ResourceUtilization       prometheus.GaugeVec
-	WorkerQueueDepth          prometheus.GaugeVec
-	WorkerQueueLatency        prometheus.HistogramVec
+	ResourceUtilization       *prometheus.GaugeVec
+	WorkerQueueDepth          *prometheus.GaugeVec
+	WorkerQueueLatency        *prometheus.HistogramVec
 }
 
 // NewMetricsCollector creates a new metrics collector with all Prometheus metrics
@@ -400,68 +399,4 @@ func (mc *MetricsCollector) UpdateWorkerQueueMetrics(queueName string, depth int
 	mc.WorkerQueueLatency.WithLabelValues(queueName).Observe(latency.Seconds())
 }
 
-// HealthChecker provides health check functionality
-type HealthChecker struct {
-	metrics *MetricsCollector
-	checks  map[string]HealthCheck
-}
-
-// HealthCheck represents a health check function
-type HealthCheck func(ctx context.Context) error
-
-// NewHealthChecker creates a new health checker
-func NewHealthChecker(metrics *MetricsCollector) *HealthChecker {
-	return &HealthChecker{
-		metrics: metrics,
-		checks:  make(map[string]HealthCheck),
-	}
-}
-
-// RegisterHealthCheck registers a health check
-func (hc *HealthChecker) RegisterHealthCheck(name string, check HealthCheck) {
-	hc.checks[name] = check
-}
-
-// RunHealthChecks runs all registered health checks
-func (hc *HealthChecker) RunHealthChecks(ctx context.Context) map[string]error {
-	results := make(map[string]error)
-	
-	for name, check := range hc.checks {
-		err := check(ctx)
-		results[name] = err
-		
-		// Update metrics
-		controller := "health_checker"
-		healthy := err == nil
-		hc.metrics.UpdateControllerHealth(controller, name, healthy)
-	}
-	
-	return results
-}
-
-// Common health checks
-
-// KubernetesAPIHealthCheck checks Kubernetes API connectivity
-func KubernetesAPIHealthCheck(ctx context.Context) error {
-	// Implementation would check Kubernetes API connectivity
-	// For now, return nil (healthy)
-	return nil
-}
-
-// LLMServiceHealthCheck checks LLM service health
-func LLMServiceHealthCheck(ctx context.Context) error {
-	// Implementation would check LLM service health
-	return nil
-}
-
-// RAGServiceHealthCheck checks RAG service health
-func RAGServiceHealthCheck(ctx context.Context) error {
-	// Implementation would check RAG service health
-	return nil
-}
-
-// WeaviateHealthCheck checks Weaviate connectivity
-func WeaviateHealthCheck(ctx context.Context) error {
-	// Implementation would check Weaviate health
-	return nil
-}
+// HealthChecker functionality moved to health_checks.go to avoid duplication

@@ -5,9 +5,9 @@ import (
 	"time"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"k8s.io/client-go/kubernetes"
 
 	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
@@ -21,12 +21,12 @@ type InstrumentedReconciler struct {
 }
 
 // NewInstrumentedReconciler creates a new instrumented reconciler
-func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, metrics *MetricsCollector) *InstrumentedReconciler {
+func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, metrics *MetricsCollector, kubeClient kubernetes.Interface, metricsRecorder *MetricsRecorder) *InstrumentedReconciler {
 	return &InstrumentedReconciler{
 		Reconciler: reconciler,
 		Name:       name,
 		Metrics:    metrics,
-		HealthChecker: NewHealthChecker(metrics),
+		HealthChecker: NewHealthChecker("1.0.0", kubeClient, metricsRecorder),
 	}
 }
 
@@ -44,9 +44,7 @@ func (ir *InstrumentedReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	duration := time.Since(start)
 	
 	// Record reconciliation metrics
-	status := "success"
 	if err != nil {
-		status = "error"
 		logger.Error(err, "reconciliation failed", "controller", ir.Name, "duration", duration)
 	} else {
 		logger.V(1).Info("reconciliation completed", "controller", ir.Name, "duration", duration)
@@ -78,7 +76,8 @@ func NewNetworkIntentInstrumentation(metrics *MetricsCollector) *NetworkIntentIn
 
 // RecordIntentProcessingStart records the start of intent processing
 func (ni *NetworkIntentInstrumentation) RecordIntentProcessingStart(intent *nephoranv1alpha1.NetworkIntent) {
-	ni.Metrics.UpdateNetworkIntentStatus(intent.Name, intent.Namespace, intent.Spec.Type, "processing")
+	intentType := "network_intent" // Default type since we don't have Spec.Type field
+	ni.Metrics.UpdateNetworkIntentStatus(intent.Name, intent.Namespace, intentType, "processing")
 }
 
 // RecordIntentProcessingComplete records the completion of intent processing
@@ -88,8 +87,9 @@ func (ni *NetworkIntentInstrumentation) RecordIntentProcessingComplete(intent *n
 		status = "failed"
 	}
 	
-	ni.Metrics.RecordNetworkIntentProcessed(intent.Spec.Type, status, duration)
-	ni.Metrics.UpdateNetworkIntentStatus(intent.Name, intent.Namespace, intent.Spec.Type, status)
+	intentType := "network_intent" // Default type since we don't have Spec.Type field
+	ni.Metrics.RecordNetworkIntentProcessed(intentType, status, duration)
+	ni.Metrics.UpdateNetworkIntentStatus(intent.Name, intent.Namespace, intentType, status)
 }
 
 // RecordLLMProcessing records LLM processing metrics
@@ -290,15 +290,12 @@ type InstrumentationManager struct {
 }
 
 // NewInstrumentationManager creates a new instrumentation manager
-func NewInstrumentationManager() *InstrumentationManager {
+func NewInstrumentationManager(kubeClient kubernetes.Interface, metricsRecorder *MetricsRecorder) *InstrumentationManager {
 	metrics := NewMetricsCollector()
-	healthChecker := NewHealthChecker(metrics)
+	healthChecker := NewHealthChecker("1.0.0", kubeClient, metricsRecorder)
 	
-	// Register health checks
-	healthChecker.RegisterHealthCheck("kubernetes_api", KubernetesAPIHealthCheck)
-	healthChecker.RegisterHealthCheck("llm_service", LLMServiceHealthCheck)
-	healthChecker.RegisterHealthCheck("rag_service", RAGServiceHealthCheck)
-	healthChecker.RegisterHealthCheck("weaviate", WeaviateHealthCheck)
+	// Register health checks (these are now handled internally by healthChecker)
+	// The health checks are registered automatically in the Start() method
 	
 	return &InstrumentationManager{
 		Metrics:                    metrics,
@@ -313,24 +310,8 @@ func NewInstrumentationManager() *InstrumentationManager {
 }
 
 // StartHealthChecks starts periodic health checks
-func (im *InstrumentationManager) StartHealthChecks(ctx context.Context, interval time.Duration) {
-	ticker := time.NewTicker(interval)
-	go func() {
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				results := im.HealthChecker.RunHealthChecks(ctx)
-				for name, err := range results {
-					if err != nil {
-						log.FromContext(ctx).Error(err, "health check failed", "check", name)
-					}
-				}
-			}
-		}
-	}()
+func (im *InstrumentationManager) StartHealthChecks(ctx context.Context) error {
+	return im.HealthChecker.Start(ctx)
 }
 
 // GetMetricsCollector returns the metrics collector
