@@ -539,6 +539,7 @@ var _ = Describe("SecurityScanner", func() {
 				// Should handle cancellation gracefully
 				Expect(results).NotTo(BeNil())
 				// Error might or might not occur depending on timing
+				_ = err // May or may not have error based on timing
 			})
 		})
 
@@ -554,6 +555,7 @@ var _ = Describe("SecurityScanner", func() {
 				
 				// Should complete despite timeouts
 				Expect(results).NotTo(BeNil())
+				_ = err // May have timeout errors
 			})
 		})
 	})

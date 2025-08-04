@@ -652,6 +652,7 @@ var _ = Describe("IncidentResponse", func() {
 					}
 				}
 				// Note: This depends on whether matching playbooks exist
+				_ = automatedFound // Mark as used for this test case
 			})
 
 			It("should not trigger for low severity incidents", func() {
@@ -728,6 +729,7 @@ var _ = Describe("IncidentResponse", func() {
 				
 				Expect(err1).ToNot(HaveOccurred())
 				Expect(err2).ToNot(HaveOccurred())
+				Expect(incident2).NotTo(BeNil()) // Use incident2
 				
 				// Check metrics after creation
 				afterCreateMetrics := ir.GetMetrics()

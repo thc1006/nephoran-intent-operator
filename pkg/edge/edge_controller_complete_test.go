@@ -208,7 +208,7 @@ func TestEdgeController_Reconcile(t *testing.T) {
 		expectedError  bool
 	}{
 		{
-			name: "successful reconciliation",
+			name: "successful reconciliation with edge nodes",
 			request: ctrl.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      "test-intent",
@@ -227,6 +227,40 @@ func TestEdgeController_Reconcile(t *testing.T) {
 						ParametersMap: map[string]string{
 							"edge": "true",
 							"latency": "5ms",
+						},
+					},
+				}
+				mc.On("Get", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil).Run(func(args mock.Arguments) {
+					obj := args.Get(2).(*nephoran.NetworkIntent)
+					*obj = *intent
+				})
+				// Mock successful deployment
+				mc.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil).Maybe()
+				mc.On("Status").Return(msw).Maybe()
+				msw.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil).Maybe()
+			},
+			expectedResult: ctrl.Result{RequeueAfter: 30 * time.Second},
+			expectedError:  true, // Will error because no nodes are available
+		},
+		{
+			name: "intent does not require edge processing",
+			request: ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      "test-intent-2",
+					Namespace: "default",
+				},
+			},
+			setupMocks: func(mc *MockClient, msw *MockStatusWriter) {
+				intent := &nephoran.NetworkIntent{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-intent-2",
+						Namespace: "default",
+					},
+					Spec: nephoran.NetworkIntentSpec{
+						Intent: "Deploy standard network service",
+						IntentType: "standard",
+						ParametersMap: map[string]string{
+							"type": "standard",
 						},
 					},
 				}

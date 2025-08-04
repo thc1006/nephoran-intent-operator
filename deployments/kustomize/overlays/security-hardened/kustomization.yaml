@@ -1,0 +1,129 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nephoran-system
+
+# Base resources
+resources:
+  - ../../base/llm-processor
+  - ../../base/oran-adaptor
+  - ../../base/rag-api
+  - ../../base/nephio-bridge
+  - ../../base/document-processor
+  - ../../base/weaviate
+  # Security components
+  - ../../base/rbac/namespace-scoped-rbac.yaml
+  - ../../base/secrets/llm-secrets.yaml
+  - ../../base/secrets/rag-secrets.yaml
+  - ../../base/secrets/managedelement-secrets.yaml
+  - ../../base/webhooks/validating-webhook.yaml
+  - ../../base/network-policies/missing-components-netpol.yaml
+
+# Patches for security hardening
+patches:
+  # Update service accounts to use namespace-scoped ones
+  - target:
+      kind: Deployment
+      name: llm-processor
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/serviceAccountName
+        value: llm-processor
+  
+  - target:
+      kind: Deployment
+      name: oran-adaptor
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/serviceAccountName
+        value: oran-adaptor-ns
+  
+  - target:
+      kind: Deployment
+      name: rag-api
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/serviceAccountName
+        value: rag-api
+  
+  - target:
+      kind: Deployment
+      name: nephio-bridge
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/serviceAccountName
+        value: nephio-bridge
+  
+  - target:
+      kind: Deployment
+      name: document-processor
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/serviceAccountName
+        value: document-processor
+
+# Configure all deployments with security context
+patchesStrategicMerge:
+  - security-context-patch.yaml
+
+# Labels for security tracking
+commonLabels:
+  security.nephoran.com/hardened: "true"
+  security.nephoran.com/version: "v1.0"
+  
+# Annotations for security compliance
+commonAnnotations:
+  security.nephoran.com/compliance: "owasp-k8s-top10"
+  security.nephoran.com/pod-security: "restricted"
+  security.nephoran.com/network-policy: "enforced"
+  security.nephoran.com/rbac: "least-privilege"
+
+# Generate ConfigMap with security configuration
+configMapGenerator:
+  - name: security-config
+    literals:
+      - pod-security-standard=restricted
+      - network-policy-mode=enforce
+      - rbac-mode=namespace-scoped
+      - secret-rotation-days=90
+      - webhook-failure-policy=Fail
+      - admission-control=enabled
+
+# Webhook certificate generation
+secretGenerator:
+  - name: nephoran-webhook-certs
+    type: kubernetes.io/tls
+    literals:
+      - tls.crt=LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCi4uLgotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+      - tls.key=LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCi4uLgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg==
+      - ca.crt=LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCi4uLgotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+    options:
+      annotations:
+        cert-manager.io/inject-ca-from: nephoran-system/nephoran-webhook-cert
+
+# Image updates for security scanning
+images:
+  - name: ghcr.io/thc1006/nephoran-intent-operator/llm-processor
+    newTag: v2.0.0-security-hardened
+  - name: ghcr.io/thc1006/nephoran-intent-operator/oran-adaptor
+    newTag: v2.0.0-security-hardened
+  - name: ghcr.io/thc1006/nephoran-intent-operator/rag-api
+    newTag: v1.0.0-security-hardened
+  - name: ghcr.io/thc1006/nephoran-intent-operator/nephio-bridge
+    newTag: v1.0.0-security-hardened
+  - name: ghcr.io/thc1006/nephoran-intent-operator/document-processor
+    newTag: v1.0.0-security-hardened
+
+# Replace sensitive environment variables with file paths
+replacements:
+  - source:
+      kind: ConfigMap
+      name: security-config
+      fieldPath: data.secret-mount-path
+    targets:
+      - select:
+          kind: Deployment
+        fieldPaths:
+          - spec.template.spec.containers.[name=llm-processor].env.[name=MISTRAL_API_KEY_PATH].value
+          - spec.template.spec.containers.[name=llm-processor].env.[name=JWT_SECRET_KEY_PATH].value
+          - spec.template.spec.containers.[name=rag-api].env.[name=WEAVIATE_API_KEY_PATH].value
