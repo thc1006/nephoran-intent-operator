@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"context"
 	"crypto/subtle"
 	"fmt"
 	"log/slog"
@@ -90,20 +91,18 @@ type SecurityMetrics struct {
 	mutex                   sync.RWMutex
 }
 
-// SecurityValidationResult holds the result of security validation
-type SecurityValidationResult struct {
-	Valid           bool                   `json:"valid"`
-	Errors          []ValidationError      `json:"errors,omitempty"`
-	Warnings        []ValidationError      `json:"warnings,omitempty"`
-	RiskScore       float64                `json:"risk_score"`
-	AppliedFilters  []string               `json:"applied_filters,omitempty"`
-	DetectedThreats []string               `json:"detected_threats,omitempty"`
-	SanitizedInput  string                 `json:"sanitized_input"`
-	ProcessingTime  time.Duration          `json:"processing_time"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+// ValidationResult represents the result of security validation
+type ValidationResult struct {
+	Valid               bool              `json:"valid"`
+	Errors              []string          `json:"errors"`
+	Warnings            []string          `json:"warnings"`
+	RiskScore           float64           `json:"risk_score"`
+	ProcessingTime      time.Duration     `json:"processing_time"`
+	AppliedFilters      []string          `json:"applied_filters"`
+	DetectedThreats     []string          `json:"detected_threats"`
+	SanitizedInput      string            `json:"sanitized_input"`
+	Metadata            map[string]interface{} `json:"metadata"`
 }
-
-// Note: ValidationResult is already defined in processing_pipeline.go
 
 // RateLimiter implements token bucket rate limiting
 type RateLimiter struct {
@@ -228,18 +227,18 @@ func getDefaultSecurityConfig() *SecurityConfig {
 }
 
 // ValidateRequest validates an incoming HTTP request
-func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*SecurityValidationResult, error) {
+func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*ValidationResult, error) {
 	startTime := time.Now()
 	
-	result := &SecurityValidationResult{
-		Valid:           true,
-		Errors:          []ValidationError{},
-		Warnings:        []ValidationError{},
-		RiskScore:       0.0,
-		AppliedFilters:  []string{},
+	result := &ValidationResult{
+		Valid:          true,
+		Errors:         []string{},
+		Warnings:       []string{},
+		RiskScore:      0.0,
+		AppliedFilters: []string{},
 		DetectedThreats: []string{},
-		SanitizedInput:  input,
-		Metadata:        make(map[string]interface{}),
+		SanitizedInput: input,
+		Metadata:       make(map[string]interface{}),
 	}
 	
 	// Update metrics
@@ -251,12 +250,7 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Se
 	if sv.config.EnableAPIKeyAuth {
 		if err := sv.validateAPIKey(r); err != nil {
 			result.Valid = false
-			result.Errors = append(result.Errors, ValidationError{
-				Field:    "api_key",
-				Message:  err.Error(),
-				Code:     "INVALID_API_KEY",
-				Severity: "error",
-			})
+			result.Errors = append(result.Errors, err.Error())
 			result.RiskScore += 0.8
 			result.DetectedThreats = append(result.DetectedThreats, "invalid_api_key")
 			
@@ -273,12 +267,7 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Se
 		identifier := sv.getRateLimitIdentifier(r)
 		if !sv.rateLimiter.Allow(identifier) {
 			result.Valid = false
-			result.Errors = append(result.Errors, ValidationError{
-				Field:    "rate_limit",
-				Message:  "rate limit exceeded",
-				Code:     "RATE_LIMIT_EXCEEDED",
-				Severity: "error",
-			})
+			result.Errors = append(result.Errors, "rate limit exceeded")
 			result.RiskScore += 0.6
 			result.DetectedThreats = append(result.DetectedThreats, "rate_limit_exceeded")
 			
@@ -294,12 +283,7 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Se
 	if sv.config.EnableIPFiltering {
 		if err := sv.validateIP(r); err != nil {
 			result.Valid = false
-			result.Errors = append(result.Errors, ValidationError{
-				Field:    "ip_address",
-				Message:  err.Error(),
-				Code:     "INVALID_IP",
-				Severity: "error",
-			})
+			result.Errors = append(result.Errors, err.Error())
 			result.RiskScore += 0.7
 			result.DetectedThreats = append(result.DetectedThreats, "blocked_ip")
 			
@@ -314,12 +298,7 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Se
 	// Input validation
 	if err := sv.validateInput(input); err != nil {
 		result.Valid = false
-		result.Errors = append(result.Errors, ValidationError{
-			Field:    "input",
-			Message:  err.Error(),
-			Code:     "INVALID_INPUT",
-			Severity: "error",
-		})
+		result.Errors = append(result.Errors, err.Error())
 		result.RiskScore += 0.5
 		
 		sv.updateMetrics(func(m *SecurityMetrics) {
@@ -331,12 +310,7 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Se
 	if sv.config.EnablePromptInjectionDetection && sv.promptDetector != nil {
 		threats, riskIncrease := sv.promptDetector.Detect(input)
 		if len(threats) > 0 {
-			result.Warnings = append(result.Warnings, ValidationError{
-				Field:    "prompt_injection",
-				Message:  fmt.Sprintf("potential prompt injection detected: %v", threats),
-				Code:     "PROMPT_INJECTION_DETECTED",
-				Severity: "warning",
-			})
+			result.Warnings = append(result.Warnings, fmt.Sprintf("potential prompt injection detected: %v", threats))
 			result.RiskScore += riskIncrease
 			result.DetectedThreats = append(result.DetectedThreats, threats...)
 			result.AppliedFilters = append(result.AppliedFilters, "prompt_injection_detection")
@@ -348,12 +322,7 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Se
 			// Block if risk is too high
 			if riskIncrease > 0.7 {
 				result.Valid = false
-				result.Errors = append(result.Errors, ValidationError{
-					Field:    "prompt_injection",
-					Message:  "high-risk prompt injection attempt blocked",
-					Code:     "HIGH_RISK_INJECTION_BLOCKED",
-					Severity: "error",
-				})
+				result.Errors = append(result.Errors, "high-risk prompt injection attempt blocked")
 			}
 		}
 	}
@@ -362,12 +331,7 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Se
 	if sv.config.EnableContentFilter && sv.contentFilter != nil {
 		if blocked, reason := sv.contentFilter.Filter(input); blocked {
 			result.Valid = false
-			result.Errors = append(result.Errors, ValidationError{
-				Field:    "content",
-				Message:  fmt.Sprintf("content blocked: %s", reason),
-				Code:     "CONTENT_BLOCKED",
-				Severity: "error",
-			})
+			result.Errors = append(result.Errors, fmt.Sprintf("content blocked: %s", reason))
 			result.RiskScore += 0.6
 			result.DetectedThreats = append(result.DetectedThreats, "blocked_content")
 			result.AppliedFilters = append(result.AppliedFilters, "content_filtering")
@@ -382,12 +346,7 @@ func (sv *SecurityValidator) ValidateRequest(r *http.Request, input string) (*Se
 	result.SanitizedInput = sv.sanitizeInput(input)
 	if result.SanitizedInput != input {
 		result.AppliedFilters = append(result.AppliedFilters, "input_sanitization")
-		result.Warnings = append(result.Warnings, ValidationError{
-			Field:    "input",
-			Message:  "input was sanitized",
-			Code:     "INPUT_SANITIZED",
-			Severity: "warning",
-		})
+		result.Warnings = append(result.Warnings, "input was sanitized")
 	}
 	
 	result.ProcessingTime = time.Since(startTime)
@@ -589,7 +548,7 @@ func (sv *SecurityValidator) removePII(input string) string {
 }
 
 // auditLog logs security events
-func (sv *SecurityValidator) auditLog(r *http.Request, result *SecurityValidationResult) {
+func (sv *SecurityValidator) auditLog(r *http.Request, result *ValidationResult) {
 	if !result.Valid || (result.Valid && sv.config.LogSuccessfulRequests) || (!result.Valid && sv.config.LogFailedRequests) {
 		logData := map[string]interface{}{
 			"client_ip":        sv.getClientIP(r),

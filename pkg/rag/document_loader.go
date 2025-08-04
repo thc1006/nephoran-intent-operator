@@ -561,34 +561,8 @@ func (dl *DocumentLoader) processPDFHybrid(ctx context.Context, filePath string)
 func (dl *DocumentLoader) processPDFWithPDFCPU(ctx context.Context, filePath string) (string, string, *DocumentMetadata, error) {
 	dl.logger.Debug("Processing PDF with pdfcpu", "file", filePath)
 
-	// Extract text using pdfcpu
-	var textBuilder strings.Builder
-	var rawTextBuilder strings.Builder
-
-	// Extract text from PDF using pdfcpu API
-	// Note: pdfcpu API might have changed, using basic text extraction
-	text := ""
-	
-	// Try to extract text - if pdfcpu fails, we'll fall back to native PDF library
-	// For now, return empty text and let the native processor handle it
-	if text == "" {
-		return dl.processPDFNative(ctx, filePath)
-	}
-
-	// Write extracted text
-	textBuilder.WriteString(text)
-	rawTextBuilder.WriteString(text)
-
-	rawContent := rawTextBuilder.String()
-	content := dl.cleanTextContent(textBuilder.String())
-
-	// Extract metadata
-	metadata := dl.extractTelecomMetadata(content, filepath.Base(filePath))
-	
-	// For now, we'll skip the page count from pdfcpu API
-	// metadata.PageCount will be set when processing with native PDF library
-
-	return content, rawContent, metadata, nil
+	// For now, fallback to the pdf library since pdfcpu API is complex
+	return dl.processPDFNative(ctx, filePath)
 }
 
 // processPDFNative processes PDF using the native ledongthuc/pdf library
@@ -641,8 +615,8 @@ func (dl *DocumentLoader) processPDFNative(ctx context.Context, filePath string)
 			}
 
 			// Extract text from page
-			// GetPlainText now requires a font map parameter
-			text, err := page.GetPlainText(nil)
+			fonts := make(map[string]*pdf.Font)
+			text, err := page.GetPlainText(fonts)
 			if err != nil {
 				dl.logger.Warn("Failed to extract text from page", "page", i, "error", err)
 				continue
@@ -1813,7 +1787,8 @@ func (spp *StreamingPDFProcessor) extractPageContent(pageNumber int) (string, st
 	}
 
 	// Get plain text
-	text, err := page.GetPlainText(nil)
+	fonts := make(map[string]*pdf.Font)
+	text, err := page.GetPlainText(fonts)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to extract text from page %d: %w", pageNumber, err)
 	}

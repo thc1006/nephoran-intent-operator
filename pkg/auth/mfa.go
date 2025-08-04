@@ -3,7 +3,9 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base32"
+	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"net/smtp"
@@ -12,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 )
 
@@ -340,7 +343,7 @@ func (mfa *MFAManager) verifyTOTP(ctx context.Context, request *MFAVerificationR
 		return result, nil
 	}
 
-	valid := totp.Validate(request.Code, userSecret)
+	valid := totp.Validate(request.Code, userSecret, time.Now())
 	result.Valid = valid
 
 	if valid {

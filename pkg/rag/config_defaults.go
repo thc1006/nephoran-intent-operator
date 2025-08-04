@@ -268,10 +268,10 @@ func getDefaultMonitoringConfig() *MonitoringConfig {
 		TracingSampleRate:           0.1,
 		RetentionPeriod:             7 * 24 * time.Hour, // 7 days
 		EnableResourceMonitoring:    true,
-		ResourceMonitoringInterval:  60 * time.Second,
-		EnableAlerting:              true,
-		AlertWebhooks:               []string{},
+		EnableAlerting:              false, // Disabled by default
 		MetricsInterval:             15 * time.Second,
+		ResourceMonitoringInterval:  60 * time.Second,
+		AlertWebhooks:               []string{},
 	}
 }
 
@@ -291,10 +291,10 @@ type MonitoringConfig struct {
 	TracingSampleRate           float64       `json:"tracing_sample_rate"`
 	RetentionPeriod             time.Duration `json:"retention_period"`
 	EnableResourceMonitoring    bool          `json:"enable_resource_monitoring"`
-	ResourceMonitoringInterval  time.Duration `json:"resource_monitoring_interval"`
 	EnableAlerting              bool          `json:"enable_alerting"`
-	AlertWebhooks               []string      `json:"alert_webhooks"`
 	MetricsInterval             time.Duration `json:"metrics_interval"`
+	ResourceMonitoringInterval  time.Duration `json:"resource_monitoring_interval"`
+	AlertWebhooks               []string      `json:"alert_webhooks"`
 }
 
 // DefaultPipelineConfiguration returns a complete default pipeline configuration
