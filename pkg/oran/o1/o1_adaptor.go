@@ -2,6 +2,7 @@ package o1
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -9,6 +10,8 @@ import (
 	"sync"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	nephoranv1alpha1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -55,6 +58,7 @@ type O1Adaptor struct {
 	subsMux        sync.RWMutex
 	metricCollectors map[string]*MetricCollector
 	metricsMux     sync.RWMutex
+	kubeClient     client.Client
 }
 
 // O1Config holds O1 interface configuration
@@ -161,7 +165,7 @@ type YANGModels struct {
 }
 
 // NewO1Adaptor creates a new O1 adaptor with default configuration
-func NewO1Adaptor(config *O1Config) *O1Adaptor {
+func NewO1Adaptor(config *O1Config, kubeClient client.Client) *O1Adaptor {
 	if config == nil {
 		config = &O1Config{
 			DefaultPort:    830, // NETCONF port
@@ -178,7 +182,95 @@ func NewO1Adaptor(config *O1Config) *O1Adaptor {
 		yangRegistry:     NewYANGModelRegistry(),
 		subscriptions:    make(map[string][]EventCallback),
 		metricCollectors: make(map[string]*MetricCollector),
+		kubeClient:       kubeClient,
 	}
+}
+
+// resolveSecretValue resolves a secret value from Kubernetes Secret reference
+func (a *O1Adaptor) resolveSecretValue(ctx context.Context, secretRef *nephoranv1alpha1.SecretReference, defaultNamespace string) (string, error) {
+	if secretRef == nil {
+		return "", fmt.Errorf("secret reference is nil")
+	}
+
+	if a.kubeClient == nil {
+		return "", fmt.Errorf("no Kubernetes client available for secret resolution")
+	}
+
+	// Determine namespace - use the one from secretRef or fall back to default
+	namespace := secretRef.Namespace
+	if namespace == "" {
+		namespace = defaultNamespace
+	}
+
+	// Get the secret from Kubernetes
+	secret := &corev1.Secret{}
+	err := a.kubeClient.Get(ctx, client.ObjectKey{
+		Name:      secretRef.Name,
+		Namespace: namespace,
+	}, secret)
+	if err != nil {
+		return "", fmt.Errorf("failed to get secret %s/%s: %w", namespace, secretRef.Name, err)
+	}
+
+	// Extract the value for the specified key
+	if value, exists := secret.Data[secretRef.Key]; exists {
+		return string(value), nil
+	}
+
+	return "", fmt.Errorf("key %s not found in secret %s/%s", secretRef.Key, namespace, secretRef.Name)
+}
+
+// buildTLSConfig builds TLS configuration from certificate references in credentials
+func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1alpha1.ManagedElement) (*tls.Config, error) {
+	credentials := &me.Spec.Credentials
+	
+	// If no client certificate references, return basic TLS config
+	if credentials.ClientCertificateRef == nil && credentials.ClientKeyRef == nil {
+		// Basic TLS config - use system's root CA pool
+		return &tls.Config{
+			InsecureSkipVerify: false, // In production, should validate server certificates
+			MinVersion:         tls.VersionTLS12,
+		}, nil
+	}
+
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
+
+	// Load client certificate and key if provided
+	if credentials.ClientCertificateRef != nil && credentials.ClientKeyRef != nil {
+		certData, err := a.resolveSecretValue(ctx, credentials.ClientCertificateRef, me.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve client certificate: %w", err)
+		}
+
+		keyData, err := a.resolveSecretValue(ctx, credentials.ClientKeyRef, me.Namespace)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve client key: %w", err)
+		}
+
+		cert, err := tls.X509KeyPair([]byte(certData), []byte(keyData))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create X509 key pair: %w", err)
+		}
+
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	}
+
+	// Apply TLS configuration from O1Config if available
+	if a.config.TLSConfig != nil {
+		if a.config.TLSConfig.SkipVerify {
+			tlsConfig.InsecureSkipVerify = true
+		}
+		
+		// Load CA certificate if specified
+		if a.config.TLSConfig.CAFile != "" {
+			// In a complete implementation, we would load CA cert from file or secret
+			// For now, we'll use the system's root CA pool
+		}
+	}
+
+	return tlsConfig, nil
 }
 
 // Connect establishes a NETCONF session to a managed element
@@ -204,30 +296,65 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1alpha1.ManagedEle
 	}
 	a.clientsMux.RUnlock()
 	
+	// Build TLS configuration first
+	tlsConfig, err := a.buildTLSConfig(ctx, me)
+	if err != nil {
+		return fmt.Errorf("failed to build TLS configuration: %w", err)
+	}
+
 	// Create NETCONF client configuration
 	netconfConfig := &NetconfConfig{
 		Host:           host,
 		Port:           port,
 		Timeout:        a.config.ConnectTimeout,
 		RetryAttempts:  a.config.MaxRetries,
+		TLSConfig:      tlsConfig,
 	}
 	
 	// Create new NETCONF client
 	client := NewNetconfClient(netconfConfig)
 	
-	// TODO: Implement proper credential resolution from Secret references
-	// The ManagedElementCredentials struct uses SecretReferences, not direct values
-	// This needs to be updated to resolve secrets from the Kubernetes API
-	authConfig := &AuthConfig{
-		Username: "placeholder", // TODO: resolve from me.Spec.Credentials.UsernameRef
-		Password: "placeholder", // TODO: resolve from me.Spec.Credentials.PasswordRef
+	// Resolve credentials from Kubernetes secrets
+	var username, password string
+	var privateKey []byte
+	
+	// Resolve username if provided
+	if me.Spec.Credentials.UsernameRef != nil {
+		username, err = a.resolveSecretValue(ctx, me.Spec.Credentials.UsernameRef, me.Namespace)
+		if err != nil {
+			return fmt.Errorf("failed to resolve username: %w", err)
+		}
 	}
 	
-	// TODO: Implement private key resolution from PrivateKeyRef
-	// if me.Spec.Credentials.PrivateKeyRef != nil {
-	//     // Resolve secret and extract private key
-	//     authConfig.PrivateKey = []byte("placeholder")
-	// }
+	// Resolve password if provided
+	if me.Spec.Credentials.PasswordRef != nil {
+		password, err = a.resolveSecretValue(ctx, me.Spec.Credentials.PasswordRef, me.Namespace)
+		if err != nil {
+			return fmt.Errorf("failed to resolve password: %w", err)
+		}
+	}
+	
+	// Resolve private key if provided
+	if me.Spec.Credentials.PrivateKeyRef != nil {
+		privateKeyStr, err := a.resolveSecretValue(ctx, me.Spec.Credentials.PrivateKeyRef, me.Namespace)
+		if err != nil {
+			return fmt.Errorf("failed to resolve private key: %w", err)
+		}
+		privateKey = []byte(privateKeyStr)
+	}
+	
+	// Validate that we have either password or private key authentication
+	if password == "" && len(privateKey) == 0 {
+		return fmt.Errorf("either password or private key must be provided for authentication")
+	}
+	
+	// Build authentication configuration
+	authConfig := &AuthConfig{
+		Username:   username,
+		Password:   password,
+		PrivateKey: privateKey,
+		TLSConfig:  tlsConfig,
+	}
 	
 	// Establish connection with retry logic
 	var lastErr error
@@ -719,3 +846,4 @@ func parseNetconfResponse(response string) (string, error) {
 	}
 	return response, nil
 }
+

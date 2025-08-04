@@ -10,12 +10,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 )
+
+const E2NodeSetFinalizer = "nephoran.com/e2nodeset-finalizer"
 
 type E2NodeSetReconciler struct {
 	client.Client
@@ -37,7 +40,7 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	var e2nodeSet nephoranv1.E2NodeSet
 	if err := r.Get(ctx, req.NamespacedName, &e2nodeSet); err != nil {
 		if errors.IsNotFound(err) {
-			// E2NodeSet was deleted, cleanup will be handled by garbage collection
+			// E2NodeSet was deleted, cleanup will be handled by finalizer
 			logger.Info("E2NodeSet resource not found. Ignoring since object must be deleted")
 			return ctrl.Result{}, nil
 		}
@@ -46,6 +49,22 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	logger.Info("Reconciling E2NodeSet", "name", e2nodeSet.Name, "namespace", e2nodeSet.Namespace, "replicas", e2nodeSet.Spec.Replicas)
+
+	// Handle deletion
+	if e2nodeSet.DeletionTimestamp != nil {
+		return r.handleDeletion(ctx, &e2nodeSet)
+	}
+
+	// Add finalizer if not present
+	if !controllerutil.ContainsFinalizer(&e2nodeSet, E2NodeSetFinalizer) {
+		controllerutil.AddFinalizer(&e2nodeSet, E2NodeSetFinalizer)
+		if err := r.Update(ctx, &e2nodeSet); err != nil {
+			logger.Error(err, "Failed to add finalizer")
+			return ctrl.Result{}, err
+		}
+		logger.Info("Added finalizer to E2NodeSet")
+		return ctrl.Result{Requeue: true}, nil
+	}
 
 	// Get current E2 nodes using E2Manager
 	currentE2Nodes, err := r.getCurrentE2NodesViaE2Manager(ctx, &e2nodeSet)
@@ -185,9 +204,9 @@ func (r *E2NodeSetReconciler) deleteE2NodeWithE2AP(ctx context.Context, e2nodeSe
 	}
 
 	// Step 3: Deregister the E2 node from Near-RT RIC
-	// TODO: Add DeregisterE2Node method to E2Manager interface
-	// For now, we rely on the adaptor cleanup during manager shutdown
-	logger.V(1).Info("E2 node deregistration delegated to adaptor cleanup", "nodeID", nodeID)
+	if err := r.E2Manager.DeregisterE2Node(ctx, nodeID); err != nil {
+		return fmt.Errorf("failed to deregister E2 node %s: %w", nodeID, err)
+	}
 
 	logger.Info("Successfully deleted E2 node with E2AP", "nodeID", nodeID)
 	return nil
@@ -282,5 +301,55 @@ func (r *E2NodeSetReconciler) updateStatus(ctx context.Context, e2nodeSet *nepho
 		logger.Info("Updated E2NodeSet status", "readyReplicas", readyReplicas)
 	}
 
+	return ctrl.Result{}, nil
+}
+
+// handleDeletion handles the deletion of an E2NodeSet and cleanup of all associated E2 nodes
+func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet) (ctrl.Result, error) {
+	logger := log.FromContext(ctx)
+	logger.Info("Handling E2NodeSet deletion", "name", e2nodeSet.Name, "namespace", e2nodeSet.Namespace)
+
+	if r.E2Manager == nil {
+		logger.Error(fmt.Errorf("E2Manager not initialized"), "Cannot cleanup E2 nodes")
+		// Remove finalizer even if cleanup fails to prevent stuck resources
+		controllerutil.RemoveFinalizer(e2nodeSet, E2NodeSetFinalizer)
+		if err := r.Update(ctx, e2nodeSet); err != nil {
+			return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %w", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Get all E2 nodes that belong to this E2NodeSet
+	currentNodes, err := r.getCurrentE2NodesViaE2Manager(ctx, e2nodeSet)
+	if err != nil {
+		logger.Error(err, "Failed to get current E2 nodes during deletion")
+		// Continue with cleanup attempt even if we can't list nodes
+	}
+
+	// Cleanup all E2 nodes belonging to this E2NodeSet
+	cleanupErrors := []error{}
+	for _, node := range currentNodes {
+		if err := r.E2Manager.DeregisterE2Node(ctx, node.NodeID); err != nil {
+			logger.Error(err, "Failed to deregister E2 node during deletion", "nodeID", node.NodeID)
+			cleanupErrors = append(cleanupErrors, fmt.Errorf("failed to deregister node %s: %w", node.NodeID, err))
+		} else {
+			logger.Info("Successfully deregistered E2 node during deletion", "nodeID", node.NodeID)
+		}
+	}
+
+	// If there were cleanup errors, requeue for retry
+	if len(cleanupErrors) > 0 {
+		logger.Error(fmt.Errorf("cleanup errors occurred"), "Some E2 nodes failed to cleanup", "errorCount", len(cleanupErrors))
+		// Return error to requeue, but don't wait too long to avoid blocking deletion
+		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("cleanup errors occurred for %d nodes", len(cleanupErrors))
+	}
+
+	// All cleanup successful, remove finalizer
+	controllerutil.RemoveFinalizer(e2nodeSet, E2NodeSetFinalizer)
+	if err := r.Update(ctx, e2nodeSet); err != nil {
+		return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %w", err)
+	}
+
+	logger.Info("Successfully completed E2NodeSet deletion cleanup", "name", e2nodeSet.Name, "cleanedNodes", len(currentNodes))
 	return ctrl.Result{}, nil
 }

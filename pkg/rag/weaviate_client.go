@@ -13,6 +13,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/auth"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
@@ -202,7 +203,7 @@ type SearchQuery struct {
 
 // SearchResult represents a search result from the vector database
 type SearchResult struct {
-	Document        *TelecomDocument `json:"document"`
+	Document        *shared.TelecomDocument `json:"document"`
 	Score           float32          `json:"score"`
 	Distance        float32          `json:"distance"`
 	Vector          []float32        `json:"vector,omitempty"`

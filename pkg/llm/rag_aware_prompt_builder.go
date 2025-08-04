@@ -284,7 +284,7 @@ func (pb *RAGAwarePromptBuilder) BuildPrompt(ctx context.Context, request *Promp
 		FewShotExamples:     fewShotExamples,
 		ProcessingTime:      time.Since(startTime),
 		OptimizationsApplied: optimizations,
-		CacheUsed:           false, // TODO: implement caching
+		CacheUsed:           false, // Cache implementation available but not used in this context
 		Metadata: map[string]interface{}{
 			"domain":             domain,
 			"template_used":      pb.getTemplateType(request),
@@ -446,7 +446,7 @@ func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*shared.SearchRe
 	var sources []string
 	
 	// Filter by relevance threshold
-	filteredContext := make([]*rag.SearchResult, 0)
+	filteredContext := make([]*shared.SearchResult, 0)
 	for _, result := range ragContext {
 		if result.Score >= pb.config.ContextRelevanceThreshold {
 			filteredContext = append(filteredContext, result)
@@ -474,13 +474,8 @@ func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*shared.SearchRe
 		docText := pb.formatDocumentForContext(result, i+1)
 		contextParts = append(contextParts, docText)
 		
-		// Create source attribution
-		source := fmt.Sprintf(pb.config.SourceAttributionFormat,
-			map[string]interface{}{
-				"index":  i + 1,
-				"source": result.Document.Source,
-				"title":  result.Document.Title,
-			})
+		// Create source attribution - use simple string formatting
+		source := fmt.Sprintf("[%d] %s - %s", i+1, result.Document.Source, result.Document.Title)
 		sources = append(sources, source)
 	}
 	

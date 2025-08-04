@@ -2,6 +2,8 @@ package rag
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -21,7 +23,41 @@ type RAGService struct {
 	logger         *slog.Logger
 	metrics        *RAGMetrics
 	errorBuilder   *errors.ErrorBuilder
+	cache          *RAGCache
 	mutex          sync.RWMutex
+}
+
+// RAGCache provides caching for RAG responses
+type RAGCache struct {
+	data      map[string]*CachedResponse
+	mutex     sync.RWMutex
+	config    *CacheConfig
+	metrics   *CacheMetrics
+}
+
+// CachedResponse represents a cached RAG response
+type CachedResponse struct {
+	Response  *RAGResponse
+	CreatedAt time.Time
+	AccessCount int64
+	LastAccess  time.Time
+}
+
+// CacheConfig holds cache configuration
+type CacheConfig struct {
+	EnableCache     bool          `json:"enable_cache"`
+	TTL            time.Duration `json:"ttl"`
+	MaxSize        int           `json:"max_size"`
+	CleanupInterval time.Duration `json:"cleanup_interval"`
+}
+
+// CacheMetrics tracks cache performance
+type CacheMetrics struct {
+	Hits        int64 `json:"hits"`
+	Misses      int64 `json:"misses"`
+	Evictions   int64 `json:"evictions"`
+	TotalItems  int64 `json:"total_items"`
+	mutex       sync.RWMutex
 }
 
 // RAGConfig holds configuration for the RAG service
@@ -106,15 +142,31 @@ func NewRAGService(weaviateClient *WeaviateClient, llmClient shared.ClientInterf
 	}
 
 	logger := slog.Default().With("component", "rag-service")
+	
+	// Initialize cache
+	cache := newRAGCache(&CacheConfig{
+		EnableCache:     config.EnableCaching,
+		TTL:            config.CacheTTL,
+		MaxSize:        1000, // Default max size
+		CleanupInterval: 5 * time.Minute,
+	})
 
-	return &RAGService{
+	service := &RAGService{
 		weaviateClient: weaviateClient,
 		llmClient:      llmClient,
 		config:         config,
 		logger:         logger,
 		metrics:        &RAGMetrics{LastUpdated: time.Now()},
 		errorBuilder:   errors.NewErrorBuilder("rag-service", "", logger),
+		cache:          cache,
 	}
+	
+	// Start cache cleanup goroutine
+	if config.EnableCaching {
+		go service.startCacheCleanup()
+	}
+	
+	return service
 }
 
 // getDefaultRAGConfig returns default configuration for RAG service
@@ -182,6 +234,21 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	rs.updateMetrics(func(m *RAGMetrics) {
 		m.TotalQueries++
 	})
+	
+	// Check cache first if enabled
+	if rs.config.EnableCaching {
+		cacheKey := rs.generateCacheKey(request)
+		if cachedResponse := rs.cache.Get(cacheKey); cachedResponse != nil {
+			rs.logger.Debug("Cache hit for RAG query", "cache_key", cacheKey)
+			cachedResponse.UsedCache = true
+			rs.updateMetrics(func(m *RAGMetrics) {
+				m.SuccessfulQueries++
+				m.CacheHitRate = float64(rs.cache.metrics.Hits) / float64(rs.cache.metrics.Hits + rs.cache.metrics.Misses)
+			})
+			return cachedResponse, nil
+		}
+		rs.logger.Debug("Cache miss for RAG query", "cache_key", cacheKey)
+	}
 
 	// Step 1: Retrieve relevant documents
 	retrievalStart := time.Now()
@@ -264,7 +331,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 		ProcessingTime:  time.Since(startTime),
 		RetrievalTime:   retrievalTime,
 		GenerationTime:  generationTime,
-		UsedCache:       false, // TODO: implement caching
+		UsedCache:       false,
 		Query:           request.Query,
 		IntentType:      request.IntentType,
 		ProcessedAt:     time.Now(),
@@ -276,12 +343,19 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 		},
 	}
 
+	// Cache the response if caching is enabled
+	if rs.config.EnableCaching {
+		cacheKey := rs.generateCacheKey(request)
+		rs.cache.Set(cacheKey, ragResponse)
+	}
+
 	// Update success metrics
 	rs.updateMetrics(func(m *RAGMetrics) {
 		m.SuccessfulQueries++
 		m.AverageLatency = (m.AverageLatency*time.Duration(m.SuccessfulQueries-1) + ragResponse.ProcessingTime) / time.Duration(m.SuccessfulQueries)
 		m.AverageRetrievalTime = (m.AverageRetrievalTime*time.Duration(m.SuccessfulQueries-1) + retrievalTime) / time.Duration(m.SuccessfulQueries)
 		m.AverageGenerationTime = (m.AverageGenerationTime*time.Duration(m.SuccessfulQueries-1) + generationTime) / time.Duration(m.SuccessfulQueries)
+		m.CacheHitRate = float64(rs.cache.metrics.Hits) / float64(rs.cache.metrics.Hits + rs.cache.metrics.Misses)
 		m.LastUpdated = time.Now()
 	})
 
@@ -540,13 +614,244 @@ func (rs *RAGService) GetMetrics() *RAGMetrics {
 func (rs *RAGService) GetHealth() map[string]interface{} {
 	weaviateHealth := rs.weaviateClient.GetHealthStatus()
 	
+	// Determine overall health status
+	status := "healthy"
+	issues := make([]string, 0)
+	
+	// Check Weaviate health
+	if !weaviateHealth.IsHealthy {
+		status = "degraded"
+		issues = append(issues, "weaviate_unhealthy")
+	}
+	
+	// Check LLM client health
+	if rs.llmClient == nil {
+		status = "unhealthy"
+		issues = append(issues, "llm_client_unavailable")
+	}
+	
+	// Check cache health if enabled
+	cacheHealth := "disabled"
+	if rs.config.EnableCaching && rs.cache != nil {
+		cacheHealth = "healthy"
+		cacheMetrics := rs.cache.GetMetrics()
+		if cacheMetrics.TotalItems > int64(rs.cache.config.MaxSize)*9/10 { // 90% full
+			status = "degraded"
+			issues = append(issues, "cache_near_full")
+		}
+	}
+	
+	// Check recent error rates
+	metrics := rs.GetMetrics()
+	if metrics.TotalQueries > 0 {
+		errorRate := float64(metrics.FailedQueries) / float64(metrics.TotalQueries)
+		if errorRate > 0.1 { // More than 10% error rate
+			status = "degraded"
+			issues = append(issues, "high_error_rate")
+		}
+		if errorRate > 0.5 { // More than 50% error rate
+			status = "unhealthy"
+		}
+	}
+	
 	return map[string]interface{}{
-		"status": "healthy", // TODO: implement proper health checking
+		"status": status,
+		"issues": issues,
 		"weaviate": map[string]interface{}{
 			"healthy":    weaviateHealth.IsHealthy,
 			"last_check": weaviateHealth.LastCheck,
 			"version":    weaviateHealth.Version,
 		},
-		"metrics": rs.GetMetrics(),
+		"cache": map[string]interface{}{
+			"status":  cacheHealth,
+			"metrics": rs.cache.GetMetrics(),
+		},
+		"metrics": metrics,
+		"timestamp": time.Now(),
 	}
+}
+
+// generateCacheKey generates a cache key for a RAG request
+func (rs *RAGService) generateCacheKey(request *RAGRequest) string {
+	// Create a deterministic key based on request parameters
+	data := struct {
+		Query         string                 `json:"query"`
+		IntentType    string                 `json:"intent_type"`
+		MaxResults    int                    `json:"max_results"`
+		MinConfidence float32                `json:"min_confidence"`
+		Filters       map[string]interface{} `json:"filters"`
+		UseHybrid     bool                   `json:"use_hybrid"`
+		EnableRerank  bool                   `json:"enable_rerank"`
+	}{
+		Query:         request.Query,
+		IntentType:    request.IntentType,
+		MaxResults:    request.MaxResults,
+		MinConfidence: request.MinConfidence,
+		Filters:       request.SearchFilters,
+		UseHybrid:     request.UseHybridSearch,
+		EnableRerank:  request.EnableReranking,
+	}
+	
+	jsonData, _ := json.Marshal(data)
+	hash := sha256.Sum256(jsonData)
+	return hex.EncodeToString(hash[:])
+}
+
+// startCacheCleanup starts the cache cleanup goroutine
+func (rs *RAGService) startCacheCleanup() {
+	ticker := time.NewTicker(rs.cache.config.CleanupInterval)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ticker.C:
+			rs.cache.Cleanup()
+		}
+	}
+}
+
+// newRAGCache creates a new RAG cache
+func newRAGCache(config *CacheConfig) *RAGCache {
+	return &RAGCache{
+		data:    make(map[string]*CachedResponse),
+		config:  config,
+		metrics: &CacheMetrics{},
+	}
+}
+
+// Get retrieves a cached response
+func (c *RAGCache) Get(key string) *RAGResponse {
+	if !c.config.EnableCache {
+		return nil
+	}
+	
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	
+	cached, exists := c.data[key]
+	if !exists {
+		c.updateMetrics(func(m *CacheMetrics) { m.Misses++ })
+		return nil
+	}
+	
+	// Check if expired
+	if time.Since(cached.CreatedAt) > c.config.TTL {
+		// Remove expired entry
+		go c.remove(key)
+		c.updateMetrics(func(m *CacheMetrics) { m.Misses++ })
+		return nil
+	}
+	
+	// Update access info
+	cached.AccessCount++
+	cached.LastAccess = time.Now()
+	
+	c.updateMetrics(func(m *CacheMetrics) { m.Hits++ })
+	return cached.Response
+}
+
+// Set stores a response in the cache
+func (c *RAGCache) Set(key string, response *RAGResponse) {
+	if !c.config.EnableCache {
+		return
+	}
+	
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	
+	// Check if we need to evict items
+	if len(c.data) >= c.config.MaxSize {
+		c.evictLRU()
+	}
+	
+	c.data[key] = &CachedResponse{
+		Response:    response,
+		CreatedAt:   time.Now(),
+		AccessCount: 0,
+		LastAccess:  time.Now(),
+	}
+	
+	c.updateMetrics(func(m *CacheMetrics) { m.TotalItems++ })
+}
+
+// remove removes an item from cache
+func (c *RAGCache) remove(key string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	
+	if _, exists := c.data[key]; exists {
+		delete(c.data, key)
+		c.updateMetrics(func(m *CacheMetrics) { 
+			m.TotalItems--
+			m.Evictions++
+		})
+	}
+}
+
+// evictLRU evicts the least recently used item
+func (c *RAGCache) evictLRU() {
+	if len(c.data) == 0 {
+		return
+	}
+	
+	var oldestKey string
+	var oldestTime time.Time = time.Now()
+	
+	for key, cached := range c.data {
+		if cached.LastAccess.Before(oldestTime) {
+			oldestTime = cached.LastAccess
+			oldestKey = key
+		}
+	}
+	
+	if oldestKey != "" {
+		delete(c.data, oldestKey)
+		c.updateMetrics(func(m *CacheMetrics) { 
+			m.TotalItems--
+			m.Evictions++
+		})
+	}
+}
+
+// Cleanup removes expired entries
+func (c *RAGCache) Cleanup() {
+	if !c.config.EnableCache {
+		return
+	}
+	
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	
+	now := time.Now()
+	expiredKeys := make([]string, 0)
+	
+	for key, cached := range c.data {
+		if now.Sub(cached.CreatedAt) > c.config.TTL {
+			expiredKeys = append(expiredKeys, key)
+		}
+	}
+	
+	for _, key := range expiredKeys {
+		delete(c.data, key)
+		c.updateMetrics(func(m *CacheMetrics) { 
+			m.TotalItems--
+			m.Evictions++
+		})
+	}
+}
+
+// GetMetrics returns cache metrics
+func (c *RAGCache) GetMetrics() *CacheMetrics {
+	c.metrics.mutex.RLock()
+	defer c.metrics.mutex.RUnlock()
+	
+	metrics := *c.metrics
+	return &metrics
+}
+
+// updateMetrics safely updates cache metrics
+func (c *RAGCache) updateMetrics(updater func(*CacheMetrics)) {
+	c.metrics.mutex.Lock()
+	defer c.metrics.mutex.Unlock()
+	updater(c.metrics)
 }

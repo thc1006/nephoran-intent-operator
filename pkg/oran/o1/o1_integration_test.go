@@ -30,7 +30,7 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
 	
 	// Create O1 adaptor
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, fakeClient)
 	
 	tests := []struct {
 		name           string
@@ -314,7 +314,7 @@ func TestO1AdaptorWithMockNetconfServer(t *testing.T) {
 	// Note: This would ideally use a mock NETCONF server
 	// For now, we test the error handling and interface behavior
 	
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, fakeClient)
 	
 	mockME := &nephoranv1alpha1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
@@ -359,7 +359,7 @@ func TestO1AdaptorWithMockNetconfServer(t *testing.T) {
 // TestO1AdaptorFCAPSOperations tests comprehensive FCAPS operations
 func TestO1AdaptorFCAPSOperations(t *testing.T) {
 	ctx := context.Background()
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, fakeClient)
 
 	me := &nephoranv1alpha1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
@@ -554,7 +554,7 @@ func TestO1AdaptorResourceManagement(t *testing.T) {
 // Benchmark tests for performance verification
 func BenchmarkO1AdaptorValidateConfiguration(b *testing.B) {
 	ctx := context.Background()
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, fakeClient)
 	
 	config := `<hardware>
 		<component>
@@ -574,7 +574,7 @@ func BenchmarkO1AdaptorValidateConfiguration(b *testing.B) {
 }
 
 func BenchmarkO1AdaptorParseAlarmData(b *testing.B) {
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, fakeClient)
 	
 	xmlData := `<data>
 		<active-alarm-list>

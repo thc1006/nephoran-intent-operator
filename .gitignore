@@ -1,29 +1,50 @@
-# Binaries
+# =============================================================================
+# Nephoran Intent Operator - Comprehensive .gitignore
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Binaries and Executables
+# -----------------------------------------------------------------------------
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
 
-# Test binary, build with `go test -c`
+# Go test binaries
 *.test
 
-# Output of the go coverage tool, specifically when run with the
-# -o option
+# -----------------------------------------------------------------------------
+# Build and Output Files
+# -----------------------------------------------------------------------------
+# Go coverage files
 *.out
+*.html
+config_coverage.*
+coverage*
+coverage/
 
-# Dependency directories
+# Build directories
+/build
+/dist
+/bin/
+bin/
+out/
+target/
+
+# -----------------------------------------------------------------------------
+# Dependencies and Package Managers
+# -----------------------------------------------------------------------------
 vendor/
 node_modules/
+.pnp
+.pnp.js
 
-# Go workspace file
+# Go workspace files
 go.work
+go.work.sum
 
-# Env file
-.env*
-*.env
-
-# Python
+# Python package files
 __pycache__/
 *.pyc
 *.pyo
@@ -31,43 +52,201 @@ __pycache__/
 .Python
 env/
 venv/
+.venv/
 pip-wheel-metadata/
 .installed.cfg
-*.egg-info
+*.egg-info/
+dist/
+build/
+*.egg
 
+# -----------------------------------------------------------------------------
+# Environment and Configuration Files
+# -----------------------------------------------------------------------------
+.env*
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Prevent accidental token/secret files
+*token*
+*secret*
+*key*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# -----------------------------------------------------------------------------
+# IDE and Editor Files
+# -----------------------------------------------------------------------------
 # VSCode
 .vscode/
+*.swp
+*.swo
 
-# Build output
-/build
-/dist
-/bin/
-bin/
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# -----------------------------------------------------------------------------
+# Operating System Files
+# -----------------------------------------------------------------------------
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+
+# -----------------------------------------------------------------------------
+# Logs and Temporary Files
+# -----------------------------------------------------------------------------
+*.log
+*.log.*
+logs/
+*.tmp
+*.temp
+temp/
+tmp/
+*.cache
+*.pid
+*.seed
+*.pid.lock
+
+# Application specific logs
+build-*.log
+dependency-*.log
+validation-*.log
+security-*.log
+
+# -----------------------------------------------------------------------------
+# Testing and Coverage
+# -----------------------------------------------------------------------------
+.nyc_output
+coverage/
+*.lcov
+.coverage
+htmlcov/
+.tox/
+.pytest_cache/
+.cache/
+
+# -----------------------------------------------------------------------------
+# Docker and Container Files
+# -----------------------------------------------------------------------------
+.dockerignore
+*.dockerfile.bak
+docker-compose.override.yml
+
+# -----------------------------------------------------------------------------
+# Kubernetes and Deployment
+# -----------------------------------------------------------------------------
+*.kubeconfig
+kubeconfig*
+.kubectl_history
+helm-values-*.yaml
+kustomization-*.yaml
+
+# -----------------------------------------------------------------------------
+# Security and CI/CD
+# -----------------------------------------------------------------------------
+# Security reports
+security-reports/
+*.sarif
+*.json.security
+trivy-*
+hadolint-*
+
+# CI/CD artifacts
+.github/workflows/*.log
+.gitlab-ci-local/
+
+# -----------------------------------------------------------------------------
+# MCP and AI Tools
+# -----------------------------------------------------------------------------
 mcp.json
 .kiro/settings/mcp.json.mcp.json
-
 .mcp.json
 .mcp-fresh.json
 .mcp.json.old
 .mcp.json.backup
 .mcp.json.template
-*.token
-.env.local
 
-# Prevent accidental token files
-*token*
-*secret*
-*key*
-.env
-.env.*
-onc
-
-.kiro
 .kiro/
-.claude
 .claude/
+.cursor/
 
+# AI generated documentation that shouldn't be committed
 nephoran-code-analyzer.md
 nephoran-docs-specialist.md
 nephoran-troubleshooter.md
 CLAUDE.md
+CLAUDE.md.backup
+
+# -----------------------------------------------------------------------------
+# Project Specific
+# -----------------------------------------------------------------------------
+# Backup files
+*.backup
+*.bak
+*.orig
+
+# Windows scripts generated files
+windows-env.bat
+
+# Local development files
+local-config.yaml
+dev-secrets.yaml
+
+# Kind cluster configs
+kind-config.yaml
+
+# Test artifacts
+test-results/
+*.test.json
+
+# Runtime files
+*.pid
+*.sock
+
+# Monitoring and observability
+grafana-data/
+prometheus-data/
+jaeger-data/

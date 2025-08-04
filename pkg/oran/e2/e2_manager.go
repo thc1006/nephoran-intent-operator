@@ -632,6 +632,97 @@ func (m *E2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFuncti
 	return nil
 }
 
+// DeregisterE2Node deregisters an E2 node with comprehensive cleanup
+func (m *E2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+
+	adaptor, exists := m.adaptors[nodeID]
+	if !exists {
+		return fmt.Errorf("no connection to node %s", nodeID)
+	}
+
+	// Log the start of deregistration
+	if m.logger != nil {
+		m.logger.Printf("Starting E2 node deregistration: %s", nodeID)
+	}
+
+	// First, clean up all subscriptions for this node
+	m.subscriptionMgr.mutex.Lock()
+	subscriptionCount := 0
+	if nodeSubs, exists := m.subscriptionMgr.subscriptions[nodeID]; exists {
+		subscriptionCount = len(nodeSubs)
+		for subscriptionID, managedSub := range nodeSubs {
+			// Update subscription state to deleting
+			m.updateSubscriptionState(nodeID, subscriptionID, SubscriptionStateDeleting, "Node deregistration in progress")
+
+			// Delete subscription from adaptor
+			if err := adaptor.DeleteSubscription(ctx, nodeID, subscriptionID); err != nil {
+				// Log error but continue with cleanup
+				if m.logger != nil {
+					m.logger.Printf("Warning: failed to delete subscription %s for node %s: %v", subscriptionID, nodeID, err)
+				}
+			} else {
+				if m.logger != nil {
+					m.logger.Printf("Successfully deleted subscription %s for node %s", subscriptionID, nodeID)
+				}
+			}
+
+			// Update metrics
+			if managedSub.State == SubscriptionStateActive {
+				m.metrics.SubscriptionsActive--
+			}
+			m.metrics.SubscriptionsTotal--
+		}
+		
+		// Clear all subscriptions for this node
+		delete(m.subscriptionMgr.subscriptions, nodeID)
+	}
+	m.subscriptionMgr.mutex.Unlock()
+
+	// Clean up health monitoring data
+	m.health.mutex.Lock()
+	if nodeHealth, exists := m.health.nodeHealth[nodeID]; exists {
+		nodeHealth.Status = "DISCONNECTED"
+		nodeHealth.LastCheck = time.Now()
+		// Clear function health data
+		nodeHealth.Functions = make(map[int]*FunctionHealth)
+	}
+	// Remove from health monitoring
+	delete(m.health.nodeHealth, nodeID)
+	delete(m.health.connectionHealth, nodeID)
+	delete(m.health.subscriptionHealth, nodeID)
+	m.health.mutex.Unlock()
+
+	// Deregister from the adaptor (calls Near-RT RIC)
+	if err := adaptor.DeregisterE2Node(ctx, nodeID); err != nil {
+		// Update metrics even if deregistration failed
+		m.metrics.ConnectionsFailed++
+		if m.logger != nil {
+			m.logger.Printf("Failed to deregister E2 node %s from Near-RT RIC: %v", nodeID, err)
+		}
+		return fmt.Errorf("failed to deregister E2 node from Near-RT RIC: %w", err)
+	}
+
+	// Remove from local registry
+	delete(m.adaptors, nodeID)
+
+	// Update metrics
+	m.metrics.ConnectionsActive--
+	m.metrics.NodesActive--
+	if m.metrics.NodesRegistered > 0 {
+		m.metrics.NodesRegistered--
+	}
+	m.metrics.NodesDisconnected++
+
+	// Log successful completion
+	if m.logger != nil {
+		m.logger.Printf("Successfully deregistered E2 node %s (cleaned %d subscriptions)", nodeID, subscriptionCount)
+	}
+
+	return nil
+}
+
 // registerDefaultServiceModels registers the default O-RAN service models
 func (m *E2Manager) registerDefaultServiceModels() error {
 	// Register KPM service model

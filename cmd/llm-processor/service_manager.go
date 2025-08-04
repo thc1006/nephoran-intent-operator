@@ -208,10 +208,12 @@ func (sm *ServiceManager) registerHealthChecks() {
 			
 			// Check if any circuit breakers are open
 			for name, state := range stats {
-				if state != nil {
-					return &health.Check{
-						Status:  health.StatusHealthy,
-						Message: fmt.Sprintf("Circuit breaker %s is operational", name),
+				if cbStats, ok := state.(map[string]interface{}); ok {
+					if cbState, exists := cbStats["state"]; exists && cbState == "open" {
+						return &health.Check{
+							Status:  health.StatusUnhealthy,
+							Message: fmt.Sprintf("Circuit breaker %s is open", name),
+						}
 					}
 				}
 			}
@@ -522,9 +524,9 @@ func (sm *ServiceManager) streamingHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	sm.logger.Info("Starting streaming request",
-		"query", req.Query,
-		"model", req.ModelName,
-		"enable_rag", req.EnableRAG,
+		slog.String("query", req.Query),
+		slog.String("model", req.ModelName),
+		slog.Bool("enable_rag", req.EnableRAG),
 	)
 
 	err := sm.streamingProcessor.HandleStreamingRequest(w, r, &req)
@@ -562,10 +564,10 @@ func (sm *ServiceManager) circuitBreakerStatusHandler(w http.ResponseWriter, r *
 		switch req.Action {
 		case "reset":
 			cb.Reset()
-			sm.logger.Info("Circuit breaker reset", "name", req.Name)
+			sm.logger.Info("Circuit breaker reset", slog.String("name", req.Name))
 		case "force_open":
 			cb.ForceOpen()
-			sm.logger.Info("Circuit breaker forced open", "name", req.Name)
+			sm.logger.Info("Circuit breaker forced open", slog.String("name", req.Name))
 		default:
 			http.Error(w, "Invalid action", http.StatusBadRequest)
 			return

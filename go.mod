@@ -1,6 +1,6 @@
 module github.com/thc1006/nephoran-intent-operator
 
-go 1.24
+go 1.24.1
 
 toolchain go1.24.5
 
@@ -89,6 +89,7 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
+	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect

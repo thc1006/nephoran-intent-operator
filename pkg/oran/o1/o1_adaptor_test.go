@@ -48,7 +48,7 @@ func TestNewO1Adaptor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewO1Adaptor(tt.config)
+			got := NewO1Adaptor(tt.config, nil)
 			assert.NotNil(t, got)
 			assert.NotNil(t, got.clients)
 			assert.NotNil(t, got.yangRegistry)
@@ -70,7 +70,7 @@ func TestNewO1Adaptor(t *testing.T) {
 }
 
 func TestO1Adaptor_IsConnected(t *testing.T) {
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, nil)
 	
 	me := &nephoranv1alpha1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
@@ -88,7 +88,7 @@ func TestO1Adaptor_IsConnected(t *testing.T) {
 }
 
 func TestO1Adaptor_ValidateConfiguration(t *testing.T) {
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, nil)
 	ctx := context.Background()
 
 	tests := []struct {
@@ -136,7 +136,7 @@ func TestO1Adaptor_ValidateConfiguration(t *testing.T) {
 }
 
 func TestO1Adaptor_parseAlarmData(t *testing.T) {
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, nil)
 
 	tests := []struct {
 		name              string
@@ -219,7 +219,7 @@ func TestO1Adaptor_parseAlarmData(t *testing.T) {
 }
 
 func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, nil)
 
 	tests := []struct {
 		name              string
@@ -278,7 +278,7 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 }
 
 func TestO1Adaptor_parseMetricValue(t *testing.T) {
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, nil)
 
 	tests := []struct {
 		name       string
@@ -339,7 +339,7 @@ func TestO1Adaptor_parseMetricValue(t *testing.T) {
 }
 
 func TestO1Adaptor_buildSecurityConfiguration(t *testing.T) {
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, nil)
 
 	tests := []struct {
 		name     string
@@ -432,7 +432,7 @@ func TestAlarmStruct(t *testing.T) {
 
 // Benchmark tests for performance verification
 func BenchmarkO1Adaptor_parseAlarmData(b *testing.B) {
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, nil)
 	xmlData := `<data>
 		<active-alarm-list>
 			<active-alarms>
@@ -453,7 +453,7 @@ func BenchmarkO1Adaptor_parseAlarmData(b *testing.B) {
 }
 
 func BenchmarkO1Adaptor_parseMetricValue(b *testing.B) {
-	adaptor := NewO1Adaptor(nil)
+	adaptor := NewO1Adaptor(nil, nil)
 	xmlData := "<cpu-usage>45.6</cpu-usage>"
 
 	b.ResetTimer()

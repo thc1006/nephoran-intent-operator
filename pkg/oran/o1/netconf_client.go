@@ -163,11 +163,31 @@ func (nc *NetconfClient) Connect(endpoint string, auth *AuthConfig) error {
 		sshConfig.Auth = []ssh.AuthMethod{ssh.Password(auth.Password)}
 	}
 
-	// Establish SSH connection
+	// Establish connection (SSH over TLS if TLS config is provided)
 	address := net.JoinHostPort(host, strconv.Itoa(port))
-	nc.sshClient, err = ssh.Dial("tcp", address, sshConfig)
-	if err != nil {
-		return fmt.Errorf("failed to connect via SSH: %w", err)
+	
+	// If TLS config is provided, establish TLS connection first
+	if auth.TLSConfig != nil {
+		tlsConn, err := tls.Dial("tcp", address, auth.TLSConfig)
+		if err != nil {
+			return fmt.Errorf("failed to establish TLS connection: %w", err)
+		}
+		
+		// Create SSH connection over TLS
+		sshConn, chans, reqs, err := ssh.NewClientConn(tlsConn, address, sshConfig)
+		if err != nil {
+			tlsConn.Close()
+			return fmt.Errorf("failed to create SSH connection over TLS: %w", err)
+		}
+		
+		nc.sshClient = ssh.NewClient(sshConn, chans, reqs)
+		nc.conn = tlsConn
+	} else {
+		// Standard SSH connection
+		nc.sshClient, err = ssh.Dial("tcp", address, sshConfig)
+		if err != nil {
+			return fmt.Errorf("failed to connect via SSH: %w", err)
+		}
 	}
 
 	// Start NETCONF subsystem
@@ -474,6 +494,12 @@ func (nc *NetconfClient) close() error {
 	if nc.sshClient != nil {
 		nc.sshClient.Close()
 		nc.sshClient = nil
+	}
+
+	// Close TLS connection if exists
+	if nc.conn != nil {
+		nc.conn.Close()
+		nc.conn = nil
 	}
 
 	return nil
