@@ -1,0 +1,208 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nephoran-controller
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    prometheus: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nephoran-controller
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      scheme: http
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: llm-processor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: llm-processor
+    app.kubernetes.io/component: llm
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    prometheus: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: llm-processor
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      scheme: http
+      scrapeTimeout: 10s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: node
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rag-api
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: rag-api
+    app.kubernetes.io/component: rag
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    prometheus: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rag-api
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      scheme: http
+      scrapeTimeout: 10s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_pod_container_name]
+          targetLabel: container
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: oran-adaptor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    prometheus: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: oran-adaptor
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      scheme: http
+      scrapeTimeout: 10s
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: 'go_.*'
+          action: drop
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: weaviate
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: weaviate
+    app.kubernetes.io/component: vector-db
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    prometheus: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: weaviate
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /v1/metrics
+      scheme: http
+      scrapeTimeout: 10s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: nephoran-pods
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    prometheus: kube-prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: nephoran-intent-operator
+  podMetricsEndpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      scheme: http
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-controller-metrics
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  selector:
+    app.kubernetes.io/name: nephoran-controller
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-processor-metrics
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: llm-processor
+    app.kubernetes.io/component: llm
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  selector:
+    app.kubernetes.io/name: llm-processor
+  ports:
+    - name: metrics
+      port: 2112
+      targetPort: 2112
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-api-metrics
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: rag-api
+    app.kubernetes.io/component: rag
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  selector:
+    app.kubernetes.io/name: rag-api
+  ports:
+    - name: metrics
+      port: 2113
+      targetPort: 2113
+      protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oran-adaptor-metrics
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  selector:
+    app.kubernetes.io/name: oran-adaptor
+  ports:
+    - name: metrics
+      port: 2114
+      targetPort: 2114
+      protocol: TCP

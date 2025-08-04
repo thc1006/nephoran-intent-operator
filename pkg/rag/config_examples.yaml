@@ -1,0 +1,195 @@
+# Configuration Examples for Enhanced RAG System
+
+# Streaming Document Processor Configuration
+streaming_config:
+  # Streaming parameters
+  stream_buffer_size: 100         # Size of streaming buffers
+  chunk_buffer_size: 200          # Size of chunk processing buffer
+  max_concurrent_docs: 4          # Max documents processed concurrently
+  max_concurrent_chunks: 8        # Max chunks processed concurrently
+  streaming_threshold: 1048576    # File size threshold for streaming (1MB)
+  
+  # Memory management
+  max_memory_usage: 536870912     # Maximum memory usage in bytes (512MB)
+  memory_check_interval: 5s       # How often to check memory usage
+  backpressure_threshold: 0.8     # Memory usage % to trigger backpressure
+  
+  # Processing configuration
+  enable_parallel_chunking: true  # Enable parallel chunk processing
+  chunk_batch_size: 10           # Chunks to process in batch
+  embedding_batch_size: 20       # Embeddings to generate in batch
+  processing_timeout: 5m         # Timeout for processing
+  
+  # Error handling
+  max_retries: 3                 # Maximum retries for failed operations
+  retry_backoff: 1s              # Backoff duration between retries
+  error_threshold: 0.1           # Error rate threshold to stop processing
+
+# Parallel Chunk Processor Configuration
+parallel_chunk_config:
+  # Worker pool configuration
+  num_workers: 0                    # 0 = auto-detect based on CPU cores
+  worker_queue_size: 10             # Size of task queue per worker
+  max_tasks_per_worker: 100         # Max tasks a worker can handle
+  
+  # Batching configuration
+  batch_size: 5                     # Chunks to process in batch
+  batch_timeout: 200ms              # Timeout for batch collection
+  enable_dynamic_batching: true     # Adjust batch size based on load
+  
+  # Performance tuning
+  enable_cpu_affinity: false        # Pin workers to CPU cores
+  enable_memory_pooling: true       # Use memory pools for chunks
+  max_memory_per_worker: 104857600  # Memory limit per worker (100MB)
+  
+  # Load balancing
+  load_balancing_strategy: "least_loaded"  # Options: "round_robin", "least_loaded", "hash_based"
+  enable_work_stealing: true               # Allow idle workers to steal work
+  
+  # Error handling
+  max_retries: 3                    # Max retries per chunk
+  retry_backoff: 500ms              # Backoff between retries
+  error_threshold: 0.05             # Error rate to trigger circuit breaker
+
+# Cost-Aware Embedding Service Configuration
+cost_optimizer_config:
+  # Cost optimization strategies
+  optimization_strategy: "balanced"     # Options: "aggressive", "balanced", "quality_first"
+  cost_weight: 0.4                     # Weight for cost in provider selection (0-1)
+  performance_weight: 0.3              # Weight for performance (0-1)
+  quality_weight: 0.3                  # Weight for quality (0-1)
+  
+  # Budget management
+  enable_budget_tracking: true
+  hourly_budget: 5.0                   # $5 per hour
+  daily_budget: 100.0                  # $100 per day
+  monthly_budget: 2000.0               # $2000 per month
+  budget_alert_threshold: 0.8          # Alert when 80% of budget used
+  
+  # Provider selection
+  min_provider_score: 0.3              # Minimum score for provider selection
+  provider_timeout: 30s                # Timeout for provider health checks
+  rebalance_interval: 5m               # How often to rebalance provider selection
+  
+  # Circuit breaker configuration
+  circuit_breaker_threshold: 5         # Failures before opening circuit
+  circuit_breaker_timeout: 30s         # Time before attempting to close circuit
+  circuit_breaker_max_retries: 3       # Max retries in half-open state
+
+# Multi-Provider Embedding Configuration
+embedding_providers:
+  # Primary provider - OpenAI
+  - name: "openai"
+    api_key: "${OPENAI_API_KEY}"
+    api_endpoint: "https://api.openai.com/v1/embeddings"
+    model_name: "text-embedding-3-large"
+    dimensions: 3072
+    max_tokens: 8191
+    cost_per_token: 0.00013  # Cost per 1K tokens
+    rate_limit: 3000         # Requests per minute
+    priority: 10             # Higher priority = preferred
+    enabled: true
+    
+  # Fallback provider - Azure OpenAI
+  - name: "azure"
+    api_key: "${AZURE_OPENAI_KEY}"
+    api_endpoint: "https://your-resource.openai.azure.com/openai/deployments/your-deployment/embeddings?api-version=2023-05-15"
+    model_name: "text-embedding-ada-002"
+    dimensions: 1536
+    max_tokens: 8191
+    cost_per_token: 0.0001   # Cost per 1K tokens
+    rate_limit: 2400         # Requests per minute
+    priority: 8
+    enabled: true
+    
+  # Budget-friendly provider - Hugging Face
+  - name: "huggingface"
+    api_key: "${HUGGINGFACE_API_KEY}"
+    api_endpoint: "https://api-inference.huggingface.co/models/sentence-transformers/all-mpnet-base-v2"
+    model_name: "all-mpnet-base-v2"
+    dimensions: 768
+    max_tokens: 512
+    cost_per_token: 0.00001  # Cost per 1K tokens
+    rate_limit: 1000         # Requests per minute
+    priority: 5
+    enabled: true
+    
+  # Local provider - No cost but slower
+  - name: "local"
+    api_key: ""
+    api_endpoint: "http://localhost:8080/embeddings"
+    model_name: "local-model"
+    dimensions: 384
+    max_tokens: 512
+    cost_per_token: 0.0      # Free
+    rate_limit: 100          # Requests per minute
+    priority: 3
+    enabled: false           # Disabled by default
+
+# Fallback Chain Configuration
+fallback_chains:
+  openai: ["azure", "huggingface", "local"]
+  azure: ["openai", "huggingface", "local"]
+  huggingface: ["openai", "azure", "local"]
+  local: ["huggingface", "azure", "openai"]
+
+# Quality Assessment Configuration
+quality_assessment:
+  enabled: true
+  min_score: 0.7
+  sample_size: 100
+  reference_texts:
+    - "5G network slicing enables multiple virtual networks"
+    - "AMF handles access and mobility management"
+    - "SMF manages PDU sessions"
+  similarity_threshold: 0.8
+
+# Example Usage in Code
+usage_example: |
+  // Initialize enhanced services
+  chunkingConfig := &ChunkingConfig{
+      ChunkSize: 1024,
+      ChunkOverlap: 128,
+      PreserveHierarchy: true,
+      UseSemanticBoundaries: true,
+  }
+  chunkingService := NewChunkingService(chunkingConfig)
+  
+  // Create base embedding service
+  embeddingConfig := &EmbeddingConfig{
+      Provider: "openai",
+      EnableCaching: true,
+      FallbackEnabled: true,
+      EnableCostTracking: true,
+  }
+  baseEmbeddingService := NewEmbeddingService(embeddingConfig)
+  
+  // Wrap with cost-aware service
+  costConfig := &CostOptimizerConfig{
+      OptimizationStrategy: "balanced",
+      DailyBudget: 100.0,
+      EnableBudgetTracking: true,
+  }
+  embeddingService := NewCostAwareEmbeddingService(baseEmbeddingService, costConfig)
+  
+  // Create streaming processor
+  streamingConfig := &StreamingConfig{
+      StreamingThreshold: 1048576, // 1MB
+      MaxConcurrentDocs: 4,
+      EnableParallelChunking: true,
+  }
+  streamingProcessor := NewStreamingDocumentProcessor(streamingConfig, chunkingService, embeddingService)
+  
+  // Process document
+  doc := &LoadedDocument{
+      ID: "doc123",
+      SourcePath: "/path/to/large/document.pdf",
+      Size: 10485760, // 10MB
+  }
+  
+  result, err := streamingProcessor.ProcessDocumentStream(context.Background(), doc)
+  if err != nil {
+      log.Fatal(err)
+  }
+  
+  fmt.Printf("Processed %d chunks in %v\n", result.ChunksCreated, result.ProcessingTime)

@@ -1,0 +1,273 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../base
+- namespace.yaml
+- network-policies.yaml
+- pod-security-policies.yaml
+- service-monitor.yaml
+
+namespace: nephoran-system
+
+commonLabels:
+  environment: production
+  tier: production
+
+commonAnnotations:
+  deployment.kubernetes.io/revision: "1"
+  config.kubernetes.io/local-config: "false"
+  security.nephoran.com/hardened: "true"
+
+images:
+- name: llm-processor
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/llm-processor
+  newTag: latest
+- name: nephio-bridge
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/nephio-bridge
+  newTag: latest
+- name: oran-adaptor
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/oran-adaptor
+  newTag: latest
+- name: rag-api
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/rag-api
+  newTag: latest
+
+replicas:
+- name: llm-processor
+  count: 3
+- name: nephio-bridge
+  count: 3
+- name: oran-adaptor
+  count: 3
+- name: rag-api
+  count: 3
+
+patches:
+# Production resource quotas with proper sizing
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: "1Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: "500m"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "2Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "1"
+  target:
+    kind: Deployment
+    name: llm-processor
+
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: "512Mi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: "250m"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "1Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "500m"
+  target:
+    kind: Deployment
+    name: nephio-bridge
+
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: "512Mi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: "250m"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "1Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "500m"
+  target:
+    kind: Deployment
+    name: oran-adaptor
+
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: "768Mi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: "300m"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "1.5Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "750m"
+  target:
+    kind: Deployment
+    name: rag-api
+
+# Production environment configuration
+- patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENVIRONMENT
+        value: "production"
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: LOG_LEVEL
+        value: "info"
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: METRICS_ENABLED
+        value: "true"
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: TRACING_ENABLED
+        value: "true"
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: HEALTH_CHECK_TIMEOUT
+        value: "30s"
+  target:
+    kind: Deployment
+
+# Production security context
+- patch: |-
+    - op: add
+      path: /spec/template/spec/securityContext
+      value:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+    - op: add
+      path: /spec/template/spec/containers/0/securityContext
+      value:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        capabilities:
+          drop:
+          - ALL
+        seccompProfile:
+          type: RuntimeDefault
+  target:
+    kind: Deployment
+
+# Pod disruption budgets
+- patch: |-
+    apiVersion: policy/v1
+    kind: PodDisruptionBudget
+    metadata:
+      name: llm-processor-pdb
+      namespace: nephoran-system
+    spec:
+      minAvailable: 2
+      selector:
+        matchLabels:
+          app: llm-processor
+  target:
+    kind: Deployment
+    name: llm-processor
+
+# Horizontal Pod Autoscaling
+- patch: |-
+    - op: add
+      path: /spec/template/metadata/annotations/hpa.autoscaling.k8s.io~1max-replicas
+      value: "10"
+    - op: add
+      path: /spec/template/metadata/annotations/hpa.autoscaling.k8s.io~1min-replicas
+      value: "3"
+    - op: add
+      path: /spec/template/metadata/annotations/hpa.autoscaling.k8s.io~1target-cpu-utilization
+      value: "70"
+  target:
+    kind: Deployment
+
+# Service account updates for production
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/serviceAccountName
+      value: nephio-bridge-sa-production
+  target:
+    kind: Deployment
+    name: nephio-bridge
+
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/serviceAccountName
+      value: oran-adaptor-sa-production
+  target:
+    kind: Deployment
+    name: oran-adaptor
+
+# Update cluster role bindings for production namespace
+- patch: |-
+    - op: replace
+      path: /subjects/0/namespace
+      value: nephoran-system
+  target:
+    kind: ClusterRoleBinding
+    name: nephio-bridge-rb
+
+- patch: |-
+    - op: replace
+      path: /subjects/0/namespace
+      value: nephoran-system
+  target:
+    kind: ClusterRoleBinding
+    name: oran-adaptor-rb
+
+# Production node affinity and anti-affinity
+- patch: |-
+    - op: add
+      path: /spec/template/spec/affinity
+      value:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node.kubernetes.io/instance-type
+                operator: NotIn
+                values:
+                - spot
+                - preemptible
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: llm-processor
+              topologyKey: kubernetes.io/hostname
+  target:
+    kind: Deployment
+    name: llm-processor
+
+# Production tolerations
+- patch: |-
+    - op: add
+      path: /spec/template/spec/tolerations
+      value:
+      - key: "production-only"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+  target:
+    kind: Deployment

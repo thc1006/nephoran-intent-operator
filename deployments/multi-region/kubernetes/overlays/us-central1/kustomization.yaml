@@ -1,0 +1,89 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nephoran-system
+
+bases:
+  - ../../base
+
+namePrefix: us-central1-
+
+commonLabels:
+  region: us-central1
+  cluster-type: primary
+
+commonAnnotations:
+  region: us-central1
+  cluster-name: nephoran-primary
+  priority: "100"
+
+configMapGenerator:
+  - name: region-config
+    behavior: merge
+    literals:
+      - REGION=us-central1
+      - CLUSTER_TYPE=primary
+      - REPLICATION_MODE=master
+      - BACKUP_REGION=us-central1
+      - FAILOVER_REGIONS=europe-west1,asia-southeast1
+      - PRIMARY_ENDPOINT=https://api.us-central1.nephoran.com
+      - WEAVIATE_ROLE=master
+
+patchesStrategicMerge:
+  - patches/deployment-replicas.yaml
+  - patches/resource-limits.yaml
+  - patches/storage-class.yaml
+
+patches:
+  - target:
+      kind: StatefulSet
+      name: weaviate
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 5
+  - target:
+      kind: Deployment
+      name: llm-processor
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 5
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: llm-processor-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 5
+      - op: replace
+        path: /spec/maxReplicas
+        value: 30
+
+# Region-specific images from regional registry
+images:
+  - name: ghcr.io/thc1006/nephoran-intent-operator/llm-processor
+    newName: us-central1-docker.pkg.dev/PROJECT_ID/nephoran-primary/llm-processor
+  - name: ghcr.io/thc1006/nephoran-intent-operator/rag-api
+    newName: us-central1-docker.pkg.dev/PROJECT_ID/nephoran-primary/rag-api
+  - name: ghcr.io/thc1006/nephoran-intent-operator/intent-controller
+    newName: us-central1-docker.pkg.dev/PROJECT_ID/nephoran-primary/intent-controller
+  - name: ghcr.io/thc1006/nephoran-intent-operator/edge-controller
+    newName: us-central1-docker.pkg.dev/PROJECT_ID/nephoran-primary/edge-controller
+
+replacements:
+  - source:
+      kind: ConfigMap
+      name: region-config
+      fieldPath: data.REGION
+    targets:
+      - select:
+          kind: Deployment
+        fieldPaths:
+          - spec.template.spec.containers.[name=llm-processor].env.[name=DEPLOYMENT_REGION].value
+          - spec.template.spec.containers.[name=rag-api].env.[name=DEPLOYMENT_REGION].value
+      - select:
+          kind: StatefulSet
+          name: weaviate
+        fieldPaths:
+          - spec.template.spec.containers.[name=weaviate].env.[name=REGION_NAME].value

@@ -1,0 +1,165 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../base
+- namespace.yaml
+- network-policies.yaml
+
+namespace: nephoran-staging
+
+commonLabels:
+  environment: staging
+  tier: staging
+
+commonAnnotations:
+  deployment.kubernetes.io/revision: "1"
+  config.kubernetes.io/local-config: "false"
+
+images:
+- name: llm-processor
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/llm-processor
+  newTag: latest
+- name: nephio-bridge
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/nephio-bridge
+  newTag: latest
+- name: oran-adaptor
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/oran-adaptor
+  newTag: latest
+- name: rag-api
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/rag-api
+  newTag: latest
+
+replicas:
+- name: llm-processor
+  count: 2
+- name: nephio-bridge
+  count: 2
+- name: oran-adaptor
+  count: 2
+- name: rag-api
+  count: 2
+
+patches:
+# Resource quotas for staging environment
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: "512Mi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: "250m"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "1Gi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "500m"
+  target:
+    kind: Deployment
+    name: llm-processor
+
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: "256Mi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: "100m"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "512Mi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "250m"
+  target:
+    kind: Deployment
+    name: nephio-bridge
+
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: "256Mi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: "100m"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "512Mi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "250m"
+  target:
+    kind: Deployment
+    name: oran-adaptor
+
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/memory
+      value: "384Mi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/requests/cpu
+      value: "150m"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/memory
+      value: "768Mi"
+    - op: replace
+      path: /spec/template/spec/containers/0/resources/limits/cpu
+      value: "300m"
+  target:
+    kind: Deployment
+    name: rag-api
+
+# Environment-specific configuration
+- patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENVIRONMENT
+        value: "staging"
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: LOG_LEVEL
+        value: "debug"
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: METRICS_ENABLED
+        value: "true"
+  target:
+    kind: Deployment
+
+# Service account updates
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/serviceAccountName
+      value: nephio-bridge-sa-staging
+  target:
+    kind: Deployment
+    name: nephio-bridge
+
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/serviceAccountName
+      value: oran-adaptor-sa-staging
+  target:
+    kind: Deployment
+    name: oran-adaptor
+
+# Update cluster role bindings for staging namespace
+- patch: |-
+    - op: replace
+      path: /subjects/0/namespace
+      value: nephoran-staging
+  target:
+    kind: ClusterRoleBinding
+    name: nephio-bridge-rb
+
+- patch: |-
+    - op: replace
+      path: /subjects/0/namespace
+      value: nephoran-staging
+  target:
+    kind: ClusterRoleBinding
+    name: oran-adaptor-rb

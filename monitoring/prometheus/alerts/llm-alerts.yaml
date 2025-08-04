@@ -1,0 +1,181 @@
+groups:
+  - name: llm_performance_alerts
+    interval: 30s
+    rules:
+      # High Latency Alerts
+      - alert: LLMHighLatencyP95
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(llm_request_duration_seconds_bucket[5m])) by (le, intent_type)
+          ) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "High LLM request latency detected"
+          description: "P95 latency for {{ $labels.intent_type }} is {{ $value }}s (threshold: 5s)"
+          runbook_url: "https://wiki.internal/runbooks/llm-high-latency"
+
+      - alert: LLMHighLatencyP99
+        expr: |
+          histogram_quantile(0.99, 
+            sum(rate(llm_request_duration_seconds_bucket[5m])) by (le, intent_type)
+          ) > 10
+        for: 3m
+        labels:
+          severity: critical
+          component: llm
+        annotations:
+          summary: "Critical LLM request latency"
+          description: "P99 latency for {{ $labels.intent_type }} is {{ $value }}s (threshold: 10s)"
+          runbook_url: "https://wiki.internal/runbooks/llm-high-latency"
+
+      # Circuit Breaker Alerts
+      - alert: LLMCircuitBreakerOpen
+        expr: llm_circuit_breaker_state == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: llm
+        annotations:
+          summary: "LLM circuit breaker is OPEN"
+          description: "Circuit breaker has been open for {{ $value }} minutes. LLM requests are being rejected."
+          runbook_url: "https://wiki.internal/runbooks/llm-circuit-breaker"
+
+      - alert: LLMCircuitBreakerFlapping
+        expr: |
+          changes(llm_circuit_breaker_state[10m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "LLM circuit breaker is flapping"
+          description: "Circuit breaker state changed {{ $value }} times in 10 minutes"
+          runbook_url: "https://wiki.internal/runbooks/llm-circuit-breaker"
+
+      # Error Rate Alerts
+      - alert: LLMHighErrorRate
+        expr: llm_error_rate_percent > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "High LLM error rate"
+          description: "LLM error rate is {{ $value }}% (threshold: 5%)"
+          runbook_url: "https://wiki.internal/runbooks/llm-errors"
+
+      - alert: LLMCriticalErrorRate
+        expr: llm_error_rate_percent > 10
+        for: 3m
+        labels:
+          severity: critical
+          component: llm
+        annotations:
+          summary: "Critical LLM error rate"
+          description: "LLM error rate is {{ $value }}% (threshold: 10%)"
+          runbook_url: "https://wiki.internal/runbooks/llm-errors"
+
+      # Token Cost Alerts
+      - alert: LLMHighTokenCostRate
+        expr: |
+          rate(llm_token_costs_usd_total[1h]) * 3600 > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: llm
+          team: finance
+        annotations:
+          summary: "High LLM token costs"
+          description: "Token cost rate is ${{ $value }}/hour (threshold: $100/hour)"
+          runbook_url: "https://wiki.internal/runbooks/llm-costs"
+
+      - alert: LLMTokenCostBudgetExceeded
+        expr: |
+          llm_token_costs_usd_total > 5000
+        labels:
+          severity: critical
+          component: llm
+          team: finance
+        annotations:
+          summary: "LLM token budget exceeded"
+          description: "Total token costs: ${{ $value }} (budget: $5000)"
+          runbook_url: "https://wiki.internal/runbooks/llm-budget"
+
+      # Batch Processing Alerts
+      - alert: LLMBatchEfficiencyLow
+        expr: llm_batch_efficiency_ratio < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "Low LLM batch processing efficiency"
+          description: "Batch efficiency is {{ $value }} (threshold: 0.5)"
+          runbook_url: "https://wiki.internal/runbooks/llm-batch"
+
+      # Cache Performance Alerts
+      - alert: LLMCacheHitRateLow
+        expr: llm_cache_hit_rate_percent < 50
+        for: 15m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "Low LLM cache hit rate"
+          description: "Cache hit rate is {{ $value }}% (threshold: 50%)"
+          runbook_url: "https://wiki.internal/runbooks/llm-cache"
+
+      # Request Volume Alerts
+      - alert: LLMRequestVolumeSpike
+        expr: |
+          rate(llm_request_duration_seconds_count[5m]) > 
+          avg_over_time(rate(llm_request_duration_seconds_count[5m])[1h:5m]) * 3
+        for: 5m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "LLM request volume spike detected"
+          description: "Request rate is 3x higher than 1h average"
+          runbook_url: "https://wiki.internal/runbooks/llm-spike"
+
+      # Token Usage Alerts
+      - alert: LLMHighTokenUsage
+        expr: |
+          rate(llm_tokens_used_total[5m]) > 10000
+        for: 10m
+        labels:
+          severity: warning
+          component: llm
+        annotations:
+          summary: "High LLM token usage rate"
+          description: "Token usage rate is {{ $value }} tokens/sec (threshold: 10k/sec)"
+          runbook_url: "https://wiki.internal/runbooks/llm-tokens"
+
+      # Model-specific Alerts
+      - alert: LLMModelUnavailable
+        expr: |
+          sum(rate(llm_request_duration_seconds_count{model!=""}[5m])) by (model) == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: llm
+        annotations:
+          summary: "LLM model {{ $labels.model }} is unavailable"
+          description: "No successful requests to model {{ $labels.model }} in 5 minutes"
+          runbook_url: "https://wiki.internal/runbooks/llm-model-down"
+
+      # Health Check Alerts
+      - alert: LLMHealthCheckFailing
+        expr: up{job="llm-processor"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: llm
+        annotations:
+          summary: "LLM processor health check failing"
+          description: "LLM processor has been down for {{ $value }} minutes"
+          runbook_url: "https://wiki.internal/runbooks/llm-health"

@@ -1,0 +1,181 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# GitOps overlay for production environment
+# Full production configuration with HA, security, and monitoring
+
+resources:
+- ../base
+- namespace.yaml
+- network-policies.yaml
+- pod-security-policies.yaml
+- resource-quotas.yaml
+
+# Production namespace
+namespace: nephoran-production
+
+# Production-specific labels
+commonLabels:
+  env: production
+  tier: production
+  compliance: required
+  
+# Image configuration for production (specific versions only)
+images:
+- name: llm-processor
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/llm-processor
+  newTag: v1.0.0  # Always use specific versions in production
+- name: nephio-bridge
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/nephio-bridge
+  newTag: v1.0.0
+- name: oran-adaptor
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/oran-adaptor
+  newTag: v1.0.0
+- name: rag-api
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/rag-api
+  newTag: v1.0.0
+
+# Production replicas (HA configuration)
+replicas:
+- name: llm-processor
+  count: 5
+- name: nephio-bridge
+  count: 5
+- name: oran-adaptor
+  count: 5
+- name: rag-api
+  count: 5
+
+# Production patches
+patches:
+# Add image pull secret
+- patch: |-
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: default
+    imagePullSecrets:
+    - name: nephoran-gcr-secret
+  target:
+    kind: ServiceAccount
+    name: default
+    
+# Production resource limits
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources
+      value:
+        requests:
+          memory: "2Gi"
+          cpu: "1"
+        limits:
+          memory: "4Gi"
+          cpu: "4"
+  target:
+    kind: Deployment
+    
+# Production environment configuration
+- patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: LOG_LEVEL
+        value: error
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENVIRONMENT
+        value: production
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENABLE_PROFILING
+        value: "false"
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: STRICT_MODE
+        value: "true"
+  target:
+    kind: Deployment
+
+# Security context
+- patch: |-
+    - op: add
+      path: /spec/template/spec/securityContext
+      value:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 2000
+        seccompProfile:
+          type: RuntimeDefault
+    - op: add
+      path: /spec/template/spec/containers/0/securityContext
+      value:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1000
+        capabilities:
+          drop:
+          - ALL
+  target:
+    kind: Deployment
+
+# Pod Disruption Budgets
+- patch: |-
+    apiVersion: policy/v1
+    kind: PodDisruptionBudget
+    metadata:
+      name: $(DEPLOYMENT_NAME)-pdb
+    spec:
+      minAvailable: 3
+      selector:
+        matchLabels:
+          app: $(DEPLOYMENT_NAME)
+  target:
+    kind: Deployment
+
+# Anti-affinity rules for HA
+- patch: |-
+    - op: add
+      path: /spec/template/spec/affinity
+      value:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - $(DEPLOYMENT_NAME)
+            topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - $(DEPLOYMENT_NAME)
+              topologyKey: topology.kubernetes.io/zone
+  target:
+    kind: Deployment
+
+# ConfigMaps for production
+configMapGenerator:
+- name: production-config
+  literals:
+  - api.debug=false
+  - api.rate_limit=1000
+  - cache.ttl=7200
+  - monitoring.enabled=true
+  - tracing.enabled=true
+  - metrics.detailed=true
+  - security.strict=true
+  
+# Production-specific components
+components:
+- ../../components/monitoring
+- ../../components/security-scanning

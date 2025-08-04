@@ -1,0 +1,131 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nephoran-production-metrics
+  namespace: nephoran-system
+  labels:
+    environment: production
+    tier: production
+spec:
+  selector:
+    matchLabels:
+      environment: production
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    honorLabels: true
+    scrapeTimeout: 10s
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: 'go_.*'
+      action: drop
+  - port: health
+    interval: 60s
+    path: /health
+    honorLabels: true
+    scrapeTimeout: 5s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-processor-metrics
+  namespace: nephoran-system
+  labels:
+    app: llm-processor
+    environment: production
+spec:
+  selector:
+    app: llm-processor
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  - name: health
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephio-bridge-metrics
+  namespace: nephoran-system
+  labels:
+    app: nephio-bridge
+    environment: production
+spec:
+  selector:
+    app: nephio-bridge
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  - name: health
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oran-adaptor-metrics
+  namespace: nephoran-system
+  labels:
+    app: oran-adaptor
+    environment: production
+spec:
+  selector:
+    app: oran-adaptor
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  - name: health
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rag-api-metrics
+  namespace: nephoran-system
+  labels:
+    app: rag-api
+    environment: production
+spec:
+  selector:
+    app: rag-api
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+    protocol: TCP
+  - name: health
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: nephoran-production-circuit-breaker
+  namespace: nephoran-system
+spec:
+  host: "*.nephoran-system.svc.cluster.local"
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      consecutiveErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50

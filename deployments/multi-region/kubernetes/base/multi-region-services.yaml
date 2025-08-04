@@ -1,0 +1,320 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: multi-region-gateway
+  labels:
+    app: multi-region-gateway
+    component: networking
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}'
+    cloud.google.com/backend-config: '{"default": "multi-region-backendconfig"}'
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+    - name: https
+      port: 443
+      targetPort: 8443
+      protocol: TCP
+  selector:
+    app: multi-region-gateway
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: multi-region-backendconfig
+spec:
+  healthCheck:
+    checkIntervalSec: 10
+    timeoutSec: 5
+    healthyThreshold: 2
+    unhealthyThreshold: 3
+    type: HTTP
+    requestPath: /healthz
+    port: 8080
+  sessionAffinity:
+    affinityType: "GENERATED_COOKIE"
+    affinityCookieTtlSec: 3600
+  timeoutSec: 30
+  connectionDraining:
+    drainingTimeoutSec: 60
+  logging:
+    enable: true
+    sampleRate: 1.0
+  cdn:
+    enabled: true
+    cachePolicy:
+      includeHost: true
+      includeProtocol: true
+      includeQueryString: true
+    negativeCaching: true
+  customRequestHeaders:
+    headers:
+      - "X-Region:{region}"
+      - "X-Original-Forwarded-For:{client_ip}"
+---
+apiVersion: networking.gke.io/v1
+kind: MultiClusterService
+metadata:
+  name: llm-processor-mcs
+  namespace: nephoran-system
+spec:
+  template:
+    spec:
+      selector:
+        app: llm-processor
+      ports:
+        - name: http
+          protocol: TCP
+          port: 8080
+          targetPort: 8080
+---
+apiVersion: networking.gke.io/v1
+kind: MultiClusterService
+metadata:
+  name: rag-api-mcs
+  namespace: nephoran-system
+spec:
+  template:
+    spec:
+      selector:
+        app: rag-api
+      ports:
+        - name: http
+          protocol: TCP
+          port: 5001
+          targetPort: 5001
+---
+apiVersion: networking.gke.io/v1
+kind: MultiClusterService
+metadata:
+  name: weaviate-mcs
+  namespace: nephoran-system
+spec:
+  template:
+    spec:
+      selector:
+        app: weaviate
+      ports:
+        - name: http
+          protocol: TCP
+          port: 8080
+          targetPort: 8080
+        - name: grpc
+          protocol: TCP
+          port: 50051
+          targetPort: 50051
+---
+apiVersion: networking.gke.io/v1
+kind: MultiClusterIngress
+metadata:
+  name: nephoran-mci
+  namespace: nephoran-system
+  annotations:
+    networking.gke.io/static-ip: "nephoran-global-ip"
+    networking.gke.io/pre-shared-certs: "nephoran-ssl-cert"
+    ingress.gcp.kubernetes.io/pre-shared-cert: "nephoran-ssl-cert"
+spec:
+  template:
+    spec:
+      backend:
+        serviceName: multi-region-gateway-mcs
+        servicePort: 80
+      rules:
+        - host: api.nephoran.com
+          http:
+            paths:
+              - path: /llm/*
+                pathType: ImplementationSpecific
+                backend:
+                  serviceName: llm-processor-mcs
+                  servicePort: 8080
+              - path: /rag/*
+                pathType: ImplementationSpecific
+                backend:
+                  serviceName: rag-api-mcs
+                  servicePort: 5001
+              - path: /weaviate/*
+                pathType: ImplementationSpecific
+                backend:
+                  serviceName: weaviate-mcs
+                  servicePort: 8080
+        - host: "*.regional.nephoran.com"
+          http:
+            paths:
+              - path: /*
+                pathType: ImplementationSpecific
+                backend:
+                  serviceName: multi-region-gateway-mcs
+                  servicePort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: multi-region-communication
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: nephoran-system
+        - podSelector:
+            matchLabels:
+              multi-region: "true"
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8443
+        - protocol: TCP
+          port: 50051
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: nephoran-system
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 5001
+        - protocol: TCP
+          port: 50051
+    - to:
+        - podSelector:
+            matchLabels:
+              app: weaviate
+      ports:
+        - protocol: TCP
+          port: 7100
+        - protocol: TCP
+          port: 7101
+    # Allow DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+        - podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow external traffic for cross-region communication
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 169.254.169.254/32  # GCP metadata server
+              - 10.0.0.0/8          # Internal cluster IPs
+      ports:
+        - protocol: TCP
+          port: 443
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: region-endpoints
+data:
+  endpoints.yaml: |
+    regions:
+      us-central1:
+        llm_processor: https://llm.us-central1.nephoran.com
+        rag_api: https://rag.us-central1.nephoran.com
+        weaviate: https://weaviate.us-central1.nephoran.com
+        priority: 100
+        latency_threshold_ms: 50
+      europe-west1:
+        llm_processor: https://llm.europe-west1.nephoran.com
+        rag_api: https://rag.europe-west1.nephoran.com
+        weaviate: https://weaviate.europe-west1.nephoran.com
+        priority: 90
+        latency_threshold_ms: 100
+      asia-southeast1:
+        llm_processor: https://llm.asia-southeast1.nephoran.com
+        rag_api: https://rag.asia-southeast1.nephoran.com
+        weaviate: https://weaviate.asia-southeast1.nephoran.com
+        priority: 80
+        latency_threshold_ms: 150
+    
+    failover:
+      strategy: latency_based
+      health_check_interval: 10s
+      failover_threshold: 3
+      recovery_threshold: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: region-health-checker
+  labels:
+    app: region-health-checker
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: region-health-checker
+  template:
+    metadata:
+      labels:
+        app: region-health-checker
+        multi-region: "true"
+    spec:
+      serviceAccountName: region-health-checker
+      containers:
+        - name: health-checker
+          image: gcr.io/PROJECT_ID/region-health-checker:latest
+          env:
+            - name: CHECK_INTERVAL
+              value: "10s"
+            - name: REGIONS_CONFIG
+              value: "/config/endpoints.yaml"
+            - name: METRICS_PORT
+              value: "9090"
+          ports:
+            - name: metrics
+              containerPort: 9090
+          volumeMounts:
+            - name: region-config
+              mountPath: /config
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9090
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: region-config
+          configMap:
+            name: region-endpoints
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: region-health-checker
+  labels:
+    app: region-health-checker
+  annotations:
+    iam.gke.io/gcp-service-account: region-health-checker@PROJECT_ID.iam.gserviceaccount.com

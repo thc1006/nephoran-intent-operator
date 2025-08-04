@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-staging
+  labels:
+    name: nephoran-staging
+    environment: staging
+    tier: staging
+    istio-injection: enabled
+  annotations:
+    config.kubernetes.io/local-config: "false"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: staging-resources
+  namespace: nephoran-staging
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: 4Gi
+    limits.cpu: "4"
+    limits.memory: 8Gi
+    persistentvolumeclaims: "10"
+    pods: "20"
+    services: "10"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: staging-limits
+  namespace: nephoran-staging
+spec:
+  limits:
+  - default:
+      cpu: "500m"
+      memory: "1Gi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "256Mi"
+    type: Container

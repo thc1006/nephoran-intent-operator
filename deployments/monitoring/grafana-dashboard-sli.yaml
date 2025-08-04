@@ -1,0 +1,537 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-nephoran-sli
+  namespace: nephoran-system
+  labels:
+    app: grafana
+    component: dashboards
+    grafana_dashboard: "1"
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/component: dashboards
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  nephoran-sli.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Intent Operator - Key SLIs",
+        "description": "Service Level Indicators for production reliability monitoring",
+        "tags": ["nephoran", "sli", "production", "reliability"],
+        "style": "dark",
+        "timezone": "browser",
+        "refresh": "10s",
+        "time": {
+          "from": "now-6h",
+          "to": "now"
+        },
+        "annotations": {
+          "list": [
+            {
+              "datasource": "Prometheus",
+              "enable": true,
+              "hide": false,
+              "iconColor": "rgba(255, 96, 96, 1)",
+              "name": "Deployments",
+              "showIn": 0,
+              "target": {
+                "expr": "changes(kube_deployment_created{namespace=\"nephoran-system\"}[5m]) > 0",
+                "legendFormat": "",
+                "step": 10
+              }
+            }
+          ]
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Service Availability (SLI)",
+            "description": "Overall service availability - Target: 99.9%",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "(1 - (sum(rate(nephoran_errors_total[5m])) / sum(rate(nephoran_requests_total[5m])))) * 100",
+                "legendFormat": "Availability %",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 99.5},
+                    {"color": "green", "value": 99.9}
+                  ]
+                },
+                "unit": "percent",
+                "decimals": 2,
+                "min": 95,
+                "max": 100
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "values": true,
+                "calcs": ["lastNotNull"]
+              },
+              "textMode": "value",
+              "graphMode": "area",
+              "colorMode": "background"
+            },
+            "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Request Success Rate (SLI)",
+            "description": "Percentage of successful requests - Target: 99.5%",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "(sum(rate(nephoran_requests_total{status=\"success\"}[5m])) / sum(rate(nephoran_requests_total[5m]))) * 100",
+                "legendFormat": "Success Rate %",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 99},
+                    {"color": "green", "value": 99.5}
+                  ]
+                },
+                "unit": "percent",
+                "decimals": 2,
+                "min": 95,
+                "max": 100
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "values": true,
+                "calcs": ["lastNotNull"]
+              },
+              "textMode": "value",
+              "graphMode": "area",
+              "colorMode": "background"
+            },
+            "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "P95 Latency (SLI)",
+            "description": "95th percentile latency - Target: <2s",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(nephoran_request_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "P95 Latency",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 1.5},
+                    {"color": "red", "value": 2}
+                  ]
+                },
+                "unit": "s",
+                "decimals": 2,
+                "min": 0,
+                "max": 5
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "values": true,
+                "calcs": ["lastNotNull"]
+              },
+              "textMode": "value",
+              "graphMode": "area",
+              "colorMode": "background"
+            },
+            "gridPos": {"h": 6, "w": 6, "x": 12, "y": 0}
+          },
+          {
+            "id": 4,
+            "title": "Error Budget Remaining",
+            "description": "Monthly error budget remaining - Target: >0%",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "100 - ((sum(increase(nephoran_errors_total[30d])) / sum(increase(nephoran_requests_total[30d]))) * 100 / 0.1)",
+                "legendFormat": "Error Budget %",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 10},
+                    {"color": "green", "value": 50}
+                  ]
+                },
+                "unit": "percent",
+                "decimals": 1,
+                "min": 0,
+                "max": 100
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "values": true,
+                "calcs": ["lastNotNull"]
+              },
+              "textMode": "value",
+              "graphMode": "area",
+              "colorMode": "background"
+            },
+            "gridPos": {"h": 6, "w": 6, "x": 18, "y": 0}
+          },
+          {
+            "id": 5,
+            "title": "NetworkIntent Processing Time (SLI)",
+            "description": "Time to process NetworkIntent CRs - Target: <10s",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, sum(rate(nephoran_networkintent_processing_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "P50"
+              },
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(nephoran_networkintent_processing_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "P95"
+              },
+              {
+                "expr": "histogram_quantile(0.99, sum(rate(nephoran_networkintent_processing_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "P99"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Seconds",
+                "show": true,
+                "min": 0
+              }
+            ],
+            "thresholds": [
+              {
+                "value": 10,
+                "color": "rgba(255, 0, 0, 0.5)",
+                "fill": true,
+                "line": true,
+                "op": "gt"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6}
+          },
+          {
+            "id": 6,
+            "title": "E2NodeSet Reconciliation Time (SLI)",
+            "description": "Time to reconcile E2NodeSet changes - Target: <30s",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.50, sum(rate(nephoran_e2nodeset_reconciliation_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "P50"
+              },
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(nephoran_e2nodeset_reconciliation_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "P95"
+              },
+              {
+                "expr": "histogram_quantile(0.99, sum(rate(nephoran_e2nodeset_reconciliation_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "P99"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Seconds",
+                "show": true,
+                "min": 0
+              }
+            ],
+            "thresholds": [
+              {
+                "value": 30,
+                "color": "rgba(255, 0, 0, 0.5)",
+                "fill": true,
+                "line": true,
+                "op": "gt"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6}
+          },
+          {
+            "id": 7,
+            "title": "Service Availability Trend (30d)",
+            "description": "30-day availability trend with SLO",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "(1 - (sum(rate(nephoran_errors_total[1h])) by (service) / sum(rate(nephoran_requests_total[1h])) by (service))) * 100",
+                "legendFormat": "{{service}} Availability"
+              },
+              {
+                "expr": "99.9",
+                "legendFormat": "SLO (99.9%)"
+              }
+            ],
+            "yAxes": [
+              {
+                "label": "Availability %",
+                "show": true,
+                "min": 95,
+                "max": 100
+              }
+            ],
+            "thresholds": [
+              {
+                "value": 99.9,
+                "color": "rgba(0, 255, 0, 0.1)",
+                "fill": true,
+                "line": true,
+                "op": "lt"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 14}
+          },
+          {
+            "id": 8,
+            "title": "LLM API Response Time (SLI)",
+            "description": "LLM processing latency - Target: P95 <5s",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum(rate(nephoran_llm_request_duration_seconds_bucket[5m])) by (le))",
+                "legendFormat": "P95 LLM Latency",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 4},
+                    {"color": "red", "value": 5}
+                  ]
+                },
+                "unit": "s",
+                "decimals": 2,
+                "min": 0,
+                "max": 10
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "values": true,
+                "calcs": ["lastNotNull"]
+              },
+              "textMode": "value",
+              "graphMode": "area",
+              "colorMode": "background"
+            },
+            "gridPos": {"h": 6, "w": 6, "x": 0, "y": 22}
+          },
+          {
+            "id": 9,
+            "title": "RAG Query Success Rate (SLI)",
+            "description": "RAG retrieval success rate - Target: >98%",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "(sum(rate(rag_queries_total{status=\"success\"}[5m])) / sum(rate(rag_queries_total[5m]))) * 100",
+                "legendFormat": "RAG Success %",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 95},
+                    {"color": "green", "value": 98}
+                  ]
+                },
+                "unit": "percent",
+                "decimals": 2,
+                "min": 90,
+                "max": 100
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "values": true,
+                "calcs": ["lastNotNull"]
+              },
+              "textMode": "value",
+              "graphMode": "area",
+              "colorMode": "background"
+            },
+            "gridPos": {"h": 6, "w": 6, "x": 6, "y": 22}
+          },
+          {
+            "id": 10,
+            "title": "O-RAN Interface Availability (SLI)",
+            "description": "O-RAN interface uptime - Target: 99.95%",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "(1 - (sum(rate(nephoran_oran_interface_errors_total[5m])) / sum(rate(nephoran_oran_interface_requests_total[5m])))) * 100",
+                "legendFormat": "O-RAN Availability %",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": null},
+                    {"color": "yellow", "value": 99.9},
+                    {"color": "green", "value": 99.95}
+                  ]
+                },
+                "unit": "percent",
+                "decimals": 3,
+                "min": 99,
+                "max": 100
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "values": true,
+                "calcs": ["lastNotNull"]
+              },
+              "textMode": "value",
+              "graphMode": "area",
+              "colorMode": "background"
+            },
+            "gridPos": {"h": 6, "w": 6, "x": 12, "y": 22}
+          },
+          {
+            "id": 11,
+            "title": "Controller Memory Usage (SLI)",
+            "description": "Controller memory consumption - Target: <1GB",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(container_memory_working_set_bytes{pod=~\"nephoran-controller-.*\",container=\"controller\"}) / 1024 / 1024 / 1024",
+                "legendFormat": "Memory Usage GB",
+                "instant": true
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": null},
+                    {"color": "yellow", "value": 0.8},
+                    {"color": "red", "value": 1}
+                  ]
+                },
+                "unit": "decbytes",
+                "decimals": 2,
+                "min": 0,
+                "max": 2
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "values": true,
+                "calcs": ["lastNotNull"]
+              },
+              "textMode": "value",
+              "graphMode": "area",
+              "colorMode": "background"
+            },
+            "gridPos": {"h": 6, "w": 6, "x": 18, "y": 22}
+          },
+          {
+            "id": 12,
+            "title": "SLI Summary Table",
+            "description": "All SLIs with current values and targets",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "label_join(\n  (1 - (sum(rate(nephoran_errors_total[5m])) / sum(rate(nephoran_requests_total[5m])))) * 100,\n  \"sli\", \"\", \"Service Availability\"\n)",
+                "format": "table",
+                "instant": true,
+                "legendFormat": "Service Availability"
+              },
+              {
+                "expr": "label_join(\n  (sum(rate(nephoran_requests_total{status=\"success\"}[5m])) / sum(rate(nephoran_requests_total[5m]))) * 100,\n  \"sli\", \"\", \"Request Success Rate\"\n)",
+                "format": "table",
+                "instant": true,
+                "legendFormat": "Request Success Rate"
+              },
+              {
+                "expr": "label_join(\n  histogram_quantile(0.95, sum(rate(nephoran_request_duration_seconds_bucket[5m])) by (le)),\n  \"sli\", \"\", \"P95 Latency\"\n)",
+                "format": "table",
+                "instant": true,
+                "legendFormat": "P95 Latency"
+              }
+            ],
+            "transformations": [
+              {
+                "id": "organize",
+                "options": {
+                  "excludeByName": {
+                    "Time": true
+                  },
+                  "indexByName": {},
+                  "renameByName": {
+                    "sli": "SLI Name",
+                    "Value": "Current Value"
+                  }
+                }
+              },
+              {
+                "id": "calculateField",
+                "options": {
+                  "alias": "Target",
+                  "mode": "binary",
+                  "reduce": {
+                    "reducer": "sum"
+                  },
+                  "replaceFields": false
+                }
+              }
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28}
+          }
+        ]
+      }
+    }

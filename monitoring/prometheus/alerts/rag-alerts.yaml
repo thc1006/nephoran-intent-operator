@@ -1,0 +1,235 @@
+groups:
+  - name: rag_performance_alerts
+    interval: 30s
+    rules:
+      # Query Latency Alerts
+      - alert: RAGHighQueryLatencyP95
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(rag_query_latency_seconds_bucket[5m])) by (le, component)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: rag
+        annotations:
+          summary: "High RAG query latency detected"
+          description: "P95 latency for {{ $labels.component }} is {{ $value }}s (threshold: 2s)"
+          runbook_url: "https://wiki.internal/runbooks/rag-latency"
+
+      - alert: RAGHighQueryLatencyP99
+        expr: |
+          histogram_quantile(0.99, 
+            sum(rate(rag_query_latency_seconds_bucket[5m])) by (le, component)
+          ) > 5
+        for: 3m
+        labels:
+          severity: critical
+          component: rag
+        annotations:
+          summary: "Critical RAG query latency"
+          description: "P99 latency for {{ $labels.component }} is {{ $value }}s (threshold: 5s)"
+          runbook_url: "https://wiki.internal/runbooks/rag-latency"
+
+      # Cache Performance Alerts
+      - alert: RAGMemoryCacheHitRateLow
+        expr: rag_cache_hit_rate{cache_type="memory"} < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: rag
+          cache: memory
+        annotations:
+          summary: "Low memory cache hit rate"
+          description: "Memory cache hit rate is {{ $value | humanizePercentage }} (threshold: 50%)"
+          runbook_url: "https://wiki.internal/runbooks/rag-cache"
+
+      - alert: RAGRedisCacheHitRateLow
+        expr: rag_cache_hit_rate{cache_type="redis"} < 0.6
+        for: 10m
+        labels:
+          severity: warning
+          component: rag
+          cache: redis
+        annotations:
+          summary: "Low Redis cache hit rate"
+          description: "Redis cache hit rate is {{ $value | humanizePercentage }} (threshold: 60%)"
+          runbook_url: "https://wiki.internal/runbooks/rag-cache"
+
+      - alert: RAGCacheEvictionRateHigh
+        expr: |
+          rate(rag_cache_evictions_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          component: rag
+        annotations:
+          summary: "High cache eviction rate"
+          description: "Cache eviction rate is {{ $value }}/sec for {{ $labels.cache_type }}"
+          runbook_url: "https://wiki.internal/runbooks/rag-cache-eviction"
+
+      # Weaviate Connection Pool Alerts
+      - alert: WeaviateConnectionPoolExhausted
+        expr: |
+          rag_weaviate_pool_idle_connections == 0 and
+          rag_weaviate_pool_active_connections >= 20
+        for: 2m
+        labels:
+          severity: critical
+          component: rag
+          database: weaviate
+        annotations:
+          summary: "Weaviate connection pool exhausted"
+          description: "No idle connections available, {{ $value }} active connections"
+          runbook_url: "https://wiki.internal/runbooks/weaviate-pool"
+
+      - alert: WeaviateConnectionPoolUnhealthy
+        expr: |
+          rag_weaviate_pool_health_status == 0
+        for: 3m
+        labels:
+          severity: critical
+          component: rag
+          database: weaviate
+        annotations:
+          summary: "Weaviate connection pool unhealthy"
+          description: "Connection pool health check failing"
+          runbook_url: "https://wiki.internal/runbooks/weaviate-health"
+
+      # Error Rate Alerts
+      - alert: RAGHighErrorRate
+        expr: |
+          sum(rate(rag_error_total[5m])) by (component, error_type) /
+          sum(rate(rag_query_latency_seconds_count[5m])) by (component) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: rag
+        annotations:
+          summary: "High RAG error rate"
+          description: "Error rate for {{ $labels.component }} ({{ $labels.error_type }}) is {{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.internal/runbooks/rag-errors"
+
+      - alert: RAGCriticalErrorRate
+        expr: |
+          sum(rate(rag_error_total[5m])) by (component) /
+          sum(rate(rag_query_latency_seconds_count[5m])) by (component) > 0.1
+        for: 3m
+        labels:
+          severity: critical
+          component: rag
+        annotations:
+          summary: "Critical RAG error rate"
+          description: "Error rate for {{ $labels.component }} is {{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.internal/runbooks/rag-errors"
+
+      # Query Quality Alerts
+      - alert: RAGLowQueryQuality
+        expr: |
+          histogram_quantile(0.5, 
+            sum(rate(rag_query_quality_score_bucket[10m])) by (le)
+          ) < 0.6
+        for: 15m
+        labels:
+          severity: warning
+          component: rag
+        annotations:
+          summary: "Low RAG query quality scores"
+          description: "Median quality score is {{ $value }} (threshold: 0.6)"
+          runbook_url: "https://wiki.internal/runbooks/rag-quality"
+
+      # Throughput Alerts
+      - alert: RAGLowThroughput
+        expr: |
+          sum(rate(rag_query_latency_seconds_count[5m])) < 1
+        for: 10m
+        labels:
+          severity: warning
+          component: rag
+        annotations:
+          summary: "Abnormally low RAG throughput"
+          description: "Query rate is {{ $value }}/sec (expected: >1/sec)"
+          runbook_url: "https://wiki.internal/runbooks/rag-throughput"
+
+      - alert: RAGThroughputSpike
+        expr: |
+          sum(rate(rag_query_latency_seconds_count[5m])) >
+          avg_over_time(sum(rate(rag_query_latency_seconds_count[5m]))[1h:5m]) * 3
+        for: 5m
+        labels:
+          severity: warning
+          component: rag
+        annotations:
+          summary: "RAG throughput spike detected"
+          description: "Query rate is 3x higher than 1h average"
+          runbook_url: "https://wiki.internal/runbooks/rag-spike"
+
+      # Redis Alerts
+      - alert: RedisConnectionFailure
+        expr: |
+          sum(rate(rag_error_total{component="redis",error_type="connection"}[5m])) > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: rag
+          cache: redis
+        annotations:
+          summary: "Redis connection failures"
+          description: "Redis connection errors detected: {{ $value }}/sec"
+          runbook_url: "https://wiki.internal/runbooks/redis-connection"
+
+      # Memory Cache Alerts
+      - alert: MemoryCacheSizeHigh
+        expr: |
+          rag_cache_size_bytes{cache_type="memory"} > 1073741824
+        for: 5m
+        labels:
+          severity: warning
+          component: rag
+          cache: memory
+        annotations:
+          summary: "Memory cache size high"
+          description: "Memory cache using {{ $value | humanize1024 }}B (threshold: 1GB)"
+          runbook_url: "https://wiki.internal/runbooks/memory-cache"
+
+      # SLA Compliance Alerts
+      - alert: RAGSLAViolation
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(rag_query_latency_seconds_bucket[5m])) by (le)
+          ) > 1
+        for: 10m
+        labels:
+          severity: critical
+          component: rag
+          sla: true
+        annotations:
+          summary: "RAG SLA violation"
+          description: "P95 latency {{ $value }}s exceeds SLA target of 1s"
+          runbook_url: "https://wiki.internal/runbooks/rag-sla"
+
+      # Component Health Alerts
+      - alert: RAGComponentDown
+        expr: up{job=~"rag-.*"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: rag
+        annotations:
+          summary: "RAG component {{ $labels.job }} is down"
+          description: "{{ $labels.job }} has been down for 2 minutes"
+          runbook_url: "https://wiki.internal/runbooks/rag-health"
+
+      # Circuit Breaker Alerts
+      - alert: RAGCircuitBreakerOpen
+        expr: |
+          rag_circuit_breaker_state{component="weaviate"} == 1 or
+          rag_circuit_breaker_state{component="redis"} == 1
+        for: 1m
+        labels:
+          severity: critical
+          component: rag
+        annotations:
+          summary: "RAG circuit breaker open for {{ $labels.component }}"
+          description: "{{ $labels.component }} circuit breaker is rejecting requests"
+          runbook_url: "https://wiki.internal/runbooks/rag-circuit-breaker"

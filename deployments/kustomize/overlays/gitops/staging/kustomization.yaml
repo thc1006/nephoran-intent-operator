@@ -1,0 +1,119 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# GitOps overlay for staging environment
+# Pre-production environment with production-like configuration
+
+resources:
+- ../base
+- namespace.yaml
+- network-policies.yaml
+
+# Staging namespace
+namespace: nephoran-staging
+
+# Staging-specific labels
+commonLabels:
+  env: staging
+  tier: pre-production
+  
+# Image configuration for staging
+images:
+- name: llm-processor
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/llm-processor
+  newTag: staging
+- name: nephio-bridge
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/nephio-bridge
+  newTag: staging
+- name: oran-adaptor
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/oran-adaptor
+  newTag: staging
+- name: rag-api
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/rag-api
+  newTag: staging
+
+# Staging replicas (production-like)
+replicas:
+- name: llm-processor
+  count: 3
+- name: nephio-bridge
+  count: 3
+- name: oran-adaptor
+  count: 3
+- name: rag-api
+  count: 3
+
+# Patches for staging environment
+patches:
+# Add image pull secret
+- patch: |-
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: default
+    imagePullSecrets:
+    - name: nephoran-gcr-secret
+  target:
+    kind: ServiceAccount
+    name: default
+    
+# Production-like resource limits
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources
+      value:
+        requests:
+          memory: "1Gi"
+          cpu: "500m"
+        limits:
+          memory: "2Gi"
+          cpu: "2"
+  target:
+    kind: Deployment
+    
+# Staging environment configuration
+- patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: LOG_LEVEL
+        value: warn
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENVIRONMENT
+        value: staging
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENABLE_PROFILING
+        value: "true"
+  target:
+    kind: Deployment
+
+# Pod Disruption Budgets
+- patch: |-
+    apiVersion: policy/v1
+    kind: PodDisruptionBudget
+    metadata:
+      name: $(DEPLOYMENT_NAME)-pdb
+    spec:
+      minAvailable: 2
+      selector:
+        matchLabels:
+          app: $(DEPLOYMENT_NAME)
+  target:
+    kind: Deployment
+
+# ConfigMaps for staging
+configMapGenerator:
+- name: staging-config
+  literals:
+  - api.debug=false
+  - api.rate_limit=500
+  - cache.ttl=3600
+  - monitoring.enabled=true
+  - tracing.enabled=true
+  
+# Secrets (referenced, not created here)
+secretGenerator: []

@@ -1,21 +1,31 @@
 # Multi-service Dockerfile for Nephoran Intent Operator
 # This Dockerfile can build all services with security optimizations and production readiness
+# Supports multi-architecture builds (amd64 + arm64) with cross-compilation
 
-# Build stage with security hardening
-FROM golang:1.24-alpine AS builder
+# Build stage with security hardening and multi-arch support
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS builder
 
-# Build arguments for flexibility and traceability
+# Build arguments for multi-arch and traceability
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION=v2.0.0
 ARG SERVICE
 
-# Install essential build dependencies
+# Display build information for debugging
+RUN printf "* Building on: %s\n* Building for: %s\n* Target OS: %s\n* Target Arch: %s\n" \
+    "$BUILDPLATFORM" "$TARGETPLATFORM" "$TARGETOS" "$TARGETARCH"
+
+# Install essential build dependencies with platform-specific optimizations
 RUN apk add --no-cache \
     git \
     ca-certificates \
     tzdata \
     make \
+    binutils \
     && rm -rf /var/cache/apk/* \
     && apk update && apk upgrade
 
@@ -38,24 +48,24 @@ RUN go mod download && \
 # Copy source code with proper ownership
 COPY --chown=builduser:builduser . .
 
-# Build service based on SERVICE argument
+# Build service based on SERVICE argument with cross-compilation support
 RUN case "$SERVICE" in \
     "llm-processor") \
-        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
         go build -buildmode=exe \
         -ldflags="-w -s -extldflags '-static' -X main.version=${VERSION} -X main.buildDate=${BUILD_DATE} -X main.gitCommit=${VCS_REF}" \
         -a -installsuffix cgo -trimpath -mod=readonly \
         -o service-binary cmd/llm-processor/main.go \
         ;; \
     "nephio-bridge") \
-        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
         go build -buildmode=exe \
         -ldflags="-w -s -extldflags '-static' -X main.version=${VERSION} -X main.buildDate=${BUILD_DATE} -X main.gitCommit=${VCS_REF}" \
         -a -installsuffix cgo -trimpath -mod=readonly \
         -o service-binary cmd/nephio-bridge/main.go \
         ;; \
     "oran-adaptor") \
-        CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+        CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
         go build -buildmode=exe \
         -ldflags="-w -s -extldflags '-static' -X main.version=${VERSION} -X main.buildDate=${BUILD_DATE} -X main.gitCommit=${VCS_REF}" \
         -a -installsuffix cgo -trimpath -mod=readonly \
@@ -73,17 +83,27 @@ RUN file service-binary && \
     ldd service-binary 2>&1 | grep -q "not a dynamic executable" || \
     (echo "Binary is not statically linked!" && exit 1)
 
-# Binary optimization stage
-FROM alpine:3.20 AS optimizer
-RUN apk add --no-cache binutils upx
+# Binary optimization stage with multi-arch support
+FROM --platform=$TARGETPLATFORM alpine:3.20 AS optimizer
+ARG TARGETARCH
+# Install platform-specific optimization tools
+RUN apk add --no-cache binutils && \
+    if [ "$TARGETARCH" = "amd64" ]; then \
+        apk add --no-cache upx; \
+    fi
 COPY --from=builder /workspace/service-binary /tmp/service-binary
+# Apply optimizations based on target architecture
 RUN strip --strip-unneeded /tmp/service-binary && \
-    upx --best --lzma /tmp/service-binary
+    if [ "$TARGETARCH" = "amd64" ] && command -v upx >/dev/null 2>&1; then \
+        upx --best --lzma /tmp/service-binary; \
+    fi
 
-# Production runtime stage using distroless
-FROM gcr.io/distroless/static:nonroot-amd64
+# Production runtime stage using distroless with platform selection
+FROM gcr.io/distroless/static:nonroot AS runtime-base
 
-# Build arguments for labels
+# Build arguments for labels and platform info
+ARG TARGETPLATFORM
+ARG TARGETARCH
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION=v2.0.0
@@ -106,7 +126,9 @@ LABEL maintainer="Nephoran Intent Operator Team <team@nephoran.com>" \
       org.opencontainers.image.url="https://github.com/thc1006/nephoran-intent-operator" \
       security.scan="enabled" \
       security.policy="minimal-attack-surface" \
-      build.architecture="amd64"
+      build.architecture="${TARGETARCH:-amd64}" \
+      build.platform="${TARGETPLATFORM}" \
+      build.multi-arch="true"
 
 # Copy essential system files for TLS and timezone support
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo

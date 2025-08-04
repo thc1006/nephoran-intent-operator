@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-system
+  labels:
+    name: nephoran-system
+    environment: production
+    tier: production
+    istio-injection: enabled
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    config.kubernetes.io/local-config: "false"
+    security.nephoran.com/hardened: "true"
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: production-resources
+  namespace: nephoran-system
+spec:
+  hard:
+    requests.cpu: "6"
+    requests.memory: 12Gi
+    limits.cpu: "12"
+    limits.memory: 24Gi
+    persistentvolumeclaims: "20"
+    pods: "50"
+    services: "20"
+    secrets: "50"
+    configmaps: "50"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: production-limits
+  namespace: nephoran-system
+spec:
+  limits:
+  - default:
+      cpu: "1"
+      memory: "2Gi"
+    defaultRequest:
+      cpu: "250m"
+      memory: "512Mi"
+    type: Container
+  - max:
+      cpu: "4"
+      memory: "8Gi"
+    min:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: llm-processor-pdb
+  namespace: nephoran-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: llm-processor
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nephio-bridge-pdb
+  namespace: nephoran-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: nephio-bridge
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: oran-adaptor-pdb
+  namespace: nephoran-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: oran-adaptor
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: rag-api-pdb
+  namespace: nephoran-system
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: rag-api

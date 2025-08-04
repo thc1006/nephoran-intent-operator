@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephio-bridge-sa-production
+  namespace: nephoran-system
+  labels:
+    app: nephio-bridge
+    environment: production
+  annotations:
+    security.nephoran.com/hardened: "true"
+automountServiceAccountToken: true
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oran-adaptor-sa-production
+  namespace: nephoran-system
+  labels:
+    app: oran-adaptor
+    environment: production
+  annotations:
+    security.nephoran.com/hardened: "true"
+automountServiceAccountToken: true
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: llm-processor-sa-production
+  namespace: nephoran-system
+  labels:
+    app: llm-processor
+    environment: production
+  annotations:
+    security.nephoran.com/hardened: "true"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rag-api-sa-production
+  namespace: nephoran-system
+  labels:
+    app: rag-api
+    environment: production
+  annotations:
+    security.nephoran.com/hardened: "true"
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: production-tls-certs
+  namespace: nephoran-system
+  labels:
+    environment: production
+type: kubernetes.io/tls
+data:
+  # These should be replaced with actual production certificates
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0t
+  tls.key: LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0t
+---
+apiVersion: networking.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: production-strict-mtls
+  namespace: nephoran-system
+spec:
+  mtls:
+    mode: STRICT

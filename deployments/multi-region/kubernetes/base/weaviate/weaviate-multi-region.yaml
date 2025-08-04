@@ -1,0 +1,459 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: weaviate
+  labels:
+    app: weaviate
+    component: vector-database
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless service for StatefulSet
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+      protocol: TCP
+    - name: metrics
+      port: 2112
+      targetPort: 2112
+      protocol: TCP
+  selector:
+    app: weaviate
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weaviate-lb
+  labels:
+    app: weaviate
+    component: vector-database
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: weaviate
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: weaviate
+  labels:
+    app: weaviate
+    component: vector-database
+spec:
+  serviceName: weaviate
+  replicas: 3
+  updateStrategy:
+    type: RollingUpdate
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: weaviate
+  template:
+    metadata:
+      labels:
+        app: weaviate
+        component: vector-database
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "2112"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: weaviate
+      terminationGracePeriodSeconds: 120
+      securityContext:
+        fsGroup: 1000
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
+      
+      # Topology spread for HA
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: weaviate
+      
+      # Anti-affinity
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - weaviate
+              topologyKey: kubernetes.io/hostname
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nephoran.com/node-type
+                    operator: In
+                    values:
+                      - data
+      
+      tolerations:
+        - key: nephoran.com/data-workload
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+      
+      initContainers:
+        - name: configure-cluster
+          image: busybox:1.36
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Configuring Weaviate cluster..."
+              # Create configuration files
+              cat > /weaviate-config/cluster.yaml << EOF
+              cluster:
+                name: weaviate-${REGION}
+                join: weaviate-0.weaviate.${NAMESPACE}.svc.cluster.local:7100
+              EOF
+          env:
+            - name: REGION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['region']
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          volumeMounts:
+            - name: weaviate-config
+              mountPath: /weaviate-config
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+      
+      containers:
+        - name: weaviate
+          image: semitechnologies/weaviate:1.24.1
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: grpc
+              containerPort: 50051
+              protocol: TCP
+            - name: metrics
+              containerPort: 2112
+              protocol: TCP
+            - name: gossip
+              containerPort: 7100
+              protocol: TCP
+          
+          env:
+            # Cluster configuration
+            - name: CLUSTER_HOSTNAME
+              value: "$(POD_NAME).weaviate.$(NAMESPACE).svc.cluster.local"
+            - name: CLUSTER_GOSSIP_BIND_PORT
+              value: "7100"
+            - name: CLUSTER_DATA_BIND_PORT
+              value: "7101"
+            - name: CLUSTER_JOIN
+              value: "weaviate-0.weaviate.$(NAMESPACE).svc.cluster.local:7100"
+            - name: CLUSTER_REPLICATION_FACTOR
+              value: "3"
+            - name: CLUSTER_MINIMUM_CONSENSUS
+              value: "2"
+            
+            # Pod information
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            
+            # General configuration
+            - name: LOG_LEVEL
+              value: "info"
+            - name: LOG_FORMAT
+              value: "json"
+            - name: PERSISTENCE_DATA_PATH
+              value: "/var/lib/weaviate"
+            - name: DEFAULT_VECTORIZER_MODULE
+              value: "text2vec-openai"
+            - name: ENABLE_MODULES
+              value: "text2vec-openai,text2vec-cohere,text2vec-huggingface,generative-openai,generative-cohere,backup-gcs,multi2vec-clip"
+            
+            # Authentication
+            - name: AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED
+              value: "false"
+            - name: AUTHENTICATION_APIKEY_ENABLED
+              value: "true"
+            - name: AUTHENTICATION_APIKEY_ALLOWED_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: weaviate-auth
+                  key: api-keys
+            - name: AUTHENTICATION_APIKEY_USERS
+              valueFrom:
+                secretKeyRef:
+                  name: weaviate-auth
+                  key: api-users
+            
+            # Authorization
+            - name: AUTHORIZATION_ADMINLIST_ENABLED
+              value: "true"
+            - name: AUTHORIZATION_ADMINLIST_USERS
+              valueFrom:
+                secretKeyRef:
+                  name: weaviate-auth
+                  key: admin-users
+            
+            # OpenAI integration
+            - name: OPENAI_APIKEY
+              valueFrom:
+                secretKeyRef:
+                  name: weaviate-modules
+                  key: openai-api-key
+            
+            # Backup configuration
+            - name: BACKUP_GCS_BUCKET
+              value: "$(PROJECT_ID)-weaviate-backups"
+            - name: BACKUP_GCS_PATH
+              value: "$(REGION)"
+            - name: BACKUP_GCS_ENDPOINT
+              value: "https://storage.googleapis.com"
+            - name: BACKUP_GCS_USE_AUTH
+              value: "true"
+            
+            # Performance tuning
+            - name: GOMAXPROCS
+              value: "4"
+            - name: PROMETHEUS_MONITORING_ENABLED
+              value: "true"
+            - name: PROMETHEUS_MONITORING_PORT
+              value: "2112"
+            
+            # Query configuration
+            - name: QUERY_DEFAULTS_LIMIT
+              value: "100"
+            - name: QUERY_MAXIMUM_RESULTS
+              value: "10000"
+            - name: QUERY_TIMEOUT_CONFIG
+              value: "30s"
+            
+            # Multi-region specific
+            - name: ENABLE_CROSS_REGION_REPLICATION
+              value: "true"
+            - name: REPLICATION_STRATEGY
+              value: "async"
+            - name: REGION_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['region']
+            - name: PRIMARY_REGION
+              value: "us-central1"
+            
+          envFrom:
+            - configMapRef:
+                name: weaviate-config
+            - secretRef:
+                name: weaviate-secrets
+          
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 4Gi
+              ephemeral-storage: 2Gi
+            limits:
+              cpu: 4000m
+              memory: 16Gi
+              ephemeral-storage: 10Gi
+          
+          startupProbe:
+            httpGet:
+              path: /v1/.well-known/ready
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 30
+          
+          livenessProbe:
+            httpGet:
+              path: /v1/.well-known/live
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /v1/.well-known/ready
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/weaviate
+            - name: weaviate-config
+              mountPath: /etc/weaviate
+              readOnly: true
+        
+        # Backup sidecar
+        - name: backup-agent
+          image: gcr.io/PROJECT_ID/weaviate-backup-agent:latest
+          env:
+            - name: BACKUP_SCHEDULE
+              value: "0 2 * * *"  # Daily at 2 AM
+            - name: RETENTION_DAYS
+              value: "30"
+            - name: GCS_BUCKET
+              value: "$(PROJECT_ID)-weaviate-backups"
+            - name: WEAVIATE_URL
+              value: "http://localhost:8080"
+            - name: WEAVIATE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: weaviate-auth
+                  key: backup-api-key
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          volumeMounts:
+            - name: backup-scratch
+              mountPath: /tmp/backup
+      
+      volumes:
+        - name: weaviate-config
+          emptyDir: {}
+        - name: backup-scratch
+          emptyDir:
+            sizeLimit: 10Gi
+  
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app: weaviate
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: premium-rwo
+        resources:
+          requests:
+            storage: 100Gi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: weaviate
+  labels:
+    app: weaviate
+  annotations:
+    iam.gke.io/gcp-service-account: weaviate@PROJECT_ID.iam.gserviceaccount.com
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: weaviate-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: weaviate
+  unhealthyPodEvictionPolicy: AlwaysAllow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: weaviate-config
+data:
+  # Multi-region endpoints
+  regions.yaml: |
+    regions:
+      us-central1:
+        endpoint: weaviate.us-central1.nephoran.com
+        priority: 100
+      europe-west1:
+        endpoint: weaviate.europe-west1.nephoran.com
+        priority: 90
+      asia-southeast1:
+        endpoint: weaviate.asia-southeast1.nephoran.com
+        priority: 80
+  
+  # Replication configuration
+  replication.yaml: |
+    replication:
+      mode: async
+      factor: 3
+      consistency_level: quorum
+      cross_region:
+        enabled: true
+        sync_interval: 60s
+        conflict_resolution: last_write_wins
+  
+  # Schema configuration
+  schema.yaml: |
+    default_schema:
+      classes:
+        - class: Intent
+          description: User intents for network configuration
+          moduleConfig:
+            text2vec-openai:
+              model: ada
+              type: text
+          properties:
+            - name: intent_text
+              dataType: ["text"]
+            - name: intent_type
+              dataType: ["string"]
+            - name: confidence
+              dataType: ["number"]
+            - name: timestamp
+              dataType: ["date"]
+            - name: region
+              dataType: ["string"]
+        - class: NetworkConfig
+          description: Network configuration templates
+          moduleConfig:
+            text2vec-openai:
+              model: ada
+              type: text
+          properties:
+            - name: config_name
+              dataType: ["string"]
+            - name: config_yaml
+              dataType: ["text"]
+            - name: description
+              dataType: ["text"]
+            - name: tags
+              dataType: ["string[]"]

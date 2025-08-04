@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-system
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    istio-injection: enabled
+  annotations:
+    scheduler.alpha.kubernetes.io/node-selector: "nephoran.com/node-type=system"

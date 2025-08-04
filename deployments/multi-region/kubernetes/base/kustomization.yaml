@@ -1,0 +1,78 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: nephoran-system
+
+commonLabels:
+  app.kubernetes.io/part-of: nephoran-intent-operator
+  app.kubernetes.io/managed-by: kustomize
+
+resources:
+  # Namespaces
+  - namespace.yaml
+  
+  # Service accounts and RBAC
+  - serviceaccounts.yaml
+  - rbac.yaml
+  
+  # ConfigMaps and Secrets
+  - configmaps.yaml
+  
+  # Core services
+  - llm-processor.yaml
+  - rag-api.yaml
+  - intent-controller.yaml
+  - edge-controller.yaml
+  
+  # Weaviate vector database
+  - weaviate/
+  
+  # Multi-region services
+  - multi-region-services.yaml
+  
+  # Network policies
+  - network-policies.yaml
+  
+  # Pod disruption budgets
+  - pod-disruption-budgets.yaml
+  
+  # Horizontal pod autoscalers
+  - horizontal-pod-autoscalers.yaml
+
+# Config map generator for region-specific configs
+configMapGenerator:
+  - name: region-config
+    literals:
+      - REGION=base
+      - CLUSTER_TYPE=primary
+      - REPLICATION_MODE=multi-region
+
+# Secret generator placeholder
+secretGenerator:
+  - name: llm-credentials
+    files:
+      - credentials.json=secrets/llm-credentials.json
+  - name: weaviate-auth
+    literals:
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=false
+      - AUTHENTICATION_APIKEY_ENABLED=true
+      - AUTHENTICATION_APIKEY_ALLOWED_KEYS=secret-key
+  
+# Common patches
+patchesStrategicMerge:
+  - patches/resource-limits.yaml
+  - patches/security-context.yaml
+  - patches/affinity-rules.yaml
+
+# Images
+images:
+  - name: ghcr.io/thc1006/nephoran-intent-operator/llm-processor
+    newTag: v2.0.0
+  - name: ghcr.io/thc1006/nephoran-intent-operator/rag-api
+    newTag: v2.0.0
+  - name: ghcr.io/thc1006/nephoran-intent-operator/intent-controller
+    newTag: v2.0.0
+  - name: ghcr.io/thc1006/nephoran-intent-operator/edge-controller
+    newTag: v2.0.0
+  - name: semitechnologies/weaviate
+    newTag: 1.24.1

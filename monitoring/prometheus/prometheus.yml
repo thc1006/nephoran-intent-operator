@@ -1,0 +1,162 @@
+# Prometheus configuration for Nephoran Intent Operator
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'nephoran-prod'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Rule files
+rule_files:
+  - "alerts/*.yaml"
+
+# Scrape configurations
+scrape_configs:
+  # LLM Processor metrics
+  - job_name: 'llm-processor'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - nephoran-system
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: llm-processor
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: instance
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_label_version]
+        target_label: version
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'llm_.*'
+        action: keep
+
+  # RAG API metrics
+  - job_name: 'rag-api'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - nephoran-system
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: rag-api
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: instance
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'rag_.*'
+        action: keep
+
+  # ORAN Adaptor metrics
+  - job_name: 'oran-adaptor'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - nephoran-system
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: oran-adaptor
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: instance
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+
+  # Nephio Bridge metrics
+  - job_name: 'nephio-bridge'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - nephoran-system
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_app]
+        action: keep
+        regex: nephio-bridge
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: instance
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: namespace
+
+  # Weaviate metrics
+  - job_name: 'weaviate'
+    static_configs:
+      - targets:
+          - weaviate:2112
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'weaviate_.*'
+        action: keep
+
+  # Redis exporter
+  - job_name: 'redis'
+    static_configs:
+      - targets:
+          - redis-exporter:9121
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'redis_.*'
+        action: keep
+
+  # Node exporter for system metrics
+  - job_name: 'node-exporter'
+    kubernetes_sd_configs:
+      - role: node
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '(.*):10250'
+        replacement: '${1}:9100'
+        target_label: __address__
+      - source_labels: [__meta_kubernetes_node_name]
+        target_label: node
+
+  # Kubernetes API server
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+      - role: endpoints
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+
+  # OpenTelemetry collector
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets:
+          - otel-collector:8888
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'otelcol_.*'
+        action: keep
+
+# Remote write configuration for long-term storage
+remote_write:
+  - url: "http://thanos-receive:19291/api/v1/receive"
+    queue_config:
+      max_samples_per_send: 10000
+      batch_send_deadline: 5s
+      min_backoff: 30ms
+      max_backoff: 100ms
+
+# Recording rules for performance optimization
+# These are defined in separate rule files

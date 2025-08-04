@@ -1,0 +1,75 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# GitOps overlay for local development
+# Clean, idempotent configuration for local Kubernetes environments
+
+resources:
+- ../base
+
+# Local namespace
+namespace: nephoran-local
+
+# Local-specific labels
+commonLabels:
+  env: local
+  
+# Image configuration for local development
+images:
+- name: llm-processor
+  newName: llm-processor
+  newTag: local
+- name: nephio-bridge
+  newName: nephio-bridge
+  newTag: local
+- name: oran-adaptor
+  newName: oran-adaptor
+  newTag: local
+- name: rag-api
+  newName: rag-api
+  newTag: local
+
+# Local replicas (reduced for development)
+replicas:
+- name: llm-processor
+  count: 1
+- name: nephio-bridge
+  count: 1
+- name: oran-adaptor
+  count: 1
+- name: rag-api
+  count: 1
+
+# Patches for local development
+patches:
+# Set imagePullPolicy to Never for local images
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/imagePullPolicy
+      value: Never
+  target:
+    kind: Deployment
+    
+# Reduce resource requirements for local development
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources
+      value:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
+  target:
+    kind: Deployment
+    
+# Enable debug logging
+- patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: LOG_LEVEL
+        value: debug
+  target:
+    kind: Deployment

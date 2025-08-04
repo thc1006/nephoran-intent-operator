@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-production
+  labels:
+    name: nephoran-production
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    environment: production
+    compliance: required
+  annotations:
+    scheduler.alpha.kubernetes.io/defaultTolerations: '[{"key":"production","operator":"Equal","value":"true","effect":"NoSchedule"}]'
+    nephoran.io/cost-center: "platform-infrastructure"
+    nephoran.io/data-classification: "confidential"

@@ -1,17 +1,28 @@
 # Multi-stage build for production-ready LLM processor with enhanced security
-# Build stage with security optimizations
-FROM golang:1.24-alpine AS builder
+# Supports multi-architecture builds (amd64 + arm64) with cross-compilation
 
-# Set build arguments for flexibility
+# Build stage with security optimizations and multi-arch support
+FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS builder
+
+# Set build arguments for flexibility and multi-arch support
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
 ARG BUILD_DATE
 ARG VCS_REF
 ARG VERSION=v2.0.0
 
-# Install only essential build dependencies
+# Display build information for debugging
+RUN printf "* Building LLM Processor on: %s\n* Building for: %s\n* Target OS: %s\n* Target Arch: %s\n" \
+    "$BUILDPLATFORM" "$TARGETPLATFORM" "$TARGETOS" "$TARGETARCH"
+
+# Install only essential build dependencies with platform optimizations
 RUN apk add --no-cache \
     git \
     ca-certificates \
     tzdata \
+    binutils \
     && rm -rf /var/cache/apk/*
 
 # Create dedicated build user with minimal privileges
@@ -38,10 +49,10 @@ COPY --chown=builduser:builduser cmd/llm-processor/ cmd/llm-processor/
 COPY --chown=builduser:builduser pkg/ pkg/
 COPY --chown=builduser:builduser api/ api/
 
-# Build the binary with enhanced security and optimization flags
+# Build the binary with enhanced security, optimization flags, and cross-compilation
 RUN CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64 \
+    GOOS=${TARGETOS:-linux} \
+    GOARCH=${TARGETARCH:-amd64} \
     GOFLAGS="-buildvcs=false" \
     go build \
     -buildmode=exe \
@@ -55,16 +66,32 @@ RUN CGO_ENABLED=0 \
 # List the binary
 RUN ls -la llm-processor
 
-# Intermediate stage for security scanning (optional in CI/CD)
-FROM alpine:3.20 AS scanner
-RUN apk add --no-cache binutils
+# Intermediate stage for binary optimization with multi-arch support
+FROM --platform=$TARGETPLATFORM alpine:3.20 AS optimizer
+ARG TARGETARCH
+# Install platform-specific optimization tools
+RUN apk add --no-cache binutils && \
+    if [ "$TARGETARCH" = "amd64" ]; then \
+        apk add --no-cache upx; \
+    fi
 COPY --from=builder /workspace/llm-processor /tmp/llm-processor
-RUN strip --strip-unneeded /tmp/llm-processor
+# Apply optimizations based on target architecture
+RUN strip --strip-unneeded /tmp/llm-processor && \
+    if [ "$TARGETARCH" = "amd64" ] && command -v upx >/dev/null 2>&1; then \
+        upx --best --lzma /tmp/llm-processor; \
+    fi
 
-# Runtime stage using distroless for maximum security
-FROM gcr.io/distroless/static:nonroot-amd64
+# Runtime stage using distroless for maximum security with platform selection
+FROM gcr.io/distroless/static:nonroot AS runtime-base
 
-# Set build-time labels with dynamic values
+# Build arguments for labels and platform info
+ARG TARGETPLATFORM
+ARG TARGETARCH
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION=v2.0.0
+
+# Set build-time labels with dynamic values and multi-arch info
 LABEL maintainer="Nephoran Intent Operator Team <team@nephoran.com>" \
       version="${VERSION}" \
       description="Production-ready LLM Processor Service for Telecom Network Intent Translation" \
@@ -78,14 +105,17 @@ LABEL maintainer="Nephoran Intent Operator Team <team@nephoran.com>" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.documentation="https://github.com/thc1006/nephoran-intent-operator/docs" \
       security.scan="enabled" \
-      security.policy="minimal-attack-surface"
+      security.policy="minimal-attack-surface" \
+      build.architecture="${TARGETARCH:-amd64}" \
+      build.platform="${TARGETPLATFORM}" \
+      build.multi-arch="true"
 
 # Copy essential system files from builder
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy the optimized binary with strict permissions
-COPY --from=scanner /tmp/llm-processor /llm-processor
+COPY --from=optimizer /tmp/llm-processor /llm-processor
 
 # Ensure binary has correct permissions (read and execute only)
 USER nonroot:nonroot

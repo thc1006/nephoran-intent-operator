@@ -1,0 +1,93 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# GitOps overlay for development environment
+# Deployed to shared development cluster
+
+resources:
+- ../base
+
+# Development namespace
+namespace: nephoran-dev
+
+# Dev-specific labels
+commonLabels:
+  env: dev
+  team: platform
+  
+# Image configuration for dev (using registry)
+images:
+- name: llm-processor
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/llm-processor
+  newTag: dev
+- name: nephio-bridge
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/nephio-bridge
+  newTag: dev
+- name: oran-adaptor
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/oran-adaptor
+  newTag: dev
+- name: rag-api
+  newName: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/rag-api
+  newTag: dev
+
+# Dev replicas
+replicas:
+- name: llm-processor
+  count: 2
+- name: nephio-bridge
+  count: 2
+- name: oran-adaptor
+  count: 2
+- name: rag-api
+  count: 2
+
+# Patches for development environment
+patches:
+# Add image pull secret
+- patch: |-
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: default
+    imagePullSecrets:
+    - name: nephoran-gcr-secret
+  target:
+    kind: ServiceAccount
+    name: default
+    
+# Resource limits for dev
+- patch: |-
+    - op: replace
+      path: /spec/template/spec/containers/0/resources
+      value:
+        requests:
+          memory: "512Mi"
+          cpu: "250m"
+        limits:
+          memory: "1Gi"
+          cpu: "1"
+  target:
+    kind: Deployment
+    
+# Enable verbose logging
+- patch: |-
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: LOG_LEVEL
+        value: info
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: ENVIRONMENT
+        value: development
+  target:
+    kind: Deployment
+
+# Additional dev ConfigMaps
+configMapGenerator:
+- name: dev-config
+  literals:
+  - api.debug=true
+  - api.rate_limit=100
+  - cache.ttl=300

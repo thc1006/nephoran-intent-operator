@@ -1,0 +1,535 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-processor
+  labels:
+    app: llm-processor
+    component: ai-processing
+  annotations:
+    service.beta.kubernetes.io/topology-aware-hints: "auto"
+    cloud.google.com/neg: '{"ingress": true}'
+    cloud.google.com/backend-config: '{"default": "llm-processor-backendconfig"}'
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  selector:
+    app: llm-processor
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata:
+  name: llm-processor-backendconfig
+spec:
+  healthCheck:
+    checkIntervalSec: 10
+    timeoutSec: 5
+    healthyThreshold: 2
+    unhealthyThreshold: 3
+    type: HTTP
+    requestPath: /healthz
+    port: 8080
+  sessionAffinity:
+    affinityType: "CLIENT_IP"
+    affinityCookieTtlSec: 50
+  timeoutSec: 60
+  connectionDraining:
+    drainingTimeoutSec: 60
+  logging:
+    enable: true
+    sampleRate: 1.0
+  iap:
+    enabled: false
+  cdn:
+    enabled: true
+    cachePolicy:
+      includeHost: true
+      includeProtocol: true
+      includeQueryString: false
+    negativeCaching: true
+    negativeCachingPolicy:
+      - code: 404
+        ttl: 120
+      - code: 500
+        ttl: 10
+  customRequestHeaders:
+    headers:
+      - "X-Region:{region}"
+      - "X-Cluster:{cluster}"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-processor
+  labels:
+    app: llm-processor
+    component: ai-processing
+    version: v2.0.0
+  annotations:
+    deployment.kubernetes.io/revision: "2"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+  selector:
+    matchLabels:
+      app: llm-processor
+  template:
+    metadata:
+      labels:
+        app: llm-processor
+        component: ai-processing
+        version: v2.0.0
+        sidecar.istio.io/inject: "true"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+        kubectl.kubernetes.io/default-container: "llm-processor"
+    spec:
+      serviceAccountName: llm-processor
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      
+      # Topology spread constraints for multi-zone HA
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app: llm-processor
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: llm-processor
+      
+      # Anti-affinity rules
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - llm-processor
+              topologyKey: kubernetes.io/hostname
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - llm-processor
+                topologyKey: topology.kubernetes.io/zone
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: nephoran.com/node-type
+                    operator: In
+                    values:
+                      - ai-processing
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              preference:
+                matchExpressions:
+                  - key: cloud.google.com/gke-spot
+                    operator: DoesNotExist
+      
+      # Tolerations
+      tolerations:
+        - key: nephoran.com/ai-workload
+          operator: Equal
+          value: "true"
+          effect: NoSchedule
+        - key: node.kubernetes.io/not-ready
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 300
+        - key: node.kubernetes.io/unreachable
+          operator: Exists
+          effect: NoExecute
+          tolerationSeconds: 300
+      
+      # Priority class
+      priorityClassName: high-priority
+      
+      # DNS policy
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "2"
+          - name: edns0
+      
+      # Init containers
+      initContainers:
+        - name: wait-for-dependencies
+          image: busybox:1.36
+          command: ['sh', '-c']
+          args:
+            - |
+              echo "Waiting for dependencies..."
+              until nc -z rag-api 5001; do
+                echo "Waiting for RAG API..."
+                sleep 5
+              done
+              echo "All dependencies are ready"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+      
+      containers:
+        - name: llm-processor
+          image: ghcr.io/thc1006/nephoran-intent-operator/llm-processor:v2.0.0
+          imagePullPolicy: Always
+          
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          
+          env:
+            # Region-specific configuration
+            - name: DEPLOYMENT_REGION
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['region']
+            - name: CLUSTER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['cluster-name']
+            
+            # Service configuration
+            - name: PORT
+              value: "8080"
+            - name: METRICS_PORT
+              value: "9090"
+            - name: LOG_LEVEL
+              value: "info"
+            - name: SERVICE_VERSION
+              value: "v2.0.0"
+            
+            # Pod information
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            
+            # LLM configuration
+            - name: LLM_BACKEND_TYPE
+              value: "mistral"
+            - name: LLM_MODEL_NAME
+              value: "mistral-8x22b"
+            - name: LLM_TIMEOUT
+              value: "60s"
+            - name: LLM_MAX_TOKENS
+              value: "2048"
+            - name: LLM_TEMPERATURE
+              value: "0.7"
+            
+            # Multi-region configuration
+            - name: ENABLE_CROSS_REGION_FAILOVER
+              value: "true"
+            - name: PRIMARY_REGION
+              value: "us-central1"
+            - name: FALLBACK_REGIONS
+              value: "europe-west1,asia-southeast1"
+            
+            # RAG API configuration
+            - name: RAG_API_URL
+              value: "http://rag-api.nephoran-system.svc.cluster.local:5001/process_intent"
+            - name: RAG_TIMEOUT
+              value: "30s"
+            - name: RAG_ENABLED
+              value: "true"
+            
+            # Caching configuration
+            - name: CACHE_ENABLED
+              value: "true"
+            - name: CACHE_TTL
+              value: "3600"
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: redis-config
+                  key: url
+            
+            # Observability
+            - name: TRACING_ENABLED
+              value: "true"
+            - name: TRACING_ENDPOINT
+              value: "http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
+            - name: METRICS_ENABLED
+              value: "true"
+            
+            # Feature flags
+            - name: ENABLE_REQUEST_LOGGING
+              value: "true"
+            - name: ENABLE_RESPONSE_CACHING
+              value: "true"
+            - name: ENABLE_CIRCUIT_BREAKER
+              value: "true"
+            
+          envFrom:
+            - configMapRef:
+                name: llm-processor-config
+            - secretRef:
+                name: llm-processor-secrets
+          
+          resources:
+            requests:
+              cpu: 1000m
+              memory: 2Gi
+              ephemeral-storage: 2Gi
+            limits:
+              cpu: 4000m
+              memory: 8Gi
+              ephemeral-storage: 10Gi
+          
+          # Probes
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 30
+          
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+              scheme: HTTP
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          
+          # Security context
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            capabilities:
+              drop:
+                - ALL
+          
+          # Volume mounts
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /cache
+            - name: llm-credentials
+              mountPath: /secrets/llm
+              readOnly: true
+            - name: tls-certs
+              mountPath: /etc/tls
+              readOnly: true
+        
+        # Sidecar containers
+        - name: cloud-sql-proxy
+          image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.8.0
+          args:
+            - "--structured-logs"
+            - "--port=5432"
+            - "$(INSTANCE_CONNECTION_NAME)"
+          env:
+            - name: INSTANCE_CONNECTION_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: cloudsql-config
+                  key: instance_connection_name
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      
+      # Volumes
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 2Gi
+        - name: cache
+          emptyDir:
+            sizeLimit: 5Gi
+        - name: llm-credentials
+          secret:
+            secretName: llm-credentials
+            defaultMode: 0400
+        - name: tls-certs
+          secret:
+            secretName: tls-certs
+            defaultMode: 0400
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: llm-processor
+  labels:
+    app: llm-processor
+  annotations:
+    iam.gke.io/gcp-service-account: llm-processor@PROJECT_ID.iam.gserviceaccount.com
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: llm-processor-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: llm-processor
+  unhealthyPodEvictionPolicy: AlwaysAllow
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: llm-processor-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: llm-processor
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "1000"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Min
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 4
+          periodSeconds: 60
+      selectPolicy: Max
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llm-processor-config
+data:
+  # LLM endpoints by region
+  mistral_api_url_us: "https://api.mistral.ai/v1/chat/completions"
+  mistral_api_url_eu: "https://eu.api.mistral.ai/v1/chat/completions"
+  mistral_api_url_asia: "https://asia.api.mistral.ai/v1/chat/completions"
+  
+  # Regional configurations
+  enable_regional_routing: "true"
+  regional_latency_threshold: "100"
+  
+  # Cache configuration
+  cache_strategy: "multi_tier"
+  l1_cache_size: "1024"
+  l2_cache_size: "10240"
+  
+  # Performance tuning
+  connection_pool_size: "50"
+  request_timeout: "30s"
+  keepalive_timeout: "60s"

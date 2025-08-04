@@ -1,0 +1,591 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
+    istio-injection: enabled
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus
+  namespace: monitoring
+  annotations:
+    iam.gke.io/gcp-service-account: prometheus@PROJECT_ID.iam.gserviceaccount.com
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: thanos
+  namespace: monitoring
+  annotations:
+    iam.gke.io/gcp-service-account: thanos@PROJECT_ID.iam.gserviceaccount.com
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 30s
+      evaluation_interval: 30s
+      external_labels:
+        cluster: '${CLUSTER_NAME}'
+        region: '${REGION}'
+        environment: '${ENVIRONMENT}'
+        replica: '$(POD_NAME)'
+    
+    # Alertmanager configuration
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+                - alertmanager:9093
+    
+    # Rule files
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+    
+    # Remote write to Thanos
+    remote_write:
+      - url: http://thanos-receive:19291/api/v1/receive
+        queue_config:
+          capacity: 10000
+          max_shards: 200
+          min_shards: 1
+          max_samples_per_send: 5000
+          batch_send_deadline: 5s
+          min_backoff: 30ms
+          max_backoff: 100ms
+    
+    # Scrape configurations
+    scrape_configs:
+      # Kubernetes API server
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: default;kubernetes;https
+      
+      # Kubernetes nodes
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+      
+      # Kubernetes pods
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+      
+      # Nephoran services
+      - job_name: 'nephoran-services'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: metrics
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            target_label: service
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+      
+      # Istio metrics
+      - job_name: 'istio-mesh'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - istio-system
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: istio-telemetry;prometheus
+      
+      # Weaviate metrics
+      - job_name: 'weaviate'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: weaviate
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            action: keep
+            regex: "2112"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+data:
+  multi-region-alerts.yml: |
+    groups:
+      - name: multi_region_availability
+        interval: 30s
+        rules:
+          # Regional availability
+          - alert: RegionUnavailable
+            expr: up{job="kubernetes-apiservers", region=~"us-central1|europe-west1|asia-southeast1"} == 0
+            for: 5m
+            labels:
+              severity: critical
+              component: infrastructure
+            annotations:
+              summary: "Region {{ $labels.region }} is unavailable"
+              description: "The Kubernetes API server in region {{ $labels.region }} has been down for more than 5 minutes."
+              runbook_url: "https://wiki.nephoran.com/runbooks/region-unavailable"
+          
+          # Service availability
+          - alert: ServiceUnavailable
+            expr: |
+              sum by (service, region) (
+                up{job="nephoran-services"}
+              ) == 0
+            for: 5m
+            labels:
+              severity: critical
+              component: application
+            annotations:
+              summary: "Service {{ $labels.service }} unavailable in {{ $labels.region }}"
+              description: "All instances of {{ $labels.service }} are down in {{ $labels.region }} for more than 5 minutes."
+          
+          # Cross-region replication lag
+          - alert: WeaviateReplicationLag
+            expr: |
+              weaviate_replication_lag_seconds{job="weaviate"} > 300
+            for: 10m
+            labels:
+              severity: warning
+              component: database
+            annotations:
+              summary: "Weaviate replication lag high"
+              description: "Weaviate replication lag is {{ $value }}s in region {{ $labels.region }}"
+      
+      - name: performance_slos
+        interval: 30s
+        rules:
+          # API latency
+          - alert: HighAPILatency
+            expr: |
+              histogram_quantile(0.95,
+                sum by (service, region, le) (
+                  rate(http_request_duration_seconds_bucket{job="nephoran-services"}[5m])
+                )
+              ) > 1
+            for: 10m
+            labels:
+              severity: warning
+              component: performance
+            annotations:
+              summary: "High API latency for {{ $labels.service }}"
+              description: "95th percentile latency is {{ $value }}s for {{ $labels.service }} in {{ $labels.region }}"
+          
+          # Error rate
+          - alert: HighErrorRate
+            expr: |
+              sum by (service, region) (
+                rate(http_requests_total{job="nephoran-services", status=~"5.."}[5m])
+              ) / 
+              sum by (service, region) (
+                rate(http_requests_total{job="nephoran-services"}[5m])
+              ) > 0.05
+            for: 10m
+            labels:
+              severity: warning
+              component: reliability
+            annotations:
+              summary: "High error rate for {{ $labels.service }}"
+              description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.service }} in {{ $labels.region }}"
+      
+      - name: resource_utilization
+        interval: 30s
+        rules:
+          # CPU utilization
+          - alert: HighCPUUtilization
+            expr: |
+              avg by (namespace, pod, container, region) (
+                rate(container_cpu_usage_seconds_total{namespace="nephoran-system"}[5m])
+              ) > 0.8
+            for: 15m
+            labels:
+              severity: warning
+              component: resources
+            annotations:
+              summary: "High CPU utilization"
+              description: "Container {{ $labels.container }} in pod {{ $labels.pod }} has CPU usage of {{ $value | humanizePercentage }}"
+          
+          # Memory utilization
+          - alert: HighMemoryUtilization
+            expr: |
+              container_memory_usage_bytes{namespace="nephoran-system"} / 
+              container_spec_memory_limit_bytes{namespace="nephoran-system"} > 0.9
+            for: 15m
+            labels:
+              severity: warning
+              component: resources
+            annotations:
+              summary: "High memory utilization"
+              description: "Container {{ $labels.container }} in pod {{ $labels.pod }} has memory usage of {{ $value | humanizePercentage }}"
+          
+          # Disk utilization
+          - alert: HighDiskUtilization
+            expr: |
+              (1 - (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"})) > 0.85
+            for: 15m
+            labels:
+              severity: warning
+              component: resources
+            annotations:
+              summary: "High disk utilization on node"
+              description: "Node {{ $labels.instance }} has disk usage of {{ $value | humanizePercentage }}"
+      
+      - name: cost_optimization
+        interval: 5m
+        rules:
+          # Idle resources
+          - alert: IdleResources
+            expr: |
+              avg by (namespace, pod, region) (
+                rate(container_cpu_usage_seconds_total{namespace="nephoran-system"}[1h])
+              ) < 0.1
+            for: 2h
+            labels:
+              severity: info
+              component: cost
+            annotations:
+              summary: "Idle resources detected"
+              description: "Pod {{ $labels.pod }} has been idle (CPU < 10%) for 2 hours"
+          
+          # Overprovisioned resources
+          - alert: OverprovisionedMemory
+            expr: |
+              avg by (namespace, pod, region) (
+                container_memory_usage_bytes{namespace="nephoran-system"} / 
+                container_spec_memory_limit_bytes{namespace="nephoran-system"}
+              ) < 0.3
+            for: 24h
+            labels:
+              severity: info
+              component: cost
+            annotations:
+              summary: "Overprovisioned memory detected"
+              description: "Pod {{ $labels.pod }} is using only {{ $value | humanizePercentage }} of allocated memory"
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  replicas: 2
+  retention: 30d
+  retentionSize: 100GB
+  serviceAccountName: prometheus
+  serviceMonitorSelector:
+    matchLabels:
+      prometheus: kube-prometheus
+  ruleSelector:
+    matchLabels:
+      prometheus: kube-prometheus
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+  securityContext:
+    fsGroup: 2000
+    runAsNonRoot: true
+    runAsUser: 1000
+  storage:
+    volumeClaimTemplate:
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        storageClassName: premium-rwo
+  thanos:
+    image: quay.io/thanos/thanos:v0.34.0
+    version: v0.34.0
+    objectStorageConfig:
+      key: objstore.yml
+      name: thanos-objstore-secret
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: prometheus
+                operator: In
+                values:
+                  - prometheus
+          topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: thanos-objstore-secret
+  namespace: monitoring
+stringData:
+  objstore.yml: |
+    type: GCS
+    config:
+      bucket: "PROJECT_ID-thanos-metrics"
+      service_account: ""  # Uses Workload Identity
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thanos-query
+  namespace: monitoring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: thanos-query
+  template:
+    metadata:
+      labels:
+        app: thanos-query
+    spec:
+      serviceAccountName: thanos
+      containers:
+        - name: thanos-query
+          image: quay.io/thanos/thanos:v0.34.0
+          args:
+            - query
+            - --http-address=0.0.0.0:9090
+            - --grpc-address=0.0.0.0:10901
+            - --query.replica-label=replica
+            - --query.replica-label=region
+            - --store=dnssrv+_grpc._tcp.thanos-store.monitoring.svc.cluster.local
+            # Add stores from other regions
+            - --store=thanos-store.us-central1.nephoran.com:10901
+            - --store=thanos-store.europe-west1.nephoran.com:10901
+            - --store=thanos-store.asia-southeast1.nephoran.com:10901
+          ports:
+            - name: http
+              containerPort: 9090
+            - name: grpc
+              containerPort: 10901
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 4Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: thanos-query
+  namespace: monitoring
+spec:
+  selector:
+    app: thanos-query
+  ports:
+    - name: http
+      port: 9090
+      targetPort: http
+    - name: grpc
+      port: 10901
+      targetPort: grpc
+---
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: multi-region-alerting
+  namespace: monitoring
+spec:
+  route:
+    groupBy: ['alertname', 'cluster', 'service', 'region']
+    groupWait: 10s
+    groupInterval: 10s
+    repeatInterval: 12h
+    receiver: 'default'
+    routes:
+      - match:
+          severity: critical
+        receiver: pagerduty-critical
+        continue: true
+      - match:
+          severity: warning
+        receiver: slack-warnings
+      - match:
+          component: cost
+        receiver: cost-optimization
+        groupInterval: 24h
+  
+  receivers:
+    - name: default
+      slackConfigs:
+        - apiURL:
+            key: url
+            name: slack-webhook
+          channel: '#alerts'
+          title: 'Nephoran Alert'
+          text: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}'
+    
+    - name: pagerduty-critical
+      pagerdutyConfigs:
+        - serviceKey:
+            key: serviceKey
+            name: pagerduty-key
+          description: '{{ range .Alerts }}{{ .Annotations.summary }}\n{{ end }}'
+          details:
+            firing: '{{ template "pagerduty.default.instances" .Alerts.Firing }}'
+            resolved: '{{ template "pagerduty.default.instances" .Alerts.Resolved }}'
+            region: '{{ .GroupLabels.region }}'
+            cluster: '{{ .GroupLabels.cluster }}'
+    
+    - name: slack-warnings
+      slackConfigs:
+        - apiURL:
+            key: url
+            name: slack-webhook
+          channel: '#warnings'
+          title: 'Warning: {{ .GroupLabels.alertname }}'
+          text: '{{ range .Alerts }}{{ .Annotations.description }}\n{{ end }}'
+          sendResolved: true
+    
+    - name: cost-optimization
+      emailConfigs:
+        - to: 'cost-team@nephoran.com'
+          from: 'alerts@nephoran.com'
+          smarthost: 'smtp.gmail.com:587'
+          authUsername: 'alerts@nephoran.com'
+          authPassword:
+            key: password
+            name: email-auth
+          headers:
+            Subject: 'Cost Optimization Alert - {{ .GroupLabels.region }}'
+          html: |
+            <h2>Cost Optimization Opportunities Detected</h2>
+            <table>
+              <tr><th>Alert</th><th>Region</th><th>Description</th></tr>
+              {{ range .Alerts }}
+              <tr>
+                <td>{{ .Labels.alertname }}</td>
+                <td>{{ .Labels.region }}</td>
+                <td>{{ .Annotations.description }}</td>
+              </tr>
+              {{ end }}
+            </table>
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+data:
+  multi-region-overview.json: |
+    {
+      "dashboard": {
+        "title": "Nephoran Multi-Region Overview",
+        "panels": [
+          {
+            "title": "Global Service Availability",
+            "targets": [
+              {
+                "expr": "avg by (service) (up{job=\"nephoran-services\"})"
+              }
+            ]
+          },
+          {
+            "title": "Regional Latency Comparison",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, sum by (region, le) (rate(http_request_duration_seconds_bucket[5m])))"
+              }
+            ]
+          },
+          {
+            "title": "Cross-Region Traffic",
+            "targets": [
+              {
+                "expr": "sum by (source_region, dest_region) (rate(istio_request_bytes_sum[5m]))"
+              }
+            ]
+          },
+          {
+            "title": "Cost by Region",
+            "targets": [
+              {
+                "expr": "sum by (region) (gcp_billing_cost_dollars)"
+              }
+            ]
+          }
+        ]
+      }
+    }
