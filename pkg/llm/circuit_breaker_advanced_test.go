@@ -24,7 +24,11 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 	)
 
 	BeforeEach(func() {
-		circuitBreaker = NewCircuitBreaker(3, time.Second)
+		config := &CircuitBreakerConfig{
+			FailureThreshold: 3,
+			ResetTimeout:     time.Second,
+		}
+		circuitBreaker = NewCircuitBreaker("test", config)
 		atomic.StoreInt64(&requestCount, 0)
 		atomic.StoreInt64(&successCount, 0)
 		atomic.StoreInt64(&failureCount, 0)
@@ -32,7 +36,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 
 	Context("Circuit Breaker State Transitions", func() {
 		It("should transition from closed to open after threshold failures", func() {
-			Expect(circuitBreaker.GetState()).To(Equal(CircuitClosed))
+			Expect(circuitBreaker.getState()).To(Equal(StateClosed))
 
 			// Trigger threshold failures
 			for i := 0; i < 3; i++ {
@@ -42,7 +46,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 				Expect(err).To(HaveOccurred())
 			}
 
-			Expect(circuitBreaker.GetState()).To(Equal(CircuitOpen))
+			Expect(circuitBreaker.getState()).To(Equal(StateOpen))
 		})
 
 		It("should transition from open to half-open after timeout", func() {
@@ -52,7 +56,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 					return fmt.Errorf("failure %d", i)
 				})
 			}
-			Expect(circuitBreaker.GetState()).To(Equal(CircuitOpen))
+			Expect(circuitBreaker.getState()).To(Equal(StateOpen))
 
 			// Wait for timeout
 			time.Sleep(1100 * time.Millisecond)
@@ -63,7 +67,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 			})
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(circuitBreaker.GetState()).To(Equal(CircuitClosed))
+			Expect(circuitBreaker.getState()).To(Equal(StateClosed))
 		})
 
 		It("should remain open if half-open call fails", func() {
@@ -83,7 +87,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 			})
 
 			Expect(err).To(HaveOccurred())
-			Expect(circuitBreaker.GetState()).To(Equal(CircuitOpen))
+			Expect(circuitBreaker.getState()).To(Equal(StateOpen))
 		})
 	})
 
@@ -159,8 +163,8 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 			wg.Wait()
 
 			// Circuit breaker should still be in a valid state
-			state := circuitBreaker.GetState()
-			Expect(state).To(BeElementOf(CircuitClosed, CircuitOpen, CircuitHalfOpen))
+			state := circuitBreaker.getState()
+			Expect(state).To(BeElementOf(StateClosed, StateOpen, StateHalfOpen))
 		})
 	})
 
@@ -234,8 +238,8 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 
 			// Circuit should be open
 			Eventually(func() CircuitState {
-				return enhancedClient.circuitBreaker.GetState()
-			}, time.Second).Should(Equal(CircuitOpen))
+				return enhancedClient.circuitBreaker.getState()
+			}, time.Second).Should(Equal(StateOpen))
 
 			// Wait for circuit to move to half-open
 			time.Sleep(600 * time.Millisecond)
@@ -248,7 +252,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(ContainSubstring("recovery-nf"))
-			Expect(enhancedClient.circuitBreaker.GetState()).To(Equal(CircuitClosed))
+			Expect(enhancedClient.circuitBreaker.getState()).To(Equal(StateClosed))
 		})
 
 		It("should handle rapid state transitions", func() {
@@ -315,7 +319,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 			}
 
 			// Circuit should be open after retryable failures
-			Expect(circuitBreaker.GetState()).To(Equal(CircuitOpen))
+			Expect(circuitBreaker.getState()).To(Equal(StateOpen))
 
 			// Reset circuit breaker
 			circuitBreaker = NewCircuitBreaker(3, time.Second)
@@ -329,7 +333,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 			}
 
 			// Circuit should also be open after non-retryable failures
-			Expect(circuitBreaker.GetState()).To(Equal(CircuitOpen))
+			Expect(circuitBreaker.getState()).To(Equal(StateOpen))
 		})
 	})
 
@@ -363,8 +367,8 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 			
 			// With 30% failure rate and threshold of 3, circuit should be open
 			Eventually(func() CircuitState {
-				return circuitBreaker.GetState()
-			}).Should(Equal(CircuitOpen))
+				return circuitBreaker.getState()
+			}).Should(Equal(StateOpen))
 		})
 	})
 })

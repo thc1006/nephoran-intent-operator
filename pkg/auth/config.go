@@ -375,12 +375,9 @@ func getStringSliceEnv(key string, defaultValue []string) []string {
 
 // getOAuth2ClientSecret loads OAuth2 client secret from file or environment
 func getOAuth2ClientSecret(provider string) string {
-	secret, err := config.LoadOAuth2ClientSecretFromFile(provider)
-	if err != nil {
-		// Return empty string if not found - validation will catch this later
-		return ""
-	}
-	return secret
+	// TODO: Implement proper secret loading mechanism
+	// For now, return empty string and rely on environment variables
+	return ""
 }
 
 // ToOAuth2Config converts AuthConfig to OAuth2Config

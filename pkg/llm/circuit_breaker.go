@@ -623,6 +623,19 @@ func (cbm *CircuitBreakerManager) GetAllStats() map[string]interface{} {
 	return stats
 }
 
+// Shutdown gracefully shuts down all circuit breakers
+func (cbm *CircuitBreakerManager) Shutdown() {
+	cbm.mutex.Lock()
+	defer cbm.mutex.Unlock()
+	
+	for name := range cbm.circuitBreakers {
+		cbm.logger.Debug("Shutting down circuit breaker", "name", name)
+	}
+	
+	// Clear all circuit breakers
+	cbm.circuitBreakers = make(map[string]*CircuitBreaker)
+}
+
 // ResetAll resets all circuit breakers
 func (cbm *CircuitBreakerManager) ResetAll() {
 	cbm.mutex.RLock()

@@ -3,6 +3,8 @@ package rag
 import (
 	"context"
 	"fmt"
+	"math"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -645,8 +647,3 @@ func BenchmarkCostAwareEmbeddingService(b *testing.B) {
 	b.Logf("Provider usage: %v", costAwareService.providerMonitor.metrics)
 }
 
-// Add math and strings imports for Abs and Contains
-import (
-	"math"
-	"strings"
-)

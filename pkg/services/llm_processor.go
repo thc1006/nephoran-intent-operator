@@ -117,29 +117,26 @@ func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error
 	}
 	
 	// Initialize relevance scorer
-	s.relevanceScorer = llm.NewRelevanceScorer(nil, nil)
+	s.relevanceScorer = llm.NewRelevanceScorer()
 	
 	// Initialize context builder if enabled
 	if s.config.EnableContextBuilder {
-		s.contextBuilder = llm.NewContextBuilder(s.tokenManager, s.relevanceScorer, nil)
+		s.contextBuilder = llm.NewContextBuilder()
 	}
 	
 	// Initialize prompt builder
-	s.promptBuilder = llm.NewRAGAwarePromptBuilder(s.tokenManager, nil)
+	s.promptBuilder = llm.NewRAGAwarePromptBuilder()
 	
 	// Initialize RAG-enhanced processor if enabled
 	var ragEnhanced *llm.RAGEnhancedProcessor
 	if s.config.RAGEnabled {
-		ragEnhanced = llm.NewRAGEnhancedProcessor(*llmClient, nil, nil, nil)
+		ragEnhanced = llm.NewRAGEnhancedProcessor()
 	}
 	
 	// Initialize streaming processor if enabled
 	if s.config.StreamingEnabled {
-		streamingConfig := &llm.StreamingConfig{
-			MaxConcurrentStreams: s.config.MaxConcurrentStreams,
-			StreamTimeout:       s.config.StreamTimeout,
-		}
-		s.streamingProcessor = llm.NewStreamingProcessor(*llmClient, s.tokenManager, streamingConfig)
+		// StreamingConfig doesn't exist, use basic streaming processor
+		s.streamingProcessor = llm.NewStreamingProcessor()
 	}
 	
 	// Initialize main processor with circuit breaker
@@ -177,11 +174,12 @@ func (s *LLMProcessorService) validateLLMConfig(apiKey string) error {
 // loadSecureAPIKeys loads API keys from files, Kubernetes secrets, or environment variables
 func (s *LLMProcessorService) loadSecureAPIKeys(ctx context.Context) (*config.APIKeys, error) {
 	// Try file-based secrets first
-	fileAPIKeys, err := config.LoadFileBasedAPIKeys()
-	if err == nil && !fileAPIKeys.IsEmpty() {
-		s.logger.Info("Loaded API keys from files")
-		return fileAPIKeys, nil
-	}
+	// TODO: Implement LoadFileBasedAPIKeys function
+	// fileAPIKeys, err := config.LoadFileBasedAPIKeys()
+	// if err == nil && !fileAPIKeys.IsEmpty() {
+	//     s.logger.Info("Loaded API keys from files")
+	//     return fileAPIKeys, nil
+	// }
 	
 	// If file loading failed or returned empty keys, try Kubernetes secrets
 	if s.secretManager != nil {

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // MockLLMClient provides a mock implementation of the LLM client interface
@@ -176,6 +176,74 @@ func (m *MockLLMClient) generateScaleResponse(intent string) string {
 	return string(jsonBytes)
 }
 
+// ProcessIntentStream implements the shared.ClientInterface
+func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
+	// For testing, just send the full response as a single chunk
+	response, err := m.ProcessIntent(ctx, prompt)
+	if err != nil {
+		return err
+	}
+	
+	chunk := &shared.StreamingChunk{
+		Content:   response,
+		IsLast:    true,
+		Metadata:  make(map[string]interface{}),
+		Timestamp: time.Now(),
+	}
+	
+	select {
+	case chunks <- chunk:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+	
+	return nil
+}
+
+// GetSupportedModels implements the shared.ClientInterface
+func (m *MockLLMClient) GetSupportedModels() []string {
+	return []string{"gpt-3.5-turbo", "gpt-4", "claude-3"}
+}
+
+// GetModelCapabilities implements the shared.ClientInterface
+func (m *MockLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
+	return &shared.ModelCapabilities{
+		MaxTokens:         4096,
+		SupportsChat:      true,
+		SupportsFunction:  true,
+		SupportsStreaming: true,
+		CostPerToken:      0.001,
+		Features:          make(map[string]interface{}),
+	}, nil
+}
+
+// ValidateModel implements the shared.ClientInterface
+func (m *MockLLMClient) ValidateModel(modelName string) error {
+	supported := m.GetSupportedModels()
+	for _, model := range supported {
+		if model == modelName {
+			return nil
+		}
+	}
+	return fmt.Errorf("unsupported model: %s", modelName)
+}
+
+// EstimateTokens implements the shared.ClientInterface
+func (m *MockLLMClient) EstimateTokens(text string) int {
+	// Simple estimation: roughly 4 characters per token
+	return len(text) / 4
+}
+
+// GetMaxTokens implements the shared.ClientInterface
+func (m *MockLLMClient) GetMaxTokens(modelName string) int {
+	return 4096 // Default max tokens for testing
+}
+
+// Close implements the shared.ClientInterface
+func (m *MockLLMClient) Close() error {
+	return nil // Nothing to close in mock
+}
+
 // MockGitClient provides a mock implementation of the Git client interface
 type MockGitClient struct {
 	files           map[string]string
@@ -232,6 +300,47 @@ func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (
 	return commitHash, nil
 }
 
+// CommitAndPushChanges implements the Git client interface
+func (m *MockGitClient) CommitAndPushChanges(message string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("CommitAndPushChanges(%s)", message))
+	m.commitCount++
+
+	if m.commitPushError != nil {
+		return m.commitPushError
+	}
+
+	// Store commit message
+	m.commits = append(m.commits, message)
+
+	// Generate commit hash
+	commitHash := fmt.Sprintf("commit-hash-%d", m.commitCount)
+	m.lastCommitHash = commitHash
+
+	return nil
+}
+
+// RemoveDirectory implements the Git client interface
+func (m *MockGitClient) RemoveDirectory(path string, commitMessage string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("RemoveDirectory(%s, %s)", path, commitMessage))
+	m.commitCount++
+
+	if m.commitPushError != nil {
+		return m.commitPushError
+	}
+
+	// Remove files that start with the path
+	for filePath := range m.files {
+		if strings.HasPrefix(filePath, path) {
+			delete(m.files, filePath)
+		}
+	}
+
+	// Store commit message
+	m.commits = append(m.commits, commitMessage)
+
+	return nil
+}
+
 // SetInitError sets an error to be returned by InitRepo operations
 func (m *MockGitClient) SetInitError(err error) {
 	m.initError = err
@@ -277,5 +386,5 @@ func (m *MockGitClient) Reset() {
 }
 
 // Ensure mock clients implement the expected interfaces
-var _ llm.ClientInterface = (*MockLLMClient)(nil)
+var _ shared.ClientInterface = (*MockLLMClient)(nil)
 var _ git.ClientInterface = (*MockGitClient)(nil)

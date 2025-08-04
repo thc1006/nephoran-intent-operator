@@ -293,9 +293,9 @@ func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID string, targetCellID
 	request := &e2.E2ControlRequest{
 		RequestID:         fmt.Sprintf("rc-traffic-%s-%d", ueID, time.Now().Unix()),
 		RanFunctionID:     2, // RC function ID
-		CallProcessID:     nil,
-		ControlHeader:     header,
-		ControlMessage:    message,
+		CallProcessID:     "", // Empty string instead of nil
+		ControlHeader:     map[string]interface{}{"data": header},
+		ControlMessage:    map[string]interface{}{"data": message},
 		ControlAckRequest: true,
 	}
 
@@ -366,9 +366,9 @@ func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams 
 	request := &e2.E2ControlRequest{
 		RequestID:         fmt.Sprintf("rc-qos-%s-%d", ueID, time.Now().Unix()),
 		RanFunctionID:     2, // RC function ID
-		CallProcessID:     nil,
-		ControlHeader:     header,
-		ControlMessage:    message,
+		CallProcessID:     "", // Empty string instead of nil
+		ControlHeader:     map[string]interface{}{"data": header},
+		ControlMessage:    map[string]interface{}{"data": message},
 		ControlAckRequest: true,
 	}
 
@@ -424,9 +424,9 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID string, targetCellID string
 	request := &e2.E2ControlRequest{
 		RequestID:         fmt.Sprintf("rc-handover-%s-%d", ueID, time.Now().Unix()),
 		RanFunctionID:     2, // RC function ID
-		CallProcessID:     nil,
-		ControlHeader:     header,
-		ControlMessage:    message,
+		CallProcessID:     "", // Empty string instead of nil
+		ControlHeader:     map[string]interface{}{"data": header},
+		ControlMessage:    map[string]interface{}{"data": message},
 		ControlAckRequest: true,
 	}
 
@@ -482,9 +482,9 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID string, operation s
 	request := &e2.E2ControlRequest{
 		RequestID:         fmt.Sprintf("rc-dc-%s-%d", ueID, time.Now().Unix()),
 		RanFunctionID:     2, // RC function ID
-		CallProcessID:     nil,
-		ControlHeader:     header,
-		ControlMessage:    message,
+		CallProcessID:     "", // Empty string instead of nil
+		ControlHeader:     map[string]interface{}{"data": header},
+		ControlMessage:    map[string]interface{}{"data": message},
 		ControlAckRequest: true,
 	}
 

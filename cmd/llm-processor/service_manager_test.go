@@ -14,6 +14,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 // BufferLogHandler implements slog.Handler to capture log output in a buffer
@@ -685,5 +687,250 @@ func (sm *TestServiceManager) streamingHandler(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		sm.logger.Error("Streaming request failed", slog.String("error", err.Error()))
 		// Error handling is done within HandleStreamingRequest
+	}
+}
+
+// MockCircuitBreakerManager provides a mock implementation for testing circuit breaker health checks
+type MockCircuitBreakerManager struct {
+	stats map[string]interface{}
+}
+
+// GetAllStats returns the mock circuit breaker stats
+func (m *MockCircuitBreakerManager) GetAllStats() map[string]interface{} {
+	return m.stats
+}
+
+// TestCircuitBreakerHealthValidation tests the circuit breaker health check functionality
+func TestCircuitBreakerHealthValidation(t *testing.T) {
+	tests := []struct {
+		name           string
+		stats          map[string]interface{}
+		expectedStatus health.Status
+		expectedMessage string
+		expectUnhealthy bool
+	}{
+		{
+			name:           "No circuit breakers registered",
+			stats:          map[string]interface{}{},
+			expectedStatus: health.StatusHealthy,
+			expectedMessage: "No circuit breakers registered",
+			expectUnhealthy: false,
+		},
+		{
+			name: "All circuit breakers operational (closed)",
+			stats: map[string]interface{}{
+				"service-a": map[string]interface{}{
+					"state": "closed",
+					"failures": 0,
+				},
+				"service-b": map[string]interface{}{
+					"state": "closed",
+					"failures": 1,
+				},
+			},
+			expectedStatus: health.StatusHealthy,
+			expectedMessage: "All circuit breakers operational",
+			expectUnhealthy: false,
+		},
+		{
+			name: "All circuit breakers half-open (should be operational)",
+			stats: map[string]interface{}{
+				"service-a": map[string]interface{}{
+					"state": "half-open",
+					"failures": 2,
+				},
+			},
+			expectedStatus: health.StatusHealthy,
+			expectedMessage: "All circuit breakers operational", 
+			expectUnhealthy: false,
+		},
+		{
+			name: "Single circuit breaker open",
+			stats: map[string]interface{}{
+				"service-a": map[string]interface{}{
+					"state": "open",
+					"failures": 5,
+				},
+			},
+			expectedStatus: health.StatusUnhealthy,
+			expectedMessage: "Circuit breaker service-a is open",
+			expectUnhealthy: true,
+		},
+		{
+			name: "Multiple circuit breakers with one open",
+			stats: map[string]interface{}{
+				"service-a": map[string]interface{}{
+					"state": "closed",
+					"failures": 0,
+				},
+				"service-b": map[string]interface{}{
+					"state": "open",
+					"failures": 5,
+				},
+				"service-c": map[string]interface{}{
+					"state": "half-open",
+					"failures": 2,
+				},
+			},
+			expectedStatus: health.StatusUnhealthy,
+			expectedMessage: "Circuit breaker service-b is open",
+			expectUnhealthy: true,
+		},
+		{
+			name: "Multiple open circuit breakers (should return first found)",
+			stats: map[string]interface{}{
+				"service-a": map[string]interface{}{
+					"state": "open",
+					"failures": 3,
+				},
+				"service-b": map[string]interface{}{
+					"state": "open",
+					"failures": 7,
+				},
+			},
+			expectedStatus: health.StatusUnhealthy,
+			expectUnhealthy: true,
+			// Note: We can't predict which open breaker will be returned first due to map iteration order
+		},
+		{
+			name: "Circuit breaker with malformed stats (missing state)",
+			stats: map[string]interface{}{
+				"service-a": map[string]interface{}{
+					"failures": 0,
+					// Missing "state" field
+				},
+			},
+			expectedStatus: health.StatusHealthy,
+			expectedMessage: "All circuit breakers operational",
+			expectUnhealthy: false,
+		},
+		{
+			name: "Circuit breaker with non-map stats (should be ignored)",
+			stats: map[string]interface{}{
+				"service-a": "invalid-data",
+				"service-b": map[string]interface{}{
+					"state": "closed",
+					"failures": 0,
+				},
+			},
+			expectedStatus: health.StatusHealthy,
+			expectedMessage: "All circuit breakers operational",
+			expectUnhealthy: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create mock circuit breaker manager
+			mockCBMgr := &MockCircuitBreakerManager{
+				stats: tt.stats,
+			}
+
+			// Create mock health checker
+			healthChecker := &health.HealthChecker{}
+
+			// Create service manager with mock components  
+			sm := &ServiceManager{
+				circuitBreakerMgr: mockCBMgr,
+				healthChecker:     healthChecker,
+			}
+
+			// Register health checks (including circuit breaker check)
+			sm.registerHealthChecks()
+
+			// Execute the circuit breaker health check
+			ctx := context.Background()
+			result := sm.healthChecker.RunCheck(ctx, "circuit_breaker")
+
+			// Verify the result
+			require.NotNil(t, result)
+			assert.Equal(t, tt.expectedStatus, result.Status)
+
+			if tt.expectUnhealthy {
+				assert.Equal(t, health.StatusUnhealthy, result.Status)
+				assert.Contains(t, result.Message, "is open")
+			} else {
+				assert.Equal(t, health.StatusHealthy, result.Status)
+				if tt.expectedMessage != "" {
+					assert.Equal(t, tt.expectedMessage, result.Message)
+				}
+			}
+		})
+	}
+}
+
+// TestRegisterHealthChecksIntegration tests the integration of health checks registration
+func TestRegisterHealthChecksIntegration(t *testing.T) {
+	t.Run("with_circuit_breaker_manager", func(t *testing.T) {
+		mockCBMgr := &MockCircuitBreakerManager{
+			stats: map[string]interface{}{
+				"test-service": map[string]interface{}{
+					"state": "closed",
+					"failures": 0,
+				},
+			},
+		}
+
+		healthChecker := &health.HealthChecker{}
+		sm := &ServiceManager{
+			circuitBreakerMgr: mockCBMgr,
+			healthChecker:     healthChecker,
+		}
+
+		// Register health checks
+		sm.registerHealthChecks()
+
+		// Verify circuit breaker health check was registered
+		ctx := context.Background()
+		result := sm.healthChecker.RunCheck(ctx, "circuit_breaker")
+		
+		require.NotNil(t, result)
+		assert.Equal(t, health.StatusHealthy, result.Status)
+		assert.Equal(t, "All circuit breakers operational", result.Message)
+	})
+
+	t.Run("without_circuit_breaker_manager", func(t *testing.T) {
+		healthChecker := &health.HealthChecker{}
+		sm := &ServiceManager{
+			circuitBreakerMgr: nil, // No circuit breaker manager
+			healthChecker:     healthChecker,
+		}
+
+		// Register health checks
+		sm.registerHealthChecks()
+
+		// Verify circuit breaker health check was NOT registered
+		ctx := context.Background()
+		result := sm.healthChecker.RunCheck(ctx, "circuit_breaker")
+		
+		// Should be nil since the check wasn't registered
+		assert.Nil(t, result)
+	})
+}
+
+// BenchmarkCircuitBreakerHealthCheck benchmarks the circuit breaker health check performance
+func BenchmarkCircuitBreakerHealthCheck(b *testing.B) {
+	// Create a large number of circuit breakers for benchmarking
+	stats := make(map[string]interface{})
+	for i := 0; i < 100; i++ {
+		stats[fmt.Sprintf("service-%d", i)] = map[string]interface{}{
+			"state": "closed",
+			"failures": 0,
+		}
+	}
+
+	mockCBMgr := &MockCircuitBreakerManager{stats: stats}
+	healthChecker := &health.HealthChecker{}
+	sm := &ServiceManager{
+		circuitBreakerMgr: mockCBMgr,
+		healthChecker:     healthChecker,
+	}
+
+	sm.registerHealthChecks()
+	ctx := context.Background()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		sm.healthChecker.RunCheck(ctx, "circuit_breaker")
 	}
 }

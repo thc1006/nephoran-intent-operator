@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Service structures matching the LLM processor
@@ -42,7 +42,7 @@ type HealthResponse struct {
 
 // LLMProcessorService represents the LLM processor service for testing
 type LLMProcessorService struct {
-	llmClient      llm.ClientInterface
+	llmClient      shared.ClientInterface
 	serviceVersion string
 	startTime      time.Time
 	healthy        bool
@@ -50,7 +50,7 @@ type LLMProcessorService struct {
 }
 
 // NewLLMProcessorService creates a new LLM processor service for testing
-func NewLLMProcessorService(client llm.ClientInterface) *LLMProcessorService {
+func NewLLMProcessorService(client shared.ClientInterface) *LLMProcessorService {
 	return &LLMProcessorService{
 		llmClient:      client,
 		serviceVersion: "test-v1.0.0",

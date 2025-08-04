@@ -183,7 +183,7 @@ type TelecomDocument struct {
 	NetworkFunction []string         `json:"network_function"`
 	Technology     []string          `json:"technology"`
 	UseCase        []string          `json:"use_case"`
-	Timestamp      time.Time         `json:"timestamp"`
+	// Timestamp removed to avoid conflicts
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -693,15 +693,11 @@ func (wc *WeaviateClient) parseSearchResult(item map[string]interface{}) *Search
 	if val, ok := item["category"].(string); ok {
 		doc.Category = val
 	}
-	if val, ok := item["subcategory"].(string); ok {
-		doc.Subcategory = val
-	}
+	// subcategory field not available in shared.TelecomDocument, skip
 	if val, ok := item["version"].(string); ok {
 		doc.Version = val
 	}
-	if val, ok := item["workingGroup"].(string); ok {
-		doc.WorkingGroup = val
-	}
+	// workingGroup field not available in shared.TelecomDocument, skip
 	if val, ok := item["confidence"].(float64); ok {
 		doc.Confidence = float32(val)
 	}
@@ -749,7 +745,7 @@ func (wc *WeaviateClient) parseSearchResult(item map[string]interface{}) *Search
 	// Parse timestamp
 	if val, ok := item["timestamp"].(string); ok {
 		if t, err := time.Parse(time.RFC3339, val); err == nil {
-			doc.Timestamp = t
+			doc.UpdatedAt = t
 		}
 	}
 
@@ -826,7 +822,7 @@ func (wc *WeaviateClient) AddDocument(ctx context.Context, doc *TelecomDocument)
 		"networkFunction": doc.NetworkFunction,
 		"technology":      doc.Technology,
 		"useCase":         doc.UseCase,
-		"timestamp":       doc.Timestamp.Format(time.RFC3339),
+		"timestamp":       doc.UpdatedAt.Format(time.RFC3339),
 	}
 
 	// Create the object

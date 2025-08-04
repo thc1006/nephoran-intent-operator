@@ -485,7 +485,7 @@ func (tc *TrafficController) calculateRoutingWeights(
 	case "capacity":
 		// Route based on available capacity
 		for name, region := range regions {
-			if health, ok := healthyRegions[name]; ok {
+			if _, ok := healthyRegions[name]; ok {
 				if region.CurrentCapacity != nil {
 					utilizationScore := 1.0 - (float64(region.CurrentCapacity.CPUUtilization) / 100.0)
 					weight := int(utilizationScore * 100)

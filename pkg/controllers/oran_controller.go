@@ -96,7 +96,7 @@ func (r *OranAdaptorReconciler) updateStatus(ctx context.Context, me *nephoranv1
 }
 
 func (r *OranAdaptorReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	r.O1Adaptor = o1.NewO1Adaptor(nil) // Use default config
+	r.O1Adaptor = o1.NewO1Adaptor(nil, mgr.GetClient()) // Use default config with Kubernetes client
 	var err error
 	r.A1Adaptor, err = a1.NewA1Adaptor(nil) // Use default config
 	if err != nil {

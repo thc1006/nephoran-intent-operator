@@ -1,12 +1,10 @@
 package auth
 
 import (
-	"context"
 	"log/slog"
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"golang.org/x/oauth2"
 )
 
 // OAuth2Manager handles OAuth2 authentication setup and middleware
@@ -150,11 +148,10 @@ func (om *OAuth2Manager) GetAuthenticationInfo() *AuthenticationInfo {
 		RequireAuth: om.config.RequireAuth,
 	}
 
-	if om.authMiddleware != nil && om.authMiddleware.config != nil {
-		for provider := range om.authMiddleware.config.Providers {
-			info.Providers = append(info.Providers, provider)
-		}
-	}
+	// TODO: Implement provider listing when AuthMiddleware has proper config access
+	// if om.authMiddleware != nil {
+	//     info.Providers = om.authMiddleware.GetProviders()
+	// }
 
 	return info
 }
@@ -166,6 +163,16 @@ func (config *OAuth2ManagerConfig) Validate() error {
 	}
 
 	return nil
+}
+
+// AuthError represents an authentication error
+type AuthError struct {
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+func (e *AuthError) Error() string {
+	return e.Message
 }
 
 // Common errors
