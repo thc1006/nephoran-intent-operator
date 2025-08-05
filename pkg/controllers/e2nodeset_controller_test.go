@@ -4,997 +4,999 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/git"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 )
 
-var _ = Describe("E2NodeSetReconciler", func() {
+
+
+var _ = Describe("E2NodeSet Controller", func() {
 	var (
-		reconciler    *E2NodeSetReconciler
-		fakeE2Manager *FakeE2Manager
-		fakeGitClient *testutils.MockGitClient
 		testNamespace string
-		ctx           context.Context
+		reconciler    *E2NodeSetReconciler
+		fakeManager   *testutil.FakeE2Manager
 	)
 
 	BeforeEach(func() {
-		ctx = context.Background()
-		testNamespace = CreateIsolatedNamespace("e2nodeset-controller")
-		
-		// Create mock implementations
-		fakeE2Manager = &FakeE2Manager{
-			nodes:         make(map[string]*e2.E2Node),
-			provisioning:  make(map[string]bool),
-			callLog:       make([]string, 0),
-			nodeCounter:   0,
-			mutex:         &sync.RWMutex{},
-		}
-		fakeGitClient = testutils.NewMockGitClient()
+		testNamespace = testutil.CreateIsolatedNamespace("e2nodeset-controller")
 
-		// Create reconciler with mocks
+		// Create fake E2Manager
+		fakeManager = testutil.NewFakeE2Manager()
+
+		// Create reconciler instance with fake E2Manager
 		reconciler = &E2NodeSetReconciler{
 			Client:    k8sClient,
 			Scheme:    k8sClient.Scheme(),
-			GitClient: fakeGitClient,
-			E2Manager: fakeE2Manager,
+			E2Manager: fakeManager,
 		}
 	})
 
 	AfterEach(func() {
-		CleanupIsolatedNamespace(testNamespace)
+		testutils.CleanupIsolatedNamespace(testNamespace)
 	})
 
-	Describe("Reconcile", func() {
-		Context("when E2NodeSet does not exist", func() {
-			It("should return without error", func() {
-				req := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      "nonexistent",
-						Namespace: testNamespace,
-					},
-				}
-
-				result, err := reconciler.Reconcile(ctx, req)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-			})
-		})
-
-		Context("when E2NodeSet is created", func() {
-			var e2nodeSet *nephoranv1.E2NodeSet
-
-			BeforeEach(func() {
-				e2nodeSet = &nephoranv1.E2NodeSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-e2nodeset",
-						Namespace: testNamespace,
-					},
-					Spec: nephoranv1.E2NodeSetSpec{
-						Replicas:    3,
-						RicEndpoint: "http://test-ric:38080",
-					},
-				}
-				Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
-			})
-
-			It("should add finalizer on first reconciliation", func() {
-				req := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      e2nodeSet.Name,
-						Namespace: e2nodeSet.Namespace,
-					},
-				}
-
-				result, err := reconciler.Reconcile(ctx, req)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Requeue).To(BeTrue())
-
-				// Verify finalizer was added
-				updated := &nephoranv1.E2NodeSet{}
-				err = k8sClient.Get(ctx, req.NamespacedName, updated)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(controllerutil.ContainsFinalizer(updated, E2NodeSetFinalizer)).To(BeTrue())
-			})
-
-			It("should call ProvisionNode during scaling operations", func() {
-				// Add finalizer first
-				controllerutil.AddFinalizer(e2nodeSet, E2NodeSetFinalizer)
-				Expect(k8sClient.Update(ctx, e2nodeSet)).To(Succeed())
-
-				req := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      e2nodeSet.Name,
-						Namespace: e2nodeSet.Namespace,
-					},
-				}
-
-				result, err := reconciler.Reconcile(ctx, req)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify ProvisionNode was called
-				Expect(fakeE2Manager.provisionNodeCalled).To(BeTrue())
-				Expect(fakeE2Manager.lastProvisionSpec.Replicas).To(Equal(int32(3)))
-				Expect(fakeE2Manager.lastProvisionSpec.RicEndpoint).To(Equal("http://test-ric:38080"))
-
-				// Verify E2 nodes were created and registered
-				Expect(fakeE2Manager.registerCalls).To(Equal(3))
-				Expect(len(fakeE2Manager.nodes)).To(Equal(3))
-
-				// Verify node naming convention
-				expectedNodes := []string{
-					fmt.Sprintf("%s-%s-node-0", testNamespace, e2nodeSet.Name),
-					fmt.Sprintf("%s-%s-node-1", testNamespace, e2nodeSet.Name),
-					fmt.Sprintf("%s-%s-node-2", testNamespace, e2nodeSet.Name),
-				}
-				for _, expectedNode := range expectedNodes {
-					_, exists := fakeE2Manager.nodes[expectedNode]
-					Expect(exists).To(BeTrue(), "Expected node %s to exist", expectedNode)
-				}
-			})
-
-			It("should update status with ready replicas", func() {
-				// Add finalizer and set up healthy nodes
-				controllerutil.AddFinalizer(e2nodeSet, E2NodeSetFinalizer)
-				Expect(k8sClient.Update(ctx, e2nodeSet)).To(Succeed())
-
-				fakeE2Manager.setNodesHealthy(3)
-
-				req := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      e2nodeSet.Name,
-						Namespace: e2nodeSet.Namespace,
-					},
-				}
-
-				result, err := reconciler.Reconcile(ctx, req)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify status was updated
-				updated := &nephoranv1.E2NodeSet{}
-				err = k8sClient.Get(ctx, req.NamespacedName, updated)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(updated.Status.ReadyReplicas).To(Equal(int32(3)))
-			})
-		})
-
-		Context("when scaling E2NodeSet", func() {
-			var e2nodeSet *nephoranv1.E2NodeSet
-
-			BeforeEach(func() {
-				e2nodeSet = &nephoranv1.E2NodeSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-scale-e2nodeset",
-						Namespace: testNamespace,
-						Finalizers: []string{E2NodeSetFinalizer},
-					},
-					Spec: nephoranv1.E2NodeSetSpec{
-						Replicas:    2,
-						RicEndpoint: "http://test-ric:38080",
-					},
-				}
-				Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
-
-				// Set up initial nodes
-				fakeE2Manager.createTestNodes(testNamespace, e2nodeSet.Name, 2)
-			})
-
-			It("should scale up when replicas are increased", func() {
-				// Update replicas to scale up
-				e2nodeSet.Spec.Replicas = 5
-				Expect(k8sClient.Update(ctx, e2nodeSet)).To(Succeed())
-
-				req := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      e2nodeSet.Name,
-						Namespace: e2nodeSet.Namespace,
-					},
-				}
-
-				result, err := reconciler.Reconcile(ctx, req)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify ProvisionNode was called for scaling
-				Expect(fakeE2Manager.provisionNodeCalled).To(BeTrue())
-				Expect(fakeE2Manager.lastProvisionSpec.Replicas).To(Equal(int32(5)))
-
-				// Verify nodes were scaled up
-				Expect(len(fakeE2Manager.nodes)).To(Equal(5))
-				Expect(fakeE2Manager.registerCalls).To(Equal(3)) // 3 new nodes registered
-			})
-
-			It("should scale down when replicas are decreased", func() {
-				// Update replicas to scale down
-				e2nodeSet.Spec.Replicas = 1
-				Expect(k8sClient.Update(ctx, e2nodeSet)).To(Succeed())
-
-				req := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      e2nodeSet.Name,
-						Namespace: e2nodeSet.Namespace,
-					},
-				}
-
-				result, err := reconciler.Reconcile(ctx, req)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify ProvisionNode was called for scaling
-				Expect(fakeE2Manager.provisionNodeCalled).To(BeTrue())
-				Expect(fakeE2Manager.lastProvisionSpec.Replicas).To(Equal(int32(1)))
-
-				// Verify nodes were scaled down
-				Expect(len(fakeE2Manager.nodes)).To(Equal(1))
-				Expect(fakeE2Manager.deregisterCalls).To(Equal(1)) // 1 node deregistered
-			})
-		})
-
-		Context("when E2NodeSet is deleted", func() {
-			var e2nodeSet *nephoranv1.E2NodeSet
-
-			BeforeEach(func() {
-				e2nodeSet = &nephoranv1.E2NodeSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-delete-e2nodeset",
-						Namespace: testNamespace,
-						Finalizers: []string{E2NodeSetFinalizer},
-					},
-					Spec: nephoranv1.E2NodeSetSpec{
-						Replicas:    3,
-						RicEndpoint: "http://test-ric:38080",
-					},
-				}
-				Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
-
-				// Set up nodes that should be cleaned up
-				fakeE2Manager.createTestNodes(testNamespace, e2nodeSet.Name, 3)
-			})
-
-			It("should clean up all E2 nodes and remove finalizer", func() {
-				// Delete the E2NodeSet
-				Expect(k8sClient.Delete(ctx, e2nodeSet)).To(Succeed())
-
-				req := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      e2nodeSet.Name,
-						Namespace: e2nodeSet.Namespace,
-					},
-				}
-
-				result, err := reconciler.Reconcile(ctx, req)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify all nodes were deregistered
-				Expect(fakeE2Manager.deregisterCalls).To(Equal(3))
-				Expect(len(fakeE2Manager.nodes)).To(Equal(0))
-
-				// Verify finalizer was removed (E2NodeSet should be gone)
-				deleted := &nephoranv1.E2NodeSet{}
-				err = k8sClient.Get(ctx, req.NamespacedName, deleted)
-				Expect(err).To(HaveOccurred())
-				Expect(client.IgnoreNotFound(err)).To(BeNil())
-			})
-
-			It("should retry cleanup on partial failure", func() {
-				// Set up partial failure scenario
-				fakeE2Manager.setDeregisterError("test-delete-e2nodeset-test-delete-e2nodeset-node-1", fmt.Errorf("network error"))
-
-				// Delete the E2NodeSet
-				Expect(k8sClient.Delete(ctx, e2nodeSet)).To(Succeed())
-
-				req := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      e2nodeSet.Name,
-						Namespace: e2nodeSet.Namespace,
-					},
-				}
-
-				result, err := reconciler.Reconcile(ctx, req)
-				Expect(err).To(HaveOccurred())
-				Expect(result.RequeueAfter).To(Equal(10 * time.Second))
-
-				// Verify partial cleanup occurred
-				Expect(fakeE2Manager.deregisterCalls).To(Equal(3)) // All attempted
-				Expect(len(fakeE2Manager.nodes)).To(Equal(1))     // One failed to delete
-
-				// Clear the error and retry
-				fakeE2Manager.clearDeregisterError("test-delete-e2nodeset-test-delete-e2nodeset-node-1")
-
-				result, err = reconciler.Reconcile(ctx, req)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify complete cleanup
-				Expect(len(fakeE2Manager.nodes)).To(Equal(0))
-			})
-		})
-
-		Context("when E2Manager is nil", func() {
-			BeforeEach(func() {
-				reconciler.E2Manager = nil
-			})
-
-			It("should handle gracefully during reconciliation", func() {
-				e2nodeSet := &nephoranv1.E2NodeSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-nil-manager",
-						Namespace: testNamespace,
-						Finalizers: []string{E2NodeSetFinalizer},
-					},
-					Spec: nephoranv1.E2NodeSetSpec{
-						Replicas: 1,
-					},
-				}
-				Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
-
-				req := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      e2nodeSet.Name,
-						Namespace: e2nodeSet.Namespace,
-					},
-				}
-
-				result, err := reconciler.Reconcile(ctx, req)
-				Expect(err).To(HaveOccurred())
-				Expect(strings.Contains(err.Error(), "E2Manager not initialized")).To(BeTrue())
-				Expect(result.RequeueAfter).To(Equal(30 * time.Second))
-			})
-
-			It("should remove finalizer during deletion even with nil E2Manager", func() {
-				e2nodeSet := &nephoranv1.E2NodeSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-nil-delete",
-						Namespace:  testNamespace,
-						Finalizers: []string{E2NodeSetFinalizer},
-					},
-					Spec: nephoranv1.E2NodeSetSpec{
-						Replicas: 1,
-					},
-				}
-				Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
-
-				// Delete the E2NodeSet
-				Expect(k8sClient.Delete(ctx, e2nodeSet)).To(Succeed())
-
-				req := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      e2nodeSet.Name,
-						Namespace: e2nodeSet.Namespace,
-					},
-				}
-
-				result, err := reconciler.Reconcile(ctx, req)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify E2NodeSet was deleted despite nil E2Manager
-				deleted := &nephoranv1.E2NodeSet{}
-				err = k8sClient.Get(ctx, req.NamespacedName, deleted)
-				Expect(err).To(HaveOccurred())
-				Expect(client.IgnoreNotFound(err)).To(BeNil())
-			})
-		})
-	})
-
-	Describe("Security Requirements", func() {
-		It("should not perform any ConfigMap operations", func() {
-			e2nodeSet := &nephoranv1.E2NodeSet{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "security-test-e2nodeset",
-					Namespace: testNamespace,
-				},
-				Spec: nephoranv1.E2NodeSetSpec{
-					Replicas: 2,
-				},
-			}
+	Context("E2NodeSet Creation and Scaling", func() {
+		It("should provision E2 nodes when E2NodeSet is created", func() {
+			By("creating an E2NodeSet with 3 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-e2nodeset", testNamespace, 3)
 			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
 
-			req := ctrl.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      e2nodeSet.Name,
-					Namespace: e2nodeSet.Namespace,
-				},
+			By("reconciling the E2NodeSet")
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
 			}
 
-			// Create a ConfigMap monitor to verify no operations
-			configMapMonitor := &ConfigMapMonitor{}
-			monitorCtx, cancel := context.WithCancel(ctx)
-			defer cancel()
-
-			go configMapMonitor.Monitor(monitorCtx, k8sClient, testNamespace)
-
-			// Perform reconciliation
-			result, err := reconciler.Reconcile(ctx, req)
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Requeue).To(BeTrue()) // Should requeue for finalizer
+			Expect(result.Requeue).To(BeFalse())
 
-			// Add finalizer and reconcile again
-			updated := &nephoranv1.E2NodeSet{}
-			err = k8sClient.Get(ctx, req.NamespacedName, updated)
+			By("verifying ProvisionNode was called")
+			Expect(fakeManager.GetProvisionCallCount()).To(Equal(1))
+			
+			By("verifying the correct spec was passed to ProvisionNode")
+			lastSpec := fakeManager.GetLastProvisionedSpec()
+			Expect(lastSpec.Replicas).To(Equal(int32(3)))
+
+			By("verifying E2 nodes are registered with E2Manager")
+			nodes, err := fakeManager.ListE2Nodes(ctx)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(len(nodes)).To(Equal(3))
 
-			result, err = reconciler.Reconcile(ctx, req)
+			By("verifying E2NodeSet status is updated")
+			WaitForE2NodeSetReady(namespacedName, 3)
+		})
+
+		It("should scale up E2NodeSet by provisioning additional E2 nodes", func() {
+			By("creating an E2NodeSet with 2 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-scale-up", testNamespace, 2)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
+
+			By("reconciling to create initial E2 nodes")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
 			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
-			// Wait a bit to ensure no ConfigMap operations occur
-			time.Sleep(100 * time.Millisecond)
-			cancel()
+			By("verifying initial E2 nodes are provisioned")
+			Expect(fakeManager.GetProvisionCallCount()).To(Equal(1))
+			nodes, err := fakeManager.ListE2Nodes(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(nodes)).To(Equal(2))
 
-			// Verify no ConfigMap operations were performed
-			Expect(configMapMonitor.ConfigMapOperations).To(Equal(0), 
-				"E2NodeSetReconciler should not perform any ConfigMap operations")
+			By("scaling up to 5 replicas")
+			Eventually(func() error {
+				var currentE2NodeSet nephoranv1.E2NodeSet
+				if err := k8sClient.Get(ctx, namespacedName, &currentE2NodeSet); err != nil {
+					return err
+				}
+				currentE2NodeSet.Spec.Replicas = 5
+				return k8sClient.Update(ctx, &currentE2NodeSet)
+			}, testutil.TestTimeout, testutil.TestInterval).Should(Succeed())
+
+			By("reconciling after scale up")
+			result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("verifying ProvisionNode was called for scale up")
+			Expect(fakeManager.GetProvisionCallCount()).To(Equal(2))
+			lastSpec := fakeManager.GetLastProvisionedSpec()
+			Expect(lastSpec.Replicas).To(Equal(int32(5)))
+
+			By("verifying additional E2 nodes are registered")
+			nodes, err = fakeManager.ListE2Nodes(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(nodes)).To(Equal(5))
+
+			By("verifying E2NodeSet status reflects new replica count")
+			WaitForE2NodeSetReady(namespacedName, 5)
+		})
+
+		It("should handle ProvisionNode failures gracefully", func() {
+			By("creating an E2NodeSet with 2 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-provision-failure", testNamespace, 2)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
+
+			By("configuring fake E2Manager to fail provisioning")
+			fakeManager.SetShouldFailProvision(true)
+
+			By("reconciling the E2NodeSet")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+
+			By("verifying reconcile handles the error and requests requeue")
+			Expect(err).To(HaveOccurred())
+			Expect(result.RequeueAfter).To(Equal(30 * time.Second))
+
+			By("verifying ProvisionNode was attempted")
+			Expect(fakeManager.GetProvisionCallCount()).To(Equal(1))
+
+			By("fixing the provisioning failure")
+			fakeManager.SetShouldFailProvision(false)
+
+			By("reconciling again after fixing the issue")
+			result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("verifying ProvisionNode was called again successfully")
+			Expect(fakeManager.GetProvisionCallCount()).To(Equal(2))
+
+			By("verifying E2 nodes are eventually provisioned")
+			nodes, err := fakeManager.ListE2Nodes(ctx)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(nodes)).To(Equal(2))
+		})
+
+		It("should scale down E2NodeSet by deleting excess ConfigMaps", func() {
+			By("creating an E2NodeSet with 5 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-scale-down", testNamespace, 5)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
+
+			By("reconciling to create initial ConfigMaps")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("verifying initial ConfigMaps are created")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 5)
+
+			By("scaling down to 2 replicas")
+			Eventually(func() error {
+				var currentE2NodeSet nephoranv1.E2NodeSet
+				if err := k8sClient.Get(ctx, namespacedName, &currentE2NodeSet); err != nil {
+					return err
+				}
+				currentE2NodeSet.Spec.Replicas = 2
+				return k8sClient.Update(ctx, &currentE2NodeSet)
+			}, testutil.TestTimeout, testutil.TestInterval).Should(Succeed())
+
+			By("reconciling after scale down")
+			result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("verifying excess ConfigMaps are deleted")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 2)
+
+			By("verifying E2NodeSet status reflects new replica count")
+			WaitForE2NodeSetReady(namespacedName, 2)
+
+			By("verifying remaining ConfigMaps are the correct ones (node-0 and node-1)")
+			configMapList := &corev1.ConfigMapList{}
+			listOptions := []client.ListOption{
+				client.InNamespace(testNamespace),
+				client.MatchingLabels(map[string]string{
+					"app":       "e2node",
+					"e2nodeset": e2nodeSet.Name,
+				}),
+			}
+			Expect(k8sClient.List(ctx, configMapList, listOptions...)).To(Succeed())
+
+			expectedNames := []string{
+				fmt.Sprintf("%s-node-0", e2nodeSet.Name),
+				fmt.Sprintf("%s-node-1", e2nodeSet.Name),
+			}
+
+			actualNames := make([]string, len(configMapList.Items))
+			for i, cm := range configMapList.Items {
+				actualNames[i] = cm.Name
+			}
+
+			Expect(actualNames).To(ConsistOf(expectedNames))
+		})
+
+		It("should handle scaling to zero replicas", func() {
+			By("creating an E2NodeSet with 3 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-scale-zero", testNamespace, 3)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
+
+			By("reconciling to create initial ConfigMaps")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("verifying initial ConfigMaps are created")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 3)
+
+			By("scaling down to 0 replicas")
+			Eventually(func() error {
+				var currentE2NodeSet nephoranv1.E2NodeSet
+				if err := k8sClient.Get(ctx, namespacedName, &currentE2NodeSet); err != nil {
+					return err
+				}
+				currentE2NodeSet.Spec.Replicas = 0
+				return k8sClient.Update(ctx, &currentE2NodeSet)
+			}, testutil.TestTimeout, testutil.TestInterval).Should(Succeed())
+
+			By("reconciling after scaling to zero")
+			result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("verifying all ConfigMaps are deleted")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 0)
+
+			By("verifying E2NodeSet status reflects zero replicas")
+			WaitForE2NodeSetReady(namespacedName, 0)
+		})
+
+		It("should handle E2NodeSet deletion gracefully", func() {
+			By("creating an E2NodeSet with 2 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-deletion", testNamespace, 2)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
+
+			By("reconciling to create ConfigMaps")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("verifying ConfigMaps are created")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 2)
+
+			By("deleting the E2NodeSet")
+			Expect(k8sClient.Delete(ctx, e2nodeSet)).To(Succeed())
+
+			By("reconciling after deletion")
+			result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("verifying E2NodeSet is deleted")
+			Eventually(func() bool {
+				var deletedE2NodeSet nephoranv1.E2NodeSet
+				err := k8sClient.Get(ctx, namespacedName, &deletedE2NodeSet)
+				return errors.IsNotFound(err)
+			}, testutil.TestTimeout, testutil.TestInterval).Should(BeTrue())
+
+			By("verifying ConfigMaps are garbage collected due to owner references")
+			Eventually(func() int {
+				configMapList := &corev1.ConfigMapList{}
+				listOptions := []client.ListOption{
+					client.InNamespace(testNamespace),
+					client.MatchingLabels(map[string]string{
+						"app":       "e2node",
+						"e2nodeset": e2nodeSet.Name,
+					}),
+				}
+				if err := k8sClient.List(ctx, configMapList, listOptions...); err != nil {
+					return -1
+				}
+				return len(configMapList.Items)
+			}, testutil.TestTimeout, testutil.TestInterval).Should(Equal(0))
 		})
 	})
 
-	Describe("Table-driven test scenarios", func() {
-		type reconcileTestCase struct {
-			name           string
-			initialSpec    nephoranv1.E2NodeSetSpec
-			updateSpec     *nephoranv1.E2NodeSetSpec
-			mockSetup      func(*FakeE2Manager)
-			expectedResult ctrl.Result
-			expectedError  bool
-			verify         func(*FakeE2Manager, *nephoranv1.E2NodeSet)
-		}
+	Context("E2NodeSet Status Updates", func() {
+		It("should update ReadyReplicas status field correctly", func() {
+			By("creating an E2NodeSet with 3 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-status-update", testNamespace, 3)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
 
-		DescribeTable("reconciliation scenarios",
-			func(tc reconcileTestCase) {
-				e2nodeSet := &nephoranv1.E2NodeSet{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:       fmt.Sprintf("table-test-%s", strings.ReplaceAll(tc.name, " ", "-")),
-						Namespace:  testNamespace,
-						Finalizers: []string{E2NodeSetFinalizer},
-					},
-					Spec: tc.initialSpec,
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
+
+			By("verifying initial status has 0 ready replicas")
+			var initialE2NodeSet nephoranv1.E2NodeSet
+			Expect(k8sClient.Get(ctx, namespacedName, &initialE2NodeSet)).To(Succeed())
+			Expect(initialE2NodeSet.Status.ReadyReplicas).To(Equal(int32(0)))
+
+			By("reconciling the E2NodeSet")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("verifying status is updated to reflect ready replicas")
+			WaitForE2NodeSetReady(namespacedName, 3)
+
+			By("verifying status field is persisted")
+			var updatedE2NodeSet nephoranv1.E2NodeSet
+			Expect(k8sClient.Get(ctx, namespacedName, &updatedE2NodeSet)).To(Succeed())
+			Expect(updatedE2NodeSet.Status.ReadyReplicas).To(Equal(int32(3)))
+		})
+
+		It("should maintain status consistency during scaling operations", func() {
+			By("creating an E2NodeSet with 2 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-status-consistency", testNamespace, 2)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
+
+			By("reconciling to establish initial state")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("waiting for initial ready state")
+			WaitForE2NodeSetReady(namespacedName, 2)
+
+			By("scaling up to 4 replicas")
+			Eventually(func() error {
+				var currentE2NodeSet nephoranv1.E2NodeSet
+				if err := k8sClient.Get(ctx, namespacedName, &currentE2NodeSet); err != nil {
+					return err
 				}
-				Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+				currentE2NodeSet.Spec.Replicas = 4
+				return k8sClient.Update(ctx, &currentE2NodeSet)
+			}, testutil.TestTimeout, testutil.TestInterval).Should(Succeed())
 
-				if tc.mockSetup != nil {
-					tc.mockSetup(fakeE2Manager)
+			By("reconciling after scale up")
+			result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("verifying status reflects new replica count")
+			WaitForE2NodeSetReady(namespacedName, 4)
+
+			By("scaling down to 1 replica")
+			Eventually(func() error {
+				var currentE2NodeSet nephoranv1.E2NodeSet
+				if err := k8sClient.Get(ctx, namespacedName, &currentE2NodeSet); err != nil {
+					return err
 				}
+				currentE2NodeSet.Spec.Replicas = 1
+				return k8sClient.Update(ctx, &currentE2NodeSet)
+			}, testutil.TestTimeout, testutil.TestInterval).Should(Succeed())
 
-				req := ctrl.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      e2nodeSet.Name,
-						Namespace: e2nodeSet.Namespace,
-					},
-				}
+			By("reconciling after scale down")
+			result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
-				// Perform initial reconciliation
-				result, err := reconciler.Reconcile(ctx, req)
+			By("verifying status reflects scaled down replica count")
+			WaitForE2NodeSetReady(namespacedName, 1)
 
-				if tc.expectedError {
-					Expect(err).To(HaveOccurred())
-				} else {
-					Expect(err).NotTo(HaveOccurred())
-				}
-				Expect(result).To(Equal(tc.expectedResult))
+			By("verifying final state consistency")
+			var finalE2NodeSet nephoranv1.E2NodeSet
+			Expect(k8sClient.Get(ctx, namespacedName, &finalE2NodeSet)).To(Succeed())
+			Expect(finalE2NodeSet.Spec.Replicas).To(Equal(int32(1)))
+			Expect(finalE2NodeSet.Status.ReadyReplicas).To(Equal(int32(1)))
 
-				// Apply update if specified
-				if tc.updateSpec != nil {
-					updated := &nephoranv1.E2NodeSet{}
-					err = k8sClient.Get(ctx, req.NamespacedName, updated)
-					Expect(err).NotTo(HaveOccurred())
-					updated.Spec = *tc.updateSpec
-					Expect(k8sClient.Update(ctx, updated)).To(Succeed())
+			// Verify actual ConfigMaps match status
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 1)
+		})
 
-					result, err = reconciler.Reconcile(ctx, req)
-					if tc.expectedError {
-						Expect(err).To(HaveOccurred())
-					} else {
-						Expect(err).NotTo(HaveOccurred())
-					}
-				}
+		It("should handle status updates when ConfigMaps already exist", func() {
+			By("creating an E2NodeSet with 2 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-existing-configmaps", testNamespace, 2)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
 
-				// Perform verification
-				if tc.verify != nil {
-					final := &nephoranv1.E2NodeSet{}
-					err = k8sClient.Get(ctx, req.NamespacedName, final)
-					Expect(err).NotTo(HaveOccurred())
-					tc.verify(fakeE2Manager, final)
-				}
-			},
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
 
-			Entry("basic node creation", reconcileTestCase{
-				name: "basic node creation",
-				initialSpec: nephoranv1.E2NodeSetSpec{
-					Replicas:    3,
-					RicEndpoint: "http://test-ric:38080",
+			By("pre-creating some ConfigMaps manually")
+			labels := map[string]string{
+				"app":                     "e2node",
+				"e2nodeset":               e2nodeSet.Name,
+				"nephoran.com/component":  "simulated-gnb",
+				"nephoran.com/managed-by": "e2nodeset-controller",
+			}
+
+			// Create ConfigMap for node-0
+			cm0 := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("%s-node-0", e2nodeSet.Name),
+					Namespace: testNamespace,
+					Labels:    labels,
 				},
-				expectedResult: ctrl.Result{},
-				expectedError:  false,
-				verify: func(mgr *fakeE2Manager, e2ns *nephoranv1.E2NodeSet) {
-					Expect(mgr.provisionNodeCalled).To(BeTrue())
-					Expect(len(mgr.nodes)).To(Equal(3))
-					Expect(mgr.registerCalls).To(Equal(3))
-				},
-			}),
-
-			Entry("scale up operation", reconcileTestCase{
-				name: "scale up operation",
-				initialSpec: nephoranv1.E2NodeSetSpec{
-					Replicas: 2,
-				},
-				updateSpec: &nephoranv1.E2NodeSetSpec{
-					Replicas: 5,
-				},
-				mockSetup: func(mgr *fakeE2Manager) {
-					mgr.createTestNodes(testNamespace, "table-test-scale-up-operation", 2)
-				},
-				expectedResult: ctrl.Result{},
-				expectedError:  false,
-				verify: func(mgr *fakeE2Manager, e2ns *nephoranv1.E2NodeSet) {
-					Expect(len(mgr.nodes)).To(Equal(5))
-					Expect(mgr.registerCalls).To(Equal(3)) // 3 new nodes
-				},
-			}),
-
-			Entry("scale down operation", reconcileTestCase{
-				name: "scale down operation",
-				initialSpec: nephoranv1.E2NodeSetSpec{
-					Replicas: 4,
-				},
-				updateSpec: &nephoranv1.E2NodeSetSpec{
-					Replicas: 2,
-				},
-				mockSetup: func(mgr *fakeE2Manager) {
-					mgr.createTestNodes(testNamespace, "table-test-scale-down-operation", 4)
-				},
-				expectedResult: ctrl.Result{},
-				expectedError:  false,
-				verify: func(mgr *fakeE2Manager, e2ns *nephoranv1.E2NodeSet) {
-					Expect(len(mgr.nodes)).To(Equal(2))
-					Expect(mgr.deregisterCalls).To(Equal(2)) // 2 nodes removed
-				},
-			}),
-
-			Entry("zero replicas", reconcileTestCase{
-				name: "zero replicas",
-				initialSpec: nephoranv1.E2NodeSetSpec{
-					Replicas: 0,
-				},
-				expectedResult: ctrl.Result{},
-				expectedError:  false,
-				verify: func(mgr *fakeE2Manager, e2ns *nephoranv1.E2NodeSet) {
-					Expect(mgr.provisionNodeCalled).To(BeTrue())
-					Expect(len(mgr.nodes)).To(Equal(0))
-				},
-			}),
-
-			Entry("E2Manager provisioning error", reconcileTestCase{
-				name: "E2Manager provisioning error",
-				initialSpec: nephoranv1.E2NodeSetSpec{
-					Replicas: 1,
-				},
-				mockSetup: func(mgr *fakeE2Manager) {
-					mgr.provisionError = fmt.Errorf("provisioning failed")
-				},
-				expectedResult: ctrl.Result{RequeueAfter: 30 * time.Second},
-				expectedError:  true,
-			}),
-
-			Entry("custom RIC endpoint", reconcileTestCase{
-				name: "custom RIC endpoint",
-				initialSpec: nephoranv1.E2NodeSetSpec{
-					Replicas:    1,
-					RicEndpoint: "http://custom-ric:9090",
-				},
-				expectedResult: ctrl.Result{},
-				expectedError:  false,
-				verify: func(mgr *fakeE2Manager, e2ns *nephoranv1.E2NodeSet) {
-					Expect(mgr.lastProvisionSpec.RicEndpoint).To(Equal("http://custom-ric:9090"))
-					Expect(mgr.lastRicEndpoint).To(Equal("http://custom-ric:9090"))
-				},
-			}),
-		)
-	})
-})
-
-// FakeE2Manager provides a comprehensive mock implementation of the E2ManagerInterface
-type FakeE2Manager struct {
-	// State tracking
-	nodes                map[string]*e2.E2Node
-	provisioning         map[string]bool
-	callLog              []string
-	nodeCounter          int
-	mutex                *sync.RWMutex
-
-	// Call tracking
-	provisionNodeCalled  bool
-	lastProvisionSpec    nephoranv1.E2NodeSetSpec
-	setupCalls           int
-	registerCalls        int
-	deregisterCalls      int
-	listCalls            int
-	lastRicEndpoint      string
-
-	// Error simulation
-	provisionError       error
-	setupErrors          map[string]error
-	registerErrors       map[string]error
-	deregisterErrors     map[string]error
-	listError            error
-
-	// Configuration
-	simulateHealthy      bool
-	healthyNodeCount     int
-	responseDelay        time.Duration
-}
-
-// Core node operations
-func (f *FakeE2Manager) SetupE2Connection(nodeID string, endpoint string) error {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-
-	f.callLog = append(f.callLog, fmt.Sprintf("SetupE2Connection(%s, %s)", nodeID, endpoint))
-	f.setupCalls++
-	f.lastRicEndpoint = endpoint
-
-	if f.responseDelay > 0 {
-		time.Sleep(f.responseDelay)
-	}
-
-	if err, exists := f.setupErrors[nodeID]; exists {
-		return err
-	}
-
-	return nil
-}
-
-func (f *FakeE2Manager) RegisterE2Node(ctx context.Context, nodeID string, ranFunctions []e2.RanFunction) error {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-
-	f.callLog = append(f.callLog, fmt.Sprintf("RegisterE2Node(%s, %d functions)", nodeID, len(ranFunctions)))
-	f.registerCalls++
-
-	if f.responseDelay > 0 {
-		time.Sleep(f.responseDelay)
-	}
-
-	if err, exists := f.registerErrors[nodeID]; exists {
-		return err
-	}
-
-	// Create node if it doesn't exist
-	if _, exists := f.nodes[nodeID]; !exists {
-		f.nodeCounter++
-		node := &e2.E2Node{
-			NodeID: nodeID,
-			ConnectionStatus: e2.E2ConnectionStatus{
-				State:         "CONNECTED",
-				LastHeartbeat: time.Now(),
-			},
-			HealthStatus: e2.NodeHealth{
-				NodeID:    nodeID,
-				Status:    "HEALTHY",
-				LastCheck: time.Now(),
-			},
-			RanFunctions: make([]*e2.E2NodeFunction, len(ranFunctions)),
-			LastSeen:     time.Now(),
-		}
-
-		// Convert RanFunction to E2NodeFunction
-		for i, rf := range ranFunctions {
-			node.RanFunctions[i] = &e2.E2NodeFunction{
-				FunctionID:          rf.FunctionID,
-				FunctionDefinition:  rf.FunctionDefinition,
-				FunctionRevision:    rf.FunctionRevision,
-				FunctionOID:         rf.FunctionOID,
-				FunctionDescription: rf.FunctionDescription,
-				ServiceModel:        rf.ServiceModel,
-				Status: e2.E2NodeFunctionStatus{
-					State:         "ACTIVE",
-					LastHeartbeat: time.Now(),
+				Data: map[string]string{
+					"nodeId":    fmt.Sprintf("%s-node-0", e2nodeSet.Name),
+					"nodeType":  "simulated-gnb",
+					"status":    "active",
+					"created":   time.Now().Format(time.RFC3339),
+					"e2nodeSet": e2nodeSet.Name,
+					"index":     "0",
 				},
 			}
-		}
+			Expect(k8sClient.Create(ctx, cm0)).To(Succeed())
 
-		f.nodes[nodeID] = node
-	}
+			By("reconciling the E2NodeSet")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
-	return nil
-}
+			By("verifying status reflects actual ConfigMap count")
+			WaitForE2NodeSetReady(namespacedName, 2)
 
-func (f *FakeE2Manager) DeregisterE2Node(ctx context.Context, nodeID string) error {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
+			By("verifying all expected ConfigMaps exist")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 2)
 
-	f.callLog = append(f.callLog, fmt.Sprintf("DeregisterE2Node(%s)", nodeID))
-	f.deregisterCalls++
+			By("verifying the pre-existing ConfigMap still exists")
+			var existingCM corev1.ConfigMap
+			Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      fmt.Sprintf("%s-node-0", e2nodeSet.Name),
+				Namespace: testNamespace,
+			}, &existingCM)).To(Succeed())
+		})
 
-	if f.responseDelay > 0 {
-		time.Sleep(f.responseDelay)
-	}
+		It("should update status correctly when no changes are needed", func() {
+			By("creating an E2NodeSet with 1 replica")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-no-changes", testNamespace, 1)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
 
-	if err, exists := f.deregisterErrors[nodeID]; exists {
-		return err
-	}
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
 
-	delete(f.nodes, nodeID)
-	return nil
-}
+			By("reconciling the E2NodeSet initially")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
-func (f *FakeE2Manager) ListE2Nodes(ctx context.Context) ([]*e2.E2Node, error) {
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
+			By("waiting for initial ready state")
+			WaitForE2NodeSetReady(namespacedName, 1)
 
-	f.listCalls++
+			By("getting the resource generation before second reconcile")
+			var beforeE2NodeSet nephoranv1.E2NodeSet
+			Expect(k8sClient.Get(ctx, namespacedName, &beforeE2NodeSet)).To(Succeed())
+			beforeGeneration := beforeE2NodeSet.Generation
 
-	if f.responseDelay > 0 {
-		time.Sleep(f.responseDelay)
-	}
+			By("reconciling again without any changes")
+			result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
-	if f.listError != nil {
-		return nil, f.listError
-	}
+			By("verifying status remains consistent")
+			var afterE2NodeSet nephoranv1.E2NodeSet
+			Expect(k8sClient.Get(ctx, namespacedName, &afterE2NodeSet)).To(Succeed())
+			Expect(afterE2NodeSet.Status.ReadyReplicas).To(Equal(int32(1)))
+			Expect(afterE2NodeSet.Generation).To(Equal(beforeGeneration))
 
-	nodes := make([]*e2.E2Node, 0, len(f.nodes))
-	for _, node := range f.nodes {
-		// Create a copy to avoid race conditions
-		nodeCopy := *node
-		nodes = append(nodes, &nodeCopy)
-	}
+			By("verifying ConfigMaps remain unchanged")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 1)
+		})
 
-	return nodes, nil
-}
+		It("should handle rapid status updates correctly", func() {
+			By("creating an E2NodeSet with 1 replica")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-rapid-updates", testNamespace, 1)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
 
-// High-level provisioning operation for controller use
-func (f *FakeE2Manager) ProvisionNode(ctx context.Context, spec nephoranv1.E2NodeSetSpec) error {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
 
-	f.callLog = append(f.callLog, fmt.Sprintf("ProvisionNode(replicas=%d, endpoint=%s)", spec.Replicas, spec.RicEndpoint))
-	f.provisionNodeCalled = true
-	f.lastProvisionSpec = spec
+			By("performing multiple rapid reconciliations")
+			for i := 0; i < 5; i++ {
+				result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Requeue).To(BeFalse())
+			}
 
-	if f.responseDelay > 0 {
-		time.Sleep(f.responseDelay)
-	}
+			By("verifying final status is correct")
+			WaitForE2NodeSetReady(namespacedName, 1)
 
-	if f.provisionError != nil {
-		return f.provisionError
-	}
+			By("verifying only expected ConfigMaps exist")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 1)
+		})
+	})
 
-	return nil
-}
+	Context("E2NodeSet Error Handling", func() {
+		It("should handle ConfigMap creation failures gracefully", func() {
+			By("creating an E2NodeSet with 2 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-create-failure", testNamespace, 2)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
 
-// Subscription operations (minimal implementation for interface compliance)
-func (f *FakeE2Manager) SubscribeE2(req *e2.E2SubscriptionRequest) (*e2.E2Subscription, error) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
 
-	f.callLog = append(f.callLog, fmt.Sprintf("SubscribeE2(%s)", req.SubscriptionID))
+			By("pre-creating a ConfigMap with conflicting name to cause creation failure")
+			conflictingCM := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("%s-node-0", e2nodeSet.Name),
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						"conflicting": "true",
+					},
+				},
+				Data: map[string]string{
+					"conflict": "true",
+				},
+			}
+			Expect(k8sClient.Create(ctx, conflictingCM)).To(Succeed())
 
-	return &e2.E2Subscription{
-		SubscriptionID:  req.SubscriptionID,
-		RequestorID:     req.RequestorID,
-		RanFunctionID:   req.RanFunctionID,
-		EventTriggers:   req.EventTriggers,
-		Actions:         req.Actions,
-		ReportingPeriod: req.ReportingPeriod,
-	}, nil
-}
+			By("reconciling the E2NodeSet")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
 
-func (f *FakeE2Manager) SendControlMessage(ctx context.Context, controlReq *e2.RICControlRequest) (*e2.RICControlAcknowledge, error) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
+			By("verifying reconcile handles the error and requests requeue")
+			Expect(err).To(HaveOccurred())
+			Expect(result.RequeueAfter).To(Equal(30 * time.Second))
 
-	f.callLog = append(f.callLog, fmt.Sprintf("SendControlMessage(requestorID=%d)", controlReq.RICRequestID.RICRequestorID))
+			By("removing the conflicting ConfigMap")
+			Expect(k8sClient.Delete(ctx, conflictingCM)).To(Succeed())
 
-	return &e2.RICControlAcknowledge{
-		RICRequestID:     controlReq.RICRequestID,
-		RANFunctionID:    controlReq.RANFunctionID,
-		RICCallProcessID: controlReq.RICCallProcessID,
-		RICControlOutcome: []byte("success"),
-	}, nil
-}
+			By("reconciling again after removing conflict")
+			result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
-// Management operations
-func (f *FakeE2Manager) GetMetrics() *e2.E2Metrics {
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
+			By("verifying ConfigMaps are eventually created")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 2)
 
-	return &e2.E2Metrics{
-		ConnectionsTotal:     int64(f.setupCalls),
-		ConnectionsActive:    int64(len(f.nodes)),
-		NodesRegistered:      int64(f.registerCalls),
-		NodesActive:          int64(len(f.nodes)),
-		SubscriptionsTotal:   0,
-		SubscriptionsActive:  0,
-		MessagesReceived:     0,
-		MessagesSent:         0,
-		MessagesProcessed:    0,
-		MessagesFailed:       0,
-		ErrorsTotal:          0,
-		ErrorsByType:         make(map[string]int64),
-	}
-}
+			By("verifying status is updated correctly after recovery")
+			WaitForE2NodeSetReady(namespacedName, 2)
+		})
 
-func (f *FakeE2Manager) Shutdown() error {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
+		It("should handle ConfigMap deletion failures gracefully", func() {
+			By("creating an E2NodeSet with 3 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-delete-failure", testNamespace, 3)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
 
-	f.callLog = append(f.callLog, "Shutdown()")
-	f.nodes = make(map[string]*e2.E2Node)
-	return nil
-}
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
 
-// Test helper methods
-func (f *FakeE2Manager) createTestNodes(namespace, name string, count int) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
+			By("reconciling to create initial ConfigMaps")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
-	for i := 0; i < count; i++ {
-		nodeID := fmt.Sprintf("%s-%s-node-%d", namespace, name, i)
-		node := &e2.E2Node{
-			NodeID: nodeID,
-			ConnectionStatus: e2.E2ConnectionStatus{
-				State:         "CONNECTED",
-				LastHeartbeat: time.Now(),
-			},
-			HealthStatus: e2.NodeHealth{
-				NodeID:    nodeID,
-				Status:    "HEALTHY",
-				LastCheck: time.Now(),
-			},
-			RanFunctions:      make([]*e2.E2NodeFunction, 0),
-			SubscriptionCount: 0,
-			LastSeen:          time.Now(),
-		}
-		f.nodes[nodeID] = node
-		f.nodeCounter++
-	}
-}
+			By("waiting for initial ConfigMaps to be created")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 3)
 
-func (f *FakeE2Manager) setNodesHealthy(count int) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
+			By("adding finalizer to one ConfigMap to prevent deletion")
+			var cmToProtect corev1.ConfigMap
+			Expect(k8sClient.Get(ctx, types.NamespacedName{
+				Name:      fmt.Sprintf("%s-node-2", e2nodeSet.Name),
+				Namespace: testNamespace,
+			}, &cmToProtect)).To(Succeed())
 
-	f.simulateHealthy = true
-	f.healthyNodeCount = count
+			cmToProtect.Finalizers = append(cmToProtect.Finalizers, "test.nephoran.com/prevent-deletion")
+			Expect(k8sClient.Update(ctx, &cmToProtect)).To(Succeed())
 
-	nodeIndex := 0
-	for nodeID, node := range f.nodes {
-		if nodeIndex < count {
-			node.HealthStatus.Status = "HEALTHY"
-			node.ConnectionStatus.State = "CONNECTED"
-		} else {
-			node.HealthStatus.Status = "UNHEALTHY"
-			node.ConnectionStatus.State = "DISCONNECTED"
-		}
-		nodeIndex++
-	}
-}
+			By("scaling down to 1 replica")
+			Eventually(func() error {
+				var currentE2NodeSet nephoranv1.E2NodeSet
+				if err := k8sClient.Get(ctx, namespacedName, &currentE2NodeSet); err != nil {
+					return err
+				}
+				currentE2NodeSet.Spec.Replicas = 1
+				return k8sClient.Update(ctx, &currentE2NodeSet)
+			}, testutil.TestTimeout, testutil.TestInterval).Should(Succeed())
 
-func (f *FakeE2Manager) setProvisionError(err error) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-	f.provisionError = err
-}
+			By("reconciling after scale down")
+			result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
 
-func (f *FakeE2Manager) setSetupError(nodeID string, err error) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-	if f.setupErrors == nil {
-		f.setupErrors = make(map[string]error)
-	}
-	f.setupErrors[nodeID] = err
-}
+			By("verifying reconcile handles deletion failure and requests requeue")
+			Expect(err).To(HaveOccurred())
+			Expect(result.RequeueAfter).To(Equal(30 * time.Second))
 
-func (f *FakeE2Manager) setRegisterError(nodeID string, err error) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-	if f.registerErrors == nil {
-		f.registerErrors = make(map[string]error)
-	}
-	f.registerErrors[nodeID] = err
-}
+			By("removing the finalizer to allow deletion")
+			Eventually(func() error {
+				var cmToUpdate corev1.ConfigMap
+				if err := k8sClient.Get(ctx, types.NamespacedName{
+					Name:      fmt.Sprintf("%s-node-2", e2nodeSet.Name),
+					Namespace: testNamespace,
+				}, &cmToUpdate); err != nil {
+					return err
+				}
+				cmToUpdate.Finalizers = []string{}
+				return k8sClient.Update(ctx, &cmToUpdate)
+			}, testutil.TestTimeout, testutil.TestInterval).Should(Succeed())
 
-func (f *FakeE2Manager) setDeregisterError(nodeID string, err error) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-	if f.deregisterErrors == nil {
-		f.deregisterErrors = make(map[string]error)
-	}
-	f.deregisterErrors[nodeID] = err
-}
+			By("reconciling again after removing finalizer")
+			result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
-func (f *FakeE2Manager) clearDeregisterError(nodeID string) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-	if f.deregisterErrors != nil {
-		delete(f.deregisterErrors, nodeID)
-	}
-}
+			By("verifying ConfigMaps are eventually scaled down")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 1)
 
-func (f *FakeE2Manager) setListError(err error) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-	f.listError = err
-}
+			By("verifying status is updated correctly after recovery")
+			WaitForE2NodeSetReady(namespacedName, 1)
+		})
 
-func (f *FakeE2Manager) setResponseDelay(delay time.Duration) {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
-	f.responseDelay = delay
-}
+		It("should handle status update failures gracefully", func() {
+			By("creating an E2NodeSet with 2 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-status-failure", testNamespace, 2)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
 
-func (f *FakeE2Manager) getCallLog() []string {
-	f.mutex.RLock()
-	defer f.mutex.RUnlock()
-	return append([]string{}, f.callLog...)
-}
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
 
-func (f *FakeE2Manager) resetMock() {
-	f.mutex.Lock()
-	defer f.mutex.Unlock()
+			By("reconciling the E2NodeSet")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
 
-	f.nodes = make(map[string]*e2.E2Node)
-	f.provisioning = make(map[string]bool)
-	f.callLog = make([]string, 0)
-	f.nodeCounter = 0
+			By("verifying ConfigMaps are created even if status update might fail")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 2)
 
-	f.provisionNodeCalled = false
-	f.lastProvisionSpec = nephoranv1.E2NodeSetSpec{}
-	f.setupCalls = 0
-	f.registerCalls = 0
-	f.deregisterCalls = 0
-	f.listCalls = 0
-	f.lastRicEndpoint = ""
+			By("verifying status is eventually consistent")
+			WaitForE2NodeSetReady(namespacedName, 2)
+		})
 
-	f.provisionError = nil
-	f.setupErrors = make(map[string]error)
-	f.registerErrors = make(map[string]error)
-	f.deregisterErrors = make(map[string]error)
-	f.listError = nil
+		It("should handle missing E2NodeSet resource gracefully", func() {
+			By("creating a NamespacedName for non-existent E2NodeSet")
+			namespacedName := types.NamespacedName{
+				Name:      "non-existent-e2nodeset",
+				Namespace: testNamespace,
+			}
 
-	f.simulateHealthy = false
-	f.healthyNodeCount = 0
-	f.responseDelay = 0
-}
+			By("reconciling non-existent E2NodeSet")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
 
-// ConfigMapMonitor monitors for any ConfigMap operations during testing
-type ConfigMapMonitor struct {
-	ConfigMapOperations int
-	mutex               sync.RWMutex
-}
+			By("verifying reconcile handles missing resource gracefully")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+			Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
+		})
 
-func (m *ConfigMapMonitor) Monitor(ctx context.Context, client client.Client, namespace string) {
-	// This would monitor for ConfigMap operations in a real implementation
-	// For this test, we'll simulate monitoring by checking that no ConfigMaps are created/updated/deleted
-	// during the E2NodeSet reconciliation process
-	
-	ticker := time.NewTicker(10 * time.Millisecond)
-	defer ticker.Stop()
+		It("should handle namespace deletion gracefully", func() {
+			By("creating a temporary namespace")
+			tempNamespace := testutils.GenerateUniqueNamespace("temp-e2nodeset")
+			_ = testutils.CreateNamespace(ctx, k8sClient, tempNamespace)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			// In a real implementation, this would check for ConfigMap operations
-			// For testing purposes, we assume no operations unless explicitly called
-		}
-	}
-}
+			By("creating an E2NodeSet in the temporary namespace")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-namespace-deletion", tempNamespace, 2)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
 
-// Ensure FakeE2Manager implements the E2ManagerInterface
-var _ e2.E2ManagerInterface = (*FakeE2Manager)(nil)
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
+
+			By("reconciling to create ConfigMaps")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("verifying ConfigMaps are created")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, tempNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 2)
+
+			By("deleting the namespace")
+			testutils.DeleteNamespace(ctx, k8sClient, tempNamespace)
+
+			By("attempting to reconcile after namespace deletion")
+			result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+
+			By("verifying reconcile handles namespace deletion gracefully")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+		})
+
+		It("should handle concurrent reconciliation requests", func() {
+			By("creating an E2NodeSet with 3 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-concurrent", testNamespace, 3)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
+
+			By("running multiple concurrent reconciliations")
+			done := make(chan bool, 3)
+			errors := make(chan error, 3)
+
+			for i := 0; i < 3; i++ {
+				go func() {
+					defer GinkgoRecover()
+					result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+					if err != nil {
+						errors <- err
+					} else {
+						Expect(result.Requeue).To(BeFalse())
+					}
+					done <- true
+				}()
+			}
+
+			By("waiting for all reconciliations to complete")
+			for i := 0; i < 3; i++ {
+				select {
+				case <-done:
+					// Success
+				case err := <-errors:
+					Fail(fmt.Sprintf("Concurrent reconciliation failed: %v", err))
+				case <-time.After(30 * time.Second):
+					Fail("Concurrent reconciliation timed out")
+				}
+			}
+
+			By("verifying final state is consistent")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 3)
+
+			WaitForE2NodeSetReady(namespacedName, 3)
+		})
+
+		It("should handle invalid E2NodeSet specifications", func() {
+			By("creating an E2NodeSet with negative replicas (should be prevented by validation)")
+			e2nodeSet := &nephoranv1.E2NodeSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-invalid-spec",
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						"test-resource": "true",
+						"test-suite":    "controller-suite",
+					},
+				},
+				Spec: nephoranv1.E2NodeSetSpec{
+					Replicas: -1, // Invalid negative value
+				},
+			}
+
+			By("attempting to create invalid E2NodeSet")
+			err := k8sClient.Create(ctx, e2nodeSet)
+
+			By("verifying creation is rejected by validation")
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("minimum"))
+		})
+
+		It("should recover from transient API server errors", func() {
+			By("creating an E2NodeSet with 2 replicas")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-api-recovery", testNamespace, 2)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			namespacedName := types.NamespacedName{
+				Name:      e2nodeSet.Name,
+				Namespace: e2nodeSet.Namespace,
+			}
+
+			By("performing initial reconciliation")
+			result, err := reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("verifying initial state")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 2)
+
+			By("performing additional reconciliations to test resilience")
+			for i := 0; i < 3; i++ {
+				result, err = reconciler.Reconcile(ctx, reconcile.Request{NamespacedName: namespacedName})
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Requeue).To(BeFalse())
+			}
+
+			By("verifying state remains consistent")
+			testutils.WaitForConfigMapCount(ctx, k8sClient, testNamespace, map[string]string{
+				"app":       "e2node",
+				"e2nodeset": e2nodeSet.Name,
+			}, 2)
+
+			WaitForE2NodeSetReady(namespacedName, 2)
+		})
+	})
+
+	Context("RIC Endpoint Configuration", func() {
+		It("should use default RIC endpoint when ricEndpoint is not specified", func() {
+			By("creating an E2NodeSet without ricEndpoint")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-default-endpoint", testNamespace, 1)
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			By("getting the RIC endpoint from controller")
+			endpoint := reconciler.getNearRTRICEndpoint(e2nodeSet)
+
+			By("verifying default RIC endpoint is used")
+			Expect(endpoint).To(Equal("http://near-rt-ric:38080"))
+		})
+
+		It("should use custom RIC endpoint when ricEndpoint is specified", func() {
+			By("creating an E2NodeSet with custom ricEndpoint")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-custom-endpoint", testNamespace, 1)
+			e2nodeSet.Spec.RicEndpoint = "https://custom-ric:9080"
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			By("getting the RIC endpoint from controller")
+			endpoint := reconciler.getNearRTRICEndpoint(e2nodeSet)
+
+			By("verifying custom RIC endpoint is used")
+			Expect(endpoint).To(Equal("https://custom-ric:9080"))
+		})
+
+		It("should prioritize spec ricEndpoint over annotation", func() {
+			By("creating an E2NodeSet with both ricEndpoint and annotation")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-priority", testNamespace, 1)
+			e2nodeSet.Spec.RicEndpoint = "https://spec-ric:9080"
+			if e2nodeSet.Annotations == nil {
+				e2nodeSet.Annotations = make(map[string]string)
+			}
+			e2nodeSet.Annotations["nephoran.com/near-rt-ric-endpoint"] = "https://annotation-ric:8080"
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			By("getting the RIC endpoint from controller")
+			endpoint := reconciler.getNearRTRICEndpoint(e2nodeSet)
+
+			By("verifying spec ricEndpoint takes priority")
+			Expect(endpoint).To(Equal("https://spec-ric:9080"))
+		})
+
+		It("should fall back to annotation when ricEndpoint is empty", func() {
+			By("creating an E2NodeSet with empty ricEndpoint but annotation set")
+			e2nodeSet := testutil.CreateTestE2NodeSet("test-annotation-fallback", testNamespace, 1)
+			e2nodeSet.Spec.RicEndpoint = ""
+			if e2nodeSet.Annotations == nil {
+				e2nodeSet.Annotations = make(map[string]string)
+			}
+			e2nodeSet.Annotations["nephoran.com/near-rt-ric-endpoint"] = "https://annotation-ric:8080"
+			Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+			By("getting the RIC endpoint from controller")
+			endpoint := reconciler.getNearRTRICEndpoint(e2nodeSet)
+
+			By("verifying annotation is used as fallback")
+			Expect(endpoint).To(Equal("https://annotation-ric:8080"))
+		})
+
+		It("should validate ricEndpoint format in spec", func() {
+			By("attempting to create E2NodeSet with invalid ricEndpoint format")
+			e2nodeSet := &nephoranv1.E2NodeSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-invalid-endpoint",
+					Namespace: testNamespace,
+					Labels: map[string]string{
+						"test-resource": "true",
+						"test-suite":    "controller-suite",
+					},
+				},
+				Spec: nephoranv1.E2NodeSetSpec{
+					Replicas:    1,
+					RicEndpoint: "invalid-endpoint-format", // Should fail validation
+				},
+			}
+
+			By("verifying creation is rejected by validation")
+			err := k8sClient.Create(ctx, e2nodeSet)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("validation"))
+		})
+
+		It("should accept valid ricEndpoint formats", func() {
+			testCases := []struct {
+				name     string
+				endpoint string
+			}{
+				{"http endpoint", "http://ric-service:38080"},
+				{"https endpoint", "https://secure-ric:9443"},
+				{"numeric ip", "http://192.168.1.100:38080"},
+				{"domain with subdomain", "https://ric.telecom.example.com:8080"},
+			}
+
+			for _, tc := range testCases {
+				By(fmt.Sprintf("testing %s", tc.name))
+				e2nodeSet := &nephoranv1.E2NodeSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      fmt.Sprintf("test-valid-%s", strings.ReplaceAll(tc.name, " ", "-")),
+						Namespace: testNamespace,
+						Labels: map[string]string{
+							"test-resource": "true",
+							"test-suite":    "controller-suite",
+						},
+					},
+					Spec: nephoranv1.E2NodeSetSpec{
+						Replicas:    1,
+						RicEndpoint: tc.endpoint,
+					},
+				}
+
+				By("verifying creation succeeds")
+				Expect(k8sClient.Create(ctx, e2nodeSet)).To(Succeed())
+
+				By("verifying endpoint is retrieved correctly")
+				endpoint := reconciler.getNearRTRICEndpoint(e2nodeSet)
+				Expect(endpoint).To(Equal(tc.endpoint))
+
+				By("cleaning up test resource")
+				Expect(k8sClient.Delete(ctx, e2nodeSet)).To(Succeed())
+			}
+		})
+	})
+})

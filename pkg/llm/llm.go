@@ -10,6 +10,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -91,15 +92,65 @@ func NewClient(url string) *Client {
 
 // ClientConfig holds configuration for LLM client
 type ClientConfig struct {
-	APIKey      string
-	ModelName   string
-	MaxTokens   int
-	BackendType string
-	Timeout     time.Duration
+	APIKey               string
+	ModelName            string
+	MaxTokens            int
+	BackendType          string
+	Timeout              time.Duration
+	SkipTLSVerification  bool   // SECURITY WARNING: Only use in development environments
+}
+
+// allowInsecureClient checks if insecure TLS is allowed via environment variable
+// This follows the principle of requiring explicit opt-in for insecure behavior
+func allowInsecureClient() bool {
+	// Only allow insecure connections if explicitly enabled
+	// This requires setting ALLOW_INSECURE_CLIENT=true
+	envValue := os.Getenv("ALLOW_INSECURE_CLIENT")
+	return envValue == "true"
 }
 
 // NewClientWithConfig creates a new LLM client with specific configuration
 func NewClientWithConfig(url string, config ClientConfig) *Client {
+	// Initialize logger early for security logging
+	logger := slog.Default().With("component", "llm-client")
+
+	// Create TLS configuration with security by default
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		// Additional security hardening
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		},
+		PreferServerCipherSuites: true,
+	}
+
+	// Security check: Only allow skipping TLS verification when both conditions are met
+	if config.SkipTLSVerification {
+		if !allowInsecureClient() {
+			// Log security violation attempt
+			logger.Error("SECURITY VIOLATION: Attempted to skip TLS verification without proper authorization",
+				slog.String("url", url),
+				slog.Bool("skip_tls_requested", true),
+				slog.String("env_allow_insecure", os.Getenv("ALLOW_INSECURE_CLIENT")),
+			)
+			// Fail securely - do not create client with insecure settings
+			panic("Security violation: TLS verification cannot be disabled without explicit environment permission")
+		}
+
+		// Both conditions met - log security warning
+		logger.Warn("SECURITY WARNING: TLS verification disabled - THIS IS INSECURE",
+			slog.String("url", url),
+			slog.String("reason", "both SkipTLSVerification=true and ALLOW_INSECURE_CLIENT=true"),
+			slog.String("recommendation", "Only use in development/testing environments"),
+		)
+
+		// Apply insecure settings
+		tlsConfig.InsecureSkipVerify = true
+	}
+
 	// Create HTTP client with enhanced configuration
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
@@ -111,18 +162,13 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		IdleConnTimeout:       90 * time.Second,
 		TLSHandshakeTimeout:   10 * time.Second,
 		ExpectContinueTimeout: 1 * time.Second,
-		TLSClientConfig: &tls.Config{
-			MinVersion: tls.VersionTLS12,
-		},
+		TLSClientConfig:       tlsConfig,
 	}
 
 	httpClient := &http.Client{
 		Timeout:   config.Timeout,
 		Transport: transport,
 	}
-
-	// Initialize logger
-	logger := slog.Default().With("component", "llm-client")
 
 	return &Client{
 		httpClient:   httpClient,

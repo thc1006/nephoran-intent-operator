@@ -34,16 +34,7 @@ type WeaviateClient struct {
 	mutex            sync.RWMutex
 }
 
-// CircuitBreaker implements circuit breaker pattern for API calls
-type CircuitBreaker struct {
-	maxFailures    int32
-	timeout        time.Duration
-	currentState   int32 // 0: Closed, 1: Open, 2: HalfOpen
-	failureCount   int32
-	lastFailTime   int64
-	successCount   int32
-	mutex          sync.RWMutex
-}
+// CircuitBreaker definition moved to cost_aware_embedding_service.go to avoid duplicates
 
 // Circuit breaker states
 const (
@@ -203,14 +194,7 @@ type SearchQuery struct {
 	ExpandQuery      bool                   `json:"expand_query"`
 }
 
-// SearchResult represents a search result from the vector database
-type SearchResult struct {
-	Document        *shared.TelecomDocument `json:"document"`
-	Score           float32          `json:"score"`
-	Distance        float32          `json:"distance"`
-	Vector          []float32        `json:"vector,omitempty"`
-	ExplainScore    string           `json:"explain_score,omitempty"`
-}
+// SearchResult definition moved to enhanced_rag_integration.go to avoid duplicates
 
 // SearchResponse represents the response from a search query
 type SearchResponse struct {

@@ -303,7 +303,7 @@ function Show-PostDeploymentInstructions {
     Write-Host "Check pod status:     kubectl get pods" -ForegroundColor White
     Write-Host "View logs:            kubectl logs -f deployment/nephio-bridge" -ForegroundColor White
     Write-Host "Check CRDs:           kubectl get crd | Select-String nephoran" -ForegroundColor White
-    Write-Host "Test NetworkIntent:   kubectl apply -f my-first-intent.yaml" -ForegroundColor White
+    Write-Host "Test NetworkIntent:   kubectl apply -f archive/my-first-intent.yaml" -ForegroundColor White
     Write-Host "Port forward RAG API: kubectl port-forward svc/rag-api 5001:5001" -ForegroundColor White
     
     if ($Environment -eq "local") {

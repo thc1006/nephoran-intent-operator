@@ -949,7 +949,7 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating in th
 
 ### API Reference
 
-- [Complete API Documentation](API-DOCUMENTATION.md)
+- [Complete API Documentation](API_REFERENCE.md)
 - [OpenAPI Specification](OPENAPI-SPECIFICATION.yaml)
 - [SDK Documentation](sdk-docs/)
 - [Webhook Integration Guide](webhooks.md)

@@ -520,7 +520,7 @@ function Show-Summary {
     
     Write-Host "  3. Test the deployment:" -ForegroundColor White
     Write-Host "     kubectl get pods" -ForegroundColor Gray
-    Write-Host "     kubectl apply -f my-first-intent.yaml" -ForegroundColor Gray
+    Write-Host "     kubectl apply -f archive/my-first-intent.yaml" -ForegroundColor Gray
     
     Write-Host "`nUseful Commands:" -ForegroundColor Cyan
     Write-Host "  Cluster info:     kubectl cluster-info" -ForegroundColor White

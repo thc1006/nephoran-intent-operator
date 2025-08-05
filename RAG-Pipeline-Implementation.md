@@ -1,4 +1,4 @@
-# pkg/rag/telecom_pipeline.py
+# rag-python/telecom_pipeline.py
 from typing import List, Dict, Any
 from langchain_community.vectorstores import Weaviate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings

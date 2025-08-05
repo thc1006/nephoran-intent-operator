@@ -206,7 +206,7 @@ go mod verify                    # Verify module checksums
 pip3 install -r requirements-rag.txt
 
 # Validate Python modules
-python -m py_compile pkg/rag/*.py
+python -m py_compile rag-python/*.py
 ```
 
 ## Container Security

@@ -716,7 +716,7 @@ make docker-build
 #### 5. Documentation
 ```bash
 # Update API documentation
-# Add examples to API_DOCUMENTATION.md
+# Add examples to API_REFERENCE.md
 
 # Update developer guide
 # Add new patterns to DEVELOPER_GUIDE.md

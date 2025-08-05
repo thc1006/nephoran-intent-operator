@@ -870,24 +870,158 @@ func (ers *EnhancedRetrievalService) GetMetrics() *RetrievalMetrics {
 	return &metrics
 }
 
-// GetHealthStatus returns the health status of the retrieval service
-func (ers *EnhancedRetrievalService) GetHealthStatus() map[string]interface{} {
-	weaviateHealth := ers.weaviateClient.GetHealthStatus()
-	metrics := ers.GetMetrics()
+// HealthStatus represents the health status of the retrieval service
+type HealthStatus struct {
+	Status        string                    `json:"status"`        // "healthy", "degraded", "unhealthy"
+	Timestamp     time.Time                 `json:"timestamp"`     
+	Components    map[string]ComponentStatus `json:"components"`
+	Metrics       HealthMetrics             `json:"metrics"`
+	TotalQueries  int64                     `json:"total_queries"`
+	SuccessRate   float64                   `json:"success_rate"`
+}
 
-	return map[string]interface{}{
-		"status": "healthy", // TODO: implement proper health checking
-		"weaviate": map[string]interface{}{
-			"healthy":    weaviateHealth.IsHealthy,
-			"last_check": weaviateHealth.LastCheck,
-		},
-		"embedding_service": "connected", // TODO: check embedding service health
-		"metrics": map[string]interface{}{
-			"total_queries":           metrics.TotalQueries,
-			"success_rate":           float64(metrics.SuccessfulQueries) / float64(metrics.TotalQueries),
-			"average_response_time":  metrics.AverageResponseTime,
-			"average_relevance":      metrics.AverageRelevanceScore,
-		},
-		"last_updated": metrics.LastUpdated,
+// ComponentStatus represents the health status of a service component
+type ComponentStatus struct {
+	Status    string    `json:"status"`               // "healthy", "degraded", "unhealthy"
+	Message   string    `json:"message,omitempty"`    
+	LastCheck time.Time `json:"last_check"`
+	Details   map[string]interface{} `json:"details,omitempty"`
+}
+
+// HealthMetrics contains metrics relevant to health status
+type HealthMetrics struct {
+	TotalQueries        int64         `json:"total_queries"`
+	SuccessfulQueries   int64         `json:"successful_queries"`
+	FailedQueries       int64         `json:"failed_queries"`
+	AverageResponseTime time.Duration `json:"average_response_time"`
+	LastUpdated         time.Time     `json:"last_updated"`
+}
+
+// GetHealthStatus returns the health status of the retrieval service
+func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*HealthStatus, error) {
+	if ctx == nil {
+		ctx = context.Background()
 	}
+
+	// Create timeout context for health checks
+	healthCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// Get current metrics safely
+	metrics := ers.GetMetrics()
+	
+	// Calculate success rate with zero-division protection
+	var successRate float64
+	if metrics.TotalQueries > 0 {
+		successRate = float64(metrics.SuccessfulQueries) / float64(metrics.TotalQueries)
+	} else {
+		successRate = 1.0 // Default to 100% when no queries processed yet
+	}
+
+	// Check component health
+	components := make(map[string]ComponentStatus)
+	
+	// Check Weaviate/Vector Store health
+	weaviateHealth := ers.weaviateClient.GetHealthStatus()
+	weaviateStatus := "healthy"
+	weaviateMessage := "Vector store is operational"
+	if !weaviateHealth.IsHealthy {
+		weaviateStatus = "unhealthy"
+		weaviateMessage = "Vector store connectivity issues"
+	}
+	
+	components["vector_store"] = ComponentStatus{
+		Status:    weaviateStatus,
+		Message:   weaviateMessage,
+		LastCheck: weaviateHealth.LastCheck,
+		Details: map[string]interface{}{
+			"healthy": weaviateHealth.IsHealthy,
+		},
+	}
+
+	// Check Embedding Service health  
+	embeddingStatus := ers.checkEmbeddingServiceHealth(healthCtx)
+	components["embedding_service"] = embeddingStatus
+
+	// Determine overall health status
+	overallStatus := ers.determineOverallHealth(components, successRate)
+
+	healthStatus := &HealthStatus{
+		Status:       overallStatus,
+		Timestamp:    time.Now(),
+		Components:   components,
+		TotalQueries: metrics.TotalQueries,
+		SuccessRate:  successRate,
+		Metrics: HealthMetrics{
+			TotalQueries:        metrics.TotalQueries,
+			SuccessfulQueries:   metrics.SuccessfulQueries,
+			FailedQueries:       metrics.FailedQueries,
+			AverageResponseTime: metrics.AverageResponseTime,
+			LastUpdated:         metrics.LastUpdated,
+		},
+	}
+
+	return healthStatus, nil
+}
+
+// checkEmbeddingServiceHealth checks the health of the embedding service
+func (ers *EnhancedRetrievalService) checkEmbeddingServiceHealth(ctx context.Context) ComponentStatus {
+	if ers.embeddingService == nil {
+		return ComponentStatus{
+			Status:    "unhealthy",
+			Message:   "Embedding service not initialized",
+			LastCheck: time.Now(),
+		}
+	}
+
+	// Call the embedding service's CheckStatus method
+	status, err := ers.embeddingService.CheckStatus(ctx)
+	if err != nil {
+		return ComponentStatus{
+			Status:    "unhealthy", 
+			Message:   fmt.Sprintf("Health check failed: %v", err),
+			LastCheck: time.Now(),
+		}
+	}
+
+	if status == nil {
+		return ComponentStatus{
+			Status:    "unhealthy",
+			Message:   "Health check returned nil status",
+			LastCheck: time.Now(),
+		}
+	}
+
+	return ComponentStatus{
+		Status:    status.Status,
+		Message:   status.Message,
+		LastCheck: status.LastCheck,
+		Details:   status.Details,
+	}
+}
+
+// determineOverallHealth determines the overall health status based on components and metrics
+func (ers *EnhancedRetrievalService) determineOverallHealth(components map[string]ComponentStatus, successRate float64) string {
+	// Check if any component is unhealthy
+	for _, component := range components {
+		if component.Status == "unhealthy" {
+			return "unhealthy"
+		}
+	}
+
+	// Check success rate thresholds
+	if successRate < 0.5 { // Less than 50% success rate
+		return "unhealthy"
+	} else if successRate < 0.8 { // Less than 80% success rate
+		return "degraded"
+	}
+
+	// Check if any component is degraded
+	for _, component := range components {
+		if component.Status == "degraded" {
+			return "degraded"
+		}
+	}
+
+	return "healthy"
 }

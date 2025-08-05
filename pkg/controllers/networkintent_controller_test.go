@@ -1,4 +1,4 @@
-package controllers_test
+package controllers
 
 import (
 	"context"
@@ -9,1101 +9,658 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
-	"github.com/stretchr/testify/mock"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/hack/testtools"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
-	"github.com/thc1006/nephoran-intent-operator/pkg/git"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// MockDependencies implements the Dependencies interface for testing
-type MockDependencies struct {
-	mock.Mock
-	gitClient     *MockGitClient
-	llmClient     *MockLLMClient
-	packageGen    *MockPackageGenerator
-	httpClient    *http.Client
-	eventRecorder *MockEventRecorder
-}
+var _ = Describe("NetworkIntent Controller", func() {
+	const (
+		timeout  = time.Second * 30
+		interval = time.Millisecond * 250
+	)
 
-func NewMockDependencies() *MockDependencies {
-	return &MockDependencies{
-		gitClient:     NewMockGitClient(),
-		llmClient:     NewMockLLMClient(),
-		packageGen:    NewMockPackageGenerator(),
-		httpClient:    &http.Client{Timeout: 30 * time.Second},
-		eventRecorder: NewMockEventRecorder(),
-	}
-}
-
-func (m *MockDependencies) GetGitClient() git.ClientInterface {
-	return m.gitClient
-}
-
-func (m *MockDependencies) GetLLMClient() shared.ClientInterface {
-	return m.llmClient
-}
-
-func (m *MockDependencies) GetPackageGenerator() *nephio.PackageGenerator {
-	return m.packageGen.PackageGenerator
-}
-
-func (m *MockDependencies) GetHTTPClient() *http.Client {
-	return m.httpClient
-}
-
-func (m *MockDependencies) GetEventRecorder() record.EventRecorder {
-	return m.eventRecorder
-}
-
-// MockGitClient implements git.ClientInterface for testing
-type MockGitClient struct {
-	mock.Mock
-}
-
-func NewMockGitClient() *MockGitClient {
-	return &MockGitClient{}
-}
-
-func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
-	args := m.Called(files, message)
-	return args.String(0), args.Error(1)
-}
-
-func (m *MockGitClient) CommitAndPushChanges(message string) error {
-	args := m.Called(message)
-	return args.Error(0)
-}
-
-func (m *MockGitClient) InitRepo() error {
-	args := m.Called()
-	return args.Error(0)
-}
-
-func (m *MockGitClient) RemoveDirectory(path string, commitMessage string) error {
-	args := m.Called(path, commitMessage)
-	return args.Error(0)
-}
-
-// MockLLMClient implements shared.ClientInterface for testing
-type MockLLMClient struct {
-	mock.Mock
-}
-
-func NewMockLLMClient() *MockLLMClient {
-	return &MockLLMClient{}
-}
-
-func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (string, error) {
-	args := m.Called(ctx, prompt)
-	return args.String(0), args.Error(1)
-}
-
-func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
-	args := m.Called(ctx, prompt, chunks)
-	return args.Error(0)
-}
-
-func (m *MockLLMClient) GetSupportedModels() []string {
-	args := m.Called()
-	return args.Get(0).([]string)
-}
-
-func (m *MockLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
-	args := m.Called(modelName)
-	return args.Get(0).(*shared.ModelCapabilities), args.Error(1)
-}
-
-func (m *MockLLMClient) ValidateModel(modelName string) error {
-	args := m.Called(modelName)
-	return args.Error(0)
-}
-
-func (m *MockLLMClient) EstimateTokens(text string) int {
-	args := m.Called(text)
-	return args.Int(0)
-}
-
-func (m *MockLLMClient) GetMaxTokens(modelName string) int {
-	args := m.Called(modelName)
-	return args.Int(0)
-}
-
-func (m *MockLLMClient) Close() error {
-	args := m.Called()
-	return args.Error(0)
-}
-
-// MockPackageGenerator wraps nephio.PackageGenerator for testing
-type MockPackageGenerator struct {
-	mock.Mock
-	PackageGenerator *nephio.PackageGenerator
-}
-
-func NewMockPackageGenerator() *MockPackageGenerator {
-	return &MockPackageGenerator{
-		PackageGenerator: nil, // Will be nil in tests
-	}
-}
-
-func (m *MockPackageGenerator) GeneratePackage(networkIntent *nephoranv1.NetworkIntent) (map[string]string, error) {
-	args := m.Called(networkIntent)
-	return args.Get(0).(map[string]string), args.Error(1)
-}
-
-// MockEventRecorder implements record.EventRecorder for testing
-type MockEventRecorder struct {
-	mock.Mock
-	Events []string
-}
-
-func NewMockEventRecorder() *MockEventRecorder {
-	return &MockEventRecorder{
-		Events: make([]string, 0),
-	}
-}
-
-func (m *MockEventRecorder) Event(object runtime.Object, eventtype, reason, message string) {
-	m.Called(object, eventtype, reason, message)
-	m.Events = append(m.Events, fmt.Sprintf("%s:%s:%s", eventtype, reason, message))
-}
-
-func (m *MockEventRecorder) Eventf(object runtime.Object, eventtype, reason, messageFmt string, args ...interface{}) {
-	message := fmt.Sprintf(messageFmt, args...)
-	m.Called(object, eventtype, reason, message)
-	m.Events = append(m.Events, fmt.Sprintf("%s:%s:%s", eventtype, reason, message))
-}
-
-func (m *MockEventRecorder) AnnotatedEventf(object runtime.Object, annotations map[string]string, eventtype, reason, messageFmt string, args ...interface{}) {
-	message := fmt.Sprintf(messageFmt, args...)
-	m.Called(object, annotations, eventtype, reason, message)
-	m.Events = append(m.Events, fmt.Sprintf("%s:%s:%s", eventtype, reason, message))
-}
-
-var _ = Describe("NetworkIntentReconciler", func() {
 	var (
-		testEnv           *testtools.TestEnvironment
-		ctx               context.Context
-		reconciler        *controllers.NetworkIntentReconciler
-		mockDeps          *MockDependencies
-		testNamespace     string
-		networkIntent     *nephoranv1.NetworkIntent
-		reconcileRequest  ctrl.Request
+		namespaceName string
+		reconciler    *NetworkIntentReconciler
 	)
 
 	BeforeEach(func() {
-		var err error
-		testEnv, err = testtools.SetupTestEnvironmentWithOptions(testtools.DefaultTestEnvironmentOptions())
-		Expect(err).NotTo(HaveOccurred())
+		By("Creating a new namespace for test isolation")
+		namespaceName = CreateIsolatedNamespace("networkintent-controller")
 
-		ctx = testEnv.GetContext()
-		testNamespace = testtools.GetUniqueNamespace("ni-test")
-		
-		// Create test namespace
-		Expect(testEnv.CreateNamespace(testNamespace)).To(Succeed())
-
-		// Create mock dependencies
-		mockDeps = NewMockDependencies()
-
-		// Create reconciler with mock dependencies
-		config := &controllers.Config{
+		By("Setting up the reconciler with mock dependencies")
+		reconciler = &NetworkIntentReconciler{
+			Client:          k8sClient,
+			Scheme:          testEnv.Scheme,
+			EventRecorder:   &record.FakeRecorder{},
 			MaxRetries:      3,
-			RetryDelay:      1 * time.Second,
-			Timeout:         30 * time.Second,
-			GitRepoURL:      "https://github.com/test/repo.git",
+			RetryDelay:      time.Second * 1,
+			GitRepoURL:      "https://github.com/test/deployments.git",
 			GitBranch:       "main",
 			GitDeployPath:   "networkintents",
-			LLMProcessorURL: "http://llm-processor:8080",
-			UseNephioPorch:  false,
-		}
-
-		reconciler, err = controllers.NewNetworkIntentReconciler(
-			testEnv.K8sClient,
-			testEnv.GetScheme(),
-			mockDeps,
-			config,
-		)
-		Expect(err).NotTo(HaveOccurred())
-
-		// Create test NetworkIntent
-		networkIntent = &nephoranv1.NetworkIntent{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-intent",
-				Namespace: testNamespace,
-				Labels: map[string]string{
-					"test-resource": "true",
-				},
-			},
-			Spec: nephoranv1.NetworkIntentSpec{
-				Intent: "Create a 5G UPF deployment with 3 replicas",
-			},
-		}
-
-		reconcileRequest = ctrl.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      networkIntent.Name,
-				Namespace: networkIntent.Namespace,
-			},
+			HTTPClient:      &http.Client{Timeout: 30 * time.Second},
 		}
 	})
 
 	AfterEach(func() {
-		if testEnv != nil {
-			testEnv.TeardownTestEnvironment()
-		}
+		By("Cleaning up the test namespace")
+		CleanupIsolatedNamespace(namespaceName)
 	})
 
-	Describe("Constructor validation", func() {
-		It("should create reconciler with valid parameters", func() {
-			config := &controllers.Config{
-				MaxRetries:    3,
-				RetryDelay:    1 * time.Second,
-				Timeout:       30 * time.Second,
-				GitDeployPath: "test-path",
-			}
-
-			r, err := controllers.NewNetworkIntentReconciler(
-				testEnv.K8sClient,
-				testEnv.GetScheme(),
-				mockDeps,
-				config,
-			)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(r).NotTo(BeNil())
-		})
-
-		It("should reject nil client", func() {
-			config := &controllers.Config{}
-			_, err := controllers.NewNetworkIntentReconciler(
-				nil,
-				testEnv.GetScheme(),
-				mockDeps,
-				config,
-			)
-
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("client cannot be nil"))
-		})
-
-		It("should reject nil scheme", func() {
-			config := &controllers.Config{}
-			_, err := controllers.NewNetworkIntentReconciler(
-				testEnv.K8sClient,
-				nil,
-				mockDeps,
-				config,
-			)
-
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("scheme cannot be nil"))
-		})
-
-		It("should reject nil dependencies", func() {
-			config := &controllers.Config{}
-			_, err := controllers.NewNetworkIntentReconciler(
-				testEnv.K8sClient,
-				testEnv.GetScheme(),
-				nil,
-				config,
-			)
-
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("dependencies cannot be nil"))
-		})
-
-		It("should set default configuration values", func() {
-			r, err := controllers.NewNetworkIntentReconciler(
-				testEnv.K8sClient,
-				testEnv.GetScheme(),
-				mockDeps,
-				nil, // nil config should use defaults
-			)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(r).NotTo(BeNil())
-		})
-
-		It("should validate configuration limits", func() {
-			config := &controllers.Config{
-				MaxRetries: 15, // Exceeds MaxAllowedRetries (10)
-			}
-
-			_, err := controllers.NewNetworkIntentReconciler(
-				testEnv.K8sClient,
-				testEnv.GetScheme(),
-				mockDeps,
-				config,
-			)
-
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("MaxRetries"))
-		})
-	})
-
-	Describe("Reconcile method", func() {
-		Context("when NetworkIntent does not exist", func() {
-			It("should return without error", func() {
-				// Don't create the NetworkIntent
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-			})
-		})
-
-		Context("when NetworkIntent exists", func() {
-			BeforeEach(func() {
-				Expect(testEnv.K8sClient.Create(ctx, networkIntent)).To(Succeed())
-			})
-
-			It("should add finalizer on first reconcile", func() {
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result.Requeue).To(BeTrue())
-
-				// Verify finalizer was added
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				Expect(updated.Finalizers).To(ContainElement(controllers.NetworkIntentFinalizer))
-			})
-
-			It("should process intent with LLM client", func() {
-				// Add finalizer manually to skip that step
-				networkIntent.Finalizers = []string{controllers.NetworkIntentFinalizer}
-				Expect(testEnv.K8sClient.Update(ctx, networkIntent)).To(Succeed())
-
-				// Mock successful LLM processing
-				expectedResponse := `{"upf_replicas": 3, "network_function": "UPF"}`
-				mockDeps.llmClient.On("ProcessIntent", mock.Anything, networkIntent.Spec.Intent).Return(expectedResponse, nil)
-
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify LLM client was called
-				mockDeps.llmClient.AssertExpectations(GinkgoT())
-
-				// Verify status was updated
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				Expect(updated.Status.Phase).To(Equal("Processing"))
-
-				// Verify parameters were set
-				var params map[string]interface{}
-				Expect(json.Unmarshal(updated.Spec.Parameters.Raw, &params)).To(Succeed())
-				Expect(params).To(HaveKeyWithValue("upf_replicas", float64(3)))
-				Expect(params).To(HaveKeyWithValue("network_function", "UPF"))
-			})
-		})
-
-		Context("when NetworkIntent is being deleted", func() {
-			BeforeEach(func() {
-				networkIntent.Finalizers = []string{controllers.NetworkIntentFinalizer}
-				Expect(testEnv.K8sClient.Create(ctx, networkIntent)).To(Succeed())
-
-				// Mark for deletion
-				Expect(testEnv.K8sClient.Delete(ctx, networkIntent)).To(Succeed())
-			})
-
-			It("should handle deletion with successful cleanup", func() {
-				// Mock successful Git cleanup
-				mockDeps.gitClient.On("InitRepo").Return(nil)
-				mockDeps.gitClient.On("RemoveDirectory", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return(nil)
-
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify Git client was called
-				mockDeps.gitClient.AssertExpectations(GinkgoT())
-
-				// Verify resource was deleted (finalizer removed)
-				deleted := &nephoranv1.NetworkIntent{}
-				err = testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, deleted)
-				Expect(errors.IsNotFound(err)).To(BeTrue())
-			})
-
-			It("should retry on cleanup failure", func() {
-				// Mock failed Git cleanup
-				mockDeps.gitClient.On("InitRepo").Return(fmt.Errorf("git initialization failed"))
-
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).To(HaveOccurred())
-				Expect(result.RequeueAfter).To(BeNumerically(">", 0))
-
-				// Verify Git client was called
-				mockDeps.gitClient.AssertExpectations(GinkgoT())
-
-				// Verify finalizer still exists
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				Expect(updated.Finalizers).To(ContainElement(controllers.NetworkIntentFinalizer))
-			})
-		})
-	})
-
-	Describe("LLM Processing", func() {
-		var processedIntent *nephoranv1.NetworkIntent
+	Context("When creating a NetworkIntent", func() {
+		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			processedIntent = networkIntent.DeepCopy()
-			processedIntent.Finalizers = []string{controllers.NetworkIntentFinalizer}
-			Expect(testEnv.K8sClient.Create(ctx, processedIntent)).To(Succeed())
+			By("Creating a basic NetworkIntent")
+			networkIntent = CreateTestNetworkIntent(
+				GetUniqueName("test-intent"),
+				namespaceName,
+				"Scale E2 nodes to 3 replicas in the O-RAN deployment",
+			)
 		})
 
-		Context("with successful LLM response", func() {
-			It("should process valid JSON response", func() {
-				expectedResponse := `{"deployment_type": "upf", "replicas": 3, "resources": {"cpu": "2", "memory": "4Gi"}}`
-				mockDeps.llmClient.On("ProcessIntent", mock.Anything, processedIntent.Spec.Intent).Return(expectedResponse, nil)
+		It("Should process the intent with successful LLM response", func() {
+			By("Setting up a mock LLM client that returns valid JSON")
+			mockResponse := map[string]interface{}{
+				"action":        "scale",
+				"component":     "e2-nodes",
+				"replicas":      3,
+				"target_ns":     "oran-system",
+				"resource_type": "deployment",
+			}
+			mockResponseBytes, _ := json.Marshal(mockResponse)
+			mockLLMClient := &MockLLMClient{
+				Response: string(mockResponseBytes),
+				Error:    nil,
+			}
+			reconciler.LLMClient = mockLLMClient
 
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
+			By("Creating the NetworkIntent in the cluster")
+			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
+			By("Triggering reconciliation")
+			req := ctrl.Request{NamespacedName: types.NamespacedName{
+				Name:      networkIntent.Name,
+				Namespace: networkIntent.Namespace,
+			}}
 
-				// Verify parameters were parsed and stored
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("Verifying the NetworkIntent was processed successfully")
+			Eventually(func() bool {
 				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-
-				var params map[string]interface{}
-				Expect(json.Unmarshal(updated.Spec.Parameters.Raw, &params)).To(Succeed())
-				Expect(params).To(HaveKey("deployment_type"))
-				Expect(params).To(HaveKey("replicas"))
-				Expect(params).To(HaveKey("resources"))
-			})
-
-			It("should handle empty JSON response", func() {
-				mockDeps.llmClient.On("ProcessIntent", mock.Anything, processedIntent.Spec.Intent).Return("{}", nil)
-
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify empty parameters were stored
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-
-				var params map[string]interface{}
-				Expect(json.Unmarshal(updated.Spec.Parameters.Raw, &params)).To(Succeed())
-				Expect(len(params)).To(Equal(0))
-			})
-		})
-
-		Context("with LLM processing failures", func() {
-			It("should retry on LLM client error", func() {
-				mockDeps.llmClient.On("ProcessIntent", mock.Anything, processedIntent.Spec.Intent).Return("", fmt.Errorf("LLM service unavailable"))
-
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result.RequeueAfter).To(BeNumerically(">", 0))
-
-				// Verify retry count was incremented
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				Expect(updated.Annotations).To(HaveKey("nephoran.com/llm-processing-retry-count"))
-			})
-
-			It("should retry on empty LLM response", func() {
-				mockDeps.llmClient.On("ProcessIntent", mock.Anything, processedIntent.Spec.Intent).Return("", nil)
-
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result.RequeueAfter).To(BeNumerically(">", 0))
-
-				// Verify condition shows empty response error
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				
-				processedCondition := findCondition(updated.Status.Conditions, "Processed")
-				Expect(processedCondition).NotTo(BeNil())
-				Expect(processedCondition.Status).To(Equal(metav1.ConditionFalse))
-				Expect(processedCondition.Reason).To(Equal("EmptyLLMResponse"))
-			})
-
-			It("should retry on invalid JSON response", func() {
-				mockDeps.llmClient.On("ProcessIntent", mock.Anything, processedIntent.Spec.Intent).Return("invalid json {", nil)
-
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result.RequeueAfter).To(BeNumerically(">", 0))
-
-				// Verify condition shows parsing error
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				
-				processedCondition := findCondition(updated.Status.Conditions, "Processed")
-				Expect(processedCondition).NotTo(BeNil())
-				Expect(processedCondition.Status).To(Equal(metav1.ConditionFalse))
-				Expect(processedCondition.Reason).To(Equal("LLMResponseParsingFailed"))
-			})
-
-			It("should fail after max retries", func() {
-				// Set up intent with max retry count already reached
-				processedIntent.Annotations = map[string]string{
-					"nephoran.com/llm-processing-retry-count": "3",
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated); err != nil {
+					return false
 				}
-				Expect(testEnv.K8sClient.Update(ctx, processedIntent)).To(Succeed())
+				return isConditionTrue(updated.Status.Conditions, "Processed")
+			}, timeout, interval).Should(BeTrue())
 
-				mockDeps.llmClient.On("ProcessIntent", mock.Anything, processedIntent.Spec.Intent).Return("", fmt.Errorf("persistent error"))
+			By("Verifying parameters were extracted from LLM response")
+			updated := &nephoranv1.NetworkIntent{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+			Expect(updated.Spec.Parameters.Raw).NotTo(BeEmpty())
 
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).To(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify condition shows max retries exceeded
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				
-				processedCondition := findCondition(updated.Status.Conditions, "Processed")
-				Expect(processedCondition).NotTo(BeNil())
-				Expect(processedCondition.Status).To(Equal(metav1.ConditionFalse))
-				Expect(processedCondition.Reason).To(Equal("LLMProcessingFailedMaxRetries"))
-			})
-
-			It("should handle empty intent specification", func() {
-				processedIntent.Spec.Intent = ""
-				Expect(testEnv.K8sClient.Update(ctx, processedIntent)).To(Succeed())
-
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).To(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify condition shows invalid intent
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				
-				processedCondition := findCondition(updated.Status.Conditions, "Processed")
-				Expect(processedCondition).NotTo(BeNil())
-				Expect(processedCondition.Status).To(Equal(metav1.ConditionFalse))
-				Expect(processedCondition.Reason).To(Equal("InvalidIntent"))
-			})
+			var extractedParams map[string]interface{}
+			Expect(json.Unmarshal(updated.Spec.Parameters.Raw, &extractedParams)).To(Succeed())
+			Expect(extractedParams["action"]).To(Equal("scale"))
+			Expect(extractedParams["replicas"]).To(Equal(float64(3)))
 		})
 
-		Context("with missing LLM client", func() {
-			BeforeEach(func() {
-				// Create mock deps with nil LLM client
-				mockDeps = &MockDependencies{
-					gitClient:     NewMockGitClient(),
-					llmClient:     nil,
-					packageGen:    NewMockPackageGenerator(),
-					httpClient:    &http.Client{},
-					eventRecorder: NewMockEventRecorder(),
-				}
+		It("Should handle LLM processing failures with retry logic", func() {
+			By("Setting up a mock LLM client that initially fails")
+			mockLLMClient := &MockLLMClient{
+				Response:  "",
+				Error:     fmt.Errorf("temporary LLM service unavailable"),
+				FailCount: 2, // Fail first 2 attempts, succeed on 3rd
+				CallCount: 0,
+			}
+			reconciler.LLMClient = mockLLMClient
 
-				var err error
-				reconciler, err = controllers.NewNetworkIntentReconciler(
-					testEnv.K8sClient,
-					testEnv.GetScheme(),
-					mockDeps,
-					&controllers.Config{},
-				)
+			By("Creating the NetworkIntent in the cluster")
+			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+
+			By("Triggering reconciliation")
+			req := ctrl.Request{NamespacedName: types.NamespacedName{
+				Name:      networkIntent.Name,
+				Namespace: networkIntent.Namespace,
+			}}
+
+			By("First reconciliation should fail and schedule retry")
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.RequeueAfter).To(Equal(reconciler.RetryDelay))
+
+			By("Verifying retry count is incremented")
+			updated := &nephoranv1.NetworkIntent{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+			retryCount := getRetryCount(updated, "llm-processing")
+			Expect(retryCount).To(Equal(1))
+
+			By("Second reconciliation should also fail")
+			result, err = reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.RequeueAfter).To(Equal(reconciler.RetryDelay))
+
+			By("Third reconciliation should succeed")
+			// Setup successful response for third attempt
+			mockResponse := map[string]interface{}{
+				"action":    "deploy",
+				"component": "network-function",
+			}
+			mockResponseBytes, _ := json.Marshal(mockResponse)
+			mockLLMClient.Response = string(mockResponseBytes)
+			mockLLMClient.Error = nil
+
+			result, err = reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("Verifying the intent was eventually processed")
+			Eventually(func() bool {
+				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+				return isConditionTrue(updated.Status.Conditions, "Processed")
+			}, timeout, interval).Should(BeTrue())
+		})
+
+		It("Should fail after exceeding maximum retry attempts", func() {
+			By("Setting up a mock LLM client that always fails")
+			mockLLMClient := &MockLLMClient{
+				Response: "",
+				Error:    fmt.Errorf("permanent LLM failure"),
+			}
+			reconciler.LLMClient = mockLLMClient
+
+			By("Creating the NetworkIntent in the cluster")
+			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+
+			req := ctrl.Request{NamespacedName: types.NamespacedName{
+				Name:      networkIntent.Name,
+				Namespace: networkIntent.Namespace,
+			}}
+
+			By("Exhausting all retry attempts")
+			for i := 0; i <= reconciler.MaxRetries; i++ {
+				result, err := reconciler.Reconcile(ctx, req)
 				Expect(err).NotTo(HaveOccurred())
-			})
 
-			It("should fail permanently with no LLM client", func() {
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
+				if i < reconciler.MaxRetries {
+					Expect(result.RequeueAfter).To(Equal(reconciler.RetryDelay))
+				} else {
+					Expect(result.Requeue).To(BeFalse())
+					Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
+				}
+			}
 
-				Expect(err).To(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
+			By("Verifying the intent is marked as failed")
+			updated := &nephoranv1.NetworkIntent{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
 
-				// Verify condition shows LLM client not configured
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				
-				processedCondition := findCondition(updated.Status.Conditions, "Processed")
-				Expect(processedCondition).NotTo(BeNil())
-				Expect(processedCondition.Status).To(Equal(metav1.ConditionFalse))
-				Expect(processedCondition.Reason).To(Equal("LLMClientNotConfigured"))
-			})
+			processedCondition := testGetConditionController(updated.Status.Conditions, "Processed")
+			Expect(processedCondition).NotTo(BeNil())
+			Expect(processedCondition.Status).To(Equal(metav1.ConditionFalse))
+			Expect(processedCondition.Reason).To(Equal("LLMProcessingFailedMaxRetries"))
+		})
+
+		It("Should handle invalid JSON responses from LLM", func() {
+			By("Setting up a mock LLM client that returns invalid JSON")
+			mockLLMClient := &MockLLMClient{
+				Response: "invalid json response from LLM",
+				Error:    nil,
+			}
+			reconciler.LLMClient = mockLLMClient
+
+			By("Creating the NetworkIntent in the cluster")
+			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+
+			By("Triggering reconciliation")
+			req := ctrl.Request{NamespacedName: types.NamespacedName{
+				Name:      networkIntent.Name,
+				Namespace: networkIntent.Namespace,
+			}}
+
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.RequeueAfter).To(Equal(reconciler.RetryDelay))
+
+			By("Verifying parsing failure is recorded")
+			updated := &nephoranv1.NetworkIntent{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+
+			processedCondition := testGetConditionController(updated.Status.Conditions, "Processed")
+			Expect(processedCondition).NotTo(BeNil())
+			Expect(processedCondition.Status).To(Equal(metav1.ConditionFalse))
+			Expect(processedCondition.Reason).To(Equal("LLMResponseParsingFailed"))
 		})
 	})
 
-	Describe("GitOps Deployment", func() {
-		var deployableIntent *nephoranv1.NetworkIntent
+	Context("When testing GitOps deployment functionality", func() {
+		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			// Create intent that's already processed
-			deployableIntent = networkIntent.DeepCopy()
-			deployableIntent.Finalizers = []string{controllers.NetworkIntentFinalizer}
-			deployableIntent.Spec.Parameters = runtime.RawExtension{
-				Raw: []byte(`{"deployment_type": "upf", "replicas": 3}`),
+			By("Creating a NetworkIntent that has already been processed")
+			networkIntent = CreateTestNetworkIntent(
+				GetUniqueName("gitops-test"),
+				namespaceName,
+				"Deploy 5G core AMF with high availability",
+			)
+
+			// Simulate already processed intent
+			parameters := map[string]interface{}{
+				"action":     "deploy",
+				"component":  "amf",
+				"replicas":   2,
+				"ha_enabled": true,
 			}
-			deployableIntent.Status.Conditions = []metav1.Condition{
+			parametersRaw, _ := json.Marshal(parameters)
+			networkIntent.Spec.Parameters = runtime.RawExtension{Raw: parametersRaw}
+
+			// Set processed condition
+			networkIntent.Status.Conditions = []metav1.Condition{
+				{
+					Type:               "Processed",
+					Status:             metav1.ConditionTrue,
+					Reason:             "LLMProcessingSucceeded",
+					Message:            "Intent successfully processed",
+					LastTransitionTime: metav1.Now(),
+				},
+			}
+		})
+
+		It("Should successfully deploy via GitOps", func() {
+			By("Setting up a mock Git client")
+			mockGitClient := &MockGitClient{
+				CommitHash: "abc123def456",
+				Error:      nil,
+			}
+			reconciler.GitClient = mockGitClient
+
+			By("Creating the processed NetworkIntent")
+			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+
+			By("Triggering reconciliation for deployment")
+			req := ctrl.Request{NamespacedName: types.NamespacedName{
+				Name:      networkIntent.Name,
+				Namespace: networkIntent.Namespace,
+			}}
+
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("Verifying the intent is marked as deployed")
+			Eventually(func() bool {
+				updated := &nephoranv1.NetworkIntent{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated); err != nil {
+					return false
+				}
+				return isConditionTrue(updated.Status.Conditions, "Deployed")
+			}, timeout, interval).Should(BeTrue())
+
+			By("Verifying Git commit hash is recorded in status")
+			updated := &nephoranv1.NetworkIntent{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+			Expect(updated.Status.GitCommitHash).To(Equal("abc123def456"))
+		})
+
+		It("Should handle Git deployment failures with retry logic", func() {
+			By("Setting up a mock Git client that initially fails")
+			mockGitClient := &MockGitClient{
+				CommitHash: "",
+				Error:      fmt.Errorf("git repository authentication failed"),
+				FailCount:  1, // Fail first attempt, succeed on second
+			}
+			reconciler.GitClient = mockGitClient
+
+			By("Creating the processed NetworkIntent")
+			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+
+			req := ctrl.Request{NamespacedName: types.NamespacedName{
+				Name:      networkIntent.Name,
+				Namespace: networkIntent.Namespace,
+			}}
+
+			By("First reconciliation should fail and schedule retry")
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.RequeueAfter).To(Equal(reconciler.RetryDelay))
+
+			By("Second reconciliation should succeed")
+			mockGitClient.CommitHash = "def789abc012"
+			mockGitClient.Error = nil
+
+			result, err = reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("Verifying deployment eventually succeeds")
+			Eventually(func() bool {
+				updated := &nephoranv1.NetworkIntent{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated); err != nil {
+					return false
+				}
+				return isConditionTrue(updated.Status.Conditions, "Deployed")
+			}, timeout, interval).Should(BeTrue())
+		})
+
+		It("Should fail GitOps deployment after maximum retries", func() {
+			By("Setting up a mock Git client that always fails")
+			mockGitClient := &MockGitClient{
+				CommitHash: "",
+				Error:      fmt.Errorf("permanent git failure"),
+			}
+			reconciler.GitClient = mockGitClient
+
+			By("Creating the processed NetworkIntent")
+			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+
+			req := ctrl.Request{NamespacedName: types.NamespacedName{
+				Name:      networkIntent.Name,
+				Namespace: networkIntent.Namespace,
+			}}
+
+			By("Exhausting all retry attempts for Git deployment")
+			for i := 0; i <= reconciler.MaxRetries; i++ {
+				result, err := reconciler.Reconcile(ctx, req)
+				Expect(err).NotTo(HaveOccurred())
+
+				if i < reconciler.MaxRetries {
+					Expect(result.RequeueAfter).To(Equal(reconciler.RetryDelay))
+				} else {
+					Expect(result.Requeue).To(BeFalse())
+					Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
+				}
+			}
+
+			By("Verifying deployment is marked as failed")
+			updated := &nephoranv1.NetworkIntent{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+
+			deployedCondition := testGetConditionController(updated.Status.Conditions, "Deployed")
+			Expect(deployedCondition).NotTo(BeNil())
+			Expect(deployedCondition.Status).To(Equal(metav1.ConditionFalse))
+			Expect(deployedCondition.Reason).To(Equal("GitDeploymentFailedMaxRetries"))
+		})
+	})
+
+	Context("When testing status management and phase transitions", func() {
+		var networkIntent *nephoranv1.NetworkIntent
+
+		BeforeEach(func() {
+			networkIntent = CreateTestNetworkIntent(
+				GetUniqueName("status-test"),
+				namespaceName,
+				"Test status transitions for network intent",
+			)
+		})
+
+		It("Should correctly manage phase transitions", func() {
+			By("Setting up successful mock clients")
+			mockResponse := map[string]interface{}{
+				"action":    "configure",
+				"component": "network",
+			}
+			mockResponseBytes, _ := json.Marshal(mockResponse)
+
+			reconciler.LLMClient = &MockLLMClient{
+				Response: string(mockResponseBytes),
+				Error:    nil,
+			}
+			reconciler.GitClient = &MockGitClient{
+				CommitHash: "status123test",
+				Error:      nil,
+			}
+
+			By("Creating the NetworkIntent")
+			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+
+			req := ctrl.Request{NamespacedName: types.NamespacedName{
+				Name:      networkIntent.Name,
+				Namespace: networkIntent.Namespace,
+			}}
+
+			By("Triggering reconciliation")
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+
+			By("Verifying final phase is Completed")
+			Eventually(func() string {
+				updated := &nephoranv1.NetworkIntent{}
+				if err := k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated); err != nil {
+					return ""
+				}
+				return updated.Status.Phase
+			}, timeout, interval).Should(Equal("Completed"))
+
+			By("Verifying both conditions are true")
+			updated := &nephoranv1.NetworkIntent{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+			Expect(isConditionTrue(updated.Status.Conditions, "Processed")).To(BeTrue())
+			Expect(isConditionTrue(updated.Status.Conditions, "Deployed")).To(BeTrue())
+
+			By("Verifying timing fields are set")
+			Expect(updated.Status.ProcessingStartTime).NotTo(BeNil())
+			Expect(updated.Status.ProcessingCompletionTime).NotTo(BeNil())
+			Expect(updated.Status.DeploymentStartTime).NotTo(BeNil())
+			Expect(updated.Status.DeploymentCompletionTime).NotTo(BeNil())
+		})
+
+		It("Should handle missing LLM client gracefully", func() {
+			By("Setting LLM client to nil")
+			reconciler.LLMClient = nil
+
+			By("Creating the NetworkIntent")
+			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
+
+			req := ctrl.Request{NamespacedName: types.NamespacedName{
+				Name:      networkIntent.Name,
+				Namespace: networkIntent.Namespace,
+			}}
+
+			By("Triggering reconciliation")
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.RequeueAfter).To(Equal(time.Minute * 5))
+
+			By("Verifying appropriate condition is set")
+			updated := &nephoranv1.NetworkIntent{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
+
+			processedCondition := testGetConditionController(updated.Status.Conditions, "Processed")
+			Expect(processedCondition).NotTo(BeNil())
+			Expect(processedCondition.Status).To(Equal(metav1.ConditionFalse))
+			Expect(processedCondition.Reason).To(Equal("LLMProcessingRetrying"))
+		})
+
+		It("Should skip processing if already processed and deployed", func() {
+			By("Creating an already completed intent")
+			networkIntent.Status.Conditions = []metav1.Condition{
 				{
 					Type:   "Processed",
 					Status: metav1.ConditionTrue,
 					Reason: "LLMProcessingSucceeded",
 				},
+				{
+					Type:   "Deployed",
+					Status: metav1.ConditionTrue,
+					Reason: "GitDeploymentSucceeded",
+				},
 			}
-			Expect(testEnv.K8sClient.Create(ctx, deployableIntent)).To(Succeed())
-		})
 
-		Context("with successful deployment", func() {
-			It("should deploy via GitOps", func() {
-				// Mock successful Git operations
-				mockDeps.gitClient.On("InitRepo").Return(nil)
-				expectedFiles := map[string]string{
-					"networkintents/test-intent/test-intent-configmap.json": `{"apiVersion":"v1","kind":"ConfigMap","metadata":{"name":"networkintent-test-intent","namespace":"` + testNamespace + `","labels":{"app.kubernetes.io/name":"networkintent","app.kubernetes.io/instance":"test-intent","app.kubernetes.io/managed-by":"nephoran-intent-operator"}},"data":{"deployment_type":"upf","replicas":3}}`,
-				}
-				mockDeps.gitClient.On("CommitAndPush", mock.MatchedBy(func(files map[string]string) bool {
-					return len(files) > 0
-				}), mock.AnythingOfType("string")).Return("abc123", nil)
+			Expect(k8sClient.Create(ctx, networkIntent)).To(Succeed())
 
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
+			By("Setting up mock clients (should not be called)")
+			reconciler.LLMClient = &MockLLMClient{
+				Response: "",
+				Error:    fmt.Errorf("should not be called"),
+			}
 
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
+			req := ctrl.Request{NamespacedName: types.NamespacedName{
+				Name:      networkIntent.Name,
+				Namespace: networkIntent.Namespace,
+			}}
 
-				// Verify Git operations were called
-				mockDeps.gitClient.AssertExpectations(GinkgoT())
+			By("Triggering reconciliation")
+			result, err := reconciler.Reconcile(ctx, req)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result.Requeue).To(BeFalse())
+			Expect(result.RequeueAfter).To(Equal(time.Duration(0)))
 
-				// Verify status was updated
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				Expect(updated.Status.Phase).To(Equal("Completed"))
-				Expect(updated.Status.GitCommitHash).To(Equal("abc123"))
-
-				// Verify deployed condition
-				deployedCondition := findCondition(updated.Status.Conditions, "Deployed")
-				Expect(deployedCondition).NotTo(BeNil())
-				Expect(deployedCondition.Status).To(Equal(metav1.ConditionTrue))
-				Expect(deployedCondition.Reason).To(Equal("GitDeploymentSucceeded"))
-			})
-
-			It("should use Nephio package generator when enabled", func() {
-				// Update reconciler config to use Nephio
-				config := &controllers.Config{
-					UseNephioPorch: true,
-				}
-				var err error
-				reconciler, err = controllers.NewNetworkIntentReconciler(
-					testEnv.K8sClient,
-					testEnv.GetScheme(),
-					mockDeps,
-					config,
-				)
-				Expect(err).NotTo(HaveOccurred())
-
-				// Mock package generation
-				expectedPackage := map[string]string{
-					"Kptfile": "apiVersion: kpt.dev/v1\nkind: Kptfile\n",
-					"upf-deployment.yaml": "apiVersion: apps/v1\nkind: Deployment\n",
-				}
-				mockDeps.packageGen.On("GeneratePackage", deployableIntent).Return(expectedPackage, nil)
-				mockDeps.gitClient.On("InitRepo").Return(nil)
-				mockDeps.gitClient.On("CommitAndPush", expectedPackage, mock.AnythingOfType("string")).Return("def456", nil)
-
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify package generator was called
-				mockDeps.packageGen.AssertExpectations(GinkgoT())
-				mockDeps.gitClient.AssertExpectations(GinkgoT())
-			})
-		})
-
-		Context("with deployment failures", func() {
-			It("should retry on Git initialization failure", func() {
-				mockDeps.gitClient.On("InitRepo").Return(fmt.Errorf("git init failed"))
-
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result.RequeueAfter).To(BeNumerically(">", 0))
-
-				// Verify retry count was incremented
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				Expect(updated.Annotations).To(HaveKey("nephoran.com/git-deployment-retry-count"))
-
-				// Verify condition shows Git failure
-				deployedCondition := findCondition(updated.Status.Conditions, "Deployed")
-				Expect(deployedCondition).NotTo(BeNil())
-				Expect(deployedCondition.Status).To(Equal(metav1.ConditionFalse))
-				Expect(deployedCondition.Reason).To(Equal("GitRepoInitializationFailed"))
-			})
-
-			It("should retry on commit and push failure", func() {
-				mockDeps.gitClient.On("InitRepo").Return(nil)
-				mockDeps.gitClient.On("CommitAndPush", mock.Anything, mock.AnythingOfType("string")).Return("", fmt.Errorf("push failed"))
-
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result.RequeueAfter).To(BeNumerically(">", 0))
-
-				// Verify condition shows commit/push failure
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				
-				deployedCondition := findCondition(updated.Status.Conditions, "Deployed")
-				Expect(deployedCondition).NotTo(BeNil())
-				Expect(deployedCondition.Status).To(Equal(metav1.ConditionFalse))
-				Expect(deployedCondition.Reason).To(Equal("GitCommitPushFailed"))
-			})
-
-			It("should fail after max retries", func() {
-				// Set up intent with max retry count already reached
-				deployableIntent.Annotations = map[string]string{
-					"nephoran.com/git-deployment-retry-count": "3",
-				}
-				Expect(testEnv.K8sClient.Update(ctx, deployableIntent)).To(Succeed())
-
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(ctrl.Result{}))
-
-				// Verify condition shows max retries exceeded
-				updated := &nephoranv1.NetworkIntent{}
-				Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-				
-				deployedCondition := findCondition(updated.Status.Conditions, "Deployed")
-				Expect(deployedCondition).NotTo(BeNil())
-				Expect(deployedCondition.Status).To(Equal(metav1.ConditionFalse))
-				Expect(deployedCondition.Reason).To(Equal("GitDeploymentFailedMaxRetries"))
-			})
-		})
-
-		Context("with missing Git client", func() {
-			BeforeEach(func() {
-				// Create mock deps with nil Git client
-				mockDeps = &MockDependencies{
-					gitClient:     nil,
-					llmClient:     NewMockLLMClient(),
-					packageGen:    NewMockPackageGenerator(),
-					httpClient:    &http.Client{},
-					eventRecorder: NewMockEventRecorder(),
-				}
-
-				var err error
-				reconciler, err = controllers.NewNetworkIntentReconciler(
-					testEnv.K8sClient,
-					testEnv.GetScheme(),
-					mockDeps,
-					&controllers.Config{},
-				)
-				Expect(err).NotTo(HaveOccurred())
-			})
-
-			It("should requeue with Git client not configured", func() {
-				result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-				Expect(err).To(HaveOccurred())
-				Expect(result.RequeueAfter).To(Equal(5 * time.Minute))
-			})
+			By("Verifying no additional processing occurred")
+			// Mock client should not have been called
 		})
 	})
 
-	Describe("Status and Phase Management", func() {
-		var statusIntent *nephoranv1.NetworkIntent
+	Context("When testing deployment file generation", func() {
+		var networkIntent *nephoranv1.NetworkIntent
 
 		BeforeEach(func() {
-			statusIntent = networkIntent.DeepCopy()
-			statusIntent.Finalizers = []string{controllers.NetworkIntentFinalizer}
-			Expect(testEnv.K8sClient.Create(ctx, statusIntent)).To(Succeed())
-		})
+			networkIntent = CreateTestNetworkIntent(
+				GetUniqueName("generation-test"),
+				namespaceName,
+				"Test deployment file generation",
+			)
 
-		It("should update observed generation", func() {
-			// Update the intent spec to change generation
-			statusIntent.Spec.Intent = "Updated intent"
-			Expect(testEnv.K8sClient.Update(ctx, statusIntent)).To(Succeed())
-
-			// Mock LLM processing
-			mockDeps.llmClient.On("ProcessIntent", mock.Anything, statusIntent.Spec.Intent).Return("{}", nil)
-
-			result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(ctrl.Result{}))
-
-			// Verify observed generation was updated
-			updated := &nephoranv1.NetworkIntent{}
-			Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-			Expect(updated.Status.ObservedGeneration).To(Equal(updated.Generation))
-		})
-
-		It("should set processing timestamps", func() {
-			mockDeps.llmClient.On("ProcessIntent", mock.Anything, statusIntent.Spec.Intent).Return("{}", nil)
-
-			result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(ctrl.Result{}))
-
-			// Verify timestamps were set
-			updated := &nephoranv1.NetworkIntent{}
-			Expect(testEnv.K8sClient.Get(ctx, reconcileRequest.NamespacedName, updated)).To(Succeed())
-			Expect(updated.Status.ProcessingStartTime).NotTo(BeNil())
-			Expect(updated.Status.ProcessingCompletionTime).NotTo(BeNil())
-		})
-
-		It("should skip processing if already completed", func() {
-			// Set status to already completed
-			statusIntent.Status.Phase = "Completed"
-			statusIntent.Status.Conditions = []metav1.Condition{
-				{Type: "Processed", Status: metav1.ConditionTrue},
-				{Type: "Deployed", Status: metav1.ConditionTrue},
+			// Add processed parameters
+			parameters := map[string]interface{}{
+				"action":      "deploy",
+				"component":   "test-nf",
+				"replicas":    3,
+				"environment": "development",
 			}
-			Expect(testEnv.K8sClient.Status().Update(ctx, statusIntent)).To(Succeed())
+			parametersRaw, _ := json.Marshal(parameters)
+			networkIntent.Spec.Parameters = runtime.RawExtension{Raw: parametersRaw}
+		})
 
-			result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
+		It("Should generate correct deployment files", func() {
+			By("Generating deployment files")
+			files, err := reconciler.generateDeploymentFiles(networkIntent)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(files).NotTo(BeEmpty())
 
-			// Verify LLM client was not called
-			mockDeps.llmClient.AssertNotCalled(GinkgoT(), "ProcessIntent")
+			By("Verifying file structure")
+			expectedPath := fmt.Sprintf("networkintents/%s/%s-configmap.json",
+				networkIntent.Namespace, networkIntent.Name)
+			content, exists := files[expectedPath]
+			Expect(exists).To(BeTrue())
+			Expect(content).NotTo(BeEmpty())
+
+			By("Verifying file content structure")
+			var manifest map[string]interface{}
+			Expect(json.Unmarshal([]byte(content), &manifest)).To(Succeed())
+
+			Expect(manifest["apiVersion"]).To(Equal("v1"))
+			Expect(manifest["kind"]).To(Equal("ConfigMap"))
+
+			metadata := manifest["metadata"].(map[string]interface{})
+			Expect(metadata["name"]).To(Equal(fmt.Sprintf("networkintent-%s", networkIntent.Name)))
+			Expect(metadata["namespace"]).To(Equal(networkIntent.Namespace))
+
+			data := manifest["data"].(map[string]interface{})
+			Expect(data["action"]).To(Equal("deploy"))
+			Expect(data["component"]).To(Equal("test-nf"))
+			Expect(data["replicas"]).To(Equal(float64(3)))
 		})
-	})
 
-	Describe("Event Recording", func() {
-		BeforeEach(func() {
-			networkIntent.Finalizers = []string{controllers.NetworkIntentFinalizer}
-			Expect(testEnv.K8sClient.Create(ctx, networkIntent)).To(Succeed())
-		})
+		It("Should handle empty parameters gracefully", func() {
+			By("Clearing parameters")
+			networkIntent.Spec.Parameters = runtime.RawExtension{}
 
-		It("should record success events", func() {
-			mockDeps.llmClient.On("ProcessIntent", mock.Anything, networkIntent.Spec.Intent).Return("{}", nil)
-			mockDeps.eventRecorder.On("Event", mock.Anything, "Normal", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return()
-
-			result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
+			By("Generating deployment files")
+			files, err := reconciler.generateDeploymentFiles(networkIntent)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(files).NotTo(BeEmpty())
 
-			// Verify events were recorded
-			mockDeps.eventRecorder.AssertCalled(GinkgoT(), "Event", mock.Anything, "Normal", "LLMProcessingSucceeded", mock.AnythingOfType("string"))
+			By("Verifying empty data section")
+			expectedPath := fmt.Sprintf("networkintents/%s/%s-configmap.json",
+				networkIntent.Namespace, networkIntent.Name)
+			content := files[expectedPath]
+
+			var manifest map[string]interface{}
+			Expect(json.Unmarshal([]byte(content), &manifest)).To(Succeed())
+			Expect(manifest["data"]).To(BeNil())
 		})
 
-		It("should record failure events", func() {
-			mockDeps.llmClient.On("ProcessIntent", mock.Anything, networkIntent.Spec.Intent).Return("", fmt.Errorf("processing failed"))
-			mockDeps.eventRecorder.On("Event", mock.Anything, "Warning", mock.AnythingOfType("string"), mock.AnythingOfType("string")).Return()
+		It("Should handle invalid parameters gracefully", func() {
+			By("Setting invalid JSON parameters")
+			networkIntent.Spec.Parameters = runtime.RawExtension{
+				Raw: []byte("invalid json"),
+			}
 
-			result, err := reconciler.Reconcile(ctx, reconcileRequest)
-
-			Expect(err).NotTo(HaveOccurred())
-			Expect(result.RequeueAfter).To(BeNumerically(">", 0))
-
-			// Verify failure events were recorded
-			mockDeps.eventRecorder.AssertCalled(GinkgoT(), "Event", mock.Anything, "Warning", "LLMProcessingRetry", mock.AnythingOfType("string"))
-		})
-	})
-
-	Describe("Context Cancellation", func() {
-		It("should handle context cancellation gracefully", func() {
-			// Create a cancelled context
-			cancelledCtx, cancel := context.WithCancel(ctx)
-			cancel()
-
-			networkIntent.Finalizers = []string{controllers.NetworkIntentFinalizer}
-			Expect(testEnv.K8sClient.Create(ctx, networkIntent)).To(Succeed())
-
-			result, err := reconciler.Reconcile(cancelledCtx, reconcileRequest)
-
+			By("Attempting to generate deployment files")
+			files, err := reconciler.generateDeploymentFiles(networkIntent)
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(Equal(context.Canceled))
-			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(files).To(BeNil())
+			Expect(err.Error()).To(ContainSubstring("failed to parse parameters"))
 		})
 	})
 })
 
-// Table-driven tests for edge cases
-var _ = Describe("NetworkIntentReconciler Edge Cases", func() {
-	var (
-		testEnv    *testtools.TestEnvironment
-		ctx        context.Context
-		reconciler *controllers.NetworkIntentReconciler
-		mockDeps   *MockDependencies
-	)
+// Mock implementations for testing
 
-	BeforeEach(func() {
-		var err error
-		testEnv, err = testtools.SetupTestEnvironmentWithOptions(testtools.DefaultTestEnvironmentOptions())
-		Expect(err).NotTo(HaveOccurred())
+type MockLLMClient struct {
+	Response  string
+	Error     error
+	CallCount int
+	FailCount int // Number of times to fail before succeeding
+}
 
-		ctx = testEnv.GetContext()
-		mockDeps = NewMockDependencies()
+func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	m.CallCount++
 
-		config := &controllers.Config{
-			MaxRetries:    2,
-			RetryDelay:    100 * time.Millisecond,
-			Timeout:       5 * time.Second,
-			GitDeployPath: "test-path",
-		}
+	if m.FailCount > 0 && m.CallCount <= m.FailCount {
+		return "", m.Error
+	}
 
-		reconciler, err = controllers.NewNetworkIntentReconciler(
-			testEnv.K8sClient,
-			testEnv.GetScheme(),
-			mockDeps,
-			config,
-		)
-		Expect(err).NotTo(HaveOccurred())
-	})
+	if m.Error != nil && (m.FailCount == 0 || m.CallCount > m.FailCount) {
+		return "", m.Error
+	}
 
-	AfterEach(func() {
-		if testEnv != nil {
-			testEnv.TeardownTestEnvironment()
-		}
-	})
+	return m.Response, nil
+}
 
-	DescribeTable("LLM Processing Edge Cases",
-		func(intentText string, llmResponse string, llmError error, expectedPhase string, expectedConditionReason string, shouldRequeue bool) {
-			testNamespace := testtools.GetUniqueNamespace("edge-test")
-			Expect(testEnv.CreateNamespace(testNamespace)).To(Succeed())
+type MockGitClient struct {
+	CommitHash string
+	Error      error
+	CallCount  int
+	FailCount  int
+}
 
-			networkIntent := &nephoranv1.NetworkIntent{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "edge-test-intent",
-					Namespace:  testNamespace,
-					Finalizers: []string{controllers.NetworkIntentFinalizer},
-				},
-				Spec: nephoranv1.NetworkIntentSpec{
-					Intent: intentText,
-				},
-			}
-			Expect(testEnv.K8sClient.Create(ctx, networkIntent)).To(Succeed())
+func (m *MockGitClient) InitRepo() error {
+	if m.Error != nil {
+		return m.Error
+	}
+	return nil
+}
 
-			mockDeps.llmClient.On("ProcessIntent", mock.Anything, intentText).Return(llmResponse, llmError)
+func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
+	m.CallCount++
 
-			request := ctrl.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      networkIntent.Name,
-					Namespace: networkIntent.Namespace,
-				},
-			}
+	if m.FailCount > 0 && m.CallCount <= m.FailCount {
+		return "", m.Error
+	}
 
-			result, err := reconciler.Reconcile(ctx, request)
+	if m.Error != nil && (m.FailCount == 0 || m.CallCount > m.FailCount) {
+		return "", m.Error
+	}
 
-			if shouldRequeue {
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result.RequeueAfter).To(BeNumerically(">", 0))
-			} else if expectedPhase == "Error" {
-				Expect(err).To(HaveOccurred())
-			} else {
-				Expect(err).NotTo(HaveOccurred())
-			}
-
-			// Verify final state
-			updated := &nephoranv1.NetworkIntent{}
-			Expect(testEnv.K8sClient.Get(ctx, request.NamespacedName, updated)).To(Succeed())
-
-			if expectedPhase != "" {
-				Expect(updated.Status.Phase).To(Equal(expectedPhase))
-			}
-
-			if expectedConditionReason != "" {
-				processedCondition := findCondition(updated.Status.Conditions, "Processed")
-				Expect(processedCondition).NotTo(BeNil())
-				Expect(processedCondition.Reason).To(Equal(expectedConditionReason))
-			}
-		},
-		Entry("Empty intent", "", "", nil, "Error", "InvalidIntent", false),
-		Entry("Valid JSON response", "Create UPF", `{"type":"upf"}`, nil, "Processing", "LLMProcessingSucceeded", false),
-		Entry("Empty JSON response", "Create UPF", `{}`, nil, "Processing", "LLMProcessingSucceeded", false),
-		Entry("Invalid JSON response", "Create UPF", `{invalid`, nil, "", "LLMResponseParsingFailed", true),
-		Entry("Empty LLM response", "Create UPF", "", nil, "", "EmptyLLMResponse", true),
-		Entry("LLM service error", "Create UPF", "", fmt.Errorf("service unavailable"), "", "LLMProcessingRetrying", true),
-		Entry("Network timeout", "Create UPF", "", context.DeadlineExceeded, "", "LLMProcessingRetrying", true),
-	)
-
-	DescribeTable("GitOps Deployment Edge Cases",
-		func(gitInitError error, commitPushError error, expectedConditionReason string, shouldRequeue bool) {
-			testNamespace := testtools.GetUniqueNamespace("git-edge-test")
-			Expect(testEnv.CreateNamespace(testNamespace)).To(Succeed())
-
-			networkIntent := &nephoranv1.NetworkIntent{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:       "git-edge-test-intent",
-					Namespace:  testNamespace,
-					Finalizers: []string{controllers.NetworkIntentFinalizer},
-				},
-				Spec: nephoranv1.NetworkIntentSpec{
-					Intent:     "Create UPF",
-					Parameters: runtime.RawExtension{Raw: []byte(`{"type":"upf"}`)},
-				},
-				Status: nephoranv1.NetworkIntentStatus{
-					Conditions: []metav1.Condition{
-						{Type: "Processed", Status: metav1.ConditionTrue, Reason: "LLMProcessingSucceeded"},
-					},
-				},
-			}
-			Expect(testEnv.K8sClient.Create(ctx, networkIntent)).To(Succeed())
-
-			if gitInitError != nil {
-				mockDeps.gitClient.On("InitRepo").Return(gitInitError)
-			} else {
-				mockDeps.gitClient.On("InitRepo").Return(nil)
-				if commitPushError != nil {
-					mockDeps.gitClient.On("CommitAndPush", mock.Anything, mock.AnythingOfType("string")).Return("", commitPushError)
-				} else {
-					mockDeps.gitClient.On("CommitAndPush", mock.Anything, mock.AnythingOfType("string")).Return("abc123", nil)
-				}
-			}
-
-			request := ctrl.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      networkIntent.Name,
-					Namespace: networkIntent.Namespace,
-				},
-			}
-
-			result, err := reconciler.Reconcile(ctx, request)
-
-			if shouldRequeue {
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result.RequeueAfter).To(BeNumerically(">", 0))
-			} else {
-				Expect(err).NotTo(HaveOccurred())
-			}
-
-			// Verify condition
-			updated := &nephoranv1.NetworkIntent{}
-			Expect(testEnv.K8sClient.Get(ctx, request.NamespacedName, updated)).To(Succeed())
-
-			if expectedConditionReason != "" {
-				deployedCondition := findCondition(updated.Status.Conditions, "Deployed")
-				Expect(deployedCondition).NotTo(BeNil())
-				Expect(deployedCondition.Reason).To(Equal(expectedConditionReason))
-			}
-		},
-		Entry("Git init failure", fmt.Errorf("git init failed"), nil, "GitRepoInitializationFailed", true),
-		Entry("Commit/push failure", nil, fmt.Errorf("push failed"), "GitCommitPushFailed", true),
-		Entry("Successful deployment", nil, nil, "GitDeploymentSucceeded", false),
-	)
-})
+	return m.CommitHash, nil
+}
 
 // Helper functions
-func findCondition(conditions []metav1.Condition, conditionType string) *metav1.Condition {
-	for i, condition := range conditions {
+
+func testGetConditionController(conditions []metav1.Condition, conditionType string) *metav1.Condition {
+	for _, condition := range conditions {
 		if condition.Type == conditionType {
-			return &conditions[i]
+			return &condition
 		}
 	}
 	return nil

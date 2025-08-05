@@ -104,7 +104,7 @@ status:
 ```
 
 **測試檔案驗證**:
-- `test-networkintent.yaml`: 基礎測試樣本 ✅
+- `archive/test-networkintent.yaml`: 基礎測試樣本 ✅
 - `networkintent_controller_test.go`: 控制器測試 ✅
 - `crd_validation_test.go`: CRD 驗證測試 ✅
 

@@ -148,7 +148,7 @@ make test-integration
 make lint
 
 # Manual testing
-kubectl apply -f my-first-intent.yaml
+kubectl apply -f archive/my-first-intent.yaml
 kubectl get networkintents
 kubectl describe networkintent <name>
 ```
@@ -315,7 +315,7 @@ After successful setup:
    ```powershell
    # Deploy and test
    .\deploy-windows.ps1 -Environment local
-   kubectl apply -f my-first-intent.yaml
+   kubectl apply -f archive/my-first-intent.yaml
    kubectl get networkintents
    ```
 
