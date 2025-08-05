@@ -2,10 +2,8 @@ package security
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
-	"net/http"
 	"regexp"
 	"sort"
 	"strings"
@@ -71,6 +69,18 @@ type SlackConfig struct {
 	WebhookURL string `json:"webhook_url"`
 	Channel    string `json:"channel"`
 	Username   string `json:"username"`
+}
+
+// EmailConfig holds email integration configuration
+type EmailConfig struct {
+	SMTPHost     string   `json:"smtp_host"`
+	SMTPPort     int      `json:"smtp_port"`
+	SMTPUsername string   `json:"smtp_username"`
+	SMTPPassword string   `json:"smtp_password"`
+	FromEmail    string   `json:"from_email"`
+	ToEmails     []string `json:"to_emails"`
+	Subject      string   `json:"subject"`
+	UseTLS       bool     `json:"use_tls"`
 }
 
 // WebhookConfig holds webhook integration configuration

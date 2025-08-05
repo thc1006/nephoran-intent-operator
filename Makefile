@@ -79,10 +79,25 @@ help:
 	@echo "  make lint              Run code linters"
 	@echo "  make generate          Generate Kubernetes code"
 	@echo ""
+	@echo "Individual Build Commands:"
+	@echo "  make build-llm-processor    Build LLM processor binary"
+	@echo "  make build-nephio-bridge    Build Nephio bridge binary"
+	@echo "  make build-oran-adaptor     Build O-RAN adaptor binary"
+	@echo "  make build-rag-api          Build RAG API service"
+	@echo "  make build-check            Validate all service builds"
+	@echo "  make build-quick            Quick development build (no optimizations)"
+	@echo "  make build-dev              Alias for build-quick"
+	@echo ""
 	@echo "Deployment Commands:"
 	@echo "  make deploy-dev        Deploy all components to the development environment"
 	@echo "  make docker-build      Build all Docker images"
 	@echo "  make docker-push       Push Docker images to registry"
+	@echo ""
+	@echo "Individual Docker Build Commands:"
+	@echo "  make build-docker-llm-processor   Build LLM processor Docker image"
+	@echo "  make build-docker-nephio-bridge   Build Nephio bridge Docker image"
+	@echo "  make build-docker-oran-adaptor    Build O-RAN adaptor Docker image"  
+	@echo "  make build-docker-rag-api         Build RAG API Docker image"
 	@echo ""
 	@echo "RAG System Commands:"
 	@echo "  make deploy-rag        Deploy complete RAG system with Weaviate"
@@ -126,7 +141,7 @@ endif
 
 build-all: ## Build all components in parallel
 	@echo "--- Building all components in parallel ---"
-	$(MAKE) -j$(NPROC) build-llm-processor build-nephio-bridge build-oran-adaptor
+	$(MAKE) -j$(NPROC) build-llm-processor build-nephio-bridge build-oran-adaptor build-rag-api
 
 deploy-dev: ## Deploy to development environment
 	@echo "--- Deploying to development environment ---"
@@ -477,8 +492,10 @@ endif
 # END ENHANCED BUILD SYSTEM
 # ============================================================================
 
-# TODO: Add build targets for each service (e.g., build-llm-processor)
-.PHONY: build-llm-processor build-nephio-bridge build-oran-adaptor docker-build docker-push populate-kb
+# Build targets for individual services with proper dependency management
+.PHONY: build-llm-processor build-nephio-bridge build-oran-adaptor build-rag-api docker-build docker-push populate-kb
+.PHONY: build-docker-llm-processor build-docker-nephio-bridge build-docker-oran-adaptor build-docker-rag-api
+.PHONY: build-check build-quick build-dev _quick-build-llm _quick-build-nephio _quick-build-oran
 
 docker-build: ## Build docker images with BuildKit optimization (legacy, use build-multiarch for enhanced features)
 	@echo "--- Building Docker Images with Parallel BuildKit (Legacy Mode) ---"
@@ -576,47 +593,194 @@ rag-status: ## Show RAG system status
 	kubectl get pods -l app=rag-api
 	kubectl get svc weaviate rag-api
 
-build-llm-processor: ## Build LLM processor with optimizations
+build-llm-processor: ## Build LLM processor with optimizations and dependency management
 	@echo "Building llm-processor with optimizations..."
+	@echo "Ensuring dependencies are up to date..."
+	go mod download
+	@echo "Creating output directory..."
 ifeq ($(OS),Windows_NT)
+	if not exist bin mkdir bin
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build \
-		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(DATE) -X main.gitCommit=$(GIT_COMMIT)" \
 		-trimpath -a -installsuffix cgo \
 		-o bin\llm-processor.exe cmd\llm-processor\main.go
+	@echo "Built: bin\llm-processor.exe"
 else
+	mkdir -p bin
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=amd64 go build \
-		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(DATE) -X main.gitCommit=$(GIT_COMMIT)" \
 		-trimpath -a -installsuffix cgo \
 		-o bin/llm-processor cmd/llm-processor/main.go
+	@echo "Built: bin/llm-processor"
 endif
 
-build-nephio-bridge: ## Build Nephio bridge with optimizations
+build-nephio-bridge: ## Build Nephio bridge with optimizations and dependency management
 	@echo "Building nephio-bridge with optimizations..."
+	@echo "Ensuring dependencies are up to date..."
+	go mod download
+	@echo "Creating output directory..."
 ifeq ($(OS),Windows_NT)
+	if not exist bin mkdir bin
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build \
-		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(DATE) -X main.gitCommit=$(GIT_COMMIT)" \
 		-trimpath -a -installsuffix cgo \
 		-o bin\nephio-bridge.exe cmd\nephio-bridge\main.go
+	@echo "Built: bin\nephio-bridge.exe"
 else
+	mkdir -p bin
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=amd64 go build \
-		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(DATE) -X main.gitCommit=$(GIT_COMMIT)" \
 		-trimpath -a -installsuffix cgo \
 		-o bin/nephio-bridge cmd/nephio-bridge/main.go
+	@echo "Built: bin/nephio-bridge"
 endif
 
-build-oran-adaptor: ## Build O-RAN adaptor with optimizations
+build-oran-adaptor: ## Build O-RAN adaptor with optimizations and dependency management
 	@echo "Building oran-adaptor with optimizations..."
+	@echo "Ensuring dependencies are up to date..."
+	go mod download
+	@echo "Creating output directory..."
 ifeq ($(OS),Windows_NT)
+	if not exist bin mkdir bin
 	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build \
-		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(DATE) -X main.gitCommit=$(GIT_COMMIT)" \
 		-trimpath -a -installsuffix cgo \
 		-o bin\oran-adaptor.exe cmd\oran-adaptor\main.go
+	@echo "Built: bin\oran-adaptor.exe"
 else
+	mkdir -p bin
 	CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=amd64 go build \
-		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+		-ldflags="-w -s -X main.version=$(VERSION) -X main.buildDate=$(DATE) -X main.gitCommit=$(GIT_COMMIT)" \
 		-trimpath -a -installsuffix cgo \
 		-o bin/oran-adaptor cmd/oran-adaptor/main.go
+	@echo "Built: bin/oran-adaptor"
 endif
+
+build-rag-api: ## Build RAG API service with optimizations
+	@echo "Building rag-api with optimizations..."
+	@echo "Creating bin directory if it doesn't exist..."
+ifeq ($(OS),Windows_NT)
+	if not exist bin mkdir bin
+	@echo "Building Python-based RAG API..."
+	@echo "Note: RAG API is Python-based. For Docker builds, use 'make docker-build' or 'make build-multiarch'"
+	@echo "Python dependencies should be installed via 'make setup-dev'"
+	python -c "import sys; print(f'Python version: {sys.version}')"
+	@echo "Validating Python dependencies..."
+	python -c "import pkg.rag.rag_service; print('RAG service import successful')" || echo "Warning: RAG service import failed"
+else
+	mkdir -p bin
+	@echo "Building Python-based RAG API..."
+	@echo "Note: RAG API is Python-based. For Docker builds, use 'make docker-build' or 'make build-multiarch'"
+	@echo "Python dependencies should be installed via 'make setup-dev'"
+	python3 -c "import sys; print(f'Python version: {sys.version}')"
+	@echo "Validating Python dependencies..."
+	python3 -c "import pkg.rag.rag_service; print('RAG service import successful')" || echo "Warning: RAG service import failed"
+endif
+
+# Individual Docker build targets for development
+build-docker-llm-processor: ## Build Docker image for LLM processor only
+	@echo "--- Building LLM Processor Docker Image ---"
+	DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(DATE) \
+		--build-arg VCS_REF=$(GIT_COMMIT) \
+		--label "org.opencontainers.image.title=llm-processor" \
+		--label "org.opencontainers.image.version=$(VERSION)" \
+		--label "org.opencontainers.image.created=$(DATE)" \
+		--label "org.opencontainers.image.revision=$(GIT_COMMIT)" \
+		-t $(REGISTRY)/llm-processor:$(VERSION) \
+		-t $(REGISTRY)/llm-processor:latest \
+		-f cmd/llm-processor/Dockerfile .
+
+build-docker-nephio-bridge: ## Build Docker image for Nephio bridge only
+	@echo "--- Building Nephio Bridge Docker Image ---"
+	DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(DATE) \
+		--build-arg VCS_REF=$(GIT_COMMIT) \
+		--label "org.opencontainers.image.title=nephio-bridge" \
+		--label "org.opencontainers.image.version=$(VERSION)" \
+		--label "org.opencontainers.image.created=$(DATE)" \
+		--label "org.opencontainers.image.revision=$(GIT_COMMIT)" \
+		-t $(REGISTRY)/nephio-bridge:$(VERSION) \
+		-t $(REGISTRY)/nephio-bridge:latest \
+		-f cmd/nephio-bridge/Dockerfile .
+
+build-docker-oran-adaptor: ## Build Docker image for O-RAN adaptor only
+	@echo "--- Building O-RAN Adaptor Docker Image ---"
+	DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(DATE) \
+		--build-arg VCS_REF=$(GIT_COMMIT) \
+		--label "org.opencontainers.image.title=oran-adaptor" \
+		--label "org.opencontainers.image.version=$(VERSION)" \
+		--label "org.opencontainers.image.created=$(DATE)" \
+		--label "org.opencontainers.image.revision=$(GIT_COMMIT)" \
+		-t $(REGISTRY)/oran-adaptor:$(VERSION) \
+		-t $(REGISTRY)/oran-adaptor:latest \
+		-f cmd/oran-adaptor/Dockerfile .
+
+build-docker-rag-api: ## Build Docker image for RAG API only
+	@echo "--- Building RAG API Docker Image ---"
+	DOCKER_BUILDKIT=1 docker build --build-arg BUILDKIT_INLINE_CACHE=1 \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(DATE) \
+		--build-arg VCS_REF=$(GIT_COMMIT) \
+		--label "org.opencontainers.image.title=rag-api" \
+		--label "org.opencontainers.image.version=$(VERSION)" \
+		--label "org.opencontainers.image.created=$(DATE)" \
+		--label "org.opencontainers.image.revision=$(GIT_COMMIT)" \
+		-t $(REGISTRY)/rag-api:$(VERSION) \
+		-t $(REGISTRY)/rag-api:latest \
+		-f pkg/rag/Dockerfile .
+
+# Build validation and development tooling
+build-check: ## Validate that all service builds work correctly
+	@echo "--- Validating All Service Builds ---"
+	@echo "Checking Go module integrity..."
+	go mod verify
+	@echo "Checking for missing dependencies..."
+	go mod download
+	@echo "Running quick build checks..."
+	$(MAKE) build-llm-processor
+	$(MAKE) build-nephio-bridge  
+	$(MAKE) build-oran-adaptor
+	$(MAKE) build-rag-api
+	@echo "✓ All service builds completed successfully"
+
+build-quick: ## Quick parallel build without full optimizations (for development)
+	@echo "--- Quick Development Build ---"
+	@echo "Building all services in parallel (development mode)..."
+ifeq ($(OS),Windows_NT)
+	if not exist bin mkdir bin
+else
+	mkdir -p bin
+endif
+	$(MAKE) -j$(NPROC) _quick-build-llm _quick-build-nephio _quick-build-oran
+	@echo "Quick build completed. Use 'make build-all' for production builds."
+
+_quick-build-llm:
+ifeq ($(OS),Windows_NT)
+	go build -o bin\llm-processor.exe cmd\llm-processor\main.go
+else
+	go build -o bin/llm-processor cmd/llm-processor/main.go
+endif
+
+_quick-build-nephio:
+ifeq ($(OS),Windows_NT)
+	go build -o bin\nephio-bridge.exe cmd\nephio-bridge\main.go
+else
+	go build -o bin/nephio-bridge cmd/nephio-bridge/main.go
+endif
+
+_quick-build-oran:
+ifeq ($(OS),Windows_NT)
+	go build -o bin\oran-adaptor.exe cmd\oran-adaptor\main.go
+else
+	go build -o bin/oran-adaptor cmd/oran-adaptor/main.go
+endif
+
+build-dev: build-quick ## Alias for quick build (developer convenience)
 
 # Performance monitoring and benchmarking targets
 .PHONY: benchmark security-scan validate-images

@@ -15,6 +15,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
 	"github.com/thc1006/nephoran-intent-operator/pkg/services"
 )
 
@@ -211,6 +212,13 @@ func createLoggerWithLevel(level string) *slog.Logger {
 func setupHTTPServer() *http.Server {
 	router := mux.NewRouter()
 
+	// Initialize request size limiting middleware
+	requestSizeLimiter := middleware.NewRequestSizeLimiter(cfg.MaxRequestSize, logger)
+	
+	logger.Info("Request size limiting enabled",
+		slog.Int64("max_request_size_bytes", cfg.MaxRequestSize),
+		slog.String("max_request_size_human", fmt.Sprintf("%.2f MB", float64(cfg.MaxRequestSize)/(1024*1024))))
+
 	// Initialize OAuth2 middleware if enabled
 	var authMiddleware *auth.AuthMiddleware
 	if cfg.AuthEnabled {
@@ -228,7 +236,7 @@ func setupHTTPServer() *http.Server {
 
 		authMiddleware = auth.NewAuthMiddleware(oauth2Config, []byte(cfg.JWTSecretKey))
 
-		// OAuth2 authentication routes
+		// OAuth2 authentication routes (no size limits needed for these)
 		router.HandleFunc("/auth/login/{provider}", authMiddleware.LoginHandler).Methods("GET")
 		router.HandleFunc("/auth/callback/{provider}", authMiddleware.CallbackHandler).Methods("GET")
 		router.HandleFunc("/auth/refresh", authMiddleware.RefreshHandler).Methods("POST")
@@ -251,29 +259,33 @@ func setupHTTPServer() *http.Server {
 		protectedRouter := router.PathPrefix("/").Subrouter()
 		protectedRouter.Use(authMiddleware.Authenticate)
 
-		// Main processing endpoint - requires operator role
-		protectedRouter.HandleFunc("/process", handler.ProcessIntentHandler).Methods("POST")
+		// Main processing endpoint - requires operator role and size limits
+		protectedRouter.HandleFunc("/process", 
+			middleware.MaxBytesHandler(cfg.MaxRequestSize, logger, handler.ProcessIntentHandler)).Methods("POST")
 		protectedRouter.Use(authMiddleware.RequireOperator())
 
-		// Streaming endpoint - requires operator role
+		// Streaming endpoint - requires operator role and size limits
 		if cfg.StreamingEnabled {
-			protectedRouter.HandleFunc("/stream", handler.StreamingHandler).Methods("POST")
+			protectedRouter.HandleFunc("/stream", 
+				middleware.MaxBytesHandler(cfg.MaxRequestSize, logger, handler.StreamingHandler)).Methods("POST")
 		}
 
-		// Admin endpoints - requires admin role
+		// Admin endpoints - requires admin role (no size limits for status endpoints)
 		adminRouter := protectedRouter.PathPrefix("/admin").Subrouter()
 		adminRouter.Use(authMiddleware.RequireAdmin())
 		adminRouter.HandleFunc("/status", handler.StatusHandler).Methods("GET")
 		adminRouter.HandleFunc("/circuit-breaker/status", handler.CircuitBreakerStatusHandler).Methods("GET")
 
 	} else {
-		// No authentication required - direct routes
-		router.HandleFunc("/process", handler.ProcessIntentHandler).Methods("POST")
+		// No authentication required - direct routes with size limits for POST endpoints
+		router.HandleFunc("/process", 
+			middleware.MaxBytesHandler(cfg.MaxRequestSize, logger, handler.ProcessIntentHandler)).Methods("POST")
 		router.HandleFunc("/status", handler.StatusHandler).Methods("GET")
 		router.HandleFunc("/circuit-breaker/status", handler.CircuitBreakerStatusHandler).Methods("GET")
 
 		if cfg.StreamingEnabled {
-			router.HandleFunc("/stream", handler.StreamingHandler).Methods("POST")
+			router.HandleFunc("/stream", 
+				middleware.MaxBytesHandler(cfg.MaxRequestSize, logger, handler.StreamingHandler)).Methods("POST")
 		}
 	}
 

@@ -16,10 +16,11 @@ import (
 type HealthStatus string
 
 const (
-	HealthStatusHealthy   HealthStatus = "healthy"
-	HealthStatusUnhealthy HealthStatus = "unhealthy"
-	HealthStatusDegraded  HealthStatus = "degraded"
-	HealthStatusUnknown   HealthStatus = "unknown"
+	HealthStatusHealthy   HealthStatus = "HEALTHY"
+	HealthStatusUnhealthy HealthStatus = "UNHEALTHY"
+	HealthStatusDegraded  HealthStatus = "DEGRADED"
+	HealthStatusCritical  HealthStatus = "CRITICAL"
+	HealthStatusUnknown   HealthStatus = "UNKNOWN"
 )
 
 // ComponentHealth represents the health of a single component

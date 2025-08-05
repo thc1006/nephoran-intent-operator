@@ -1,0 +1,53 @@
+---
+swagger: '2.0'
+info:
+  title: cannot expand
+schemes:
+  - http
+basePath: /api
+consumes:
+  - application/json
+produces:
+  - application/json
+parameters:
+ someWhere:
+   name: someWhere
+   in: body
+   required: true
+   schema:
+     type: integer
+paths:
+  /common:
+    get:
+      operationId: commonGet
+      summary: here to test path collisons
+      responses:
+        '200':
+          description: OK
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/nowhere'
+        '201':
+          description: OK
+          schema:
+            $ref: '#/thisIs/anAbitrary/jsonPointer/toNowhere'
+  /wrong:
+    get:
+      operationId: target type mismatch
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: '#/parameters/someWhere'
+  /wrongcode:
+    get:
+      operationId: target type mismatch
+      responses:
+        'two-hundred':
+          description: OK
+          schema:
+            type: string
+definitions:
+  somePlace:
+    type: string

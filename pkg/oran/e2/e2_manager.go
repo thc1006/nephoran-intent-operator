@@ -2,8 +2,11 @@ package e2
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -511,8 +514,15 @@ func (m *E2Manager) SubscribeE2(req *E2SubscriptionRequest) (*E2Subscription, er
 }
 
 // SendControlMessage sends a control message to an E2 node with retry logic
-// TODO: This method should accept a nodeID parameter to specify the target node
-func (m *E2Manager) SendControlMessage(ctx context.Context, controlReq *RICControlRequest) (*RICControlAcknowledge, error) {
+// This method now properly accepts a nodeID parameter to specify the target node
+func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, controlReq *RICControlRequest) (*RICControlAcknowledge, error) {
+	// Validate input parameters
+	if nodeID == "" {
+		return nil, fmt.Errorf("nodeID parameter is required")
+	}
+	if controlReq == nil {
+		return nil, fmt.Errorf("controlReq parameter cannot be nil")
+	}
 	// Log operation mode
 	if m.config.SimulationMode {
 		if m.logger != nil {
@@ -521,20 +531,18 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, controlReq *RICContr
 		}
 	}
 
-	// Extract target node ID from control request header or use requestor ID mapping
-	// In production, the target node should be encoded in the control header or passed as parameter
-	var targetNodeID string
+	// Use the provided nodeID as the target node
+	targetNodeID := nodeID
 	
-	// Try to extract node ID from control header (implementation-specific)
+	// Verify the target node ID is valid by extracting from control header for validation
 	if len(controlReq.RICControlHeader) > 0 {
-		// This is a placeholder - in real implementation, parse the control header
-		// to extract the target node ID based on your specific encoding scheme
-		targetNodeID = m.extractNodeIDFromControlHeader(controlReq.RICControlHeader)
-	}
-
-	// If no node ID found in header, try to map from requestor ID
-	if targetNodeID == "" {
-		targetNodeID = m.mapRequestorIDToNodeID(controlReq.RICRequestID.RICRequestorID)
+		headerNodeID := m.extractNodeIDFromControlHeader(controlReq.RICControlHeader)
+		if headerNodeID != "" && headerNodeID != targetNodeID {
+			// Log a warning if header contains different node ID
+			if m.logger != nil {
+				m.logger.Printf("WARNING: Control header contains different node ID (%s) than provided parameter (%s). Using parameter value.", headerNodeID, targetNodeID)
+			}
+		}
 	}
 
 	// Find the target adaptor
@@ -650,50 +658,117 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, controlReq *RICContr
 }
 
 // extractNodeIDFromControlHeader extracts node ID from RIC control header
-// This is implementation-specific and should be adapted based on your control header encoding
+// This implementation supports common O-RAN control header formats
 func (m *E2Manager) extractNodeIDFromControlHeader(controlHeader []byte) string {
-	// TODO: Implement actual parsing logic based on your control header format
-	// This is a placeholder implementation
+	// Implementation for control header parsing based on O-RAN specifications
 	
-	// For simulation mode, return empty to trigger fallback logic
+	// For simulation mode, return a predictable test node ID
 	if m.config.SimulationMode {
+		return "sim-node-001"
+	}
+
+	// Handle empty header
+	if len(controlHeader) == 0 {
 		return ""
 	}
 
-	// Example: If the header contains node ID as a string prefix
-	// You would implement proper ASN.1 or custom parsing here
+	// Try to parse as JSON first (HTTP/REST transport)
+	var headerData map[string]interface{}
+	if err := json.Unmarshal(controlHeader, &headerData); err == nil {
+		if nodeID, exists := headerData["node_id"]; exists {
+			if nodeIDStr, ok := nodeID.(string); ok {
+				return nodeIDStr
+			}
+		}
+		if globalNodeID, exists := headerData["global_e2_node_id"]; exists {
+			if globalNodeIDStr, ok := globalNodeID.(string); ok {
+				return globalNodeIDStr
+			}
+		}
+	}
+
+	// Try to parse as string-encoded node ID (simple format)
 	headerStr := string(controlHeader)
-	if len(headerStr) > 0 {
-		// Placeholder: extract node ID from header
-		// In real implementation, parse according to your encoding scheme
-		return ""
+	if strings.HasPrefix(headerStr, "node:") {
+		return strings.TrimPrefix(headerStr, "node:")
+	}
+
+	// Check for gNB ID patterns in the header string
+	gnbPattern := regexp.MustCompile(`gnb-([a-zA-Z0-9_-]+)`)
+	if matches := gnbPattern.FindStringSubmatch(headerStr); len(matches) > 1 {
+		return "node-" + matches[1]
+	}
+
+	// Check for eNB ID patterns
+	enbPattern := regexp.MustCompile(`enb-([a-zA-Z0-9_-]+)`)
+	if matches := enbPattern.FindStringSubmatch(headerStr); len(matches) > 1 {
+		return "node-" + matches[1]
+	}
+
+	// If header is a simple node ID string (alphanumeric with dashes/underscores)
+	nodeIDPattern := regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+	if nodeIDPattern.MatchString(headerStr) && len(headerStr) <= 64 {
+		return headerStr
 	}
 	
 	return ""
 }
 
 // mapRequestorIDToNodeID maps a RIC requestor ID to a node ID
-// This should be implemented based on your system's requestor ID allocation scheme
+// Implementation based on O-RAN requestor ID allocation schemes
 func (m *E2Manager) mapRequestorIDToNodeID(requestorID RICRequestorID) string {
-	// TODO: Implement actual mapping logic based on your requestor ID scheme
-	// This is a placeholder implementation
+	// Implementation for requestor ID to node ID mapping
 	
 	// In simulation mode, return a default test node ID
 	if m.config.SimulationMode {
 		return "sim-node-001"
 	}
 
-	// Example mapping logic (adapt to your system):
-	// - Different ranges of requestor IDs could map to different nodes
-	// - You might have a lookup table or configuration mapping
+	// O-RAN standard requestor ID ranges:
+	// 1-999: Near-RT RIC internal functions
+	// 1000-1999: xApps
+	// 2000-2999: O-CU functions
+	// 3000-3999: O-DU functions
+	// 4000-4999: O-RU functions
+	// 5000-9999: Vendor-specific ranges
 	
 	switch {
-	case requestorID >= 1 && requestorID <= 100:
+	// Near-RT RIC internal functions
+	case requestorID >= 1 && requestorID <= 999:
+		return "ric-internal-node"
+	
+	// xApp requestor IDs - map to gNB nodes
+	case requestorID >= 1000 && requestorID <= 1099:
 		return "node-gnb-001"
-	case requestorID >= 101 && requestorID <= 200:
+	case requestorID >= 1100 && requestorID <= 1199:
 		return "node-gnb-002"
+	case requestorID >= 1200 && requestorID <= 1299:
+		return "node-gnb-003"
+	case requestorID >= 1300 && requestorID <= 1999:
+		return fmt.Sprintf("node-gnb-%03d", ((requestorID-1300)/100)+4)
+	
+	// O-CU functions
+	case requestorID >= 2000 && requestorID <= 2999:
+		cuID := (requestorID - 2000) / 100
+		return fmt.Sprintf("node-cu-%03d", cuID+1)
+	
+	// O-DU functions
+	case requestorID >= 3000 && requestorID <= 3999:
+		duID := (requestorID - 3000) / 100
+		return fmt.Sprintf("node-du-%03d", duID+1)
+	
+	// O-RU functions
+	case requestorID >= 4000 && requestorID <= 4999:
+		ruID := (requestorID - 4000) / 100
+		return fmt.Sprintf("node-ru-%03d", ruID+1)
+	
+	// Vendor-specific ranges - map to generic nodes
+	case requestorID >= 5000 && requestorID <= 9999:
+		vendorNodeID := (requestorID - 5000) / 1000
+		return fmt.Sprintf("node-vendor-%d", vendorNodeID+1)
+	
 	default:
-		// Return empty string to trigger fallback logic
+		// For unknown ranges, return empty to trigger error handling
 		return ""
 	}
 }

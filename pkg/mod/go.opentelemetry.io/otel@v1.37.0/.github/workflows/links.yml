@@ -1,0 +1,52 @@
+name: Links
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+  schedule:
+  # Everyday at 9:00 AM.
+  - cron: "0 9 * * *"
+
+# Declare default permissions as read only.
+permissions: read-all
+
+jobs:
+  check-links:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: Checkout Repo
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+
+    - name: Restore lychee cache
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      id: cache-restore
+      with:
+        path: .lycheecache
+        key: cache-lychee-${{ github.sha }}
+        restore-keys: cache-lychee-
+
+    - name: Link Checker
+      id: lychee
+      uses: lycheeverse/lychee-action@82202e5e9c2f4ef1a55a3d02563e1cb6041e5332 # v2.4.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+          args: --max-concurrency 1 --cache --max-cache-age 1d --cache-exclude-status 300..=599 .
+
+    - name: Save lychee cache
+      if: always()
+      uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: .lycheecache
+        key: ${{ steps.cache-restore.outputs.cache-primary-key }}
+
+    - name: Create Issue From File
+      if: steps.lychee.outputs.exit_code != 0
+      uses: peter-evans/create-issue-from-file@e8ef132d6df98ed982188e460ebb3b5d4ef3a9cd # v5.0.1
+      with:
+        title: Link Checker Report
+        content-filepath: ./lychee/out.md
+        labels: report, bot-generated

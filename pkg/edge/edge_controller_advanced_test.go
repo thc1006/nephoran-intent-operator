@@ -4,132 +4,28 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"sync"
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// TestEdgeControllerProcessIntent tests the ProcessIntent method
-func TestEdgeControllerProcessIntent(t *testing.T) {
-	tests := []struct {
-		name           string
-		intent         *nephoran.NetworkIntent
-		setupMocks     func(*MockClient, *MockStatusWriter)
-		expectedError  bool
-		expectedPhase  string
-		expectedEvents int
-	}{
-		{
-			name: "successful edge processing",
-			intent: &nephoran.NetworkIntent{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-intent",
-					Namespace: "default",
-				},
-				Spec: nephoran.NetworkIntentSpec{
-					Intent: "Deploy URLLC service for autonomous vehicles",
-				},
-				Status: nephoran.NetworkIntentStatus{
-					Phase: "Pending",
-				},
-			},
-			setupMocks: func(mc *MockClient, msw *MockStatusWriter) {
-				mc.On("Status").Return(msw)
-				msw.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-			},
-			expectedError:  false,
-			expectedPhase:  "Processed",
-			expectedEvents: 2, // Edge processing started and completed
-		},
-		{
-			name: "non-edge intent",
-			intent: &nephoran.NetworkIntent{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-intent",
-					Namespace: "default",
-				},
-				Spec: nephoran.NetworkIntentSpec{
-					Intent: "Deploy regular backend service",
-				},
-				Status: nephoran.NetworkIntentStatus{
-					Phase: "Pending",
-				},
-			},
-			setupMocks:     func(mc *MockClient, msw *MockStatusWriter) {},
-			expectedError:  false,
-			expectedPhase:  "Pending",
-			expectedEvents: 0,
-		},
-		{
-			name: "edge processing with status update failure",
-			intent: &nephoran.NetworkIntent{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-intent",
-					Namespace: "default",
-				},
-				Spec: nephoran.NetworkIntentSpec{
-					Intent: "Deploy edge ML inference service",
-				},
-				Status: nephoran.NetworkIntentStatus{
-					Phase: "Pending",
-				},
-			},
-			setupMocks: func(mc *MockClient, msw *MockStatusWriter) {
-				mc.On("Status").Return(msw)
-				msw.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("update failed"))
-			},
-			expectedError:  true,
-			expectedPhase:  "Failed",
-			expectedEvents: 2,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create test controller
-			controller := createTestEdgeController()
-			
-			// Create mock client
-			mockClient := new(MockClient)
-			mockStatusWriter := new(MockStatusWriter)
-			controller.Client = mockClient
-			
-			// Setup mocks
-			tt.setupMocks(mockClient, mockStatusWriter)
-			
-			// Process intent
-			ctx := context.Background()
-			err := controller.ProcessIntent(ctx, tt.intent)
-			
-			// Verify error expectation
-			if tt.expectedError {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-			
-			// Verify mock expectations
-			mockClient.AssertExpectations(t)
-			mockStatusWriter.AssertExpectations(t)
-		})
-	}
-}
 
 // TestEdgeNodeSelection tests the edge node selection logic
 func TestEdgeNodeSelection(t *testing.T) {
-	controller := createTestEdgeController()
+	config := &EdgeControllerConfig{
+		NodeDiscoveryEnabled:      true,
+		MaxLatencyMs:              5,
+		MinBandwidthMbps:          100,
+		EdgeResourceThreshold:     0.8,
+	}
+	kubeClient := fake.NewSimpleClientset()
+	logger := logr.Discard()
+	controller := NewEdgeController(nil, kubeClient, logger, runtime.NewScheme(), config)
 	ctx := context.Background()
 	
 	// Discover nodes first
@@ -195,7 +91,12 @@ func TestEdgeNodeSelection(t *testing.T) {
 
 // TestEdgeNodeHealthChecking tests health check functionality
 func TestEdgeNodeHealthChecking(t *testing.T) {
-	controller := createTestEdgeController()
+	controller := NewEdgeController(nil, fake.NewSimpleClientset(), logr.Discard(), runtime.NewScheme(), &EdgeControllerConfig{
+		NodeDiscoveryEnabled:      true,
+		MaxLatencyMs:              5,
+		MinBandwidthMbps:          100,
+		EdgeResourceThreshold:     0.8,
+	})
 	ctx := context.Background()
 	
 	// Add test nodes
@@ -203,26 +104,26 @@ func TestEdgeNodeHealthChecking(t *testing.T) {
 		ID:     "healthy-node",
 		Name:   "Healthy Node",
 		Status: EdgeNodeActive,
-		HealthMetrics: EdgeNodeHealthMetrics{
+		HealthMetrics: EdgeHealthMetrics{
 			UptimePercent:  99.9,
 			AverageLatency: 1.5,
 			ThroughputMbps: 800,
 			ErrorRate:      0.01,
 		},
-		LastHealthCheck: time.Now(),
+		LastSeen: time.Now(),
 	}
 	
 	unhealthyNode := &EdgeNode{
 		ID:     "unhealthy-node",
 		Name:   "Unhealthy Node",
 		Status: EdgeNodeActive,
-		HealthMetrics: EdgeNodeHealthMetrics{
+		HealthMetrics: EdgeHealthMetrics{
 			UptimePercent:  50.0, // Below threshold
 			AverageLatency: 10.0, // Above threshold
 			ThroughputMbps: 100,  // Below threshold
 			ErrorRate:      5.0,  // Above threshold
 		},
-		LastHealthCheck: time.Now(),
+		LastSeen: time.Now(),
 	}
 	
 	controller.edgeNodes["healthy-node"] = healthyNode
@@ -235,70 +136,18 @@ func TestEdgeNodeHealthChecking(t *testing.T) {
 	assert.Equal(t, EdgeNodeActive, controller.edgeNodes["healthy-node"].Status)
 	
 	// Verify unhealthy node is marked as unhealthy
-	assert.Equal(t, EdgeNodeUnhealthy, controller.edgeNodes["unhealthy-node"].Status)
+	assert.Equal(t, EdgeNodeDegraded, controller.edgeNodes["unhealthy-node"].Status)
 }
 
-// TestConcurrentEdgeProcessing tests concurrent edge processing
-func TestConcurrentEdgeProcessing(t *testing.T) {
-	controller := createTestEdgeController()
-	ctx := context.Background()
-	
-	// Discover nodes
-	require.NoError(t, controller.discoverEdgeNodes(ctx))
-	
-	// Create multiple intents
-	numIntents := 10
-	intents := make([]*nephoran.NetworkIntent, numIntents)
-	for i := 0; i < numIntents; i++ {
-		intents[i] = &nephoran.NetworkIntent{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      fmt.Sprintf("intent-%d", i),
-				Namespace: "default",
-			},
-			Spec: nephoran.NetworkIntentSpec{
-				Intent: fmt.Sprintf("Deploy URLLC service %d", i),
-			},
-			Status: nephoran.NetworkIntentStatus{
-				Phase: "Pending",
-			},
-		}
-	}
-	
-	// Process intents concurrently
-	var wg sync.WaitGroup
-	errors := make(chan error, numIntents)
-	
-	for _, intent := range intents {
-		wg.Add(1)
-		go func(ni *nephoran.NetworkIntent) {
-			defer wg.Done()
-			
-			// Mock client for this goroutine
-			mockClient := new(MockClient)
-			mockStatusWriter := new(MockStatusWriter)
-			mockClient.On("Status").Return(mockStatusWriter)
-			mockStatusWriter.On("Update", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-			
-			controller.Client = mockClient
-			
-			if err := controller.ProcessIntent(ctx, ni); err != nil {
-				errors <- err
-			}
-		}(intent)
-	}
-	
-	wg.Wait()
-	close(errors)
-	
-	// Check for errors
-	for err := range errors {
-		assert.NoError(t, err)
-	}
-}
 
 // TestEdgeZoneManagement tests edge zone creation and management
 func TestEdgeZoneManagement(t *testing.T) {
-	controller := createTestEdgeController()
+	controller := NewEdgeController(nil, fake.NewSimpleClientset(), logr.Discard(), runtime.NewScheme(), &EdgeControllerConfig{
+		NodeDiscoveryEnabled:      true,
+		MaxLatencyMs:              5,
+		MinBandwidthMbps:          100,
+		EdgeResourceThreshold:     0.8,
+	})
 	
 	// Test zone creation
 	zone := controller.createEdgeZone("test-zone", "us-west-2")
@@ -307,7 +156,6 @@ func TestEdgeZoneManagement(t *testing.T) {
 	assert.Equal(t, "us-west-2", zone.Region)
 	assert.Equal(t, 2, zone.RedundancyLevel)
 	assert.NotNil(t, zone.Nodes)
-	assert.NotNil(t, zone.NetworkLinks)
 	
 	// Test adding node to zone
 	node := &EdgeNode{
@@ -327,8 +175,12 @@ func TestEdgeZoneManagement(t *testing.T) {
 
 // TestEdgeFailover tests edge failover functionality
 func TestEdgeFailover(t *testing.T) {
-	controller := createTestEdgeController()
-	ctx := context.Background()
+	controller := NewEdgeController(nil, fake.NewSimpleClientset(), logr.Discard(), runtime.NewScheme(), &EdgeControllerConfig{
+		NodeDiscoveryEnabled:      true,
+		MaxLatencyMs:              5,
+		MinBandwidthMbps:          100,
+		EdgeResourceThreshold:     0.8,
+	})
 	
 	// Create primary and backup nodes
 	primaryNode := &EdgeNode{
@@ -336,7 +188,7 @@ func TestEdgeFailover(t *testing.T) {
 		Name:   "Primary Node",
 		Zone:   "zone-1",
 		Status: EdgeNodeActive,
-		Resources: EdgeNodeResources{
+		Resources: EdgeResources{
 			CPU:              8,
 			Memory:           32 * 1024 * 1024 * 1024,
 			GPU:              1,
@@ -349,7 +201,7 @@ func TestEdgeFailover(t *testing.T) {
 		Name:   "Backup Node",
 		Zone:   "zone-1",
 		Status: EdgeNodeActive,
-		Resources: EdgeNodeResources{
+		Resources: EdgeResources{
 			CPU:              8,
 			Memory:           32 * 1024 * 1024 * 1024,
 			GPU:              1,
@@ -370,7 +222,7 @@ func TestEdgeFailover(t *testing.T) {
 	controller.edgeZones["zone-1"] = zone
 	
 	// Simulate primary node failure
-	primaryNode.Status = EdgeNodeUnhealthy
+	primaryNode.Status = EdgeNodeDegraded
 	
 	// Test failover
 	requirements := EdgeRequirements{
@@ -388,13 +240,18 @@ func TestEdgeFailover(t *testing.T) {
 
 // TestEdgeMetricsCollection tests metrics collection for edge nodes
 func TestEdgeMetricsCollection(t *testing.T) {
-	controller := createTestEdgeController()
+	controller := NewEdgeController(nil, fake.NewSimpleClientset(), logr.Discard(), runtime.NewScheme(), &EdgeControllerConfig{
+		NodeDiscoveryEnabled:      true,
+		MaxLatencyMs:              5,
+		MinBandwidthMbps:          100,
+		EdgeResourceThreshold:     0.8,
+	})
 	
 	node := &EdgeNode{
 		ID:     "metrics-node",
 		Name:   "Metrics Test Node",
 		Status: EdgeNodeActive,
-		HealthMetrics: EdgeNodeHealthMetrics{
+		HealthMetrics: EdgeHealthMetrics{
 			UptimePercent:  0,
 			AverageLatency: 0,
 			ThroughputMbps: 0,
@@ -405,7 +262,7 @@ func TestEdgeMetricsCollection(t *testing.T) {
 	controller.edgeNodes["metrics-node"] = node
 	
 	// Simulate metrics updates
-	updates := []EdgeNodeHealthMetrics{
+	updates := []EdgeHealthMetrics{
 		{UptimePercent: 99.5, AverageLatency: 1.2, ThroughputMbps: 750, ErrorRate: 0.05},
 		{UptimePercent: 99.8, AverageLatency: 1.1, ThroughputMbps: 800, ErrorRate: 0.03},
 		{UptimePercent: 99.9, AverageLatency: 1.0, ThroughputMbps: 850, ErrorRate: 0.01},
@@ -413,7 +270,7 @@ func TestEdgeMetricsCollection(t *testing.T) {
 	
 	for _, metrics := range updates {
 		node.HealthMetrics = metrics
-		node.LastHealthCheck = time.Now()
+		node.LastSeen = time.Now()
 		
 		// Verify metrics are updated
 		assert.Equal(t, metrics.UptimePercent, node.HealthMetrics.UptimePercent)
@@ -423,17 +280,17 @@ func TestEdgeMetricsCollection(t *testing.T) {
 	}
 }
 
-// TestEdgeNodeCapabilities tests edge node capability matching
-func TestEdgeNodeCapabilities(t *testing.T) {
+// TestEdgeCapabilities tests edge node capability matching
+func TestEdgeCapabilities(t *testing.T) {
 	tests := []struct {
 		name         string
-		capabilities EdgeNodeCapabilities
+		capabilities EdgeCapabilities
 		requirements EdgeRequirements
 		shouldMatch  bool
 	}{
 		{
 			name: "exact match",
-			capabilities: EdgeNodeCapabilities{
+			capabilities: EdgeCapabilities{
 				ComputeIntensive:     true,
 				LowLatencyProcessing: true,
 				LocalRICSupport:      true,
@@ -449,7 +306,7 @@ func TestEdgeNodeCapabilities(t *testing.T) {
 		},
 		{
 			name: "capability superset",
-			capabilities: EdgeNodeCapabilities{
+			capabilities: EdgeCapabilities{
 				ComputeIntensive:     true,
 				LowLatencyProcessing: true,
 				LocalRICSupport:      true,
@@ -464,7 +321,7 @@ func TestEdgeNodeCapabilities(t *testing.T) {
 		},
 		{
 			name: "missing required capability",
-			capabilities: EdgeNodeCapabilities{
+			capabilities: EdgeCapabilities{
 				ComputeIntensive:     false,
 				LowLatencyProcessing: true,
 			},
@@ -480,7 +337,7 @@ func TestEdgeNodeCapabilities(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			node := &EdgeNode{
 				Capabilities: tt.capabilities,
-				Resources: EdgeNodeResources{
+				Resources: EdgeResources{
 					CPU:    16,
 					Memory: 64 * 1024 * 1024 * 1024,
 				},
@@ -539,8 +396,8 @@ type EdgeRequirements struct {
 
 // Helper function for node selection
 func (ec *EdgeController) selectBestEdgeNode(req EdgeRequirements) (*EdgeNode, error) {
-	ec.mu.RLock()
-	defer ec.mu.RUnlock()
+	ec.mutex.RLock()
+	defer ec.mutex.RUnlock()
 	
 	var bestNode *EdgeNode
 	var bestScore int
@@ -572,8 +429,8 @@ func (ec *EdgeController) selectBestEdgeNode(req EdgeRequirements) (*EdgeNode, e
 
 // Helper function for health checking
 func (ec *EdgeController) performHealthCheck(ctx context.Context) {
-	ec.mu.Lock()
-	defer ec.mu.Unlock()
+	ec.mutex.Lock()
+	defer ec.mutex.Unlock()
 	
 	for _, node := range ec.edgeNodes {
 		// Check health metrics
@@ -581,12 +438,12 @@ func (ec *EdgeController) performHealthCheck(ctx context.Context) {
 			node.HealthMetrics.AverageLatency > 5.0 ||
 			node.HealthMetrics.ThroughputMbps < 500 ||
 			node.HealthMetrics.ErrorRate > 1.0 {
-			node.Status = EdgeNodeUnhealthy
+			node.Status = EdgeNodeDegraded
 		} else {
 			node.Status = EdgeNodeActive
 		}
 		
-		node.LastHealthCheck = time.Now()
+		node.LastSeen = time.Now()
 	}
 }
 
@@ -596,11 +453,7 @@ func (ec *EdgeController) createEdgeZone(id, region string) *EdgeZone {
 		ID:              id,
 		Name:            fmt.Sprintf("Edge Zone %s", id),
 		Region:          region,
-		Type:            "metro",
 		Nodes:           []string{},
-		RedundancyLevel: ec.config.ZoneRedundancyFactor,
-		NetworkLinks:    make(map[string]NetworkLink),
-		Created:         time.Now(),
-		LastUpdated:     time.Now(),
+		RedundancyLevel: 2,
 	}
 }

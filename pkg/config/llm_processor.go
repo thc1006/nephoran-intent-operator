@@ -146,7 +146,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	// LLM Configuration
 	cfg.LLMBackendType = getEnvWithValidation("LLM_BACKEND_TYPE", cfg.LLMBackendType, validateLLMBackendType, &validationErrors)
 	// Load LLM API key from file or env based on backend type
-	llmAPIKey, err := LoadLLMAPIKeyFromFile(cfg.LLMBackendType)
+	llmAPIKey, err := LoadLLMAPIKeyFromFile(cfg.LLMBackendType, nil)
 	if err != nil && cfg.LLMBackendType != "mock" && cfg.LLMBackendType != "rag" {
 		validationErrors = append(validationErrors, fmt.Sprintf("LLM API Key: %v", err))
 	}
@@ -173,7 +173,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	// Security Configuration
 	cfg.APIKeyRequired = parseBoolWithDefault("API_KEY_REQUIRED", cfg.APIKeyRequired)
 	// Load API key from file or env
-	apiKey, err := LoadAPIKeyFromFile()
+	apiKey, err := LoadAPIKeyFromFile(nil)
 	if err != nil && cfg.APIKeyRequired {
 		validationErrors = append(validationErrors, fmt.Sprintf("API Key: %v", err))
 	}
@@ -204,7 +204,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg.AuthEnabled = parseBoolWithDefault("AUTH_ENABLED", cfg.AuthEnabled)
 	cfg.AuthConfigFile = os.Getenv("AUTH_CONFIG_FILE")
 	// Load JWT secret key from file or env
-	jwtSecretKey, err := LoadJWTSecretKeyFromFile()
+	jwtSecretKey, err := LoadJWTSecretKeyFromFile(nil)
 	if err != nil && cfg.AuthEnabled {
 		validationErrors = append(validationErrors, fmt.Sprintf("JWT Secret Key: %v", err))
 	}
@@ -258,6 +258,19 @@ func (c *LLMProcessorConfig) Validate() error {
 
 	if c.CircuitBreakerThreshold > 50 {
 		errors = append(errors, "CIRCUIT_BREAKER_THRESHOLD should be reasonable (≤50)")
+	}
+
+	// Validate request size limits for security and performance
+	if c.MaxRequestSize <= 0 {
+		errors = append(errors, "MAX_REQUEST_SIZE must be positive")
+	}
+
+	if c.MaxRequestSize < 1024 {
+		errors = append(errors, "MAX_REQUEST_SIZE should be at least 1KB for basic functionality")
+	}
+
+	if c.MaxRequestSize > 100*1024*1024 { // 100MB
+		errors = append(errors, "MAX_REQUEST_SIZE should not exceed 100MB to prevent DoS attacks")
 	}
 
 	if len(errors) > 0 {

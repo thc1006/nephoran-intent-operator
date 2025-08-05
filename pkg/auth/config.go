@@ -3,11 +3,14 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
 
 // AuthConfig holds authentication configuration
@@ -67,7 +70,7 @@ const (
 // LoadAuthConfig loads authentication configuration from environment and file
 func LoadAuthConfig() (*AuthConfig, error) {
 	// Load JWT secret key from file or env
-	jwtSecretKey, _ := config.LoadJWTSecretKeyFromFile()
+	jwtSecretKey, _ := config.LoadJWTSecretKeyFromFile(security.GlobalAuditLogger)
 
 	authConfig := &AuthConfig{
 		Enabled:      getBoolEnv("AUTH_ENABLED", false),
@@ -380,10 +383,47 @@ func getStringSliceEnv(key string, defaultValue []string) []string {
 
 // getOAuth2ClientSecret loads OAuth2 client secret from file or environment
 func getOAuth2ClientSecret(provider string) string {
-	// TODO: Implement proper secret loading mechanism
-	// For now, check environment variables
+	// Create secure secret loader for OAuth2 secrets
+	loader, err := config.NewSecretLoader("/secrets/oauth2", security.GlobalAuditLogger)
+	if err != nil {
+		// Log the error but continue with fallback
+		slog.Error("Failed to create OAuth2 secret loader, falling back to environment variable", "error", err)
+		envVar := strings.ToUpper(provider) + "_CLIENT_SECRET"
+		return os.Getenv(envVar)
+	}
+
+	// Try to load from file first
+	filename := fmt.Sprintf("%s-client-secret", strings.ToLower(provider))
 	envVar := strings.ToUpper(provider) + "_CLIENT_SECRET"
-	return os.Getenv(envVar)
+	
+	secret, err := loader.LoadSecretWithFallback(filename, envVar)
+	if err != nil {
+		slog.Error("Failed to load OAuth2 client secret", "error", err, "provider", provider)
+		return ""
+	}
+
+	// Audit log for secret access (without revealing the secret)
+	slog.Info("OAuth2 client secret loaded successfully", 
+		"provider", provider, 
+		"source", determineSecretSource(filename, envVar),
+		"secret_preview", config.SanitizeForLog(secret))
+	
+	return secret
+}
+
+// determineSecretSource determines whether secret was loaded from file or environment
+func determineSecretSource(filename, envVar string) string {
+	// Check if file exists
+	if _, err := os.Stat(filepath.Join("/secrets/oauth2", filename)); err == nil {
+		return "file"
+	}
+	
+	// Check if environment variable is set
+	if os.Getenv(envVar) != "" {
+		return "environment"
+	}
+	
+	return "unknown"
 }
 
 // ToOAuth2Config converts AuthConfig to OAuth2Config

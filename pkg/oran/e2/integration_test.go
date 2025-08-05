@@ -222,7 +222,7 @@ func TestE2ManagerIntegration(t *testing.T) {
 		mockRIC.On("SendControlMessage", controlReq).Return(&RICControlAcknowledge{}, nil)
 		
 		// Test control message
-		ack, err := manager.SendControlMessage(ctx, controlReq)
+		ack, err := manager.SendControlMessage(ctx, "test-node-001", controlReq)
 		assert.NoError(t, err)
 		assert.NotNil(t, ack)
 		assert.Equal(t, controlReq.RANFunctionID, ack.RANFunctionID)
@@ -279,8 +279,8 @@ func (m *MockE2Manager) SubscribeE2(ctx context.Context, req *E2SubscriptionRequ
 	return args.Error(0)
 }
 
-func (m *MockE2Manager) SendControlMessage(ctx context.Context, req *RICControlRequest) (*RICControlAcknowledge, error) {
-	args := m.Called(ctx, req)
+func (m *MockE2Manager) SendControlMessage(ctx context.Context, nodeID string, req *RICControlRequest) (*RICControlAcknowledge, error) {
+	args := m.Called(ctx, nodeID, req)
 	return args.Get(0).(*RICControlAcknowledge), args.Error(1)
 }
 
@@ -553,7 +553,7 @@ func TestE2EndToEndIntegration(t *testing.T) {
 		
 		mockE2Manager.On("SetupE2Connection", "gnb-e2e-001", "http://localhost:8080").Return(nil)
 		mockE2Manager.On("SubscribeE2", ctx, mock.AnythingOfType("*e2.E2SubscriptionRequest")).Return(nil)
-		mockE2Manager.On("SendControlMessage", ctx, mock.AnythingOfType("*e2.RICControlRequest")).Return(&RICControlAcknowledge{}, nil)
+		mockE2Manager.On("SendControlMessage", ctx, mock.AnythingOfType("string"), mock.AnythingOfType("*e2.RICControlRequest")).Return(&RICControlAcknowledge{}, nil)
 		
 		// Step 1: Setup E2 connection
 		err := mockRIC.SetupConnection("gnb-e2e-001", "http://localhost:8080")

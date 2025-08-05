@@ -1,0 +1,294 @@
+package middleware
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
+	"testing"
+)
+
+func TestRequestSizeLimiter(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
+	testMaxSize := int64(1024) // 1KB limit
+
+	// Create test handler that reads the full body
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		
+		w.Header().Set("Content-Type", "application/json")
+		response := map[string]interface{}{
+			"status":    "success",
+			"body_size": len(body),
+		}
+		json.NewEncoder(w).Encode(response)
+	})
+
+	tests := []struct {
+		name           string
+		method         string
+		body           string
+		expectedStatus int
+		expectError    bool
+	}{
+		{
+			name:           "Small POST request within limit",
+			method:         "POST",
+			body:           `{"test": "small request"}`,
+			expectedStatus: http.StatusOK,
+			expectError:    false,
+		},
+		{
+			name:           "GET request (no size limit applied)",
+			method:         "GET",
+			body:           "",
+			expectedStatus: http.StatusOK,
+			expectError:    false,
+		},
+		{
+			name:           "POST request at limit boundary",
+			method:         "POST",
+			body:           strings.Repeat("x", int(testMaxSize-10)) + "end",
+			expectedStatus: http.StatusOK,
+			expectError:    false,
+		},
+		{
+			name:           "POST request exceeding limit",
+			method:         "POST",
+			body:           strings.Repeat("x", int(testMaxSize)+100),
+			expectedStatus: http.StatusBadRequest, // MaxBytesReader will cause this
+			expectError:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			limiter := NewRequestSizeLimiter(testMaxSize, logger)
+			wrappedHandler := limiter.Handler(testHandler)
+
+			req, err := http.NewRequest(tt.method, "/test", strings.NewReader(tt.body))
+			if err != nil {
+				t.Fatal(err)
+			}
+			req.Header.Set("Content-Type", "application/json")
+
+			rr := httptest.NewRecorder()
+			wrappedHandler.ServeHTTP(rr, req)
+
+			if tt.expectError {
+				if rr.Code < 400 {
+					t.Errorf("Expected error status for %s, got %d", tt.name, rr.Code)
+				}
+			} else {
+				if rr.Code >= 400 {
+					t.Errorf("Expected success for %s, got %d: %s", tt.name, rr.Code, rr.Body.String())
+				}
+			}
+		})
+	}
+}
+
+func TestMaxBytesHandler(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
+	testMaxSize := int64(512) // 512 bytes limit
+
+	// Simple test handler
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		
+		fmt.Fprintf(w, "OK: received %d bytes", len(body))
+	})
+
+	tests := []struct {
+		name           string
+		contentLength  int64
+		bodySize       int
+		expectedStatus int
+		expectJSON     bool
+	}{
+		{
+			name:           "Request within limit",
+			contentLength:  300,
+			bodySize:       300,
+			expectedStatus: http.StatusOK,
+			expectJSON:     false,
+		},
+		{
+			name:           "Content-Length exceeds limit",
+			contentLength:  1000,
+			bodySize:       100,
+			expectedStatus: http.StatusRequestEntityTooLarge,
+			expectJSON:     true,
+		},
+		{
+			name:           "Body exceeds limit (no Content-Length)",
+			contentLength:  -1, // No header
+			bodySize:       1000,
+			expectedStatus: http.StatusRequestEntityTooLarge,
+			expectJSON:     true,
+		},
+		{
+			name:           "Exact limit boundary",
+			contentLength:  512,
+			bodySize:       512,
+			expectedStatus: http.StatusOK,
+			expectJSON:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wrappedHandler := MaxBytesHandler(testMaxSize, logger, testHandler)
+
+			body := strings.Repeat("x", tt.bodySize)
+			req, err := http.NewRequest("POST", "/test", strings.NewReader(body))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if tt.contentLength > 0 {
+				req.ContentLength = tt.contentLength
+				req.Header.Set("Content-Length", fmt.Sprintf("%d", tt.contentLength))
+			}
+
+			rr := httptest.NewRecorder()
+			wrappedHandler.ServeHTTP(rr, req)
+
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d. Body: %s", tt.expectedStatus, rr.Code, rr.Body.String())
+			}
+
+			if tt.expectJSON {
+				// Check that we get a proper JSON error response
+				var response map[string]interface{}
+				err := json.Unmarshal(rr.Body.Bytes(), &response)
+				if err != nil {
+					t.Errorf("Expected JSON error response, got: %s", rr.Body.String())
+				}
+
+				if response["error"] == nil {
+					t.Errorf("Expected error field in JSON response")
+				}
+
+				if response["code"] != float64(413) {
+					t.Errorf("Expected error code 413, got %v", response["code"])
+				}
+			}
+		})
+	}
+}
+
+func TestMaxBytesHandlerMethods(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
+	testMaxSize := int64(100)
+
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, "OK")
+	})
+
+	wrappedHandler := MaxBytesHandler(testMaxSize, logger, testHandler)
+
+	methods := []struct {
+		method          string
+		shouldHaveLimit bool
+	}{
+		{"GET", false},
+		{"POST", true},
+		{"PUT", true},
+		{"PATCH", true},
+		{"DELETE", false},
+		{"HEAD", false},
+		{"OPTIONS", false},
+	}
+
+	for _, method := range methods {
+		t.Run(fmt.Sprintf("Method_%s", method.method), func(t *testing.T) {
+			// Create request with large body
+			largeBody := strings.Repeat("x", int(testMaxSize)+50)
+			req, err := http.NewRequest(method.method, "/test", strings.NewReader(largeBody))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			rr := httptest.NewRecorder()
+			wrappedHandler.ServeHTTP(rr, req)
+
+			if method.shouldHaveLimit {
+				// Methods with bodies should be limited
+				if rr.Code == http.StatusOK {
+					t.Errorf("Expected %s request with large body to be rejected", method.method)
+				}
+			} else {
+				// Methods without bodies should pass through
+				if rr.Code != http.StatusOK {
+					t.Errorf("Expected %s request to pass through, got status %d", method.method, rr.Code)
+				}
+			}
+		})
+	}
+}
+
+func TestWritePayloadTooLargeResponse(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
+	rr := httptest.NewRecorder()
+	maxSize := int64(1024)
+
+	writePayloadTooLargeResponse(rr, logger, maxSize)
+
+	// Check status code
+	if rr.Code != http.StatusRequestEntityTooLarge {
+		t.Errorf("Expected status %d, got %d", http.StatusRequestEntityTooLarge, rr.Code)
+	}
+
+	// Check content type
+	contentType := rr.Header().Get("Content-Type")
+	if contentType != "application/json" {
+		t.Errorf("Expected Content-Type application/json, got %s", contentType)
+	}
+
+	// Check JSON response structure
+	var response map[string]interface{}
+	err := json.Unmarshal(rr.Body.Bytes(), &response)
+	if err != nil {
+		t.Errorf("Failed to parse JSON response: %v", err)
+	}
+
+	expectedFields := []string{"error", "message", "status", "code"}
+	for _, field := range expectedFields {
+		if response[field] == nil {
+			t.Errorf("Missing field '%s' in response", field)
+		}
+	}
+
+	if response["code"] != float64(413) {
+		t.Errorf("Expected code 413, got %v", response["code"])
+	}
+
+	if response["status"] != "error" {
+		t.Errorf("Expected status 'error', got %v", response["status"])
+	}
+}

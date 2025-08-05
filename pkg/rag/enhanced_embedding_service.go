@@ -131,10 +131,10 @@ func NewMultiProviderEmbeddingService(config *EmbeddingConfig) (*MultiProviderEm
 	}
 
 	// Initialize load balancer
-	service.loadBalancer = NewLoadBalancer(config.LoadBalancing, service.getProviderNames())
+	service.loadBalancer = NewEnhancedLoadBalancer(config.LoadBalancing, service.getProviderNames())
 
 	// Initialize cost manager
-	service.costManager = NewCostManager(EnhancedCostLimits{
+	service.costManager = NewEnhancedCostManager(EnhancedCostLimits{
 		DailyLimit:     config.DailyCostLimit,
 		MonthlyLimit:   config.MonthlyCostLimit,
 		AlertThreshold: config.CostAlertThreshold,
@@ -153,8 +153,12 @@ func NewMultiProviderEmbeddingService(config *EmbeddingConfig) (*MultiProviderEm
 	// Initialize health monitor
 	service.healthMonitor = NewProviderHealthMonitor(config.HealthCheckInterval)
 
-	// Start health monitoring
-	go service.healthMonitor.StartMonitoring(service.providers)
+	// Start health monitoring with adapted providers
+	adaptedProviders := make(map[string]EmbeddingProvider)
+	for name, provider := range service.providers {
+		adaptedProviders[name] = &ProviderHealthAdapter{provider: provider}
+	}
+	go service.healthMonitor.StartMonitoring(adaptedProviders)
 
 	service.logger.Info("Multi-provider embedding service initialized",
 		"providers", len(service.providers),

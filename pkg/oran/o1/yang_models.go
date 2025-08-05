@@ -639,8 +639,145 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath string, modelName string) e
 		return fmt.Errorf("invalid XPath syntax: %s", xpath)
 	}
 
-	// TODO: Implement more comprehensive XPath validation against schema
+	// Implement comprehensive XPath validation against schema
+	sv.mutex.RLock()
+	model, exists := sv.registry.models[modelName]
+	sv.mutex.RUnlock()
+	
+	if !exists {
+		return fmt.Errorf("model %s not found for XPath validation", modelName)
+	}
+
+	// Parse XPath into components for validation
+	parts := strings.Split(strings.TrimPrefix(xpath, "/"), "/")
+	if len(parts) == 0 {
+		return fmt.Errorf("invalid XPath structure: %s", xpath)
+	}
+
+	// Validate each XPath component against the model schema
+	currentSchema := model.Schema
+	for i, part := range parts {
+		// Handle array indices [condition]
+		nodeName := part
+		var condition string
+		if bracketStart := strings.Index(part, "["); bracketStart != -1 {
+			bracketEnd := strings.Index(part, "]")
+			if bracketEnd == -1 || bracketEnd <= bracketStart {
+				return fmt.Errorf("invalid XPath bracket syntax in component: %s", part)
+			}
+			nodeName = part[:bracketStart]
+			condition = part[bracketStart+1 : bracketEnd]
+		}
+
+		// Check if the node exists in the current schema level
+		if currentSchemaMap, ok := currentSchema.(map[string]interface{}); ok {
+			if nodeSchema, exists := currentSchemaMap[nodeName]; exists {
+				// Move to the next schema level
+				if nodeMap, ok := nodeSchema.(map[string]interface{}); ok {
+					if childrenSchema, exists := nodeMap["children"]; exists {
+						currentSchema = childrenSchema
+					} else {
+						// Leaf node - validate this is the last component
+						if i != len(parts)-1 {
+							return fmt.Errorf("XPath attempts to traverse beyond leaf node: %s at %s", nodeName, xpath)
+						}
+					}
+				}
+				
+				// Validate condition syntax if present
+				if condition != "" {
+					if err := sv.validateXPathCondition(condition, nodeSchema); err != nil {
+						return fmt.Errorf("invalid XPath condition '%s' in %s: %w", condition, part, err)
+					}
+				}
+			} else {
+				return fmt.Errorf("XPath component '%s' not found in model %s schema", nodeName, modelName)
+			}
+		} else if currentSchemaSlice, ok := currentSchema.([]interface{}); ok {
+			// Handle array/list schemas
+			found := false
+			for _, item := range currentSchemaSlice {
+				if itemMap, ok := item.(map[string]interface{}); ok {
+					if name, exists := itemMap["name"]; exists && name == nodeName {
+						if childrenSchema, exists := itemMap["children"]; exists {
+							currentSchema = childrenSchema
+							found = true
+							break
+						}
+					}
+				}
+			}
+			if !found {
+				return fmt.Errorf("XPath component '%s' not found in list schema for model %s", nodeName, modelName)
+			}
+		} else {
+			return fmt.Errorf("invalid schema structure at XPath component '%s' in model %s", nodeName, modelName)
+		}
+	}
+
 	return nil
+}
+
+// validateXPathCondition validates XPath condition syntax against schema
+func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSchema interface{}) error {
+	// Basic condition validation patterns
+	if condition == "" {
+		return fmt.Errorf("empty condition not allowed")
+	}
+
+	// Handle numeric indices like [1], [2], etc.
+	if numericRegex := regexp.MustCompile(`^\d+$`); numericRegex.MatchString(condition) {
+		return nil // Valid numeric index
+	}
+
+	// Handle attribute conditions like [@attr='value']
+	if attrRegex := regexp.MustCompile(`^@\w+\s*=\s*['"][^'"]*['"]$`); attrRegex.MatchString(condition) {
+		// Extract attribute name and validate against schema
+		attrMatch := regexp.MustCompile(`^@(\w+)`).FindStringSubmatch(condition)
+		if len(attrMatch) > 1 {
+			attrName := attrMatch[1]
+			// Check if attribute exists in schema
+			if nodeMap, ok := nodeSchema.(map[string]interface{}); ok {
+				if attributes, exists := nodeMap["attributes"]; exists {
+					if attrMap, ok := attributes.(map[string]interface{}); ok {
+						if _, exists := attrMap[attrName]; !exists {
+							return fmt.Errorf("attribute '%s' not found in schema", attrName)
+						}
+					}
+				}
+			}
+		}
+		return nil
+	}
+
+	// Handle node value conditions like [text()='value']
+	if textRegex := regexp.MustCompile(`^text\(\)\s*=\s*['"][^'"]*['"]$`); textRegex.MatchString(condition) {
+		return nil // Valid text condition
+	}
+
+	// Handle position conditions like [position()=1]
+	if positionRegex := regexp.MustCompile(`^position\(\)\s*[=<>]=?\s*\d+$`); positionRegex.MatchString(condition) {
+		return nil // Valid position condition
+	}
+
+	// Handle last() condition
+	if condition == "last()" {
+		return nil
+	}
+
+	// Handle complex conditions with logical operators
+	if complexRegex := regexp.MustCompile(`^.+\s+(and|or)\s+.+$`); complexRegex.MatchString(condition) {
+		// Split by logical operators and validate each part
+		parts := regexp.MustCompile(`\s+(and|or)\s+`).Split(condition, -1)
+		for _, part := range parts {
+			if err := sv.validateXPathCondition(strings.TrimSpace(part), nodeSchema); err != nil {
+				return fmt.Errorf("invalid condition part '%s': %w", part, err)
+			}
+		}
+		return nil
+	}
+
+	return fmt.Errorf("unsupported condition syntax: %s", condition)
 }
 
 // GetModelInfo returns model information

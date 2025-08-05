@@ -870,8 +870,8 @@ func (ers *EnhancedRetrievalService) GetMetrics() *RetrievalMetrics {
 	return &metrics
 }
 
-// HealthStatus represents the health status of the retrieval service
-type HealthStatus struct {
+// RetrievalHealthStatus represents the health status of the retrieval service
+type RetrievalHealthStatus struct {
 	Status        string                    `json:"status"`        // "healthy", "degraded", "unhealthy"
 	Timestamp     time.Time                 `json:"timestamp"`     
 	Components    map[string]ComponentStatus `json:"components"`
@@ -898,7 +898,7 @@ type HealthMetrics struct {
 }
 
 // GetHealthStatus returns the health status of the retrieval service
-func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*HealthStatus, error) {
+func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*RetrievalHealthStatus, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -946,7 +946,7 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Heal
 	// Determine overall health status
 	overallStatus := ers.determineOverallHealth(components, successRate)
 
-	healthStatus := &HealthStatus{
+	healthStatus := &RetrievalHealthStatus{
 		Status:       overallStatus,
 		Timestamp:    time.Now(),
 		Components:   components,

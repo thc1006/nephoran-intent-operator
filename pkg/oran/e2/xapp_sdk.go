@@ -281,17 +281,17 @@ func (sdk *XAppSDK) Unsubscribe(ctx context.Context, subscriptionID string) erro
 }
 
 // SendControlMessage sends a control message to an E2 node
-func (sdk *XAppSDK) SendControlMessage(ctx context.Context, controlReq *RICControlRequest) (*RICControlAcknowledge, error) {
+func (sdk *XAppSDK) SendControlMessage(ctx context.Context, nodeID string, controlReq *RICControlRequest) (*RICControlAcknowledge, error) {
 	sdk.metrics.IncrementControlRequests()
 	
 	// Send via E2Manager
-	response, err := sdk.e2Manager.SendControlMessage(ctx, controlReq)
+	response, err := sdk.e2Manager.SendControlMessage(ctx, nodeID, controlReq)
 	if err != nil {
 		sdk.metrics.IncrementErrors()
 		return nil, fmt.Errorf("control message failed: %w", err)
 	}
 
-	sdk.logger.Printf("Sent control message to node: %s, function: %d", controlReq.RICRequestID, controlReq.RANFunctionID)
+	sdk.logger.Printf("Sent control message to node: %s, function: %d", nodeID, controlReq.RANFunctionID)
 	return response, nil
 }
 
