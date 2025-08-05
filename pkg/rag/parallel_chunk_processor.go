@@ -1,3 +1,5 @@
+//go:build !disable_rag && !test
+
 package rag
 
 import (
@@ -273,7 +275,6 @@ func (p *ParallelChunkProcessor) ProcessTasks(
 
 // processTask processes a single task with retry logic
 func (p *ParallelChunkProcessor) processTask(ctx context.Context, task *ChunkTask) *ChunkResult {
-	start := time.Now()
 	result := &ChunkResult{
 		TaskID: task.ID,
 	}

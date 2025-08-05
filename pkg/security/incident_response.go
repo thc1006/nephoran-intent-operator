@@ -2,12 +2,16 @@ package security
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
+	"net/http"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -35,6 +39,7 @@ type IncidentConfig struct {
 	ForensicsEnabled      bool          `json:"forensics_enabled"`
 	NotificationConfig    *NotificationConfig `json:"notification_config"`
 	IntegrationConfig     *IRIntegrationConfig `json:"integration_config"`
+	WebhookSecret         string               `json:"webhook_secret"`
 }
 
 // NotificationConfig holds notification settings
@@ -1001,4 +1006,205 @@ func (fc *ForensicsCollector) collectEvidenceType(ctx context.Context, incident 
 	}
 
 	return evidence, nil
+}
+
+// HandleWebhook handles incoming webhook events with HMAC signature verification
+func (ir *IncidentResponse) HandleWebhook(w http.ResponseWriter, r *http.Request) {
+	// Read the request body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		ir.logger.Error("Failed to read webhook body", "error", err)
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Get the signature from headers
+	signatureHeader := r.Header.Get("X-Hub-Signature-256")
+	if signatureHeader == "" {
+		ir.logger.Warn("Missing X-Hub-Signature-256 header")
+		http.Error(w, "Missing signature header", http.StatusUnauthorized)
+		return
+	}
+
+	// Verify the signature
+	if !ir.verifyWebhookSignature(body, signatureHeader) {
+		ir.logger.Warn("Invalid webhook signature", "signature", signatureHeader)
+		http.Error(w, "Invalid signature", http.StatusUnauthorized)
+		return
+	}
+
+	// Process the webhook payload
+	if err := ir.processWebhookPayload(r.Context(), body); err != nil {
+		ir.logger.Error("Failed to process webhook payload", "error", err)
+		http.Error(w, "Failed to process webhook", http.StatusInternalServerError)
+		return
+	}
+
+	// Return success response
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Webhook processed successfully"))
+
+	ir.logger.Info("Webhook processed successfully")
+}
+
+// verifyWebhookSignature verifies the HMAC signature of the webhook payload
+func (ir *IncidentResponse) verifyWebhookSignature(payload []byte, signatureHeader string) bool {
+	if ir.config.WebhookSecret == "" {
+		ir.logger.Warn("Webhook secret not configured")
+		return false
+	}
+
+	// Parse the signature header (format: "sha256=<hex_encoded_signature>")
+	if !strings.HasPrefix(signatureHeader, "sha256=") {
+		ir.logger.Warn("Invalid signature header format", "header", signatureHeader)
+		return false
+	}
+
+	receivedSignature := signatureHeader[7:] // Remove "sha256=" prefix
+
+	// Compute HMAC-SHA256 of the payload
+	mac := hmac.New(sha256.New, []byte(ir.config.WebhookSecret))
+	mac.Write(payload)
+	expectedSignature := hex.EncodeToString(mac.Sum(nil))
+
+	// Use constant time comparison to prevent timing attacks
+	return hmac.Equal([]byte(receivedSignature), []byte(expectedSignature))
+}
+
+// processWebhookPayload processes the validated webhook payload
+func (ir *IncidentResponse) processWebhookPayload(ctx context.Context, payload []byte) error {
+	// Parse the JSON payload
+	var webhookData map[string]interface{}
+	if err := json.Unmarshal(payload, &webhookData); err != nil {
+		ir.logger.Error("Failed to parse webhook JSON", "error", err)
+		return fmt.Errorf("invalid JSON payload: %w", err)
+	}
+
+	// Log webhook receipt
+	ir.logger.Info("Processing webhook payload",
+		"content_length", len(payload),
+		"webhook_type", webhookData["type"])
+
+	// Process based on webhook type
+	webhookType, ok := webhookData["type"].(string)
+	if !ok {
+		ir.logger.Warn("Missing or invalid webhook type")
+		return fmt.Errorf("missing or invalid webhook type")
+	}
+
+	switch webhookType {
+	case "security_alert":
+		return ir.processSecurityAlert(ctx, webhookData)
+	case "incident_update":
+		return ir.processIncidentUpdate(ctx, webhookData)
+	case "threat_intelligence":
+		return ir.processThreatIntelligence(ctx, webhookData)
+	default:
+		ir.logger.Info("Unknown webhook type, processing as generic event", "type", webhookType)
+		return ir.processGenericWebhook(ctx, webhookData)
+	}
+}
+
+// processSecurityAlert processes security alert webhooks
+func (ir *IncidentResponse) processSecurityAlert(ctx context.Context, data map[string]interface{}) error {
+	alert, ok := data["alert"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("invalid security alert format")
+	}
+
+	// Create incident from security alert
+	request := &CreateIncidentRequest{
+		Title:       getString(alert, "title", "Security Alert"),
+		Description: getString(alert, "description", "Security alert received via webhook"),
+		Severity:    getString(alert, "severity", "Medium"),
+		Category:    getString(alert, "category", "alert"),
+		Source:      "webhook",
+		Tags:        []string{"webhook", "external"},
+	}
+
+	if _, err := ir.CreateIncident(ctx, request); err != nil {
+		ir.logger.Error("Failed to create incident from security alert", "error", err)
+		return err
+	}
+
+	ir.logger.Info("Created incident from security alert webhook")
+	return nil
+}
+
+// processIncidentUpdate processes incident update webhooks
+func (ir *IncidentResponse) processIncidentUpdate(ctx context.Context, data map[string]interface{}) error {
+	incidentID := getString(data, "incident_id", "")
+	if incidentID == "" {
+		return fmt.Errorf("missing incident_id in webhook payload")
+	}
+
+	updates := &IncidentUpdate{
+		Status:    getString(data, "status", ""),
+		Assignee:  getString(data, "assignee", ""),
+		Severity:  getString(data, "severity", ""),
+		UpdatedBy: "webhook",
+	}
+
+	if err := ir.UpdateIncident(ctx, incidentID, updates); err != nil {
+		ir.logger.Error("Failed to update incident from webhook", "incident_id", incidentID, "error", err)
+		return err
+	}
+
+	ir.logger.Info("Updated incident from webhook", "incident_id", incidentID)
+	return nil
+}
+
+// processThreatIntelligence processes threat intelligence webhooks
+func (ir *IncidentResponse) processThreatIntelligence(ctx context.Context, data map[string]interface{}) error {
+	threatType := getString(data, "threat_type", "unknown")
+	indicators := getStringSlice(data, "indicators")
+
+	ir.logger.Info("Processing threat intelligence",
+		"threat_type", threatType,
+		"indicator_count", len(indicators))
+
+	// Here you would typically:
+	// 1. Update threat intelligence database
+	// 2. Check for matches against current incidents
+	// 3. Create new incidents if critical threats detected
+
+	return nil
+}
+
+// processGenericWebhook processes unknown webhook types
+func (ir *IncidentResponse) processGenericWebhook(ctx context.Context, data map[string]interface{}) error {
+	ir.logger.Info("Processing generic webhook", "keys", getMapKeys(data))
+	// Store the webhook data for later analysis or create a low-priority incident
+	return nil
+}
+
+// Helper functions for webhook processing
+
+func getString(data map[string]interface{}, key, defaultValue string) string {
+	if val, ok := data[key].(string); ok {
+		return val
+	}
+	return defaultValue
+}
+
+func getStringSlice(data map[string]interface{}, key string) []string {
+	if val, ok := data[key].([]interface{}); ok {
+		result := make([]string, 0, len(val))
+		for _, item := range val {
+			if str, ok := item.(string); ok {
+				result = append(result, str)
+			}
+		}
+		return result
+	}
+	return []string{}
+}
+
+func getMapKeys(data map[string]interface{}) []string {
+	keys := make([]string, 0, len(data))
+	for key := range data {
+		keys = append(keys, key)
+	}
+	return keys
 }

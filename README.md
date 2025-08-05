@@ -355,6 +355,178 @@ kubectl apply -k deployments/kustomize/overlays/production
 
 For detailed OAuth2 configuration, see the [OAuth2 Authentication Guide](docs/OAuth2-Authentication-Guide.md).
 
+## Git Integration Configuration
+
+The Nephoran Intent Operator supports GitOps workflows through Git repository integration. The system can authenticate with Git repositories using tokens provided through environment variables or Kubernetes secrets.
+
+### Git Authentication Methods
+
+The system supports two methods for providing Git authentication tokens, with Kubernetes secret mounting taking precedence over environment variables:
+
+#### Method 1: Kubernetes Secret (Recommended for Production)
+
+Create a Kubernetes secret containing your Git token and mount it to the container:
+
+```bash
+# Create a secret containing your Git token
+kubectl create secret generic git-token-secret \
+  --from-literal=token="your-github-personal-access-token"
+
+# Or create from a file
+echo "your-github-personal-access-token" > git-token.txt
+kubectl create secret generic git-token-secret \
+  --from-file=token=git-token.txt
+rm git-token.txt  # Clean up the file for security
+```
+
+Then configure the deployment to mount the secret and use the `GIT_TOKEN_PATH` environment variable:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephio-bridge
+spec:
+  template:
+    spec:
+      containers:
+      - name: nephio-bridge
+        env:
+        - name: GIT_REPO_URL
+          value: "https://github.com/your-username/your-repo.git"
+        - name: GIT_TOKEN_PATH
+          value: "/etc/git-secret/token"
+        - name: GIT_BRANCH
+          value: "main"
+        volumeMounts:
+        - name: git-token
+          mountPath: "/etc/git-secret"
+          readOnly: true
+      volumes:
+      - name: git-token
+        secret:
+          secretName: git-token-secret
+          defaultMode: 0400
+```
+
+#### Method 2: Environment Variable (Development Only)
+
+For development environments, you can provide the Git token directly as an environment variable:
+
+```bash
+# Set the Git token environment variable
+export GIT_TOKEN="your-github-personal-access-token"
+export GIT_REPO_URL="https://github.com/your-username/your-repo.git"
+export GIT_BRANCH="main"
+```
+
+**Note**: This method is not recommended for production environments as it exposes the token in the environment variables.
+
+### Git Configuration Priority
+
+The system uses the following priority order for Git token configuration:
+
+1. **GIT_TOKEN_PATH** (Kubernetes secret mount) - **Highest Priority**
+2. **GIT_TOKEN** (Environment variable) - **Fallback**
+
+If `GIT_TOKEN_PATH` is set, the system will attempt to read the token from the specified file path. If the file read fails or `GIT_TOKEN_PATH` is not set, the system falls back to using the `GIT_TOKEN` environment variable.
+
+### Supported Git Providers
+
+The Git integration supports all Git providers that use HTTPS authentication with tokens:
+
+- **GitHub**: Use Personal Access Tokens (PAT) or Fine-grained Personal Access Tokens
+- **GitLab**: Use Personal Access Tokens or Project Access Tokens
+- **Bitbucket**: Use App Passwords or Repository Access Tokens
+- **Azure DevOps**: Use Personal Access Tokens
+
+### Required Git Token Permissions
+
+Ensure your Git token has the following permissions:
+
+- **Repository access**: Read and write access to the target repositories
+- **Contents**: Read and write permissions for repository contents
+- **Pull requests**: If using PR-based workflows
+- **Metadata**: Read access to repository metadata
+
+### Example Kustomize Configuration
+
+For Kustomize-based deployments, you can add the Git token secret configuration:
+
+```yaml
+# kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- deployment.yaml
+
+secretGenerator:
+- name: git-token-secret
+  literals:
+  - token=your-github-personal-access-token
+
+patches:
+- patch: |-
+    - op: add
+      path: /spec/template/spec/volumes/-
+      value:
+        name: git-token
+        secret:
+          secretName: git-token-secret
+          defaultMode: 0400
+    - op: add
+      path: /spec/template/spec/containers/0/volumeMounts/-
+      value:
+        name: git-token
+        mountPath: "/etc/git-secret"
+        readOnly: true
+    - op: add
+      path: /spec/template/spec/containers/0/env/-
+      value:
+        name: GIT_TOKEN_PATH
+        value: "/etc/git-secret/token"
+  target:
+    kind: Deployment
+    name: nephio-bridge
+```
+
+### Security Best Practices
+
+1. **Use Kubernetes Secrets**: Always use Kubernetes secrets for production deployments
+2. **Rotate Tokens Regularly**: Implement regular token rotation procedures
+3. **Minimal Permissions**: Grant only the minimum required permissions to Git tokens
+4. **Monitor Token Usage**: Monitor Git API usage to detect unauthorized access
+5. **Secure Storage**: Never store tokens in plain text files or version control
+
+### Troubleshooting Git Integration
+
+#### Common Issues
+
+1. **Authentication Failed**:
+   ```bash
+   # Check if the token file exists and is readable
+   kubectl exec deployment/nephio-bridge -- cat /etc/git-secret/token
+   
+   # Verify the token has correct permissions
+   curl -H "Authorization: token YOUR_TOKEN" https://api.github.com/user
+   ```
+
+2. **File Not Found**:
+   ```bash
+   # Check if the secret is mounted correctly
+   kubectl describe pod -l app=nephio-bridge
+   
+   # Verify the secret exists
+   kubectl get secret git-token-secret -o yaml
+   ```
+
+3. **Permission Denied**:
+   ```bash
+   # Check token permissions on the Git provider
+   # Ensure the token has repository access and appropriate scopes
+   ```
+
 ## Usage Examples
 
 The Nephoran Intent Operator supports both **natural language intents** and **direct resource management**.

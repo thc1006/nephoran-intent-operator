@@ -3,6 +3,7 @@ package git
 import (
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -2008,5 +2009,513 @@ func TestGitCommitDetails(t *testing.T) {
 	// Verify commit details (will fail at push, but commit should be created)
 	if err == nil || !strings.Contains(err.Error(), "failed to push") {
 		verifyGitCommit(t, repoPath, commitMessage)
+	}
+}
+
+// ========================================
+// Tests for NewGitClientConfig token loading functionality
+// ========================================
+
+func TestNewGitClientConfig_ValidTokenFile(t *testing.T) {
+	tmpDir := createTempDir(t)
+	tokenFile := filepath.Join(tmpDir, "token.txt")
+	expectedToken := "github_pat_123456789abcdef"
+	
+	// Create token file
+	err := os.WriteFile(tokenFile, []byte(expectedToken), 0600)
+	require.NoError(t, err)
+	
+	config, err := NewGitClientConfig(
+		"git@github.com:test/repo.git",
+		"main", 
+		"fallback-token", // This should not be used
+		tokenFile,
+	)
+	
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, "git@github.com:test/repo.git", config.RepoURL)
+	assert.Equal(t, "main", config.Branch)
+	assert.Equal(t, expectedToken, config.Token)
+	assert.Equal(t, tokenFile, config.TokenPath)
+	assert.Equal(t, "/tmp/deployment-repo", config.RepoPath)
+	assert.NotNil(t, config.Logger)
+}
+
+func TestNewGitClientConfig_TokenFileWithWhitespace(t *testing.T) {
+	tmpDir := createTempDir(t)
+	tokenFile := filepath.Join(tmpDir, "token-with-whitespace.txt")
+	rawToken := "  \n\t  github_pat_with_whitespace  \n\t  "
+	expectedToken := "github_pat_with_whitespace"
+	
+	// Create token file with whitespace
+	err := os.WriteFile(tokenFile, []byte(rawToken), 0600)
+	require.NoError(t, err)
+	
+	config, err := NewGitClientConfig(
+		"git@github.com:test/repo.git",
+		"main",
+		"fallback-token",
+		tokenFile,
+	)
+	
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, expectedToken, config.Token, "Token should be trimmed of whitespace")
+	assert.Equal(t, tokenFile, config.TokenPath)
+}
+
+func TestNewGitClientConfig_InvalidTokenFileFallbackToEnvVar(t *testing.T) {
+	nonExistentFile := "/non/existent/token/file.txt"
+	fallbackToken := "env-var-token-123"
+	
+	config, err := NewGitClientConfig(
+		"git@github.com:test/repo.git",
+		"main",
+		fallbackToken,
+		nonExistentFile,
+	)
+	
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, "git@github.com:test/repo.git", config.RepoURL)
+	assert.Equal(t, "main", config.Branch)
+	assert.Equal(t, fallbackToken, config.Token, "Should fallback to environment variable token")
+	assert.Empty(t, config.TokenPath, "TokenPath should be empty when fallback is used")
+	assert.Equal(t, "/tmp/deployment-repo", config.RepoPath)
+	assert.NotNil(t, config.Logger)
+}
+
+func TestNewGitClientConfig_EmptyTokenPathUsesEnvVar(t *testing.T) {
+	envVarToken := "environment-variable-token"
+	
+	config, err := NewGitClientConfig(
+		"git@github.com:test/repo.git",
+		"main",
+		envVarToken,
+		"", // Empty token path
+	)
+	
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, "git@github.com:test/repo.git", config.RepoURL)
+	assert.Equal(t, "main", config.Branch)
+	assert.Equal(t, envVarToken, config.Token, "Should use environment variable token")
+	assert.Empty(t, config.TokenPath, "TokenPath should be empty")
+	assert.Equal(t, "/tmp/deployment-repo", config.RepoPath)
+	assert.NotNil(t, config.Logger)
+}
+
+func TestNewGitClientConfig_NoTokenFileNoEnvVar(t *testing.T) {
+	nonExistentFile := "/non/existent/token/file.txt"
+	
+	config, err := NewGitClientConfig(
+		"git@github.com:test/repo.git",
+		"main",
+		"", // Empty environment variable token
+		nonExistentFile,
+	)
+	
+	assert.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "no git token available")
+	assert.Contains(t, err.Error(), nonExistentFile)
+}
+
+func TestNewGitClientConfig_EmptyTokenFileAndEmptyEnvVar(t *testing.T) {
+	config, err := NewGitClientConfig(
+		"git@github.com:test/repo.git",
+		"main",
+		"", // Empty environment variable token
+		"", // Empty token path
+	)
+	
+	assert.Error(t, err)
+	assert.Nil(t, config)
+	assert.Contains(t, err.Error(), "no git token available")
+}
+
+func TestNewGitClientConfig_TokenFileReadError(t *testing.T) {
+	tmpDir := createTempDir(t)
+	
+	// Create a directory instead of a file to cause read error
+	tokenDir := filepath.Join(tmpDir, "token-dir")
+	err := os.Mkdir(tokenDir, 0755)
+	require.NoError(t, err)
+	
+	fallbackToken := "fallback-env-token"
+	
+	config, err := NewGitClientConfig(
+		"git@github.com:test/repo.git",
+		"main",
+		fallbackToken,
+		tokenDir, // This is a directory, not a file
+	)
+	
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, fallbackToken, config.Token, "Should fallback to environment variable on read error")
+	assert.Empty(t, config.TokenPath, "TokenPath should be empty when fallback is used")
+}
+
+func TestNewGitClientConfig_TokenFilePermissions(t *testing.T) {
+	tmpDir := createTempDir(t)
+	tokenFile := filepath.Join(tmpDir, "secure-token.txt")
+	expectedToken := "secure_token_123"
+	
+	// Create token file with restricted permissions
+	err := os.WriteFile(tokenFile, []byte(expectedToken), 0600)
+	require.NoError(t, err)
+	
+	config, err := NewGitClientConfig(
+		"git@github.com:test/repo.git",
+		"main",
+		"fallback-token",
+		tokenFile,
+	)
+	
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, expectedToken, config.Token)
+	
+	// Verify file exists and can be read (permissions behavior varies by OS)
+	info, err := os.Stat(tokenFile)
+	require.NoError(t, err)
+	assert.True(t, info.Mode().IsRegular(), "Token file should be a regular file")
+}
+
+func TestNewGitClientConfig_EmptyTokenFileContent(t *testing.T) {
+	tmpDir := createTempDir(t)
+	tokenFile := filepath.Join(tmpDir, "empty-token.txt")
+	fallbackToken := "fallback-token-456"
+	
+	// Create empty token file
+	err := os.WriteFile(tokenFile, []byte(""), 0600)
+	require.NoError(t, err)
+	
+	config, err := NewGitClientConfig(
+		"git@github.com:test/repo.git",
+		"main",
+		fallbackToken,
+		tokenFile,
+	)
+	
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, "", config.Token, "Empty token file should result in empty token")
+	assert.Equal(t, tokenFile, config.TokenPath)
+}
+
+func TestNewGitClientConfig_WhitespaceOnlyTokenFile(t *testing.T) {
+	tmpDir := createTempDir(t)
+	tokenFile := filepath.Join(tmpDir, "whitespace-token.txt")
+	fallbackToken := "fallback-token-789"
+	
+	// Create token file with only whitespace
+	err := os.WriteFile(tokenFile, []byte("   \n\t   \n   "), 0600)
+	require.NoError(t, err)
+	
+	config, err := NewGitClientConfig(
+		"git@github.com:test/repo.git",
+		"main",
+		fallbackToken,
+		tokenFile,
+	)
+	
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, "", config.Token, "Whitespace-only token file should result in empty token after trimming")
+	assert.Equal(t, tokenFile, config.TokenPath)
+}
+
+func TestNewGitClientConfig_TableDriven(t *testing.T) {
+	tmpDir := createTempDir(t)
+	
+	testCases := []struct {
+		name          string
+		setupToken    func() (string, string) // Returns tokenPath, tokenContent
+		envVarToken   string
+		expectError   bool
+		expectedToken string
+		expectedPath  string
+	}{
+		{
+			name: "Valid token file with content",
+			setupToken: func() (string, string) {
+				tokenFile := filepath.Join(tmpDir, "valid-token.txt")
+				content := "github_pat_valid_token"
+				os.WriteFile(tokenFile, []byte(content), 0600)
+				return tokenFile, content
+			},
+			envVarToken:   "env-token",
+			expectError:   false,
+			expectedToken: "github_pat_valid_token",
+			expectedPath:  "file", // Indicates should have TokenPath set to the file
+		},
+		{
+			name: "Token file with multiline content",
+			setupToken: func() (string, string) {
+				tokenFile := filepath.Join(tmpDir, "multiline-token.txt")
+				content := "line1\ngithub_pat_multiline\nline3"
+				os.WriteFile(tokenFile, []byte(content), 0600)
+				return tokenFile, content
+			},
+			envVarToken:   "env-token",
+			expectError:   false,
+			expectedToken: "line1\ngithub_pat_multiline\nline3",
+			expectedPath:  "file", // Indicates should have TokenPath set to the file
+		},
+		{
+			name: "Non-existent file with valid env var",
+			setupToken: func() (string, string) {
+				return "/non/existent/file.txt", ""
+			},
+			envVarToken:   "valid-env-token",
+			expectError:   false,
+			expectedToken: "valid-env-token",
+			expectedPath:  "",
+		},
+		{
+			name: "Non-existent file with empty env var",
+			setupToken: func() (string, string) {
+				return "/non/existent/file.txt", ""
+			},
+			envVarToken: "",
+			expectError: true,
+		},
+		{
+			name: "Empty path with valid env var",
+			setupToken: func() (string, string) {
+				return "", ""
+			},
+			envVarToken:   "env-var-token",
+			expectError:   false,
+			expectedToken: "env-var-token",
+			expectedPath:  "",
+		},
+		{
+			name: "Empty path with empty env var",
+			setupToken: func() (string, string) {
+				return "", ""
+			},
+			envVarToken: "",
+			expectError: true,
+		},
+	}
+	
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			tokenPath, _ := tc.setupToken()
+			
+			config, err := NewGitClientConfig(
+				"git@github.com:test/repo.git",
+				"main",
+				tc.envVarToken,
+				tokenPath,
+			)
+			
+			if tc.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, config)
+				assert.Contains(t, err.Error(), "no git token available")
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, config)
+				assert.Equal(t, "git@github.com:test/repo.git", config.RepoURL)
+				assert.Equal(t, "main", config.Branch)
+				assert.Equal(t, tc.expectedToken, config.Token)
+				
+				if tc.expectedPath == "file" {
+					assert.Equal(t, tokenPath, config.TokenPath)
+				} else if tc.expectedPath == "" {
+					assert.Empty(t, config.TokenPath)
+				} else {
+					assert.Equal(t, tc.expectedPath, config.TokenPath)
+				}
+				
+				assert.Equal(t, "/tmp/deployment-repo", config.RepoPath)
+				assert.NotNil(t, config.Logger)
+			}
+		})
+	}
+}
+
+func TestNewClientFromConfig(t *testing.T) {
+	config := &ClientConfig{
+		RepoURL:  "git@github.com:test/repo.git",
+		Branch:   "main",
+		Token:    "test-token",
+		RepoPath: "/custom/repo/path",
+		Logger:   slog.Default().With("test", "value"),
+	}
+	
+	client := NewClientFromConfig(config)
+	
+	assert.NotNil(t, client)
+	assert.Equal(t, config.RepoURL, client.RepoURL)
+	assert.Equal(t, config.Branch, client.Branch)
+	assert.Equal(t, config.Token, client.SshKey)
+	assert.Equal(t, config.RepoPath, client.RepoPath)
+	assert.Equal(t, config.Logger, client.logger)
+}
+
+func TestNewClientFromConfig_NilLogger(t *testing.T) {
+	config := &ClientConfig{
+		RepoURL:  "git@github.com:test/repo.git",
+		Branch:   "main",
+		Token:    "test-token",
+		RepoPath: "/custom/repo/path",
+		Logger:   nil, // Nil logger should be handled
+	}
+	
+	client := NewClientFromConfig(config)
+	
+	assert.NotNil(t, client)
+	assert.NotNil(t, client.logger, "Logger should be set to default when nil")
+	assert.Equal(t, config.RepoURL, client.RepoURL)
+	assert.Equal(t, config.Branch, client.Branch)
+	assert.Equal(t, config.Token, client.SshKey)
+	assert.Equal(t, config.RepoPath, client.RepoPath)
+}
+
+// Integration test for token loading and client creation workflow
+func TestTokenLoadingIntegration(t *testing.T) {
+	tmpDir := createTempDir(t)
+	tokenFile := filepath.Join(tmpDir, "integration-token.txt")
+	token := "integration_test_token_123"
+	
+	// Create token file
+	err := os.WriteFile(tokenFile, []byte("  "+token+"  \n"), 0600)
+	require.NoError(t, err)
+	
+	// Create config with token file
+	config, err := NewGitClientConfig(
+		"git@github.com:test/repo.git",
+		"develop",
+		"fallback-token",
+		tokenFile,
+	)
+	require.NoError(t, err)
+	require.NotNil(t, config)
+	
+	// Create client from config
+	client := NewClientFromConfig(config)
+	require.NotNil(t, client)
+	
+	// Verify the complete workflow
+	assert.Equal(t, "git@github.com:test/repo.git", client.RepoURL)
+	assert.Equal(t, "develop", client.Branch)
+	assert.Equal(t, token, client.SshKey, "Token should be trimmed and used as SSH key")
+	assert.Equal(t, "/tmp/deployment-repo", client.RepoPath)
+	assert.NotNil(t, client.logger)
+}
+
+// Edge case tests for token loading
+func TestNewGitClientConfig_EdgeCases(t *testing.T) {
+	t.Run("Very large token file", func(t *testing.T) {
+		tmpDir := createTempDir(t)
+		tokenFile := filepath.Join(tmpDir, "large-token.txt")
+		
+		// Create a very large token (10KB)
+		largeToken := strings.Repeat("a", 10240)
+		err := os.WriteFile(tokenFile, []byte(largeToken), 0600)
+		require.NoError(t, err)
+		
+		config, err := NewGitClientConfig(
+			"git@github.com:test/repo.git",
+			"main",
+			"fallback",
+			tokenFile,
+		)
+		
+		assert.NoError(t, err)
+		assert.NotNil(t, config)
+		assert.Equal(t, largeToken, config.Token)
+	})
+	
+	t.Run("Token file with binary content", func(t *testing.T) {
+		tmpDir := createTempDir(t)
+		tokenFile := filepath.Join(tmpDir, "binary-token.txt")
+		
+		// Create a file with binary content
+		binaryContent := []byte{0x00, 0x01, 0x02, 0xFF, 0xFE, 0xFD}
+		err := os.WriteFile(tokenFile, binaryContent, 0600)
+		require.NoError(t, err)
+		
+		config, err := NewGitClientConfig(
+			"git@github.com:test/repo.git",
+			"main",
+			"fallback",
+			tokenFile,
+		)
+		
+		assert.NoError(t, err)
+		assert.NotNil(t, config)
+		// Binary content should be read as-is and trimmed
+		expectedToken := strings.TrimSpace(string(binaryContent))
+		assert.Equal(t, expectedToken, config.Token)
+	})
+	
+	t.Run("Unicode content in token file", func(t *testing.T) {
+		tmpDir := createTempDir(t)
+		tokenFile := filepath.Join(tmpDir, "unicode-token.txt")
+		
+		// Create a file with Unicode content
+		unicodeToken := "github_pat_🔑_token_测试"
+		err := os.WriteFile(tokenFile, []byte(unicodeToken), 0600)
+		require.NoError(t, err)
+		
+		config, err := NewGitClientConfig(
+			"git@github.com:test/repo.git",
+			"main",
+			"fallback",
+			tokenFile,
+		)
+		
+		assert.NoError(t, err)
+		assert.NotNil(t, config)
+		assert.Equal(t, unicodeToken, config.Token)
+	})
+}
+
+// Benchmark tests for token loading
+func BenchmarkNewGitClientConfig_TokenFile(b *testing.B) {
+	tmpDir, err := os.MkdirTemp("", "bench-token-*")
+	require.NoError(b, err)
+	defer os.RemoveAll(tmpDir)
+	
+	tokenFile := filepath.Join(tmpDir, "bench-token.txt")
+	token := "benchmark_token_123456789"
+	err = os.WriteFile(tokenFile, []byte(token), 0600)
+	require.NoError(b, err)
+	
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		config, err := NewGitClientConfig(
+			"git@github.com:test/repo.git",
+			"main",
+			"fallback",
+			tokenFile,
+		)
+		if err != nil || config == nil {
+			b.Fatal("Benchmark failed")
+		}
+	}
+}
+
+func BenchmarkNewGitClientConfig_EnvVar(b *testing.B) {
+	token := "benchmark_env_token_123456789"
+	
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		config, err := NewGitClientConfig(
+			"git@github.com:test/repo.git",
+			"main",
+			token,
+			"", // Empty token path to force env var usage
+		)
+		if err != nil || config == nil {
+			b.Fatal("Benchmark failed")
+		}
 	}
 }

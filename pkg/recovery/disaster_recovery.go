@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/prometheus/client_golang/prometheus"
@@ -106,11 +108,11 @@ type BackupRetention struct {
 
 // BackupStorageConf defines storage configuration
 type BackupStorageConf struct {
-	Type           string            `json:"type"` // s3, gcs, azure
-	Bucket         string            `json:"bucket"`
-	Path           string            `json:"path"`
-	Region         string            `json:"region"`
-	Credentials    map[string]string `json:"credentials"`
+	Type        string `json:"type"`        // s3, gcs, azure
+	Bucket      string `json:"bucket"`
+	Path        string `json:"path"`
+	Region      string `json:"region"`
+	AWSProfile  string `json:"aws_profile"` // AWS profile for authentication
 }
 
 // BackupStore interface for backup storage
@@ -667,9 +669,39 @@ type S3BackupStore struct {
 
 // NewS3BackupStore creates a new S3 backup store
 func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3BackupStore {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(backupConfig.Region))
+	ctx := context.TODO()
+	
+	// Configure AWS config options
+	configOptions := []func(*config.LoadOptions) error{
+		config.WithRegion(backupConfig.Region),
+	}
+	
+	// Check for AWS profile configuration
+	awsProfile := backupConfig.AWSProfile
+	if awsProfile == "" {
+		// Fall back to AWS_PROFILE environment variable if not specified in config
+		awsProfile = os.Getenv("AWS_PROFILE")
+	}
+	
+	if awsProfile != "" {
+		logger.Info("Using AWS profile for authentication", "profile", awsProfile)
+		configOptions = append(configOptions, config.WithSharedConfigProfile(awsProfile))
+	} else {
+		logger.Info("Using default AWS credential chain (IRSA, instance profile, or environment variables)")
+	}
+	
+	// Configure retry policy with exponential backoff
+	retryConfig := retry.NewStandard(func(o *retry.StandardOptions) {
+		o.MaxAttempts = 3
+		o.Backoff = retry.NewExponentialJitterBackoff(time.Second)
+	})
+	configOptions = append(configOptions, config.WithRetryer(func() aws.Retryer {
+		return retryConfig
+	}))
+	
+	cfg, err := config.LoadDefaultConfig(ctx, configOptions...)
 	if err != nil {
-		logger.Error("failed to load AWS config", "error", err)
+		logger.Error("failed to load AWS config", "error", err, "profile", awsProfile)
 		// Return a backup store with nil client - errors will be handled in methods
 		return &S3BackupStore{
 			config: &backupConfig,
@@ -685,7 +717,7 @@ func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3Ba
 	}
 }
 
-// Upload uploads backup to S3
+// Upload uploads backup to S3 with retry logic
 func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 	if s.client == nil {
 		return fmt.Errorf("S3 client not initialized")
@@ -699,6 +731,9 @@ func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 
 	key := filepath.Join(s.config.Path, backup.ID, "metadata.json")
 	
+	s.logger.Info("Uploading backup to S3", "bucket", s.config.Bucket, "key", key, "backupID", backup.ID)
+	
+	// Upload with automatic retry (configured in client)
 	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.config.Bucket),
 		Key:    aws.String(key),
@@ -706,9 +741,11 @@ func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 	})
 
 	if err != nil {
+		s.logger.Error("Failed to upload backup to S3", "bucket", s.config.Bucket, "key", key, "error", err)
 		return fmt.Errorf("failed to upload to S3: %w", err)
 	}
 
+	s.logger.Info("Successfully uploaded backup to S3", "bucket", s.config.Bucket, "key", key, "backupID", backup.ID)
 	return nil
 }
 
@@ -856,19 +893,163 @@ func (rtr *RecoveryTestResult) calculateOverallStatus() {
 	rtr.OverallStatus = "passed"
 }
 
+// Download downloads backup from S3 with retry logic
 func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup, error) {
-	return &Backup{}, nil
+	if s.client == nil {
+		return nil, fmt.Errorf("S3 client not initialized")
+	}
+
+	key := filepath.Join(s.config.Path, backupID, "metadata.json")
+	
+	s.logger.Info("Downloading backup from S3", "bucket", s.config.Bucket, "key", key, "backupID", backupID)
+	
+	// Download with automatic retry (configured in client)
+	result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(s.config.Bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		s.logger.Error("Failed to download backup from S3", "bucket", s.config.Bucket, "key", key, "error", err)
+		return nil, fmt.Errorf("failed to download backup from S3: %w", err)
+	}
+	defer result.Body.Close()
+
+	// Read and unmarshal backup data
+	data, err := io.ReadAll(result.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read backup data: %w", err)
+	}
+
+	var backup Backup
+	if err := json.Unmarshal(data, &backup); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal backup: %w", err)
+	}
+
+	s.logger.Info("Successfully downloaded backup from S3", "bucket", s.config.Bucket, "key", key, "backupID", backupID)
+	return &backup, nil
 }
 
+// List lists all backups in S3 with retry logic
 func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
-	return []*BackupMetadata{}, nil
+	if s.client == nil {
+		return nil, fmt.Errorf("S3 client not initialized")
+	}
+
+	s.logger.Info("Listing backups from S3", "bucket", s.config.Bucket, "prefix", s.config.Path)
+	
+	// List objects with automatic retry (configured in client)
+	result, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+		Bucket: aws.String(s.config.Bucket),
+		Prefix: aws.String(s.config.Path),
+	})
+	if err != nil {
+		s.logger.Error("Failed to list backups from S3", "bucket", s.config.Bucket, "prefix", s.config.Path, "error", err)
+		return nil, fmt.Errorf("failed to list objects from S3: %w", err)
+	}
+
+	var backups []*BackupMetadata
+	for _, object := range result.Contents {
+		// Extract backup ID from object key
+		key := aws.ToString(object.Key)
+		if !strings.HasSuffix(key, "metadata.json") {
+			continue
+		}
+		
+		// Extract backup ID from path
+		parts := strings.Split(key, "/")
+		if len(parts) < 2 {
+			continue
+		}
+		backupID := parts[len(parts)-2]
+		
+		backups = append(backups, &BackupMetadata{
+			ID:        backupID,
+			Type:      "full", // Default type
+			Status:    "completed",
+			CreatedAt: aws.ToTime(object.LastModified),
+			Size:      aws.ToInt64(object.Size),
+			Region:    s.config.Region,
+			Tags:      make(map[string]string),
+		})
+	}
+
+	s.logger.Info("Successfully listed backups from S3", "bucket", s.config.Bucket, "count", len(backups))
+	return backups, nil
 }
 
+// Delete deletes backup from S3 with retry logic
 func (s *S3BackupStore) Delete(ctx context.Context, backupID string) error {
+	if s.client == nil {
+		return fmt.Errorf("S3 client not initialized")
+	}
+
+	// First, list all objects with the backup prefix
+	prefix := filepath.Join(s.config.Path, backupID)
+	
+	s.logger.Info("Deleting backup from S3", "bucket", s.config.Bucket, "prefix", prefix, "backupID", backupID)
+	
+	result, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
+		Bucket: aws.String(s.config.Bucket),
+		Prefix: aws.String(prefix),
+	})
+	if err != nil {
+		s.logger.Error("Failed to list objects for deletion", "bucket", s.config.Bucket, "prefix", prefix, "error", err)
+		return fmt.Errorf("failed to list objects for deletion: %w", err)
+	}
+
+	// Delete each object with automatic retry (configured in client)
+	for _, object := range result.Contents {
+		key := aws.ToString(object.Key)
+		_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
+			Bucket: aws.String(s.config.Bucket),
+			Key:    aws.String(key),
+		})
+		if err != nil {
+			s.logger.Error("Failed to delete object from S3", "bucket", s.config.Bucket, "key", key, "error", err)
+			return fmt.Errorf("failed to delete object %s: %w", key, err)
+		}
+	}
+
+	s.logger.Info("Successfully deleted backup from S3", "bucket", s.config.Bucket, "prefix", prefix, "backupID", backupID)
 	return nil
 }
 
+// Verify verifies backup integrity in S3 with retry logic
 func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
+	if s.client == nil {
+		return fmt.Errorf("S3 client not initialized")
+	}
+
+	key := filepath.Join(s.config.Path, backupID, "metadata.json")
+	
+	s.logger.Info("Verifying backup in S3", "bucket", s.config.Bucket, "key", key, "backupID", backupID)
+	
+	// Check if object exists with automatic retry (configured in client)
+	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
+		Bucket: aws.String(s.config.Bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		s.logger.Error("Failed to verify backup in S3", "bucket", s.config.Bucket, "key", key, "error", err)
+		return fmt.Errorf("failed to verify backup in S3: %w", err)
+	}
+
+	// Download and validate backup metadata
+	backup, err := s.Download(ctx, backupID)
+	if err != nil {
+		return fmt.Errorf("failed to download backup for verification: %w", err)
+	}
+
+	// Basic validation
+	if backup.ID != backupID {
+		return fmt.Errorf("backup ID mismatch: expected %s, got %s", backupID, backup.ID)
+	}
+
+	if backup.Status != "completed" {
+		return fmt.Errorf("backup is not in completed status: %s", backup.Status)
+	}
+
+	s.logger.Info("Successfully verified backup in S3", "bucket", s.config.Bucket, "key", key, "backupID", backupID)
 	return nil
 }
 

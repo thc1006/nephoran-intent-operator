@@ -1,3 +1,5 @@
+//go:build !disable_rag && !test
+
 package rag
 
 import (
@@ -276,7 +278,6 @@ func (s *CostAwareEmbeddingService) GetEmbeddings(
 	ctx context.Context,
 	request EmbeddingRequest,
 ) (*EmbeddingResponse, error) {
-	start := time.Now()
 	s.metrics.requestsTotal.Inc()
 
 	// Select optimal provider

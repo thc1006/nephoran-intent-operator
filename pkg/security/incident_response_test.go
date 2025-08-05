@@ -2,6 +2,14 @@ package security
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -850,4 +858,501 @@ var _ = Describe("IncidentResponse", func() {
 			})
 		})
 	})
+
+	Describe("HandleWebhook", func() {
+		var (
+			webhookSecret string
+		)
+
+		BeforeEach(func() {
+			webhookSecret = "test-webhook-secret-key-12345"
+			config.WebhookSecret = webhookSecret
+			
+			var err error
+			ir, err = NewIncidentResponse(config)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("with valid HMAC signature", func() {
+			It("should process webhook with valid security alert payload", func() {
+				payload := `{
+					"type": "security_alert",
+					"alert": {
+						"title": "Suspicious Login Detected",
+						"description": "Multiple failed login attempts from unknown IP",
+						"severity": "High",
+						"category": "authentication",
+						"source": "auth-system"
+					}
+				}`
+
+				signature := generateValidSignature([]byte(payload), webhookSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusOK))
+				Expect(string(recorder.body)).To(ContainSubstring("Webhook processed successfully"))
+			})
+
+			It("should process webhook with incident update payload", func() {
+				// First create an incident to update
+				incident, err := ir.CreateIncident(ctx, &CreateIncidentRequest{
+					Title:    "Test Incident for Webhook",
+					Severity: "Medium",
+					Category: "test",
+					Source:   "test-webhook",
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				payload := fmt.Sprintf(`{
+					"type": "incident_update",
+					"incident_id": "%s",
+					"status": "Acknowledged",
+					"assignee": "analyst-webhook",
+					"severity": "High"
+				}`, incident.ID)
+
+				signature := generateValidSignature([]byte(payload), webhookSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusOK))
+
+				// Verify the incident was updated
+				updatedIncident, err := ir.GetIncident(incident.ID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(updatedIncident.Status).To(Equal("Acknowledged"))
+				Expect(updatedIncident.Assignee).To(Equal("analyst-webhook"))
+				Expect(updatedIncident.Severity).To(Equal("High"))
+			})
+
+			It("should process webhook with threat intelligence payload", func() {
+				payload := `{
+					"type": "threat_intelligence",
+					"threat_type": "malware_c2",
+					"indicators": ["malicious-domain.com", "192.168.1.100", "suspicious-hash-abc123"]
+				}`
+
+				signature := generateValidSignature([]byte(payload), webhookSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusOK))
+			})
+
+			It("should process webhook with unknown type as generic webhook", func() {
+				payload := `{
+					"type": "custom_event",
+					"custom_field": "custom_value",
+					"data": {"key": "value"}
+				}`
+
+				signature := generateValidSignature([]byte(payload), webhookSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusOK))
+			})
+		})
+
+		Context("with invalid HMAC signature", func() {
+			It("should reject webhook with completely invalid signature", func() {
+				payload := `{"type": "security_alert", "alert": {"title": "test"}}`
+				req := createWebhookRequest(payload, "sha256=invalid-signature-12345")
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusUnauthorized))
+				Expect(string(recorder.body)).To(ContainSubstring("Invalid signature"))
+			})
+
+			It("should reject webhook with wrong secret used in signature", func() {
+				payload := `{"type": "security_alert", "alert": {"title": "test"}}`
+				wrongSecret := "wrong-secret-key"
+				signature := generateValidSignature([]byte(payload), wrongSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusUnauthorized))
+				Expect(string(recorder.body)).To(ContainSubstring("Invalid signature"))
+			})
+
+			It("should reject webhook with signature format without sha256 prefix", func() {
+				payload := `{"type": "security_alert", "alert": {"title": "test"}}`
+				// Generate valid signature but remove the sha256= prefix
+				validSig := generateValidSignature([]byte(payload), webhookSecret)
+				invalidSig := strings.TrimPrefix(validSig, "sha256=")
+				req := createWebhookRequest(payload, invalidSig)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusUnauthorized))
+				Expect(string(recorder.body)).To(ContainSubstring("Invalid signature"))
+			})
+
+			It("should reject webhook with empty signature", func() {
+				payload := `{"type": "security_alert", "alert": {"title": "test"}}`
+				req := createWebhookRequest(payload, "")
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusUnauthorized))
+				Expect(string(recorder.body)).To(ContainSubstring("Missing signature header"))
+			})
+
+			It("should reject webhook with signature for different payload", func() {
+				originalPayload := `{"type": "security_alert", "alert": {"title": "original"}}`
+				modifiedPayload := `{"type": "security_alert", "alert": {"title": "modified"}}`
+				
+				// Sign the original payload but send the modified one
+				signature := generateValidSignature([]byte(originalPayload), webhookSecret)
+				req := createWebhookRequest(modifiedPayload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusUnauthorized))
+				Expect(string(recorder.body)).To(ContainSubstring("Invalid signature"))
+			})
+		})
+
+		Context("with missing or malformed data", func() {
+			It("should reject webhook with missing signature header", func() {
+				payload := `{"type": "security_alert", "alert": {"title": "test"}}`
+				req := createWebhookRequestWithoutSignature(payload)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusUnauthorized))
+				Expect(string(recorder.body)).To(ContainSubstring("Missing signature header"))
+			})
+
+			It("should handle empty request body", func() {
+				payload := ""
+				signature := generateValidSignature([]byte(payload), webhookSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusInternalServerError))
+				Expect(string(recorder.body)).To(ContainSubstring("Failed to process webhook"))
+			})
+
+			It("should handle invalid JSON payload", func() {
+				payload := `{"type": "security_alert", "alert": {"title": "test"` // Missing closing braces
+				signature := generateValidSignature([]byte(payload), webhookSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusInternalServerError))
+				Expect(string(recorder.body)).To(ContainSubstring("Failed to process webhook"))
+			})
+
+			It("should handle payload without type field", func() {
+				payload := `{"alert": {"title": "test alert"}}`
+				signature := generateValidSignature([]byte(payload), webhookSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusInternalServerError))
+				Expect(string(recorder.body)).To(ContainSubstring("Failed to process webhook"))
+			})
+
+			It("should handle security alert with missing alert field", func() {
+				payload := `{"type": "security_alert", "other_field": "value"}`
+				signature := generateValidSignature([]byte(payload), webhookSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusInternalServerError))
+				Expect(string(recorder.body)).To(ContainSubstring("Failed to process webhook"))
+			})
+
+			It("should handle incident update with missing incident_id", func() {
+				payload := `{"type": "incident_update", "status": "Resolved"}`
+				signature := generateValidSignature([]byte(payload), webhookSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusInternalServerError))
+				Expect(string(recorder.body)).To(ContainSubstring("Failed to process webhook"))
+			})
+
+			It("should handle incident update with non-existent incident_id", func() {
+				payload := `{
+					"type": "incident_update", 
+					"incident_id": "non-existent-incident-id",
+					"status": "Resolved"
+				}`
+				signature := generateValidSignature([]byte(payload), webhookSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusInternalServerError))
+				Expect(string(recorder.body)).To(ContainSubstring("Failed to process webhook"))
+			})
+		})
+
+		Context("when webhook secret is not configured", func() {
+			BeforeEach(func() {
+				config.WebhookSecret = ""
+				var err error
+				ir, err = NewIncidentResponse(config)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should reject all webhooks when secret is empty", func() {
+				payload := `{"type": "security_alert", "alert": {"title": "test"}}`
+				signature := "sha256=any-signature"
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusUnauthorized))
+				Expect(string(recorder.body)).To(ContainSubstring("Invalid signature"))
+			})
+		})
+
+		Context("stress testing HMAC verification", func() {
+			It("should handle large payloads correctly", func() {
+				// Create a large payload (1MB)
+				largeData := make(map[string]interface{})
+				largeData["type"] = "security_alert"
+				largeData["alert"] = map[string]interface{}{
+					"title":       "Large Alert",
+					"description": strings.Repeat("A", 1024*1024), // 1MB of data
+					"severity":    "High",
+				}
+
+				payloadBytes, err := json.Marshal(largeData)
+				Expect(err).ToNot(HaveOccurred())
+
+				signature := generateValidSignature(payloadBytes, webhookSecret)
+				req := createWebhookRequest(string(payloadBytes), signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusOK))
+			})
+
+			It("should consistently reject invalid signatures (timing attack protection)", func() {
+				payload := `{"type": "security_alert", "alert": {"title": "test"}}`
+				validSignature := generateValidSignature([]byte(payload), webhookSecret)
+				
+				// Test multiple invalid signatures to ensure consistent timing
+				invalidSignatures := []string{
+					"sha256=0000000000000000000000000000000000000000000000000000000000000000",
+					"sha256=1111111111111111111111111111111111111111111111111111111111111111",
+					"sha256=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+					"sha256=zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+					validSignature[:len(validSignature)-2] + "00", // Almost valid signature
+				}
+
+				for _, invalidSig := range invalidSignatures {
+					req := createWebhookRequest(payload, invalidSig)
+					recorder := &mockResponseWriter{}
+
+					start := time.Now()
+					ir.HandleWebhook(recorder, req)
+					duration := time.Since(start)
+
+					Expect(recorder.statusCode).To(Equal(http.StatusUnauthorized))
+					Expect(duration).To(BeNumerically("<", 100*time.Millisecond)) // Should be fast
+				}
+			})
+		})
+
+		Context("edge cases and special characters", func() {
+			It("should handle payloads with special characters", func() {
+				payload := `{
+					"type": "security_alert",
+					"alert": {
+						"title": "Alert with special chars: üñíçødé & symbols!@#$%^&*()",
+						"description": "Description with newlines\nand tabs\t and quotes \"'",
+						"severity": "Medium"
+					}
+				}`
+
+				signature := generateValidSignature([]byte(payload), webhookSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusOK))
+			})
+
+			It("should handle binary data in payload", func() {
+				// Create payload with some binary-like content (base64 encoded)
+				binaryData := make([]byte, 256)
+				for i := range binaryData {
+					binaryData[i] = byte(i)
+				}
+				encodedData := base64.StdEncoding.EncodeToString(binaryData)
+
+				payload := fmt.Sprintf(`{
+					"type": "security_alert",
+					"alert": {
+						"title": "Binary Data Alert",
+						"description": "Alert with binary data",
+						"severity": "Low",
+						"binary_field": "%s"
+					}
+				}`, encodedData)
+
+				signature := generateValidSignature([]byte(payload), webhookSecret)
+				req := createWebhookRequest(payload, signature)
+				recorder := &mockResponseWriter{}
+
+				ir.HandleWebhook(recorder, req)
+
+				Expect(recorder.statusCode).To(Equal(http.StatusOK))
+			})
+		})
+	})
+
+	Describe("verifyWebhookSignature", func() {
+		BeforeEach(func() {
+			config.WebhookSecret = "test-secret-key"
+			var err error
+			ir, err = NewIncidentResponse(config)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		Context("signature verification logic", func() {
+			It("should verify valid signature correctly", func() {
+				payload := []byte("test payload")
+				signature := generateValidSignature(payload, "test-secret-key")
+
+				result := ir.verifyWebhookSignature(payload, signature)
+				Expect(result).To(BeTrue())
+			})
+
+			It("should reject invalid signature", func() {
+				payload := []byte("test payload")
+				invalidSignature := "sha256=invalid123"
+
+				result := ir.verifyWebhookSignature(payload, invalidSignature)
+				Expect(result).To(BeFalse())
+			})
+
+			It("should reject signature without sha256 prefix", func() {
+				payload := []byte("test payload")
+				signature := generateValidSignature(payload, "test-secret-key")
+				signatureWithoutPrefix := strings.TrimPrefix(signature, "sha256=")
+
+				result := ir.verifyWebhookSignature(payload, signatureWithoutPrefix)
+				Expect(result).To(BeFalse())
+			})
+
+			It("should handle empty payload", func() {
+				payload := []byte("")
+				signature := generateValidSignature(payload, "test-secret-key")
+
+				result := ir.verifyWebhookSignature(payload, signature)
+				Expect(result).To(BeTrue())
+			})
+
+			It("should handle empty secret", func() {
+				config.WebhookSecret = ""
+				ir, err := NewIncidentResponse(config)
+				Expect(err).ToNot(HaveOccurred())
+
+				payload := []byte("test payload")
+				signature := "sha256=anysignature"
+
+				result := ir.verifyWebhookSignature(payload, signature)
+				Expect(result).To(BeFalse())
+			})
+		})
+	})
 })
+
+// Helper functions for webhook testing
+
+func generateValidSignature(payload []byte, secret string) string {
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(payload)
+	signature := hex.EncodeToString(mac.Sum(nil))
+	return "sha256=" + signature
+}
+
+func createWebhookRequest(payload, signature string) *http.Request {
+	req := &http.Request{
+		Method: "POST",
+		Header: make(http.Header),
+		Body:   &mockReadCloser{strings.NewReader(payload)},
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Hub-Signature-256", signature)
+	return req
+}
+
+func createWebhookRequestWithoutSignature(payload string) *http.Request {
+	req := &http.Request{
+		Method: "POST",
+		Header: make(http.Header),
+		Body:   &mockReadCloser{strings.NewReader(payload)},
+	}
+	req.Header.Set("Content-Type", "application/json")
+	return req
+}
+
+// Mock types for testing
+
+type mockResponseWriter struct {
+	statusCode int
+	body       []byte
+	headers    http.Header
+}
+
+func (m *mockResponseWriter) Header() http.Header {
+	if m.headers == nil {
+		m.headers = make(http.Header)
+	}
+	return m.headers
+}
+
+func (m *mockResponseWriter) Write(data []byte) (int, error) {
+	m.body = append(m.body, data...)
+	return len(data), nil
+}
+
+func (m *mockResponseWriter) WriteHeader(statusCode int) {
+	m.statusCode = statusCode
+}
+
+type mockReadCloser struct {
+	*strings.Reader
+}
+
+func (m *mockReadCloser) Close() error {
+	return nil
+}

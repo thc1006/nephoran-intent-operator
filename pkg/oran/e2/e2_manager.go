@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
@@ -346,6 +347,29 @@ func NewE2Manager(config *E2ManagerConfig) (*E2Manager, error) {
 	go manager.startMetricsCollector()
 
 	return manager, nil
+}
+
+// ProvisionNode is a high-level method to provision an E2 node based on E2NodeSet spec
+func (m *E2Manager) ProvisionNode(ctx context.Context, spec nephoranv1.E2NodeSetSpec) error {
+	// This method provides a simplified interface for the controller to provision nodes
+	// It combines the lower-level operations into a single call
+	
+	// For now, this returns success as the controller already handles the individual operations
+	// In a real implementation, this could perform additional provisioning steps like:
+	// - Validating node requirements
+	// - Setting up additional configuration
+	// - Coordinating with external systems
+	// - Managing resource allocation
+	
+	if m.logger != nil {
+		operationType := "PRODUCTION"
+		if m.config.SimulationMode {
+			operationType = "SIMULATION"
+		}
+		m.logger.Printf("%s: ProvisionNode called for spec with %d replicas", operationType, spec.Replicas)
+	}
+	
+	return nil
 }
 
 // SetupE2Connection establishes an E2 connection to a node with comprehensive error handling

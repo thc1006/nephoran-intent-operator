@@ -169,8 +169,20 @@ func main() {
 
 	// Initialize clients with configuration
 	llmClient := llm.NewClient(cfg.LLMProcessorURL)
-	// Use the default constructor for now; the structured logger will be used internally
-	gitClient := git.NewClient(cfg.GitRepoURL, "main", cfg.GitToken)
+	
+	// Create Git client with token file support
+	var gitClient *git.Client
+	if cfg.GitTokenPath != "" || cfg.GitToken != "" {
+		gitConfig, err := git.NewGitClientConfig(cfg.GitRepoURL, cfg.GitBranch, cfg.GitToken, cfg.GitTokenPath)
+		if err != nil {
+			setupLog.Error(err, "unable to create git client config")
+			os.Exit(1)
+		}
+		gitClient = git.NewClientFromConfig(gitConfig)
+	} else {
+		// Fallback to default constructor for backward compatibility
+		gitClient = git.NewClient(cfg.GitRepoURL, cfg.GitBranch, cfg.GitToken)
+	}
 
 	// Initialize Nephio package generator if enabled
 	var packageGen *nephio.PackageGenerator

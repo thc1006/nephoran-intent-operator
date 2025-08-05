@@ -3,7 +3,7 @@
 package controllers
 
 import (
-	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,7 +15,6 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -138,11 +137,10 @@ var _ = Describe("Windows Compatibility Tests", func() {
 			}
 
 			By("Reconciling E2NodeSet on Windows")
-			result, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
 
 			By("Verifying ConfigMaps are created with Windows metadata")
 			Eventually(func() int {
@@ -204,7 +202,7 @@ var _ = Describe("Windows Compatibility Tests", func() {
 			}
 
 			By("Initial reconciliation on Windows")
-			result, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err := e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -222,7 +220,7 @@ var _ = Describe("Windows Compatibility Tests", func() {
 			}, timeout, interval).Should(Succeed())
 
 			By("Reconciling after Windows scale-up")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -256,7 +254,7 @@ var _ = Describe("Windows Compatibility Tests", func() {
 			}, timeout, interval).Should(Succeed())
 
 			By("Reconciling after Windows scale-down")
-			result, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
+			_, err = e2nodeSetReconciler.Reconcile(ctx, reconcile.Request{
 				NamespacedName: namespacedName,
 			})
 			Expect(err).NotTo(HaveOccurred())

@@ -24,12 +24,14 @@ type E2NodeSetReconciler struct {
 	client.Client
 	Scheme     *runtime.Scheme
 	GitClient  git.ClientInterface
-	E2Manager  *e2.E2Manager // E2Manager for E2AP protocol integration
+	E2Manager  e2.E2ManagerInterface // E2Manager for E2AP protocol integration
 }
 
 //+kubebuilder:rbac:groups=nephoran.com,resources=e2nodesets,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=nephoran.com,resources=e2nodesets/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=nephoran.com,resources=e2nodesets/finalizers,verbs=update
+//+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
+//+kubebuilder:rbac:groups=nephoran.com,resources=e2nodesets.*.example.com,verbs=create;update;patch
 //+kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -77,24 +79,33 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	logger.Info("E2NodeSet status", "current", currentReplicas, "desired", desiredReplicas)
 
-	// Handle scaling operations using E2AP protocol
-	if currentReplicas < desiredReplicas {
-		// Scale up - create and register new E2 nodes with Near-RT RIC
-		for i := currentReplicas; i < desiredReplicas; i++ {
-			if err := r.createE2NodeWithE2AP(ctx, &e2nodeSet, i); err != nil {
-				logger.Error(err, "Failed to create E2 node via E2AP", "index", i)
-				return ctrl.Result{RequeueAfter: time.Second * 30}, err
-			}
-			logger.Info("Created E2 node via E2AP", "index", i)
+	// Handle scaling operations using E2Manager ProvisionNode
+	if currentReplicas != desiredReplicas {
+		// Use the high-level ProvisionNode method for any scaling operations
+		if err := r.E2Manager.ProvisionNode(ctx, e2nodeSet.Spec); err != nil {
+			logger.Error(err, "Failed to provision nodes via E2Manager", "current", currentReplicas, "desired", desiredReplicas)
+			return ctrl.Result{RequeueAfter: time.Second * 30}, err
 		}
-	} else if currentReplicas > desiredReplicas {
-		// Scale down - deregister and delete excess E2 nodes
-		for i := desiredReplicas; i < currentReplicas; i++ {
-			if err := r.deleteE2NodeWithE2AP(ctx, &e2nodeSet, i); err != nil {
-				logger.Error(err, "Failed to delete E2 node via E2AP", "index", i)
-				return ctrl.Result{RequeueAfter: time.Second * 30}, err
+		
+		// Perform the actual scaling operations
+		if currentReplicas < desiredReplicas {
+			// Scale up - create and register new E2 nodes with Near-RT RIC
+			for i := currentReplicas; i < desiredReplicas; i++ {
+				if err := r.createE2NodeWithE2AP(ctx, &e2nodeSet, i); err != nil {
+					logger.Error(err, "Failed to create E2 node via E2AP", "index", i)
+					return ctrl.Result{RequeueAfter: time.Second * 30}, err
+				}
+				logger.Info("Created E2 node via E2AP", "index", i)
 			}
-			logger.Info("Deleted E2 node via E2AP", "index", i)
+		} else if currentReplicas > desiredReplicas {
+			// Scale down - deregister and delete excess E2 nodes
+			for i := desiredReplicas; i < currentReplicas; i++ {
+				if err := r.deleteE2NodeWithE2AP(ctx, &e2nodeSet, i); err != nil {
+					logger.Error(err, "Failed to delete E2 node via E2AP", "index", i)
+					return ctrl.Result{RequeueAfter: time.Second * 30}, err
+				}
+				logger.Info("Deleted E2 node via E2AP", "index", i)
+			}
 		}
 	}
 

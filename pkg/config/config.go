@@ -25,9 +25,10 @@ type Config struct {
 	RAGAPITimeout     time.Duration
 
 	// Git integration configuration
-	GitRepoURL string
-	GitToken   string
-	GitBranch  string
+	GitRepoURL  string
+	GitToken    string
+	GitTokenPath string  // Path to file containing Git token
+	GitBranch   string
 
 	// Weaviate configuration
 	WeaviateURL   string
@@ -117,8 +118,21 @@ func LoadFromEnv() (*Config, error) {
 		cfg.GitRepoURL = val
 	}
 
-	if val := os.Getenv("GIT_TOKEN"); val != "" {
-		cfg.GitToken = val
+	// Check for token file path first
+	if val := os.Getenv("GIT_TOKEN_PATH"); val != "" {
+		cfg.GitTokenPath = val
+		// Try to read the token from file
+		if tokenData, err := os.ReadFile(val); err == nil {
+			cfg.GitToken = strings.TrimSpace(string(tokenData))
+		}
+		// If file read fails, GitToken will remain empty and fallback will occur
+	}
+
+	// Fallback to direct environment variable if no token loaded from file
+	if cfg.GitToken == "" {
+		if val := os.Getenv("GIT_TOKEN"); val != "" {
+			cfg.GitToken = val
+		}
 	}
 
 	if val := os.Getenv("GIT_BRANCH"); val != "" {

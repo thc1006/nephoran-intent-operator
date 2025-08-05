@@ -21,6 +21,16 @@ type ClientInterface interface {
 	RemoveDirectory(path string, commitMessage string) error
 }
 
+// ClientConfig holds configuration for creating a Git client.
+type ClientConfig struct {
+	RepoURL   string
+	Branch    string
+	Token     string   // Token loaded from file or environment
+	TokenPath string   // Optional path to token file
+	RepoPath  string
+	Logger    *slog.Logger
+}
+
 // Client implements the Git client.
 type Client struct {
 	RepoURL  string
@@ -28,6 +38,55 @@ type Client struct {
 	SshKey   string
 	RepoPath string
 	logger   *slog.Logger
+}
+
+// NewGitClientConfig creates a new client configuration with token loading support.
+// If tokenPath is provided, it reads the token from the file.
+// If file reading fails or tokenPath is empty, it falls back to the provided token.
+func NewGitClientConfig(repoURL, branch, token, tokenPath string) (*ClientConfig, error) {
+	config := &ClientConfig{
+		RepoURL:  repoURL,
+		Branch:   branch,
+		RepoPath: "/tmp/deployment-repo",
+		Logger:   slog.Default().With("component", "git-client"),
+	}
+
+	// Try to read token from file first
+	if tokenPath != "" {
+		tokenData, err := os.ReadFile(tokenPath)
+		if err == nil {
+			config.Token = strings.TrimSpace(string(tokenData))
+			config.TokenPath = tokenPath
+			return config, nil
+		}
+		// Log warning but continue with fallback
+		config.Logger.Warn("Failed to read token from file, falling back to environment variable",
+			"path", tokenPath,
+			"error", err)
+	}
+
+	// Fallback to provided token (from environment variable)
+	if token != "" {
+		config.Token = token
+		return config, nil
+	}
+
+	return nil, fmt.Errorf("no git token available: neither file at %s nor environment variable", tokenPath)
+}
+
+// NewClientFromConfig creates a new Git client from configuration.
+func NewClientFromConfig(config *ClientConfig) *Client {
+	if config.Logger == nil {
+		config.Logger = slog.Default().With("component", "git-client")
+	}
+
+	return &Client{
+		RepoURL:  config.RepoURL,
+		Branch:   config.Branch,
+		SshKey:   config.Token,
+		RepoPath: config.RepoPath,
+		logger:   config.Logger,
+	}
 }
 
 // NewClient creates a new Git client.

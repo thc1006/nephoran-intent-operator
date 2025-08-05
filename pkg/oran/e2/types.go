@@ -4,7 +4,29 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
+
+// E2ManagerInterface defines the interface for E2 management operations
+type E2ManagerInterface interface {
+	// Core node operations
+	SetupE2Connection(nodeID string, endpoint string) error
+	RegisterE2Node(ctx context.Context, nodeID string, ranFunctions []RanFunction) error
+	DeregisterE2Node(ctx context.Context, nodeID string) error
+	ListE2Nodes(ctx context.Context) ([]*E2Node, error)
+
+	// High-level provisioning operation for controller use
+	ProvisionNode(ctx context.Context, spec nephoranv1.E2NodeSetSpec) error
+
+	// Subscription operations
+	SubscribeE2(req *E2SubscriptionRequest) (*E2Subscription, error)
+	SendControlMessage(ctx context.Context, controlReq *RICControlRequest) (*RICControlAcknowledge, error)
+
+	// Management operations
+	GetMetrics() *E2Metrics
+	Shutdown() error
+}
 
 // Additional types and interfaces for E2 implementation
 

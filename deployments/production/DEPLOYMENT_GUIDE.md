@@ -65,6 +65,22 @@ This creates:
 
 ### 2. Configure Secrets (Production)
 
+#### Git Integration Secrets
+
+Configure Git authentication for GitOps workflows:
+
+```bash
+# Create Git token secret for GitOps integration
+kubectl create secret generic git-token-secret \
+  --from-literal=token="your-github-personal-access-token" \
+  -n nephoran-oran
+
+# Verify the secret was created
+kubectl get secret git-token-secret -n nephoran-oran -o yaml
+```
+
+#### O-RAN Interface Secrets
+
 Update the secrets with production values:
 
 ```bash
@@ -113,7 +129,41 @@ spec:
   - oran-adaptor.nephoran-oran.svc.cluster.local
 ```
 
-### 4. Configure External Services
+### 4. Configure GitOps Integration
+
+Configure the nephio-bridge deployment to use Git token secrets:
+
+```bash
+# Update the nephio-bridge deployment with Git configuration
+kubectl patch deployment nephio-bridge -n nephoran-oran --patch '
+spec:
+  template:
+    spec:
+      containers:
+      - name: nephio-bridge
+        env:
+        - name: GIT_REPO_URL
+          value: "https://github.com/your-org/your-control-repo.git"
+        - name: GIT_TOKEN_PATH
+          value: "/etc/git-secret/token"
+        - name: GIT_BRANCH
+          value: "main"
+        volumeMounts:
+        - name: git-token
+          mountPath: "/etc/git-secret"
+          readOnly: true
+      volumes:
+      - name: git-token
+        secret:
+          secretName: git-token-secret
+          defaultMode: 0400
+'
+
+# Verify the patch was applied
+kubectl describe deployment nephio-bridge -n nephoran-oran
+```
+
+### 5. Configure External Services
 
 Update the ConfigMap with actual O-RAN component endpoints:
 
@@ -127,7 +177,7 @@ kubectl edit configmap oran-adaptor-config -n nephoran-oran
 # - o2_ims_url: Actual O2 IMS endpoint
 ```
 
-### 5. Verify Deployment
+### 6. Verify Deployment
 
 ```bash
 # Check deployment status
@@ -306,7 +356,24 @@ env:
    kubectl logs -n cert-manager deploy/cert-manager
    ```
 
-4. **Performance Issues**:
+4. **Git Integration Issues**:
+   ```bash
+   # Check if Git token secret is mounted correctly
+   kubectl exec -n nephoran-oran deployment/nephio-bridge -- ls -la /etc/git-secret/
+   
+   # Verify Git token is readable
+   kubectl exec -n nephoran-oran deployment/nephio-bridge -- cat /etc/git-secret/token | wc -c
+   
+   # Test Git repository access
+   kubectl exec -n nephoran-oran deployment/nephio-bridge -- \
+     curl -H "Authorization: token $(cat /etc/git-secret/token)" \
+     https://api.github.com/user
+   
+   # Check Git-related environment variables
+   kubectl exec -n nephoran-oran deployment/nephio-bridge -- env | grep GIT
+   ```
+
+5. **Performance Issues**:
    ```bash
    # Check resource usage
    kubectl top pods -n nephoran-oran
