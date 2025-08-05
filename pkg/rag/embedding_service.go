@@ -1551,3 +1551,77 @@ func (es *EmbeddingService) startCostMonitoring() {
 		}
 	}
 }
+
+// CheckStatus checks the health status of the embedding service
+func (es *EmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatus, error) {
+	if es == nil {
+		return &ComponentStatus{
+			Status:    "unhealthy",
+			Message:   "Embedding service not initialized",
+			LastCheck: time.Now(),
+		}, nil
+	}
+
+	// Check if we have any providers
+	if len(es.providers) == 0 {
+		return &ComponentStatus{
+			Status:    "unhealthy",
+			Message:   "No embedding providers configured",
+			LastCheck: time.Now(),
+		}, nil
+	}
+
+	// Check each provider's health
+	healthyProviders := 0
+	totalProviders := len(es.providers)
+	details := make(map[string]interface{})
+
+	for name, provider := range es.providers {
+		providerHealthy := true
+		var providerError error
+
+		// Perform a quick test embedding to verify provider functionality
+		if provider != nil {
+			testCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+			_, err := provider.GenerateEmbeddings(testCtx, []string{"test"})
+			cancel()
+
+			if err != nil {
+				providerHealthy = false
+				providerError = err
+			}
+		} else {
+			providerHealthy = false
+			providerError = fmt.Errorf("provider is nil")
+		}
+
+		if providerHealthy {
+			healthyProviders++
+		}
+
+		details[name] = map[string]interface{}{
+			"healthy": providerHealthy,
+			"error":   providerError,
+		}
+	}
+
+	// Determine overall status
+	var status, message string
+	if healthyProviders == 0 {
+		status = "unhealthy"
+		message = "All embedding providers are unavailable"
+	} else if healthyProviders < totalProviders {
+		status = "degraded"
+		message = fmt.Sprintf("%d of %d embedding providers are healthy", healthyProviders, totalProviders)
+	} else {
+		status = "healthy"
+		message = "All embedding providers are operational"
+	}
+
+	return &ComponentStatus{
+		Status:    status,
+		Message:   message,
+		LastCheck: time.Now(),
+		Details:   details,
+	}, nil
+}

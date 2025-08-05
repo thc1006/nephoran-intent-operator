@@ -317,7 +317,223 @@ var _ = Describe("EnhancedRetrievalService", func() {
 			Expect(service.config.FusionAlpha).To(BeNumerically("<=", 1.0))
 		})
 	})
+
+	Describe("GetHealthStatus", func() {
+		var (
+			mockWeaviateClient  *MockWeaviateClient
+			mockEmbeddingService *MockEmbeddingService
+		)
+
+		BeforeEach(func() {
+			mockWeaviateClient = &MockWeaviateClient{}
+			mockEmbeddingService = &MockEmbeddingService{}
+			
+			// Create service with mocked dependencies
+			service.weaviateClient = mockWeaviateClient
+			service.embeddingService = mockEmbeddingService
+		})
+
+		Context("when all components are healthy", func() {
+			BeforeEach(func() {
+				// Set up healthy weaviate
+				mockWeaviateClient.SetHealthStatus(true, time.Now())
+				
+				// Set up healthy embedding service
+				mockEmbeddingService.SetHealthStatus("healthy", "All providers operational", nil)
+				
+				// Set up healthy metrics
+				service.updateMetrics(func(m *RetrievalMetrics) {
+					m.TotalQueries = 100
+					m.SuccessfulQueries = 95
+					m.FailedQueries = 5
+				})
+			})
+
+			It("should return healthy status", func() {
+				healthStatus, err := service.GetHealthStatus(ctx)
+				
+				Expect(err).ToNot(HaveOccurred())
+				Expect(healthStatus).NotTo(BeNil())
+				Expect(healthStatus.Status).To(Equal("healthy"))
+				Expect(healthStatus.SuccessRate).To(BeNumerically("==", 0.95))
+				Expect(healthStatus.TotalQueries).To(BeNumerically("==", 100))
+				Expect(healthStatus.Components["vector_store"].Status).To(Equal("healthy"))
+				Expect(healthStatus.Components["embedding_service"].Status).To(Equal("healthy"))
+			})
+		})
+
+		Context("when TotalQueries is zero", func() {
+			BeforeEach(func() {
+				// Set up healthy components
+				mockWeaviateClient.SetHealthStatus(true, time.Now())
+				mockEmbeddingService.SetHealthStatus("healthy", "All providers operational", nil)
+				
+				// Zero queries
+				service.updateMetrics(func(m *RetrievalMetrics) {
+					m.TotalQueries = 0
+					m.SuccessfulQueries = 0
+					m.FailedQueries = 0
+				})
+			})
+
+			It("should return success_rate of 1.0", func() {
+				healthStatus, err := service.GetHealthStatus(ctx)
+				
+				Expect(err).ToNot(HaveOccurred())
+				Expect(healthStatus.SuccessRate).To(BeNumerically("==", 1.0))
+				Expect(healthStatus.Status).To(Equal("healthy"))
+			})
+		})
+
+		Context("when embedding service is unhealthy", func() {
+			BeforeEach(func() {
+				mockWeaviateClient.SetHealthStatus(true, time.Now())
+				mockEmbeddingService.SetHealthStatus("unhealthy", "All providers unavailable", errors.New("connection failed"))
+				
+				service.updateMetrics(func(m *RetrievalMetrics) {
+					m.TotalQueries = 100
+					m.SuccessfulQueries = 90
+					m.FailedQueries = 10
+				})
+			})
+
+			It("should return unhealthy status", func() {
+				healthStatus, err := service.GetHealthStatus(ctx)
+				
+				Expect(err).ToNot(HaveOccurred())
+				Expect(healthStatus.Status).To(Equal("unhealthy"))
+				Expect(healthStatus.Components["embedding_service"].Status).To(Equal("unhealthy"))
+			})
+		})
+
+		Context("when success rate is low", func() {
+			BeforeEach(func() {
+				// Healthy components but low success rate
+				mockWeaviateClient.SetHealthStatus(true, time.Now())
+				mockEmbeddingService.SetHealthStatus("healthy", "All providers operational", nil)
+				
+				service.updateMetrics(func(m *RetrievalMetrics) {
+					m.TotalQueries = 100
+					m.SuccessfulQueries = 30  // 30% success rate
+					m.FailedQueries = 70
+				})
+			})
+
+			It("should return unhealthy status for low success rate", func() {
+				healthStatus, err := service.GetHealthStatus(ctx)
+				
+				Expect(err).ToNot(HaveOccurred())
+				Expect(healthStatus.Status).To(Equal("unhealthy"))
+				Expect(healthStatus.SuccessRate).To(BeNumerically("==", 0.3))
+			})
+		})
+
+		Context("when success rate is degraded", func() {
+			BeforeEach(func() {
+				mockWeaviateClient.SetHealthStatus(true, time.Now())
+				mockEmbeddingService.SetHealthStatus("healthy", "All providers operational", nil)
+				
+				service.updateMetrics(func(m *RetrievalMetrics) {
+					m.TotalQueries = 100
+					m.SuccessfulQueries = 70  // 70% success rate
+					m.FailedQueries = 30
+				})
+			})
+
+			It("should return degraded status", func() {
+				healthStatus, err := service.GetHealthStatus(ctx)
+				
+				Expect(err).ToNot(HaveOccurred())
+				Expect(healthStatus.Status).To(Equal("degraded"))
+				Expect(healthStatus.SuccessRate).To(BeNumerically("==", 0.7))
+			})
+		})
+
+		Context("when context is cancelled", func() {
+			It("should handle cancellation gracefully", func() {
+				cancelCtx, cancel := context.WithCancel(ctx)
+				cancel()
+				
+				healthStatus, err := service.GetHealthStatus(cancelCtx)
+				
+				// Should still complete but may have limited component checks
+				Expect(err).ToNot(HaveOccurred())
+				Expect(healthStatus).NotTo(BeNil())
+			})
+		})
+
+		Context("when components have mixed states", func() {
+			BeforeEach(func() {
+				mockWeaviateClient.SetHealthStatus(true, time.Now())
+				mockEmbeddingService.SetHealthStatus("degraded", "Some providers unavailable", nil)
+				
+				service.updateMetrics(func(m *RetrievalMetrics) {
+					m.TotalQueries = 100
+					m.SuccessfulQueries = 85  // Good success rate
+					m.FailedQueries = 15
+				})
+			})
+
+			It("should return degraded status when any component is degraded", func() {
+				healthStatus, err := service.GetHealthStatus(ctx)
+				
+				Expect(err).ToNot(HaveOccurred())
+				Expect(healthStatus.Status).To(Equal("degraded"))
+				Expect(healthStatus.Components["embedding_service"].Status).To(Equal("degraded"))
+				Expect(healthStatus.Components["vector_store"].Status).To(Equal("healthy"))
+			})
+		})
+	})
 })
+
+// MockWeaviateClient for testing
+type MockWeaviateClient struct {
+	isHealthy bool
+	lastCheck time.Time
+}
+
+func (m *MockWeaviateClient) SetHealthStatus(healthy bool, lastCheck time.Time) {
+	m.isHealthy = healthy
+	m.lastCheck = lastCheck
+}
+
+func (m *MockWeaviateClient) GetHealthStatus() *WeaviateHealthStatus {
+	return &WeaviateHealthStatus{
+		IsHealthy: m.isHealthy,
+		LastCheck: m.lastCheck,
+	}
+}
+
+// MockEmbeddingService for testing
+type MockEmbeddingService struct {
+	status  string
+	message string
+	err     error
+}
+
+func (m *MockEmbeddingService) SetHealthStatus(status, message string, err error) {
+	m.status = status
+	m.message = message
+	m.err = err
+}
+
+func (m *MockEmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatus, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	
+	return &ComponentStatus{
+		Status:    m.status,
+		Message:   m.message,
+		LastCheck: time.Now(),
+	}, nil
+}
+
+// WeaviateHealthStatus represents Weaviate health status
+type WeaviateHealthStatus struct {
+	IsHealthy bool
+	LastCheck time.Time
+}
 
 // MockRedisCache for testing
 type MockRedisCache struct {
