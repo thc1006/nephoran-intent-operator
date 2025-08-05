@@ -88,7 +88,7 @@ COPY --from=builder /root/.local /home/rag/.local
 
 # Set up application directory
 WORKDIR /app
-COPY pkg/rag /app
+COPY rag-python /app
 
 # Set ownership and permissions with security hardening
 RUN chown -R rag:rag /app /home/rag/.local && \

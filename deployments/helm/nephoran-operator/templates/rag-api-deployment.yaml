@@ -27,7 +27,7 @@ spec:
         - name: rag-api
           image: "{{ .Values.global.imageRegistry }}{{ .Values.ragApi.image.repository }}:{{ .Values.ragApi.image.tag }}"
           imagePullPolicy: {{ .Values.ragApi.image.pullPolicy }}
-          command: ["python", "pkg/rag/api.py"]
+          command: ["python", "rag-python/api.py"]
           ports:
             - name: http
               containerPort: {{ .Values.ragApi.service.targetPort }}

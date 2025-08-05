@@ -142,8 +142,8 @@ services:
   # RAG API Service
   rag-api:
     build:
-      context: ./pkg/rag
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: pkg/rag/Dockerfile
     image: nephoran-rag-api:${VERSION:-v2.0.0}
     container_name: nephoran-rag-api
     restart: unless-stopped

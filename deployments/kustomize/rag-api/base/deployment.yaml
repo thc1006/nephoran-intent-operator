@@ -15,7 +15,7 @@ spec:
       containers:
       - name: rag-api
         image: python:3.11-slim
-        command: ["python", "pkg/rag/api.py"]
+        command: ["python", "rag-python/api.py"]
         ports:
         - containerPort: 5001
         env:
