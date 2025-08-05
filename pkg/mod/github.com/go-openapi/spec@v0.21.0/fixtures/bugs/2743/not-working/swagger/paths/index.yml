@@ -1,6 +1,0 @@
-/foo:
-  $ref: ./foo.yml
-/bar:
-  $ref: ./bar.yml
-/nested:
-  $ref: ./nested.yml#/response

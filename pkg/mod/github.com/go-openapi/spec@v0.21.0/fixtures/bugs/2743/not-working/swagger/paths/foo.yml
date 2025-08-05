@@ -1,8 +1,0 @@
-get:
-  responses:
-    200:
-      description: OK
-    500:
-      description: OK
-      schema:
-        $ref: '../definitions.yml#/ErrorPayload'

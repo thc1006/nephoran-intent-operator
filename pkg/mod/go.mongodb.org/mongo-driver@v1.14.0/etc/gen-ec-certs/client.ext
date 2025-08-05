@@ -1,3 +1,0 @@
-basicConstraints = CA: FALSE
-subjectAltName = DNS: localhost, IP: 127.0.0.1
-extendedKeyUsage = clientAuth

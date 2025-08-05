@@ -40,6 +40,9 @@ node_modules/
 .pnp
 .pnp.js
 
+# Go module cache - NEVER commit this directory
+pkg/mod/
+
 # Go workspace files
 go.work
 go.work.sum

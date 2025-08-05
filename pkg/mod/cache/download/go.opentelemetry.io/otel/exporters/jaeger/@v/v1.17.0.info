@@ -1,1 +1,0 @@
-{"Version":"v1.17.0","Time":"2023-08-28T14:50:03Z","Origin":{"VCS":"git","URL":"https://github.com/open-telemetry/opentelemetry-go","Subdir":"exporters/jaeger","Hash":"3c476ce1816ae6f38758e90cc36d8b77ebcc223b","Ref":"refs/tags/exporters/jaeger/v1.17.0"}}
