@@ -552,8 +552,8 @@ func (x *TrafficSteeringXApp) executeTrafficSteering(ctx context.Context, decisi
 		return fmt.Errorf("failed to create control request: %w", err)
 	}
 
-	// Send control message through SDK
-	ack, err := x.sdk.SendControlMessage(ctx, controlReq)
+	// Send control message through SDK to the configured E2 node
+	ack, err := x.sdk.SendControlMessage(ctx, x.sdk.GetConfig().E2NodeID, controlReq)
 	if err != nil {
 		return fmt.Errorf("failed to send control message: %w", err)
 	}

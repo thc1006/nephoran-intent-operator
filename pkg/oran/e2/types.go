@@ -21,7 +21,7 @@ type E2ManagerInterface interface {
 
 	// Subscription operations
 	SubscribeE2(req *E2SubscriptionRequest) (*E2Subscription, error)
-	SendControlMessage(ctx context.Context, controlReq *RICControlRequest) (*RICControlAcknowledge, error)
+	SendControlMessage(ctx context.Context, nodeID string, controlReq *RICControlRequest) (*RICControlAcknowledge, error)
 
 	// Management operations
 	GetMetrics() *E2Metrics

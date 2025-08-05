@@ -148,10 +148,10 @@ func (om *OAuth2Manager) GetAuthenticationInfo() *AuthenticationInfo {
 		RequireAuth: om.config.RequireAuth,
 	}
 
-	// TODO: Implement provider listing when AuthMiddleware has proper config access
-	// if om.authMiddleware != nil {
-	//     info.Providers = om.authMiddleware.GetProviders()
-	// }
+	// Get configured providers from auth middleware
+	if om.authMiddleware != nil {
+		info.Providers = om.authMiddleware.GetProviders()
+	}
 
 	return info
 }

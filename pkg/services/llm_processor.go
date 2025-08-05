@@ -174,12 +174,14 @@ func (s *LLMProcessorService) validateLLMConfig(apiKey string) error {
 // loadSecureAPIKeys loads API keys from files, Kubernetes secrets, or environment variables
 func (s *LLMProcessorService) loadSecureAPIKeys(ctx context.Context) (*config.APIKeys, error) {
 	// Try file-based secrets first
-	// TODO: Implement LoadFileBasedAPIKeys function
-	// fileAPIKeys, err := config.LoadFileBasedAPIKeys()
-	// if err == nil && !fileAPIKeys.IsEmpty() {
-	//     s.logger.Info("Loaded API keys from files")
-	//     return fileAPIKeys, nil
-	// }
+	fileAPIKeys, err := config.LoadFileBasedAPIKeysWithValidation()
+	if err == nil && !fileAPIKeys.IsEmpty() {
+		s.logger.Info("Loaded API keys from files")
+		return fileAPIKeys, nil
+	}
+	if err != nil {
+		s.logger.Info("Failed to load API keys from files", "error", err.Error())
+	}
 	
 	// If file loading failed or returned empty keys, try Kubernetes secrets
 	if s.secretManager != nil {

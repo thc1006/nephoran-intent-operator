@@ -1320,17 +1320,17 @@ func (c *NoOpCache) Stats() CacheStats                                     { ret
 func createProvider(config ProviderConfig, httpClient *http.Client) BasicEmbeddingProvider {
 	switch config.Name {
 	case "openai":
-		return NewOpenAIProvider(config, httpClient)
+		return NewBasicOpenAIProvider(config, httpClient)
 	case "azure":
-		return NewAzureOpenAIProvider(config, httpClient)
+		return NewBasicAzureOpenAIProvider(config, httpClient)
 	case "huggingface":
-		return NewHuggingFaceProvider(config, httpClient)
+		return NewBasicHuggingFaceProvider(config, httpClient)
 	case "cohere":
 		return NewCohereProvider(config, httpClient)
 	case "local":
 		return NewLocalProvider(config)
 	default:
-		return NewOpenAIProvider(config, httpClient)
+		return NewBasicOpenAIProvider(config, httpClient)
 	}
 }
 
@@ -1583,7 +1583,7 @@ func (es *EmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatus, 
 		// Perform a quick test embedding to verify provider functionality
 		if provider != nil {
 			testCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-			_, err := provider.GenerateEmbeddings(testCtx, []string{"test"})
+			_, _, err := provider.GenerateEmbeddings(testCtx, []string{"test"})
 			cancel()
 
 			if err != nil {

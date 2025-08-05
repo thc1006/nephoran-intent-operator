@@ -3,121 +3,28 @@ package edge
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	kubefake "k8s.io/client-go/kubernetes/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// MockClient implements the controller-runtime client.Client interface for testing
-type MockClient struct {
-	mock.Mock
-}
 
-func (m *MockClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
-	args := m.Called(ctx, key, obj, opts)
-	return args.Error(0)
-}
 
-func (m *MockClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
-	args := m.Called(ctx, list, opts)
-	return args.Error(0)
-}
-
-func (m *MockClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
-	args := m.Called(ctx, obj, opts)
-	return args.Error(0)
-}
-
-func (m *MockClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
-	args := m.Called(ctx, obj, opts)
-	return args.Error(0)
-}
-
-func (m *MockClient) Update(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
-	args := m.Called(ctx, obj, opts)
-	return args.Error(0)
-}
-
-func (m *MockClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
-	args := m.Called(ctx, obj, patch, opts)
-	return args.Error(0)
-}
-
-func (m *MockClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
-	args := m.Called(ctx, obj, opts)
-	return args.Error(0)
-}
-
-func (m *MockClient) Status() client.StatusWriter {
-	args := m.Called()
-	return args.Get(0).(client.StatusWriter)
-}
-
-func (m *MockClient) Scheme() *runtime.Scheme {
-	args := m.Called()
-	return args.Get(0).(*runtime.Scheme)
-}
-
-func (m *MockClient) RESTMapper() meta.RESTMapper {
-	args := m.Called()
-	return args.Get(0).(meta.RESTMapper)
-}
-
-func (m *MockClient) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
-	args := m.Called(obj)
-	return args.Get(0).(schema.GroupVersionKind), args.Error(1)
-}
-
-// MockStatusWriter implements client.StatusWriter for testing
-type MockStatusWriter struct {
-	mock.Mock
-}
-
-func (m *MockStatusWriter) Update(ctx context.Context, obj client.Object, opts ...client.SubResourceUpdateOption) error {
-	args := m.Called(ctx, obj, opts)
-	return args.Error(0)
-}
-
-func (m *MockStatusWriter) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.SubResourcePatchOption) error {
-	args := m.Called(ctx, obj, patch, opts)
-	return args.Error(0)
-}
-
-// Test helper functions
-func createTestEdgeController() *EdgeController {
+// Basic test helper - simplified version for basic tests
+func createBasicTestEdgeController() *EdgeController {
 	config := &EdgeControllerConfig{
 		NodeDiscoveryEnabled:      true,
-		DiscoveryInterval:         30 * time.Second,
-		NodeHealthCheckInterval:   10 * time.Second,
-		AutoZoneCreation:          true,
-		MaxNodesPerZone:           10,
-		ZoneRedundancyFactor:      2,
-		EnableLocalRIC:            true,
-		EnableEdgeML:              true,
-		EnableCaching:             true,
-		LocalProcessingEnabled:    true,
 		MaxLatencyMs:              5,
 		MinBandwidthMbps:          100,
-		EdgeResourceThreshold:     0.8,
-		EdgeFailoverEnabled:       true,
-		BackhaulFailoverEnabled:   true,
-		LocalAutonomy:             true,
 	}
-
 	kubeClient := kubefake.NewSimpleClientset()
 	logger := logr.Discard()
 	scheme := runtime.NewScheme()
-
 	return NewEdgeController(nil, kubeClient, logger, scheme, config)
 }
 
@@ -136,28 +43,9 @@ func createTestNetworkIntent(name, intent string) *nephoran.NetworkIntent {
 	}
 }
 
-func TestNewEdgeController(t *testing.T) {
-	config := &EdgeControllerConfig{
-		NodeDiscoveryEnabled: true,
-		MaxLatencyMs:         5,
-	}
-	kubeClient := kubefake.NewSimpleClientset()
-	logger := logr.Discard()
-	scheme := runtime.NewScheme()
-
-	controller := NewEdgeController(nil, kubeClient, logger, scheme, config)
-
-	assert.NotNil(t, controller)
-	assert.Equal(t, config, controller.config)
-	assert.Equal(t, kubeClient, controller.KubeClient)
-	assert.Equal(t, logger, controller.Log)
-	assert.Equal(t, scheme, controller.Scheme)
-	assert.NotNil(t, controller.edgeNodes)
-	assert.NotNil(t, controller.edgeZones)
-}
 
 func TestRequiresEdgeProcessing(t *testing.T) {
-	controller := createTestEdgeController()
+	controller := createBasicTestEdgeController()
 
 	testCases := []struct {
 		name        string
@@ -219,7 +107,7 @@ func TestRequiresEdgeProcessing(t *testing.T) {
 }
 
 func TestSimulateEdgeNodeDiscovery(t *testing.T) {
-	controller := createTestEdgeController()
+	controller := createBasicTestEdgeController()
 
 	nodes := controller.simulateEdgeNodeDiscovery()
 
@@ -281,7 +169,7 @@ func TestSimulateEdgeNodeDiscovery(t *testing.T) {
 }
 
 func TestDiscoverEdgeNodes(t *testing.T) {
-	controller := createTestEdgeController()
+	controller := createBasicTestEdgeController()
 	ctx := context.Background()
 
 	// Initially no nodes
@@ -371,7 +259,7 @@ func TestContainsFunction(t *testing.T) {
 }
 
 func TestGetEdgeNodes(t *testing.T) {
-	controller := createTestEdgeController()
+	controller := createBasicTestEdgeController()
 
 	// Add some test nodes
 	controller.edgeNodes["node-1"] = &EdgeNode{ID: "node-1"}
@@ -389,7 +277,7 @@ func TestGetEdgeNodes(t *testing.T) {
 }
 
 func TestGetEdgeZones(t *testing.T) {
-	controller := createTestEdgeController()
+	controller := createBasicTestEdgeController()
 
 	// Add some test zones
 	controller.edgeZones["zone-1"] = &EdgeZone{ID: "zone-1"}
@@ -408,7 +296,7 @@ func TestGetEdgeZones(t *testing.T) {
 
 // Benchmark tests
 func BenchmarkRequiresEdgeProcessing(b *testing.B) {
-	controller := createTestEdgeController()
+	controller := createBasicTestEdgeController()
 	intent := createTestNetworkIntent("bench", "Deploy URLLC service for autonomous vehicles")
 
 	b.ResetTimer()

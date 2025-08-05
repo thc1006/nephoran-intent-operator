@@ -6,6 +6,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
 // Config holds all configuration for the Nephoran Intent Operator
@@ -246,3 +248,63 @@ func (c *Config) GetRAGAPIURL(useInternal bool) string {
 	}
 	return c.RAGAPIURLExternal
 }
+
+// ConfigProvider interface methods
+
+// GetLLMProcessorURL returns the LLM processor URL
+func (c *Config) GetLLMProcessorURL() string {
+	return c.LLMProcessorURL
+}
+
+// GetLLMProcessorTimeout returns the LLM processor timeout
+func (c *Config) GetLLMProcessorTimeout() time.Duration {
+	return c.LLMProcessorTimeout
+}
+
+// GetGitRepoURL returns the Git repository URL
+func (c *Config) GetGitRepoURL() string {
+	return c.GitRepoURL
+}
+
+// GetGitToken returns the Git token
+func (c *Config) GetGitToken() string {
+	return c.GitToken
+}
+
+// GetGitBranch returns the Git branch
+func (c *Config) GetGitBranch() string {
+	return c.GitBranch
+}
+
+// GetWeaviateURL returns the Weaviate URL
+func (c *Config) GetWeaviateURL() string {
+	return c.WeaviateURL
+}
+
+// GetWeaviateIndex returns the Weaviate index name
+func (c *Config) GetWeaviateIndex() string {
+	return c.WeaviateIndex
+}
+
+// GetOpenAIAPIKey returns the OpenAI API key
+func (c *Config) GetOpenAIAPIKey() string {
+	return c.OpenAIAPIKey
+}
+
+// GetOpenAIModel returns the OpenAI model
+func (c *Config) GetOpenAIModel() string {
+	return c.OpenAIModel
+}
+
+// GetOpenAIEmbeddingModel returns the OpenAI embedding model
+func (c *Config) GetOpenAIEmbeddingModel() string {
+	return c.OpenAIEmbeddingModel
+}
+
+// GetNamespace returns the Kubernetes namespace
+func (c *Config) GetNamespace() string {
+	return c.Namespace
+}
+
+// Ensure Config implements interfaces.ConfigProvider
+var _ interfaces.ConfigProvider = (*Config)(nil)

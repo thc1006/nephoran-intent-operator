@@ -21,8 +21,8 @@ type OpenAIProvider struct {
 	mutex      sync.RWMutex
 }
 
-// NewOpenAIProvider creates a new OpenAI provider
-func NewOpenAIProvider(config ProviderConfig, httpClient *http.Client) *OpenAIProvider {
+// NewBasicOpenAIProvider creates a new basic OpenAI provider
+func NewBasicOpenAIProvider(config ProviderConfig, httpClient *http.Client) *OpenAIProvider {
 	return &OpenAIProvider{
 		config:     config,
 		httpClient: httpClient,
@@ -172,8 +172,8 @@ type AzureOpenAIProvider struct {
 	mutex      sync.RWMutex
 }
 
-// NewAzureOpenAIProvider creates a new Azure OpenAI provider
-func NewAzureOpenAIProvider(config ProviderConfig, httpClient *http.Client) *AzureOpenAIProvider {
+// NewBasicAzureOpenAIProvider creates a new basic Azure OpenAI provider
+func NewBasicAzureOpenAIProvider(config ProviderConfig, httpClient *http.Client) *AzureOpenAIProvider {
 	return &AzureOpenAIProvider{
 		config:     config,
 		httpClient: httpClient,
@@ -389,8 +389,8 @@ type HuggingFaceProvider struct {
 	mutex      sync.RWMutex
 }
 
-// NewHuggingFaceProvider creates a new Hugging Face provider
-func NewHuggingFaceProvider(config ProviderConfig, httpClient *http.Client) *HuggingFaceProvider {
+// NewBasicHuggingFaceProvider creates a new basic Hugging Face provider
+func NewBasicHuggingFaceProvider(config ProviderConfig, httpClient *http.Client) *HuggingFaceProvider {
 	return &HuggingFaceProvider{
 		config:     config,
 		httpClient: httpClient,

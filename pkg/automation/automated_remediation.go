@@ -2,7 +2,6 @@ package automation
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -11,7 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -36,11 +35,26 @@ var (
 		Help: "Success rate of remediation strategies",
 	}, []string{"component", "strategy"})
 
-	activeRemediations = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	activeSessions = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "nephoran_active_remediations",
 		Help: "Number of active remediation sessions",
 	}, []string{"component"})
 )
+
+// AutomatedRemediation handles automated remediation of system issues
+type AutomatedRemediation struct {
+	mu                sync.RWMutex
+	config            *SelfHealingConfig
+	k8sClient         kubernetes.Interface
+	ctrlClient        client.Client
+	logger            *slog.Logger
+	activeSessions    map[string]*RemediationSession
+	learningEngine    *LearningEngine
+	rollbackManager   *RollbackManager
+	strategies        map[string]*RemediationStrategy
+	running           bool
+	stopCh            chan struct{}
+}
 
 // NewAutomatedRemediation creates a new automated remediation system
 func NewAutomatedRemediation(config *SelfHealingConfig, k8sClient kubernetes.Interface, ctrlClient client.Client, logger *slog.Logger) (*AutomatedRemediation, error) {
@@ -49,14 +63,15 @@ func NewAutomatedRemediation(config *SelfHealingConfig, k8sClient kubernetes.Int
 	}
 
 	ar := &AutomatedRemediation{
-		config:                config,
-		logger:                logger,
-		k8sClient:             k8sClient,
-		ctrlClient:            ctrlClient,
-		activeRemediations:    make(map[string]*RemediationSession),
-		remediationStrategies: make(map[string]*RemediationStrategy),
-		learningEngine:        NewLearningEngine(),
-		rollbackManager:       NewRollbackManager(k8sClient, logger),
+		config:         config,
+		logger:         logger,
+		k8sClient:      k8sClient,
+		ctrlClient:     ctrlClient,
+		activeSessions: make(map[string]*RemediationSession),
+		strategies:     make(map[string]*RemediationStrategy),
+		learningEngine: NewLearningEngine(logger),
+		rollbackManager: NewRollbackManager(logger),
+		stopCh:         make(chan struct{}),
 	}
 
 	// Initialize default remediation strategies
@@ -84,14 +99,14 @@ func (ar *AutomatedRemediation) InitiateRemediation(ctx context.Context, compone
 	defer ar.mu.Unlock()
 
 	// Check if remediation is already active for this component
-	if session, exists := ar.activeRemediations[component]; exists {
+	if session, exists := ar.activeSessions[component]; exists {
 		if session.Status == "RUNNING" {
 			return fmt.Errorf("remediation already active for component %s", component)
 		}
 	}
 
 	// Check concurrent remediation limit
-	if len(ar.activeRemediations) >= ar.config.MaxConcurrentRemediations {
+	if len(ar.activeSessions) >= ar.config.MaxConcurrentRemediations {
 		return fmt.Errorf("maximum concurrent remediations reached (%d)", ar.config.MaxConcurrentRemediations)
 	}
 
@@ -129,16 +144,12 @@ func (ar *AutomatedRemediation) InitiateRemediation(ctx context.Context, compone
 
 	// Create rollback plan
 	if ar.config.RollbackOnFailure {
-		rollbackPlan, err := ar.rollbackManager.CreateRollbackPlan(ctx, component)
-		if err != nil {
-			ar.logger.Error("Failed to create rollback plan", "component", component, "error", err)
-		} else {
-			session.RollbackPlan = rollbackPlan
-		}
+		rollbackPlan := ar.rollbackManager.CreateRollbackPlan(session)
+		session.RollbackPlan = rollbackPlan
 	}
 
-	ar.activeRemediations[component] = session
-	activeRemediations.WithLabelValues(component).Inc()
+	ar.activeSessions[component] = session
+	activeSessions.WithLabelValues(component).Inc()
 
 	// Start remediation in background
 	go ar.executeRemediation(ctx, session, strategy)
@@ -240,8 +251,8 @@ func (ar *AutomatedRemediation) executeRemediation(ctx context.Context, session 
 
 	// Clean up
 	ar.mu.Lock()
-	delete(ar.activeRemediations, session.Component)
-	activeRemediations.WithLabelValues(session.Component).Dec()
+	delete(ar.activeSessions, session.Component)
+	activeSessions.WithLabelValues(session.Component).Dec()
 	ar.mu.Unlock()
 }
 
@@ -540,7 +551,7 @@ func (ar *AutomatedRemediation) selectBestStrategy(component, reason string) *Re
 	var bestStrategy *RemediationStrategy
 	var bestScore float64
 
-	for _, strategy := range ar.remediationStrategies {
+	for _, strategy := range ar.strategies {
 		score := ar.calculateStrategyScore(strategy, component, reason)
 		if score > bestScore {
 			bestScore = score
@@ -549,6 +560,11 @@ func (ar *AutomatedRemediation) selectBestStrategy(component, reason string) *Re
 	}
 
 	return bestStrategy
+}
+
+// findBestStrategy is an alias for selectBestStrategy for test compatibility
+func (ar *AutomatedRemediation) findBestStrategy(component, reason string) *RemediationStrategy {
+	return ar.selectBestStrategy(component, reason)
 }
 
 func (ar *AutomatedRemediation) calculateStrategyScore(strategy *RemediationStrategy, component, reason string) float64 {
@@ -612,7 +628,7 @@ func (ar *AutomatedRemediation) performRollback(ctx context.Context, session *Re
 		return
 	}
 	
-	err := ar.rollbackManager.ExecuteRollback(ctx, session.RollbackPlan)
+	err := ar.rollbackManager.ExecuteRollback(session.RollbackPlan.ID)
 	if err != nil {
 		ar.logger.Error("Rollback failed", "session", session.ID, "error", err)
 	} else {
@@ -626,7 +642,7 @@ func (ar *AutomatedRemediation) GetActiveRemediations() map[string]*RemediationS
 	defer ar.mu.RUnlock()
 	
 	sessions := make(map[string]*RemediationSession)
-	for k, v := range ar.activeRemediations {
+	for k, v := range ar.activeSessions {
 		sessions[k] = v
 	}
 	return sessions
@@ -665,7 +681,7 @@ func (ar *AutomatedRemediation) monitorActiveSessions(ctx context.Context) {
 	ar.mu.RLock()
 	defer ar.mu.RUnlock()
 
-	for component, session := range ar.activeRemediations {
+	for component, session := range ar.activeSessions {
 		// Check for stuck sessions
 		if session.Status == "RUNNING" && time.Since(session.StartTime) > 30*time.Minute {
 			ar.logger.Warn("Remediation session appears stuck", 
@@ -680,7 +696,7 @@ func (ar *AutomatedRemediation) optimizeStrategies() {
 	ar.logger.Info("Optimizing remediation strategies")
 	
 	// Update strategy priorities based on success rates
-	for _, strategy := range ar.remediationStrategies {
+	for _, strategy := range ar.strategies {
 		if strategy.Total > 10 {
 			// Adjust priority based on success rate
 			if strategy.SuccessRate > 0.8 {
@@ -701,7 +717,7 @@ func min(a, b int) int {
 
 func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 	// Restart strategy
-	ar.remediationStrategies["RestartStrategy"] = &RemediationStrategy{
+	ar.strategies["RestartStrategy"] = &RemediationStrategy{
 		Name: "RestartStrategy",
 		Conditions: []*RemediationCondition{
 			{Metric: "health_score", Operator: "LT", Threshold: 0.5, Duration: 2 * time.Minute},
@@ -723,7 +739,7 @@ func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 	}
 
 	// Scale up strategy
-	ar.remediationStrategies["ScaleUpStrategy"] = &RemediationStrategy{
+	ar.strategies["ScaleUpStrategy"] = &RemediationStrategy{
 		Name: "ScaleUpStrategy",
 		Conditions: []*RemediationCondition{
 			{Metric: "cpu_usage", Operator: "GT", Threshold: 0.8, Duration: 5 * time.Minute},
@@ -742,7 +758,7 @@ func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 	}
 
 	// Clear cache strategy
-	ar.remediationStrategies["ClearCacheStrategy"] = &RemediationStrategy{
+	ar.strategies["ClearCacheStrategy"] = &RemediationStrategy{
 		Name: "ClearCacheStrategy",
 		Conditions: []*RemediationCondition{
 			{Metric: "cache_hit_rate", Operator: "LT", Threshold: 0.5, Duration: 10 * time.Minute},
@@ -757,115 +773,5 @@ func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 	}
 }
 
-// Supporting types and components
+// Supporting types and components - implementations moved to specialized files
 
-// LearningEngine learns from remediation outcomes
-type LearningEngine struct {
-	mu           sync.RWMutex
-	experiences  []RemediationExperience
-	maxExperiences int
-}
-
-type RemediationExperience struct {
-	Component    string    `json:"component"`
-	Reason       string    `json:"reason"`
-	Strategy     string    `json:"strategy"`
-	Success      bool      `json:"success"`
-	Duration     time.Duration `json:"duration"`
-	Timestamp    time.Time `json:"timestamp"`
-}
-
-func NewLearningEngine() *LearningEngine {
-	return &LearningEngine{
-		experiences:    make([]RemediationExperience, 0),
-		maxExperiences: 1000, // Keep last 1000 experiences
-	}
-}
-
-func (le *LearningEngine) RecordRemediation(session *RemediationSession, strategy *RemediationStrategy, success bool) {
-	le.mu.Lock()
-	defer le.mu.Unlock()
-
-	experience := RemediationExperience{
-		Component: session.Component,
-		Strategy:  strategy.Name,
-		Success:   success,
-		Duration:  session.EndTime.Sub(session.StartTime),
-		Timestamp: time.Now(),
-	}
-
-	le.experiences = append(le.experiences, experience)
-
-	// Limit size
-	if len(le.experiences) > le.maxExperiences {
-		le.experiences = le.experiences[1:]
-	}
-}
-
-// RollbackManager handles rollback operations
-type RollbackManager struct {
-	k8sClient kubernetes.Interface
-	logger    *slog.Logger
-}
-
-type RollbackPlan struct {
-	ID          string                 `json:"id"`
-	Component   string                 `json:"component"`
-	Actions     []RollbackAction       `json:"actions"`
-	Snapshots   map[string]interface{} `json:"snapshots"`
-	CreatedAt   time.Time              `json:"created_at"`
-}
-
-type RollbackAction struct {
-	Type       string                 `json:"type"`
-	Target     string                 `json:"target"`
-	Parameters map[string]interface{} `json:"parameters"`
-}
-
-func NewRollbackManager(k8sClient kubernetes.Interface, logger *slog.Logger) *RollbackManager {
-	return &RollbackManager{
-		k8sClient: k8sClient,
-		logger:    logger,
-	}
-}
-
-func (rm *RollbackManager) CreateRollbackPlan(ctx context.Context, component string) (*RollbackPlan, error) {
-	plan := &RollbackPlan{
-		ID:        uuid.New().String(),
-		Component: component,
-		Actions:   make([]RollbackAction, 0),
-		Snapshots: make(map[string]interface{}),
-		CreatedAt: time.Now(),
-	}
-
-	// Capture current state for rollback
-	// This is a simplified implementation
-	rm.logger.Info("Creating rollback plan", "component", component, "plan_id", plan.ID)
-
-	return plan, nil
-}
-
-func (rm *RollbackManager) ExecuteRollback(ctx context.Context, plan *RollbackPlan) error {
-	rm.logger.Info("Executing rollback plan", "plan_id", plan.ID, "component", plan.Component)
-
-	// Execute rollback actions
-	for _, action := range plan.Actions {
-		err := rm.executeRollbackAction(ctx, action)
-		if err != nil {
-			return fmt.Errorf("rollback action failed: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func (rm *RollbackManager) executeRollbackAction(ctx context.Context, action RollbackAction) error {
-	// Implement rollback action execution
-	rm.logger.Debug("Executing rollback action", "type", action.Type, "target", action.Target)
-	return nil
-}
-
-// Add missing import
-import (
-	batchv1 "k8s.io/api/batch/v1"
-)

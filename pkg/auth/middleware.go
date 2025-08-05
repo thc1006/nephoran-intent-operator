@@ -357,6 +357,45 @@ func (am *AuthMiddleware) getRedirectURI(r *http.Request, provider string) strin
 	return fmt.Sprintf("%s://%s/auth/callback/%s", scheme, r.Host, provider)
 }
 
+// GetProviders returns a list of configured OAuth2 provider names
+func (am *AuthMiddleware) GetProviders() []string {
+	providers := make([]string, 0, len(am.providers))
+	for name := range am.providers {
+		providers = append(providers, name)
+	}
+	return providers
+}
+
+// GetProviderInfo returns detailed information about configured providers
+func (am *AuthMiddleware) GetProviderInfo() map[string]*ProviderInfo {
+	info := make(map[string]*ProviderInfo)
+	
+	for name, provider := range am.providers {
+		info[name] = &ProviderInfo{
+			Name:         name,
+			ClientID:     provider.ClientID,
+			AuthURL:      provider.AuthURL,
+			TokenURL:     provider.TokenURL,
+			Scopes:       provider.Scopes,
+			RedirectURL:  "", // RedirectURL not directly stored in OAuth2Provider
+			Enabled:      true,
+		}
+	}
+	
+	return info
+}
+
+// ProviderInfo contains information about an OAuth2 provider
+type ProviderInfo struct {
+	Name        string   `json:"name"`
+	ClientID    string   `json:"client_id"`
+	AuthURL     string   `json:"auth_url"`
+	TokenURL    string   `json:"token_url"`
+	Scopes      []string `json:"scopes"`
+	RedirectURL string   `json:"redirect_url"`
+	Enabled     bool     `json:"enabled"`
+}
+
 func (am *AuthMiddleware) storeState(w http.ResponseWriter, state, provider string) {
 	// In production, store in Redis or secure session store
 	// For demo purposes, using HTTP-only cookie
