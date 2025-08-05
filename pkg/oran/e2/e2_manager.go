@@ -515,6 +515,10 @@ func (m *E2Manager) SubscribeE2(req *E2SubscriptionRequest) (*E2Subscription, er
 
 // SendControlMessage sends a control message to a specified E2 node with retry logic
 // Uses the provided nodeID parameter to directly target the destination node
+//
+// Breaking Change: This method now requires an explicit nodeID parameter.
+// For backward compatibility, use SendControlMessageLegacy(ctx, controlReq) which
+// extracts the node ID from the control header. See MIGRATION_GUIDE.md for details.
 func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, controlReq *RICControlRequest) (*RICControlAcknowledge, error) {
 	// Validate input parameters
 	if nodeID == "" {
@@ -656,6 +660,43 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 	}
 
 	return ack, nil
+}
+
+// SendControlMessageLegacy sends a control message extracting node ID from the request
+// Deprecated: Use SendControlMessage(ctx, nodeID, controlReq) instead. This method
+// exists for backward compatibility and will be removed in a future version.
+func (m *E2Manager) SendControlMessageLegacy(ctx context.Context, controlReq *RICControlRequest) (*RICControlAcknowledge, error) {
+	// Log deprecation warning
+	if m.logger != nil {
+		m.logger.Printf("WARNING: SendControlMessageLegacy is deprecated. Please use SendControlMessage(ctx, nodeID, controlReq) instead.")
+	}
+	
+	// Extract node ID from control header for backward compatibility
+	nodeID := ""
+	if len(controlReq.RICControlHeader) > 0 {
+		nodeID = m.extractNodeIDFromControlHeader(controlReq.RICControlHeader)
+	}
+	
+	// If no node ID could be extracted, try to use the first available node
+	if nodeID == "" {
+		m.mutex.RLock()
+		for id := range m.adaptors {
+			nodeID = id
+			break
+		}
+		m.mutex.RUnlock()
+		
+		if nodeID == "" {
+			return nil, fmt.Errorf("no node ID found in control header and no E2 connections available")
+		}
+		
+		if m.logger != nil {
+			m.logger.Printf("WARNING: No node ID found in control header. Using first available node: %s", nodeID)
+		}
+	}
+	
+	// Call the new method with extracted node ID
+	return m.SendControlMessage(ctx, nodeID, controlReq)
 }
 
 // extractNodeIDFromControlHeader extracts node ID from RIC control header
