@@ -840,7 +840,7 @@ kubectl logs deployment/nephio-bridge --since=1h > nephio-bridge-logs.txt
 ```
 
 ### Emergency Contacts and Procedures
-1. **Check Documentation**: Review CLAUDE.md, DEVELOPER_GUIDE.md, and API_DOCUMENTATION.md
+1. **Check Documentation**: Review CLAUDE.md, DEVELOPER_GUIDE.md, and API_REFERENCE.md
 2. **Run Diagnostics**: Execute `./diagnose_cluster.sh` and `./validate-environment.ps1`
 3. **Check Recent Changes**: Review git history and recent deployments
 4. **Collect Evidence**: Gather logs, metrics, and system state information

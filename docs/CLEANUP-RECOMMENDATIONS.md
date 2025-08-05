@@ -16,9 +16,9 @@ These backup files should be removed as they are outdated and the main files hav
 ### 2. Duplicate Documentation Files
 These files contain overlapping content that has been consolidated:
 
-**API Documentation (consolidated into `docs/API-DOCUMENTATION.md` and OpenAPI specs):**
-- `API_DOCUMENTATION.md` (root) - Duplicate of docs version
-- `API_REFERENCE.md` - Overlaps with API documentation
+**API Documentation (consolidated into `docs/API_REFERENCE.md` and OpenAPI specs):**
+- `API_DOCUMENTATION.md` (root) - Consolidated into API_REFERENCE.md
+- `API-DOCUMENTATION.md` (docs) - Consolidated into API_REFERENCE.md
 
 **Deployment Guides (use current guides in docs/):**
 - `DEPLOYMENT_GUIDE.md` - Basic deployment guide, refer to `docs/NetworkIntent-Controller-Guide.md` and `docs/GitOps-Package-Generation.md` for current deployment information
@@ -45,11 +45,11 @@ These appear to be temporary working files that can be removed:
 
 ### 1. Merge Multiple API Documentation Files
 **Current state:**
-- `docs/API-DOCUMENTATION.md` - Detailed API docs
-- `API_DOCUMENTATION.md` - Root level duplicate
-- `API_REFERENCE.md` - Partial API reference
+- `docs/API-DOCUMENTATION.md` - Detailed API docs (merged into API_REFERENCE.md)
+- `API_DOCUMENTATION.md` - Root level duplicate (merged into API_REFERENCE.md)
+- `API_REFERENCE.md` - Now consolidated API reference with all content
 
-**Recommendation:** Keep only `docs/API-DOCUMENTATION.md` and the new OpenAPI specifications.
+**Recommendation:** The consolidation is complete. API_REFERENCE.md now contains all API documentation.
 
 ### 2. Consolidate Deployment Documentation
 **Current state:**
@@ -78,7 +78,7 @@ docs/
 │   │   ├── llm-processor-openapi.yaml
 │   │   ├── nephoran-crds-openapi.yaml
 │   │   └── rag-api-openapi.yaml
-│   └── API-DOCUMENTATION.md
+│   └── API_REFERENCE.md
 ├── deployment/
 │   ├── COMPLETE-DEPLOYMENT-GUIDE.md
 │   ├── kubernetes/
