@@ -584,7 +584,7 @@ function Show-PostDeploymentInfo {
     Write-Host "  Delete deployment: kubectl delete -k deployments/kustomize/overlays/local" -ForegroundColor White
     
     Write-Host "`nTesting:" -ForegroundColor Cyan
-    Write-Host "  Apply test CRD:   kubectl apply -f my-first-intent.yaml" -ForegroundColor White
+    Write-Host "  Apply test CRD:   kubectl apply -f archive/my-first-intent.yaml" -ForegroundColor White
     Write-Host "  View CRDs:        kubectl get networkintents -n $Namespace" -ForegroundColor White
     Write-Host "  Describe CRD:     kubectl describe networkintent <name> -n $Namespace" -ForegroundColor White
     

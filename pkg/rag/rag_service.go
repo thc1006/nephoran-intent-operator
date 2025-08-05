@@ -53,14 +53,7 @@ type CacheConfig struct {
 	CleanupInterval time.Duration `json:"cleanup_interval"`
 }
 
-// CacheMetrics tracks cache performance
-type CacheMetrics struct {
-	Hits        int64 `json:"hits"`
-	Misses      int64 `json:"misses"`
-	Evictions   int64 `json:"evictions"`
-	TotalItems  int64 `json:"total_items"`
-	mutex       sync.RWMutex
-}
+// CacheMetrics definition moved to embedding_support.go to avoid duplicates
 
 // RAGConfig holds configuration for the RAG service
 type RAGConfig struct {

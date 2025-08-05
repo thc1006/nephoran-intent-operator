@@ -36,6 +36,6 @@ echo.
 echo Useful commands:
 echo   kubectl get pods -n nephoran-system
 echo   kubectl logs -f deployment/nephio-bridge -n nephoran-system
-echo   kubectl apply -f my-first-intent.yaml
+echo   kubectl apply -f archive/my-first-intent.yaml
 echo.
 pause

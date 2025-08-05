@@ -35,13 +35,7 @@ type StreamingConfig struct {
 	BackpressureLimit int
 }
 
-// ProcessingPool manages worker goroutines for parallel processing
-type ProcessingPool struct {
-	documentWorkers  chan func()
-	chunkWorkers     chan func()
-	embeddingWorkers chan func()
-	wg               sync.WaitGroup
-}
+// ProcessingPool definition moved to document_loader.go to avoid duplicates
 
 // streamingMetrics tracks performance metrics
 type streamingMetrics struct {
@@ -54,21 +48,9 @@ type streamingMetrics struct {
 	streamingThresholdHit prometheus.Counter
 }
 
-// Document represents a document with metadata
-type Document struct {
-	ID       string
-	Content  io.Reader
-	Metadata map[string]interface{}
-	Size     int64 // -1 if unknown
-}
+// Document definition moved to embedding_support.go to avoid duplicates
 
-// ProcessedChunk represents a chunk ready for embedding
-type ProcessedChunk struct {
-	ID       string
-	Content  string
-	Metadata map[string]interface{}
-	Position int
-}
+// ProcessedChunk definition moved to pipeline.go to avoid duplicates
 
 // NewStreamingDocumentLoader creates a new streaming document loader
 func NewStreamingDocumentLoader(

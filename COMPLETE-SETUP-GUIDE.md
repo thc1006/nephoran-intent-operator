@@ -140,7 +140,7 @@ make build-all
 3. **Test Sample Network Intent**
    ```powershell
    # Apply sample intent
-   kubectl apply -f my-first-intent.yaml
+   kubectl apply -f archive/my-first-intent.yaml
    
    # Check processing
    kubectl get networkintents -n nephoran-system

@@ -228,8 +228,8 @@ type ProviderConfig struct {
 	LastCheck   time.Time `json:"last_check"`
 }
 
-// BasicBasicEmbeddingProvider interface for different embedding providers
-type BasicBasicEmbeddingProvider interface {
+// BasicEmbeddingProvider interface for different embedding providers
+type BasicEmbeddingProvider interface {
 	GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error)
 	GetConfig() ProviderConfig
 	HealthCheck(ctx context.Context) error

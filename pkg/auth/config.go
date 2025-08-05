@@ -102,6 +102,11 @@ func LoadAuthConfig() (*AuthConfig, error) {
 		}
 	}
 
+	// Validate JWT secret if auth is enabled
+	if authConfig.Enabled && strings.TrimSpace(authConfig.JWTSecretKey) == "" {
+		return nil, fmt.Errorf("auth enabled but JWTSecretKey is empty")
+	}
+
 	// Validate configuration
 	if err := authConfig.validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
@@ -376,8 +381,9 @@ func getStringSliceEnv(key string, defaultValue []string) []string {
 // getOAuth2ClientSecret loads OAuth2 client secret from file or environment
 func getOAuth2ClientSecret(provider string) string {
 	// TODO: Implement proper secret loading mechanism
-	// For now, return empty string and rely on environment variables
-	return ""
+	// For now, check environment variables
+	envVar := strings.ToUpper(provider) + "_CLIENT_SECRET"
+	return os.Getenv(envVar)
 }
 
 // ToOAuth2Config converts AuthConfig to OAuth2Config
