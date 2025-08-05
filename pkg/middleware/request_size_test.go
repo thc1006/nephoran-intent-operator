@@ -316,10 +316,37 @@ func TestMaxBytesHandlerPanicRecovery(t *testing.T) {
 			expectPanicRethrow: false,
 		},
 		{
-			name: "String panic recovery (request body too large)",
+			name: "String panic recovery (exact match)",
 			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				// Simulate the string panic that http.MaxBytesReader might throw
 				panic("http: request body too large")
+			}),
+			expectedStatus:     http.StatusRequestEntityTooLarge,
+			expectPanicRethrow: false,
+		},
+		{
+			name: "String panic recovery (case insensitive)",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Test case insensitive matching
+				panic("HTTP: Request Body Too Large")
+			}),
+			expectedStatus:     http.StatusRequestEntityTooLarge,
+			expectPanicRethrow: false,
+		},
+		{
+			name: "String panic recovery (partial match)",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Test partial matching
+				panic("Error: body too large for processing")
+			}),
+			expectedStatus:     http.StatusRequestEntityTooLarge,
+			expectPanicRethrow: false,
+		},
+		{
+			name: "String panic recovery (maxbytesreader pattern)",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Test future-proof pattern
+				panic("MaxBytesReader: limit exceeded")
 			}),
 			expectedStatus:     http.StatusRequestEntityTooLarge,
 			expectPanicRethrow: false,

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 )
 
 // RequestSizeLimiter creates middleware to enforce request body size limits
@@ -125,13 +126,35 @@ func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFun
 				}
 				
 				// Check for string-based panic from http.MaxBytesReader
-				if errStr, ok := err.(string); ok && errStr == "http: request body too large" {
-					logger.Warn("Request body size limit exceeded (string panic)",
-						slog.Int64("max_size_bytes", maxSize),
-						slog.String("path", r.URL.Path),
-					)
-					writePayloadTooLargeResponse(w, logger, maxSize)
-					return
+				// Using multiple detection patterns to be resilient to standard library changes
+				if errStr, ok := err.(string); ok {
+					// Check for various patterns that indicate body size exceeded
+					lowerErr := strings.ToLower(errStr)
+					isSizeError := false
+					
+					// Current known pattern
+					if errStr == "http: request body too large" {
+						isSizeError = true
+					} else if strings.Contains(lowerErr, "request body too large") {
+						// More flexible pattern matching
+						isSizeError = true
+					} else if strings.Contains(lowerErr, "body too large") {
+						// Even more flexible
+						isSizeError = true
+					} else if strings.Contains(lowerErr, "maxbytesreader") && strings.Contains(lowerErr, "limit") {
+						// Pattern that might appear in future versions
+						isSizeError = true
+					}
+					
+					if isSizeError {
+						logger.Warn("Request body size limit exceeded (string panic)",
+							slog.Int64("max_size_bytes", maxSize),
+							slog.String("path", r.URL.Path),
+							slog.String("panic_message", errStr),
+						)
+						writePayloadTooLargeResponse(w, logger, maxSize)
+						return
+					}
 				}
 				
 				// Log unexpected panic before re-panicking

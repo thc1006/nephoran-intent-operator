@@ -9,9 +9,20 @@ The original panic recovery mechanism in `request_size.go` only handled `*http.M
 Enhanced the panic recovery in `MaxBytesHandler` to handle multiple panic types:
 
 1. **Type assertion for `*http.MaxBytesError`** - The standard error type
-2. **String panic detection** - Checks for the specific string "http: request body too large"
+2. **Flexible string panic detection** - Multiple patterns to handle current and future Go versions
 3. **Logging for unexpected panics** - Logs any unexpected panic before re-throwing
 4. **Proper re-panic behavior** - Ensures non-MaxBytesReader panics are propagated
+
+### Robust String Detection Patterns
+
+The middleware now checks for multiple patterns to ensure compatibility across Go versions:
+
+1. **Exact match**: `"http: request body too large"` (current Go standard library)
+2. **Case-insensitive substring**: Contains `"request body too large"`
+3. **Flexible pattern**: Contains `"body too large"`
+4. **Future-proof pattern**: Contains both `"maxbytesreader"` and `"limit"`
+
+This approach ensures the middleware continues to function correctly even if the Go standard library changes the exact error message format in future versions.
 
 ### Code Changes
 
