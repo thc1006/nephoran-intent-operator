@@ -19,8 +19,8 @@ import (
 type CostAwareEmbeddingService struct {
 	logger           *zap.Logger
 	providers        map[string]EmbeddingProvider
-	providerConfigs  map[string]*ProviderConfig
-	costTracker      *CostTracker
+	providerConfigs  map[string]*CostAwareProviderConfig
+	costTracker      *CostAwareCostTracker
 	healthMonitor    *HealthMonitor
 	circuitBreakers  map[string]*CircuitBreaker
 	fallbackChains   map[string][]string
@@ -28,8 +28,8 @@ type CostAwareEmbeddingService struct {
 	mu               sync.RWMutex
 }
 
-// ProviderConfig holds configuration for each embedding provider
-type ProviderConfig struct {
+// CostAwareProviderConfig holds configuration for each embedding provider
+type CostAwareProviderConfig struct {
 	Name             string
 	CostPerToken     float64
 	CostPerRequest   float64
@@ -41,7 +41,7 @@ type ProviderConfig struct {
 }
 
 // CostTracker tracks costs and budgets
-type CostTracker struct {
+type CostAwareCostTracker struct {
 	hourlyBudget   float64
 	dailyBudget    float64
 	monthlyBudget  float64
@@ -71,13 +71,13 @@ type ProviderStats struct {
 
 // HealthMonitor monitors provider health
 type HealthMonitor struct {
-	healthChecks map[string]*HealthStatus
+	healthChecks map[string]*CostAwareHealthStatus
 	checkInterval time.Duration
 	mu           sync.RWMutex
 }
 
 // HealthStatus represents provider health
-type HealthStatus struct {
+type CostAwareHealthStatus struct {
 	Healthy       atomic.Bool
 	LastCheck     atomic.Int64 // unix timestamp
 	ConsecutiveFails atomic.Int32
@@ -100,8 +100,8 @@ type CircuitBreakerConfig struct {
 	SuccessThreshold int32
 }
 
-// EmbeddingRequest represents a request for embeddings
-type EmbeddingRequest struct {
+// CostAwareEmbeddingRequest represents a request for cost-aware embeddings
+type CostAwareEmbeddingRequest struct {
 	Text            string
 	MaxBudget       float64
 	QualityRequired float64
@@ -110,7 +110,7 @@ type EmbeddingRequest struct {
 }
 
 // EmbeddingResponse represents the embedding result
-type EmbeddingResponse struct {
+type CostAwareEmbeddingResponse struct {
 	Embeddings []float64
 	Provider   string
 	Cost       float64
@@ -189,18 +189,18 @@ func NewCostAwareEmbeddingService(logger *zap.Logger) *CostAwareEmbeddingService
 	service := &CostAwareEmbeddingService{
 		logger:          logger,
 		providers:       make(map[string]EmbeddingProvider),
-		providerConfigs: make(map[string]*ProviderConfig),
+		providerConfigs: make(map[string]*CostAwareProviderConfig),
 		circuitBreakers: make(map[string]*CircuitBreaker),
 		fallbackChains:  make(map[string][]string),
 		metrics:         metrics,
-		costTracker: &CostTracker{
+		costTracker: &CostAwareCostTracker{
 			currentCosts: &CostAccumulator{
 				lastReset: time.Now(),
 			},
 			historicalData: make(map[string]*ProviderStats),
 		},
 		healthMonitor: &HealthMonitor{
-			healthChecks:  make(map[string]*HealthStatus),
+			healthChecks:  make(map[string]*CostAwareHealthStatus),
 			checkInterval: 30 * time.Second,
 		},
 	}
@@ -218,7 +218,7 @@ func NewCostAwareEmbeddingService(logger *zap.Logger) *CostAwareEmbeddingService
 }
 
 // ConfigureProvider adds or updates a provider configuration
-func (s *CostAwareEmbeddingService) ConfigureProvider(config ProviderConfig) {
+func (s *CostAwareEmbeddingService) ConfigureProvider(config CostAwareProviderConfig) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -237,7 +237,7 @@ func (s *CostAwareEmbeddingService) ConfigureProvider(config ProviderConfig) {
 
 	// Initialize health status
 	if _, exists := s.healthMonitor.healthChecks[config.Name]; !exists {
-		status := &HealthStatus{}
+		status := &CostAwareHealthStatus{}
 		status.Healthy.Store(true)
 		s.healthMonitor.healthChecks[config.Name] = status
 	}
@@ -276,8 +276,8 @@ func (s *CostAwareEmbeddingService) SetFallbackChain(primary string, fallbacks [
 // GetEmbeddings generates embeddings with cost optimization
 func (s *CostAwareEmbeddingService) GetEmbeddings(
 	ctx context.Context,
-	request EmbeddingRequest,
-) (*EmbeddingResponse, error) {
+	request CostAwareEmbeddingRequest,
+) (*CostAwareEmbeddingResponse, error) {
 	s.metrics.requestsTotal.Inc()
 
 	// Select optimal provider
@@ -314,7 +314,7 @@ func (s *CostAwareEmbeddingService) GetEmbeddings(
 }
 
 // selectProvider selects the optimal provider based on constraints
-func (s *CostAwareEmbeddingService) selectProvider(request EmbeddingRequest) (EmbeddingProvider, string) {
+func (s *CostAwareEmbeddingService) selectProvider(request CostAwareEmbeddingRequest) (EmbeddingProvider, string) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -370,8 +370,8 @@ func (s *CostAwareEmbeddingService) selectProvider(request EmbeddingRequest) (Em
 // calculateProviderScore calculates a provider's suitability score
 func (s *CostAwareEmbeddingService) calculateProviderScore(
 	name string,
-	config *ProviderConfig,
-	request EmbeddingRequest,
+	config *CostAwareProviderConfig,
+	request CostAwareEmbeddingRequest,
 ) float64 {
 	score := 100.0
 
@@ -417,8 +417,8 @@ func (s *CostAwareEmbeddingService) tryProvider(
 	ctx context.Context,
 	provider EmbeddingProvider,
 	providerName string,
-	request EmbeddingRequest,
-) (*EmbeddingResponse, error) {
+	request CostAwareEmbeddingRequest,
+) (*CostAwareEmbeddingResponse, error) {
 	// Check circuit breaker
 	if !s.checkCircuitBreaker(providerName) {
 		return nil, fmt.Errorf("circuit breaker open for provider %s", providerName)
@@ -453,7 +453,7 @@ func (s *CostAwareEmbeddingService) tryProvider(
 	// Assess quality
 	quality := s.assessQuality(embeddings[0])
 	
-	response := &EmbeddingResponse{
+	response := &CostAwareEmbeddingResponse{
 		Embeddings: embeddings[0],
 		Provider:   providerName,
 		Cost:       cost,
@@ -465,7 +465,7 @@ func (s *CostAwareEmbeddingService) tryProvider(
 }
 
 // estimateCost estimates the cost for a request
-func (s *CostAwareEmbeddingService) estimateCost(config *ProviderConfig, text string) float64 {
+func (s *CostAwareEmbeddingService) estimateCost(config *CostAwareProviderConfig, text string) float64 {
 	// Simple token estimation (rough approximation)
 	tokenCount := len(text) / 4
 	return config.CostPerRequest + (float64(tokenCount) * config.CostPerToken)

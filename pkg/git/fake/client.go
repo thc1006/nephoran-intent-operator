@@ -16,6 +16,8 @@ type Client struct {
 	ShouldFailRemoveDirectory bool
 	// ShouldFailCommitAndPushChanges controls whether CommitAndPushChanges should fail
 	ShouldFailCommitAndPushChanges bool
+	// ShouldFailWithPushError controls whether to simulate a Git push failure
+	ShouldFailWithPushError bool
 
 	// CallHistory tracks method calls for verification in tests
 	CallHistory []string
@@ -66,6 +68,10 @@ func (c *Client) CommitAndPushChanges(message string) error {
 func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 	c.CallHistory = append(c.CallHistory, fmt.Sprintf("RemoveDirectory(path=%s, commitMessage=%s)", path, commitMessage))
 	if c.ShouldFailRemoveDirectory {
+		// Simulate different types of failures
+		if c.ShouldFailWithPushError {
+			return fmt.Errorf("failed to push directory removal: remote rejected push")
+		}
 		return fmt.Errorf("fake RemoveDirectory error")
 	}
 	return nil
@@ -78,6 +84,7 @@ func (c *Client) Reset() {
 	c.ShouldFailInitRepo = false
 	c.ShouldFailRemoveDirectory = false
 	c.ShouldFailCommitAndPushChanges = false
+	c.ShouldFailWithPushError = false
 }
 
 // SetCommitHash sets the commit hash returned by CommitAndPush

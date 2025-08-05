@@ -1,0 +1,72 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: e2nodeset-controller-role
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/managed-by: kustomize
+rules:
+# Core resources - read-only access to ConfigMaps
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+
+# Event creation for audit trail and monitoring
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+
+# E2NodeSet resource management - full lifecycle permissions
+- apiGroups:
+  - nephoran.com
+  resources:
+  - e2nodesets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+
+# E2NodeSet status subresource - controller needs to update status
+- apiGroups:
+  - nephoran.com
+  resources:
+  - e2nodesets/status
+  verbs:
+  - get
+  - update
+  - patch
+
+# E2NodeSet finalizers - for cleanup operations
+- apiGroups:
+  - nephoran.com
+  resources:
+  - e2nodesets/finalizers
+  verbs:
+  - update
+
+# External resource management - limited to create/update/patch only
+# Note: The resource pattern "e2nodesets.*.example.com" is unusual and might need clarification
+# This rule grants permissions to resources with API groups matching the pattern
+- apiGroups:
+  - "*.example.com"
+  resources:
+  - e2nodesets
+  verbs:
+  - create
+  - update
+  - patch

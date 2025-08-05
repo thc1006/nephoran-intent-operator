@@ -1056,6 +1056,3 @@ func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 type VolumeSnapshot struct {
 	Size int64
 }
-
-// Missing import
-var bytes = io.Discard

@@ -6,34 +6,37 @@ package ml
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // OptimizationEngine provides AI/ML-driven network optimization capabilities
 type OptimizationEngine struct {
 	prometheusClient v1.API
-	models           map[string]MLModel
-	config           *OptimizationConfig
-	logger           *slog.Logger
+	models          map[string]MLModel
+	config          *OptimizationConfig
+	logger          *slog.Logger
 }
 
 // OptimizationConfig defines configuration for the ML optimization engine
 type OptimizationConfig struct {
-	PrometheusURL           string         `json:"prometheus_url"`
-	ModelUpdateInterval     time.Duration  `json:"model_update_interval"`
-	PredictionHorizon       time.Duration  `json:"prediction_horizon"`
-	OptimizationThreshold   float64        `json:"optimization_threshold"`
-	EnablePredictiveScaling bool           `json:"enable_predictive_scaling"`
-	EnableAnomalyDetection  bool           `json:"enable_anomaly_detection"`
-	EnableResourceOptim     bool           `json:"enable_resource_optimization"`
-	MLModelConfig           *MLModelConfig `json:"ml_model_config"`
+	PrometheusURL           string        `json:"prometheus_url"`
+	ModelUpdateInterval     time.Duration `json:"model_update_interval"`
+	PredictionHorizon       time.Duration `json:"prediction_horizon"`
+	OptimizationThreshold   float64       `json:"optimization_threshold"`
+	EnablePredictiveScaling bool          `json:"enable_predictive_scaling"`
+	EnableAnomalyDetection  bool          `json:"enable_anomaly_detection"`
+	EnableResourceOptim     bool          `json:"enable_resource_optimization"`
+	MLModelConfig          *MLModelConfig `json:"ml_model_config"`
 }
 
 // MLModelConfig defines machine learning model configurations
@@ -63,14 +66,14 @@ type NetworkIntent struct {
 
 // OptimizationRecommendations contains ML-driven optimization recommendations
 type OptimizationRecommendations struct {
-	IntentID              string                     `json:"intent_id"`
-	ResourceAllocation    *ResourceRecommendation    `json:"resource_allocation"`
-	ScalingParameters     *ScalingRecommendation     `json:"scaling_parameters"`
+	IntentID              string                    `json:"intent_id"`
+	ResourceAllocation    *ResourceRecommendation   `json:"resource_allocation"`
+	ScalingParameters     *ScalingRecommendation    `json:"scaling_parameters"`
 	PerformanceTuning     *PerformanceRecommendation `json:"performance_tuning"`
-	RiskAssessment        *RiskAssessment            `json:"risk_assessment"`
-	ConfidenceScore       float64                    `json:"confidence_score"`
-	OptimizationPotential float64                    `json:"optimization_potential"`
-	Timestamp             time.Time                  `json:"timestamp"`
+	RiskAssessment        *RiskAssessment           `json:"risk_assessment"`
+	ConfidenceScore       float64                   `json:"confidence_score"`
+	OptimizationPotential float64                   `json:"optimization_potential"`
+	Timestamp             time.Time                 `json:"timestamp"`
 }
 
 // ResourceRecommendation provides optimal resource allocation recommendations
@@ -86,34 +89,34 @@ type ResourceRecommendation struct {
 
 // ScalingRecommendation provides intelligent auto-scaling recommendations
 type ScalingRecommendation struct {
-	MinReplicas             int32     `json:"min_replicas"`
-	MaxReplicas             int32     `json:"max_replicas"`
-	TargetCPUUtilization    int32     `json:"target_cpu_utilization"`
-	TargetMemoryUtilization int32     `json:"target_memory_utilization"`
-	ScaleUpPolicy           string    `json:"scale_up_policy"`
-	ScaleDownPolicy         string    `json:"scale_down_policy"`
-	PredictiveScaling       bool      `json:"predictive_scaling"`
+	MinReplicas             int32   `json:"min_replicas"`
+	MaxReplicas             int32   `json:"max_replicas"`
+	TargetCPUUtilization    int32   `json:"target_cpu_utilization"`
+	TargetMemoryUtilization int32   `json:"target_memory_utilization"`
+	ScaleUpPolicy           string  `json:"scale_up_policy"`
+	ScaleDownPolicy         string  `json:"scale_down_policy"`
+	PredictiveScaling       bool    `json:"predictive_scaling"`
 	TrafficForecast         []float64 `json:"traffic_forecast"`
 }
 
 // PerformanceRecommendation provides performance optimization recommendations
 type PerformanceRecommendation struct {
-	JVMSettings          map[string]string `json:"jvm_settings"`
-	NetworkConfig        map[string]string `json:"network_config"`
-	CacheConfiguration   map[string]string `json:"cache_configuration"`
+	JVMSettings         map[string]string `json:"jvm_settings"`
+	NetworkConfig       map[string]string `json:"network_config"`
+	CacheConfiguration  map[string]string `json:"cache_configuration"`
 	DatabaseOptimization map[string]string `json:"database_optimization"`
-	OptimizationProfile  string            `json:"optimization_profile"`
+	OptimizationProfile string            `json:"optimization_profile"`
 }
 
 // RiskAssessment provides deployment risk analysis
 type RiskAssessment struct {
-	OverallRisk        string              `json:"overall_risk"`
-	RiskFactors        []string            `json:"risk_factors"`
-	MitigationActions  []string            `json:"mitigation_actions"`
-	DeploymentScore    float64             `json:"deployment_score"`
-	SecurityRisk       float64             `json:"security_risk"`
-	PerformanceRisk    float64             `json:"performance_risk"`
-	AvailabilityRisk   float64             `json:"availability_risk"`
+	OverallRisk        string             `json:"overall_risk"`
+	RiskFactors        []string           `json:"risk_factors"`
+	MitigationActions  []string           `json:"mitigation_actions"`
+	DeploymentScore    float64            `json:"deployment_score"`
+	SecurityRisk       float64            `json:"security_risk"`
+	PerformanceRisk    float64            `json:"performance_risk"`
+	AvailabilityRisk   float64            `json:"availability_risk"`
 	RecommendedActions []RecommendedAction `json:"recommended_actions"`
 }
 
@@ -177,31 +180,31 @@ type IntentClassificationModel struct {
 }
 
 // NewOptimizationEngine creates a new AI/ML optimization engine
-func NewOptimizationEngine(config *OptimizationConfig, promURL string) (*OptimizationEngine, error) {
-	if promURL == "" {
-		return nil, fmt.Errorf("prometheus URL cannot be empty")
+func NewOptimizationEngine(config *OptimizationConfig) (*OptimizationEngine, error) {
+	if config.PrometheusURL == "" {
+		return nil, fmt.Errorf("PrometheusURL is required but not provided")
 	}
 
 	logger := slog.Default().With("component", "optimization-engine")
-
+	
 	// Initialize Prometheus client
 	client, err := api.NewClient(api.Config{
-		Address: promURL,
+		Address: config.PrometheusURL,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Prometheus client: %w", err)
 	}
-
+	
 	// Initialize ML models
 	models := make(map[string]MLModel)
-
+	
 	if config.MLModelConfig.TrafficPrediction.Enabled {
 		models["traffic_prediction"] = &TrafficPredictionModel{
 			weights:         make([]float64, 10), // Initialize with basic weights
 			predictionModel: config.MLModelConfig.TrafficPrediction.Algorithm,
 		}
 	}
-
+	
 	if config.MLModelConfig.ResourceOptimization.Enabled {
 		models["resource_optimization"] = &ResourceOptimizationModel{
 			qTable:       make(map[string]map[string]float64),
@@ -209,93 +212,99 @@ func NewOptimizationEngine(config *OptimizationConfig, promURL string) (*Optimiz
 			epsilon:      0.1,
 		}
 	}
-
+	
 	if config.MLModelConfig.AnomalyDetection.Enabled {
 		models["anomaly_detection"] = &AnomalyDetectionModel{
 			thresholds:  make(map[string]float64),
 			sensitivity: 0.95,
 		}
 	}
-
+	
 	if config.MLModelConfig.IntentClassification.Enabled {
 		models["intent_classification"] = &IntentClassificationModel{
 			classifier: make(map[string][]string),
 			vocabulary: make(map[string]int),
 		}
 	}
-
+	
 	engine := &OptimizationEngine{
 		prometheusClient: v1.NewAPI(client),
-		models:           models,
-		config:           config,
-		logger:           logger,
+		models:          models,
+		config:          config,
+		logger:          logger,
 	}
-
+	
 	return engine, nil
 }
 
 // OptimizeNetworkDeployment provides comprehensive optimization recommendations
 func (oe *OptimizationEngine) OptimizeNetworkDeployment(ctx context.Context, intent *NetworkIntent) (*OptimizationRecommendations, error) {
-	oe.logger.Info("Starting network deployment optimization", "intent_id", intent.ID)
-
+	oe.logger.InfoContext(ctx, "Starting network deployment optimization", 
+		slog.String("intent_id", intent.ID))
+	
 	// Gather historical data
 	historicalData, err := oe.gatherHistoricalData(ctx, intent)
 	if err != nil {
-		oe.logger.Error("Failed to gather historical data", "error", err)
+		oe.logger.ErrorContext(ctx, "Failed to gather historical data", 
+			slog.String("error", err.Error()))
 		return nil, err
 	}
-
+	
 	// Generate predictions and recommendations
 	recommendations := &OptimizationRecommendations{
 		IntentID:  intent.ID,
 		Timestamp: time.Now(),
 	}
-
+	
 	// Traffic prediction and scaling recommendations
 	if oe.config.EnablePredictiveScaling {
 		scalingRec, err := oe.generateScalingRecommendations(ctx, intent, historicalData)
 		if err != nil {
-			oe.logger.Error("Failed to generate scaling recommendations", "error", err)
+			oe.logger.ErrorContext(ctx, "Failed to generate scaling recommendations", 
+				slog.String("error", err.Error()))
 		} else {
 			recommendations.ScalingParameters = scalingRec
 		}
 	}
-
+	
 	// Resource optimization
 	if oe.config.EnableResourceOptim {
 		resourceRec, err := oe.generateResourceRecommendations(ctx, intent, historicalData)
 		if err != nil {
-			oe.logger.Error("Failed to generate resource recommendations", "error", err)
+			oe.logger.ErrorContext(ctx, "Failed to generate resource recommendations", 
+				slog.String("error", err.Error()))
 		} else {
 			recommendations.ResourceAllocation = resourceRec
 		}
 	}
-
+	
 	// Performance tuning
 	performanceRec, err := oe.generatePerformanceRecommendations(ctx, intent, historicalData)
 	if err != nil {
-		oe.logger.Error("Failed to generate performance recommendations", "error", err)
+		oe.logger.ErrorContext(ctx, "Failed to generate performance recommendations", 
+			slog.String("error", err.Error()))
 	} else {
 		recommendations.PerformanceTuning = performanceRec
 	}
-
+	
 	// Risk assessment
 	riskAssessment, err := oe.assessDeploymentRisk(ctx, intent, recommendations)
 	if err != nil {
-		oe.logger.Error("Failed to assess deployment risk", "error", err)
+		oe.logger.ErrorContext(ctx, "Failed to assess deployment risk", 
+			slog.String("error", err.Error()))
 	} else {
 		recommendations.RiskAssessment = riskAssessment
 	}
-
+	
 	// Calculate overall confidence and optimization potential
 	recommendations.ConfidenceScore = oe.calculateConfidenceScore(recommendations)
 	recommendations.OptimizationPotential = oe.calculateOptimizationPotential(intent, recommendations)
-
-	oe.logger.Info("Network deployment optimization completed",
-		"intent_id", intent.ID,
-		"confidence_score", recommendations.ConfidenceScore,
-		"optimization_potential", recommendations.OptimizationPotential)
-
+	
+	oe.logger.InfoContext(ctx, "Network deployment optimization completed", 
+		slog.String("intent_id", intent.ID),
+		slog.Float64("confidence_score", recommendations.ConfidenceScore),
+		slog.Float64("optimization_potential", recommendations.OptimizationPotential))
+	
 	return recommendations, nil
 }
 
@@ -771,22 +780,25 @@ func (oe *OptimizationEngine) calculateOptimizationPotential(intent *NetworkInte
 
 // UpdateModels triggers model updates and retraining
 func (oe *OptimizationEngine) UpdateModels(ctx context.Context) error {
-	oe.logger.Info("Starting ML model updates")
-
+	oe.logger.InfoContext(ctx, "Starting ML model updates")
+	
 	for name, model := range oe.models {
-		oe.logger.Info("Updating model", "model", name)
-
+		oe.logger.InfoContext(ctx, "Updating model", 
+			slog.String("model", name))
+		
 		if err := model.UpdateModel(ctx); err != nil {
-			oe.logger.Error("Failed to update model", "model", name, "error", err)
+			oe.logger.ErrorContext(ctx, "Failed to update model", 
+				slog.String("model", name),
+				slog.String("error", err.Error()))
 			continue
 		}
-
-		oe.logger.Info("Model updated successfully",
-			"model", name,
-			"accuracy", model.GetAccuracy(),
-			"last_training", model.GetLastTraining())
+		
+		oe.logger.InfoContext(ctx, "Model updated successfully", 
+			slog.String("model", name),
+			slog.Float64("accuracy", model.GetAccuracy()),
+			slog.Time("last_training", model.GetLastTraining()))
 	}
-
+	
 	return nil
 }
 

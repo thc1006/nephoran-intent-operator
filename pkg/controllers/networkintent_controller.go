@@ -761,7 +761,7 @@ func (r *NetworkIntentReconciler) handleDeletion(ctx context.Context, networkInt
 func (r *NetworkIntentReconciler) reconcileDelete(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 
-	// Set cleanup pending condition
+	// Set Ready condition to false while cleanup is pending
 	condition := metav1.Condition{
 		Type:               "Ready",
 		Status:             metav1.ConditionFalse,
@@ -810,21 +810,30 @@ func (r *NetworkIntentReconciler) reconcileDelete(ctx context.Context, networkIn
 		return ctrl.Result{}, nil
 	}
 
-	// Perform cleanup operations with Git operation tracking
-	if err := r.cleanupResourcesWithGitWait(ctx, networkIntent); err != nil {
-		logger.Error(err, "cleanup operations failed, scheduling retry")
+	// Perform cleanup operations including Git push confirmation
+	gitPushSucceeded := false
+	if err := r.performCleanupWithGitConfirmation(ctx, networkIntent, &gitPushSucceeded); err != nil {
+		logger.Error(err, "cleanup operations failed", "git_push_succeeded", gitPushSucceeded)
 
 		// Increment retry count
 		setRetryCount(networkIntent, "cleanup", retryCount+1)
 
-		// Update condition to show retry
+		// Update condition to show retry with specific Git error information
 		now := metav1.Now()
 		networkIntent.Status.LastRetryTime = &now
+		
+		reason := "CleanupRetrying"
+		message := fmt.Sprintf("Cleanup failed (attempt %d/%d): %v", retryCount+1, r.config.MaxRetries, err)
+		if !gitPushSucceeded && strings.Contains(err.Error(), "push") {
+			reason = "GitPushFailed"
+			message = fmt.Sprintf("Git push failed during cleanup (attempt %d/%d): %v", retryCount+1, r.config.MaxRetries, err)
+		}
+		
 		condition := metav1.Condition{
 			Type:               "Ready",
 			Status:             metav1.ConditionFalse,
-			Reason:             "CleanupRetrying",
-			Message:            fmt.Sprintf("Cleanup failed (attempt %d/%d): %v", retryCount+1, r.config.MaxRetries, err),
+			Reason:             reason,
+			Message:            message,
 			LastTransitionTime: now,
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
@@ -833,27 +842,42 @@ func (r *NetworkIntentReconciler) reconcileDelete(ctx context.Context, networkIn
 			logger.Error(statusErr, "failed to update status after cleanup failure")
 		}
 
-		r.recordFailureEvent(networkIntent, "CleanupRetry", fmt.Sprintf("attempt %d/%d failed: %v", retryCount+1, r.config.MaxRetries, err))
+		r.recordFailureEvent(networkIntent, reason, fmt.Sprintf("attempt %d/%d failed: %v", retryCount+1, r.config.MaxRetries, err))
 
 		// Calculate exponential backoff delay
-		backoffDelay := time.Duration(retryCount+1) * r.config.RetryDelay
-		if backoffDelay > time.Minute*5 {
-			backoffDelay = time.Minute * 5 // Cap at 5 minutes for cleanup
+		baseDelay := r.config.RetryDelay
+		if baseDelay == 0 {
+			baseDelay = DefaultRetryDelay
+		}
+		
+		// Exponential backoff: delay = base * 2^retryCount
+		backoffDelay := baseDelay * time.Duration(1<<uint(retryCount))
+		
+		// Cap at 5 minutes for cleanup operations
+		maxDelay := time.Minute * 5
+		if backoffDelay > maxDelay {
+			backoffDelay = maxDelay
 		}
 
-		logger.V(1).Info("Scheduling cleanup retry", "delay", backoffDelay, "attempt", retryCount+1)
+		logger.V(1).Info("Scheduling cleanup retry with exponential backoff", 
+			"delay", backoffDelay, 
+			"attempt", retryCount+1,
+			"base_delay", baseDelay)
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 
-	// Cleanup succeeded, clear retry count and remove finalizer
+	// Git push confirmed successful, now safe to remove finalizer
+	logger.Info("Git push confirmed successful, proceeding with finalizer removal")
+	
+	// Clear retry count
 	clearRetryCount(networkIntent, "cleanup")
 
-	// Update condition to show successful cleanup
+	// Update condition to show successful cleanup with Git confirmation
 	condition = metav1.Condition{
 		Type:               "Ready",
 		Status:             metav1.ConditionFalse,
 		Reason:             "CleanupCompleted",
-		Message:            "All cleanup operations completed successfully, finalizer can be removed",
+		Message:            "All cleanup operations completed successfully with Git push confirmation, finalizer removed",
 		LastTransitionTime: metav1.Now(),
 	}
 	updateCondition(&networkIntent.Status.Conditions, condition)
@@ -863,16 +887,71 @@ func (r *NetworkIntentReconciler) reconcileDelete(ctx context.Context, networkIn
 		// Continue with finalizer removal even if status update fails
 	}
 
-	// Remove finalizer only after successful cleanup
+	// Remove finalizer only after Git push is confirmed successful
 	networkIntent.Finalizers = removeFinalizer(networkIntent.Finalizers, NetworkIntentFinalizer)
 	if err := r.safeUpdate(ctx, networkIntent); err != nil {
-		logger.Error(err, "failed to remove finalizer after successful cleanup")
+		logger.Error(err, "failed to remove finalizer after successful cleanup and Git confirmation")
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("NetworkIntent cleanup and finalizer removal completed successfully", "intent", networkIntent.Name)
-	r.recordEvent(networkIntent, "Normal", "CleanupCompleted", "Successfully cleaned up resources and removed finalizer")
+	logger.Info("NetworkIntent cleanup completed with Git confirmation and finalizer removed", "intent", networkIntent.Name)
+	r.recordEvent(networkIntent, "Normal", "CleanupCompleted", "Successfully cleaned up resources with Git push confirmation and removed finalizer")
 	return ctrl.Result{}, nil
+}
+
+// performCleanupWithGitConfirmation performs cleanup operations and confirms Git push succeeded
+func (r *NetworkIntentReconciler) performCleanupWithGitConfirmation(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, gitPushSucceeded *bool) error {
+	logger := log.FromContext(ctx)
+
+	// Check context cancellation before starting
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("context cancelled during cleanup: %w", ctx.Err())
+	default:
+	}
+
+	logger.Info("Starting cleanup operations with Git push confirmation tracking", "intent_name", networkIntent.Name, "namespace", networkIntent.Namespace)
+
+	// 1. Cleanup GitOps packages first (most critical operation)
+	gitClient := r.deps.GetGitClient()
+	if gitClient != nil && r.config.GitRepoURL != "" {
+		logger.V(1).Info("Starting GitOps cleanup with push confirmation")
+		
+		// Track Git operations explicitly
+		*gitPushSucceeded = false
+		
+		if err := r.cleanupGitOpsPackagesWithWait(ctx, networkIntent, gitClient); err != nil {
+			// Check if this was specifically a push error
+			if strings.Contains(err.Error(), "push") || strings.Contains(err.Error(), "remote") {
+				logger.Error(err, "Git push failed during cleanup")
+				*gitPushSucceeded = false
+			}
+			return fmt.Errorf("GitOps cleanup failed: %w", err)
+		}
+		
+		// If we got here, Git push succeeded
+		*gitPushSucceeded = true
+		logger.V(1).Info("GitOps cleanup completed successfully with push confirmation")
+	} else {
+		logger.V(1).Info("Skipping GitOps cleanup - no Git client or repository configured")
+		// No Git operations needed, so we consider this "successful"
+		*gitPushSucceeded = true
+	}
+
+	// 2. Cleanup any generated ConfigMaps or Secrets (non-blocking)
+	if err := r.cleanupGeneratedResources(ctx, networkIntent); err != nil {
+		logger.Error(err, "failed to cleanup generated resources, but continuing")
+		// Don't fail the entire cleanup for this - log and continue
+	}
+
+	// 3. Cleanup any cached data related to this intent (non-blocking)
+	if err := r.cleanupCachedData(ctx, networkIntent); err != nil {
+		logger.Error(err, "failed to cleanup cached data, but continuing")
+		// Cache cleanup is not critical - log and continue
+	}
+
+	logger.Info("All cleanup operations completed successfully", "intent_name", networkIntent.Name, "git_push_succeeded", *gitPushSucceeded)
+	return nil
 }
 
 // cleanupResourcesWithGitWait performs cleanup with proper Git operation waiting

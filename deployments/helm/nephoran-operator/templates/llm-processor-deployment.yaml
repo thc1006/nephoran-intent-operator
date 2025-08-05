@@ -1,0 +1,104 @@
+{{- if .Values.llmProcessor.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-llm-processor
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: llm-processor
+spec:
+  replicas: {{ .Values.llmProcessor.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: llm-processor
+  template:
+    metadata:
+      labels:
+        {{- include "nephoran-operator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: llm-processor
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "nephoran-operator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.llmProcessor.podSecurityContext | nindent 8 }}
+      containers:
+        - name: llm-processor
+          securityContext:
+            {{- toYaml .Values.llmProcessor.securityContext | nindent 12 }}
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.llmProcessor.image.repository }}:{{ .Values.llmProcessor.image.tag }}"
+          imagePullPolicy: {{ .Values.llmProcessor.image.pullPolicy }}
+          command: ["/llm-processor"]
+          args:
+            {{- if .Values.rag.enabled }}
+            - "--rag-service-url={{ .Values.llmProcessor.ragService.url }}"
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.llmProcessor.service.targetPort }}
+              protocol: TCP
+          env:
+            {{- toYaml .Values.llmProcessor.env | nindent 12 }}
+            {{- if .Values.rag.enabled }}
+            - name: RAG_ENABLED
+              value: "true"
+            {{- else }}
+            - name: RAG_ENABLED
+              value: "false"
+            {{- end }}
+            {{- if .Values.ml.enabled }}
+            - name: ML_ENABLED
+              value: "true"
+            {{- else }}
+            - name: ML_ENABLED
+              value: "false"
+            {{- end }}
+            {{- if .Values.git.tokenSecret }}
+            - name: GIT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.git.tokenSecret }}
+                  key: token
+            {{- end }}
+          {{- if .Values.llmProcessor.healthCheck.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.llmProcessor.healthCheck.livenessProbe.httpGet.path }}
+              port: {{ .Values.llmProcessor.healthCheck.livenessProbe.httpGet.port }}
+            failureThreshold: {{ .Values.llmProcessor.healthCheck.livenessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.llmProcessor.healthCheck.livenessProbe.periodSeconds }}
+            initialDelaySeconds: {{ .Values.llmProcessor.healthCheck.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.llmProcessor.healthCheck.livenessProbe.timeoutSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.llmProcessor.healthCheck.readinessProbe.httpGet.path }}
+              port: {{ .Values.llmProcessor.healthCheck.readinessProbe.httpGet.port }}
+            failureThreshold: {{ .Values.llmProcessor.healthCheck.readinessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.llmProcessor.healthCheck.readinessProbe.periodSeconds }}
+            initialDelaySeconds: {{ .Values.llmProcessor.healthCheck.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.llmProcessor.healthCheck.readinessProbe.timeoutSeconds }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.llmProcessor.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.llmProcessor.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.llmProcessor.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.llmProcessor.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

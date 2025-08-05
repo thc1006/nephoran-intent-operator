@@ -1,0 +1,153 @@
+# Default values for nephoran-operator
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Global configuration
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+
+# Feature flags
+rag:
+  enabled: false
+
+ml:
+  enabled: false
+
+git:
+  tokenSecret: ""
+
+# LLM Processor configuration
+llmProcessor:
+  enabled: true
+  replicaCount: 1
+  
+  image:
+    repository: thc1006/nephoran-llm-processor
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  
+  # Health check configuration
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 8080
+      failureThreshold: 3
+      periodSeconds: 10
+      initialDelaySeconds: 30
+      timeoutSeconds: 5
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 8080
+      failureThreshold: 3
+      periodSeconds: 10
+      initialDelaySeconds: 5
+      timeoutSeconds: 5
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  # Node selection
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  
+  # Pod security context
+  podSecurityContext:
+    fsGroup: 65534
+  
+  # Environment variables
+  env:
+    - name: PORT
+      value: "8080"
+  
+  # RAG service configuration (conditional)
+  ragService:
+    url: "http://rag-api:5001/process_intent"
+
+# RAG API configuration (conditional deployment)
+ragApi:
+  enabled: false  # Controlled by rag.enabled
+  replicaCount: 1
+  
+  image:
+    repository: python
+    tag: "3.11-slim"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 5001
+    targetPort: 5001
+  
+  # Environment variables
+  env:
+    - name: WEAVIATE_URL
+      value: "http://weaviate.weaviate.svc.cluster.local:8080"
+    - name: OPENAI_API_KEY
+      valueFrom:
+        secretKeyRef:
+          name: openai-credentials
+          key: apiKey
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# RBAC
+rbac:
+  create: true
+
+# Ingress
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: nephoran-operator.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Monitoring
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    scrapeTimeout: 10s

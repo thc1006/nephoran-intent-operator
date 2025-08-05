@@ -1,0 +1,22 @@
+apiVersion: v2
+name: nephoran-operator
+description: A Helm chart for Nephoran Intent Operator - an intelligent telecom network intent management system
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - nephoran
+  - intent-operator
+  - telecom
+  - kubernetes
+  - operator
+  - rag
+  - ml
+home: https://github.com/thc1006/nephoran-intent-operator
+sources:
+  - https://github.com/thc1006/nephoran-intent-operator
+maintainers:
+  - name: thc1006
+    email: thc1006@example.com
+annotations:
+  category: Networking

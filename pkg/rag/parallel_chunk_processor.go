@@ -17,7 +17,7 @@ import (
 type ParallelChunkProcessor struct {
 	logger         *zap.Logger
 	workerPool     *ChunkWorkerPool
-	loadBalancer   LoadBalancer
+	loadBalancer   ParallelLoadBalancer
 	memoryPool     *sync.Pool
 	metrics        *parallelMetrics
 	maxRetries     int
@@ -62,8 +62,8 @@ type ChunkResult struct {
 	WorkerID int
 }
 
-// LoadBalancer interface for different load balancing strategies
-type LoadBalancer interface {
+// ParallelLoadBalancer interface for different load balancing strategies
+type ParallelLoadBalancer interface {
 	SelectWorker(workers []*ChunkWorker, task *ChunkTask) *ChunkWorker
 	UpdateStats(workerID int, duration time.Duration, success bool)
 }
@@ -177,7 +177,7 @@ func NewParallelChunkProcessor(
 	}
 
 	// Create load balancer
-	var balancer LoadBalancer
+	var balancer ParallelLoadBalancer
 	switch config.LoadBalancer {
 	case "least-loaded":
 		balancer = NewLeastLoadedBalancer(config.MaxWorkers)

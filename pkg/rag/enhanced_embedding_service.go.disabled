@@ -1,3 +1,5 @@
+//go:build !disable_rag && !test
+
 package rag
 
 import (
@@ -22,9 +24,9 @@ import (
 type MultiProviderEmbeddingService struct {
 	config         *EmbeddingConfig
 	logger         *slog.Logger
-	providers      map[string]EmbeddingProvider
-	loadBalancer   *LoadBalancer
-	costManager    *CostManager
+	providers      map[string]EnhancedEmbeddingProvider
+	loadBalancer   *EnhancedLoadBalancer
+	costManager    *EnhancedCostManager
 	qualityManager *QualityManager
 	cacheManager   *EmbeddingCacheManager
 	healthMonitor  *ProviderHealthMonitor
@@ -32,8 +34,8 @@ type MultiProviderEmbeddingService struct {
 	mutex          sync.RWMutex
 }
 
-// EmbeddingProvider interface for different embedding providers
-type EmbeddingProvider interface {
+// EnhancedEnhancedEmbeddingProvider interface for different embedding providers
+type EnhancedEnhancedEmbeddingProvider interface {
 	GenerateEmbeddings(ctx context.Context, texts []string) (*EmbeddingResponse, error)
 	GetModelInfo() ModelInfo
 	EstimateCost(texts []string) float64
@@ -53,8 +55,8 @@ type ModelInfo struct {
 	Capabilities  []string `json:"capabilities"`
 }
 
-// ProviderConfig holds configuration for a specific provider
-type ProviderConfig struct {
+// EnhancedProviderConfig holds configuration for a specific provider
+type EnhancedProviderConfig struct {
 	Name           string            `json:"name"`
 	Type           string            `json:"type"`           // "openai", "azure", "local", "huggingface"
 	APIKey         string            `json:"api_key"`
@@ -75,7 +77,7 @@ type ProviderConfig struct {
 }
 
 // LoadBalancer manages provider selection and load distribution
-type LoadBalancer struct {
+type EnhancedLoadBalancer struct {
 	strategy    string                    // "round_robin", "least_cost", "fastest", "quality"
 	providers   []string
 	currentIdx  int
@@ -84,23 +86,23 @@ type LoadBalancer struct {
 }
 
 // CostManager tracks and manages embedding costs
-type CostManager struct {
+type EnhancedCostManager struct {
 	dailySpend    map[string]float64 // date -> amount
 	monthlySpend  map[string]float64 // month -> amount
-	limits        CostLimits
-	alerts        []CostAlert
+	limits        EnhancedCostLimits
+	alerts        []EnhancedCostAlert
 	mutex         sync.RWMutex
 }
 
 // CostLimits defines spending limits
-type CostLimits struct {
+type EnhancedCostLimits struct {
 	DailyLimit   float64 `json:"daily_limit"`
 	MonthlyLimit float64 `json:"monthly_limit"`
 	AlertThreshold float64 `json:"alert_threshold"` // Percentage of limit
 }
 
 // CostAlert represents a cost alert
-type CostAlert struct {
+type EnhancedCostAlert struct {
 	Timestamp   time.Time `json:"timestamp"`
 	Level       string    `json:"level"`     // "warning", "critical"
 	Message     string    `json:"message"`
@@ -203,7 +205,7 @@ func NewMultiProviderEmbeddingService(config *EmbeddingConfig) (*MultiProviderEm
 	service := &MultiProviderEmbeddingService{
 		config:    config,
 		logger:    slog.Default().With("component", "multi-provider-embedding"),
-		providers: make(map[string]EmbeddingProvider),
+		providers: make(map[string]EnhancedEmbeddingProvider),
 		metrics:   &EmbeddingMetrics{ModelStats: make(map[string]ModelUsageStats)},
 	}
 
@@ -216,7 +218,7 @@ func NewMultiProviderEmbeddingService(config *EmbeddingConfig) (*MultiProviderEm
 	service.loadBalancer = NewLoadBalancer(config.LoadBalancing, service.getProviderNames())
 
 	// Initialize cost manager
-	service.costManager = NewCostManager(CostLimits{
+	service.costManager = NewCostManager(EnhancedCostLimits{
 		DailyLimit:     config.DailyCostLimit,
 		MonthlyLimit:   config.MonthlyCostLimit,
 		AlertThreshold: config.CostAlertThreshold,
@@ -365,7 +367,7 @@ func (mps *MultiProviderEmbeddingService) initializeProviders() error {
 }
 
 // createProvider creates a specific provider instance
-func (mps *MultiProviderEmbeddingService) createProvider(config ProviderConfig) (EmbeddingProvider, error) {
+func (mps *MultiProviderEmbeddingService) createProvider(config EnhancedProviderConfig) (EnhancedEmbeddingProvider, error) {
 	switch config.Type {
 	case "openai":
 		return NewOpenAIProvider(config)
@@ -374,14 +376,14 @@ func (mps *MultiProviderEmbeddingService) createProvider(config ProviderConfig) 
 	case "huggingface":
 		return NewHuggingFaceProvider(config)
 	case "local":
-		return NewLocalEmbeddingProvider(config)
+		return NewLocalEnhancedEmbeddingProvider(config)
 	default:
 		return nil, fmt.Errorf("unsupported provider type: %s", config.Type)
 	}
 }
 
 // selectProvider selects the best provider for the request
-func (mps *MultiProviderEmbeddingService) selectProvider(request *EmbeddingRequest) (EmbeddingProvider, error) {
+func (mps *MultiProviderEmbeddingService) selectProvider(request *EmbeddingRequest) (EnhancedEmbeddingProvider, error) {
 	availableProviders := mps.getHealthyProviders()
 	if len(availableProviders) == 0 {
 		return nil, fmt.Errorf("no healthy providers available")
@@ -398,7 +400,7 @@ func (mps *MultiProviderEmbeddingService) selectProvider(request *EmbeddingReque
 }
 
 // generateWithProvider generates embeddings using a specific provider
-func (mps *MultiProviderEmbeddingService) generateWithProvider(ctx context.Context, provider EmbeddingProvider, request *EmbeddingRequest) (*EmbeddingResponse, error) {
+func (mps *MultiProviderEmbeddingService) generateWithProvider(ctx context.Context, provider EnhancedEmbeddingProvider, request *EmbeddingRequest) (*EmbeddingResponse, error) {
 	// Preprocess texts if telecom preprocessing is enabled
 	processedTexts := request.Texts
 	if mps.config.TelecomPreprocessing {
@@ -429,7 +431,7 @@ func (mps *MultiProviderEmbeddingService) generateWithProvider(ctx context.Conte
 }
 
 // generateWithFallback tries fallback providers if the primary fails
-func (mps *MultiProviderEmbeddingService) generateWithFallback(ctx context.Context, failedProvider EmbeddingProvider, request *EmbeddingRequest) (*EmbeddingResponse, error) {
+func (mps *MultiProviderEmbeddingService) generateWithFallback(ctx context.Context, failedProvider EnhancedEmbeddingProvider, request *EmbeddingRequest) (*EmbeddingResponse, error) {
 	fallbackOrder := mps.config.FallbackOrder
 	if len(fallbackOrder) == 0 {
 		// Use all healthy providers except the failed one
@@ -844,42 +846,3 @@ func (mps *MultiProviderEmbeddingService) Close() error {
 	return nil
 }
 
-// getDefaultEmbeddingConfig returns default embedding configuration
-func getDefaultEmbeddingConfig() *EmbeddingConfig {
-	return &EmbeddingConfig{
-		Provider:               "openai",
-		Dimensions:             1536,
-		MaxTokens:              8191,
-		BatchSize:              100,
-		MaxConcurrency:         5,
-		RequestTimeout:         30 * time.Second,
-		RetryAttempts:          3,
-		RetryDelay:             2 * time.Second,
-		RateLimit:              60,
-		TokenRateLimit:         1000000,
-		MinTextLength:          10,
-		MaxTextLength:          8000,
-		NormalizeText:          true,
-		RemoveStopWords:        false,
-		EnableCaching:          true,
-		CacheTTL:               24 * time.Hour,
-		EnableRedisCache:       true,
-		L1CacheSize:            1000,
-		L2CacheEnabled:         true,
-		FallbackEnabled:        true,
-		LoadBalancing:          "least_cost",
-		HealthCheckInterval:    5 * time.Minute,
-		EnableCostTracking:     true,
-		DailyCostLimit:         100.0,
-		MonthlyCostLimit:       2000.0,
-		CostAlertThreshold:     0.8,
-		EnableQualityCheck:     true,
-		MinQualityScore:        0.7,
-		QualityCheckSample:     10,
-		TelecomPreprocessing:   true,
-		PreserveTechnicalTerms: true,
-		TechnicalTermWeighting: 1.5,
-		EnableMetrics:          true,
-		MetricsInterval:        1 * time.Minute,
-	}
-}

@@ -106,16 +106,210 @@ graph TD
 
 7.  **Continuous Monitoring**: Prometheus collects metrics from all components, Alertmanager handles notifications, and Grafana provides visualization dashboards.
 
-### Build Configuration
+## ML Engine & RAG Pipeline Configuration
 
-**ML Components** (enabled with `ml` build tag):
+The Nephoran Intent Operator integrates advanced AI/ML capabilities through configurable build flags and feature toggles. The system is designed with a modular architecture that allows selective enabling/disabling of ML optimization and RAG processing components.
+
+### Feature Configuration Overview
+
+The system supports two primary feature flags that control the AI/ML capabilities:
+
+| Feature | Build Flag | Default State | Description |
+|---------|------------|---------------|-------------|
+| **ML Optimization Engine** | `ml` | Disabled | Traffic prediction, resource optimization, anomaly detection |
+| **RAG Processing Pipeline** | `disable_rag` | Enabled | Retrieval-augmented generation with telecom knowledge base |
+
+### Build Flag Configuration
+
+**ML Components** (optional - requires explicit enable):
 ```bash
+# Build with ML optimization engine enabled
 go build -tags ml ./cmd/ml-optimizer
+
+# Build LLM processor with ML support
+go build -tags ml ./cmd/llm-processor
+
+# Combined build with both ML and RAG (default RAG, explicit ML)
+make build-all TAGS="ml"
 ```
 
-**RAG Components** (enabled by default, disable with `disable_rag` build tag):
+**RAG Components** (enabled by default):
 ```bash
-go build -tags !disable_rag ./cmd/rag-api
+# Standard build (RAG enabled by default)
+go build ./cmd/rag-api
+go build ./cmd/llm-processor
+
+# Explicitly disable RAG components
+go build -tags disable_rag ./cmd/llm-processor
+go build -tags disable_rag ./cmd/rag-api
+
+# Build without RAG support
+make build-all TAGS="disable_rag"
+```
+
+**Combined Configuration**:
+```bash
+# Full AI/ML stack (ML enabled, RAG enabled by default)
+make docker-build TAGS="ml"
+
+# Minimal build (both ML and RAG disabled)
+make docker-build TAGS="ml=false,disable_rag"
+
+# Development build with all features
+export BUILD_TAGS="ml,!disable_rag"
+make build-all
+```
+
+### Component Flow Diagram
+
+```mermaid
+graph LR
+    subgraph "Input Layer"
+        NLIntent["Natural Language Intent<br/>'Deploy AMF with 3 replicas'"]
+    end
+
+    subgraph "Processing Layer"
+        LLMProcessor["LLM Processor Service<br/>• Intent parsing<br/>• RAG context retrieval<br/>• ML optimization"]
+        RAGSystem["RAG Pipeline<br/>• Vector search<br/>• Knowledge retrieval<br/>• Context enhancement"]
+        MLEngine["ML Engine<br/>• Traffic prediction<br/>• Resource optimization<br/>• Anomaly detection"]
+    end
+
+    subgraph "Orchestration Layer"
+        GitOps["GitOps Repository<br/>• KRM manifests<br/>• Configuration management<br/>• Version control"]
+        NephioEngine["Nephio Engine<br/>• Package management<br/>• Resource orchestration<br/>• Lifecycle management"]
+    end
+
+    subgraph "Deployment Layer"
+        ORAN["O-RAN Components<br/>• Near-RT RIC<br/>• E2 Node Simulators<br/>• xApps & Network Functions"]
+    end
+
+    subgraph "Monitoring Layer"
+        Prometheus["Prometheus<br/>• Metrics collection<br/>• Performance monitoring<br/>• ML training data"]
+        Alertmanager["Alertmanager<br/>• Alert routing<br/>• Notification management<br/>• Escalation policies"]
+        Grafana["Grafana<br/>• Dashboards<br/>• Visualization<br/>• Operational insights"]
+    end
+
+    %% Main processing flow
+    NLIntent --> LLMProcessor
+    LLMProcessor --> RAGSystem
+    LLMProcessor --> MLEngine
+    LLMProcessor --> GitOps
+    GitOps --> NephioEngine
+    NephioEngine --> ORAN
+
+    %% Monitoring flow
+    LLMProcessor -.-> Prometheus
+    RAGSystem -.-> Prometheus
+    MLEngine -.-> Prometheus
+    NephioEngine -.-> Prometheus
+    ORAN -.-> Prometheus
+    
+    Prometheus --> Alertmanager
+    Prometheus --> Grafana
+    Alertmanager --> Grafana
+
+    %% Feedback loops
+    Prometheus -.-> MLEngine
+    MLEngine -.-> LLMProcessor
+
+    %% Styling
+    classDef inputLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef processLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef orchestrationLayer fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef deploymentLayer fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef monitoringLayer fill:#fff8e1,stroke:#e65100,stroke-width:2px
+
+    class NLIntent inputLayer
+    class LLMProcessor,RAGSystem,MLEngine processLayer
+    class GitOps,NephioEngine orchestrationLayer
+    class ORAN deploymentLayer
+    class Prometheus,Alertmanager,Grafana monitoringLayer
+```
+
+### Feature-Specific Configuration
+
+**ML Engine Configuration**:
+```bash
+# Environment variables for ML optimization
+export ML_ENABLED=true
+export ML_MODEL_PATH="/models"
+export PROMETHEUS_ENDPOINT="http://prometheus:9090"
+export ML_TRAINING_INTERVAL="24h"
+export ML_PREDICTION_CACHE_TTL="5m"
+
+# Kubernetes configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ml-optimizer-config
+data:
+  ml.enabled: "true"
+  traffic.prediction.enabled: "true"
+  resource.optimization.enabled: "true"
+  anomaly.detection.threshold: "0.8"
+```
+
+**RAG Pipeline Configuration**:
+```bash
+# Environment variables for RAG system
+export RAG_ENABLED=true
+export WEAVIATE_ENDPOINT="http://weaviate:8080"
+export OPENAI_API_KEY="sk-your-api-key"
+export RAG_CACHE_SIZE="1000"
+export VECTOR_SEARCH_LIMIT="10"
+
+# Kubernetes configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rag-system-config
+data:
+  rag.enabled: "true"
+  weaviate.host: "weaviate"
+  weaviate.port: "8080"
+  embedding.model: "text-embedding-ada-002"
+  chunk.size: "1000"
+  chunk.overlap: "200"
+```
+
+### Production Deployment Examples
+
+**Full Stack Deployment** (ML + RAG enabled):
+```bash
+# Set environment for full AI/ML stack
+export OPENAI_API_KEY="sk-your-production-key"
+export ML_ENABLED=true
+export RAG_ENABLED=true
+
+# Deploy with all features
+make docker-build TAGS="ml"
+./deploy.sh remote
+
+# Verify all components
+make verify-ml-deployment
+make verify-rag-deployment
+```
+
+**Minimal Deployment** (ML and RAG disabled):
+```bash
+# Lightweight deployment without AI/ML features
+make docker-build TAGS="disable_rag,ml=false"
+./deploy.sh local
+
+# Verify basic functionality
+kubectl get networkintents
+kubectl get e2nodesets
+```
+
+**Development Deployment** (RAG only, no ML):
+```bash
+# Development setup with RAG but no ML training
+export OPENAI_API_KEY="sk-your-dev-key"
+export ML_ENABLED=false
+
+make docker-build
+./deploy.sh local
+make populate-kb-enhanced
 ```
 
 ## Deployment Guide
@@ -673,6 +867,223 @@ patches:
 3. **Minimal Permissions**: Grant only the minimum required permissions to Git tokens
 4. **Monitor Token Usage**: Monitor Git API usage to detect unauthorized access
 5. **Secure Storage**: Never store tokens in plain text files or version control
+
+## Helm Configuration
+
+The Nephoran Intent Operator can be deployed using Helm charts for simplified configuration management. The Helm chart is located at `deployments/helm/nephoran-operator/` and provides flexible configuration options for all system components.
+
+### Git Token Secret Configuration
+
+The `git.tokenSecret` Helm value provides a secure and convenient way to configure Git authentication using Kubernetes secrets. This method is recommended over environment variables for production deployments.
+
+#### Configuration Overview
+
+```yaml
+# values.yaml
+git:
+  tokenSecret: "git-token-secret"  # Name of the Kubernetes secret containing the Git token
+```
+
+When `git.tokenSecret` is specified, the Helm chart will:
+
+1. **Create a Secret Volume Mount**: Mount the specified Kubernetes secret as a file in the container
+2. **Set GIT_TOKEN_PATH**: Automatically configure the `GIT_TOKEN_PATH` environment variable to point to the mounted token file
+3. **Enable File-Based Authentication**: The system will read the Git token from the mounted file with fallback to environment variables
+
+#### How It Works
+
+The `git.tokenSecret` value creates the following configuration:
+
+1. **Secret Mount**: The specified secret is mounted at `/etc/git-secret/` in the container
+2. **File Priority**: The mounted token file takes precedence over the `GIT_TOKEN` environment variable
+3. **Automatic Fallback**: If file reading fails, the system automatically falls back to environment variable authentication
+4. **Security**: Files are mounted with restricted permissions (mode 0400) for enhanced security
+
+#### Example Configuration
+
+**Step 1: Create the Git Token Secret**
+
+```bash
+# Create a Kubernetes secret with your Git token
+kubectl create secret generic git-token-secret \
+  --from-literal=token="your-github-personal-access-token"
+```
+
+**Step 2: Configure Helm Values**
+
+```yaml
+# values.yaml or custom-values.yaml
+git:
+  tokenSecret: "git-token-secret"
+
+# Other Git configuration (can be set via environment or ConfigMap)
+env:
+  GIT_REPO_URL: "https://github.com/your-username/your-repo.git"
+  GIT_BRANCH: "main"
+```
+
+**Step 3: Deploy with Helm**
+
+```bash
+# Deploy using the Helm chart
+helm install nephoran-operator deployments/helm/nephoran-operator/ \
+  --values custom-values.yaml
+
+# Or set values directly
+helm install nephoran-operator deployments/helm/nephoran-operator/ \
+  --set git.tokenSecret=git-token-secret \
+  --set env.GIT_REPO_URL=https://github.com/your-username/your-repo.git
+```
+
+#### Advanced Configuration Example
+
+```yaml
+# Complete Helm values configuration
+git:
+  tokenSecret: "git-token-secret"
+
+# LLM Processor configuration with Git integration
+llmProcessor:
+  enabled: true
+  env:
+    - name: GIT_REPO_URL
+      value: "https://github.com/your-username/nephoran-config.git"
+    - name: GIT_BRANCH
+      value: "main"
+    - name: GIT_AUTHOR_NAME
+      value: "Nephoran Operator"
+    - name: GIT_AUTHOR_EMAIL
+      value: "operator@nephoran.com"
+
+# Nephio Bridge controller with Git integration
+nephioBridge:
+  enabled: true
+  env:
+    - name: GIT_DEPLOYMENT_REPO
+      value: "https://github.com/your-username/nephoran-deployments.git"
+    - name: GIT_DEPLOYMENT_BRANCH
+      value: "deployments"
+```
+
+#### Behavior and Fallback Logic
+
+The system implements the following authentication priority:
+
+1. **Primary**: File-based token from `GIT_TOKEN_PATH` (configured by `git.tokenSecret`)
+2. **Fallback**: Environment variable `GIT_TOKEN`
+3. **Error Handling**: If both methods fail, Git operations will fail with authentication errors
+
+**Example Authentication Flow:**
+
+```
+1. System checks if GIT_TOKEN_PATH is set (via git.tokenSecret)
+   ├── If set: Attempt to read token from file
+   │   ├── Success: Use file-based token for Git operations
+   │   └── Failure: Log warning and fall back to step 2
+   └── If not set: Skip to step 2
+
+2. System checks GIT_TOKEN environment variable
+   ├── If set: Use environment variable token
+   └── If not set: Git operations will fail with authentication error
+```
+
+#### Troubleshooting Git Token Secret
+
+**Secret Not Found:**
+```bash
+# Verify the secret exists
+kubectl get secret git-token-secret
+
+# Check secret contents (base64 encoded)
+kubectl get secret git-token-secret -o yaml
+```
+
+**File Mount Issues:**
+```bash
+# Check if the secret is properly mounted
+kubectl exec deployment/nephio-bridge -- ls -la /etc/git-secret/
+
+# Verify file permissions
+kubectl exec deployment/nephio-bridge -- ls -la /etc/git-secret/token
+```
+
+**Authentication Failures:**
+```bash
+# Check logs for authentication errors
+kubectl logs deployment/nephio-bridge | grep -i "git\|auth"
+
+# Test token validity manually
+kubectl exec deployment/nephio-bridge -- cat /etc/git-secret/token
+```
+
+#### Migration from Environment Variables
+
+If you're currently using `GIT_TOKEN` environment variables, you can migrate to the secure secret-based approach:
+
+**Current Configuration (Environment Variable):**
+```yaml
+llmProcessor:
+  env:
+    - name: GIT_TOKEN
+      valueFrom:
+        secretKeyRef:
+          name: git-credentials
+          key: token
+```
+
+**New Configuration (File-Based with git.tokenSecret):**
+```yaml
+git:
+  tokenSecret: "git-credentials"  # Uses the same secret, but mounts as file
+
+llmProcessor:
+  env:
+    # Remove GIT_TOKEN - it will be handled by file-based authentication
+    - name: GIT_REPO_URL
+      value: "https://github.com/your-username/your-repo.git"
+```
+
+#### Security Considerations
+
+1. **Secret Permissions**: Mounted secrets have restrictive file permissions (0400)
+2. **Secret Rotation**: Update the Kubernetes secret to rotate tokens without redeploying
+3. **Namespace Security**: Ensure the secret is created in the same namespace as the operator
+4. **RBAC**: Verify the service account has permission to access the secret
+
+#### Integration with Other Helm Values
+
+The `git.tokenSecret` value integrates seamlessly with other Helm configuration options:
+
+```yaml
+# Complete production configuration
+global:
+  imageRegistry: "your-registry.com"
+
+git:
+  tokenSecret: "production-git-token"
+
+llmProcessor:
+  enabled: true
+  replicaCount: 2
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+ragApi:
+  enabled: true
+
+ml:
+  enabled: true
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+```
 
 ### Troubleshooting Git Integration
 

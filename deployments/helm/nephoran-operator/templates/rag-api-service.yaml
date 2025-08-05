@@ -1,0 +1,19 @@
+{{- if .Values.rag.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-rag-api
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rag-api
+spec:
+  type: {{ .Values.ragApi.service.type }}
+  ports:
+    - port: {{ .Values.ragApi.service.port }}
+      targetPort: {{ .Values.ragApi.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "nephoran-operator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: rag-api
+{{- end }}

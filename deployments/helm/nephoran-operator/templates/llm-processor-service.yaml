@@ -1,0 +1,19 @@
+{{- if .Values.llmProcessor.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-llm-processor
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: llm-processor
+spec:
+  type: {{ .Values.llmProcessor.service.type }}
+  ports:
+    - port: {{ .Values.llmProcessor.service.port }}
+      targetPort: {{ .Values.llmProcessor.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "nephoran-operator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: llm-processor
+{{- end }}

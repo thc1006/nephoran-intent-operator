@@ -285,7 +285,7 @@ type EmbeddingResponseExt struct {
 // GenerateEmbeddingsOptimized generates embeddings with cost optimization
 func (caesa *CostAwareEmbeddingServiceAdapter) GenerateEmbeddingsOptimized(ctx context.Context, request *EmbeddingRequestExt) (*EmbeddingResponseExt, error) {
 	// Convert request format
-	embeddingRequest := EmbeddingRequest{
+	embeddingRequest := CostAwareEmbeddingRequest{
 		Text:            request.Texts[0], // Take first text for now
 		MaxBudget:       10.0,
 		QualityRequired: 0.8,

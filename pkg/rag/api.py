@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from telecom_pipeline import TelecomRAGPipeline
 from enhanced_pipeline import EnhancedTelecomRAGPipeline
 from document_processor import DocumentProcessor
@@ -8,6 +9,7 @@ import time
 from pathlib import Path
 
 app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=True)
 logging.basicConfig(level=logging.INFO)
 
 # Enhanced configuration with production-ready settings
@@ -145,6 +147,17 @@ def upload_knowledge():
         if not files:
             return jsonify({"error": "No files provided"}), 400
         
+        # Get page_size parameter if provided
+        page_size = request.args.get('page_size', type=int)
+        
+        # Create a custom document processor if page_size is specified
+        processor = document_processor
+        if page_size:
+            # Create a temporary config with custom chunk_size
+            custom_config = config.copy()
+            custom_config['chunk_size'] = page_size
+            processor = DocumentProcessor(custom_config)
+        
         # Process uploaded files
         documents = []
         for file in files:
@@ -155,11 +168,11 @@ def upload_knowledge():
                 
                 try:
                     # Detect and process document
-                    doc_type = document_processor.detect_document_type(temp_path)
-                    document = document_processor.load_document(temp_path, doc_type)
+                    doc_type = processor.detect_document_type(temp_path)
+                    document = processor.load_document(temp_path, doc_type)
                     
                     if document:
-                        processed_docs = document_processor.process_document(document)
+                        processed_docs = processor.process_document(document)
                         documents.extend(processed_docs)
                 finally:
                     # Clean up temporary file
@@ -172,7 +185,8 @@ def upload_knowledge():
             return jsonify({
                 "status": "success" if success else "failed",
                 "documents_processed": len(documents),
-                "chunks_created": len(documents)
+                "chunks_created": len(documents),
+                "chunk_size_used": page_size if page_size else config.get('chunk_size', 1000)
             })
         else:
             return jsonify({"error": "No valid documents processed"}), 400

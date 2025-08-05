@@ -1,0 +1,39 @@
+{{- if .Values.rag.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-rag-api
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rag-api
+spec:
+  replicas: {{ .Values.ragApi.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rag-api
+  template:
+    metadata:
+      labels:
+        {{- include "nephoran-operator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: rag-api
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "nephoran-operator.serviceAccountName" . }}
+      containers:
+        - name: rag-api
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.ragApi.image.repository }}:{{ .Values.ragApi.image.tag }}"
+          imagePullPolicy: {{ .Values.ragApi.image.pullPolicy }}
+          command: ["python", "pkg/rag/api.py"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.ragApi.service.targetPort }}
+              protocol: TCP
+          env:
+            {{- toYaml .Values.ragApi.env | nindent 12 }}
+          resources:
+            {{- toYaml .Values.ragApi.resources | nindent 12 }}
+{{- end }}

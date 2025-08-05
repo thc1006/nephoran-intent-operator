@@ -1,11 +1,17 @@
 package monitoring
 
 import (
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
+)
+
+var (
+	// registrationOnce ensures metrics are only registered once
+	registrationOnce sync.Once
 )
 
 // MetricsCollector handles all Prometheus metrics for the Nephoran Intent Operator
@@ -223,38 +229,41 @@ func NewMetricsCollector() *MetricsCollector {
 	}
 	
 	// Register all metrics with controller-runtime metrics registry
-	metrics.Registry.MustRegister(
-		mc.NetworkIntentTotal,
-		mc.NetworkIntentDuration,
-		mc.NetworkIntentStatus,
-		mc.NetworkIntentLLMDuration,
-		mc.NetworkIntentRetries,
-		mc.E2NodeSetTotal,
-		mc.E2NodeSetReplicas,
-		mc.E2NodeSetReconcileDuration,
-		mc.E2NodeSetScalingEvents,
-		mc.ORANInterfaceRequests,
-		mc.ORANInterfaceDuration,
-		mc.ORANInterfaceErrors,
-		mc.ORANPolicyInstances,
-		mc.ORANConnectionStatus,
-		mc.LLMRequestsTotal,
-		mc.LLMRequestDuration,
-		mc.LLMTokensUsed,
-		mc.RAGRetrievalDuration,
-		mc.RAGCacheHits,
-		mc.RAGCacheMisses,
-		mc.RAGDocumentsIndexed,
-		mc.GitOpsPackagesGenerated,
-		mc.GitOpsCommitDuration,
-		mc.GitOpsErrors,
-		mc.GitOpsSyncStatus,
-		mc.ControllerHealthStatus,
-		mc.KubernetesAPILatency,
-		mc.ResourceUtilization,
-		mc.WorkerQueueDepth,
-		mc.WorkerQueueLatency,
-	)
+	// Use sync.Once to ensure metrics are only registered once
+	registrationOnce.Do(func() {
+		metrics.Registry.MustRegister(
+			mc.NetworkIntentTotal,
+			mc.NetworkIntentDuration,
+			mc.NetworkIntentStatus,
+			mc.NetworkIntentLLMDuration,
+			mc.NetworkIntentRetries,
+			mc.E2NodeSetTotal,
+			mc.E2NodeSetReplicas,
+			mc.E2NodeSetReconcileDuration,
+			mc.E2NodeSetScalingEvents,
+			mc.ORANInterfaceRequests,
+			mc.ORANInterfaceDuration,
+			mc.ORANInterfaceErrors,
+			mc.ORANPolicyInstances,
+			mc.ORANConnectionStatus,
+			mc.LLMRequestsTotal,
+			mc.LLMRequestDuration,
+			mc.LLMTokensUsed,
+			mc.RAGRetrievalDuration,
+			mc.RAGCacheHits,
+			mc.RAGCacheMisses,
+			mc.RAGDocumentsIndexed,
+			mc.GitOpsPackagesGenerated,
+			mc.GitOpsCommitDuration,
+			mc.GitOpsErrors,
+			mc.GitOpsSyncStatus,
+			mc.ControllerHealthStatus,
+			mc.KubernetesAPILatency,
+			mc.ResourceUtilization,
+			mc.WorkerQueueDepth,
+			mc.WorkerQueueLatency,
+		)
+	})
 	
 	return mc
 }
