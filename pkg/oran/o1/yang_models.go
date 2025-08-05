@@ -718,9 +718,46 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath string, modelName string) e
 	return nil
 }
 
-// validateXPathCondition validates XPath condition syntax against schema
+// validateXPathCondition validates XPath condition syntax against schema.
+// It supports the following XPath condition patterns:
+//
+// 1. Numeric indices: [1], [2], [3], etc.
+//    - Used for selecting the nth occurrence of an element
+//    - Example: /network-functions/function[1]
+//
+// 2. Attribute conditions: [@attr='value']
+//    - Tests if an attribute equals a specific value
+//    - Validates that the attribute exists in the schema
+//    - Example: /interface[@name='eth0']
+//
+// 3. Text content conditions: [text()='value']
+//    - Tests if the text content of a node equals a value
+//    - Example: /status[text()='active']
+//
+// 4. Position conditions: [position()=N], [position()>N], [position()<N]
+//    - Tests the position of a node in its sibling set
+//    - Supports operators: =, <, >, <=, >=
+//    - Example: /item[position()<=5]
+//
+// 5. Last position: [last()]
+//    - Selects the last element in a node set
+//    - Example: /logs/entry[last()]
+//
+// 6. Complex conditions: condition1 and condition2, condition1 or condition2
+//    - Combines multiple conditions with logical operators
+//    - Recursively validates each sub-condition
+//    - Example: [@type='interface' and @status='up']
+//
+// The function performs schema validation to ensure that referenced attributes
+// exist in the YANG model schema when available.
+//
+// Returns an error if:
+// - The condition is empty
+// - The syntax doesn't match any supported pattern
+// - An attribute referenced in the condition doesn't exist in the schema
+// - A sub-condition in a complex expression is invalid
 func (sv *StandardYANGValidator) validateXPathCondition(condition string, nodeSchema interface{}) error {
-	// Basic condition validation patterns
+	// Basic condition validation - empty conditions are not allowed
 	if condition == "" {
 		return fmt.Errorf("empty condition not allowed")
 	}
