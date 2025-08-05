@@ -513,8 +513,8 @@ func (m *E2Manager) SubscribeE2(req *E2SubscriptionRequest) (*E2Subscription, er
 	return subscription, nil
 }
 
-// SendControlMessage sends a control message to an E2 node with retry logic
-// This method now properly accepts a nodeID parameter to specify the target node
+// SendControlMessage sends a control message to a specified E2 node with retry logic
+// Uses the provided nodeID parameter to directly target the destination node
 func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, controlReq *RICControlRequest) (*RICControlAcknowledge, error) {
 	// Validate input parameters
 	if nodeID == "" {
@@ -523,22 +523,23 @@ func (m *E2Manager) SendControlMessage(ctx context.Context, nodeID string, contr
 	if controlReq == nil {
 		return nil, fmt.Errorf("controlReq parameter cannot be nil")
 	}
+	
 	// Log operation mode
 	if m.config.SimulationMode {
 		if m.logger != nil {
-			m.logger.Printf("SIMULATION MODE: Processing RIC Control Request (RequestorID: %d, InstanceID: %d, RANFunction: %d)", 
-				controlReq.RICRequestID.RICRequestorID, controlReq.RICRequestID.RICInstanceID, controlReq.RANFunctionID)
+			m.logger.Printf("SIMULATION MODE: Processing RIC Control Request for node %s (RequestorID: %d, InstanceID: %d, RANFunction: %d)", 
+				nodeID, controlReq.RICRequestID.RICRequestorID, controlReq.RICRequestID.RICInstanceID, controlReq.RANFunctionID)
 		}
 	}
 
-	// Use the provided nodeID as the target node
+	// Use the provided nodeID parameter as the target node
 	targetNodeID := nodeID
 	
-	// Verify the target node ID is valid by extracting from control header for validation
+	// Optionally validate against control header if present (for consistency checking)
 	if len(controlReq.RICControlHeader) > 0 {
 		headerNodeID := m.extractNodeIDFromControlHeader(controlReq.RICControlHeader)
 		if headerNodeID != "" && headerNodeID != targetNodeID {
-			// Log a warning if header contains different node ID
+			// Log a warning if header contains different node ID than parameter
 			if m.logger != nil {
 				m.logger.Printf("WARNING: Control header contains different node ID (%s) than provided parameter (%s). Using parameter value.", headerNodeID, targetNodeID)
 			}
