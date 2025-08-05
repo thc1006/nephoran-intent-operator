@@ -292,3 +292,99 @@ func TestWritePayloadTooLargeResponse(t *testing.T) {
 		t.Errorf("Expected status 'error', got %v", response["status"])
 	}
 }
+
+func TestMaxBytesHandlerPanicRecovery(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
+	testMaxSize := int64(100)
+
+	tests := []struct {
+		name                string
+		handler             http.HandlerFunc
+		expectedStatus      int
+		expectPanicRethrow  bool
+	}{
+		{
+			name: "MaxBytesError panic recovery",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Simulate a MaxBytesError panic
+				panic(&http.MaxBytesError{Limit: testMaxSize})
+			}),
+			expectedStatus:     http.StatusRequestEntityTooLarge,
+			expectPanicRethrow: false,
+		},
+		{
+			name: "String panic recovery (request body too large)",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Simulate the string panic that http.MaxBytesReader might throw
+				panic("http: request body too large")
+			}),
+			expectedStatus:     http.StatusRequestEntityTooLarge,
+			expectPanicRethrow: false,
+		},
+		{
+			name: "Other panic rethrown",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Simulate a different type of panic
+				panic("some other error")
+			}),
+			expectedStatus:     0, // Won't be set due to panic
+			expectPanicRethrow: true,
+		},
+		{
+			name: "Nil panic rethrown",
+			handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				// Simulate a nil panic
+				panic(nil)
+			}),
+			expectedStatus:     0, // Won't be set due to panic
+			expectPanicRethrow: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			wrappedHandler := MaxBytesHandler(testMaxSize, logger, tt.handler)
+
+			req, err := http.NewRequest("POST", "/test", strings.NewReader("test body"))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			rr := httptest.NewRecorder()
+
+			if tt.expectPanicRethrow {
+				// Expect a panic to be rethrown
+				defer func() {
+					if r := recover(); r == nil {
+						t.Errorf("Expected panic to be rethrown, but it wasn't")
+					}
+				}()
+			}
+
+			wrappedHandler.ServeHTTP(rr, req)
+
+			if !tt.expectPanicRethrow {
+				// Check that we got the expected status
+				if rr.Code != tt.expectedStatus {
+					t.Errorf("Expected status %d, got %d", tt.expectedStatus, rr.Code)
+				}
+
+				// For 413 responses, check JSON structure
+				if tt.expectedStatus == http.StatusRequestEntityTooLarge {
+					var response map[string]interface{}
+					err := json.Unmarshal(rr.Body.Bytes(), &response)
+					if err != nil {
+						t.Errorf("Expected JSON error response, got: %s", rr.Body.String())
+					}
+
+					if response["error"] == nil {
+						t.Errorf("Expected error field in JSON response")
+					}
+				}
+			}
+		})
+	}
+}

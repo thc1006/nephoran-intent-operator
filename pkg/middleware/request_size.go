@@ -114,7 +114,7 @@ func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFun
 		// Call the handler and catch MaxBytesReader errors
 		defer func() {
 			if err := recover(); err != nil {
-				// Check if this is a MaxBytesReader error
+				// Check if this is a MaxBytesReader error or a known panic string
 				if httpErr, ok := err.(*http.MaxBytesError); ok {
 					logger.Warn("Request body size limit exceeded",
 						slog.Int64("limit", httpErr.Limit),
@@ -123,7 +123,24 @@ func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFun
 					writePayloadTooLargeResponse(w, logger, maxSize)
 					return
 				}
-				// Re-panic if it's not a MaxBytesReader error
+				
+				// Check for string-based panic from http.MaxBytesReader
+				if errStr, ok := err.(string); ok && errStr == "http: request body too large" {
+					logger.Warn("Request body size limit exceeded (string panic)",
+						slog.Int64("max_size_bytes", maxSize),
+						slog.String("path", r.URL.Path),
+					)
+					writePayloadTooLargeResponse(w, logger, maxSize)
+					return
+				}
+				
+				// Log unexpected panic before re-panicking
+				logger.Error("Unexpected panic in request size handler",
+					slog.Any("error", err),
+					slog.String("path", r.URL.Path),
+				)
+				
+				// Re-panic if it's not a known MaxBytesReader error
 				panic(err)
 			}
 		}()
