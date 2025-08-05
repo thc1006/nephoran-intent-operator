@@ -4,16 +4,14 @@ package ml
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
-	"sort"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"k8s.io/apimachinery/pkg/runtime"
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -22,7 +20,7 @@ type OptimizationEngine struct {
 	prometheusClient v1.API
 	models          map[string]MLModel
 	config          *OptimizationConfig
-	logger          log.Logger
+	logger          logr.Logger
 }
 
 // OptimizationConfig defines configuration for the ML optimization engine
@@ -925,7 +923,7 @@ func (icm *IntentClassificationModel) Train(ctx context.Context, data []DataPoin
 
 func (icm *IntentClassificationModel) Predict(ctx context.Context, input interface{}) (interface{}, error) {
 	// Simplified intent classification
-	if intent, ok := input.(*NetworkIntent); ok {
+	if _, ok := input.(*NetworkIntent); ok {
 		return map[string]float64{
 			"deployment": 0.8,
 			"scaling":    0.6,

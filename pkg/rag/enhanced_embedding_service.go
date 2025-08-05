@@ -34,8 +34,8 @@ type MultiProviderEmbeddingService struct {
 	mutex          sync.RWMutex
 }
 
-// EnhancedEnhancedEmbeddingProvider interface for different embedding providers
-type EnhancedEnhancedEmbeddingProvider interface {
+// EnhancedEmbeddingProvider interface for different embedding providers
+type EnhancedEmbeddingProvider interface {
 	GenerateEmbeddings(ctx context.Context, texts []string) (*EmbeddingResponse, error)
 	GetModelInfo() ModelInfo
 	EstimateCost(texts []string) float64

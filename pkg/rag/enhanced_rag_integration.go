@@ -674,6 +674,7 @@ type SearchResult struct {
 	ID       string                 `json:"id"`
 	Score    float32                `json:"score"`
 	Metadata map[string]interface{} `json:"metadata"`
+	Document *TelecomDocument       `json:"document"`
 }
 
 // QueryOptions holds options for RAG queries

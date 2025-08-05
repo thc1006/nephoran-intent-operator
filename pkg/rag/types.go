@@ -10,6 +10,8 @@ import (
 // EmbeddingProvider interface for embedding providers
 type EmbeddingProvider interface {
 	GetEmbeddings(ctx context.Context, texts []string) ([][]float64, error)
+	IsHealthy() bool
+	GetLatency() time.Duration
 }
 
 // TokenUsage definition moved to embedding_service.go to avoid duplicates
