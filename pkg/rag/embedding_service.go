@@ -108,6 +108,9 @@ type EmbeddingRequest struct {
 	Priority    int               `json:"priority"`           // Higher = more important
 	ChunkIDs    []string          `json:"chunk_ids,omitempty"`
 	UseCache    bool              `json:"use_cache"`
+	Model       string            `json:"model,omitempty"`
+	BatchSize   int               `json:"batch_size,omitempty"`
+	Timeout     time.Duration     `json:"timeout,omitempty"`
 }
 
 // EmbeddingResponse represents the response from embedding generation
@@ -119,6 +122,11 @@ type EmbeddingResponse struct {
 	CacheMisses    int               `json:"cache_misses"`
 	RequestID      string            `json:"request_id"`
 	ModelUsed      string            `json:"model_used"`
+	Model          string            `json:"model"`
+	Provider       string            `json:"provider"`
+	CacheHitRate   float64           `json:"cache_hit_rate"`
+	QualityScore   float64           `json:"quality_score"`
+	Cost           float64           `json:"cost"`
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 

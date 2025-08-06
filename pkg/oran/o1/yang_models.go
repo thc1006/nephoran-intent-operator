@@ -46,6 +46,7 @@ type YANGValidator interface {
 // StandardYANGValidator implements basic YANG validation
 type StandardYANGValidator struct {
 	registry *YANGModelRegistry
+	mutex    sync.RWMutex
 }
 
 // YANGNode represents a YANG schema node
@@ -655,7 +656,7 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath string, modelName string) e
 	}
 
 	// Validate each XPath component against the model schema
-	currentSchema := model.Schema
+	var currentSchema interface{} = model.Schema
 	for i, part := range parts {
 		// Handle array indices [condition]
 		nodeName := part

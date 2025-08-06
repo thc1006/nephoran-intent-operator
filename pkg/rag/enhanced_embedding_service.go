@@ -269,14 +269,29 @@ func (mps *MultiProviderEmbeddingService) initializeProviders() error {
 			continue
 		}
 
-		provider, err := mps.createProvider(providerConfig)
+		// Convert ProviderConfig to EnhancedProviderConfig
+		enhancedConfig := EnhancedProviderConfig{
+			Name:           providerConfig.Name,
+			Type:           providerConfig.Name, // Use Name as Type for backward compatibility
+			APIKey:         providerConfig.APIKey,
+			APIEndpoint:    providerConfig.APIEndpoint,
+			ModelName:      providerConfig.ModelName,
+			Priority:       providerConfig.Priority,
+			MaxConcurrency: 10, // Default value
+			RateLimit:      providerConfig.RateLimit,
+			CostPerToken:   providerConfig.CostPerToken,
+			Timeout:        30 * time.Second, // Default timeout
+			Enabled:        providerConfig.Enabled,
+		}
+		
+		provider, err := mps.createProvider(enhancedConfig)
 		if err != nil {
 			mps.logger.Error("Failed to create provider", "name", providerConfig.Name, "error", err)
 			continue
 		}
 
 		mps.providers[providerConfig.Name] = provider
-		mps.logger.Info("Provider initialized", "name", providerConfig.Name, "type", providerConfig.Type)
+		mps.logger.Info("Provider initialized", "name", providerConfig.Name, "type", enhancedConfig.Type)
 	}
 
 	if len(mps.providers) == 0 {
@@ -742,7 +757,30 @@ func (mps *MultiProviderEmbeddingService) GetCostSummary() *CostSummary {
 	if mps.costManager == nil {
 		return nil
 	}
-	return mps.costManager.GetSummary()
+	enhancedSummary := mps.costManager.GetSummary()
+	if enhancedSummary == nil {
+		return nil
+	}
+	
+	// Convert EnhancedCostSummary to CostSummary
+	alerts := make([]CostAlert, len(enhancedSummary.Alerts))
+	for i, alert := range enhancedSummary.Alerts {
+		alerts[i] = CostAlert{
+			Type:      alert.Level,
+			Message:   alert.Message,
+			Amount:    alert.Amount,
+			Limit:     alert.Limit,
+			Timestamp: alert.Timestamp,
+		}
+	}
+	
+	return &CostSummary{
+		DailySpending:   enhancedSummary.DailySpending,
+		MonthlySpending: enhancedSummary.MonthlySpending,
+		DailyLimit:      enhancedSummary.DailyLimit,
+		MonthlyLimit:    enhancedSummary.MonthlyLimit,
+		Alerts:          alerts,
+	}
 }
 
 // GetProviderStatus returns status of all providers

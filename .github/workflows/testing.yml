@@ -130,7 +130,7 @@ jobs:
           done
           
           # Check testing infrastructure
-          if [ ! -f "testing/framework/suite.go" ]; then
+          if [ ! -f "tests/framework/suite.go" ]; then
             echo "❌ Missing testing framework"
             exit 1
           fi
@@ -431,7 +431,7 @@ jobs:
             --timeout=20m \
             --output-dir=test-results \
             --junit-report=integration-tests.xml \
-            ./testing/unit/...
+            ./tests/unit/...
 
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
@@ -494,7 +494,7 @@ jobs:
             -benchtime=10s \
             -cpuprofile=cpu.prof \
             -memprofile=mem.prof \
-            ./testing/performance/...
+            ./tests/performance/...
 
       - name: Run Load Tests
         env:
@@ -593,7 +593,7 @@ jobs:
             --timeout=15m \
             --output-dir=chaos-results \
             --junit-report=chaos-tests.xml \
-            ./testing/chaos/...
+            ./tests/chaos/...
 
       - name: Upload Chaos Test Results
         uses: actions/upload-artifact@v4

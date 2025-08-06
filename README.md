@@ -1,1577 +1,238 @@
 # Nephoran Intent Operator
 
-The Nephoran Intent Operator is a **production-ready** cloud-native orchestration system designed to manage O-RAN compliant network functions using Large Language Model (LLM) processing as the primary control interface. It leverages the GitOps principles of [Nephio](https://nephio.org/) to translate high-level, natural language intents into concrete, declarative Kubernetes configurations.
+**Experimental Proof-of-Concept for Intent-Driven Network Operations**
 
-This project represents a **complete implementation** of autonomous network operations, where an LLM-driven system manages the scale-out and scale-in of O-RAN E2 Nodes and network functions in response to natural language intents.
+The Nephoran Intent Operator is an experimental proof-of-concept that explores the integration of Large Language Models (LLMs) with Kubernetes operators for network function orchestration. This project investigates the potential of translating natural language intents into Kubernetes configurations for O-RAN compliant network functions.
 
-## ✅ **Repository Status: Verified and Production-Ready**
-This repository has undergone comprehensive analysis and verification (August 2025). All core systems have been validated:
-- **Build System**: ✅ Cross-platform Makefile with parallel builds (40% performance improvement)
-- **Dependencies**: ✅ Stable versions verified (Weaviate v1.25.6, unified OpenTelemetry)
-- **Testing Framework**: ✅ Professional Ginkgo + envtest with 40+ test files
-- **Docker System**: ✅ Enterprise-grade multi-stage builds with security optimization
-- **Integration**: ✅ Complete 4-service architecture with 85% test confidence
-- **ML Components**: ✅ Advanced AI/ML optimization engine with traffic prediction and resource optimization
-- **RAG System**: ✅ Enhanced RAG pipeline with streaming document processing and vector embeddings
+## Project Status
 
-See detailed analysis in `SCAN_1A_STRUCTURE.md`, `TEST_3A_BUILD.md`, `TEST_3B_BASIC.md`, and `TEST_3C_INTEGRATION.md`.
+**Current Stage: Development/Proof-of-Concept**
 
-## Architecture
+- **Experimental**: This is research and development work, not a production system
+- **Early Stage**: Basic intent processing capabilities with simple LLM integration
+- **O-RAN Exploration**: Early-stage implementations of O-RAN interface concepts
+- **GitOps Integration**: Experimental integration with Nephio package management
 
-The system is composed of several key components that work together in a GitOps workflow, enhanced with AI/ML optimization and RAG-powered natural language processing:
+## What Actually Works
 
-```mermaid
-graph TD
-    subgraph "Enhanced Control & Intent Layer"
-        NLIntent["Natural Language Intent"]
-        LLMProcessor["LLM Processor Service"]
-        RAGSystem["RAG System"]
-        MLEngine["ML Optimization Engine"]
-        ControlRepo["Git Repository (High-Level Intent)"]
-    end
+### Core Components
+- **NetworkIntent Controller**: Basic Kubernetes controller that processes custom resources
+- **E2NodeSet Controller**: Simple replica management for simulated E2 nodes (using ConfigMaps)
+- **LLM Processor Service**: Experimental service that calls OpenAI API for intent translation
+- **RAG API**: Basic Flask API for document retrieval (proof-of-concept)
 
-    subgraph "Knowledge & Vector Processing"
-        Weaviate["Weaviate Vector DB"]
-        KnowledgeBase["Telecom Knowledge Base"]
-        StreamProcessor["Streaming Document Processor"]
-    end
+### Basic Functionality
+- Create NetworkIntent resources with natural language text
+- Simple LLM processing to extract basic parameters
+- E2NodeSet scaling through Kubernetes controllers
+- Basic health checks and monitoring endpoints
 
-    subgraph "SMO / Non-RT RIC (Nephoran Implementation)"
-        NephioBridge["Nephio Bridge Controller"]
-        DeploymentRepo["Git Repository (KRM Manifests)"]
-    end
+## What's Planned vs Reality
 
-    subgraph "O-RAN Components (Running on Kubernetes)"
-        NearRtRic["O-RAN Near-RT RIC"]
-        E2Sim["E2 Node Simulators"]
-        ORANAdaptor["O-RAN Adaptor (A1/O1/O2)"]
-    end
+### Planned Features (Not Yet Implemented)
+- Production-ready enterprise deployment
+- Advanced ML optimization engines
+- Complete O-RAN interface implementations
+- High-availability architecture
+- Comprehensive security frameworks
 
-    subgraph "Observability & Monitoring"
-        Prometheus["Prometheus"]
-        Alertmanager["Alertmanager"]
-        Grafana["Grafana Dashboards"]
-    end
+### Limitations
+- No production-ready security implementation
+- Limited error handling and resilience
+- Basic LLM integration without advanced RAG
+- Experimental O-RAN interfaces (not fully compliant)
+- No performance guarantees or SLA targets
 
-    NLIntent --> LLMProcessor
-    LLMProcessor --> RAGSystem
-    RAGSystem --> Weaviate
-    Weaviate --> KnowledgeBase
-    StreamProcessor --> Weaviate
-    
-    LLMProcessor --> MLEngine
-    MLEngine --> Prometheus
-    
-    LLMProcessor --> ControlRepo
-    NephioBridge --> ControlRepo
-    NephioBridge --> DeploymentRepo
-    
-    subgraph "Nephio GitOps Engine"
-        NephioEngine["Nephio Engine"]
-    end
-    
-    NephioEngine --> DeploymentRepo
-    NephioEngine --> NearRtRic
-    NephioEngine --> E2Sim
-    
-    ORANAdaptor --> NearRtRic
-    NearRtRic -.-> E2Sim
-    
-    %% Monitoring connections
-    LLMProcessor --> Prometheus
-    RAGSystem --> Prometheus
-    NephioBridge --> Prometheus
-    ORANAdaptor --> Prometheus
-    Prometheus --> Alertmanager
-    Prometheus --> Grafana
-```
-
-### Enhanced System Flow
-
-1.  **Natural Language Intent Processing**: Users submit natural language intents (e.g., "Deploy AMF with 3 replicas for network slice eMBB with high throughput requirements") which are processed by the LLM Processor Service.
-
-2.  **RAG-Enhanced Understanding**: The RAG system retrieves relevant context from the telecom knowledge base using Weaviate vector database, incorporating 3GPP specifications, O-RAN standards, and deployment best practices.
-
-3.  **ML-Driven Optimization**: The ML optimization engine (enabled with `ml` build tag) analyzes historical metrics from Prometheus to provide:
-   - **Traffic Prediction**: Forecasts network load patterns
-   - **Resource Optimization**: Recommends optimal CPU, memory, and scaling parameters
-   - **Anomaly Detection**: Identifies potential deployment risks
-   - **Performance Tuning**: Suggests configuration optimizations
-
-4.  **Intent Translation**: The enhanced LLM processor translates natural language intents into structured Kubernetes custom resources (`NetworkIntent` and `E2NodeSet`).
-
-5.  **GitOps Integration**: The Nephio Bridge Controller watches the control repository and generates detailed KRM manifests using Kpt packages based on O-RAN specifications.
-
-6.  **Orchestration & Deployment**: The Nephio engine deploys and manages O-RAN components through the O-RAN Adaptor, which provides A1, O1, and O2 interface implementations.
-
-7.  **Continuous Monitoring**: Prometheus collects metrics from all components, Alertmanager handles notifications, and Grafana provides visualization dashboards.
-
-## ML Engine & RAG Pipeline Configuration
-
-The Nephoran Intent Operator integrates advanced AI/ML capabilities through configurable build flags and feature toggles. The system is designed with a modular architecture that allows selective enabling/disabling of ML optimization and RAG processing components.
-
-### Feature Configuration Overview
-
-The system supports two primary feature flags that control the AI/ML capabilities:
-
-| Feature | Build Flag | Default State | Description |
-|---------|------------|---------------|-------------|
-| **ML Optimization Engine** | `ml` | Disabled | Traffic prediction, resource optimization, anomaly detection |
-| **RAG Processing Pipeline** | `disable_rag` | Enabled | Retrieval-augmented generation with telecom knowledge base |
-
-### Build Flag Configuration
-
-**ML Components** (optional - requires explicit enable):
-```bash
-# Build with ML optimization engine enabled
-go build -tags ml ./cmd/ml-optimizer
-
-# Build LLM processor with ML support
-go build -tags ml ./cmd/llm-processor
-
-# Combined build with both ML and RAG (default RAG, explicit ML)
-make build-all TAGS="ml"
-```
-
-**RAG Components** (enabled by default):
-```bash
-# Standard build (RAG enabled by default)
-go build ./cmd/rag-api
-go build ./cmd/llm-processor
-
-# Explicitly disable RAG components
-go build -tags disable_rag ./cmd/llm-processor
-go build -tags disable_rag ./cmd/rag-api
-
-# Build without RAG support
-make build-all TAGS="disable_rag"
-```
-
-**Combined Configuration**:
-```bash
-# Full AI/ML stack (ML enabled, RAG enabled by default)
-make docker-build TAGS="ml"
-
-# Minimal build (both ML and RAG disabled)
-make docker-build TAGS="ml=false,disable_rag"
-
-# Development build with all features
-export BUILD_TAGS="ml,!disable_rag"
-make build-all
-```
-
-### Component Flow Diagram
-
-```mermaid
-graph LR
-    subgraph "Input Layer"
-        NLIntent["Natural Language Intent<br/>'Deploy AMF with 3 replicas'"]
-    end
-
-    subgraph "Processing Layer"
-        LLMProcessor["LLM Processor Service<br/>• Intent parsing<br/>• RAG context retrieval<br/>• ML optimization"]
-        RAGSystem["RAG Pipeline<br/>• Vector search<br/>• Knowledge retrieval<br/>• Context enhancement"]
-        MLEngine["ML Engine<br/>• Traffic prediction<br/>• Resource optimization<br/>• Anomaly detection"]
-    end
-
-    subgraph "Orchestration Layer"
-        GitOps["GitOps Repository<br/>• KRM manifests<br/>• Configuration management<br/>• Version control"]
-        NephioEngine["Nephio Engine<br/>• Package management<br/>• Resource orchestration<br/>• Lifecycle management"]
-    end
-
-    subgraph "Deployment Layer"
-        ORAN["O-RAN Components<br/>• Near-RT RIC<br/>• E2 Node Simulators<br/>• xApps & Network Functions"]
-    end
-
-    subgraph "Monitoring Layer"
-        Prometheus["Prometheus<br/>• Metrics collection<br/>• Performance monitoring<br/>• ML training data"]
-        Alertmanager["Alertmanager<br/>• Alert routing<br/>• Notification management<br/>• Escalation policies"]
-        Grafana["Grafana<br/>• Dashboards<br/>• Visualization<br/>• Operational insights"]
-    end
-
-    %% Main processing flow
-    NLIntent --> LLMProcessor
-    LLMProcessor --> RAGSystem
-    LLMProcessor --> MLEngine
-    LLMProcessor --> GitOps
-    GitOps --> NephioEngine
-    NephioEngine --> ORAN
-
-    %% Monitoring flow
-    LLMProcessor -.-> Prometheus
-    RAGSystem -.-> Prometheus
-    MLEngine -.-> Prometheus
-    NephioEngine -.-> Prometheus
-    ORAN -.-> Prometheus
-    
-    Prometheus --> Alertmanager
-    Prometheus --> Grafana
-    Alertmanager --> Grafana
-
-    %% Feedback loops
-    Prometheus -.-> MLEngine
-    MLEngine -.-> LLMProcessor
-
-    %% Styling
-    classDef inputLayer fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    classDef processLayer fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
-    classDef orchestrationLayer fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
-    classDef deploymentLayer fill:#fce4ec,stroke:#880e4f,stroke-width:2px
-    classDef monitoringLayer fill:#fff8e1,stroke:#e65100,stroke-width:2px
-
-    class NLIntent inputLayer
-    class LLMProcessor,RAGSystem,MLEngine processLayer
-    class GitOps,NephioEngine orchestrationLayer
-    class ORAN deploymentLayer
-    class Prometheus,Alertmanager,Grafana monitoringLayer
-```
-
-### Feature-Specific Configuration
-
-**ML Engine Configuration**:
-```bash
-# Environment variables for ML optimization
-export ML_ENABLED=true
-export ML_MODEL_PATH="/models"
-export PROMETHEUS_ENDPOINT="http://prometheus:9090"
-export ML_TRAINING_INTERVAL="24h"
-export ML_PREDICTION_CACHE_TTL="5m"
-
-# Kubernetes configuration
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: ml-optimizer-config
-data:
-  ml.enabled: "true"
-  traffic.prediction.enabled: "true"
-  resource.optimization.enabled: "true"
-  anomaly.detection.threshold: "0.8"
-```
-
-**RAG Pipeline Configuration**:
-```bash
-# Environment variables for RAG system
-export RAG_ENABLED=true
-export WEAVIATE_ENDPOINT="http://weaviate:8080"
-export OPENAI_API_KEY="sk-your-api-key"
-export RAG_CACHE_SIZE="1000"
-export VECTOR_SEARCH_LIMIT="10"
-
-# Kubernetes configuration
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: rag-system-config
-data:
-  rag.enabled: "true"
-  weaviate.host: "weaviate"
-  weaviate.port: "8080"
-  embedding.model: "text-embedding-ada-002"
-  chunk.size: "1000"
-  chunk.overlap: "200"
-```
-
-### Production Deployment Examples
-
-**Full Stack Deployment** (ML + RAG enabled):
-```bash
-# Set environment for full AI/ML stack
-export OPENAI_API_KEY="sk-your-production-key"
-export ML_ENABLED=true
-export RAG_ENABLED=true
-
-# Deploy with all features
-make docker-build TAGS="ml"
-./deploy.sh remote
-
-# Verify all components
-make verify-ml-deployment
-make verify-rag-deployment
-```
-
-**Minimal Deployment** (ML and RAG disabled):
-```bash
-# Lightweight deployment without AI/ML features
-make docker-build TAGS="disable_rag,ml=false"
-./deploy.sh local
-
-# Verify basic functionality
-kubectl get networkintents
-kubectl get e2nodesets
-```
-
-**Development Deployment** (RAG only, no ML):
-```bash
-# Development setup with RAG but no ML training
-export OPENAI_API_KEY="sk-your-dev-key"
-export ML_ENABLED=false
-
-make docker-build
-./deploy.sh local
-make populate-kb-enhanced
-```
-
-## Deployment Guide
-
-This project supports two primary deployment environments: `local` for development and `remote` for a cloud-based setup.
+## Quick Start (Development)
 
 ### Prerequisites
+- Go 1.23+
+- Docker and Kubernetes (kind or minikube)
+- OpenAI API key
+- Python 3.8+ (for RAG components)
 
-**Verified System Requirements (Tested August 2025):**
-*   **Go 1.23.0+** (toolchain go1.24.5) - Required for infrastructure optimizations
-*   **Docker** (latest stable version) - For multi-stage container builds
-*   **kubectl** (compatible with your Kubernetes cluster) - For cluster operations
-*   **Python 3.8+** (for RAG API components) - Flask-based services with async support
-*   **Git** (for version tagging and GitOps integration) - Repository operations
-*   **make** - Cross-platform build system with Windows/Linux support
-*   **OpenAI API Key** - Required for LLM processing and vector embeddings
-*   **Weaviate** - Vector database for RAG knowledge base (deployed automatically)
-*   A running Kubernetes cluster (e.g., [kind](https://kind.sigs.k8s.io/), [Minikube](https://minikube.sigs.k8s.io/docs/start/))
+### Basic Setup
 
-**Additional ML/RAG Requirements:**
-*   **Prometheus** - For ML model training data and metrics collection
-*   **Persistent Storage** - 100GB+ for Weaviate knowledge base
-*   **Network Bandwidth** - For OpenAI API calls and document processing
-
-**Verified Infrastructure Features:**
-*   **Enhanced Build System**: ✅ Parallel builds with 40% performance improvement (4 services)
-*   **Production Docker Images**: ✅ Multi-stage builds with distroless runtime, non-root users
-*   **Security Optimization**: ✅ Vulnerability scanning, static linking, minimal attack surface
-*   **Health Monitoring**: ✅ Kubernetes-native probes with service dependency validation
-*   **Cross-Platform Support**: ✅ Windows and Linux compatibility verified
-*   **Dependency Management**: ✅ Stable versions (Weaviate v1.25.6, unified OpenTelemetry)
-*   **ML/AI Integration**: ✅ Advanced optimization engine with Prometheus metrics integration
-*   **RAG Pipeline**: ✅ Streaming document processing with telecom-specific knowledge extraction
-*   **Vector Database**: ✅ Weaviate with auto-scaling and persistent storage
-*   **Observability Stack**: ✅ Prometheus, Alertmanager, and Grafana monitoring
-
-### Local Deployment
-
-The `local` deployment is designed for development and testing on a local machine. It builds the container images and loads them directly into your local Kubernetes cluster's node, using an `imagePullPolicy` of `Never`.
-
-**Verified Deployment Steps:**
-
-1.  **Ensure your local Kubernetes cluster is running and validate environment:**
-    ```shell
-    # Verify cluster connectivity
-    kubectl cluster-info
-    
-    # Validate development environment (if available)
-    ./validate-environment.ps1
-    ```
-
-2.  **Build and deploy all components:**
-    ```shell
-    # Set OpenAI API key for RAG and LLM processing
-    export OPENAI_API_KEY="sk-your-api-key-here"
-    
-    # Automated deployment with image building (includes ML and RAG components)
-    ./deploy.sh local
-    
-    # Alternative: Manual step-by-step deployment
-    make build-all        # Build all 4 services (llm-processor, nephio-bridge, oran-adaptor, rag-api)
-    make docker-build     # Create container images with parallel builds
-    make deploy-rag       # Deploy RAG system with Weaviate
-    ./deploy.sh local     # Deploy using Kustomize overlays
-    
-    # Populate knowledge base with telecom specifications
-    make populate-kb-enhanced
-    ```
-
-This deployment process will:
-- Build all 4 service binaries in parallel (40% faster) with ML and RAG components
-- Create enterprise-grade Docker images with security optimization
-- Deploy Weaviate vector database with persistent storage
-- Load images into your cluster
-- Deploy using validated Kustomize overlays at `deployments/kustomize/overlays/local`
-- Set up Prometheus and Alertmanager for comprehensive monitoring
-- Populate the knowledge base with telecom-specific documentation
-
-### Remote Deployment (Google Kubernetes Engine)
-
-The `remote` deployment is configured for a GKE cluster using Google Artifact Registry for image storage.
-
-**Steps:**
-
-1.  **Configure GCP Settings:**
-    Update the following variables in the `deploy.sh` script with your GCP project details:
-    *   `GCP_PROJECT_ID`
-    *   `GCP_REGION`
-    *   `AR_REPO` (your Artifact Registry repository name)
-
-2.  **Update Kustomization:**
-    In `deployments/kustomize/overlays/remote/kustomization.yaml`, replace the placeholder `your-gcp-project` with your actual `GCP_PROJECT_ID`.
-
-3.  **Grant Artifact Registry Permissions:**
-    The GKE nodes' service account needs permission to pull images. Grant the `Artifact Registry Reader` role to it.
-    ```shell
-    # Replace with your actual GCP Project ID and GKE Node Service Account
-    GCP_PROJECT_ID="your-gcp-project-id"
-    GKE_NODE_SA="your-node-sa-email@${GCP_PROJECT_ID}.iam.gserviceaccount.com"
-
-    gcloud projects add-iam-policy-binding "${GCP_PROJECT_ID}" \
-      --member="serviceAccount:${GKE_NODE_SA}" \
-      --role="roles/artifactregistry.reader"
-    ```
-
-4.  **Create Image Pull Secret:**
-    Authenticate Docker with Artifact Registry and then create a Kubernetes secret named `nephoran-regcred` from your local configuration.
-    ```shell
-    # Authenticate Docker
-    gcloud auth configure-docker us-central1-docker.pkg.dev
-
-    # Create the secret
-    kubectl create secret generic nephoran-regcred \
-      --from-file=.dockerconfigjson=${HOME}/.docker/config.json \
-      --type=kubernetes.io/dockerconfigjson
-    ```
-
-5.  **Run the deployment script:**
-    ```shell
-    ./deploy.sh remote
-    ```
-This will build the images, push them to your Artifact Registry, and deploy the operator using the `remote` Kustomize overlay.
-
-## 🚀 **Verified System Capabilities (Testing Completed August 2025)**
-
-The Nephoran Intent Operator has been comprehensively tested and verified:
-
-### ✅ **Verified Production Components**
-- **NetworkIntent Controller**: ✅ Complete with LLM integration (40+ test files validated)
-- **E2NodeSet Controller**: ✅ Full replica management with ConfigMap simulation (tested)
-- **LLM Processor Service**: ✅ Enterprise-grade Docker build with security optimization
-- **RAG Pipeline**: ✅ Production Flask API with Weaviate integration and streaming document processing
-- **ML Optimization Engine**: ✅ AI-driven traffic prediction, resource optimization, and anomaly detection
-- **Vector Database**: ✅ Weaviate with telecom-specific knowledge base and auto-scaling
-- **O-RAN Interface Adaptors**: ✅ A1, O1, O2 implementations with Near-RT RIC support
-- **Knowledge Base System**: ✅ Streaming document loader with telecom-specific keyword extraction
-- **GitOps Package Generation**: ✅ Nephio KRM package creation with ML-enhanced optimization
-- **Monitoring & Metrics**: ✅ Comprehensive Prometheus/Alertmanager stack (25+ metrics)
-- **Testing Infrastructure**: ✅ Professional Ginkgo + envtest framework (85% confidence)
-- **Build System**: ✅ Cross-platform Makefile with parallel builds (95% confidence)
-
-### 📊 **Verified Performance Characteristics**
-- **Build Performance**: 40% improvement with parallel Docker builds (4 services)
-- **Test Coverage**: 40+ test files with comprehensive CRD and controller validation
-- **Security Grade**: Enterprise-level with distroless images and non-root users
-- **Platform Support**: Windows and Linux compatibility verified
-- **Integration Confidence**: 85% based on comprehensive static analysis
-- **Dependency Stability**: All versions verified (Weaviate v1.25.6, unified OpenTelemetry)
-- **RAG Processing**: Streaming document processing with 1000+ documents/hour ingestion rate
-- **ML Predictions**: Traffic forecasting with 85-90% accuracy using historical Prometheus data
-- **Vector Search**: <500ms semantic search latency with 1M+ document chunks
-- **Knowledge Base**: Telecom-optimized with 3GPP, O-RAN, and RFC specification support
-
-## Authentication and Security
-
-The Nephoran Intent Operator implements a **security-first approach** with authentication **ENABLED by default** for all production deployments. This ensures secure operations and protects against unauthorized access to critical network functions.
-
-### Default Authentication Behavior
-
-Starting with version v2.0.0, the LLM Processor service enforces the following security defaults:
-
-- **AuthEnabled**: `true` by default (authentication is enabled)
-- **RequireAuth**: `true` by default (authentication is required for protected endpoints)
-- **Production Safety**: Service will **fail to start** if authentication is disabled in production environments
-
-### Environment-Based Configuration
-
-The system automatically detects the deployment environment using these environment variables (in priority order):
-
-| Environment Variable | Development Values | Production Values |
-|---------------------|-------------------|-------------------|
-| `GO_ENV` | `development`, `dev`, `local`, `test`, `testing` | `production`, `prod`, `staging`, `stage` |
-| `NODE_ENV` | `development`, `dev`, `local`, `test`, `testing` | `production`, `prod`, `staging`, `stage` |
-| `ENVIRONMENT` | `development`, `dev`, `local`, `test`, `testing` | `production`, `prod`, `staging`, `stage` |
-| `ENV` | `development`, `dev`, `local`, `test`, `testing` | `production`, `prod`, `staging`, `stage` |
-| `APP_ENV` | `development`, `dev`, `local`, `test`, `testing` | `production`, `prod`, `staging`, `stage` |
-
-### Authentication Configuration
-
-Control authentication behavior using these environment variables:
-
-```bash
-# Enable/disable authentication (default: true)
-AUTH_ENABLED=true
-
-# Require authentication for protected endpoints (default: true)
-REQUIRE_AUTH=true
-
-# JWT secret key for token signing
-JWT_SECRET_KEY=your-secure-secret-key
-
-# OAuth2 configuration file
-AUTH_CONFIG_FILE=/config/auth-config.json
-```
-
-### Development Environment Setup
-
-For **development environments only**, authentication can be disabled:
-
-```bash
-# Method 1: Set environment indicator
-export GO_ENV=development
-export AUTH_ENABLED=false
-
-# Method 2: Use development kustomize overlay
-kubectl apply -k deployments/kustomize/overlays/local
-```
-
-**Warning**: The service will refuse to start if `AUTH_ENABLED=false` is set in a production environment.
-
-### Production Environment Requirements
-
-In production environments, the system enforces these security requirements:
-
-1. **Authentication Must Be Enabled**: `AUTH_ENABLED=true` (default)
-2. **Authentication Must Be Required**: `REQUIRE_AUTH=true` (default)
-3. **Secure Configuration**: JWT secret and OAuth2 providers must be properly configured
-4. **Environment Detection**: Production environment must be explicitly set or will be auto-detected
-
-Example production configuration:
-
-```bash
-# Production environment
-export ENVIRONMENT=production
-
-# Authentication configuration (these are the defaults)
-export AUTH_ENABLED=true
-export REQUIRE_AUTH=true
-export JWT_SECRET_KEY=$(openssl rand -base64 32)
-
-# OAuth2 providers configuration
-export AZURE_ENABLED=true
-export AZURE_CLIENT_ID=your-azure-client-id
-export AZURE_CLIENT_SECRET=your-azure-client-secret
-```
-
-### Troubleshooting Authentication Issues
-
-#### Service Fails to Start with Authentication Error
-
-**Error**: `authentication is disabled but this appears to be a production environment`
-
-**Solution**:
-```bash
-# Option 1: Enable authentication (recommended)
-export AUTH_ENABLED=true
-
-# Option 2: Set development environment
-export GO_ENV=development
-# or
-export NODE_ENV=development
-```
-
-#### Service Starts but Authentication Not Working
-
-**Check Configuration**:
-```bash
-# Verify authentication status
-kubectl logs deployment/llm-processor | grep -i auth
-
-# Check configuration
-kubectl get configmap llm-processor-oauth2-config -o yaml
-
-# Test authentication endpoints
-curl -v http://localhost:8080/auth/login
-```
-
-#### Missing JWT Secret Key
-
-**Error**: JWT secret key not configured
-
-**Solution**:
-```bash
-# Generate a secure JWT secret
-export JWT_SECRET_KEY=$(openssl rand -base64 32)
-
-# Or update the Kubernetes secret
-kubectl create secret generic llm-processor-secrets \
-  --from-literal=jwt-secret-key="$(openssl rand -base64 32)" \
-  --dry-run=client -o yaml | kubectl apply -f -
-```
-
-### Migration Notes for Existing Deployments
-
-If you have existing deployments that previously ran with authentication disabled, you need to update your configuration:
-
-#### Step 1: Update Environment Configuration
-
-```bash
-# For development environments
-export GO_ENV=development  # or NODE_ENV=development
-
-# For production environments (authentication will be enforced)
-export ENVIRONMENT=production
-export AUTH_ENABLED=true
-export REQUIRE_AUTH=true
-```
-
-#### Step 2: Configure Authentication Providers
-
-```bash
-# Set up OAuth2 configuration
-kubectl apply -f deployments/kustomize/base/llm-processor/oauth2-config.yaml
-
-# Configure secrets
-kubectl apply -f deployments/kustomize/base/llm-processor/oauth2-secrets.yaml
-```
-
-#### Step 3: Update Deployment Overlays
-
-Use the appropriate Kustomize overlay for your environment:
-
-```bash
-# Local/development deployment
-kubectl apply -k deployments/kustomize/overlays/local
-
-# Production deployment
-kubectl apply -k deployments/kustomize/overlays/production
-```
-
-### Security Best Practices
-
-1. **Always Enable Authentication in Production**: Never disable authentication in production environments
-2. **Use Strong JWT Secrets**: Generate cryptographically secure JWT secret keys
-3. **Configure OAuth2 Providers**: Set up proper OAuth2 integration with your identity provider
-4. **Monitor Authentication Logs**: Regularly review authentication logs for security events
-5. **Rotate Secrets Regularly**: Implement regular rotation of JWT secrets and OAuth2 credentials
-
-For detailed OAuth2 configuration, see the [OAuth2 Authentication Guide](docs/OAuth2-Authentication-Guide.md).
-
-### CORS Security Configuration
-
-The Nephoran Intent Operator includes comprehensive Cross-Origin Resource Sharing (CORS) security controls to protect against unauthorized cross-origin requests. CORS is configured through the `LLM_ALLOWED_ORIGINS` environment variable with different defaults for development and production environments.
-
-**Quick CORS Configuration:**
-
-```bash
-# Production (HTTPS required)
-export LLM_ALLOWED_ORIGINS="https://app.nephoran.com,https://dashboard.nephoran.com"
-
-# Development (HTTP allowed)
-export LLM_ALLOWED_ORIGINS="http://localhost:3000,http://localhost:8080"
-```
-
-**Security Features:**
-- ✅ **Environment-aware defaults**: Secure defaults for production and development environments
-- ✅ **Wildcard blocking**: Wildcard origins (`*`) are automatically blocked in production
-- ✅ **Strict validation**: All origins must include valid schemes (http/https) and no trailing slashes
-- ✅ **Production enforcement**: HTTPS enforcement and comprehensive security monitoring
-- ✅ **Zero-configuration security**: Secure defaults eliminate configuration risks
-
-For detailed CORS configuration, troubleshooting, and security best practices, see the [CORS Security Configuration Guide](docs/CORS-Security-Configuration-Guide.md).
-
-## Observability and Monitoring
-
-The Nephoran Intent Operator includes a comprehensive observability stack with Prometheus, Alertmanager, and Grafana for monitoring all system components.
-
-### Monitoring Stack Components
-
-**Prometheus Integration:**
-- **Service Discovery**: Automatic discovery of all Nephoran components via ServiceMonitor CRDs
-- **Metrics Collection**: 25+ custom metrics including:
-  - NetworkIntent processing times and success rates
-  - LLM processor token usage and response latencies
-  - RAG system vector search performance and cache hit rates
-  - ML model accuracy scores and prediction latencies
-  - Weaviate vector database operations and storage metrics
-  - O-RAN adaptor interface statistics (A1, O1, O2)
-- **Historical Data**: 30-day retention for ML model training and optimization
-
-**Alertmanager Configuration:**
-- **Critical Alerts**: System component failures, high error rates, resource exhaustion
-- **Performance Alerts**: Slow query performance, high latency, low accuracy scores
-- **ML-Specific Alerts**: Model drift detection, prediction accuracy degradation
-- **RAG Alerts**: Vector database connectivity issues, knowledge base staleness
-- **Integration**: Slack, email, and webhook notification channels
-
-**Grafana Dashboards:**
-- **System Overview**: High-level health and performance metrics
-- **LLM Processing**: Token usage, costs, response times, and accuracy metrics
-- **RAG System**: Vector search performance, knowledge base statistics, ingestion rates
-- **ML Models**: Training progress, accuracy trends, prediction confidence scores
-- **O-RAN Components**: Interface-specific metrics and compliance monitoring
-- **Infrastructure**: Kubernetes resource utilization and cluster health
-
-### Deployment and Configuration
-
-```bash
-# Deploy complete monitoring stack
-make deploy-monitoring
-
-# Access Grafana dashboards
-kubectl port-forward svc/grafana 3000:3000
-# Login: admin/admin, then browse pre-configured dashboards
-
-# Access Prometheus directly
-kubectl port-forward svc/prometheus 9090:9090
-# Browse to http://localhost:9090 for metrics exploration
-
-# Check Alertmanager status
-kubectl port-forward svc/alertmanager 9093:9093
-# Browse to http://localhost:9093 for alert management
-```
-
-### Key Metrics and Alerts
-
-**System Health Metrics:**
-- `nephoran_controller_reconcile_total` - Controller reconciliation counts
-- `nephoran_intent_processing_duration_seconds` - Intent processing latency
-- `nephoran_llm_token_usage_total` - LLM API token consumption
-- `nephoran_rag_vector_search_duration_seconds` - Vector search performance
-- `nephoran_ml_model_accuracy_ratio` - ML model accuracy scores
-- `nephoran_weaviate_objects_total` - Knowledge base size
-
-**Critical Alerts:**
-- `NephoranControllerDown` - Main controller unavailable
-- `LLMProcessorHighLatency` - LLM processing >10s 95th percentile
-- `RAGSystemVectorDBUnavailable` - Weaviate connectivity issues
-- `MLModelAccuracyDegraded` - Model accuracy below 80%
-- `WeaviateHighMemoryUsage` - Vector database memory >6GB
-
-### Custom Metrics Examples
-
-```bash
-# View intent processing success rate
-curl 'http://prometheus:9090/api/v1/query?query=rate(nephoran_intent_processing_total{status="success"}[5m])'
-
-# Check ML model performance
-curl 'http://prometheus:9090/api/v1/query?query=nephoran_ml_model_accuracy_ratio'
-
-# Monitor RAG system performance
-curl 'http://prometheus:9090/api/v1/query?query=rate(nephoran_rag_vector_search_total[5m])'
-
-# Track LLM costs
-curl 'http://prometheus:9090/api/v1/query?query=increase(nephoran_llm_token_usage_total[1d])'
-```
-
-## Git Integration Configuration
-
-The Nephoran Intent Operator supports GitOps workflows through Git repository integration. The system can authenticate with Git repositories using tokens provided through environment variables or Kubernetes secrets.
-
-### Git Authentication Methods
-
-The system supports two methods for providing Git authentication tokens, with Kubernetes secret mounting taking precedence over environment variables:
-
-#### Method 1: Kubernetes Secret (Recommended for Production)
-
-Create a Kubernetes secret containing your Git token and mount it to the container:
-
-```bash
-# Create a secret containing your Git token
-kubectl create secret generic git-token-secret \
-  --from-literal=token="your-github-personal-access-token"
-
-# Or create from a file
-echo "your-github-personal-access-token" > git-token.txt
-kubectl create secret generic git-token-secret \
-  --from-file=token=git-token.txt
-rm git-token.txt  # Clean up the file for security
-```
-
-Then configure the deployment to mount the secret and use the `GIT_TOKEN_PATH` environment variable:
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: nephio-bridge
-spec:
-  template:
-    spec:
-      containers:
-      - name: nephio-bridge
-        env:
-        - name: GIT_REPO_URL
-          value: "https://github.com/your-username/your-repo.git"
-        - name: GIT_TOKEN_PATH
-          value: "/etc/git-secret/token"
-        - name: GIT_BRANCH
-          value: "main"
-        volumeMounts:
-        - name: git-token
-          mountPath: "/etc/git-secret"
-          readOnly: true
-      volumes:
-      - name: git-token
-        secret:
-          secretName: git-token-secret
-          defaultMode: 0400
-```
-
-#### Method 2: Environment Variable (Development Only)
-
-For development environments, you can provide the Git token directly as an environment variable:
-
-```bash
-# Set the Git token environment variable
-export GIT_TOKEN="your-github-personal-access-token"
-export GIT_REPO_URL="https://github.com/your-username/your-repo.git"
-export GIT_BRANCH="main"
-```
-
-**Note**: This method is not recommended for production environments as it exposes the token in the environment variables.
-
-### Git Configuration Priority
-
-The system uses the following priority order for Git token configuration:
-
-1. **GIT_TOKEN_PATH** (Kubernetes secret mount) - **Highest Priority**
-2. **GIT_TOKEN** (Environment variable) - **Fallback**
-
-If `GIT_TOKEN_PATH` is set, the system will attempt to read the token from the specified file path. If the file read fails or `GIT_TOKEN_PATH` is not set, the system falls back to using the `GIT_TOKEN` environment variable.
-
-### Supported Git Providers
-
-The Git integration supports all Git providers that use HTTPS authentication with tokens:
-
-- **GitHub**: Use Personal Access Tokens (PAT) or Fine-grained Personal Access Tokens
-- **GitLab**: Use Personal Access Tokens or Project Access Tokens
-- **Bitbucket**: Use App Passwords or Repository Access Tokens
-- **Azure DevOps**: Use Personal Access Tokens
-
-### Required Git Token Permissions
-
-Ensure your Git token has the following permissions:
-
-- **Repository access**: Read and write access to the target repositories
-- **Contents**: Read and write permissions for repository contents
-- **Pull requests**: If using PR-based workflows
-- **Metadata**: Read access to repository metadata
-
-### Example Kustomize Configuration
-
-For Kustomize-based deployments, you can add the Git token secret configuration:
-
-```yaml
-# kustomization.yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-resources:
-- deployment.yaml
-
-secretGenerator:
-- name: git-token-secret
-  literals:
-  - token=your-github-personal-access-token
-
-patches:
-- patch: |-
-    - op: add
-      path: /spec/template/spec/volumes/-
-      value:
-        name: git-token
-        secret:
-          secretName: git-token-secret
-          defaultMode: 0400
-    - op: add
-      path: /spec/template/spec/containers/0/volumeMounts/-
-      value:
-        name: git-token
-        mountPath: "/etc/git-secret"
-        readOnly: true
-    - op: add
-      path: /spec/template/spec/containers/0/env/-
-      value:
-        name: GIT_TOKEN_PATH
-        value: "/etc/git-secret/token"
-  target:
-    kind: Deployment
-    name: nephio-bridge
-```
-
-### Security Best Practices
-
-1. **Use Kubernetes Secrets**: Always use Kubernetes secrets for production deployments
-2. **Rotate Tokens Regularly**: Implement regular token rotation procedures
-3. **Minimal Permissions**: Grant only the minimum required permissions to Git tokens
-4. **Monitor Token Usage**: Monitor Git API usage to detect unauthorized access
-5. **Secure Storage**: Never store tokens in plain text files or version control
-
-## Helm Configuration
-
-The Nephoran Intent Operator can be deployed using Helm charts for simplified configuration management. The Helm chart is located at `deployments/helm/nephoran-operator/` and provides flexible configuration options for all system components.
-
-### Git Token Secret Configuration
-
-The `git.tokenSecret` Helm value provides a secure and convenient way to configure Git authentication using Kubernetes secrets. This method is recommended over environment variables for production deployments.
-
-#### Configuration Overview
-
-```yaml
-# values.yaml
-git:
-  tokenSecret: "git-token-secret"  # Name of the Kubernetes secret containing the Git token
-```
-
-When `git.tokenSecret` is specified, the Helm chart will:
-
-1. **Create a Secret Volume Mount**: Mount the specified Kubernetes secret as a file in the container
-2. **Set GIT_TOKEN_PATH**: Automatically configure the `GIT_TOKEN_PATH` environment variable to point to the mounted token file
-3. **Enable File-Based Authentication**: The system will read the Git token from the mounted file with fallback to environment variables
-
-#### How It Works
-
-The `git.tokenSecret` value creates the following configuration:
-
-1. **Secret Mount**: The specified secret is mounted at `/etc/git-secret/` in the container
-2. **File Priority**: The mounted token file takes precedence over the `GIT_TOKEN` environment variable
-3. **Automatic Fallback**: If file reading fails, the system automatically falls back to environment variable authentication
-4. **Security**: Files are mounted with restricted permissions (mode 0400) for enhanced security
-
-#### Example Configuration
-
-**Step 1: Create the Git Token Secret**
-
-```bash
-# Create a Kubernetes secret with your Git token
-kubectl create secret generic git-token-secret \
-  --from-literal=token="your-github-personal-access-token"
-```
-
-**Step 2: Configure Helm Values**
-
-```yaml
-# values.yaml or custom-values.yaml
-git:
-  tokenSecret: "git-token-secret"
-
-# Other Git configuration (can be set via environment or ConfigMap)
-env:
-  GIT_REPO_URL: "https://github.com/your-username/your-repo.git"
-  GIT_BRANCH: "main"
-```
-
-**Step 3: Deploy with Helm**
-
-```bash
-# Deploy using the Helm chart
-helm install nephoran-operator deployments/helm/nephoran-operator/ \
-  --values custom-values.yaml
-
-# Or set values directly
-helm install nephoran-operator deployments/helm/nephoran-operator/ \
-  --set git.tokenSecret=git-token-secret \
-  --set env.GIT_REPO_URL=https://github.com/your-username/your-repo.git
-```
-
-#### Advanced Configuration Example
-
-```yaml
-# Complete Helm values configuration
-git:
-  tokenSecret: "git-token-secret"
-
-# LLM Processor configuration with Git integration
-llmProcessor:
-  enabled: true
-  env:
-    - name: GIT_REPO_URL
-      value: "https://github.com/your-username/nephoran-config.git"
-    - name: GIT_BRANCH
-      value: "main"
-    - name: GIT_AUTHOR_NAME
-      value: "Nephoran Operator"
-    - name: GIT_AUTHOR_EMAIL
-      value: "operator@nephoran.com"
-
-# Nephio Bridge controller with Git integration
-nephioBridge:
-  enabled: true
-  env:
-    - name: GIT_DEPLOYMENT_REPO
-      value: "https://github.com/your-username/nephoran-deployments.git"
-    - name: GIT_DEPLOYMENT_BRANCH
-      value: "deployments"
-```
-
-#### Behavior and Fallback Logic
-
-The system implements the following authentication priority:
-
-1. **Primary**: File-based token from `GIT_TOKEN_PATH` (configured by `git.tokenSecret`)
-2. **Fallback**: Environment variable `GIT_TOKEN`
-3. **Error Handling**: If both methods fail, Git operations will fail with authentication errors
-
-**Example Authentication Flow:**
-
-```
-1. System checks if GIT_TOKEN_PATH is set (via git.tokenSecret)
-   ├── If set: Attempt to read token from file
-   │   ├── Success: Use file-based token for Git operations
-   │   └── Failure: Log warning and fall back to step 2
-   └── If not set: Skip to step 2
-
-2. System checks GIT_TOKEN environment variable
-   ├── If set: Use environment variable token
-   └── If not set: Git operations will fail with authentication error
-```
-
-#### Troubleshooting Git Token Secret
-
-**Secret Not Found:**
-```bash
-# Verify the secret exists
-kubectl get secret git-token-secret
-
-# Check secret contents (base64 encoded)
-kubectl get secret git-token-secret -o yaml
-```
-
-**File Mount Issues:**
-```bash
-# Check if the secret is properly mounted
-kubectl exec deployment/nephio-bridge -- ls -la /etc/git-secret/
-
-# Verify file permissions
-kubectl exec deployment/nephio-bridge -- ls -la /etc/git-secret/token
-```
-
-**Authentication Failures:**
-```bash
-# Check logs for authentication errors
-kubectl logs deployment/nephio-bridge | grep -i "git\|auth"
-
-# Test token validity manually
-kubectl exec deployment/nephio-bridge -- cat /etc/git-secret/token
-```
-
-#### Migration from Environment Variables
-
-If you're currently using `GIT_TOKEN` environment variables, you can migrate to the secure secret-based approach:
-
-**Current Configuration (Environment Variable):**
-```yaml
-llmProcessor:
-  env:
-    - name: GIT_TOKEN
-      valueFrom:
-        secretKeyRef:
-          name: git-credentials
-          key: token
-```
-
-**New Configuration (File-Based with git.tokenSecret):**
-```yaml
-git:
-  tokenSecret: "git-credentials"  # Uses the same secret, but mounts as file
-
-llmProcessor:
-  env:
-    # Remove GIT_TOKEN - it will be handled by file-based authentication
-    - name: GIT_REPO_URL
-      value: "https://github.com/your-username/your-repo.git"
-```
-
-#### Security Considerations
-
-1. **Secret Permissions**: Mounted secrets have restrictive file permissions (0400)
-2. **Secret Rotation**: Update the Kubernetes secret to rotate tokens without redeploying
-3. **Namespace Security**: Ensure the secret is created in the same namespace as the operator
-4. **RBAC**: Verify the service account has permission to access the secret
-
-#### Integration with Other Helm Values
-
-The `git.tokenSecret` value integrates seamlessly with other Helm configuration options:
-
-```yaml
-# Complete production configuration
-global:
-  imageRegistry: "your-registry.com"
-
-git:
-  tokenSecret: "production-git-token"
-
-llmProcessor:
-  enabled: true
-  replicaCount: 2
-  resources:
-    requests:
-      memory: "256Mi"
-      cpu: "200m"
-    limits:
-      memory: "512Mi"
-      cpu: "500m"
-
-ragApi:
-  enabled: true
-
-ml:
-  enabled: true
-
-monitoring:
-  enabled: true
-  serviceMonitor:
-    enabled: true
-```
-
-### Troubleshooting Git Integration
-
-#### Common Issues
-
-1. **Authentication Failed**:
+1. **Clone and setup environment**:
    ```bash
-   # Check if the token file exists and is readable
-   kubectl exec deployment/nephio-bridge -- cat /etc/git-secret/token
+   git clone <repository-url>
+   cd nephoran-intent-operator
    
-   # Verify the token has correct permissions
-   curl -H "Authorization: token YOUR_TOKEN" https://api.github.com/user
+   # Set OpenAI API key
+   export OPENAI_API_KEY="sk-your-api-key-here"
    ```
 
-2. **File Not Found**:
+2. **Build components**:
    ```bash
-   # Check if the secret is mounted correctly
-   kubectl describe pod -l app=nephio-bridge
+   # Build all services
+   make build-all
    
-   # Verify the secret exists
-   kubectl get secret git-token-secret -o yaml
+   # Build Docker images
+   make docker-build
    ```
 
-3. **Permission Denied**:
+3. **Deploy locally**:
    ```bash
-   # Check token permissions on the Git provider
-   # Ensure the token has repository access and appropriate scopes
+   # Deploy to local Kubernetes cluster
+   ./deploy.sh local
    ```
 
-## Usage Examples
-
-The Nephoran Intent Operator supports both **natural language intents** and **direct resource management**.
-
-### 🤖 **Natural Language Intent Processing**
-
-Create high-level intents using natural language that the LLM will process:
-
-1. **Create a Natural Language Intent:**
-   ```yaml
+4. **Test basic functionality**:
+   ```bash
+   # Create a simple intent
+   kubectl apply -f - <<EOF
    apiVersion: nephoran.com/v1alpha1
    kind: NetworkIntent
    metadata:
-     name: scale-amf-deployment
+     name: test-intent
      namespace: default
    spec:
-     intent: "Deploy AMF with 3 replicas for network slice eMBB with high throughput requirements"
-     priority: "high"
-   ```
-
-2. **Apply the Intent:**
-   ```shell
-   kubectl apply -f my-network-intent.yaml
-   ```
-
-3. **Monitor Processing:**
-   ```shell
+     intent: "Deploy a simple AMF instance"
+   EOF
+   
+   # Check status
    kubectl get networkintents
-   kubectl describe networkintent scale-amf-deployment
+   kubectl describe networkintent test-intent
    ```
 
-The system will process the natural language, generate structured parameters, and create the appropriate Kubernetes resources.
+## Development Environment
 
-### 🎛️ **Direct E2NodeSet Management**
-
-For direct control of E2 Node simulators:
-
-1. **Create an E2NodeSet Resource:**
-   ```yaml
-   apiVersion: nephoran.com/v1alpha1
-   kind: E2NodeSet
-   metadata:
-     name: simulated-gnbs
-     namespace: default
-   spec:
-     replicas: 3 # The desired number of E2 node simulators
-   ```
-
-2. **Apply the Configuration:**
-   ```shell
-   kubectl apply -f my-e2-nodes.yaml
-   ```
-
-3. **Verify Scaling:**
-   ```shell
-   kubectl get e2nodesets
-   kubectl get configmaps -l e2nodeset=simulated-gnbs
-   ```
-
-### 🔍 **System Monitoring**
-
-Monitor the complete system:
-
-```shell
-# Check all Nephoran components (4 services verified)
-kubectl get pods -l app.kubernetes.io/part-of=nephoran
-
-# Monitor services (enterprise-grade logging)
-kubectl logs -f deployment/llm-processor      # LLM processing service
-kubectl logs -f deployment/nephio-bridge      # Main controller
-kubectl logs -f deployment/oran-adaptor       # O-RAN interfaces
-kubectl logs -f deployment/rag-api            # RAG pipeline with streaming
-kubectl logs -f deployment/weaviate           # Vector database
-
-# Health checks (verified endpoints)
-kubectl port-forward svc/rag-api 5001:5001
-curl http://localhost:5001/healthz            # RAG API health
-curl http://localhost:5001/readyz             # RAG API readiness
-curl http://localhost:5001/stats              # RAG system statistics
-
-kubectl port-forward svc/llm-processor 8080:8080
-curl http://localhost:8080/healthz            # LLM Processor health
-curl http://localhost:8080/ml/metrics         # ML model metrics (if ml build tag enabled)
-
-# Vector database status
-kubectl port-forward svc/weaviate 8080:8080
-curl http://localhost:8080/v1/.well-known/ready  # Weaviate readiness
-
-# Monitoring (25+ metrics collection verified)
-kubectl port-forward svc/prometheus 9090:9090
-# Browse to http://localhost:9090 for comprehensive metrics including ML and RAG
-
-kubectl port-forward svc/grafana 3000:3000
-# Browse to http://localhost:3000 for dashboards (admin/admin)
-```
-
-## Development
-
-This project uses a comprehensive `Makefile` and automation scripts for streamlined development workflows.
-
-### 🛠️ **Development Environment Setup (Verified August 2025)**
-
-**Quick Start (Automated Setup):**
-```shell
-# Clone and setup development environment
-git clone <repository-url>
-cd nephoran-intent-operator
-make setup-dev                    # Install all dependencies (Go, Python)
-```
-
-**Verified Manual Environment Setup:**
-```shell
-# Verify Go installation (tested with go1.23.0, toolchain go1.24.5)
-go version                        # Should show go1.23.0+ or later
-
-# Verify Python 3.8+ for RAG components (Flask-based services)
-python3 --version                # Should show Python 3.8.x or later
-
-# Verify make utility (cross-platform build system)
-make --version                    # Required for build automation
-
-# Install development dependencies (stable versions verified)
-go mod download                   # Download Go modules (Weaviate v1.25.6, unified OpenTelemetry)
-pip3 install -r requirements-rag.txt  # Install Python dependencies (Flask, Weaviate client)
-
-# Generate Kubernetes code (CRD definitions verified)
-make generate                     # Run after API changes
-```
-
-**🔧 Required Development Tools:**
-```shell
-# Install additional development tools
-make dev-setup                   # Installs linters, security scanners, etc.
-
-# Manual tool installation
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-go install golang.org/x/vuln/cmd/govulncheck@latest
-go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-```
-
-**Environment Validation (Comprehensive Testing Available):**
-```shell
-# Validate development environment (comprehensive 40+ checks)
-./validate-environment.ps1        # Tests Go, Docker, kubectl, Python, dependencies
-
-# Cluster health diagnostics
-./diagnose_cluster.sh             # Kubernetes connectivity and resource validation
-
-# Build system validation (95% confidence verified)
-make validate-build               # Validate build targets and dependencies
-
-# Testing framework validation (Ginkgo + envtest verified)
-make test-integration             # Run professional-grade test suite
-```
-
-### 🔨 **Verified Build System (Cross-Platform with 40% Performance Optimization)**
-
-**Verified Parallel Builds (4 Services):**
-```shell
-# Build all service binaries in parallel (40% faster than sequential)
-make build-all                    # Builds: llm-processor, nephio-bridge, oran-adaptor, rag-api
-
-# Individual component builds (verified build targets)
-make build-llm-processor          # LLM processing service (enterprise-grade)
-make build-nephio-bridge          # Main controller service (CRD management)
-make build-oran-adaptor           # O-RAN interface adaptors (A1, O1, O2)
-```
-
-**Verified Enterprise Container Builds:**
-```shell
-# Multi-stage Docker builds with security optimization (verified)
-make docker-build                 # Build all Docker images with:
-                                  # ✅ Distroless runtime images (minimal attack surface)
-                                  # ✅ Non-root user execution (security hardened)
-                                  # ✅ Static binary stripping (size optimized)
-                                  # ✅ Health check integration (Kubernetes-native)
-                                  # ✅ BuildKit optimization (parallel layer builds)
-
-make docker-push                  # Push to registry (authentication required)
-make validate-images              # Validate Docker images after build
-```
-
-**🔒 Security and Quality Assurance:**
-```shell
-# Comprehensive security scanning
-make security-scan                # Run vulnerability scans and security checks
-make validate-all                 # Run all validation checks
-make benchmark                    # Performance benchmarking
-make test-all                     # All tests including security and benchmarks
-```
-
-**Verified Build System Features:**
-- **Cross-Platform Support**: ✅ Windows, Linux compatibility verified (macOS compatible)
-- **Security Scanning**: ✅ Integrated `govulncheck` and container vulnerability validation
-- **Dependency Management**: ✅ Stable versions verified (Weaviate v1.25.6, unified OpenTelemetry)
-- **Performance Optimization**: ✅ 40% build time improvement with parallel execution
-- **CRD Generation**: ✅ Automated generation with version consistency (v1)
-- **Build Validation**: ✅ 95% confidence build success rate with comprehensive testing
-
-### 🧪 **Verified Testing & Validation Framework**
-
-```shell
-# Code quality (cross-platform verified)
-make lint                         # Run Go and Python linters (golangci-lint, flake8)
-make generate                     # Generate Kubernetes code (CRD validation verified)
-
-# Professional testing suite (Ginkgo + envtest)
-make test-integration             # Run 40+ test files with envtest framework
-./validate-environment.ps1        # Comprehensive environment validation (40+ checks)
-./test-crds.ps1                   # CRD functionality and schema validation
-
-# System diagnostics (comprehensive)
-./diagnose_cluster.sh             # Kubernetes cluster health and connectivity
-```
-
-**Verified Testing Framework:**
-- **Test Files**: ✅ 40+ professional test files (controllers, APIs, integrations)
-- **Framework**: ✅ Ginkgo v2 + Gomega + envtest (BDD-style testing)
-- **Coverage**: ✅ CRD validation, controller logic, service integration
-- **Confidence**: ✅ 85% integration test confidence, 95% build confidence
-
-### 🚀 **Deployment Workflows**
-
-```shell
-# Local development deployment with ML and RAG
-export OPENAI_API_KEY="sk-your-api-key"  # Required for RAG and LLM processing
-./deploy.sh local                 # Deploy to Kind/Minikube with local images
-
-# Remote deployment (GKE) with full stack
-./deploy.sh remote               # Deploy to GKE with registry push
-
-# RAG system management
-make deploy-rag                  # Deploy complete RAG system with Weaviate
-make populate-kb-enhanced        # Populate knowledge base with telecom docs
-make verify-rag                  # Verify RAG system health
-make rag-status                  # Check RAG component status
-
-# ML optimization engine (requires `ml` build tag)
-make build-ml                    # Build ML components
-make deploy-ml                   # Deploy ML optimization engine
-make ml-metrics                  # View ML model performance metrics
-```
-
-### 📚 **Knowledge Base Management**
-
-```shell
-# Automated knowledge base population with streaming
-./populate-knowledge-base.ps1    # PowerShell script for Windows/Linux
-make populate-kb-enhanced        # Enhanced pipeline with telecom optimization
-
-# Streaming document processing (handles large document sets)
-kubectl port-forward svc/rag-api 5001:5001
-curl -X POST http://localhost:5001/knowledge/upload -F "files=@3gpp_spec.pdf" -F "files=@oran_docs.md"
-curl -X POST http://localhost:5001/knowledge/populate -d '{"directory": "/path/to/telecom/docs", "recursive": true}'
-
-# Monitor knowledge base ingestion
-curl http://localhost:5001/knowledge/stats  # View ingestion progress and statistics
-```
-
-### 🔍 **Development Debugging**
-
-```shell
-# Component logs
-kubectl logs -f deployment/nephio-bridge
-kubectl logs -f deployment/llm-processor
-kubectl logs -f deployment/rag-api
-
-# Health checks
-curl http://localhost:8080/healthz  # LLM Processor health
-curl http://localhost:5001/readyz   # RAG API readiness
-
-# Resource monitoring
-kubectl get networkintents -o wide
-kubectl get e2nodesets -o wide
-kubectl describe networkintent <name>
-```
-
-### 📋 **Verification Summary (August 2025 Analysis)**
-
-**Comprehensive Analysis Results:**
-- ✅ **Build System**: 95% confidence - Cross-platform Makefile with parallel builds verified
-- ✅ **Dependencies**: Stable versions verified (Weaviate v1.25.6, unified OpenTelemetry)
-- ✅ **Testing Framework**: Professional Ginkgo + envtest with 40+ test files
-- ✅ **Docker System**: Enterprise-grade multi-stage builds with security optimization
-- ✅ **Integration**: 85% confidence based on comprehensive static analysis
-- ✅ **Documentation**: Detailed integration testing guide (1865 lines)
-
-**Analysis Reports Available:**
-- `SCAN_1A_STRUCTURE.md` - Project structure analysis
-- `TEST_3A_BUILD.md` - Build system verification (95% confidence)
-- `TEST_3B_BASIC.md` - Testing framework analysis (40+ test files)
-- `TEST_3C_INTEGRATION.md` - Integration capabilities (85% confidence)
-
-## 🛠️ **Troubleshooting Guide**
-
-### **Common Build Issues**
-
-**1. API Version Inconsistencies:**
-```shell
-# If you encounter API version errors
-make fix-api-versions             # Fix CRD version inconsistencies
-make generate                     # Regenerate code with correct versions
-```
-
-**2. Dependency Issues:**
-```shell
-# Clean and rebuild dependencies
-go clean -cache -modcache -testcache
-go mod tidy
-go mod verify
-make update-deps                  # Update dependencies safely
-```
-
-**3. Build Failures:**
-```shell
-# Clean build artifacts and retry
-make clean
+### Build System
+```bash
+# Build all components
 make build-all
 
-# Check for security vulnerabilities
-make security-scan
+# Run tests
+make test
 
-# Validate build system
-make validate-build
+# Check code quality
+make lint
+
+# Clean artifacts
+make clean
 ```
 
-**4. Container Build Issues:**
-```shell
-# Clean Docker cache and rebuild
-docker system prune -f
-make docker-build
-
-# Validate built images
-make validate-images
+### Component Development
+```bash
+# Build individual services
+make build-llm-processor    # LLM processing service
+make build-nephio-bridge    # Main controller
+make build-oran-adaptor     # O-RAN interface adapters
+make build-rag-api         # Document retrieval API
 ```
 
-### **Development Environment Issues**
+### Testing
+```bash
+# Run unit tests
+go test ./...
 
-**1. Cross-Platform Build Problems:**
-```shell
-# Ensure proper OS detection
-echo $OS  # Windows_NT on Windows, empty on Unix-like systems
+# Validate CRDs
+kubectl apply --dry-run=client -f config/crd/bases/
 
-# Use platform-specific commands
-make build-all  # Automatically detects platform
+# Check pod health
+kubectl get pods -l app.kubernetes.io/part-of=nephoran
 ```
 
-**2. Missing Tools:**
-```shell
-# Install all required development tools
-make dev-setup
+## Architecture Overview
 
-# Manual tool verification
-go version      # Go 1.24+
-python3 --version  # Python 3.8+
-kubectl version    # Kubernetes CLI
-docker --version   # Docker engine
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   NetworkIntent │    │  LLM Processor   │    │   RAG API       │
+│   Custom Resource│───▶│  Service         │───▶│   (Flask)       │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                                │
+                                ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   Nephio Bridge │    │   E2NodeSet      │    │   ConfigMaps    │
+│   Controller    │    │   Controller     │───▶│   (Simulation)  │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
-**3. Permission Issues (Linux/macOS):**
-```shell
-# Fix common permission issues
-chmod +x scripts/*.sh
-chmod +x deploy.sh
-chmod +x *.ps1
+The system processes natural language intents through a simple pipeline:
+1. User creates NetworkIntent resource
+2. Controller calls LLM Processor service  
+3. LLM translates intent to basic parameters
+4. Controllers create Kubernetes resources
+5. Basic monitoring through health endpoints
+
+## Monitoring and Debugging
+
+```bash
+# Check component logs
+kubectl logs deployment/llm-processor
+kubectl logs deployment/nephio-bridge
+kubectl logs deployment/rag-api
+
+# Health checks
+kubectl port-forward svc/llm-processor 8080:8080
+curl http://localhost:8080/healthz
+
+kubectl port-forward svc/rag-api 5001:5001
+curl http://localhost:5001/healthz
+
+# Check resources
+kubectl get networkintents
+kubectl get e2nodesets
+kubectl get configmaps -l e2nodeset
 ```
 
-### **Security and Compliance**
+## Configuration
 
-**1. Security Scan Failures:**
-```shell
-# Run comprehensive security audit
-./scripts/execute-security-audit.sh
+### Environment Variables
+```bash
+# Required
+export OPENAI_API_KEY="sk-your-key"
 
-# Fix specific vulnerabilities
-go mod tidy
-make update-deps
+# Optional
+export LOG_LEVEL="debug"
+export ENABLE_RAG="true"
+export RAG_ENDPOINT="http://rag-api:5001"
 ```
 
-**2. Container Security Issues:**
-```shell
-# Security scanning for containers
-./scripts/vulnerability-scanner.sh
-./scripts/security-config-validator.sh
-```
+### Kubernetes Configuration
+Basic authentication and CORS can be configured through environment variables or ConfigMaps (see deployment manifests).
 
-### **Deployment Issues**
+## Contributing
 
-**1. Kubernetes Deployment Problems:**
-```shell
-# Validate cluster connectivity
-kubectl cluster-info
+This is an experimental project exploring new concepts. Contributions are welcome, but please understand this is research-stage work:
 
-# Check deployment status
-kubectl get pods -A
-kubectl get crd | grep nephoran
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes with tests
+4. Submit a pull request
 
-# Validate environment
-./validate-environment.ps1
-```
+## Known Issues
 
-**2. RAG System Issues:**
-```shell
-# Check RAG system health
-make rag-status
-make rag-logs
+- Limited error handling in LLM processing
+- Basic retry logic without circuit breakers  
+- Simple health checks without comprehensive monitoring
+- Experimental O-RAN interfaces (not production-ready)
+- No security hardening for production use
 
-# Redeploy RAG system
-make cleanup-rag
-make deploy-rag
-```
+## Roadmap
 
-### **Performance and Monitoring**
+**Near-term**:
+- Improve error handling and resilience
+- Add more comprehensive testing
+- Better documentation of actual capabilities
+- Enhanced LLM prompt engineering
 
-**1. Build Performance Issues:**
-```shell
-# Monitor build performance
-make build-performance
+**Medium-term**:
+- Production security implementation
+- Real O-RAN interface compliance
+- Performance optimization
+- Multi-cluster deployment support
 
-# Run benchmarks
-make benchmark
-```
+**Long-term**:
+- Complete enterprise feature set
+- Advanced ML optimization
+- Full O-RAN ecosystem integration
+- Production deployment guides
 
-**2. Runtime Performance:**
-```shell
-# Run performance tests
-./scripts/performance-benchmark-suite.sh
+## License
 
-# Load testing
-./scripts/execute-production-load-test.sh
-```
+This project is experimental and provided as-is for research and development purposes.
 
-### **Getting Help**
+---
 
-For complex issues:
-1. Check `FILE_REMOVAL_REPORT.md` for recent changes
-2. Review build logs with `make validate-build`
-3. Run comprehensive diagnostics with `./diagnose_cluster.sh`
-4. Consult the disaster recovery documentation in `CLAUDE.md`
+**Disclaimer**: This is experimental software not intended for production use. The project explores concepts in intent-driven network operations and LLM integration with Kubernetes.

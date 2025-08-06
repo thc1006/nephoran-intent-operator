@@ -280,5 +280,5 @@ The infrastructure improvements provide a solid foundation for production deploy
 For specific component documentation, refer to:
 - [API Documentation](api/)
 - [Operations Guide](operations/)
-- [Testing Guide](testing/)
+- [Testing Guide](tests/)
 - [Deployment Guides](../deployments/)

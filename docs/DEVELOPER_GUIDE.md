@@ -418,7 +418,7 @@ nephoran-intent-operator/
 └── docs/                          # Documentation
     ├── api/                       # API documentation
     ├── operations/                # Operational guides
-    └── testing/                   # Testing guides
+    └── tests/                     # Testing guides
 ```
 
 ### Coding Standards
