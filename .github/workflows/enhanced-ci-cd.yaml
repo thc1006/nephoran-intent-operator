@@ -82,7 +82,7 @@ jobs:
         make ci-setup
         
         # Run Gosec
-        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+        go install github.com/securego/gosec/v2/cmd/gosec@latest
         gosec -fmt sarif -out gosec-results.sarif -no-fail ./...
         
         # Run govulncheck

@@ -57,6 +57,7 @@ func main() {
 		slog.String("model", cfg.LLMModelName),
 		slog.Bool("auth_enabled", cfg.AuthEnabled),
 		slog.Bool("require_auth", cfg.RequireAuth),
+		slog.Bool("tls_enabled", cfg.TLSEnabled),
 	)
 
 	// Initialize service components
@@ -86,10 +87,24 @@ func main() {
 
 	// Start server
 	go func() {
-		logger.Info("Server starting", slog.String("addr", server.Addr))
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Error("Server failed to start", slog.String("error", err.Error()))
-			os.Exit(1)
+		if cfg.TLSEnabled {
+			logger.Info("Server starting with TLS", 
+				slog.String("addr", server.Addr),
+				slog.String("cert_path", cfg.TLSCertPath),
+				slog.String("key_path", cfg.TLSKeyPath))
+			if err := server.ListenAndServeTLS(cfg.TLSCertPath, cfg.TLSKeyPath); err != nil && err != http.ErrServerClosed {
+				logger.Error("TLS server failed to start", slog.String("error", err.Error()))
+				os.Exit(1)
+			}
+		} else {
+			logger.Info("Server starting (HTTP only)", 
+				slog.String("addr", server.Addr))
+			logger.Warn("Server running in HTTP mode - consider enabling TLS for production use",
+				slog.String("tls_config", "set TLS_ENABLED=true, TLS_CERT_PATH, and TLS_KEY_PATH to enable TLS"))
+			if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				logger.Error("Server failed to start", slog.String("error", err.Error()))
+				os.Exit(1)
+			}
 		}
 	}()
 
@@ -127,6 +142,7 @@ func validateSecurityConfiguration(cfg *config.LLMProcessorConfig, logger *slog.
 		slog.Bool("is_development", isDevelopment),
 		slog.Bool("auth_enabled", cfg.AuthEnabled),
 		slog.Bool("require_auth", cfg.RequireAuth),
+		slog.Bool("tls_enabled", cfg.TLSEnabled),
 	)
 
 	// If authentication is disabled, only allow in development environments
@@ -146,20 +162,42 @@ func validateSecurityConfiguration(cfg *config.LLMProcessorConfig, logger *slog.
 			"Consider setting REQUIRE_AUTH=true for enhanced security")
 	}
 
+	// TLS security validation
+	if !cfg.TLSEnabled && !isDevelopment {
+		logger.Warn("TLS is disabled in production environment. " +
+			"Consider enabling TLS by setting TLS_ENABLED=true and providing certificate files for enhanced security")
+	}
+
 	// Log security status for audit purposes
-	if cfg.AuthEnabled {
-		logger.Info("Authentication security status",
-			slog.Bool("auth_enabled", true),
-			slog.Bool("require_auth", cfg.RequireAuth),
-			slog.String("jwt_secret_configured", func() string {
-				if cfg.JWTSecretKey != "" {
-					return "yes"
-				}
-				return "no"
-			}()),
-		)
-	} else {
-		logger.Warn("Service starting without authentication - development mode only")
+	logger.Info("Security status summary",
+		slog.Bool("auth_enabled", cfg.AuthEnabled),
+		slog.Bool("require_auth", cfg.RequireAuth),
+		slog.Bool("tls_enabled", cfg.TLSEnabled),
+		slog.String("environment", func() string {
+			if isDevelopment {
+				return "development"
+			}
+			return "production"
+		}()),
+		slog.String("jwt_secret_configured", func() string {
+			if cfg.AuthEnabled && cfg.JWTSecretKey != "" {
+				return "yes"
+			}
+			return "no"
+		}()),
+		slog.String("tls_certificates_configured", func() string {
+			if cfg.TLSEnabled && cfg.TLSCertPath != "" && cfg.TLSKeyPath != "" {
+				return "yes"
+			}
+			return "no"
+		}()),
+	)
+
+	if !cfg.AuthEnabled && !isDevelopment {
+		logger.Warn("Service starting without authentication in production environment")
+	}
+	if !cfg.TLSEnabled && !isDevelopment {
+		logger.Warn("Service starting without TLS encryption in production environment")
 	}
 
 	return nil
@@ -219,6 +257,28 @@ func setupHTTPServer() *http.Server {
 		slog.Int64("max_request_size_bytes", cfg.MaxRequestSize),
 		slog.String("max_request_size_human", fmt.Sprintf("%.2f MB", float64(cfg.MaxRequestSize)/(1024*1024))))
 
+	// Initialize CORS middleware if enabled
+	var corsMiddleware *middleware.CORSMiddleware
+	if cfg.CORSEnabled {
+		corsConfig := middleware.CORSConfig{
+			AllowedOrigins:   cfg.AllowedOrigins,
+			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"},
+			AllowCredentials: false, // Security: disabled by default
+			MaxAge:          24 * time.Hour,
+		}
+
+		if err := middleware.ValidateConfig(corsConfig); err != nil {
+			logger.Error("Invalid CORS configuration", slog.String("error", err.Error()))
+			os.Exit(1)
+		}
+
+		corsMiddleware = middleware.NewCORSMiddleware(corsConfig, logger)
+		logger.Info("CORS middleware enabled",
+			slog.Any("allowed_origins", cfg.AllowedOrigins),
+			slog.Bool("credentials_allowed", corsConfig.AllowCredentials))
+	}
+
 	// Initialize OAuth2 middleware if enabled
 	var authMiddleware *auth.AuthMiddleware
 	if cfg.AuthEnabled {
@@ -245,6 +305,11 @@ func setupHTTPServer() *http.Server {
 
 		logger.Info("OAuth2 authentication enabled",
 			slog.Int("providers", len(oauth2Config.Providers)))
+	}
+
+	// Apply CORS middleware to all routes if enabled
+	if corsMiddleware != nil {
+		router.Use(corsMiddleware.Middleware)
 	}
 
 	// Public health endpoints (no authentication required)

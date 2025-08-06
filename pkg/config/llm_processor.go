@@ -42,7 +42,7 @@ type LLMProcessorConfig struct {
 	APIKeyRequired bool
 	APIKey         string
 	CORSEnabled    bool
-	AllowedOrigins string
+	AllowedOrigins []string
 
 	// Performance Configuration
 	RequestTimeout time.Duration
@@ -108,7 +108,7 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 
 		APIKeyRequired: false,
 		CORSEnabled:    true,
-		AllowedOrigins: "", // Security: Default to empty, must be explicitly configured via LLM_ALLOWED_ORIGINS
+		AllowedOrigins: []string{}, // Security: Default to empty, must be explicitly configured via LLM_ALLOWED_ORIGINS
 
 		RequestTimeout: 30 * time.Second,
 		MaxRequestSize: 1048576, // 1MB
@@ -190,13 +190,18 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg.CORSEnabled = parseBoolWithDefault("CORS_ENABLED", cfg.CORSEnabled)
 	
 	// Parse and validate allowed origins
-	allowedOriginsStr := getEnvOrDefault("LLM_ALLOWED_ORIGINS", cfg.AllowedOrigins)
+	allowedOriginsStr := getEnvOrDefault("LLM_ALLOWED_ORIGINS", "")
 	if cfg.CORSEnabled && allowedOriginsStr != "" {
 		parsedOrigins, err := parseAllowedOrigins(allowedOriginsStr)
 		if err != nil {
 			validationErrors = append(validationErrors, fmt.Sprintf("LLM_ALLOWED_ORIGINS: %v", err))
 		} else {
-			cfg.AllowedOrigins = strings.Join(parsedOrigins, ",")
+			cfg.AllowedOrigins = parsedOrigins
+		}
+	} else if cfg.CORSEnabled {
+		// Set secure development default when CORS is enabled but no origins specified
+		if isDevelopmentEnvironment() {
+			cfg.AllowedOrigins = []string{"http://localhost:3000", "http://localhost:8080"}
 		}
 	}
 
@@ -307,15 +312,13 @@ func (c *LLMProcessorConfig) Validate() error {
 
 	// Validate CORS configuration
 	if c.CORSEnabled {
-		if c.AllowedOrigins == "" {
+		if len(c.AllowedOrigins) == 0 {
 			errors = append(errors, "LLM_ALLOWED_ORIGINS must be configured when CORS is enabled")
 		} else {
-			// Parse and validate individual origins
-			origins := strings.Split(c.AllowedOrigins, ",")
+			// Validate individual origins
 			isProduction := os.Getenv("LLM_ENVIRONMENT") == "production"
 			
-			for _, origin := range origins {
-				origin = strings.TrimSpace(origin)
+			for _, origin := range c.AllowedOrigins {
 				if origin == "" {
 					continue
 				}
@@ -328,6 +331,11 @@ func (c *LLMProcessorConfig) Validate() error {
 				// Validate origin format
 				if origin != "*" && !strings.HasPrefix(origin, "http://") && !strings.HasPrefix(origin, "https://") {
 					errors = append(errors, fmt.Sprintf("origin '%s' must start with http:// or https://", origin))
+				}
+				
+				// Additional security checks
+				if strings.Contains(origin, "*") && origin != "*" {
+					errors = append(errors, fmt.Sprintf("origin '%s' contains wildcard but is not exact wildcard '*'", origin))
 				}
 			}
 		}
@@ -552,6 +560,11 @@ func validateOrigin(origin string, isProduction bool) error {
 		return fmt.Errorf("origin must start with http:// or https://")
 	}
 
+	// Check for partial wildcards (not allowed)
+	if strings.Contains(origin, "*") && origin != "*" {
+		return fmt.Errorf("origin contains wildcard but is not exact wildcard '*'")
+	}
+
 	// Check for spaces or other invalid characters
 	if strings.ContainsAny(origin, " \t\n\r") {
 		return fmt.Errorf("origin contains invalid whitespace characters")
@@ -563,6 +576,23 @@ func validateOrigin(origin string, isProduction bool) error {
 	}
 
 	return nil
+}
+
+// isDevelopmentEnvironment determines if we're running in development mode
+func isDevelopmentEnvironment() bool {
+	envVars := []string{"GO_ENV", "NODE_ENV", "ENVIRONMENT", "ENV", "APP_ENV", "LLM_ENVIRONMENT"}
+	
+	for _, envVar := range envVars {
+		value := strings.ToLower(os.Getenv(envVar))
+		switch value {
+		case "development", "dev", "local", "test", "testing":
+			return true
+		case "production", "prod", "staging", "stage":
+			return false
+		}
+	}
+	
+	return false // Default to production for security
 }
 
 func validateTLSFiles(certPath, keyPath string) error {

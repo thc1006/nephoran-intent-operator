@@ -155,7 +155,7 @@ jobs:
       - name: Setup Test Environment
         run: |
           setup-envtest use 1.29.0 --bin-dir ~/.local/bin
-          echo "KUBEBUILDER_ASSETS=$(setup-envtest use 1.29.0 --bin-dir ~/.local/bin -p path)" >> $GITHUB_ENV
+          echo "KUBEBUILDER_ASSETS=~/.local/bin" >> $GITHUB_ENV
           # Set optimal configuration for envtest
           echo "USE_EXISTING_CLUSTER=false" >> $GITHUB_ENV
           echo "ENVTEST_K8S_VERSION=1.29.0" >> $GITHUB_ENV
@@ -324,7 +324,7 @@ jobs:
       - name: Install Security Tools
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
 
       - name: Run Vulnerability Check
         run: |

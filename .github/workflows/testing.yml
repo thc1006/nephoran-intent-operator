@@ -35,7 +35,7 @@ on:
 env:
   GO_VERSION: '1.24'
   PYTHON_VERSION: '3.11'
-  KUBERNETES_VERSION: 'v1.29.0'
+  KUBERNETES_VERSION: '1.29.0'
   COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '95' }}
   GOPROXY: https://proxy.golang.org,direct
   GOSUMDB: sum.golang.org
@@ -75,7 +75,7 @@ jobs:
           echo "python-cache-key=python-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements-rag.txt') }}" >> $GITHUB_OUTPUT
 
       - name: Cache Go Dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -85,7 +85,7 @@ jobs:
             go-${{ env.GO_VERSION }}-
 
       - name: Cache Python Dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ steps.cache-keys.outputs.python-cache-key }}
@@ -113,9 +113,7 @@ jobs:
           pip install pytest pytest-cov pytest-benchmark pytest-xdist
           
           # Kubernetes testing tools
-          curl -Lo envtest-setup.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.21.0/hack/setup-envtest.sh
-          chmod +x envtest-setup.sh
-          sudo ./envtest-setup.sh ${{ env.KUBERNETES_VERSION }}
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
       - name: Validate Project Structure
         run: |
@@ -192,7 +190,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Restore Go Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -202,7 +200,7 @@ jobs:
       - name: Install Analysis Tools
         run: |
           go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-          go install github.com/securecodewarrior/govulncheck@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
           go install honnef.co/go/tools/cmd/staticcheck@latest
 
       - name: Run Go Linting
@@ -267,7 +265,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Restore Go Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -277,8 +275,8 @@ jobs:
       - name: Setup Test Environment
         run: |
           # Setup envtest for Kubernetes testing
-          export KUBEBUILDER_ASSETS=$(setup-envtest use ${{ env.KUBERNETES_VERSION }} -p path)
-          echo "KUBEBUILDER_ASSETS=$KUBEBUILDER_ASSETS" >> $GITHUB_ENV
+          setup-envtest use ${{ env.KUBERNETES_VERSION }} --bin-dir /tmp/k8s
+          echo "KUBEBUILDER_ASSETS=/tmp/k8s" >> $GITHUB_ENV
 
       - name: Run Unit Tests with Coverage
         run: |
@@ -294,7 +292,7 @@ jobs:
             ${{ matrix.package }}
 
       - name: Upload Coverage Data
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-data
           path: coverage/
@@ -332,7 +330,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Restore Caches
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -421,12 +419,12 @@ jobs:
         env:
           WEAVIATE_URL: "http://weaviate-test:8080"
           REDIS_URL: "redis://localhost:6379"
-          KUBEBUILDER_ASSETS: /tmp/k8s/current
+          KUBEBUILDER_ASSETS: /tmp/k8s
         run: |
           echo "=== Running Integration Tests ==="
           
           # Setup kubebuilder assets
-          setup-envtest use ${{ env.KUBERNETES_VERSION }} --bin-dir /tmp/k8s/current
+          setup-envtest use ${{ env.KUBERNETES_VERSION }} --bin-dir /tmp/k8s
           
           # Run integration tests
           go run github.com/onsi/ginkgo/v2/ginkgo -v -trace -race \
@@ -436,7 +434,7 @@ jobs:
             ./testing/unit/...
 
       - name: Upload Test Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: integration-test-results
@@ -461,7 +459,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Restore Go Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -527,7 +525,7 @@ jobs:
           fi
 
       - name: Upload Performance Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: performance-test-results
@@ -560,7 +558,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Restore Go Cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
@@ -598,7 +596,7 @@ jobs:
             ./testing/chaos/...
 
       - name: Upload Chaos Test Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: chaos-test-results
@@ -636,7 +634,7 @@ jobs:
           echo "=== Running Security Linting ==="
           
           # Install gosec
-          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
           
           # Run security analysis
           gosec -fmt=json -out=security-report.json ./...
@@ -664,7 +662,7 @@ jobs:
           done
 
       - name: Upload Security Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: security-test-results
@@ -690,7 +688,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
 
       - name: Download Coverage Data
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: coverage-data
           path: coverage/
@@ -731,7 +729,7 @@ jobs:
           fi
 
       - name: Upload Coverage Reports
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-reports
           path: |
@@ -760,7 +758,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Download All Test Results
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           path: test-results/
 
@@ -801,7 +799,7 @@ jobs:
           EOF
 
       - name: Upload Test Summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-summary
           path: test-summary.md

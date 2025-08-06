@@ -50,7 +50,7 @@ jobs:
         setup-envtest use 1.29.0
 
     - name: Cache Go modules
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cache/go-build
@@ -90,7 +90,8 @@ jobs:
 
     - name: Run integration tests
       run: |
-        export KUBEBUILDER_ASSETS=$(setup-envtest use 1.29.0 -p path)
+        setup-envtest use 1.29.0 --bin-dir /tmp/k8s
+        export KUBEBUILDER_ASSETS=/tmp/k8s
         go test -v -race -coverprofile=coverage/integration.out -covermode=atomic ./tests/integration/... || echo "Integration tests completed with some failures"
       env:
         WEAVIATE_URL: http://localhost:8080
@@ -129,7 +130,7 @@ jobs:
         fail_ci_if_error: false
 
     - name: Upload coverage artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: coverage-reports
@@ -229,7 +230,7 @@ jobs:
         make build-all
         
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: binaries
         path: bin/
