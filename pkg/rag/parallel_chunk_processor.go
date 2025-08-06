@@ -532,3 +532,37 @@ func (b *WorkStealingBalancer) SelectWorker(workers []*ChunkWorker, task *ChunkT
 func (b *WorkStealingBalancer) UpdateStats(workerID int, duration time.Duration, success bool) {
 	// Work stealing uses queue sizes, not duration stats
 }
+
+// ProcessDocumentChunks processes chunks for a loaded document
+func (pcp *ParallelChunkProcessor) ProcessDocumentChunks(ctx context.Context, doc *LoadedDocument) ([]*DocumentChunk, error) {
+	// Convert document to chunks (simplified implementation)
+	chunkSize := 1000 // Default chunk size
+	content := doc.Content
+	var chunks []*DocumentChunk
+	
+	for i := 0; i < len(content); i += chunkSize {
+		end := i + chunkSize
+		if end > len(content) {
+			end = len(content)
+		}
+		
+		chunk := &DocumentChunk{
+			ID:       fmt.Sprintf("%s-chunk-%d", doc.ID, i/chunkSize),
+			Text:     content[i:end],
+			Source:   doc.SourcePath,
+			Metadata: doc.Metadata,
+		}
+		chunks = append(chunks, chunk)
+	}
+	
+	return chunks, nil
+}
+
+// GetMetrics returns processor metrics
+func (pcp *ParallelChunkProcessor) GetMetrics() interface{} {
+	return map[string]interface{}{
+		"processed_chunks": pcp.metrics.ProcessedChunks,
+		"failed_chunks":   pcp.metrics.FailedChunks,
+		"active_workers":  pcp.workerPool.activeWorkers,
+	}
+}

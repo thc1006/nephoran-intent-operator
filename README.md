@@ -1,85 +1,76 @@
 # Nephoran Intent Operator
 
-**Experimental Proof-of-Concept for Intent-Driven Network Operations**
+**Project Status: Development/Proof of Concept**
 
-The Nephoran Intent Operator is an experimental proof-of-concept that explores the integration of Large Language Models (LLMs) with Kubernetes operators for network function orchestration. This project investigates the potential of translating natural language intents into Kubernetes configurations for O-RAN compliant network functions.
+The Nephoran Intent Operator is a research and development project exploring how Large Language Models (LLMs) can be integrated with Kubernetes controllers to translate natural language network operation intents into infrastructure deployments. This is experimental software designed to investigate the feasibility of AI-driven network orchestration concepts.
 
-## Project Status
+## Current Reality
 
-**Current Stage: Development/Proof-of-Concept**
+**This is NOT production-ready software.** It's an educational and research project with basic proof-of-concept implementations.
 
-- **Experimental**: This is research and development work, not a production system
-- **Early Stage**: Basic intent processing capabilities with simple LLM integration
-- **O-RAN Exploration**: Early-stage implementations of O-RAN interface concepts
-- **GitOps Integration**: Experimental integration with Nephio package management
+### What Actually Exists and Works
+- **Basic Kubernetes Controllers**: Simple controllers that manage custom resources (NetworkIntent, E2NodeSet)
+- **LLM API Integration**: Experimental OpenAI API calls to process natural language text
+- **Simple RAG API**: Basic Python Flask service for document retrieval (very basic implementation)
+- **Kubernetes CRDs**: Custom Resource Definitions for NetworkIntent and E2NodeSet resources
+- **Docker Containerization**: Basic containerized deployment setup
 
-## What Actually Works
+### Current Capabilities (Limited)
+- Accept natural language intents through Kubernetes resources
+- Call OpenAI API to process intent text
+- Create and manage ConfigMaps to simulate E2 node deployments
+- Basic HTTP health check endpoints
+- Simple logging and basic metrics
 
-### Core Components
-- **NetworkIntent Controller**: Basic Kubernetes controller that processes custom resources
-- **E2NodeSet Controller**: Simple replica management for simulated E2 nodes (using ConfigMaps)
-- **LLM Processor Service**: Experimental service that calls OpenAI API for intent translation
-- **RAG API**: Basic Flask API for document retrieval (proof-of-concept)
+### Major Limitations
+- **No Real Network Function Deployment**: Despite extensive documentation, no actual 5G/O-RAN network functions are deployed
+- **No Production Security**: Basic authentication at best, not enterprise-ready
+- **No Real O-RAN Compliance**: Simulated interfaces only, not standards-compliant
+- **No Advanced AI/ML**: Simple API calls to OpenAI, no sophisticated RAG or optimization
+- **No High Availability**: Single-instance deployments with basic error handling
+- **No Performance Optimization**: No benchmarking, scaling, or performance tuning
+- **Extensive Documentation for Minimal Code**: Documentation far exceeds actual implementation
 
-### Basic Functionality
-- Create NetworkIntent resources with natural language text
-- Simple LLM processing to extract basic parameters
-- E2NodeSet scaling through Kubernetes controllers
-- Basic health checks and monitoring endpoints
+## Quick Start for Developers
 
-## What's Planned vs Reality
-
-### Planned Features (Not Yet Implemented)
-- Production-ready enterprise deployment
-- Advanced ML optimization engines
-- Complete O-RAN interface implementations
-- High-availability architecture
-- Comprehensive security frameworks
-
-### Limitations
-- No production-ready security implementation
-- Limited error handling and resilience
-- Basic LLM integration without advanced RAG
-- Experimental O-RAN interfaces (not fully compliant)
-- No performance guarantees or SLA targets
-
-## Quick Start (Development)
+**Warning**: This is experimental software. Only attempt if you want to explore concepts or contribute to development.
 
 ### Prerequisites
 - Go 1.23+
-- Docker and Kubernetes (kind or minikube)
-- OpenAI API key
-- Python 3.8+ (for RAG components)
+- Docker and Kubernetes cluster (kind, minikube, or similar)
+- OpenAI API key (required for LLM integration)
+- Python 3.8+ (for basic RAG API)
 
-### Basic Setup
+### Simple Local Setup
 
-1. **Clone and setup environment**:
+1. **Clone and basic setup**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/your-repo/nephoran-intent-operator
    cd nephoran-intent-operator
    
-   # Set OpenAI API key
-   export OPENAI_API_KEY="sk-your-api-key-here"
+   # Required: Set OpenAI API key
+   export OPENAI_API_KEY="sk-your-actual-openai-key"
    ```
 
-2. **Build components**:
+2. **Build core components** (what actually exists):
    ```bash
-   # Build all services
-   make build-all
+   # Build the Go services
+   make build
    
-   # Build Docker images
+   # Build basic Docker images
    make docker-build
    ```
 
-3. **Deploy locally**:
+3. **Deploy to local cluster**:
    ```bash
-   # Deploy to local Kubernetes cluster
-   ./deploy.sh local
+   # Install CRDs and basic controllers
+   kubectl apply -f deployments/crds/
+   kubectl apply -f deployments/kubernetes/
    ```
 
-4. **Test basic functionality**:
+4. **Test basic functionality** (limited):
    ```bash
-   # Create a simple intent
+   # Create a test NetworkIntent resource
    kubectl apply -f - <<EOF
    apiVersion: nephoran.com/v1alpha1
    kind: NetworkIntent
@@ -87,152 +78,181 @@ The Nephoran Intent Operator is an experimental proof-of-concept that explores t
      name: test-intent
      namespace: default
    spec:
-     intent: "Deploy a simple AMF instance"
+     intent: "Create a test deployment"
    EOF
    
-   # Check status
+   # Check if controller processes it
    kubectl get networkintents
-   kubectl describe networkintent test-intent
+   kubectl logs deployment/nephio-bridge
    ```
 
-## Development Environment
+## What You Can Actually Do
 
-### Build System
+### Experiment With
+- **Basic Intent Processing**: Submit natural language text and see OpenAI API responses
+- **Kubernetes Controller Patterns**: Study how custom controllers work
+- **CRD Management**: Create and modify custom resources
+- **Simple RAG Concepts**: Basic document retrieval experiments
+
+### Development Tasks
 ```bash
-# Build all components
-make build-all
+# Run unit tests (basic coverage)
+go test ./pkg/controllers/...
 
-# Run tests
-make test
+# Build individual components
+go build -o bin/llm-processor ./cmd/llm-processor
+go build -o bin/nephio-bridge ./cmd/nephio-bridge
 
-# Check code quality
-make lint
-
-# Clean artifacts
-make clean
-```
-
-### Component Development
-```bash
-# Build individual services
-make build-llm-processor    # LLM processing service
-make build-nephio-bridge    # Main controller
-make build-oran-adaptor     # O-RAN interface adapters
-make build-rag-api         # Document retrieval API
-```
-
-### Testing
-```bash
-# Run unit tests
-go test ./...
-
-# Validate CRDs
-kubectl apply --dry-run=client -f config/crd/bases/
-
-# Check pod health
-kubectl get pods -l app.kubernetes.io/part-of=nephoran
-```
-
-## Architecture Overview
-
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   NetworkIntent │    │  LLM Processor   │    │   RAG API       │
-│   Custom Resource│───▶│  Service         │───▶│   (Flask)       │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │
-                                ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   Nephio Bridge │    │   E2NodeSet      │    │   ConfigMaps    │
-│   Controller    │    │   Controller     │───▶│   (Simulation)  │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
-
-The system processes natural language intents through a simple pipeline:
-1. User creates NetworkIntent resource
-2. Controller calls LLM Processor service  
-3. LLM translates intent to basic parameters
-4. Controllers create Kubernetes resources
-5. Basic monitoring through health endpoints
-
-## Monitoring and Debugging
-
-```bash
-# Check component logs
-kubectl logs deployment/llm-processor
-kubectl logs deployment/nephio-bridge
-kubectl logs deployment/rag-api
-
-# Health checks
+# Check basic functionality
 kubectl port-forward svc/llm-processor 8080:8080
 curl http://localhost:8080/healthz
-
-kubectl port-forward svc/rag-api 5001:5001
-curl http://localhost:5001/healthz
-
-# Check resources
-kubectl get networkintents
-kubectl get e2nodesets
-kubectl get configmaps -l e2nodeset
 ```
 
-## Configuration
-
-### Environment Variables
+### Realistic Debugging
 ```bash
-# Required
-export OPENAI_API_KEY="sk-your-key"
+# Check if pods are running
+kubectl get pods
 
-# Optional
-export LOG_LEVEL="debug"
-export ENABLE_RAG="true"
-export RAG_ENDPOINT="http://rag-api:5001"
+# View controller logs
+kubectl logs deployment/nephio-bridge
+kubectl logs deployment/llm-processor
+
+# Check resource status
+kubectl get networkintents -o yaml
+kubectl get e2nodesets -o yaml
 ```
 
-### Kubernetes Configuration
-Basic authentication and CORS can be configured through environment variables or ConfigMaps (see deployment manifests).
+## Actual Architecture (Simplified)
 
-## Contributing
+```
+User Input
+    │
+    ▼
+┌─────────────────────┐    HTTP Call    ┌─────────────────────┐
+│  NetworkIntent      │──────────────▶ │  LLM Processor      │
+│  Kubernetes CRD     │                │  (OpenAI API calls) │
+└─────────────────────┘                └─────────────────────┘
+    │                                           │
+    │ Controller                               │ Response
+    │ Watches                                   │
+    ▼                                          ▼
+┌─────────────────────┐                ┌─────────────────────┐
+│  Nephio Bridge      │                │  Basic RAG API      │
+│  Controller         │                │  (Flask/Python)     │
+└─────────────────────┘                └─────────────────────┘
+    │
+    │ Creates
+    ▼
+┌─────────────────────┐
+│  ConfigMaps         │
+│  (Simulates nodes)  │
+└─────────────────────┘
+```
 
-This is an experimental project exploring new concepts. Contributions are welcome, but please understand this is research-stage work:
+**What Actually Happens**:
+1. User creates NetworkIntent with natural language text
+2. Kubernetes controller detects the resource
+3. Controller makes HTTP call to LLM Processor service
+4. LLM Processor calls OpenAI API to process text
+5. Simple response is returned (basic parameter extraction)
+6. Controller creates ConfigMaps to simulate deployments
+7. Status is updated in the NetworkIntent resource
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with tests
-4. Submit a pull request
+**That's it.** No actual network functions are deployed.
 
-## Known Issues
+## Basic Configuration
 
-- Limited error handling in LLM processing
-- Basic retry logic without circuit breakers  
-- Simple health checks without comprehensive monitoring
-- Experimental O-RAN interfaces (not production-ready)
-- No security hardening for production use
+### Required Environment Variables
+```bash
+# Only this is actually required
+export OPENAI_API_KEY="sk-your-openai-key"
 
-## Roadmap
+# Optional debugging
+export LOG_LEVEL="debug"
+```
 
-**Near-term**:
-- Improve error handling and resilience
-- Add more comprehensive testing
-- Better documentation of actual capabilities
-- Enhanced LLM prompt engineering
+### Simple Kubernetes Setup
+Most of the complex configurations in the `/deployments` directory are aspirational. For basic functionality:
 
-**Medium-term**:
-- Production security implementation
-- Real O-RAN interface compliance
+```bash
+# Apply CRDs
+kubectl apply -f deployments/crds/nephoran.com_networkintents.yaml
+kubectl apply -f deployments/crds/nephoran.com_e2nodesets.yaml
+
+# Deploy basic controllers (if they work)
+kubectl apply -f deployments/kubernetes/nephio-bridge-deployment.yaml
+```
+
+## Contributing to Development
+
+This is an experimental research project. Contributions are welcome if you're interested in:
+- Kubernetes controller development patterns
+- LLM integration with infrastructure systems
+- O-RAN/5G concepts and simulations
+- Educational projects in cloud-native networking
+
+### How to Contribute
+1. **Understand the scope**: This is proof-of-concept work, not production software
+2. **Check existing issues**: Look for areas that need actual implementation
+3. **Start small**: Focus on basic functionality improvements
+4. **Test your changes**: Run `go test ./...` and validate with local Kubernetes
+5. **Document honestly**: Don't inflate capabilities in documentation
+
+### Realistic Development Areas
+- Improve error handling in controllers
+- Add more comprehensive unit tests
+- Better LLM prompt engineering for intent parsing
+- Enhanced documentation of actual vs. planned features
+- Bug fixes in existing basic functionality
+
+## Current Issues (Honest Assessment)
+
+### Technical Debt
+- **Over-engineered documentation** with minimal implementation
+- **Complex deployment configurations** for simple functionality
+- **Many placeholder components** that don't work
+- **Inconsistent error handling** across services
+- **No production readiness** despite extensive production documentation
+
+### What Needs Work
+- The RAG API is very basic and may not work reliably
+- LLM integration has minimal error handling
+- O-RAN interfaces are mostly stubs and simulations
+- No real security implementation
+- Most "enterprise features" are documentation-only
+
+## Development Roadmap (Realistic)
+
+### Phase 1: Make Basic Features Reliable
+- Fix any broken controller logic
+- Improve error handling and logging
+- Add proper unit tests for core functionality
+- Document what actually works vs. what's planned
+
+### Phase 2: Expand Core Functionality  
+- Implement more sophisticated intent parsing
+- Add basic security hardening
+- Create working examples of common use cases
+- Improve documentation accuracy
+
+### Phase 3: Add Production Features (If Needed)
+- Real authentication and authorization
+- Actual network function integration
 - Performance optimization
-- Multi-cluster deployment support
+- Standards compliance
 
-**Long-term**:
-- Complete enterprise feature set
-- Advanced ML optimization
-- Full O-RAN ecosystem integration
-- Production deployment guides
+## Important Disclaimers
+
+- **Not Production Ready**: This is experimental research code
+- **Educational Purpose**: Best used for learning about Kubernetes operators and LLM integration
+- **Limited Scope**: Despite extensive documentation, actual capabilities are basic
+- **No Support**: This is a development project without production support
+- **No Warranty**: Use at your own risk for educational/research purposes only
 
 ## License
 
-This project is experimental and provided as-is for research and development purposes.
+This project is experimental and provided as-is for educational and research purposes.
 
 ---
 
-**Disclaimer**: This is experimental software not intended for production use. The project explores concepts in intent-driven network operations and LLM integration with Kubernetes.
+**Final Note**: This project demonstrates concepts in AI-driven infrastructure orchestration but should not be used in production environments. The extensive documentation serves as a design exploration rather than current implementation status.

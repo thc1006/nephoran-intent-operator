@@ -2182,6 +2182,139 @@ func (dl *DocumentLoader) calculateProcessingConfidence(content string, pageCoun
 	return confidence
 }
 
+// LoadDocument loads a single document from the given path
+func (dl *DocumentLoader) LoadDocument(ctx context.Context, docPath string) (*LoadedDocument, error) {
+	fileInfo, err := os.Stat(docPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat document: %w", err)
+	}
+
+	// Check file size
+	if dl.config.MaxFileSize > 0 && fileInfo.Size() > dl.config.MaxFileSize {
+		return nil, fmt.Errorf("file size %d exceeds maximum %d", fileInfo.Size(), dl.config.MaxFileSize)
+	}
+
+	// Generate document ID
+	docID := generateDocumentID(docPath)
+
+	// Check cache first
+	dl.cacheMutex.RLock()
+	if cached, exists := dl.cache[docID]; exists {
+		dl.cacheMutex.RUnlock()
+		dl.metrics.CacheHits++
+		return cached, nil
+	}
+	dl.cacheMutex.RUnlock()
+	dl.metrics.CacheMisses++
+
+	startTime := time.Now()
+
+	// Process document based on file type
+	var content, rawContent string
+	var metadata *DocumentMetadata
+	
+	ext := strings.ToLower(filepath.Ext(docPath))
+	switch ext {
+	case ".pdf":
+		content, rawContent, metadata, err = dl.processPDFFile(ctx, docPath)
+	case ".txt", ".md":
+		content, rawContent, metadata, err = dl.processTextFile(ctx, docPath)
+	default:
+		content, rawContent, metadata, err = dl.processTextFile(ctx, docPath)
+	}
+
+	if err != nil {
+		dl.metrics.FailedLoads++
+		return nil, fmt.Errorf("failed to process document: %w", err)
+	}
+
+	// Create loaded document
+	doc := &LoadedDocument{
+		ID:             docID,
+		SourcePath:     docPath,
+		Filename:       filepath.Base(docPath),
+		Title:          extractTitle(content),
+		Content:        content,
+		RawContent:     rawContent,
+		Metadata:       metadata,
+		LoadedAt:       time.Now(),
+		ProcessingTime: time.Since(startTime),
+		Hash:           fmt.Sprintf("%x", md5.Sum([]byte(content))),
+		Size:           fileInfo.Size(),
+		Language:       detectLanguage(content),
+	}
+
+	// Cache the document
+	dl.cacheMutex.Lock()
+	dl.cache[docID] = doc
+	dl.cacheMutex.Unlock()
+
+	dl.metrics.SuccessfulLoads++
+	dl.metrics.TotalDocuments++
+	dl.metrics.LastProcessedAt = time.Now()
+
+	return doc, nil
+}
+
+// processPDFFile processes PDF files
+func (dl *DocumentLoader) processPDFFile(ctx context.Context, filePath string) (string, string, *DocumentMetadata, error) {
+	// Check if file size exceeds streaming threshold
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		return "", "", nil, fmt.Errorf("failed to stat PDF file: %w", err)
+	}
+
+	if dl.config.StreamingEnabled && fileInfo.Size() > dl.config.StreamingThreshold {
+		return dl.processPDFStreamingAdvanced(ctx, filePath, fileInfo.Size())
+	}
+
+	// Use hybrid approach for regular PDFs
+	return dl.processPDFHybrid(ctx, filePath)
+}
+
+// processTextFile processes plain text and markdown files
+func (dl *DocumentLoader) processTextFile(ctx context.Context, filePath string) (string, string, *DocumentMetadata, error) {
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", "", nil, fmt.Errorf("failed to read text file: %w", err)
+	}
+
+	textContent := string(content)
+	metadata := dl.extractTelecomMetadata(textContent, filepath.Base(filePath))
+	
+	return textContent, textContent, metadata, nil
+}
+
+// extractTitle extracts title from document content
+func extractTitle(content string) string {
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if len(line) > 0 && !strings.HasPrefix(line, "#") {
+			if len(line) > 100 {
+				return line[:100] + "..."
+			}
+			return line
+		}
+	}
+	return "Untitled Document"
+}
+
+// detectLanguage detects the language of document content
+func detectLanguage(content string) string {
+	// Simple heuristic - could be enhanced with proper language detection
+	if strings.Contains(strings.ToLower(content), "technical specification") ||
+		strings.Contains(strings.ToLower(content), "3gpp") {
+		return "en"
+	}
+	return "unknown"
+}
+
+// generateDocumentID generates a unique ID for a document
+func generateDocumentID(path string) string {
+	return fmt.Sprintf("%x", md5.Sum([]byte(path)))
+}
+
 // PDFInfo holds basic PDF information
 type PDFInfo struct {
 	PageCount int

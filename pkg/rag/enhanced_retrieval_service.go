@@ -578,24 +578,13 @@ func (ers *EnhancedRetrievalService) calculateQualityScore(result *SearchResult)
 
 // calculateFreshnessScore calculates a freshness score based on document age
 func (ers *EnhancedRetrievalService) calculateFreshnessScore(result *SearchResult) float32 {
-	if result.Document == nil || result.Document.Timestamp.IsZero() {
+	if result.Document == nil {
 		return 0.5 // Neutral score for documents without timestamp
 	}
 
-	age := time.Since(result.Document.Timestamp)
-	
-	// Fresher documents get higher scores
-	if age < 30*24*time.Hour { // Less than 30 days
-		return 1.0
-	} else if age < 90*24*time.Hour { // Less than 90 days
-		return 0.8
-	} else if age < 365*24*time.Hour { // Less than 1 year
-		return 0.6
-	} else if age < 2*365*24*time.Hour { // Less than 2 years
-		return 0.4
-	} else {
-		return 0.2
-	}
+	// Since Timestamp field is not available in TelecomDocument, use a neutral score
+	// In a full implementation, could check document version or other metadata for freshness
+	return 0.5
 }
 
 // calculateAuthorityScore calculates an authority score based on source

@@ -458,7 +458,6 @@ func (eh *ErrorHandler) getErrorCode(err error) ErrorCode {
 	}
 
 	// Pattern matching for common error types
-	errStr := err.Error()
 	switch {
 	case isTimeoutError(err):
 		return ErrorCodeConnectionTimeout

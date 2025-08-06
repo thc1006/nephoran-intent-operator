@@ -188,11 +188,8 @@ func (ers *EnhancedRAGService) IngestDocument(ctx context.Context, docPath strin
 		Size:       fileInfo.Size(),
 		LoadedAt:   time.Now(),
 		Metadata: &DocumentMetadata{
-			FileName:     filepath.Base(docPath),
-			FileType:     detectFileType(docPath),
-			FileSize:     fileInfo.Size(),
-			LastModified: fileInfo.ModTime(),
-			Custom:       metadata,
+			Source:      "local",
+			Custom:      metadata,
 		},
 	}
 	
@@ -624,10 +621,7 @@ func (ers *EnhancedRAGService) metricsCollector() {
 
 // Helper functions
 
-func generateDocumentID(path string) string {
-	// Generate a unique ID based on file path and timestamp
-	return fmt.Sprintf("%s_%d", filepath.Base(path), time.Now().UnixNano())
-}
+// generateDocumentID is now defined in document_loader.go
 
 func detectFileType(path string) string {
 	ext := strings.ToLower(filepath.Ext(path))
