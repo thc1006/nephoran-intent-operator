@@ -1,0 +1,353 @@
+# Production ConfigMaps for Nephoran Intent Operator
+{{- if .Values.nephoranOperator.enabled }}
+---
+# ConfigMap for main controller
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-config
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+data:
+  # Controller configuration
+  controller.yaml: |
+    apiVersion: v1
+    kind: Config
+    metadata:
+      name: controller-config
+    leaderElection:
+      enabled: {{ .Values.nephoranOperator.leaderElection.enabled }}
+      leaseDuration: {{ .Values.nephoranOperator.leaderElection.leaseDuration }}
+      renewDeadline: {{ .Values.nephoranOperator.leaderElection.renewDeadline }}
+      retryPeriod: {{ .Values.nephoranOperator.leaderElection.retryPeriod }}
+    webhook:
+      port: {{ .Values.nephoranOperator.service.targetPort }}
+      certDir: /tmp/k8s-webhook-server/serving-certs
+    metrics:
+      bindAddress: :8080
+    health:
+      bindAddress: :8081
+    concurrent:
+      reconcilers: 10
+  
+  # Logging configuration
+  logging.yaml: |
+    apiVersion: v1
+    kind: Config
+    logging:
+      development: false
+      level: info
+      encoder: json
+      sampling:
+        initial: 100
+        thereafter: 100
+      outputPaths:
+        - stdout
+      errorOutputPaths:
+        - stderr
+{{- end }}
+
+{{- if .Values.nephioBridge.enabled }}
+---
+# ConfigMap for Nephio Bridge
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-nephio-config
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nephio-bridge
+data:
+  # Nephio configuration
+  nephio.yaml: |
+    apiVersion: v1
+    kind: Config
+    porch:
+      serverUrl: http://porch-server.porch-system.svc.cluster.local:7007
+      functionRunnerUrl: http://function-runner.porch-system.svc.cluster.local:9445
+    git:
+      repoUrl: https://github.com/thc1006/nephoran-deployment-repo.git
+      branch: main
+      syncInterval: 30s
+    packageOrchestration:
+      namespace: porch-system
+      revisionStrategy: semantic
+      enableValidation: true
+      enablePolicyEnforcement: true
+    retry:
+      maxAttempts: 3
+      initialBackoff: 1s
+      maxBackoff: 30s
+    circuitBreaker:
+      enabled: true
+      threshold: 5
+      timeout: 60s
+  
+  # Package templates
+  package-templates.yaml: |
+    apiVersion: v1
+    kind: Config
+    templates:
+      amf:
+        name: "amf-blueprint"
+        version: "v1.0.0"
+        repository: "catalog"
+      smf:
+        name: "smf-blueprint"
+        version: "v1.0.0"
+        repository: "catalog"
+      upf:
+        name: "upf-blueprint"
+        version: "v1.0.0"
+        repository: "catalog"
+      nssf:
+        name: "nssf-blueprint"
+        version: "v1.0.0"
+        repository: "catalog"
+{{- end }}
+
+{{- if .Values.oranAdaptor.enabled }}
+---
+# ConfigMap for O-RAN Adaptor
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-oran-config
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: oran-adaptor
+data:
+  # O-RAN interface configuration
+  oran-interfaces.yaml: |
+    apiVersion: v1
+    kind: Config
+    interfaces:
+      a1:
+        enabled: true
+        endpoint: http://near-rt-ric.oran.svc.cluster.local:9080
+        version: "v2.1.0"
+        timeout: 30s
+        retryPolicy:
+          maxAttempts: 3
+          backoff: exponential
+      o1:
+        enabled: true
+        netconfPort: 830
+        version: "1.0"
+        timeout: 60s
+        credentials:
+          usernameSecret: o1-credentials
+          passwordSecret: o1-credentials
+      o2:
+        enabled: true
+        endpoint: http://cloud-orchestrator.oran.svc.cluster.local:8080
+        version: "1.0"
+        timeout: 120s
+      e2:
+        enabled: true
+        terminationEndpoint: http://e2-termination.oran.svc.cluster.local:38000
+        version: "v2.0"
+        timeout: 30s
+    
+    # Network function management
+    networkFunctions:
+      lifecycle:
+        timeout: 300s
+        enableAutoRecovery: true
+      scaling:
+        enabled: true
+        strategy: horizontal
+      monitoring:
+        kpiCollectionInterval: 30s
+        enableAlarmManagement: true
+        enableFaultManagement: true
+    
+    # Policy management
+    policy:
+      enforcement:
+        enabled: true
+        mode: strict
+      validation:
+        enabled: true
+        schema: oran-policy-schema-v1
+      conflictResolution: latest-wins
+{{- end }}
+
+{{- if .Values.ragApi.enabled }}
+---
+# ConfigMap for RAG API
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-rag-config
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rag-api
+data:
+  # RAG configuration
+  rag.yaml: |
+    apiVersion: v1
+    kind: Config
+    weaviate:
+      url: http://{{ include "nephoran-operator.fullname" . }}-weaviate:{{ .Values.weaviate.service.port }}
+      grpcUrl: {{ include "nephoran-operator.fullname" . }}-weaviate:{{ .Values.weaviate.service.grpcPort }}
+      timeout: 30s
+      maxConnections: 20
+      retries: 3
+    
+    embedding:
+      provider: openai
+      model: text-embedding-3-large
+      dimensions: 1536
+      batchSize: 100
+      cacheSize: 1000
+    
+    retrieval:
+      maxResults: 10
+      minScore: 0.7
+      enableHybridSearch: true
+      enableReranking: true
+    
+    processing:
+      maxConcurrentRequests: 50
+      requestTimeout: 120s
+      cacheEnabled: true
+      cacheTTL: 300s
+  
+  # Schema configuration for telecommunications knowledge
+  schema.yaml: |
+    apiVersion: v1
+    kind: Config
+    classes:
+      - name: TelcoDocument
+        description: Telecommunications technical documentation
+        vectorizer: text2vec-openai
+        properties:
+          - name: title
+            dataType: ["text"]
+          - name: content
+            dataType: ["text"]
+          - name: source
+            dataType: ["text"]
+          - name: document_type
+            dataType: ["text"]
+          - name: technical_domain
+            dataType: ["text"]
+          - name: specification_version
+            dataType: ["text"]
+          - name: last_updated
+            dataType: ["date"]
+      
+      - name: TelcoSpec
+        description: Telecommunications specifications and standards
+        vectorizer: text2vec-openai
+        properties:
+          - name: spec_id
+            dataType: ["text"]
+          - name: title
+            dataType: ["text"]
+          - name: organization
+            dataType: ["text"]
+          - name: version
+            dataType: ["text"]
+          - name: release_date
+            dataType: ["date"]
+          - name: content_summary
+            dataType: ["text"]
+          - name: technical_category
+            dataType: ["text"]
+{{- end }}
+
+{{- if .Values.monitoring.enabled }}
+---
+# ConfigMap for monitoring configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-monitoring-config
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+data:
+  # Prometheus configuration
+  prometheus.yaml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    
+    scrape_configs:
+      - job_name: 'nephoran-operator-controller'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            action: replace
+            target_label: kubernetes_pod_name
+  
+  # Alerting rules
+  alerting-rules.yaml: |
+    groups:
+      - name: nephoran-operator
+        rules:
+          - alert: NephoranOperatorDown
+            expr: up{job=~"nephoran-operator-.*"} == 0
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Nephoran Operator component is down"
+              description: "{{ $labels.job }} has been down for more than 5 minutes"
+          
+          - alert: NephoranOperatorHighMemoryUsage
+            expr: container_memory_working_set_bytes{pod=~"nephoran-operator-.*"} / container_spec_memory_limit_bytes > 0.9
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High memory usage in Nephoran Operator"
+              description: "{{ $labels.pod }} is using more than 90% of its memory limit"
+          
+          - alert: NephoranOperatorHighCPUUsage
+            expr: rate(container_cpu_usage_seconds_total{pod=~"nephoran-operator-.*"}[5m]) / container_spec_cpu_quota * 100 > 80
+            for: 10m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High CPU usage in Nephoran Operator"
+              description: "{{ $labels.pod }} is using more than 80% of its CPU limit"
+          
+          - alert: WeaviateDatabaseDown
+            expr: up{job="nephoran-operator-weaviate"} == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Weaviate database is down"
+              description: "Weaviate database has been unreachable for more than 2 minutes"
+          
+          - alert: LLMProcessorHighLatency
+            expr: histogram_quantile(0.95, sum(rate(llm_processor_request_duration_seconds_bucket[5m])) by (le)) > 5
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High LLM Processor latency"
+              description: "95th percentile latency is above 5 seconds for LLM Processor"
+{{- end }}

@@ -1,0 +1,23 @@
+{{- if .Values.nephioBridge.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-nephio-bridge
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nephio-bridge
+spec:
+  type: {{ .Values.nephioBridge.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.nephioBridge.service.port }}
+      targetPort: {{ .Values.nephioBridge.service.targetPort }}
+      protocol: TCP
+    - name: metrics
+      port: 8082
+      targetPort: 8082
+      protocol: TCP
+  selector:
+    {{- include "nephoran-operator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: nephio-bridge
+{{- end }}

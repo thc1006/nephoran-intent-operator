@@ -1,0 +1,137 @@
+{{- if .Values.nephoranOperator.enabled }}
+---
+# PodDisruptionBudget for Nephoran Operator Controller
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-controller
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: controller
+{{- end }}
+
+{{- if .Values.llmProcessor.enabled and .Values.llmProcessor.podDisruptionBudget.enabled }}
+---
+# PodDisruptionBudget for LLM Processor
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-llm-processor
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: llm-processor
+spec:
+  {{- if .Values.llmProcessor.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.llmProcessor.podDisruptionBudget.minAvailable }}
+  {{- else if .Values.llmProcessor.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.llmProcessor.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: 2
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: llm-processor
+{{- end }}
+
+{{- if .Values.nephioBridge.enabled and .Values.nephioBridge.podDisruptionBudget.enabled }}
+---
+# PodDisruptionBudget for Nephio Bridge
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-nephio-bridge
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nephio-bridge
+spec:
+  {{- if .Values.nephioBridge.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.nephioBridge.podDisruptionBudget.minAvailable }}
+  {{- else if .Values.nephioBridge.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.nephioBridge.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: 1
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: nephio-bridge
+{{- end }}
+
+{{- if .Values.ragApi.enabled and .Values.ragApi.podDisruptionBudget.enabled }}
+---
+# PodDisruptionBudget for RAG API
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-rag-api
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rag-api
+spec:
+  {{- if .Values.ragApi.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.ragApi.podDisruptionBudget.minAvailable }}
+  {{- else if .Values.ragApi.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.ragApi.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: 1
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rag-api
+{{- end }}
+
+{{- if .Values.weaviate.enabled and .Values.weaviate.podDisruptionBudget.enabled }}
+---
+# PodDisruptionBudget for Weaviate
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-weaviate
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: weaviate
+spec:
+  {{- if .Values.weaviate.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.weaviate.podDisruptionBudget.minAvailable }}
+  {{- else if .Values.weaviate.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.weaviate.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: 2
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: weaviate
+{{- end }}
+
+{{- if .Values.oranAdaptor.enabled and .Values.oranAdaptor.podDisruptionBudget.enabled }}
+---
+# PodDisruptionBudget for O-RAN Adaptor
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-oran-adaptor
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: oran-adaptor
+spec:
+  {{- if .Values.oranAdaptor.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.oranAdaptor.podDisruptionBudget.minAvailable }}
+  {{- else if .Values.oranAdaptor.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.oranAdaptor.podDisruptionBudget.maxUnavailable }}
+  {{- else }}
+  minAvailable: 1
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: oran-adaptor
+{{- end }}

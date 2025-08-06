@@ -1,0 +1,228 @@
+{{- if .Values.weaviate.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-weaviate
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: weaviate
+  annotations:
+    nephoran.com/component: "weaviate"
+    nephoran.com/version: "{{ .Values.weaviate.image.tag }}"
+spec:
+  serviceName: {{ include "nephoran-operator.fullname" . }}-weaviate-headless
+  replicas: {{ .Values.weaviate.replicaCount }}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: weaviate
+  template:
+    metadata:
+      labels:
+        {{- include "nephoran-operator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: weaviate
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "nephoran-operator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.weaviate.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 60
+      initContainers:
+        - name: init-permissions
+          image: busybox:1.36
+          securityContext:
+            runAsUser: 0
+          command:
+            - /bin/sh
+            - -c
+            - |
+              # Create directories and set permissions
+              mkdir -p /var/lib/weaviate
+              chown -R 65534:65534 /var/lib/weaviate
+              chmod 755 /var/lib/weaviate
+          volumeMounts:
+            - name: weaviate-storage
+              mountPath: /var/lib/weaviate
+      containers:
+        - name: weaviate
+          image: "{{ .Values.weaviate.image.repository }}:{{ .Values.weaviate.image.tag }}"
+          imagePullPolicy: {{ .Values.weaviate.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.weaviate.service.targetPort }}
+              protocol: TCP
+            - name: grpc
+              containerPort: {{ .Values.weaviate.service.grpcTargetPort }}
+              protocol: TCP
+          env:
+            # Basic configuration
+            - name: QUERY_DEFAULTS_LIMIT
+              value: "{{ .Values.weaviate.config.query_defaults_limit }}"
+            - name: AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED
+              value: "{{ .Values.weaviate.config.authentication_anonymous_access_enabled }}"
+            - name: PERSISTENCE_DATA_PATH
+              value: "{{ .Values.weaviate.config.persistence_data_path }}"
+            - name: DEFAULT_VECTORIZER_MODULE
+              value: "none"
+            - name: ENABLE_MODULES
+              value: "text2vec-openai,text2vec-huggingface,qna-openai,generative-openai,ref2vec-centroid"
+            
+            # Cluster configuration
+            - name: CLUSTER_HOSTNAME
+              value: "{{ .Values.weaviate.config.cluster_hostname }}"
+            - name: CLUSTER_GOSSIP_BIND_PORT
+              value: "{{ .Values.weaviate.config.cluster_gossip_bind_port }}"
+            - name: CLUSTER_DATA_BIND_PORT
+              value: "{{ .Values.weaviate.config.cluster_data_bind_port }}"
+            - name: CLUSTER_JOIN
+              value: "{{ include "nephoran-operator.fullname" . }}-weaviate-0.{{ include "nephoran-operator.fullname" . }}-weaviate-headless.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.weaviate.config.cluster_gossip_bind_port }}"
+            
+            # Resource limits
+            - name: LIMIT_RESOURCES
+              value: "true"
+            - name: GOMEMLIMIT
+              value: "6GiB"
+            - name: GOMAXPROCS
+              value: "3"
+            
+            # Authorization
+            {{- if .Values.weaviate.config.authorization_admin_list_enabled }}
+            - name: AUTHORIZATION_ADMINLIST_ENABLED
+              value: "{{ .Values.weaviate.config.authorization_admin_list_enabled }}"
+            {{- end }}
+            
+            # Backup configuration
+            - name: BACKUP_FILESYSTEM_PATH
+              value: "/var/lib/weaviate/backups"
+            - name: ENABLE_API_BASED_BACKUPS
+              value: "true"
+            
+            # Performance tuning
+            - name: TRACK_VECTOR_DIMENSIONS
+              value: "false"
+            - name: REINDEX_VECTOR_DIMENSIONS_AT_STARTUP
+              value: "false"
+            
+            # Monitoring
+            - name: PROMETHEUS_MONITORING_ENABLED
+              value: "true"
+            - name: PROMETHEUS_MONITORING_GROUP
+              value: "true"
+            
+            # Log level
+            - name: LOG_LEVEL
+              value: "info"
+          
+          {{- if .Values.weaviate.healthCheck.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.weaviate.healthCheck.livenessProbe.httpGet.path }}
+              port: {{ .Values.weaviate.healthCheck.livenessProbe.httpGet.port }}
+              scheme: {{ .Values.weaviate.healthCheck.livenessProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.weaviate.healthCheck.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.weaviate.healthCheck.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.weaviate.healthCheck.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.weaviate.healthCheck.livenessProbe.failureThreshold }}
+            successThreshold: 1
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.weaviate.healthCheck.readinessProbe.httpGet.path }}
+              port: {{ .Values.weaviate.healthCheck.readinessProbe.httpGet.port }}
+              scheme: {{ .Values.weaviate.healthCheck.readinessProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.weaviate.healthCheck.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.weaviate.healthCheck.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.weaviate.healthCheck.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.weaviate.healthCheck.readinessProbe.failureThreshold }}
+            successThreshold: 1
+          
+          startupProbe:
+            httpGet:
+              path: {{ .Values.weaviate.healthCheck.startupProbe.httpGet.path }}
+              port: {{ .Values.weaviate.healthCheck.startupProbe.httpGet.port }}
+              scheme: {{ .Values.weaviate.healthCheck.startupProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.weaviate.healthCheck.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.weaviate.healthCheck.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.weaviate.healthCheck.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.weaviate.healthCheck.startupProbe.failureThreshold }}
+            successThreshold: 1
+          {{- end }}
+          
+          securityContext:
+            {{- toYaml .Values.weaviate.securityContext | nindent 12 }}
+          
+          resources:
+            {{- toYaml .Values.weaviate.resources | nindent 12 }}
+          
+          volumeMounts:
+            - name: weaviate-storage
+              mountPath: {{ .Values.weaviate.config.persistence_data_path }}
+            - name: tmp
+              mountPath: /tmp
+            - name: backup-storage
+              mountPath: /var/lib/weaviate/backups
+      
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: backup-storage
+          emptyDir:
+            sizeLimit: 10Gi
+      
+      {{- with .Values.weaviate.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.weaviate.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.weaviate.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+  
+  {{- if .Values.weaviate.persistence.enabled }}
+  volumeClaimTemplates:
+    - metadata:
+        name: weaviate-storage
+        labels:
+          {{- include "nephoran-operator.labels" . | nindent 10 }}
+          app.kubernetes.io/component: weaviate
+      spec:
+        accessModes:
+          - {{ .Values.weaviate.persistence.accessMode }}
+        {{- if .Values.global.storageClass }}
+        storageClassName: {{ .Values.global.storageClass }}
+        {{- else if .Values.weaviate.persistence.storageClass }}
+        storageClassName: {{ .Values.weaviate.persistence.storageClass }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.weaviate.persistence.size }}
+  {{- else }}
+  volumeClaimTemplates:
+    - metadata:
+        name: weaviate-storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi
+  {{- end }}
+{{- end }}

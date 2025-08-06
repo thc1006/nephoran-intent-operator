@@ -1,0 +1,889 @@
+# Production values for Nephoran Intent Operator
+# Enterprise-grade configuration with high availability, security, and scalability
+
+# Global configuration
+global:
+  imageRegistry: "ghcr.io/thc1006/nephoran-intent-operator/"
+  imagePullSecrets:
+    - name: ghcr-secret
+  storageClass: "fast-ssd"
+  
+# Production feature flags
+rag:
+  enabled: true
+
+ml:
+  enabled: true
+
+git:
+  tokenSecret: "git-credentials"
+
+monitoring:
+  enabled: true
+
+security:
+  enforceNetworkPolicies: true
+  podSecurityStandard: "restricted"
+
+# Nephoran Operator Controller (Main Controller)
+nephoranOperator:
+  enabled: true
+  replicaCount: 2  # Leader election enabled
+  
+  image:
+    repository: "nephoran-operator"
+    tag: "v2.0.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 9443
+    targetPort: 9443
+    webhookPort: 9443
+  
+  # Leader election configuration
+  leaderElection:
+    enabled: true
+    leaseDuration: "15s"
+    renewDeadline: "10s"
+    retryPeriod: "2s"
+  
+  # Health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 15
+      periodSeconds: 20
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 3
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 30
+  
+  # Production resource requirements
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+      ephemeral-storage: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+      ephemeral-storage: 4Gi
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Anti-affinity for high availability
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [nephoran-operator]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [controller]
+          topologyKey: kubernetes.io/hostname
+  
+  # Node selection for control plane nodes
+  nodeSelector:
+    nephoran.com/node-type: "control-plane"
+  
+  tolerations:
+    - key: "nephoran.com/control-plane"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+
+# LLM Processor configuration - Enhanced for production
+llmProcessor:
+  enabled: true
+  replicaCount: 3  # High availability
+  
+  image:
+    repository: "llm-processor"
+    tag: "v2.0.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  
+  # Autoscaling configuration
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: Percent
+            value: 25
+            periodSeconds: 60
+      scaleUp:
+        stabilizationWindowSeconds: 60
+        policies:
+          - type: Percent
+            value: 50
+            periodSeconds: 60
+          - type: Pods
+            value: 2
+            periodSeconds: 60
+        selectPolicy: Max
+  
+  # Production health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 2
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 30
+  
+  # Production resource requirements
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+      ephemeral-storage: 4Gi
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Anti-affinity for distribution
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [nephoran-operator]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [llm-processor]
+            topologyKey: kubernetes.io/hostname
+  
+  nodeSelector:
+    nephoran.com/node-type: "ai-processing"
+  
+  tolerations:
+    - key: "nephoran.com/ai-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+
+# Nephio Bridge configuration
+nephioBridge:
+  enabled: true
+  replicaCount: 2  # Leader election
+  
+  image:
+    repository: "nephio-bridge"
+    tag: "v2.0.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8082
+    targetPort: 8082
+  
+  # Leader election
+  leaderElection:
+    enabled: true
+    leaseDuration: "15s"
+    renewDeadline: "10s"
+    retryPeriod: "2s"
+  
+  # Health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8082
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8082
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 2
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8082
+        scheme: HTTP
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 20
+  
+  # Resource requirements
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+      ephemeral-storage: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+      ephemeral-storage: 2Gi
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Anti-affinity
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [nephoran-operator]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [nephio-bridge]
+          topologyKey: kubernetes.io/hostname
+  
+  nodeSelector:
+    nephoran.com/node-type: "orchestration"
+  
+  tolerations:
+    - key: "nephoran.com/orchestration-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+# RAG API configuration
+ragApi:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: "rag-api"
+    tag: "v2.0.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 5001
+    targetPort: 5001
+  
+  # Autoscaling
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 85
+  
+  # Health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 5001
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 5001
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 2
+    startupProbe:
+      httpGet:
+        path: /health
+        port: 5001
+        scheme: HTTP
+      initialDelaySeconds: 20
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 30
+  
+  # Resource requirements for vector operations
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+      ephemeral-storage: 2Gi
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+      ephemeral-storage: 8Gi
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Anti-affinity
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [nephoran-operator]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [rag-api]
+            topologyKey: kubernetes.io/hostname
+  
+  nodeSelector:
+    nephoran.com/node-type: "ai-processing"
+  
+  tolerations:
+    - key: "nephoran.com/ai-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+# Weaviate vector database configuration
+weaviate:
+  enabled: true
+  replicaCount: 3  # High availability cluster
+  
+  image:
+    repository: "semitechnologies/weaviate"
+    tag: "1.22.5"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    grpcPort: 50051
+    grpcTargetPort: 50051
+  
+  # Persistent storage configuration
+  persistence:
+    enabled: true
+    storageClass: "fast-ssd"
+    size: 500Gi
+    accessMode: ReadWriteOnce
+  
+  # Health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /v1/.well-known/live
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 120  # Longer for database initialization
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /v1/.well-known/ready
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 2
+    startupProbe:
+      httpGet:
+        path: /v1/.well-known/live
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 60  # 10 minutes for startup
+  
+  # Resource requirements for vector database
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+      ephemeral-storage: 4Gi
+    limits:
+      cpu: 4000m
+      memory: 8Gi
+      ephemeral-storage: 16Gi
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Anti-affinity for data distribution
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [nephoran-operator]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [weaviate]
+          topologyKey: kubernetes.io/hostname
+  
+  nodeSelector:
+    nephoran.com/node-type: "database"
+  
+  tolerations:
+    - key: "nephoran.com/database-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+  
+  # Configuration
+  config:
+    persistence_data_path: "/var/lib/weaviate"
+    query_defaults_limit: 25
+    authentication_anonymous_access_enabled: false
+    authorization_admin_list_enabled: true
+    cluster_hostname: "weaviate"
+    cluster_gossip_bind_port: 7100
+    cluster_data_bind_port: 7101
+
+# O-RAN Adaptor configuration
+oranAdaptor:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: "oran-adaptor"
+    tag: "v2.0.0"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8083
+    targetPort: 8083
+  
+  # Health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8083
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8083
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 2
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8083
+        scheme: HTTP
+      initialDelaySeconds: 15
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 20
+  
+  # Resource requirements
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+      ephemeral-storage: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+      ephemeral-storage: 2Gi
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Anti-affinity
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [nephoran-operator]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [oran-adaptor]
+            topologyKey: kubernetes.io/hostname
+  
+  nodeSelector:
+    nephoran.com/node-type: "orchestration"
+  
+  tolerations:
+    - key: "nephoran.com/orchestration-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+# Network Policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  # Default deny all
+  denyAll: true
+  
+  # Specific allow rules
+  ingress:
+    # Allow ingress from ingress controller
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 5001
+  
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+    # Allow HTTPS to external APIs
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow inter-component communication
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: nephoran-operator
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8082
+        - protocol: TCP
+          port: 8083
+        - protocol: TCP
+          port: 5001
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::ACCOUNT:role/nephoran-operator-role"
+  name: "nephoran-operator"
+
+# RBAC
+rbac:
+  create: true
+  clusterRole: true
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    scrapeTimeout: 10s
+    labels:
+      prometheus: kube-prometheus
+  
+  # Grafana dashboard
+  grafanaDashboard:
+    enabled: true
+    namespace: monitoring
+  
+  # Alerting rules
+  prometheusRule:
+    enabled: true
+    rules:
+      - alert: NephoranOperatorDown
+        expr: up{job="nephoran-operator"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Nephoran Operator is down"
+          description: "Nephoran Operator has been down for more than 5 minutes"
+
+# Ingress
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+  hosts:
+    - host: nephoran-api.production.example.com
+      paths:
+        - path: /api/v1/llm
+          pathType: Prefix
+          service:
+            name: nephoran-operator-llm-processor
+            port: 8080
+        - path: /api/v1/rag
+          pathType: Prefix
+          service:
+            name: nephoran-operator-rag-api
+            port: 5001
+  tls:
+    - secretName: nephoran-api-tls
+      hosts:
+        - nephoran-api.production.example.com
+
+# Production secrets (external secret operator integration)
+secrets:
+  external:
+    enabled: true
+    secretStore: "vault-backend"
+  
+  # LLM API credentials
+  llmCredentials:
+    secretName: "llm-api-keys"
+    keys:
+      - mistral_api_key
+      - openai_api_key
+  
+  # OAuth2 credentials
+  oauth2Credentials:
+    secretName: "oauth2-credentials"
+    keys:
+      - client_secret
+      - jwt_secret
+  
+  # Git credentials
+  gitCredentials:
+    secretName: "git-credentials"
+    keys:
+      - token
+
+# Backup and disaster recovery
+backup:
+  enabled: true
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: "30d"
+  storage:
+    type: "s3"
+    bucket: "nephoran-backups-prod"
+    region: "us-central1"
+
+# Resource quotas and limits
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "10"
+    requests.memory: "20Gi"
+    limits.cpu: "20"
+    limits.memory: "40Gi"
+    persistentvolumeclaims: "10"

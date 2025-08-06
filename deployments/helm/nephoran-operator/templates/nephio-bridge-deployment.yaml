@@ -1,0 +1,253 @@
+{{- if .Values.nephioBridge.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-nephio-bridge
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nephio-bridge
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    nephoran.com/component: "nephio-bridge"
+    nephoran.com/version: "{{ .Values.nephioBridge.image.tag }}"
+spec:
+  replicas: {{ .Values.nephioBridge.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: nephio-bridge
+  template:
+    metadata:
+      labels:
+        {{- include "nephoran-operator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: nephio-bridge
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8082"
+        prometheus.io/path: "/metrics"
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "nephoran-operator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.nephioBridge.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: nephio-bridge
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.nephioBridge.image.repository }}:{{ .Values.nephioBridge.image.tag }}"
+          imagePullPolicy: {{ .Values.nephioBridge.image.pullPolicy }}
+          command:
+            - /nephio-bridge
+          args:
+            - --metrics-addr=:8082
+            - --health-addr=:8081
+            {{- if .Values.nephioBridge.leaderElection.enabled }}
+            - --leader-elect
+            - --leader-elect-lease-duration={{ .Values.nephioBridge.leaderElection.leaseDuration }}
+            - --leader-elect-renew-deadline={{ .Values.nephioBridge.leaderElection.renewDeadline }}
+            - --leader-elect-retry-period={{ .Values.nephioBridge.leaderElection.retryPeriod }}
+            {{- end }}
+            - --zap-log-level=info
+            - --zap-encoder=json
+          ports:
+            - name: http
+              containerPort: {{ .Values.nephioBridge.service.targetPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: 8082
+              protocol: TCP
+            - name: health
+              containerPort: 8081
+              protocol: TCP
+          env:
+            # Pod information
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            
+            # Service configuration
+            - name: PORT
+              value: "{{ .Values.nephioBridge.service.targetPort }}"
+            - name: METRICS_PORT
+              value: "8082"
+            - name: HEALTH_PORT
+              value: "8081"
+            
+            # Leader election
+            - name: ENABLE_LEADER_ELECTION
+              value: "{{ .Values.nephioBridge.leaderElection.enabled }}"
+            
+            # Nephio configuration
+            - name: PORCH_SERVER_URL
+              value: "http://porch-server.porch-system.svc.cluster.local:7007"
+            - name: PORCH_FUNCTION_RUNNER_URL
+              value: "http://function-runner.porch-system.svc.cluster.local:9445"
+            - name: CONFIG_SYNC_REPO_ROOT
+              value: "/workspace/deployment-repo"
+            - name: PACKAGE_ORCHESTRATION_NAMESPACE
+              value: "porch-system"
+            
+            # Git configuration
+            - name: GIT_REPO_URL
+              value: "https://github.com/thc1006/nephoran-deployment-repo.git"
+            - name: GIT_BRANCH
+              value: "main"
+            - name: GIT_SYNC_INTERVAL
+              value: "30s"
+            
+            {{- if .Values.git.tokenSecret }}
+            - name: GIT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.git.tokenSecret }}
+                  key: token
+            {{- end }}
+            
+            # Package management
+            - name: PACKAGE_REVISION_STRATEGY
+              value: "semantic"
+            - name: MAX_CONCURRENT_RECONCILES
+              value: "5"
+            - name: RECONCILE_TIMEOUT
+              value: "300s"
+            
+            # Quality gates
+            - name: ENABLE_PACKAGE_VALIDATION
+              value: "true"
+            - name: ENABLE_RESOURCE_VALIDATION
+              value: "true"
+            - name: ENABLE_POLICY_ENFORCEMENT
+              value: "true"
+            
+            # Monitoring
+            - name: ENABLE_METRICS
+              value: "true"
+            - name: ENABLE_TRACING
+              value: "true"
+            - name: JAEGER_ENDPOINT
+              value: "http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
+            - name: OTEL_SERVICE_NAME
+              value: "nephoran-nephio-bridge"
+            - name: OTEL_SERVICE_VERSION
+              value: "{{ .Values.nephioBridge.image.tag }}"
+            
+            # Error handling and resilience
+            - name: RETRY_MAX_ATTEMPTS
+              value: "3"
+            - name: RETRY_INITIAL_BACKOFF
+              value: "1s"
+            - name: RETRY_MAX_BACKOFF
+              value: "30s"
+            - name: CIRCUIT_BREAKER_ENABLED
+              value: "true"
+            - name: CIRCUIT_BREAKER_THRESHOLD
+              value: "5"
+            - name: CIRCUIT_BREAKER_TIMEOUT
+              value: "60s"
+          
+          {{- if .Values.nephioBridge.healthCheck.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.nephioBridge.healthCheck.livenessProbe.httpGet.path }}
+              port: {{ .Values.nephioBridge.healthCheck.livenessProbe.httpGet.port }}
+              scheme: {{ .Values.nephioBridge.healthCheck.livenessProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.nephioBridge.healthCheck.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.nephioBridge.healthCheck.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.nephioBridge.healthCheck.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.nephioBridge.healthCheck.livenessProbe.failureThreshold }}
+            successThreshold: 1
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.nephioBridge.healthCheck.readinessProbe.httpGet.path }}
+              port: {{ .Values.nephioBridge.healthCheck.readinessProbe.httpGet.port }}
+              scheme: {{ .Values.nephioBridge.healthCheck.readinessProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.nephioBridge.healthCheck.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.nephioBridge.healthCheck.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.nephioBridge.healthCheck.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.nephioBridge.healthCheck.readinessProbe.failureThreshold }}
+            successThreshold: 1
+          
+          startupProbe:
+            httpGet:
+              path: {{ .Values.nephioBridge.healthCheck.startupProbe.httpGet.path }}
+              port: {{ .Values.nephioBridge.healthCheck.startupProbe.httpGet.port }}
+              scheme: {{ .Values.nephioBridge.healthCheck.startupProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.nephioBridge.healthCheck.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.nephioBridge.healthCheck.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.nephioBridge.healthCheck.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.nephioBridge.healthCheck.startupProbe.failureThreshold }}
+            successThreshold: 1
+          {{- end }}
+          
+          securityContext:
+            {{- toYaml .Values.nephioBridge.securityContext | nindent 12 }}
+          
+          resources:
+            {{- toYaml .Values.nephioBridge.resources | nindent 12 }}
+          
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+              readOnly: false
+            - name: workspace
+              mountPath: /workspace
+              readOnly: false
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+            {{- if .Values.git.tokenSecret }}
+            - name: git-credentials
+              mountPath: /etc/git-secret
+              readOnly: true
+            {{- end }}
+      
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: workspace
+          emptyDir:
+            sizeLimit: 10Gi
+        - name: config-volume
+          configMap:
+            name: {{ include "nephoran-operator.fullname" . }}-nephio-config
+            defaultMode: 0644
+        {{- if .Values.git.tokenSecret }}
+        - name: git-credentials
+          secret:
+            secretName: {{ .Values.git.tokenSecret }}
+            defaultMode: 0400
+        {{- end }}
+      
+      {{- with .Values.nephioBridge.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.nephioBridge.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.nephioBridge.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

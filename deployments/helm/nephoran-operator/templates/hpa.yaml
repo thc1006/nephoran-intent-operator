@@ -1,0 +1,292 @@
+{{- if .Values.llmProcessor.enabled and .Values.llmProcessor.autoscaling.enabled }}
+---
+# HorizontalPodAutoscaler for LLM Processor
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-llm-processor
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: llm-processor
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "nephoran-operator.fullname" . }}-llm-processor
+  minReplicas: {{ .Values.llmProcessor.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.llmProcessor.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.llmProcessor.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.llmProcessor.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.llmProcessor.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.llmProcessor.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+    # Custom metrics for LLM processing
+    - type: Pods
+      pods:
+        metric:
+          name: llm_processor_queue_length
+        target:
+          type: AverageValue
+          averageValue: "10"
+    - type: Pods
+      pods:
+        metric:
+          name: llm_processor_request_rate
+        target:
+          type: AverageValue
+          averageValue: "50"
+  {{- if .Values.llmProcessor.autoscaling.behavior }}
+  behavior:
+    {{- toYaml .Values.llmProcessor.autoscaling.behavior | nindent 4 }}
+  {{- end }}
+{{- end }}
+
+{{- if .Values.ragApi.enabled and .Values.ragApi.autoscaling.enabled }}
+---
+# HorizontalPodAutoscaler for RAG API
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-rag-api
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rag-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "nephoran-operator.fullname" . }}-rag-api
+  minReplicas: {{ .Values.ragApi.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.ragApi.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.ragApi.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.ragApi.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.ragApi.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.ragApi.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+    # Custom metrics for RAG processing
+    - type: Pods
+      pods:
+        metric:
+          name: rag_api_vector_search_latency
+        target:
+          type: AverageValue
+          averageValue: "200m"  # 200ms
+    - type: Pods
+      pods:
+        metric:
+          name: rag_api_concurrent_requests
+        target:
+          type: AverageValue
+          averageValue: "20"
+{{- end }}
+
+{{- if .Values.nephoranOperator.enabled }}
+---
+# HorizontalPodAutoscaler for Nephoran Operator Controller
+# Note: For controllers with leader election, scaling is typically limited
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-controller
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "nephoran-operator.fullname" . }}-controller
+  minReplicas: 2
+  maxReplicas: 3  # Limited scaling for leader election
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 85
+    # Custom metrics for controller workload
+    - type: Pods
+      pods:
+        metric:
+          name: controller_reconcile_queue_length
+        target:
+          type: AverageValue
+          averageValue: "100"
+    - type: Pods
+      pods:
+        metric:
+          name: controller_webhook_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "50"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600  # 10 minutes
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 300  # 5 minutes
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+{{- end }}
+
+---
+# KEDA ScaledObject for LLM Processor (Advanced Scaling)
+{{- if .Values.llmProcessor.enabled and .Values.llmProcessor.autoscaling.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-llm-processor-keda
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: llm-processor
+spec:
+  scaleTargetRef:
+    name: {{ include "nephoran-operator.fullname" . }}-llm-processor
+  pollingInterval: 30
+  cooldownPeriod: 300
+  minReplicaCount: {{ .Values.llmProcessor.autoscaling.minReplicas }}
+  maxReplicaCount: {{ .Values.llmProcessor.autoscaling.maxReplicas }}
+  triggers:
+    # Prometheus-based scaling triggers
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local:80
+        metricName: llm_processor_pending_requests
+        query: |
+          sum(rate(llm_processor_requests_pending_total{job="nephoran-operator-llm-processor"}[2m]))
+        threshold: "10"
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local:80
+        metricName: llm_processor_response_time
+        query: |
+          avg(rate(llm_processor_request_duration_seconds_sum{job="nephoran-operator-llm-processor"}[2m]) / 
+              rate(llm_processor_request_duration_seconds_count{job="nephoran-operator-llm-processor"}[2m]))
+        threshold: "2"  # Scale up if average response time > 2 seconds
+    # CPU-based trigger
+    - type: cpu
+      metadata:
+        type: Utilization
+        value: "70"
+    # Memory-based trigger  
+    - type: memory
+      metadata:
+        type: Utilization
+        value: "80"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Max
+{{- end }}
+
+---
+# KEDA ScaledObject for RAG API
+{{- if .Values.ragApi.enabled and .Values.ragApi.autoscaling.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-rag-api-keda
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rag-api
+spec:
+  scaleTargetRef:
+    name: {{ include "nephoran-operator.fullname" . }}-rag-api
+  pollingInterval: 30
+  cooldownPeriod: 300
+  minReplicaCount: {{ .Values.ragApi.autoscaling.minReplicas }}
+  maxReplicaCount: {{ .Values.ragApi.autoscaling.maxReplicas }}
+  triggers:
+    # Prometheus-based scaling triggers for vector search performance
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local:80
+        metricName: rag_api_vector_search_latency
+        query: |
+          histogram_quantile(0.95, 
+            sum(rate(rag_api_vector_search_duration_seconds_bucket{job="nephoran-operator-rag-api"}[2m])) 
+            by (le))
+        threshold: "0.5"  # Scale up if P95 search latency > 500ms
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus-server.monitoring.svc.cluster.local:80
+        metricName: rag_api_weaviate_connection_pool
+        query: |
+          avg(rag_api_weaviate_connection_pool_active{job="nephoran-operator-rag-api"})
+        threshold: "8"  # Scale up if average active connections > 8
+    # Resource-based triggers
+    - type: cpu
+      metadata:
+        type: Utilization
+        value: "75"
+    - type: memory
+      metadata:
+        type: Utilization
+        value: "85"
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Pods
+        value: 1
+        periodSeconds: 120
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Max
+{{- end }}

@@ -1,0 +1,502 @@
+{{- if .Values.networkPolicy.enabled }}
+---
+# Default deny-all NetworkPolicy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-deny-all
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# NetworkPolicy for Controller
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-controller
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: controller
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow webhook traffic from API server
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: TCP
+          port: 9443
+    # Allow metrics scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow communication to component services
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: 8080  # LLM Processor
+        - protocol: TCP
+          port: 8082  # Nephio Bridge
+        - protocol: TCP
+          port: 8083  # O-RAN Adaptor
+        - protocol: TCP
+          port: 5001  # RAG API
+    # Allow communication to Weaviate
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: weaviate
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow Kubernetes API access
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443
+
+---
+# NetworkPolicy for LLM Processor
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-llm-processor
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: llm-processor
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: llm-processor
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic from controller
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: controller
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow traffic from ingress
+    {{- range .Values.networkPolicy.ingress }}
+    - from:
+        {{- toYaml .from | nindent 8 }}
+      ports:
+        {{- toYaml .ports | nindent 8 }}
+    {{- end }}
+    # Allow metrics scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow external LLM API calls (OpenAI, Mistral)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow communication to RAG API
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: rag-api
+      ports:
+        - protocol: TCP
+          port: 5001
+    # Allow tracing to Jaeger
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 14268
+
+---
+# NetworkPolicy for Nephio Bridge
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-nephio-bridge
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nephio-bridge
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: nephio-bridge
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic from controller
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: controller
+      ports:
+        - protocol: TCP
+          port: 8082
+    # Allow metrics scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8082
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow Git operations
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 22
+    # Allow communication to Porch/Nephio services
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: porch-system
+      ports:
+        - protocol: TCP
+          port: 7007  # Porch server
+        - protocol: TCP
+          port: 9445  # Function runner
+    # Allow tracing to Jaeger
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 14268
+    # Allow Kubernetes API access
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443
+
+---
+# NetworkPolicy for RAG API
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-rag-api
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: rag-api
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: rag-api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic from LLM Processor
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: llm-processor
+      ports:
+        - protocol: TCP
+          port: 5001
+    # Allow traffic from controller
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: controller
+      ports:
+        - protocol: TCP
+          port: 5001
+    # Allow metrics scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 5001
+    # Allow traffic from ingress
+    {{- range .Values.networkPolicy.ingress }}
+    - from:
+        {{- toYaml .from | nindent 8 }}
+      ports:
+        - protocol: TCP
+          port: 5001
+    {{- end }}
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow communication to Weaviate
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: weaviate
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051  # gRPC
+    # Allow external API calls (OpenAI for embeddings)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+    # Allow tracing to Jaeger
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 14268
+
+---
+# NetworkPolicy for Weaviate
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-weaviate
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: weaviate
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: weaviate
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic from RAG API
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: rag-api
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 50051
+    # Allow traffic from controller
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: controller
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow cluster communication between Weaviate instances
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: weaviate
+      ports:
+        - protocol: TCP
+          port: 7100  # Gossip
+        - protocol: TCP
+          port: 7101  # Data
+    # Allow metrics scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow cluster communication between Weaviate instances
+    - to:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: weaviate
+      ports:
+        - protocol: TCP
+          port: 7100  # Gossip
+        - protocol: TCP
+          port: 7101  # Data
+    # Allow external API calls for vectorization modules
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+
+---
+# NetworkPolicy for O-RAN Adaptor
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-oran-adaptor
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: oran-adaptor
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: oran-adaptor
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow traffic from controller
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "nephoran-operator.selectorLabels" . | nindent 14 }}
+              app.kubernetes.io/component: controller
+      ports:
+        - protocol: TCP
+          port: 8083
+    # Allow metrics scraping
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8083
+    # Allow O-RAN interface traffic
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: oran
+      ports:
+        - protocol: TCP
+          port: 8083
+        - protocol: TCP
+          port: 830   # NETCONF
+        - protocol: TCP
+          port: 9080  # A1 interface
+        - protocol: TCP
+          port: 38000 # E2 interface
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow O-RAN interface communication
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: oran
+      ports:
+        - protocol: TCP
+          port: 9080  # A1 interface
+        - protocol: TCP
+          port: 830   # O1 NETCONF
+        - protocol: TCP
+          port: 8080  # O2 interface
+        - protocol: TCP
+          port: 38000 # E2 interface
+    # Allow tracing to Jaeger
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 14268
+    # Allow external O-RAN component communication
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9080
+        - protocol: TCP
+          port: 38000
+
+{{- end }}

@@ -1,0 +1,246 @@
+{{- if .Values.oranAdaptor.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-oran-adaptor
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: oran-adaptor
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    nephoran.com/component: "oran-adaptor"
+    nephoran.com/version: "{{ .Values.oranAdaptor.image.tag }}"
+spec:
+  replicas: {{ .Values.oranAdaptor.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: oran-adaptor
+  template:
+    metadata:
+      labels:
+        {{- include "nephoran-operator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: oran-adaptor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8083"
+        prometheus.io/path: "/metrics"
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "nephoran-operator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.oranAdaptor.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: oran-adaptor
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.oranAdaptor.image.repository }}:{{ .Values.oranAdaptor.image.tag }}"
+          imagePullPolicy: {{ .Values.oranAdaptor.image.pullPolicy }}
+          command:
+            - /oran-adaptor
+          args:
+            - --metrics-addr=:8083
+            - --health-addr=:8081
+            - --zap-log-level=info
+            - --zap-encoder=json
+          ports:
+            - name: http
+              containerPort: {{ .Values.oranAdaptor.service.targetPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: 8083
+              protocol: TCP
+            - name: health
+              containerPort: 8081
+              protocol: TCP
+          env:
+            # Pod information
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            
+            # Service configuration
+            - name: PORT
+              value: "{{ .Values.oranAdaptor.service.targetPort }}"
+            - name: METRICS_PORT
+              value: "8083"
+            - name: HEALTH_PORT
+              value: "8081"
+            
+            # O-RAN interface configurations
+            - name: A1_INTERFACE_ENABLED
+              value: "true"
+            - name: A1_ENDPOINT
+              value: "http://near-rt-ric.oran.svc.cluster.local:9080"
+            - name: O1_INTERFACE_ENABLED
+              value: "true"
+            - name: O1_NETCONF_PORT
+              value: "830"
+            - name: O2_INTERFACE_ENABLED
+              value: "true"
+            - name: O2_CLOUD_ENDPOINT
+              value: "http://cloud-orchestrator.oran.svc.cluster.local:8080"
+            - name: E2_INTERFACE_ENABLED
+              value: "true"
+            - name: E2_TERMINATION_ENDPOINT
+              value: "http://e2-termination.oran.svc.cluster.local:38000"
+            
+            # Network function management
+            - name: NF_MANAGEMENT_ENABLED
+              value: "true"
+            - name: NF_LIFECYCLE_TIMEOUT
+              value: "300s"
+            - name: NF_SCALING_ENABLED
+              value: "true"
+            - name: NF_AUTO_RECOVERY_ENABLED
+              value: "true"
+            
+            # Policy management
+            - name: POLICY_ENFORCEMENT_ENABLED
+              value: "true"
+            - name: POLICY_VALIDATION_ENABLED
+              value: "true"
+            - name: POLICY_CONFLICT_RESOLUTION
+              value: "latest-wins"
+            
+            # Performance monitoring
+            - name: KPI_COLLECTION_ENABLED
+              value: "true"
+            - name: KPI_COLLECTION_INTERVAL
+              value: "30s"
+            - name: ALARM_MANAGEMENT_ENABLED
+              value: "true"
+            - name: FAULT_MANAGEMENT_ENABLED
+              value: "true"
+            
+            # Monitoring and observability
+            - name: ENABLE_METRICS
+              value: "true"
+            - name: ENABLE_TRACING
+              value: "true"
+            - name: JAEGER_ENDPOINT
+              value: "http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
+            - name: OTEL_SERVICE_NAME
+              value: "nephoran-oran-adaptor"
+            - name: OTEL_SERVICE_VERSION
+              value: "{{ .Values.oranAdaptor.image.tag }}"
+            
+            # Error handling and resilience
+            - name: RETRY_MAX_ATTEMPTS
+              value: "3"
+            - name: RETRY_INITIAL_BACKOFF
+              value: "1s"
+            - name: RETRY_MAX_BACKOFF
+              value: "30s"
+            - name: CIRCUIT_BREAKER_ENABLED
+              value: "true"
+            - name: CIRCUIT_BREAKER_THRESHOLD
+              value: "5"
+            - name: CIRCUIT_BREAKER_TIMEOUT
+              value: "60s"
+            
+            # Compliance and validation
+            - name: ORAN_COMPLIANCE_VALIDATION
+              value: "strict"
+            - name: INTERFACE_VERSION_CHECKING
+              value: "enabled"
+            - name: BACKWARDS_COMPATIBILITY_MODE
+              value: "false"
+          
+          {{- if .Values.oranAdaptor.healthCheck.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.oranAdaptor.healthCheck.livenessProbe.httpGet.path }}
+              port: {{ .Values.oranAdaptor.healthCheck.livenessProbe.httpGet.port }}
+              scheme: {{ .Values.oranAdaptor.healthCheck.livenessProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.oranAdaptor.healthCheck.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.oranAdaptor.healthCheck.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.oranAdaptor.healthCheck.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.oranAdaptor.healthCheck.livenessProbe.failureThreshold }}
+            successThreshold: 1
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.oranAdaptor.healthCheck.readinessProbe.httpGet.path }}
+              port: {{ .Values.oranAdaptor.healthCheck.readinessProbe.httpGet.port }}
+              scheme: {{ .Values.oranAdaptor.healthCheck.readinessProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.oranAdaptor.healthCheck.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.oranAdaptor.healthCheck.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.oranAdaptor.healthCheck.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.oranAdaptor.healthCheck.readinessProbe.failureThreshold }}
+            successThreshold: 1
+          
+          startupProbe:
+            httpGet:
+              path: {{ .Values.oranAdaptor.healthCheck.startupProbe.httpGet.path }}
+              port: {{ .Values.oranAdaptor.healthCheck.startupProbe.httpGet.port }}
+              scheme: {{ .Values.oranAdaptor.healthCheck.startupProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.oranAdaptor.healthCheck.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.oranAdaptor.healthCheck.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.oranAdaptor.healthCheck.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.oranAdaptor.healthCheck.startupProbe.failureThreshold }}
+            successThreshold: 1
+          {{- end }}
+          
+          securityContext:
+            {{- toYaml .Values.oranAdaptor.securityContext | nindent 12 }}
+          
+          resources:
+            {{- toYaml .Values.oranAdaptor.resources | nindent 12 }}
+          
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+              readOnly: false
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+            - name: certificates
+              mountPath: /etc/ssl/certs/oran
+              readOnly: true
+      
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: config-volume
+          configMap:
+            name: {{ include "nephoran-operator.fullname" . }}-oran-config
+            defaultMode: 0644
+        - name: certificates
+          secret:
+            secretName: oran-certificates
+            defaultMode: 0400
+            optional: true
+      
+      {{- with .Values.oranAdaptor.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.oranAdaptor.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.oranAdaptor.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

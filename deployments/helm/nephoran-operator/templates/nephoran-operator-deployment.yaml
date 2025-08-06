@@ -1,0 +1,231 @@
+{{- if .Values.nephoranOperator.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-controller
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    nephoran.com/component: "controller"
+    nephoran.com/version: "{{ .Values.nephoranOperator.image.tag }}"
+spec:
+  replicas: {{ .Values.nephoranOperator.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: controller
+  template:
+    metadata:
+      labels:
+        {{- include "nephoran-operator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: controller
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+        kubectl.kubernetes.io/default-container: manager
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "nephoran-operator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.nephoranOperator.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: manager
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.nephoranOperator.image.repository }}:{{ .Values.nephoranOperator.image.tag }}"
+          imagePullPolicy: {{ .Values.nephoranOperator.image.pullPolicy }}
+          command:
+            - /manager
+          args:
+            - --health-probe-bind-address=:8081
+            - --metrics-bind-address=:8080
+            - --webhook-port=9443
+            {{- if .Values.nephoranOperator.leaderElection.enabled }}
+            - --leader-elect
+            - --leader-elect-lease-duration={{ .Values.nephoranOperator.leaderElection.leaseDuration }}
+            - --leader-elect-renew-deadline={{ .Values.nephoranOperator.leaderElection.renewDeadline }}
+            - --leader-elect-retry-period={{ .Values.nephoranOperator.leaderElection.retryPeriod }}
+            {{- end }}
+            - --zap-devel=false
+            - --zap-encoder=json
+            - --zap-log-level=info
+          ports:
+            - name: webhook
+              containerPort: {{ .Values.nephoranOperator.service.targetPort }}
+              protocol: TCP
+            - name: metrics
+              containerPort: 8080
+              protocol: TCP
+            - name: health
+              containerPort: 8081
+              protocol: TCP
+          env:
+            # Pod information
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            
+            # Service configuration
+            - name: CONTROLLER_RUNTIME_METRICS_ADDR
+              value: ":8080"
+            - name: CONTROLLER_RUNTIME_HEALTH_ADDR
+              value: ":8081"
+            - name: WEBHOOK_PORT
+              value: "9443"
+            
+            # Feature flags
+            - name: ENABLE_WEBHOOKS
+              value: "true"
+            - name: ENABLE_LEADER_ELECTION
+              value: "{{ .Values.nephoranOperator.leaderElection.enabled }}"
+            
+            # Component service endpoints
+            - name: LLM_PROCESSOR_URL
+              value: "http://{{ include "nephoran-operator.fullname" . }}-llm-processor:{{ .Values.llmProcessor.service.port }}"
+            - name: RAG_API_URL
+              value: "http://{{ include "nephoran-operator.fullname" . }}-rag-api:{{ .Values.ragApi.service.port }}"
+            - name: NEPHIO_BRIDGE_URL
+              value: "http://{{ include "nephoran-operator.fullname" . }}-nephio-bridge:{{ .Values.nephioBridge.service.port }}"
+            - name: ORAN_ADAPTOR_URL
+              value: "http://{{ include "nephoran-operator.fullname" . }}-oran-adaptor:{{ .Values.oranAdaptor.service.port }}"
+            - name: WEAVIATE_URL
+              value: "http://{{ include "nephoran-operator.fullname" . }}-weaviate:{{ .Values.weaviate.service.port }}"
+            
+            # Timeouts and limits
+            - name: RECONCILE_TIMEOUT
+              value: "300s"
+            - name: WEBHOOK_TIMEOUT
+              value: "30s"
+            - name: MAX_CONCURRENT_RECONCILES
+              value: "10"
+            
+            # Security settings
+            - name: TLS_MIN_VERSION
+              value: "1.2"
+            - name: CIPHER_SUITES
+              value: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+            
+            # Monitoring and observability
+            - name: ENABLE_METRICS
+              value: "true"
+            - name: ENABLE_TRACING
+              value: "true"
+            - name: JAEGER_ENDPOINT
+              value: "http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
+            - name: OTEL_SERVICE_NAME
+              value: "nephoran-operator-controller"
+            - name: OTEL_SERVICE_VERSION
+              value: "{{ .Values.nephoranOperator.image.tag }}"
+            
+            # Git information
+            - name: GIT_COMMIT
+              value: "{{ .Values.nephoranOperator.image.tag }}"
+            
+            {{- if .Values.git.tokenSecret }}
+            # Git credentials
+            - name: GIT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.git.tokenSecret }}
+                  key: token
+            {{- end }}
+          
+          {{- if .Values.nephoranOperator.healthCheck.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.nephoranOperator.healthCheck.livenessProbe.httpGet.path }}
+              port: {{ .Values.nephoranOperator.healthCheck.livenessProbe.httpGet.port }}
+              scheme: {{ .Values.nephoranOperator.healthCheck.livenessProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.nephoranOperator.healthCheck.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.nephoranOperator.healthCheck.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.nephoranOperator.healthCheck.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.nephoranOperator.healthCheck.livenessProbe.failureThreshold }}
+            successThreshold: 1
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.nephoranOperator.healthCheck.readinessProbe.httpGet.path }}
+              port: {{ .Values.nephoranOperator.healthCheck.readinessProbe.httpGet.port }}
+              scheme: {{ .Values.nephoranOperator.healthCheck.readinessProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.nephoranOperator.healthCheck.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.nephoranOperator.healthCheck.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.nephoranOperator.healthCheck.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.nephoranOperator.healthCheck.readinessProbe.failureThreshold }}
+            successThreshold: 1
+          
+          startupProbe:
+            httpGet:
+              path: {{ .Values.nephoranOperator.healthCheck.startupProbe.httpGet.path }}
+              port: {{ .Values.nephoranOperator.healthCheck.startupProbe.httpGet.port }}
+              scheme: {{ .Values.nephoranOperator.healthCheck.startupProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.nephoranOperator.healthCheck.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.nephoranOperator.healthCheck.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.nephoranOperator.healthCheck.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.nephoranOperator.healthCheck.startupProbe.failureThreshold }}
+            successThreshold: 1
+          {{- end }}
+          
+          securityContext:
+            {{- toYaml .Values.nephoranOperator.securityContext | nindent 12 }}
+          
+          resources:
+            {{- toYaml .Values.nephoranOperator.resources | nindent 12 }}
+          
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+              readOnly: false
+            - name: webhook-certs
+              mountPath: /tmp/k8s-webhook-server/serving-certs
+              readOnly: true
+            - name: config-volume
+              mountPath: /etc/config
+              readOnly: true
+      
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: webhook-certs
+          secret:
+            secretName: webhook-server-certs
+            defaultMode: 0644
+        - name: config-volume
+          configMap:
+            name: {{ include "nephoran-operator.fullname" . }}-config
+            defaultMode: 0644
+      
+      {{- with .Values.nephoranOperator.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.nephoranOperator.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.nephoranOperator.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

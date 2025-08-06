@@ -1,0 +1,26 @@
+{{- if .Values.nephoranOperator.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-controller
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: tcp
+spec:
+  type: {{ .Values.nephoranOperator.service.type }}
+  ports:
+    - name: webhook
+      port: {{ .Values.nephoranOperator.service.port }}
+      targetPort: {{ .Values.nephoranOperator.service.targetPort }}
+      protocol: TCP
+    - name: metrics
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    {{- include "nephoran-operator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: controller
+{{- end }}

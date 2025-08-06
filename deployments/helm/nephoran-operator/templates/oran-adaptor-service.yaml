@@ -1,0 +1,23 @@
+{{- if .Values.oranAdaptor.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-oran-adaptor
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: oran-adaptor
+spec:
+  type: {{ .Values.oranAdaptor.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.oranAdaptor.service.port }}
+      targetPort: {{ .Values.oranAdaptor.service.targetPort }}
+      protocol: TCP
+    - name: metrics
+      port: 8083
+      targetPort: 8083
+      protocol: TCP
+  selector:
+    {{- include "nephoran-operator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: oran-adaptor
+{{- end }}

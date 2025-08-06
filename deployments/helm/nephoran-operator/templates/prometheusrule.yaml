@@ -1,0 +1,239 @@
+{{- if .Values.monitoring.enabled and .Values.monitoring.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-alerts
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    {{- with .Values.monitoring.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: nephoran-operator-availability
+      interval: 30s
+      rules:
+        {{- range .Values.monitoring.prometheusRule.rules }}
+        - alert: {{ .alert }}
+          expr: {{ .expr }}
+          {{- with .for }}
+          for: {{ . }}
+          {{- end }}
+          labels:
+            {{- toYaml .labels | nindent 12 }}
+          annotations:
+            {{- toYaml .annotations | nindent 12 }}
+        {{- end }}
+        
+        # Component availability alerts
+        - alert: NephoranControllerDown
+          expr: up{job="nephoran-operator-controller"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: controller
+          annotations:
+            summary: "Nephoran Controller is down"
+            description: "The Nephoran Intent Operator controller has been down for more than 5 minutes."
+            runbook_url: "https://docs.nephoran.com/runbooks/controller-down"
+        
+        - alert: LLMProcessorDown
+          expr: up{job="nephoran-operator-llm-processor"} == 0
+          for: 3m
+          labels:
+            severity: critical
+            component: llm-processor
+          annotations:
+            summary: "LLM Processor is down"
+            description: "The LLM Processor service has been down for more than 3 minutes."
+            runbook_url: "https://docs.nephoran.com/runbooks/llm-processor-down"
+        
+        - alert: WeaviateDatabaseDown
+          expr: up{job="nephoran-operator-weaviate"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            component: weaviate
+          annotations:
+            summary: "Weaviate database is down"
+            description: "The Weaviate vector database has been unreachable for more than 2 minutes."
+            runbook_url: "https://docs.nephoran.com/runbooks/weaviate-down"
+        
+        - alert: NephioBridgeDown
+          expr: up{job="nephoran-operator-nephio-bridge"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            component: nephio-bridge
+          annotations:
+            summary: "Nephio Bridge is down"
+            description: "The Nephio Bridge service has been down for more than 5 minutes."
+            runbook_url: "https://docs.nephoran.com/runbooks/nephio-bridge-down"
+    
+    - name: nephoran-operator-performance
+      interval: 30s
+      rules:
+        # High resource usage alerts
+        - alert: NephoranHighMemoryUsage
+          expr: |
+            (
+              container_memory_working_set_bytes{pod=~"nephoran-operator-.*", container!="POD", container!=""} 
+              / 
+              container_spec_memory_limit_bytes{pod=~"nephoran-operator-.*", container!="POD", container!=""}
+            ) * 100 > 90
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High memory usage in {{ $labels.pod }}"
+            description: "Pod {{ $labels.pod }} is using {{ $value | humanizePercentage }} of its memory limit."
+            runbook_url: "https://docs.nephoran.com/runbooks/high-memory-usage"
+        
+        - alert: NephoranHighCPUUsage
+          expr: |
+            (
+              rate(container_cpu_usage_seconds_total{pod=~"nephoran-operator-.*", container!="POD", container!=""}[5m])
+              /
+              (container_spec_cpu_quota{pod=~"nephoran-operator-.*", container!="POD", container!=""} / 100000)
+            ) * 100 > 80
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High CPU usage in {{ $labels.pod }}"
+            description: "Pod {{ $labels.pod }} is using {{ $value | humanizePercentage }} of its CPU limit."
+            runbook_url: "https://docs.nephoran.com/runbooks/high-cpu-usage"
+        
+        # LLM Processor specific alerts
+        - alert: LLMProcessorHighLatency
+          expr: |
+            histogram_quantile(0.95, 
+              sum(rate(nephoran_llm_request_duration_seconds_bucket{job="nephoran-operator-llm-processor"}[5m])) 
+              by (le, instance)
+            ) > 5
+          for: 5m
+          labels:
+            severity: warning
+            component: llm-processor
+          annotations:
+            summary: "High LLM Processor latency"
+            description: "95th percentile latency is {{ $value }}s, which is above the 5-second threshold."
+            runbook_url: "https://docs.nephoran.com/runbooks/llm-high-latency"
+        
+        - alert: LLMProcessorHighErrorRate
+          expr: |
+            (
+              sum(rate(nephoran_llm_requests_total{job="nephoran-operator-llm-processor", status=~"4..|5.."}[5m]))
+              /
+              sum(rate(nephoran_llm_requests_total{job="nephoran-operator-llm-processor"}[5m]))
+            ) * 100 > 5
+          for: 5m
+          labels:
+            severity: warning
+            component: llm-processor
+          annotations:
+            summary: "High LLM Processor error rate"
+            description: "Error rate is {{ $value | humanizePercentage }}, which is above the 5% threshold."
+            runbook_url: "https://docs.nephoran.com/runbooks/llm-high-error-rate"
+        
+        - alert: LLMProcessorQueueBacklog
+          expr: nephoran_llm_queue_length{job="nephoran-operator-llm-processor"} > 100
+          for: 5m
+          labels:
+            severity: warning
+            component: llm-processor
+          annotations:
+            summary: "LLM Processor queue backlog"
+            description: "Queue length is {{ $value }}, which indicates a processing backlog."
+            runbook_url: "https://docs.nephoran.com/runbooks/llm-queue-backlog"
+    
+    - name: nephoran-operator-weaviate
+      interval: 30s
+      rules:
+        # Weaviate specific alerts
+        - alert: WeaviateHighQueryLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(nephoran_weaviate_query_duration_seconds_bucket{job="nephoran-operator-weaviate"}[5m]))
+              by (le, instance)
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+            component: weaviate
+          annotations:
+            summary: "High Weaviate query latency"
+            description: "95th percentile query latency is {{ $value }}s, which is above the 1-second threshold."
+            runbook_url: "https://docs.nephoran.com/runbooks/weaviate-high-latency"
+        
+        - alert: WeaviateClusterUnhealthy
+          expr: nephoran_weaviate_cluster_healthy{job="nephoran-operator-weaviate"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            component: weaviate
+          annotations:
+            summary: "Weaviate cluster is unhealthy"
+            description: "Weaviate cluster health check is failing."
+            runbook_url: "https://docs.nephoran.com/runbooks/weaviate-cluster-unhealthy"
+        
+        - alert: WeaviateStorageSpaceLow
+          expr: |
+            (
+              (nephoran_weaviate_disk_total_bytes{job="nephoran-operator-weaviate"} - nephoran_weaviate_disk_free_bytes{job="nephoran-operator-weaviate"})
+              /
+              nephoran_weaviate_disk_total_bytes{job="nephoran-operator-weaviate"}
+            ) * 100 > 85
+          for: 10m
+          labels:
+            severity: warning
+            component: weaviate
+          annotations:
+            summary: "Weaviate storage space running low"
+            description: "Disk usage is {{ $value | humanizePercentage }}, which is above the 85% threshold."
+            runbook_url: "https://docs.nephoran.com/runbooks/weaviate-storage-low"
+    
+    - name: nephoran-operator-business-metrics
+      interval: 60s
+      rules:
+        # Business metric alerts
+        - alert: LowIntentProcessingRate
+          expr: |
+            sum(rate(nephoran_intent_processed_total{job="nephoran-operator-controller"}[10m])) < 1
+          for: 15m
+          labels:
+            severity: warning
+            component: controller
+          annotations:
+            summary: "Low intent processing rate"
+            description: "Intent processing rate is {{ $value }} intents/sec, which is below expected levels."
+            runbook_url: "https://docs.nephoran.com/runbooks/low-intent-rate"
+        
+        - alert: HighIntentFailureRate
+          expr: |
+            (
+              sum(rate(nephoran_intent_processed_total{job="nephoran-operator-controller", status="failed"}[10m]))
+              /
+              sum(rate(nephoran_intent_processed_total{job="nephoran-operator-controller"}[10m]))
+            ) * 100 > 10
+          for: 10m
+          labels:
+            severity: critical
+            component: controller
+          annotations:
+            summary: "High intent processing failure rate"
+            description: "Intent failure rate is {{ $value | humanizePercentage }}, which is above the 10% threshold."
+            runbook_url: "https://docs.nephoran.com/runbooks/high-intent-failure-rate"
+        
+        - alert: NetworkFunctionDeploymentFailures
+          expr: |
+            sum(rate(nephoran_nf_deployment_total{job="nephoran-operator-nephio-bridge", status="failed"}[10m])) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+            component: nephio-bridge
+          annotations:
+            summary: "Network function deployment failures detected"
+            description: "{{ $value }} network function deployments are failing per second."
+            runbook_url: "https://docs.nephoran.com/runbooks/nf-deployment-failures"
+{{- end }}

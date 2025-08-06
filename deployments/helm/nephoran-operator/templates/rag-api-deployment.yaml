@@ -1,4 +1,4 @@
-{{- if .Values.rag.enabled }}
+{{- if .Values.ragApi.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,8 +6,17 @@ metadata:
   labels:
     {{- include "nephoran-operator.labels" . | nindent 4 }}
     app.kubernetes.io/component: rag-api
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    nephoran.com/component: "rag-api"
+    nephoran.com/version: "{{ .Values.ragApi.image.tag }}"
 spec:
   replicas: {{ .Values.ragApi.replicaCount }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
@@ -17,12 +26,19 @@ spec:
       labels:
         {{- include "nephoran-operator.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: rag-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5001"
+        prometheus.io/path: "/metrics"
     spec:
       {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       serviceAccountName: {{ include "nephoran-operator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.ragApi.podSecurityContext | nindent 8 }}
+      terminationGracePeriodSeconds: 60
       containers:
         - name: rag-api
           image: "{{ .Values.global.imageRegistry }}{{ .Values.ragApi.image.repository }}:{{ .Values.ragApi.image.tag }}"
@@ -33,7 +49,197 @@ spec:
               containerPort: {{ .Values.ragApi.service.targetPort }}
               protocol: TCP
           env:
-            {{- toYaml .Values.ragApi.env | nindent 12 }}
+            # Pod information
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            
+            # Service configuration
+            - name: PORT
+              value: "{{ .Values.ragApi.service.targetPort }}"
+            - name: WORKERS
+              value: "4"
+            - name: WORKER_CLASS
+              value: "uvicorn.workers.UvicornWorker"
+            
+            # Weaviate configuration
+            - name: WEAVIATE_URL
+              value: "http://{{ include "nephoran-operator.fullname" . }}-weaviate:{{ .Values.weaviate.service.port }}"
+            - name: WEAVIATE_GRPC_URL
+              value: "{{ include "nephoran-operator.fullname" . }}-weaviate:{{ .Values.weaviate.service.grpcPort }}"
+            - name: WEAVIATE_TIMEOUT
+              value: "30"
+            - name: WEAVIATE_MAX_CONNECTIONS
+              value: "20"
+            - name: WEAVIATE_RETRIES
+              value: "3"
+            
+            # OpenAI configuration for embeddings
+            - name: OPENAI_API_URL
+              value: "https://api.openai.com/v1"
+            - name: EMBEDDING_MODEL
+              value: "text-embedding-3-large"
+            - name: EMBEDDING_DIMENSIONS
+              value: "1536"
+            - name: EMBEDDING_BATCH_SIZE
+              value: "100"
+            
+            # RAG processing configuration
+            - name: MAX_RESULTS
+              value: "10"
+            - name: MIN_SCORE
+              value: "0.7"
+            - name: ENABLE_HYBRID_SEARCH
+              value: "true"
+            - name: ENABLE_RERANKING
+              value: "true"
+            - name: MAX_CONCURRENT_REQUESTS
+              value: "50"
+            - name: REQUEST_TIMEOUT
+              value: "120"
+            
+            # Caching
+            - name: CACHE_ENABLED
+              value: "true"
+            - name: CACHE_TTL
+              value: "300"
+            - name: CACHE_SIZE
+              value: "1000"
+            
+            # Monitoring
+            - name: ENABLE_METRICS
+              value: "true"
+            - name: ENABLE_TRACING
+              value: "true"
+            - name: JAEGER_ENDPOINT
+              value: "http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
+            - name: OTEL_SERVICE_NAME
+              value: "nephoran-rag-api"
+            - name: OTEL_SERVICE_VERSION
+              value: "{{ .Values.ragApi.image.tag }}"
+            
+            # Security
+            - name: API_KEY_ENABLED
+              value: "false"
+            - name: CORS_ENABLED
+              value: "true"
+            - name: ALLOWED_ORIGINS
+              value: "*"
+            
+            # Logging
+            - name: LOG_LEVEL
+              value: "info"
+            - name: LOG_FORMAT
+              value: "json"
+            
+            # Performance tuning
+            - name: UVLOOP_ENABLED
+              value: "true"
+            - name: CONNECTION_POOL_SIZE
+              value: "100"
+            - name: MAX_OVERFLOW
+              value: "20"
+            
+            {{- if .Values.secrets.external.enabled }}
+            # External secrets for API keys
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.llmCredentials.secretName }}
+                  key: openai_api_key
+            {{- else }}
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openai-credentials
+                  key: apiKey
+            {{- end }}
+          
+          {{- if .Values.ragApi.healthCheck.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.ragApi.healthCheck.livenessProbe.httpGet.path }}
+              port: {{ .Values.ragApi.healthCheck.livenessProbe.httpGet.port }}
+              scheme: {{ .Values.ragApi.healthCheck.livenessProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.ragApi.healthCheck.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.ragApi.healthCheck.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.ragApi.healthCheck.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.ragApi.healthCheck.livenessProbe.failureThreshold }}
+            successThreshold: 1
+          
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.ragApi.healthCheck.readinessProbe.httpGet.path }}
+              port: {{ .Values.ragApi.healthCheck.readinessProbe.httpGet.port }}
+              scheme: {{ .Values.ragApi.healthCheck.readinessProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.ragApi.healthCheck.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.ragApi.healthCheck.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.ragApi.healthCheck.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.ragApi.healthCheck.readinessProbe.failureThreshold }}
+            successThreshold: 1
+          
+          startupProbe:
+            httpGet:
+              path: {{ .Values.ragApi.healthCheck.startupProbe.httpGet.path }}
+              port: {{ .Values.ragApi.healthCheck.startupProbe.httpGet.port }}
+              scheme: {{ .Values.ragApi.healthCheck.startupProbe.httpGet.scheme }}
+            initialDelaySeconds: {{ .Values.ragApi.healthCheck.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.ragApi.healthCheck.startupProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.ragApi.healthCheck.startupProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.ragApi.healthCheck.startupProbe.failureThreshold }}
+            successThreshold: 1
+          {{- end }}
+          
+          securityContext:
+            {{- toYaml .Values.ragApi.securityContext | nindent 12 }}
+          
           resources:
             {{- toYaml .Values.ragApi.resources | nindent 12 }}
+          
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+              readOnly: false
+            - name: cache-volume
+              mountPath: /app/cache
+              readOnly: false
+            - name: config-volume
+              mountPath: /app/config
+              readOnly: true
+      
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 2Gi
+        - name: cache-volume
+          emptyDir:
+            sizeLimit: 1Gi
+        - name: config-volume
+          configMap:
+            name: {{ include "nephoran-operator.fullname" . }}-rag-config
+            defaultMode: 0644
+      
+      {{- with .Values.ragApi.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.ragApi.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      
+      {{- with .Values.ragApi.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
 {{- end }}

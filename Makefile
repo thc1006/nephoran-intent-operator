@@ -22,8 +22,25 @@ build-go: ## Build Go services
 build-rag: ## Build RAG API (placeholder - Python service)
 	@echo "RAG API build complete (Python service)"
 
-test: ## Run tests
+test: ## Run basic tests
 	@go test -v -race -coverprofile=coverage.out ./...
+
+test-comprehensive: ## Run comprehensive Ginkgo v2 test suite with 90%+ coverage
+	@echo "Running comprehensive test suite..."
+	@./scripts/run-comprehensive-tests.sh --type all
+
+test-unit: ## Run unit tests only
+	@./scripts/run-comprehensive-tests.sh --type unit
+
+test-integration: ## Run integration tests only
+	@./scripts/run-comprehensive-tests.sh --type integration
+
+test-performance: ## Run performance tests only
+	@./scripts/run-comprehensive-tests.sh --type performance
+
+test-coverage: ## Generate coverage report
+	@./scripts/run-comprehensive-tests.sh --type unit
+	@echo "Coverage report generated in test-results/coverage/coverage.html"
 
 lint: ## Run golangci-lint
 	@golangci-lint run ./...

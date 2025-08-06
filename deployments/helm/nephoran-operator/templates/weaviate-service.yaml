@@ -1,0 +1,61 @@
+{{- if .Values.weaviate.enabled }}
+---
+# Regular Service for Weaviate
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-weaviate
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: weaviate
+spec:
+  type: {{ .Values.weaviate.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.weaviate.service.port }}
+      targetPort: {{ .Values.weaviate.service.targetPort }}
+      protocol: TCP
+    - name: grpc
+      port: {{ .Values.weaviate.service.grpcPort }}
+      targetPort: {{ .Values.weaviate.service.grpcTargetPort }}
+      protocol: TCP
+  selector:
+    {{- include "nephoran-operator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: weaviate
+
+---
+# Headless Service for StatefulSet
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-weaviate-headless
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: weaviate
+  annotations:
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+    - name: http
+      port: {{ .Values.weaviate.service.port }}
+      targetPort: {{ .Values.weaviate.service.targetPort }}
+      protocol: TCP
+    - name: grpc
+      port: {{ .Values.weaviate.service.grpcPort }}
+      targetPort: {{ .Values.weaviate.service.grpcTargetPort }}
+      protocol: TCP
+    - name: gossip
+      port: {{ .Values.weaviate.config.cluster_gossip_bind_port }}
+      targetPort: {{ .Values.weaviate.config.cluster_gossip_bind_port }}
+      protocol: TCP
+    - name: data
+      port: {{ .Values.weaviate.config.cluster_data_bind_port }}
+      targetPort: {{ .Values.weaviate.config.cluster_data_bind_port }}
+      protocol: TCP
+  selector:
+    {{- include "nephoran-operator.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: weaviate
+{{- end }}
