@@ -71,6 +71,11 @@ type LLMProcessorConfig struct {
 	AdminUsers     []string
 	OperatorUsers  []string
 
+	// TLS Configuration
+	TLSEnabled  bool
+	TLSCertPath string
+	TLSKeyPath  string
+
 	// Secret Management Configuration
 	UseKubernetesSecrets bool
 	SecretNamespace      string
@@ -103,7 +108,7 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 
 		APIKeyRequired: false,
 		CORSEnabled:    true,
-		AllowedOrigins: "*",
+		AllowedOrigins: "", // Security: Default to empty, must be explicitly configured via LLM_ALLOWED_ORIGINS
 
 		RequestTimeout: 30 * time.Second,
 		MaxRequestSize: 1048576, // 1MB
@@ -124,6 +129,10 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 		RequireAuth:   true,
 		AdminUsers:    []string{},
 		OperatorUsers: []string{},
+
+		TLSEnabled:  false,
+		TLSCertPath: "",
+		TLSKeyPath:  "",
 
 		UseKubernetesSecrets: true,
 		SecretNamespace:      "nephoran-system",
@@ -179,7 +188,17 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	}
 	cfg.APIKey = apiKey
 	cfg.CORSEnabled = parseBoolWithDefault("CORS_ENABLED", cfg.CORSEnabled)
-	cfg.AllowedOrigins = getEnvOrDefault("ALLOWED_ORIGINS", cfg.AllowedOrigins)
+	
+	// Parse and validate allowed origins
+	allowedOriginsStr := getEnvOrDefault("LLM_ALLOWED_ORIGINS", cfg.AllowedOrigins)
+	if cfg.CORSEnabled && allowedOriginsStr != "" {
+		parsedOrigins, err := parseAllowedOrigins(allowedOriginsStr)
+		if err != nil {
+			validationErrors = append(validationErrors, fmt.Sprintf("LLM_ALLOWED_ORIGINS: %v", err))
+		} else {
+			cfg.AllowedOrigins = strings.Join(parsedOrigins, ",")
+		}
+	}
 
 	// Performance Configuration
 	cfg.RequestTimeout = parseDurationWithValidation("REQUEST_TIMEOUT", cfg.RequestTimeout, &validationErrors)
@@ -212,6 +231,11 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg.RequireAuth = parseBoolWithDefault("REQUIRE_AUTH", cfg.RequireAuth)
 	cfg.AdminUsers = parseStringSlice(getEnvOrDefault("ADMIN_USERS", ""))
 	cfg.OperatorUsers = parseStringSlice(getEnvOrDefault("OPERATOR_USERS", ""))
+
+	// TLS Configuration
+	cfg.TLSEnabled = parseBoolWithDefault("TLS_ENABLED", cfg.TLSEnabled)
+	cfg.TLSCertPath = getEnvOrDefault("TLS_CERT_PATH", cfg.TLSCertPath)
+	cfg.TLSKeyPath = getEnvOrDefault("TLS_KEY_PATH", cfg.TLSKeyPath)
 
 	// Secret Management Configuration
 	cfg.UseKubernetesSecrets = parseBoolWithDefault("USE_KUBERNETES_SECRETS", cfg.UseKubernetesSecrets)
@@ -247,6 +271,27 @@ func (c *LLMProcessorConfig) Validate() error {
 		errors = append(errors, "API_KEY is required when API key authentication is enabled")
 	}
 
+	// Validate TLS configuration
+	if c.TLSEnabled {
+		if c.TLSCertPath == "" {
+			errors = append(errors, "TLS_CERT_PATH is required when TLS is enabled")
+		}
+		if c.TLSKeyPath == "" {
+			errors = append(errors, "TLS_KEY_PATH is required when TLS is enabled")
+		}
+		// Validate that both cert and key files exist if paths are provided
+		if c.TLSCertPath != "" && c.TLSKeyPath != "" {
+			if err := validateTLSFiles(c.TLSCertPath, c.TLSKeyPath); err != nil {
+				errors = append(errors, fmt.Sprintf("TLS configuration: %v", err))
+			}
+		}
+	} else {
+		// If TLS is disabled but paths are provided, warn about potential misconfiguration
+		if c.TLSCertPath != "" || c.TLSKeyPath != "" {
+			errors = append(errors, "TLS certificate/key paths provided but TLS_ENABLED=false. Set TLS_ENABLED=true to enable TLS")
+		}
+	}
+
 	// Validate logical constraints
 	if c.MaxConcurrentStreams > 1000 {
 		errors = append(errors, "MAX_CONCURRENT_STREAMS should not exceed 1000 for performance reasons")
@@ -258,6 +303,34 @@ func (c *LLMProcessorConfig) Validate() error {
 
 	if c.CircuitBreakerThreshold > 50 {
 		errors = append(errors, "CIRCUIT_BREAKER_THRESHOLD should be reasonable (≤50)")
+	}
+
+	// Validate CORS configuration
+	if c.CORSEnabled {
+		if c.AllowedOrigins == "" {
+			errors = append(errors, "LLM_ALLOWED_ORIGINS must be configured when CORS is enabled")
+		} else {
+			// Parse and validate individual origins
+			origins := strings.Split(c.AllowedOrigins, ",")
+			isProduction := os.Getenv("LLM_ENVIRONMENT") == "production"
+			
+			for _, origin := range origins {
+				origin = strings.TrimSpace(origin)
+				if origin == "" {
+					continue
+				}
+				
+				// Check for wildcard in production
+				if origin == "*" && isProduction {
+					errors = append(errors, "wildcard origin '*' is not allowed in production environments")
+				}
+				
+				// Validate origin format
+				if origin != "*" && !strings.HasPrefix(origin, "http://") && !strings.HasPrefix(origin, "https://") {
+					errors = append(errors, fmt.Sprintf("origin '%s' must start with http:// or https://", origin))
+				}
+			}
+		}
 	}
 
 	// Validate request size limits for security and performance
@@ -430,4 +503,84 @@ func validateRetryBackoff(backoff string) error {
 		}
 	}
 	return fmt.Errorf("invalid retry backoff, must be one of: %s", strings.Join(validBackoffs, ", "))
+}
+
+// parseAllowedOrigins parses and validates a comma-separated list of origins
+func parseAllowedOrigins(originsStr string) ([]string, error) {
+	if strings.TrimSpace(originsStr) == "" {
+		return nil, fmt.Errorf("origins string cannot be empty")
+	}
+
+	origins := strings.Split(originsStr, ",")
+	var validOrigins []string
+	isProduction := os.Getenv("LLM_ENVIRONMENT") == "production"
+
+	for _, origin := range origins {
+		origin = strings.TrimSpace(origin)
+		if origin == "" {
+			continue
+		}
+
+		// Validate origin
+		if err := validateOrigin(origin, isProduction); err != nil {
+			return nil, fmt.Errorf("invalid origin '%s': %w", origin, err)
+		}
+
+		validOrigins = append(validOrigins, origin)
+	}
+
+	if len(validOrigins) == 0 {
+		return nil, fmt.Errorf("no valid origins found")
+	}
+
+	return validOrigins, nil
+}
+
+// validateOrigin validates a single origin
+func validateOrigin(origin string, isProduction bool) error {
+	// Check for wildcard in production
+	if origin == "*" {
+		if isProduction {
+			return fmt.Errorf("wildcard origin '*' is not allowed in production environments")
+		}
+		// Wildcard is allowed in non-production environments
+		return nil
+	}
+
+	// Check protocol
+	if !strings.HasPrefix(origin, "http://") && !strings.HasPrefix(origin, "https://") {
+		return fmt.Errorf("origin must start with http:// or https://")
+	}
+
+	// Check for spaces or other invalid characters
+	if strings.ContainsAny(origin, " \t\n\r") {
+		return fmt.Errorf("origin contains invalid whitespace characters")
+	}
+
+	// Basic validation for malformed URLs
+	if strings.Contains(origin, "..") || strings.HasSuffix(origin, "/") {
+		return fmt.Errorf("origin format is invalid")
+	}
+
+	return nil
+}
+
+func validateTLSFiles(certPath, keyPath string) error {
+	// Check if certificate file exists and is readable
+	if _, err := os.Stat(certPath); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("certificate file does not exist: %s", certPath)
+		}
+		return fmt.Errorf("cannot access certificate file: %v", err)
+	}
+
+	// Check if key file exists and is readable
+	if _, err := os.Stat(keyPath); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("private key file does not exist: %s", keyPath)
+		}
+		return fmt.Errorf("cannot access private key file: %v", err)
+	}
+
+	return nil
 }
