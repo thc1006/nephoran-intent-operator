@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -18,6 +19,11 @@ type CORSMiddleware struct {
 	allowCredentials bool
 	maxAge          int
 	logger          *slog.Logger
+	
+	// Rate limiting for warning logs to prevent resource leaks
+	wildcardWarningMutex sync.RWMutex
+	lastWildcardWarning  time.Time
+	wildcardWarningInterval time.Duration
 }
 
 // CORSConfig holds CORS configuration options
@@ -62,6 +68,9 @@ func NewCORSMiddleware(config CORSConfig, logger *slog.Logger) *CORSMiddleware {
 		allowCredentials: config.AllowCredentials,
 		maxAge:          maxAge,
 		logger:          logger,
+		
+		// Initialize rate limiting for wildcard warnings - limit to once per 5 minutes
+		wildcardWarningInterval: 5 * time.Minute,
 	}
 }
 
@@ -149,10 +158,8 @@ func (c *CORSMiddleware) isOriginAllowed(origin string) bool {
 	
 	for _, allowedOrigin := range c.allowedOrigins {
 		if allowedOrigin == "*" {
-			// Wildcard allowed (should only be in development)
-			c.logger.Warn("Wildcard CORS origin allowed", 
-				slog.String("origin", origin),
-				slog.String("security_warning", "wildcard should only be used in development"))
+			// Rate-limited wildcard warning to prevent log spam
+			c.logWildcardWarning(origin)
 			return true
 		}
 		
@@ -196,4 +203,22 @@ func ValidateConfig(config CORSConfig) error {
 	}
 	
 	return nil
+}
+
+// logWildcardWarning logs wildcard usage warnings with rate limiting to prevent resource leaks
+func (c *CORSMiddleware) logWildcardWarning(origin string) {
+	c.wildcardWarningMutex.Lock()
+	defer c.wildcardWarningMutex.Unlock()
+	
+	now := time.Now()
+	if now.Sub(c.lastWildcardWarning) < c.wildcardWarningInterval {
+		// Skip logging to prevent spam - rate limit exceeded
+		return
+	}
+	
+	c.lastWildcardWarning = now
+	c.logger.Warn("Wildcard CORS origin allowed", 
+		slog.String("origin", origin),
+		slog.String("security_warning", "wildcard should only be used in development"),
+		slog.String("rate_limit", "further warnings suppressed for "+c.wildcardWarningInterval.String()))
 }

@@ -53,6 +53,21 @@ type RBACConfig struct {
 	Permissions   map[string][]string        `json:"permissions"`    // role -> permissions
 }
 
+// Configuration constants for security limits and validation
+const (
+	// Secret file size limits
+	MaxSecretFileSize       = 64 * 1024 // 64KB limit for secret files
+	MinSecretLength         = 16        // Minimum secret length for security
+	MaxSecretLength         = 512       // Maximum secret length to prevent DoS
+	MaxProviderNameLength   = 50        // Maximum provider name length
+	MinJWTSecretLength      = 32        // Minimum JWT secret length
+	
+	// Default configuration values
+	DefaultKeycloakRealm    = "master"  // Default Keycloak realm
+	DefaultTokenTTL         = 24 * 60 * 60 // 24 hours in seconds
+	DefaultRefreshTTL       = 7 * 24 * 60 * 60 // 7 days in seconds
+)
+
 // Permission constants
 const (
 	PermissionCreateIntent    = "intent:create"
@@ -247,8 +262,8 @@ func (c *AuthConfig) validate() error {
 		return fmt.Errorf("JWT_SECRET_KEY is required when authentication is enabled")
 	}
 
-	if len(c.JWTSecretKey) < 32 {
-		return fmt.Errorf("JWT_SECRET_KEY must be at least 32 characters long for security")
+	if len(c.JWTSecretKey) < MinJWTSecretLength {
+		return fmt.Errorf("JWT_SECRET_KEY must be at least %d characters long for security", MinJWTSecretLength)
 	}
 
 	// Check for common weak JWT secrets
@@ -300,7 +315,10 @@ func (c *AuthConfig) validate() error {
 				errs = append(errs, "base_url is required for Keycloak")
 			}
 			if provider.Realm == "" {
-				provider.Realm = "master" // Set default if not specified
+				// Update the provider in the map with default realm
+				updatedProvider := provider
+				updatedProvider.Realm = DefaultKeycloakRealm
+				c.Providers[name] = updatedProvider
 			}
 		case "custom":
 			if provider.AuthURL == "" {
@@ -644,7 +662,7 @@ func getEnvAtomic(key string) string {
 
 // isValidProviderName validates provider name format to prevent injection
 func isValidProviderName(provider string) bool {
-	if len(provider) == 0 || len(provider) > 50 {
+	if len(provider) == 0 || len(provider) > MaxProviderNameLength {
 		return false
 	}
 	
@@ -721,7 +739,7 @@ func readSecretFile(filePath string) (string, error) {
 	}
 	
 	// Check file size limits (prevent reading huge files)
-	if info.Size() > 64*1024 { // 64KB limit for secret files
+	if info.Size() > MaxSecretFileSize {
 		return "", fmt.Errorf("secret file too large")
 	}
 	
@@ -761,13 +779,13 @@ func validateSecretContent(secret string) error {
 	}
 	
 	// Check minimum length for security
-	if len(secret) < 16 {
-		return fmt.Errorf("secret too short, minimum 16 characters required")
+	if len(secret) < MinSecretLength {
+		return fmt.Errorf("secret too short, minimum %d characters required", MinSecretLength)
 	}
 	
 	// Check maximum length to prevent potential DoS
-	if len(secret) > 512 {
-		return fmt.Errorf("secret too long, maximum 512 characters allowed")
+	if len(secret) > MaxSecretLength {
+		return fmt.Errorf("secret too long, maximum %d characters allowed", MaxSecretLength)
 	}
 	
 	// Check for common weak patterns
@@ -841,8 +859,8 @@ func validateOAuth2ClientSecret(provider, secret string) error {
 	// Provider-specific validation
 	switch provider {
 	case "azure":
-		// Azure client secrets should be at least 16 characters
-		if len(secret) < 16 {
+		// Azure client secrets should be at least minimum length
+		if len(secret) < MinSecretLength {
 			return fmt.Errorf("secret too short")
 		}
 		// Azure secrets often contain special characters
@@ -855,8 +873,8 @@ func validateOAuth2ClientSecret(provider, secret string) error {
 		}
 		
 	case "keycloak":
-		// Keycloak secrets are UUID-like or random strings
-		if len(secret) < 32 {
+		// Keycloak secrets are UUID-like or random strings - require longer minimum
+		if len(secret) < MinJWTSecretLength {
 			return fmt.Errorf("secret too short")
 		}
 		
@@ -868,7 +886,7 @@ func validateOAuth2ClientSecret(provider, secret string) error {
 		
 	default:
 		// Generic validation for custom providers
-		if len(secret) < 16 {
+		if len(secret) < MinSecretLength {
 			return fmt.Errorf("secret too short")
 		}
 	}
