@@ -640,6 +640,29 @@ kubectl apply -k deployments/kustomize/overlays/production
 
 For detailed OAuth2 configuration, see the [OAuth2 Authentication Guide](docs/OAuth2-Authentication-Guide.md).
 
+### CORS Security Configuration
+
+The Nephoran Intent Operator includes comprehensive Cross-Origin Resource Sharing (CORS) security controls to protect against unauthorized cross-origin requests. CORS is configured through the `LLM_ALLOWED_ORIGINS` environment variable with different defaults for development and production environments.
+
+**Quick CORS Configuration:**
+
+```bash
+# Production (HTTPS required)
+export LLM_ALLOWED_ORIGINS="https://app.nephoran.com,https://dashboard.nephoran.com"
+
+# Development (HTTP allowed)
+export LLM_ALLOWED_ORIGINS="http://localhost:3000,http://localhost:8080"
+```
+
+**Security Features:**
+- ✅ **Environment-aware defaults**: Secure defaults for production and development environments
+- ✅ **Wildcard blocking**: Wildcard origins (`*`) are automatically blocked in production
+- ✅ **Strict validation**: All origins must include valid schemes (http/https) and no trailing slashes
+- ✅ **Production enforcement**: HTTPS enforcement and comprehensive security monitoring
+- ✅ **Zero-configuration security**: Secure defaults eliminate configuration risks
+
+For detailed CORS configuration, troubleshooting, and security best practices, see the [CORS Security Configuration Guide](docs/CORS-Security-Configuration-Guide.md).
+
 ## Observability and Monitoring
 
 The Nephoran Intent Operator includes a comprehensive observability stack with Prometheus, Alertmanager, and Grafana for monitoring all system components.

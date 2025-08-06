@@ -42,14 +42,14 @@ func TestDefaultLLMProcessorConfig(t *testing.T) {
 	// Security Configuration
 	assert.False(t, cfg.APIKeyRequired)
 	assert.True(t, cfg.CORSEnabled)
-	assert.Equal(t, "*", cfg.AllowedOrigins)
+	assert.Equal(t, []string{}, cfg.AllowedOrigins) // Default to empty for security
 
 	// Performance Configuration
 	assert.Equal(t, 30*time.Second, cfg.RequestTimeout)
 	assert.Equal(t, int64(1048576), cfg.MaxRequestSize)
 
 	// OAuth2 Authentication Configuration
-	assert.False(t, cfg.AuthEnabled)
+	assert.True(t, cfg.AuthEnabled)
 	assert.True(t, cfg.RequireAuth)
 	assert.Empty(t, cfg.AdminUsers)
 	assert.Empty(t, cfg.OperatorUsers)
@@ -404,6 +404,381 @@ func TestLLMProcessorConfig_Validate_MultipleErrors(t *testing.T) {
 	assert.Contains(t, errMsg, "CIRCUIT_BREAKER_THRESHOLD should be reasonable (≤50)")
 }
 
+func TestLLMProcessorConfig_Validate_CORS(t *testing.T) {
+	tests := []struct {
+		name        string
+		setupConfig func() *LLMProcessorConfig
+		setupEnv    func(t *testing.T)
+		description string
+		wantErr     bool
+		errMsg      string
+	}{
+		{
+			name: "CORS disabled - no origins required",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.AuthEnabled = false
+				cfg.CORSEnabled = false
+				cfg.AllowedOrigins = []string{}
+				return cfg
+			},
+			description: "CORS disabled should not require allowed origins",
+			wantErr:     false,
+		},
+		{
+			name: "CORS enabled with valid origins",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.AuthEnabled = false
+				cfg.CORSEnabled = true
+				cfg.AllowedOrigins = []string{"https://example.com", "http://localhost:3000"}
+				return cfg
+			},
+			description: "CORS enabled with valid origins should be valid",
+			wantErr:     false,
+		},
+		{
+			name: "CORS enabled but no origins configured",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.AuthEnabled = false
+				cfg.CORSEnabled = true
+				cfg.AllowedOrigins = []string{}
+				return cfg
+			},
+			description: "CORS enabled without origins should be invalid",
+			wantErr:     true,
+			errMsg:      "LLM_ALLOWED_ORIGINS must be configured when CORS is enabled",
+		},
+		{
+			name: "CORS enabled with wildcard in non-production",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.AuthEnabled = false
+				cfg.CORSEnabled = true
+				cfg.AllowedOrigins = []string{"*"}
+				return cfg
+			},
+			setupEnv: func(t *testing.T) {
+				os.Setenv("LLM_ENVIRONMENT", "development")
+				t.Cleanup(func() { os.Unsetenv("LLM_ENVIRONMENT") })
+			},
+			description: "CORS enabled with wildcard in development should be valid",
+			wantErr:     false,
+		},
+		{
+			name: "CORS enabled with wildcard in production",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.AuthEnabled = false
+				cfg.CORSEnabled = true
+				cfg.AllowedOrigins = []string{"*"}
+				return cfg
+			},
+			setupEnv: func(t *testing.T) {
+				os.Setenv("LLM_ENVIRONMENT", "production")
+				t.Cleanup(func() { os.Unsetenv("LLM_ENVIRONMENT") })
+			},
+			description: "CORS enabled with wildcard in production should be invalid",
+			wantErr:     true,
+			errMsg:      "wildcard origin '*' is not allowed in production environments",
+		},
+		{
+			name: "CORS enabled with invalid origin format",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.AuthEnabled = false
+				cfg.CORSEnabled = true
+				cfg.AllowedOrigins = []string{"invalid-origin", "https://valid.com"}
+				return cfg
+			},
+			description: "CORS enabled with invalid origin format should be invalid",
+			wantErr:     true,
+			errMsg:      "origin 'invalid-origin' must start with http:// or https://",
+		},
+		{
+			name: "CORS enabled with partial wildcard",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.AuthEnabled = false
+				cfg.CORSEnabled = true
+				cfg.AllowedOrigins = []string{"https://*.example.com"}
+				return cfg
+			},
+			description: "CORS enabled with partial wildcard should be invalid",
+			wantErr:     true,
+			errMsg:      "origin 'https://*.example.com' contains wildcard but is not exact wildcard '*'",
+		},
+		{
+			name: "CORS enabled with empty origin in list",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.AuthEnabled = false
+				cfg.CORSEnabled = true
+				cfg.AllowedOrigins = []string{"https://valid.com", "", "http://localhost:3000"}
+				return cfg
+			},
+			description: "CORS enabled with empty origin in list should be valid (empty entries ignored)",
+			wantErr:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupEnv != nil {
+				tt.setupEnv(t)
+			}
+
+			cfg := tt.setupConfig()
+			err := cfg.Validate()
+
+			if tt.wantErr {
+				assert.Error(t, err, tt.description)
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg, tt.description)
+				}
+			} else {
+				assert.NoError(t, err, tt.description)
+			}
+		})
+	}
+}
+
+func TestParseAllowedOrigins(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		setupEnv    func(t *testing.T)
+		expected    []string
+		wantErr     bool
+		errMsg      string
+		description string
+	}{
+		{
+			name:        "single valid origin",
+			input:       "https://example.com",
+			expected:    []string{"https://example.com"},
+			wantErr:     false,
+			description: "Single valid HTTPS origin should parse correctly",
+		},
+		{
+			name:        "multiple valid origins",
+			input:       "https://example.com,http://localhost:3000,https://app.company.com",
+			expected:    []string{"https://example.com", "http://localhost:3000", "https://app.company.com"},
+			wantErr:     false,
+			description: "Multiple valid origins should parse correctly",
+		},
+		{
+			name:        "origins with spaces",
+			input:       "https://example.com, http://localhost:3000 , https://app.company.com",
+			expected:    []string{"https://example.com", "http://localhost:3000", "https://app.company.com"},
+			wantErr:     false,
+			description: "Origins with spaces should be trimmed correctly",
+		},
+		{
+			name:        "wildcard in development",
+			input:       "*",
+			setupEnv: func(t *testing.T) {
+				os.Setenv("LLM_ENVIRONMENT", "development")
+				t.Cleanup(func() { os.Unsetenv("LLM_ENVIRONMENT") })
+			},
+			expected:    []string{"*"},
+			wantErr:     false,
+			description: "Wildcard should be allowed in development environment",
+		},
+		{
+			name:        "wildcard in production",
+			input:       "*",
+			setupEnv: func(t *testing.T) {
+				os.Setenv("LLM_ENVIRONMENT", "production")
+				t.Cleanup(func() { os.Unsetenv("LLM_ENVIRONMENT") })
+			},
+			wantErr:     true,
+			errMsg:      "wildcard origin '*' is not allowed in production environments",
+			description: "Wildcard should be rejected in production environment",
+		},
+		{
+			name:        "empty string",
+			input:       "",
+			wantErr:     true,
+			errMsg:      "origins string cannot be empty",
+			description: "Empty string should be rejected",
+		},
+		{
+			name:        "only whitespace",
+			input:       "   ",
+			wantErr:     true,
+			errMsg:      "origins string cannot be empty",
+			description: "Whitespace-only string should be rejected",
+		},
+		{
+			name:        "invalid origin format",
+			input:       "invalid-origin,https://valid.com",
+			wantErr:     true,
+			errMsg:      "invalid origin 'invalid-origin': origin must start with http:// or https://",
+			description: "Invalid origin format should be rejected",
+		},
+		{
+			name:        "origins with empty values",
+			input:       "https://example.com,,http://localhost:3000,",
+			expected:    []string{"https://example.com", "http://localhost:3000"},
+			wantErr:     false,
+			description: "Empty values in list should be ignored",
+		},
+		{
+			name:        "partial wildcard",
+			input:       "https://*.example.com",
+			wantErr:     true,
+			errMsg:      "origin contains wildcard but is not exact wildcard '*'",
+			description: "Partial wildcards should be rejected",
+		},
+		{
+			name:        "origin with whitespace characters",
+			input:       "https://example .com",
+			wantErr:     true,
+			errMsg:      "origin contains invalid whitespace characters",
+			description: "Origins with whitespace should be rejected",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.setupEnv != nil {
+				tt.setupEnv(t)
+			}
+
+			result, err := parseAllowedOrigins(tt.input)
+
+			if tt.wantErr {
+				assert.Error(t, err, tt.description)
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg, tt.description)
+				}
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err, tt.description)
+				assert.Equal(t, tt.expected, result, tt.description)
+			}
+		})
+	}
+}
+
+func TestLoadLLMProcessorConfig_CORSConfiguration(t *testing.T) {
+	tests := []struct {
+		name        string
+		envVars     map[string]string
+		description string
+		wantErr     bool
+		errMsg      string
+		checkConfig func(t *testing.T, cfg *LLMProcessorConfig)
+	}{
+		{
+			name: "CORS disabled via environment",
+			envVars: map[string]string{
+				"LLM_BACKEND_TYPE": "mock",
+				"AUTH_ENABLED":     "false",
+				"CORS_ENABLED":     "false",
+			},
+			description: "CORS disabled should not require origins",
+			wantErr:     false,
+			checkConfig: func(t *testing.T, cfg *LLMProcessorConfig) {
+				assert.False(t, cfg.CORSEnabled)
+				assert.Equal(t, []string{}, cfg.AllowedOrigins)
+			},
+		},
+		{
+			name: "CORS enabled with valid origins from environment",
+			envVars: map[string]string{
+				"LLM_BACKEND_TYPE":    "mock",
+				"AUTH_ENABLED":        "false",
+				"CORS_ENABLED":        "true",
+				"LLM_ALLOWED_ORIGINS": "https://example.com,http://localhost:3000",
+			},
+			description: "CORS enabled with valid origins should load correctly",
+			wantErr:     false,
+			checkConfig: func(t *testing.T, cfg *LLMProcessorConfig) {
+				assert.True(t, cfg.CORSEnabled)
+				assert.Equal(t, []string{"https://example.com", "http://localhost:3000"}, cfg.AllowedOrigins)
+			},
+		},
+		{
+			name: "CORS enabled without origins in development",
+			envVars: map[string]string{
+				"LLM_BACKEND_TYPE": "mock",
+				"AUTH_ENABLED":     "false",
+				"CORS_ENABLED":     "true",
+				"GO_ENV":           "development",
+			},
+			description: "CORS enabled without origins in development should use default localhost origins",
+			wantErr:     false,
+			checkConfig: func(t *testing.T, cfg *LLMProcessorConfig) {
+				assert.True(t, cfg.CORSEnabled)
+				assert.Equal(t, []string{"http://localhost:3000", "http://localhost:8080"}, cfg.AllowedOrigins)
+			},
+		},
+		{
+			name: "CORS enabled without origins in production",
+			envVars: map[string]string{
+				"LLM_BACKEND_TYPE":  "mock",
+				"AUTH_ENABLED":      "false",
+				"CORS_ENABLED":      "true",
+				"LLM_ENVIRONMENT":   "production",
+			},
+			description: "CORS enabled without origins in production should fail validation",
+			wantErr:     true,
+			errMsg:      "LLM_ALLOWED_ORIGINS must be configured when CORS is enabled",
+		},
+		{
+			name: "CORS enabled with invalid origins from environment",
+			envVars: map[string]string{
+				"LLM_BACKEND_TYPE":    "mock",
+				"AUTH_ENABLED":        "false",
+				"CORS_ENABLED":        "true",
+				"LLM_ALLOWED_ORIGINS": "invalid-origin,https://valid.com",
+			},
+			description: "CORS enabled with invalid origins should fail validation",
+			wantErr:     true,
+			errMsg:      "LLM_ALLOWED_ORIGINS: invalid origin 'invalid-origin'",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clean environment
+			cleanupLLMProcessorEnv(t)
+
+			// Set test environment variables
+			for key, value := range tt.envVars {
+				os.Setenv(key, value)
+			}
+
+			cfg, err := LoadLLMProcessorConfig()
+
+			if tt.wantErr {
+				assert.Error(t, err, tt.description)
+				assert.Nil(t, cfg)
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg, tt.description)
+				}
+			} else {
+				assert.NoError(t, err, tt.description)
+				assert.NotNil(t, cfg)
+				if tt.checkConfig != nil {
+					tt.checkConfig(t, cfg)
+				}
+			}
+		})
+	}
+}
+
 func TestLoadLLMProcessorConfig_ValidConfiguration(t *testing.T) {
 	// Clean environment
 	cleanupLLMProcessorEnv(t)
@@ -442,7 +817,7 @@ func TestLoadLLMProcessorConfig_EnvironmentOverrides(t *testing.T) {
 		"CONTEXT_TTL":                 "10m",
 		"API_KEY_REQUIRED":            "true",
 		"CORS_ENABLED":                "false",
-		"ALLOWED_ORIGINS":             "http://localhost:3000",
+		"LLM_ALLOWED_ORIGINS":         "http://localhost:3000",
 		"REQUEST_TIMEOUT":             "60s",
 		"MAX_REQUEST_SIZE":            "2097152",
 		"CIRCUIT_BREAKER_ENABLED":     "false",
@@ -490,7 +865,7 @@ func TestLoadLLMProcessorConfig_EnvironmentOverrides(t *testing.T) {
 	assert.Equal(t, 10*time.Minute, cfg.ContextTTL)
 	assert.True(t, cfg.APIKeyRequired)
 	assert.False(t, cfg.CORSEnabled)
-	assert.Equal(t, "http://localhost:3000", cfg.AllowedOrigins)
+	assert.Equal(t, []string{}, cfg.AllowedOrigins) // CORS disabled, so empty
 	assert.Equal(t, 60*time.Second, cfg.RequestTimeout)
 	assert.Equal(t, int64(2097152), cfg.MaxRequestSize)
 	assert.False(t, cfg.CircuitBreakerEnabled)
@@ -627,6 +1002,401 @@ func TestParseStringSlice(t *testing.T) {
 	}
 }
 
+func TestLLMProcessorConfig_TLSConfiguration(t *testing.T) {
+	tests := []struct {
+		name        string
+		setupConfig func() *LLMProcessorConfig
+		setupFiles  func(t *testing.T) (certPath, keyPath string, cleanup func())
+		description string
+		wantErr     bool
+		errMsg      string
+	}{
+		{
+			name: "TLS disabled - no certificates required",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.TLSEnabled = false
+				cfg.TLSCertPath = ""
+				cfg.TLSKeyPath = ""
+				return cfg
+			},
+			setupFiles:  nil,
+			description: "TLS disabled should not require certificate files",
+			wantErr:     false,
+		},
+		{
+			name: "TLS enabled with valid certificates",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.TLSEnabled = true
+				return cfg
+			},
+			setupFiles: func(t *testing.T) (certPath, keyPath string, cleanup func()) {
+				return createTestTLSFiles(t)
+			},
+			description: "TLS enabled with valid certificate files should be valid",
+			wantErr:     false,
+		},
+		{
+			name: "TLS enabled but missing certificate path",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.TLSEnabled = true
+				cfg.TLSCertPath = ""
+				cfg.TLSKeyPath = "/path/to/key.pem"
+				return cfg
+			},
+			setupFiles:  nil,
+			description: "TLS enabled but missing certificate path should be invalid",
+			wantErr:     true,
+			errMsg:      "TLS_CERT_PATH is required when TLS is enabled",
+		},
+		{
+			name: "TLS enabled but missing key path",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.TLSEnabled = true
+				cfg.TLSCertPath = "/path/to/cert.pem"
+				cfg.TLSKeyPath = ""
+				return cfg
+			},
+			setupFiles:  nil,
+			description: "TLS enabled but missing key path should be invalid",
+			wantErr:     true,
+			errMsg:      "TLS_KEY_PATH is required when TLS is enabled",
+		},
+		{
+			name: "TLS enabled with non-existent certificate file",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.TLSEnabled = true
+				cfg.TLSCertPath = "/non/existent/cert.pem"
+				cfg.TLSKeyPath = "/non/existent/key.pem"
+				return cfg
+			},
+			setupFiles:  nil,
+			description: "TLS enabled with non-existent certificate file should be invalid",
+			wantErr:     true,
+			errMsg:      "certificate file does not exist",
+		},
+		{
+			name: "TLS enabled with non-existent key file",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.TLSEnabled = true
+				return cfg
+			},
+			setupFiles: func(t *testing.T) (certPath, keyPath string, cleanup func()) {
+				certPath, _, cleanup = createTestTLSFiles(t)
+				keyPath = "/non/existent/key.pem"
+				return
+			},
+			description: "TLS enabled with non-existent key file should be invalid",
+			wantErr:     true,
+			errMsg:      "private key file does not exist",
+		},
+		{
+			name: "TLS disabled but certificate paths provided",
+			setupConfig: func() *LLMProcessorConfig {
+				cfg := DefaultLLMProcessorConfig()
+				cfg.LLMBackendType = "mock"
+				cfg.TLSEnabled = false
+				cfg.TLSCertPath = "/path/to/cert.pem"
+				cfg.TLSKeyPath = "/path/to/key.pem"
+				return cfg
+			},
+			setupFiles:  nil,
+			description: "TLS disabled but certificate paths provided should warn about misconfiguration",
+			wantErr:     true,
+			errMsg:      "TLS certificate/key paths provided but TLS_ENABLED=false",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := tt.setupConfig()
+
+			// Setup test files if needed
+			var cleanup func()
+			if tt.setupFiles != nil {
+				certPath, keyPath, cleanupFunc := tt.setupFiles(t)
+				cfg.TLSCertPath = certPath
+				cfg.TLSKeyPath = keyPath
+				cleanup = cleanupFunc
+			}
+
+			// Ensure cleanup happens
+			if cleanup != nil {
+				defer cleanup()
+			}
+
+			err := cfg.Validate()
+
+			if tt.wantErr {
+				assert.Error(t, err, tt.description)
+				assert.Contains(t, err.Error(), tt.errMsg, tt.description)
+			} else {
+				assert.NoError(t, err, tt.description)
+			}
+		})
+	}
+}
+
+func TestLoadLLMProcessorConfig_TLSFromEnvironment(t *testing.T) {
+	tests := []struct {
+		name        string
+		envVars     map[string]string
+		setupFiles  func(t *testing.T) (certPath, keyPath string, cleanup func())
+		description string
+		wantErr     bool
+		errMsg      string
+		checkConfig func(t *testing.T, cfg *LLMProcessorConfig)
+	}{
+		{
+			name: "TLS configuration loaded from environment - disabled",
+			envVars: map[string]string{
+				"LLM_BACKEND_TYPE": "mock",
+				"TLS_ENABLED":      "false",
+			},
+			setupFiles:  nil,
+			description: "TLS disabled via environment should be loaded correctly",
+			wantErr:     false,
+			checkConfig: func(t *testing.T, cfg *LLMProcessorConfig) {
+				assert.False(t, cfg.TLSEnabled)
+				assert.Empty(t, cfg.TLSCertPath)
+				assert.Empty(t, cfg.TLSKeyPath)
+			},
+		},
+		{
+			name: "TLS configuration loaded from environment - enabled with valid paths",
+			envVars: map[string]string{
+				"LLM_BACKEND_TYPE": "mock",
+				"TLS_ENABLED":      "true",
+			},
+			setupFiles: func(t *testing.T) (certPath, keyPath string, cleanup func()) {
+				return createTestTLSFiles(t)
+			},
+			description: "TLS enabled via environment with valid files should be loaded correctly",
+			wantErr:     false,
+			checkConfig: func(t *testing.T, cfg *LLMProcessorConfig) {
+				assert.True(t, cfg.TLSEnabled)
+				assert.NotEmpty(t, cfg.TLSCertPath)
+				assert.NotEmpty(t, cfg.TLSKeyPath)
+			},
+		},
+		{
+			name: "TLS enabled via environment but missing certificate file",
+			envVars: map[string]string{
+				"LLM_BACKEND_TYPE": "mock",
+				"TLS_ENABLED":      "true",
+				"TLS_CERT_PATH":    "/non/existent/cert.pem",
+				"TLS_KEY_PATH":     "/non/existent/key.pem",
+			},
+			setupFiles:  nil,
+			description: "TLS enabled but missing certificate files should fail validation",
+			wantErr:     true,
+			errMsg:      "certificate file does not exist",
+		},
+		{
+			name: "TLS configuration with empty paths when enabled",
+			envVars: map[string]string{
+				"LLM_BACKEND_TYPE": "mock",
+				"TLS_ENABLED":      "true",
+				"TLS_CERT_PATH":    "",
+				"TLS_KEY_PATH":     "",
+			},
+			setupFiles:  nil,
+			description: "TLS enabled but empty paths should fail validation",
+			wantErr:     true,
+			errMsg:      "TLS_CERT_PATH is required when TLS is enabled",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clean environment
+			cleanupLLMProcessorEnv(t)
+
+			// Set base environment variables
+			for key, value := range tt.envVars {
+				os.Setenv(key, value)
+			}
+
+			// Setup test files if needed
+			var cleanup func()
+			if tt.setupFiles != nil {
+				certPath, keyPath, cleanupFunc := tt.setupFiles(t)
+				os.Setenv("TLS_CERT_PATH", certPath)
+				os.Setenv("TLS_KEY_PATH", keyPath)
+				cleanup = cleanupFunc
+			}
+
+			// Ensure cleanup happens
+			if cleanup != nil {
+				defer cleanup()
+			}
+
+			cfg, err := LoadLLMProcessorConfig()
+
+			if tt.wantErr {
+				assert.Error(t, err, tt.description)
+				assert.Nil(t, cfg)
+				assert.Contains(t, err.Error(), tt.errMsg, tt.description)
+			} else {
+				assert.NoError(t, err, tt.description)
+				assert.NotNil(t, cfg)
+				if tt.checkConfig != nil {
+					tt.checkConfig(t, cfg)
+				}
+			}
+		})
+	}
+}
+
+func TestValidateTLSFiles(t *testing.T) {
+	tests := []struct {
+		name        string
+		setupFiles  func(t *testing.T) (certPath, keyPath string, cleanup func())
+		description string
+		wantErr     bool
+		errMsg      string
+	}{
+		{
+			name: "valid certificate and key files",
+			setupFiles: func(t *testing.T) (certPath, keyPath string, cleanup func()) {
+				return createTestTLSFiles(t)
+			},
+			description: "Valid certificate and key files should pass validation",
+			wantErr:     false,
+		},
+		{
+			name: "non-existent certificate file",
+			setupFiles: func(t *testing.T) (certPath, keyPath string, cleanup func()) {
+				_, keyPath, cleanup = createTestTLSFiles(t)
+				certPath = "/non/existent/cert.pem"
+				return
+			},
+			description: "Non-existent certificate file should fail validation",
+			wantErr:     true,
+			errMsg:      "certificate file does not exist",
+		},
+		{
+			name: "non-existent key file",
+			setupFiles: func(t *testing.T) (certPath, keyPath string, cleanup func()) {
+				certPath, _, cleanup = createTestTLSFiles(t)
+				keyPath = "/non/existent/key.pem"
+				return
+			},
+			description: "Non-existent key file should fail validation",
+			wantErr:     true,
+			errMsg:      "private key file does not exist",
+		},
+		{
+			name: "empty certificate path",
+			setupFiles: func(t *testing.T) (certPath, keyPath string, cleanup func()) {
+				_, keyPath, cleanup = createTestTLSFiles(t)
+				certPath = ""
+				return
+			},
+			description: "Empty certificate path should fail validation",
+			wantErr:     true,
+			errMsg:      "certificate file does not exist",
+		},
+		{
+			name: "empty key path",
+			setupFiles: func(t *testing.T) (certPath, keyPath string, cleanup func()) {
+				certPath, _, cleanup = createTestTLSFiles(t)
+				keyPath = ""
+				return
+			},
+			description: "Empty key path should fail validation",
+			wantErr:     true,
+			errMsg:      "private key file does not exist",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			certPath, keyPath, cleanup := tt.setupFiles(t)
+			if cleanup != nil {
+				defer cleanup()
+			}
+
+			err := validateTLSFiles(certPath, keyPath)
+
+			if tt.wantErr {
+				assert.Error(t, err, tt.description)
+				assert.Contains(t, err.Error(), tt.errMsg, tt.description)
+			} else {
+				assert.NoError(t, err, tt.description)
+			}
+		})
+	}
+}
+
+func TestDefaultLLMProcessorConfig_TLSDefaults(t *testing.T) {
+	cfg := DefaultLLMProcessorConfig()
+
+	// TLS Configuration defaults
+	assert.False(t, cfg.TLSEnabled, "TLS should be disabled by default")
+	assert.Empty(t, cfg.TLSCertPath, "TLS certificate path should be empty by default")
+	assert.Empty(t, cfg.TLSKeyPath, "TLS key path should be empty by default")
+}
+
+// createTestTLSFiles creates temporary certificate and key files for testing
+func createTestTLSFiles(t *testing.T) (certPath, keyPath string, cleanup func()) {
+	// Create temporary directory
+	tmpDir := t.TempDir()
+
+	// Create certificate file
+	certPath = tmpDir + "/server.crt"
+	certContent := `-----BEGIN CERTIFICATE-----
+MIICljCCAX4CCQCKOtxqIPjM9TANBgkqhkiG9w0BAQsFADCBjTELMAkGA1UEBhMC
+VVMxEzARBgNVBAgMClNvbWUtU3RhdGUxITAfBgNVBAoMGEludGVybmV0IFdpZGdp
+dHMgUHR5IEx0ZDEQMA4GA1UEAwwHdGVzdC1jYTEqMCgGCSqGSIb3DQEJARYbdGVz
+dEBleGFtcGxlLmNvbTEEDAJVUzELMAkGA1UEBhMCVVMwHhcNMjQwMTAxMDAwMDAw
+WhcNMjUwMTAxMDAwMDAwWjCBjTELMAkGA1UEBhMCVVMxEzARBgNVBAgMClNvbWUt
+U3RhdGUxITAfBgNVBAoMGEludGVybmV0IFdpZGdpdHMgUHR5IEx0ZDEQMA4GA1UE
+AwwHdGVzdC1jYTEqMCgGCSqGSIb3DQEJARYbdGVzdEBleGFtcGxlLmNvbTEEDAJV
+UzELMAkGA1UEBhMCVVMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC7
+-----END CERTIFICATE-----`
+
+	keyPath = tmpDir + "/server.key"
+	keyContent := `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKB
+wkG6oQQVduafWaNAe506lunHHH2xLDqxB3ISsOgTFVjrdwqz4F9S4kKO2KYzOGZh
+oQQiCjRGD5mPjDfSKt9vq6ZV2V3xm1qhU8lXJ8kYgZLB0+9q1m9tQ9qxBgkqhkiG
+9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us8cKBwkG6oQQVduafWaNAe506
+lunHHH2xLDqxB3ISsOgTFVjrdwqz4F9S4kKO2KYzOGZhoQQiCjRGD5mPjDfSKt9v
+q6ZV2V3xm1qhU8lXJ8kYgZLB0+9q1m9tQ9qxBgkqhkiG9w0BAQEFAASCBKcwggSj
+AgEAAoIBAQC7VJTUt9Us8cKBwkG6oQQVduafWaNAe506lunHHH2xLDqxB3ISsOgT
+FVjrdwqz4F9S4kKO2KYzOGZhoQQiCjRGD5mPjDfSKt9vq6ZV2V3xm1qhU8lXJ8kY
+gZLB0+9q1m9tQ9qxBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7VJTUt9Us
+8cKBwkG6oQQVduafWaNAe506lunHHH2xLDqxB3ISsOgTFVjrdwqz4F9S4kKO2KYz
+OGZhoQQiCjRGD5mPjDfSKt9vq6ZV2V3xm1qhU8lXJ8kYgZLB0+9q1m9tQ9qx
+-----END PRIVATE KEY-----`
+
+	// Write certificate file
+	err := os.WriteFile(certPath, []byte(certContent), 0644)
+	require.NoError(t, err)
+
+	// Write key file
+	err = os.WriteFile(keyPath, []byte(keyContent), 0600)
+	require.NoError(t, err)
+
+	cleanup = func() {
+		os.RemoveAll(tmpDir)
+	}
+
+	return certPath, keyPath, cleanup
+}
+
 // cleanupLLMProcessorEnv cleans up LLM processor specific environment variables
 func cleanupLLMProcessorEnv(t *testing.T) {
 	envVars := []string{
@@ -651,7 +1421,7 @@ func cleanupLLMProcessorEnv(t *testing.T) {
 		"API_KEY_REQUIRED",
 		"API_KEY",
 		"CORS_ENABLED",
-		"ALLOWED_ORIGINS",
+		"LLM_ALLOWED_ORIGINS",
 		"REQUEST_TIMEOUT",
 		"MAX_REQUEST_SIZE",
 		"CIRCUIT_BREAKER_ENABLED",
@@ -669,8 +1439,18 @@ func cleanupLLMProcessorEnv(t *testing.T) {
 		"REQUIRE_AUTH",
 		"ADMIN_USERS",
 		"OPERATOR_USERS",
+		"TLS_ENABLED",
+		"TLS_CERT_PATH",
+		"TLS_KEY_PATH",
 		"USE_KUBERNETES_SECRETS",
 		"SECRET_NAMESPACE",
+		// Environment detection variables (used by isDevelopmentEnvironment())
+		"GO_ENV",
+		"NODE_ENV", 
+		"ENVIRONMENT",
+		"ENV",
+		"APP_ENV",
+		"LLM_ENVIRONMENT",
 	}
 
 	for _, envVar := range envVars {
