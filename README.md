@@ -272,6 +272,18 @@ spec:
 - **[Operator Manual](docs/OPERATOR-MANUAL.md)**: Production deployment and operations
 - **[API Reference](docs/API_REFERENCE.md)**: Complete REST and gRPC API documentation
 
+### 📁 Archive Directory
+The **[archive/](archive/)** directory contains example YAML configurations and reference files that support the quickstart guides and documentation. These files serve multiple purposes:
+- **Example Configurations**: Ready-to-use YAML files for testing NetworkIntent resources
+- **Quickstart Support**: Referenced by automated setup scripts for demonstration purposes  
+- **Educational Resources**: Preserved examples for learning the intent specification format
+- **Backward Compatibility**: Historical examples maintained for reference
+
+Key files include:
+- `my-first-intent.yaml`: Basic NetworkIntent example for getting started
+- `test-deployment.yaml`: Sample deployment configuration for testing
+- `test-networkintent.yaml`: Advanced NetworkIntent with comprehensive specifications
+
 ### 📖 Advanced Topics
 - **[O-RAN Compliance Certification](docs/ORAN-COMPLIANCE-CERTIFICATION.md)**: Standards compliance details
 - **[Security Implementation](docs/SECURITY-IMPLEMENTATION.md)**: Enterprise security features
