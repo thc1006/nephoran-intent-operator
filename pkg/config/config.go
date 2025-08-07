@@ -44,6 +44,76 @@ type Config struct {
 	// Kubernetes configuration
 	Namespace string
 	CRDPath   string
+
+	// mTLS Configuration
+	MTLSConfig *MTLSConfig
+}
+
+// MTLSConfig holds mTLS-specific configuration
+type MTLSConfig struct {
+	// Global mTLS settings
+	Enabled             bool   `yaml:"enabled"`
+	RequireClientCerts  bool   `yaml:"require_client_certs"`
+	TenantID           string `yaml:"tenant_id"`
+	
+	// Certificate Authority settings
+	CAManagerEnabled    bool   `yaml:"ca_manager_enabled"`
+	AutoProvision      bool   `yaml:"auto_provision"`
+	PolicyTemplate     string `yaml:"policy_template"`
+	
+	// Certificate paths and settings
+	CertificateBaseDir string        `yaml:"certificate_base_dir"`
+	ValidityDuration   time.Duration `yaml:"validity_duration"`
+	RenewalThreshold   time.Duration `yaml:"renewal_threshold"`
+	RotationEnabled    bool          `yaml:"rotation_enabled"`
+	RotationInterval   time.Duration `yaml:"rotation_interval"`
+	
+	// Service-specific configurations
+	Controller    *ServiceMTLSConfig `yaml:"controller"`
+	LLMProcessor  *ServiceMTLSConfig `yaml:"llm_processor"`
+	RAGService    *ServiceMTLSConfig `yaml:"rag_service"`
+	GitClient     *ServiceMTLSConfig `yaml:"git_client"`
+	Database      *ServiceMTLSConfig `yaml:"database"`
+	NephioBridge  *ServiceMTLSConfig `yaml:"nephio_bridge"`
+	ORANAdaptor   *ServiceMTLSConfig `yaml:"oran_adaptor"`
+	Monitoring    *ServiceMTLSConfig `yaml:"monitoring"`
+	
+	// TLS settings
+	MinTLSVersion    string   `yaml:"min_tls_version"`
+	MaxTLSVersion    string   `yaml:"max_tls_version"`
+	CipherSuites     []string `yaml:"cipher_suites"`
+	
+	// Security settings
+	AllowedClientCNs  []string `yaml:"allowed_client_cns"`
+	AllowedClientOrgs []string `yaml:"allowed_client_orgs"`
+	EnableHSTS        bool     `yaml:"enable_hsts"`
+	HSTSMaxAge        int64    `yaml:"hsts_max_age"`
+}
+
+// ServiceMTLSConfig holds mTLS configuration for a specific service
+type ServiceMTLSConfig struct {
+	Enabled            bool     `yaml:"enabled"`
+	ServiceName        string   `yaml:"service_name"`
+	ServerCertPath     string   `yaml:"server_cert_path"`
+	ServerKeyPath      string   `yaml:"server_key_path"`
+	ClientCertPath     string   `yaml:"client_cert_path"`
+	ClientKeyPath      string   `yaml:"client_key_path"`
+	CACertPath         string   `yaml:"ca_cert_path"`
+	ServerName         string   `yaml:"server_name"`
+	Port               int      `yaml:"port"`
+	InsecureSkipVerify bool     `yaml:"insecure_skip_verify"`
+	
+	// Connection settings
+	DialTimeout         time.Duration `yaml:"dial_timeout"`
+	KeepAliveTimeout    time.Duration `yaml:"keep_alive_timeout"`
+	MaxIdleConns        int          `yaml:"max_idle_conns"`
+	MaxConnsPerHost     int          `yaml:"max_conns_per_host"`
+	IdleConnTimeout     time.Duration `yaml:"idle_conn_timeout"`
+	
+	// Service-specific settings
+	RequireClientCert   bool     `yaml:"require_client_cert"`
+	AllowedClientCNs    []string `yaml:"allowed_client_cns"`
+	AllowedClientOrgs   []string `yaml:"allowed_client_orgs"`
 }
 
 // DefaultConfig returns a configuration with sensible defaults
@@ -70,6 +140,154 @@ func DefaultConfig() *Config {
 
 		Namespace: "default",
 		CRDPath:   "deployments/crds",
+
+		MTLSConfig: DefaultMTLSConfig(),
+	}
+}
+
+// DefaultMTLSConfig returns default mTLS configuration
+func DefaultMTLSConfig() *MTLSConfig {
+	baseDir := "/etc/nephoran/certs"
+	
+	return &MTLSConfig{
+		Enabled:             false, // Disabled by default for backward compatibility
+		RequireClientCerts:  true,
+		TenantID:           "default",
+		CAManagerEnabled:   true,
+		AutoProvision:      false,
+		PolicyTemplate:     "service-auth",
+		CertificateBaseDir: baseDir,
+		ValidityDuration:   24 * time.Hour,
+		RenewalThreshold:   6 * time.Hour,
+		RotationEnabled:    true,
+		RotationInterval:   1 * time.Hour,
+		
+		Controller: &ServiceMTLSConfig{
+			Enabled:            false,
+			ServiceName:        "nephoran-controller",
+			ServerCertPath:     fmt.Sprintf("%s/default/nephoran-controller/tls.crt", baseDir),
+			ServerKeyPath:      fmt.Sprintf("%s/default/nephoran-controller/tls.key", baseDir),
+			ClientCertPath:     fmt.Sprintf("%s/default/nephoran-controller/client.crt", baseDir),
+			ClientKeyPath:      fmt.Sprintf("%s/default/nephoran-controller/client.key", baseDir),
+			CACertPath:         fmt.Sprintf("%s/default/nephoran-controller/ca.crt", baseDir),
+			Port:               8443,
+			DialTimeout:        10 * time.Second,
+			MaxIdleConns:       100,
+			MaxConnsPerHost:    10,
+			IdleConnTimeout:    90 * time.Second,
+			RequireClientCert:  true,
+		},
+		
+		LLMProcessor: &ServiceMTLSConfig{
+			Enabled:            false,
+			ServiceName:        "llm-processor",
+			ServerName:         "llm-processor.default.svc.cluster.local",
+			ServerCertPath:     fmt.Sprintf("%s/default/llm-processor/tls.crt", baseDir),
+			ServerKeyPath:      fmt.Sprintf("%s/default/llm-processor/tls.key", baseDir),
+			ClientCertPath:     fmt.Sprintf("%s/default/llm-processor/client.crt", baseDir),
+			ClientKeyPath:      fmt.Sprintf("%s/default/llm-processor/client.key", baseDir),
+			CACertPath:         fmt.Sprintf("%s/default/llm-processor/ca.crt", baseDir),
+			Port:               8443,
+			DialTimeout:        10 * time.Second,
+			MaxIdleConns:       50,
+			MaxConnsPerHost:    5,
+			IdleConnTimeout:    60 * time.Second,
+			RequireClientCert:  true,
+		},
+		
+		RAGService: &ServiceMTLSConfig{
+			Enabled:            false,
+			ServiceName:        "rag-api",
+			ServerName:         "rag-api.default.svc.cluster.local",
+			ServerCertPath:     fmt.Sprintf("%s/default/rag-api/tls.crt", baseDir),
+			ServerKeyPath:      fmt.Sprintf("%s/default/rag-api/tls.key", baseDir),
+			ClientCertPath:     fmt.Sprintf("%s/default/rag-api/client.crt", baseDir),
+			ClientKeyPath:      fmt.Sprintf("%s/default/rag-api/client.key", baseDir),
+			CACertPath:         fmt.Sprintf("%s/default/rag-api/ca.crt", baseDir),
+			Port:               5443,
+			DialTimeout:        10 * time.Second,
+			MaxIdleConns:       50,
+			MaxConnsPerHost:    5,
+			IdleConnTimeout:    60 * time.Second,
+			RequireClientCert:  true,
+		},
+		
+		GitClient: &ServiceMTLSConfig{
+			Enabled:            false,
+			ServiceName:        "git-client",
+			ClientCertPath:     fmt.Sprintf("%s/default/git-client/client.crt", baseDir),
+			ClientKeyPath:      fmt.Sprintf("%s/default/git-client/client.key", baseDir),
+			CACertPath:         fmt.Sprintf("%s/default/git-client/ca.crt", baseDir),
+			DialTimeout:        30 * time.Second,
+			MaxIdleConns:       20,
+			MaxConnsPerHost:    5,
+			IdleConnTimeout:    120 * time.Second,
+		},
+		
+		Database: &ServiceMTLSConfig{
+			Enabled:            false,
+			ServiceName:        "database-client",
+			ClientCertPath:     fmt.Sprintf("%s/default/database-client/client.crt", baseDir),
+			ClientKeyPath:      fmt.Sprintf("%s/default/database-client/client.key", baseDir),
+			CACertPath:         fmt.Sprintf("%s/default/database-client/ca.crt", baseDir),
+			DialTimeout:        15 * time.Second,
+			MaxIdleConns:       25,
+			MaxConnsPerHost:    5,
+			IdleConnTimeout:    180 * time.Second,
+		},
+		
+		NephioBridge: &ServiceMTLSConfig{
+			Enabled:            false,
+			ServiceName:        "nephio-bridge",
+			ServerName:         "nephio-bridge.default.svc.cluster.local",
+			ServerCertPath:     fmt.Sprintf("%s/default/nephio-bridge/tls.crt", baseDir),
+			ServerKeyPath:      fmt.Sprintf("%s/default/nephio-bridge/tls.key", baseDir),
+			ClientCertPath:     fmt.Sprintf("%s/default/nephio-bridge/client.crt", baseDir),
+			ClientKeyPath:      fmt.Sprintf("%s/default/nephio-bridge/client.key", baseDir),
+			CACertPath:         fmt.Sprintf("%s/default/nephio-bridge/ca.crt", baseDir),
+			Port:               8443,
+			DialTimeout:        10 * time.Second,
+			MaxIdleConns:       30,
+			MaxConnsPerHost:    5,
+			IdleConnTimeout:    90 * time.Second,
+			RequireClientCert:  true,
+		},
+		
+		ORANAdaptor: &ServiceMTLSConfig{
+			Enabled:            false,
+			ServiceName:        "oran-adaptor",
+			ServerName:         "oran-adaptor.default.svc.cluster.local",
+			ServerCertPath:     fmt.Sprintf("%s/default/oran-adaptor/tls.crt", baseDir),
+			ServerKeyPath:      fmt.Sprintf("%s/default/oran-adaptor/tls.key", baseDir),
+			ClientCertPath:     fmt.Sprintf("%s/default/oran-adaptor/client.crt", baseDir),
+			ClientKeyPath:      fmt.Sprintf("%s/default/oran-adaptor/client.key", baseDir),
+			CACertPath:         fmt.Sprintf("%s/default/oran-adaptor/ca.crt", baseDir),
+			Port:               8443,
+			DialTimeout:        10 * time.Second,
+			MaxIdleConns:       30,
+			MaxConnsPerHost:    5,
+			IdleConnTimeout:    90 * time.Second,
+			RequireClientCert:  true,
+		},
+		
+		Monitoring: &ServiceMTLSConfig{
+			Enabled:            false,
+			ServiceName:        "monitoring-client",
+			ClientCertPath:     fmt.Sprintf("%s/default/monitoring-client/client.crt", baseDir),
+			ClientKeyPath:      fmt.Sprintf("%s/default/monitoring-client/client.key", baseDir),
+			CACertPath:         fmt.Sprintf("%s/default/monitoring-client/ca.crt", baseDir),
+			DialTimeout:        10 * time.Second,
+			MaxIdleConns:       20,
+			MaxConnsPerHost:    3,
+			IdleConnTimeout:    60 * time.Second,
+		},
+		
+		MinTLSVersion:     "1.2",
+		MaxTLSVersion:     "1.3",
+		EnableHSTS:        true,
+		HSTSMaxAge:        31536000, // 1 year
+		AllowedClientCNs:  []string{}, // Empty means allow all valid certificates
+		AllowedClientOrgs: []string{}, // Empty means allow all valid certificates
 	}
 }
 
@@ -169,6 +387,9 @@ func LoadFromEnv() (*Config, error) {
 		cfg.CRDPath = val
 	}
 
+	// Load mTLS configuration from environment
+	loadMTLSFromEnv(cfg)
+
 	// Validate required configuration
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("configuration validation failed: %w", err)
@@ -247,6 +468,225 @@ func (c *Config) GetRAGAPIURL(useInternal bool) string {
 		return c.RAGAPIURLInternal
 	}
 	return c.RAGAPIURLExternal
+}
+
+// loadMTLSFromEnv loads mTLS configuration from environment variables
+func loadMTLSFromEnv(cfg *Config) {
+	if cfg.MTLSConfig == nil {
+		return
+	}
+
+	// Global mTLS settings
+	if val := os.Getenv("MTLS_ENABLED"); val != "" {
+		if b, err := strconv.ParseBool(val); err == nil {
+			cfg.MTLSConfig.Enabled = b
+		}
+	}
+
+	if val := os.Getenv("MTLS_REQUIRE_CLIENT_CERTS"); val != "" {
+		if b, err := strconv.ParseBool(val); err == nil {
+			cfg.MTLSConfig.RequireClientCerts = b
+		}
+	}
+
+	if val := os.Getenv("MTLS_TENANT_ID"); val != "" {
+		cfg.MTLSConfig.TenantID = val
+	}
+
+	if val := os.Getenv("MTLS_CA_MANAGER_ENABLED"); val != "" {
+		if b, err := strconv.ParseBool(val); err == nil {
+			cfg.MTLSConfig.CAManagerEnabled = b
+		}
+	}
+
+	if val := os.Getenv("MTLS_AUTO_PROVISION"); val != "" {
+		if b, err := strconv.ParseBool(val); err == nil {
+			cfg.MTLSConfig.AutoProvision = b
+		}
+	}
+
+	if val := os.Getenv("MTLS_POLICY_TEMPLATE"); val != "" {
+		cfg.MTLSConfig.PolicyTemplate = val
+	}
+
+	if val := os.Getenv("MTLS_CERTIFICATE_BASE_DIR"); val != "" {
+		cfg.MTLSConfig.CertificateBaseDir = val
+	}
+
+	if val := os.Getenv("MTLS_VALIDITY_DURATION"); val != "" {
+		if d, err := time.ParseDuration(val); err == nil {
+			cfg.MTLSConfig.ValidityDuration = d
+		}
+	}
+
+	if val := os.Getenv("MTLS_RENEWAL_THRESHOLD"); val != "" {
+		if d, err := time.ParseDuration(val); err == nil {
+			cfg.MTLSConfig.RenewalThreshold = d
+		}
+	}
+
+	if val := os.Getenv("MTLS_ROTATION_ENABLED"); val != "" {
+		if b, err := strconv.ParseBool(val); err == nil {
+			cfg.MTLSConfig.RotationEnabled = b
+		}
+	}
+
+	if val := os.Getenv("MTLS_ROTATION_INTERVAL"); val != "" {
+		if d, err := time.ParseDuration(val); err == nil {
+			cfg.MTLSConfig.RotationInterval = d
+		}
+	}
+
+	// TLS version settings
+	if val := os.Getenv("MTLS_MIN_TLS_VERSION"); val != "" {
+		cfg.MTLSConfig.MinTLSVersion = val
+	}
+
+	if val := os.Getenv("MTLS_MAX_TLS_VERSION"); val != "" {
+		cfg.MTLSConfig.MaxTLSVersion = val
+	}
+
+	// Security settings
+	if val := os.Getenv("MTLS_ENABLE_HSTS"); val != "" {
+		if b, err := strconv.ParseBool(val); err == nil {
+			cfg.MTLSConfig.EnableHSTS = b
+		}
+	}
+
+	if val := os.Getenv("MTLS_HSTS_MAX_AGE"); val != "" {
+		if i, err := strconv.ParseInt(val, 10, 64); err == nil {
+			cfg.MTLSConfig.HSTSMaxAge = i
+		}
+	}
+
+	if val := os.Getenv("MTLS_ALLOWED_CLIENT_CNS"); val != "" {
+		cfg.MTLSConfig.AllowedClientCNs = strings.Split(val, ",")
+	}
+
+	if val := os.Getenv("MTLS_ALLOWED_CLIENT_ORGS"); val != "" {
+		cfg.MTLSConfig.AllowedClientOrgs = strings.Split(val, ",")
+	}
+
+	// Service-specific settings - Controller
+	loadServiceMTLSFromEnv(cfg.MTLSConfig.Controller, "CONTROLLER")
+
+	// Service-specific settings - LLM Processor
+	loadServiceMTLSFromEnv(cfg.MTLSConfig.LLMProcessor, "LLM_PROCESSOR")
+
+	// Service-specific settings - RAG Service
+	loadServiceMTLSFromEnv(cfg.MTLSConfig.RAGService, "RAG_SERVICE")
+
+	// Service-specific settings - Git Client
+	loadServiceMTLSFromEnv(cfg.MTLSConfig.GitClient, "GIT_CLIENT")
+
+	// Service-specific settings - Database
+	loadServiceMTLSFromEnv(cfg.MTLSConfig.Database, "DATABASE")
+
+	// Service-specific settings - Nephio Bridge
+	loadServiceMTLSFromEnv(cfg.MTLSConfig.NephioBridge, "NEPHIO_BRIDGE")
+
+	// Service-specific settings - ORAN Adaptor
+	loadServiceMTLSFromEnv(cfg.MTLSConfig.ORANAdaptor, "ORAN_ADAPTOR")
+
+	// Service-specific settings - Monitoring
+	loadServiceMTLSFromEnv(cfg.MTLSConfig.Monitoring, "MONITORING")
+}
+
+// loadServiceMTLSFromEnv loads mTLS configuration for a specific service
+func loadServiceMTLSFromEnv(serviceCfg *ServiceMTLSConfig, prefix string) {
+	if serviceCfg == nil {
+		return
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_ENABLED", prefix)); val != "" {
+		if b, err := strconv.ParseBool(val); err == nil {
+			serviceCfg.Enabled = b
+		}
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_SERVICE_NAME", prefix)); val != "" {
+		serviceCfg.ServiceName = val
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_SERVER_CERT_PATH", prefix)); val != "" {
+		serviceCfg.ServerCertPath = val
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_SERVER_KEY_PATH", prefix)); val != "" {
+		serviceCfg.ServerKeyPath = val
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_CLIENT_CERT_PATH", prefix)); val != "" {
+		serviceCfg.ClientCertPath = val
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_CLIENT_KEY_PATH", prefix)); val != "" {
+		serviceCfg.ClientKeyPath = val
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_CA_CERT_PATH", prefix)); val != "" {
+		serviceCfg.CACertPath = val
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_SERVER_NAME", prefix)); val != "" {
+		serviceCfg.ServerName = val
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_PORT", prefix)); val != "" {
+		if i, err := strconv.Atoi(val); err == nil {
+			serviceCfg.Port = i
+		}
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_INSECURE_SKIP_VERIFY", prefix)); val != "" {
+		if b, err := strconv.ParseBool(val); err == nil {
+			serviceCfg.InsecureSkipVerify = b
+		}
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_DIAL_TIMEOUT", prefix)); val != "" {
+		if d, err := time.ParseDuration(val); err == nil {
+			serviceCfg.DialTimeout = d
+		}
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_KEEP_ALIVE_TIMEOUT", prefix)); val != "" {
+		if d, err := time.ParseDuration(val); err == nil {
+			serviceCfg.KeepAliveTimeout = d
+		}
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_MAX_IDLE_CONNS", prefix)); val != "" {
+		if i, err := strconv.Atoi(val); err == nil {
+			serviceCfg.MaxIdleConns = i
+		}
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_MAX_CONNS_PER_HOST", prefix)); val != "" {
+		if i, err := strconv.Atoi(val); err == nil {
+			serviceCfg.MaxConnsPerHost = i
+		}
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_IDLE_CONN_TIMEOUT", prefix)); val != "" {
+		if d, err := time.ParseDuration(val); err == nil {
+			serviceCfg.IdleConnTimeout = d
+		}
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_REQUIRE_CLIENT_CERT", prefix)); val != "" {
+		if b, err := strconv.ParseBool(val); err == nil {
+			serviceCfg.RequireClientCert = b
+		}
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_ALLOWED_CLIENT_CNS", prefix)); val != "" {
+		serviceCfg.AllowedClientCNs = strings.Split(val, ",")
+	}
+
+	if val := os.Getenv(fmt.Sprintf("MTLS_%s_ALLOWED_CLIENT_ORGS", prefix)); val != "" {
+		serviceCfg.AllowedClientOrgs = strings.Split(val, ",")
+	}
 }
 
 // ConfigProvider interface methods

@@ -1,0 +1,384 @@
+# Certificate Automation Examples for Nephoran Intent Operator
+# These examples demonstrate various certificate automation scenarios
+
+---
+# Basic Service Certificate Automation
+apiVersion: nephoran.io/v1alpha1
+kind: CertificateAutomation
+metadata:
+  name: webapp-service-cert
+  namespace: production
+  labels:
+    app.kubernetes.io/name: webapp
+    app.kubernetes.io/component: certificate
+    nephoran.io/service: webapp
+spec:
+  serviceName: webapp
+  namespace: production
+  dnsNames:
+    - webapp.production.svc.cluster.local
+    - webapp.example.com
+    - api.example.com
+  template: high-security
+  autoRenewal: true
+  validityDuration: 2160h  # 90 days
+  secretName: webapp-tls
+  priority: high
+
+---
+# Multi-Service Certificate Automation with IP addresses
+apiVersion: nephoran.io/v1alpha1
+kind: CertificateAutomation
+metadata:
+  name: api-gateway-cert
+  namespace: nephoran-system
+  annotations:
+    nephoran.io/description: "API Gateway certificate with multiple SANs"
+    nephoran.io/owner: "platform-team"
+spec:
+  serviceName: api-gateway
+  namespace: nephoran-system
+  dnsNames:
+    - api-gateway.nephoran-system.svc.cluster.local
+    - api.nephoran.io
+    - gateway.nephoran.io
+    - *.api.nephoran.io
+  ipAddresses:
+    - 10.0.1.100
+    - 192.168.1.50
+  template: default
+  autoRenewal: true
+  validityDuration: 8760h  # 1 year
+  secretName: api-gateway-tls
+  priority: critical
+
+---
+# O-RAN Network Function Certificate Automation
+apiVersion: nephoran.io/v1alpha1
+kind: CertificateAutomation
+metadata:
+  name: o-cu-cert
+  namespace: oran-functions
+  labels:
+    app.kubernetes.io/name: o-cu
+    app.kubernetes.io/component: certificate
+    nephoran.io/oran-function: o-cu
+    nephoran.io/compliance: "o-ran-wg4"
+spec:
+  serviceName: o-cu
+  namespace: oran-functions
+  dnsNames:
+    - o-cu.oran-functions.svc.cluster.local
+    - o-cu-e1.oran.local
+    - o-cu-f1.oran.local
+  template: oran-compliant
+  autoRenewal: true
+  validityDuration: 4380h  # 6 months (O-RAN recommended)
+  secretName: o-cu-tls
+  priority: critical
+
+---
+# Development Environment Certificate (Self-Signed)
+apiVersion: nephoran.io/v1alpha1
+kind: CertificateAutomation
+metadata:
+  name: dev-service-cert
+  namespace: development
+  labels:
+    app.kubernetes.io/name: dev-service
+    app.kubernetes.io/component: certificate
+    nephoran.io/environment: development
+spec:
+  serviceName: dev-service
+  namespace: development
+  dnsNames:
+    - dev-service.development.svc.cluster.local
+    - dev.local
+  template: development
+  autoRenewal: true
+  validityDuration: 720h   # 30 days (short for dev)
+  secretName: dev-service-tls
+  priority: normal
+
+---
+# High-Security Certificate with Extended Validation
+apiVersion: nephoran.io/v1alpha1
+kind: CertificateAutomation
+metadata:
+  name: secure-service-cert
+  namespace: security
+  annotations:
+    nephoran.io/extended-validation: "true"
+    nephoran.io/compliance-required: "true"
+    nephoran.io/audit-logging: "enabled"
+spec:
+  serviceName: secure-service
+  namespace: security
+  dnsNames:
+    - secure-service.security.svc.cluster.local
+    - secure.nephoran.io
+  template: extended-validation
+  autoRenewal: true
+  validityDuration: 2160h  # 90 days
+  secretName: secure-service-tls
+  priority: critical
+
+---
+# Service with Certificate Injection Annotation
+apiVersion: v1
+kind: Service
+metadata:
+  name: auto-cert-service
+  namespace: production
+  annotations:
+    nephoran.io/auto-certificate: "true"
+    nephoran.io/certificate-template: "default"
+    nephoran.io/external-dns: "api.example.com,service.example.com"
+    nephoran.io/cert-priority: "high"
+spec:
+  selector:
+    app: my-app
+  ports:
+    - name: https
+      port: 443
+      targetPort: 8443
+      protocol: TCP
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+
+---
+# Pod with Certificate Injection
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secure-pod
+  namespace: production
+  annotations:
+    nephoran.io/inject-certificate: "true"
+    nephoran.io/certificate-template: "high-security"
+    nephoran.io/cert-mount-path: "/etc/ssl/service-certs"
+spec:
+  serviceAccountName: secure-service
+  containers:
+    - name: app
+      image: nginx:alpine
+      ports:
+        - containerPort: 443
+          name: https
+      env:
+        - name: TLS_ENABLED
+          value: "true"
+        - name: TLS_CERT_PATH
+          value: "/etc/ssl/service-certs/tls.crt"
+        - name: TLS_KEY_PATH
+          value: "/etc/ssl/service-certs/tls.key"
+      volumeMounts:
+        - name: service-certs
+          mountPath: /etc/ssl/service-certs
+          readOnly: true
+  volumes:
+    - name: service-certs
+      secret:
+        secretName: secure-pod-tls
+
+---
+# Deployment with Automatic Certificate Injection
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-deployment
+  namespace: production
+  annotations:
+    nephoran.io/inject-certificate: "true"
+    nephoran.io/certificate-template: "web-service"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: webapp
+  template:
+    metadata:
+      labels:
+        app: webapp
+      annotations:
+        nephoran.io/inject-certificate: "true"
+    spec:
+      containers:
+        - name: webapp
+          image: webapp:v1.2.3
+          ports:
+            - containerPort: 8443
+              name: https
+          env:
+            - name: SERVER_TLS_ENABLED
+              value: "true"
+
+---
+# Ingress with Automatic Certificate Provisioning
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: webapp-ingress
+  namespace: production
+  annotations:
+    nephoran.io/auto-certificate: "true"
+    nephoran.io/certificate-template: "web-ingress"
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  tls:
+    - hosts:
+        - webapp.example.com
+        - api.example.com
+      secretName: webapp-ingress-tls
+  rules:
+    - host: webapp.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: webapp
+                port:
+                  number: 443
+    - host: api.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: webapp
+                port:
+                  number: 443
+
+---
+# Namespace Configuration for Certificate Automation
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: secure-workloads
+  labels:
+    nephoran.io/certificate-injection: "enabled"
+    nephoran.io/security-level: "high"
+    nephoran.io/auto-certificate: "enabled"
+  annotations:
+    nephoran.io/default-certificate-template: "high-security"
+    nephoran.io/certificate-validity: "2160h"  # 90 days
+    nephoran.io/auto-renewal: "true"
+
+---
+# Emergency Certificate Revocation Example
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: emergency-revocation-script
+  namespace: nephoran-system
+data:
+  revoke-certificate.sh: |
+    #!/bin/bash
+    # Emergency certificate revocation script
+    # Usage: ./revoke-certificate.sh <serial-number> <reason>
+    
+    SERIAL_NUMBER=$1
+    REASON=${2:-1}  # Default reason: key compromise
+    
+    kubectl patch certificateautomation -n production webapp-service-cert \
+      --type='json' \
+      -p='[{"op": "add", "path": "/metadata/annotations/nephoran.io~1emergency-revoke", "value": "true"}]'
+    
+    echo "Emergency revocation initiated for certificate: $SERIAL_NUMBER"
+    echo "Reason code: $REASON"
+
+---
+# Certificate Policy Template Examples
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: certificate-policy-templates
+  namespace: nephoran-system
+data:
+  web-service.yaml: |
+    name: "web-service"
+    key_usage: ["digital_signature", "key_encipherment"]
+    ext_key_usage: ["server_auth"]
+    validity_duration: 8760h  # 1 year
+    key_size: 2048
+    allowed_san_types: ["dns"]
+    required_fields: ["common_name"]
+    custom_extensions:
+      "1.3.6.1.4.1.311.21.10": "web-service"
+    
+  oran-compliant.yaml: |
+    name: "oran-compliant"
+    key_usage: ["digital_signature", "key_encipherment", "key_agreement"]
+    ext_key_usage: ["server_auth", "client_auth"]
+    validity_duration: 4380h  # 6 months
+    key_size: 2048
+    allowed_san_types: ["dns", "ip"]
+    required_fields: ["common_name", "organization"]
+    custom_extensions:
+      "1.3.6.1.4.1.40808.1.1.1": "o-ran-compliant"
+    
+  extended-validation.yaml: |
+    name: "extended-validation"
+    key_usage: ["digital_signature", "key_encipherment", "non_repudiation"]
+    ext_key_usage: ["server_auth", "client_auth"]
+    validity_duration: 2160h  # 90 days
+    key_size: 4096
+    allowed_san_types: ["dns"]
+    required_fields: ["common_name", "organization", "organizational_unit", "country"]
+    custom_extensions:
+      "2.23.140.1.1": "extended-validation"
+
+---
+# Monitoring and Alerting Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: certificate-monitoring-rules
+  namespace: nephoran-system
+data:
+  prometheus-rules.yaml: |
+    groups:
+      - name: certificate-automation
+        rules:
+          - alert: CertificateExpiringWarn
+            expr: (ca_certificate_lifetime_hours - time()) / 3600 < 720  # 30 days
+            for: 1h
+            labels:
+              severity: warning
+            annotations:
+              summary: "Certificate expiring soon"
+              description: "Certificate {{ $labels.serial_number }} expires in less than 30 days"
+          
+          - alert: CertificateExpiringCritical
+            expr: (ca_certificate_lifetime_hours - time()) / 3600 < 168  # 7 days
+            for: 5m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Certificate expiring very soon"
+              description: "Certificate {{ $labels.serial_number }} expires in less than 7 days"
+          
+          - alert: CertificateProvisioningFailed
+            expr: increase(ca_backend_errors_total[5m]) > 0
+            for: 1m
+            labels:
+              severity: error
+            annotations:
+              summary: "Certificate provisioning failed"
+              description: "Certificate provisioning failed on backend {{ $labels.backend }}"
+          
+          - alert: CertificateValidationFailed
+            expr: increase(ca_policy_violations_total[5m]) > 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Certificate validation failed"
+              description: "Certificate validation failed for template {{ $labels.template }}"

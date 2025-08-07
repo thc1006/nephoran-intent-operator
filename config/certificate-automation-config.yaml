@@ -1,0 +1,460 @@
+# Certificate Automation Configuration for Nephoran Intent Operator
+# This configuration enables comprehensive certificate lifecycle management
+# with automatic provisioning, rotation, validation, and revocation checking.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: certificate-automation-config
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: certificate-automation
+data:
+  config.yaml: |
+    # Integration Configuration
+    enable_kubernetes_integration: true
+    enable_monitoring_integration: true
+    enable_alerting_integration: true
+    max_concurrent_operations: 50
+    operation_timeout: 5m
+    health_check_interval: 30s
+    enable_security_scanning: true
+    enable_compliance_checks: true
+    enable_audit_logging: true
+
+    # CA Manager Configuration
+    ca_manager:
+      # Global settings
+      default_backend: "cert-manager"
+      backend_configs:
+        cert-manager:
+          cluster_issuer: "letsencrypt-prod"
+          namespace: "cert-manager"
+        vault:
+          address: "https://vault.nephoran-system.svc.cluster.local:8200"
+          token_path: "/var/run/secrets/vault/token"
+          pki_path: "pki"
+        self-signed:
+          ca_cert_path: "/etc/ssl/certs/ca.crt"
+          ca_key_path: "/etc/ssl/private/ca.key"
+
+      # Certificate storage
+      certificate_store:
+        type: "kubernetes"
+        namespace: "nephoran-system"
+        secret_prefix: "nephoran-cert"
+        encryption_key: "cert-encryption-key"
+        backup_enabled: true
+        backup_interval: 24h
+        retention_period: 720h  # 30 days
+
+      # Certificate distribution
+      distribution_config:
+        enabled: true
+        hot_reload_enabled: true
+        watch_intervals: 30s
+        distribution_paths:
+          kubernetes: "/var/run/secrets/certificates"
+          filesystem: "/etc/ssl/certificates"
+        notification_config:
+          enabled: true
+          webhooks:
+            - "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+          email_smtp:
+            host: "smtp.example.com"
+            port: 587
+            username: "alerts@example.com"
+            password: "smtp-password"
+            from: "nephoran-ca@example.com"
+            to: ["ops-team@example.com", "security-team@example.com"]
+
+      # Policy configuration
+      policy_config:
+        enabled: true
+        policy_templates:
+          default:
+            name: "default"
+            key_usage: ["digital_signature", "key_encipherment"]
+            ext_key_usage: ["server_auth", "client_auth"]
+            validity_duration: 8760h  # 1 year
+            key_size: 2048
+            allowed_san_types: ["dns", "ip"]
+            required_fields: ["common_name"]
+          high-security:
+            name: "high-security"
+            key_usage: ["digital_signature", "key_encipherment", "key_agreement"]
+            ext_key_usage: ["server_auth", "client_auth"]
+            validity_duration: 2160h  # 90 days
+            key_size: 4096
+            allowed_san_types: ["dns"]
+            required_fields: ["common_name", "organization"]
+        validation_rules:
+          - name: "subject_organization"
+            type: "subject"
+            pattern: "O=Nephoran"
+            required: false
+            error_message: "Organization should be Nephoran"
+          - name: "key_size_minimum"
+            type: "key_size"
+            pattern: "2048"
+            required: true
+            error_message: "Minimum key size is 2048 bits"
+
+      # Monitoring configuration
+      monitoring_config:
+        enabled: true
+        health_check_interval: 30s
+        metrics_enabled: true
+        alerting_enabled: true
+        expiration_warning_days: 30
+
+      # Lifecycle settings
+      default_validity_duration: 8760h  # 1 year
+      renewal_threshold: 720h           # 30 days
+      max_retry_attempts: 3
+      retry_backoff: 5s
+      key_size: 2048
+      allowed_key_types: ["rsa", "ecdsa"]
+      min_validity_duration: 24h
+      max_validity_duration: 17520h    # 2 years
+      auto_rotation_enabled: true
+
+      # Multi-tenancy
+      tenant_support: true
+      default_tenant: "default"
+      tenant_configs:
+        production:
+          tenant_id: "production"
+          backend: "vault"
+          issuer_ref: "production-ca"
+          policy_template: "high-security"
+          namespace: "production"
+        development:
+          tenant_id: "development"
+          backend: "self-signed"
+          issuer_ref: "dev-ca"
+          policy_template: "default"
+          namespace: "development"
+
+    # Automation Engine Configuration
+    automation_engine:
+      # Provisioning settings
+      provisioning_enabled: true
+      auto_inject_certificates: true
+      service_discovery_enabled: true
+      provisioning_workers: 5
+      provisioning_timeout: 5m
+
+      # Renewal settings
+      renewal_enabled: true
+      renewal_threshold: 720h          # 30 days
+      renewal_workers: 3
+      renewal_window: 168h             # 7 days
+      graceful_renewal_enabled: true
+
+      # Validation settings
+      validation_enabled: true
+      realtime_validation: false
+      chain_validation_enabled: true
+      ct_log_validation_enabled: false  # Disabled for performance
+      validation_cache_size: 1000
+      validation_cache_ttl: 1h
+
+      # Revocation settings
+      revocation_enabled: true
+      crl_check_enabled: true
+      ocsp_check_enabled: true
+      revocation_cache_size: 500
+      revocation_cache_ttl: 30m
+
+      # Kubernetes integration
+      kubernetes_integration:
+        enabled: true
+        namespaces: ["default", "nephoran-system", "production"]
+        service_selector: "app.kubernetes.io/managed-by=nephoran"
+        pod_selector: "nephoran.io/inject-certificate=true"
+        ingress_selector: "nephoran.io/auto-certificate=true"
+        secret_prefix: "nephoran-cert"
+        annotation_prefix: "nephoran.io"
+        
+        # Admission webhook for automatic certificate injection
+        admission_webhook:
+          enabled: true
+          webhook_name: "certificate-injector.nephoran.io"
+          service_name: "nephoran-cert-webhook"
+          service_namespace: "nephoran-system"
+          cert_dir: "/tmp/k8s-webhook-server/serving-certs"
+          port: 9443
+
+      # Monitoring integration
+      monitoring_integration:
+        prometheus_enabled: true
+        jaeger_enabled: true
+        grafana_enabled: true
+        custom_metrics_enabled: true
+
+      # Alerting configuration
+      alerting_config:
+        enabled: true
+        provisioning_failure_alert: true
+        renewal_failure_alert: true
+        validation_failure_alert: true
+        revocation_alert: true
+        alert_cooldown: 5m
+
+      # Performance settings
+      batch_size: 10
+      max_concurrent_operations: 50
+      operation_timeout: 5m
+      retry_attempts: 3
+      retry_backoff: 1s
+
+---
+# Validation Framework Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: certificate-validation-config
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: certificate-validation
+data:
+  validation-config.yaml: |
+    # Certificate Validation Framework Configuration
+    realtime_validation: false
+    chain_validation_enabled: true
+    ct_log_validation_enabled: false
+    validation_timeout: 30s
+    max_chain_depth: 5
+
+    # Custom validators
+    custom_validators:
+      - "security-compliance-validator"
+      - "o-ran-standards-validator"
+
+    # Trusted root certificates
+    trusted_roots:
+      - |
+        -----BEGIN CERTIFICATE-----
+        # Root CA Certificate (Base64 encoded)
+        -----END CERTIFICATE-----
+
+    # Certificate Transparency log endpoints
+    ct_log_endpoints:
+      - "https://ct.googleapis.com/logs/argon2024/"
+      - "https://ct.googleapis.com/logs/xenon2024/"
+      - "https://ct.cloudflare.com/logs/nimbus2024/"
+
+    # Policy rules for certificate validation
+    policy_rules:
+      - name: "subject_organization_required"
+        type: "subject"
+        pattern: "O="
+        required: true
+        severity: "error"
+        description: "Organization field is required in subject"
+
+      - name: "san_required"
+        type: "san"
+        pattern: ".*"
+        required: true
+        severity: "warning"
+        description: "Subject Alternative Names should be present"
+
+      - name: "key_usage_digital_signature"
+        type: "key_usage"
+        pattern: "digital_signature"
+        required: true
+        severity: "error"
+        description: "Digital signature key usage is required"
+
+      - name: "validity_period_check"
+        type: "validity_period"
+        pattern: "8760h"  # Max 1 year
+        required: false
+        severity: "warning"
+        description: "Certificate validity should not exceed 1 year"
+
+      - name: "signature_algorithm_strength"
+        type: "signature_algorithm"
+        pattern: "sha256|sha384|sha512"
+        required: true
+        severity: "error"
+        description: "Strong signature algorithm required"
+
+---
+# Revocation Checking Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: certificate-revocation-config
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: certificate-revocation
+data:
+  revocation-config.yaml: |
+    # Certificate Revocation Checking Configuration
+    crl_check_enabled: true
+    ocsp_check_enabled: true
+    cache_size: 1000
+    cache_ttl: 1h
+    timeout: 30s
+    max_crl_size: 52428800  # 50MB
+    ocsp_fallback: true
+    crl_fallback: true
+    parallel_check: true
+    retry_attempts: 3
+    retry_delay: 1s
+
+---
+# RBAC Configuration for Certificate Automation
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: certificate-automation
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: certificate-automation
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: certificate-automation
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: certificate-automation
+rules:
+  # Certificate management
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+  
+  # Service discovery
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  
+  # Certificate automation CRDs
+  - apiGroups: ["nephoran.io"]
+    resources: ["certificateautomations"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["nephoran.io"]
+    resources: ["certificateautomations/status"]
+    verbs: ["get", "update", "patch"]
+  
+  # cert-manager integration
+  - apiGroups: ["cert-manager.io"]
+    resources: ["certificates", "certificaterequests", "issuers", "clusterissuers"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  
+  # Events for troubleshooting
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: certificate-automation
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: certificate-automation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: certificate-automation
+subjects:
+  - kind: ServiceAccount
+    name: certificate-automation
+    namespace: nephoran-system
+
+---
+# Admission Webhook Configuration
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingAdmissionWebhook
+metadata:
+  name: certificate-injector.nephoran.io
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: certificate-automation
+webhooks:
+  - name: pod-certificate-injector.nephoran.io
+    clientConfig:
+      service:
+        name: nephoran-cert-webhook
+        namespace: nephoran-system
+        path: "/mutate"
+    rules:
+      - operations: ["CREATE", "UPDATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+    admissionReviewVersions: ["v1", "v1beta1"]
+    sideEffects: None
+    failurePolicy: Ignore
+    namespaceSelector:
+      matchLabels:
+        nephoran.io/certificate-injection: "enabled"
+
+  - name: service-certificate-provisioner.nephoran.io
+    clientConfig:
+      service:
+        name: nephoran-cert-webhook
+        namespace: nephoran-system
+        path: "/mutate"
+    rules:
+      - operations: ["CREATE", "UPDATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["services"]
+    admissionReviewVersions: ["v1", "v1beta1"]
+    sideEffects: None
+    failurePolicy: Ignore
+    namespaceSelector:
+      matchLabels:
+        nephoran.io/certificate-injection: "enabled"
+
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: certificate-validator.nephoran.io
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: certificate-automation
+webhooks:
+  - name: certificate-secret-validator.nephoran.io
+    clientConfig:
+      service:
+        name: nephoran-cert-webhook
+        namespace: nephoran-system
+        path: "/validate"
+    rules:
+      - operations: ["CREATE", "UPDATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["secrets"]
+    admissionReviewVersions: ["v1", "v1beta1"]
+    sideEffects: None
+    failurePolicy: Ignore
+    objectSelector:
+      matchLabels:
+        type: kubernetes.io/tls

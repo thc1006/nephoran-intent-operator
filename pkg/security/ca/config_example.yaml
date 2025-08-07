@@ -1,0 +1,758 @@
+# Nephoran Intent Operator - CA Management Configuration Example
+# This configuration provides comprehensive Certificate Authority integration
+# with multiple backends, policy enforcement, and monitoring capabilities.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-ca-config
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: ca-manager
+data:
+  ca-config.yaml: |
+    # CA Manager Configuration
+    default_backend: cert-manager
+    default_validity_duration: 720h  # 30 days
+    renewal_threshold: 240h          # 10 days before expiry
+    max_retry_attempts: 3
+    retry_backoff: 30s
+    
+    # Security Settings
+    key_size: 2048
+    allowed_key_types:
+      - RSA
+      - ECDSA
+    min_validity_duration: 1h
+    max_validity_duration: 8760h    # 1 year
+    require_approval: false
+    auto_rotation_enabled: true
+    
+    # Multi-tenancy Support
+    tenant_support: true
+    default_tenant: default
+    tenant_configs:
+      production:
+        tenant_id: production
+        backend: vault
+        issuer_ref: production-ca
+        policy_template: production-server
+        namespace: production
+        custom_config:
+          approval_required: true
+          max_validity_days: 90
+      development:
+        tenant_id: development
+        backend: self-signed
+        issuer_ref: dev-ca
+        policy_template: dev-server
+        namespace: development
+    
+    # Backend Configurations
+    backend_configs:
+      cert-manager:
+        issuer_name: nephoran-ca-issuer
+        issuer_kind: ClusterIssuer
+        issuer_namespace: cert-manager
+        certificate_namespace: nephoran-system
+        secret_name_prefix: nephoran-cert
+        enable_approval: false
+        default_duration: 2160h      # 90 days
+        renew_before: 720h           # 30 days
+        revision_limit: 3
+        
+        # ACME Configuration (if using ACME issuer)
+        acme_config:
+          server: https://acme-v02.api.letsencrypt.org/directory
+          email: ca-admin@nephoran.io
+          preferred_chain: ""
+          solvers:
+            - dns01:
+                provider: cloudflare
+                config:
+                  api_token_secret_ref:
+                    name: cloudflare-api-token
+                    key: api-token
+              selector:
+                dns_zones:
+                  - "nephoran.io"
+                  - "*.nephoran.io"
+            - http01:
+                ingress:
+                  class: nginx
+                  service_type: ClusterIP
+          private_key:
+            secret_ref:
+              name: letsencrypt-private-key
+              key: tls.key
+            algorithm: RSA
+            size: 2048
+            rotation_policy: yearly
+      
+      vault:
+        # Vault PKI Backend Configuration
+        address: https://vault.nephoran.io:8200
+        token: ""  # Use token_secret_ref instead
+        token_secret_ref:
+          name: vault-token
+          key: token
+        ca_cert: |
+          -----BEGIN CERTIFICATE-----
+          # Vault CA certificate
+          -----END CERTIFICATE-----
+        tls_skip_verify: false
+        namespace: nephoran
+        
+        pki_mount: pki
+        role: nephoran-server
+        issuer_ref: nephoran-intermediate-ca
+        max_lease_ttl: 8760h         # 1 year
+        default_ttl: 2160h           # 90 days
+        allowed_domains:
+          - nephoran.io
+          - "*.nephoran.io"
+          - localhost
+        allow_subdomains: true
+        allow_any_name: false
+        enforce_hostnames: true
+        allow_ip_sans: true
+        server_flag: true
+        client_flag: true
+        code_signing_flag: false
+        email_protection_flag: false
+        
+        # Authentication
+        auth_method: kubernetes
+        auth_config:
+          role: nephoran-ca-role
+          jwt: ""  # Will be auto-populated
+          mount_path: kubernetes
+          service_account_ref:
+            name: nephoran-ca-service-account
+        
+        # CRL Configuration
+        crl_config:
+          enabled: true
+          expiry_buffer: 72h
+          disable_expiry: false
+          auto_rebuild: true
+          auto_rebuild_grace: 1h
+        
+        # OCSP Configuration
+        ocsp_config:
+          enabled: false
+          ocsp_servers: []
+          responder_cert: ""
+          responder_key: ""
+      
+      self-signed:
+        # Self-signed CA for development/testing
+        default_key_size: 2048
+        default_validity_days: 30
+        max_validity_days: 365
+        min_key_size: 2048
+        
+        root_ca:
+          subject:
+            common_name: "Nephoran Root CA"
+            organization: ["Nephoran Development"]
+            organizational_unit: ["Engineering"]
+            country: ["US"]
+            locality: ["San Francisco"]
+            province: ["CA"]
+          key_size: 4096
+          validity_days: 3650        # 10 years
+          key_usages:
+            - cert_sign
+            - crl_sign
+            - digital_signature
+          crl_distribution_points:
+            - "https://crl.nephoran.io/root-ca.crl"
+          ocsp_servers:
+            - "https://ocsp.nephoran.io/root-ca"
+          issuer_url: "https://ca.nephoran.io/root-ca"
+        
+        intermediate_ca:
+          subject:
+            common_name: "Nephoran Intermediate CA"
+            organization: ["Nephoran Development"]
+            organizational_unit: ["Engineering"]
+            country: ["US"]
+            locality: ["San Francisco"]
+            province: ["CA"]
+          key_size: 2048
+          validity_days: 1825        # 5 years
+          key_usages:
+            - cert_sign
+            - crl_sign
+            - digital_signature
+          crl_distribution_points:
+            - "https://crl.nephoran.io/intermediate-ca.crl"
+          ocsp_servers:
+            - "https://ocsp.nephoran.io/intermediate-ca"
+        
+        crl_config:
+          enabled: true
+          validity_days: 7
+          update_interval: 24h
+          distribution_url: "https://crl.nephoran.io/"
+        
+        persistent_storage: true
+        storage_path: "/var/lib/nephoran-ca/certificates"
+        encrypt_storage: true
+      
+      hsm:
+        # Hardware Security Module Configuration
+        provider_type: pkcs11
+        connection_string: "/usr/lib/softhsm/libsofthsm2.so"
+        slot_id: 0
+        token_label: "nephoran-ca-token"
+        user_pin_secret_ref:
+          name: hsm-credentials
+          key: user-pin
+        so_pin_secret_ref:
+          name: hsm-credentials
+          key: so-pin
+        
+        key_generation:
+          key_type: RSA
+          key_size: 2048
+          curve: ""                  # For ECDSA
+          extractable: false
+          sensitive: true
+          permanent: true
+          key_usages:
+            - sign
+            - verify
+        
+        key_storage:
+          key_prefix: "nephoran-"
+          ca_key_label: "nephoran-ca-key"
+          interm_key_label: "nephoran-intermediate-key"
+          auto_label: true
+          key_retention: 2160h       # 90 days after cert expiry
+          backup_enabled: true
+          replication_enabled: false
+        
+        require_authentication: true
+        session_timeout: 30m
+        max_retries: 3
+        pool_size: 5
+        max_sessions: 10
+        
+        # High Availability (optional)
+        ha_config:
+          enabled: false
+          primary_hsm:
+            address: "primary-hsm.nephoran.io"
+            slot_id: 0
+            token_label: "primary-token"
+            priority: 1
+          secondary_hsms:
+            - address: "secondary-hsm.nephoran.io"
+              slot_id: 0
+              token_label: "secondary-token"
+              priority: 2
+          failover_timeout: 30s
+          health_check_interval: 60s
+    
+    # Certificate Storage Configuration
+    certificate_store:
+      type: kubernetes
+      namespace: nephoran-system
+      secret_prefix: nephoran-cert
+      encryption_key_secret_ref:
+        name: certificate-encryption-key
+        key: encryption-key
+      backup_enabled: true
+      backup_interval: 24h
+      retention_period: 2160h        # 90 days
+    
+    # Certificate Distribution Configuration
+    distribution_config:
+      enabled: true
+      hot_reload_enabled: true
+      watch_intervals: 30s
+      distribution_paths:
+        nginx-ingress: "/etc/ssl/certs/nephoran"
+        istio-gateway: "/etc/ssl/certs/gateway"
+        api-server: "/etc/kubernetes/pki"
+      
+      notification_config:
+        enabled: true
+        webhooks:
+          - "https://webhook.nephoran.io/certificate-updates"
+        email_smtp:
+          host: "smtp.nephoran.io"
+          port: 587
+          username: "ca-notifications@nephoran.io"
+          password_secret_ref:
+            name: smtp-credentials
+            key: password
+          from: "ca-notifications@nephoran.io"
+          to:
+            - "operations@nephoran.io"
+            - "security@nephoran.io"
+        slack_config:
+          webhook_url_secret_ref:
+            name: slack-webhook
+            key: url
+          channel: "#certificates"
+    
+    # Policy Configuration
+    policy_config:
+      enabled: true
+      approval_required: false
+      
+      policy_templates:
+        default:
+          name: "Default Server Certificate"
+          key_usage:
+            - digital_signature
+            - key_encipherment
+          ext_key_usage:
+            - server_auth
+            - client_auth
+          validity_duration: 2160h    # 90 days
+          key_size: 2048
+          allowed_san_types:
+            - dns
+            - ip
+          required_fields:
+            - common_name
+        
+        production-server:
+          name: "Production Server Certificate"
+          key_usage:
+            - digital_signature
+            - key_encipherment
+          ext_key_usage:
+            - server_auth
+          validity_duration: 2160h    # 90 days
+          key_size: 2048
+          allowed_san_types:
+            - dns
+          required_fields:
+            - common_name
+            - dns_names
+          custom_extensions:
+            "1.3.6.1.4.1.311.20.2": "production"  # Certificate Template Name
+        
+        client-auth:
+          name: "Client Authentication Certificate"
+          key_usage:
+            - digital_signature
+          ext_key_usage:
+            - client_auth
+          validity_duration: 720h     # 30 days
+          key_size: 2048
+          allowed_san_types:
+            - email
+          required_fields:
+            - common_name
+            - email_addresses
+        
+        webhook:
+          name: "Kubernetes Webhook Certificate"
+          key_usage:
+            - digital_signature
+            - key_encipherment
+          ext_key_usage:
+            - server_auth
+          validity_duration: 8760h    # 1 year
+          key_size: 2048
+          allowed_san_types:
+            - dns
+          required_fields:
+            - common_name
+            - dns_names
+        
+        code-signing:
+          name: "Code Signing Certificate"
+          key_usage:
+            - digital_signature
+          ext_key_usage:
+            - code_signing
+          validity_duration: 8760h    # 1 year
+          key_size: 2048
+          allowed_san_types: []
+          required_fields:
+            - common_name
+      
+      validation_rules:
+        - name: subject_pattern
+          type: subject
+          pattern: "^[a-zA-Z0-9.-]+\\.(nephoran\\.io|localhost)$"
+          required: false
+          error_message: "Subject must be a valid nephoran.io or localhost domain"
+        
+        - name: dns_pattern
+          type: san
+          pattern: "^[a-zA-Z0-9.-]+\\.(nephoran\\.io|localhost)$"
+          required: false
+          error_message: "DNS SANs must be valid nephoran.io or localhost domains"
+        
+        - name: max_validity
+          type: validity
+          pattern: "8760h"            # 1 year maximum
+          required: true
+          error_message: "Certificate validity cannot exceed 1 year"
+        
+        - name: required_key_usage
+          type: key_usage
+          pattern: "digital_signature"
+          required: true
+          error_message: "Digital signature key usage is required"
+      
+      approval_workflow:
+        stages:
+          - name: security_review
+            approvers:
+              - "security-team@nephoran.io"
+              - "ca-admin@nephoran.io"
+            min_approvals: 1
+            timeout: 24h
+          
+          - name: operations_approval
+            approvers:
+              - "operations@nephoran.io"
+              - "platform-team@nephoran.io"
+            min_approvals: 1
+            timeout: 12h
+        
+        timeout: 48h
+        escalation:
+          enabled: true
+          escalators:
+            - "ciso@nephoran.io"
+            - "engineering-manager@nephoran.io"
+          timeout: 72h
+    
+    # Monitoring Configuration
+    monitoring_config:
+      enabled: true
+      health_check_interval: 60s
+      metrics_enabled: true
+      alerting_enabled: true
+      expiration_warning_days: 30
+      
+      alert_rules:
+        - name: certificate_expiring_soon
+          description: "Certificate expires within warning period"
+          condition: "expiry_days < 30"
+          severity: warning
+          threshold: 30
+          duration: 5m
+          labels:
+            component: "ca-manager"
+            severity: "warning"
+          annotations:
+            summary: "Certificate {{ .SerialNumber }} expires in {{ .DaysRemaining }} days"
+            description: "Certificate issued by {{ .IssuedBy }} for {{ .CommonName }} expires soon"
+          actions:
+            - type: webhook
+              config:
+                url: "https://webhook.nephoran.io/alerts"
+            - type: email
+              config:
+                to: "operations@nephoran.io"
+        
+        - name: certificate_expired
+          description: "Certificate has expired"
+          condition: "expiry_days < 0"
+          severity: critical
+          threshold: 0
+          duration: 1m
+          labels:
+            component: "ca-manager"
+            severity: "critical"
+          annotations:
+            summary: "Certificate {{ .SerialNumber }} has expired"
+            description: "Certificate issued by {{ .IssuedBy }} for {{ .CommonName }} expired on {{ .ExpiresAt }}"
+          actions:
+            - type: pagerduty
+              config:
+                integration_key_secret_ref:
+                  name: pagerduty-integration
+                  key: key
+        
+        - name: backend_unhealthy
+          description: "CA backend is unhealthy"
+          condition: "backend_health == 0"
+          severity: error
+          threshold: 0
+          duration: 2m
+          labels:
+            component: "ca-manager"
+            severity: "error"
+          annotations:
+            summary: "CA backend {{ .Backend }} is unhealthy"
+            description: "Backend {{ .Backend }} health check failed"
+          actions:
+            - type: slack
+              config:
+                webhook_url_secret_ref:
+                  name: slack-webhook
+                  key: url
+                channel: "#alerts"
+        
+        - name: high_error_rate
+          description: "High error rate in certificate operations"
+          condition: "error_rate > 0.05"
+          severity: error
+          threshold: 0.05
+          duration: 5m
+          labels:
+            component: "ca-manager"
+            severity: "error"
+          annotations:
+            summary: "High error rate: {{ .ErrorRate }}%"
+            description: "Certificate operation error rate exceeds threshold"
+      
+      thresholds:
+        certificate_expiry_days: 30
+        backend_error_rate: 0.05    # 5%
+        policy_violation_rate: 0.10 # 10%
+        distribution_failure_rate: 0.05 # 5%
+        system_resource_usage: 0.80 # 80%
+      
+      cooldown: 5m
+      max_alerts: 100
+      
+      notification_channels:
+        - name: operations-email
+          type: email
+          config:
+            smtp_host: "smtp.nephoran.io"
+            smtp_port: "587"
+            from: "ca-alerts@nephoran.io"
+            to: "operations@nephoran.io"
+            username: "ca-alerts@nephoran.io"
+            password_secret_ref:
+              name: smtp-credentials
+              key: password
+        
+        - name: security-slack
+          type: slack
+          config:
+            webhook_url_secret_ref:
+              name: slack-webhook
+              key: url
+            channel: "#security"
+        
+        - name: critical-pagerduty
+          type: pagerduty
+          config:
+            integration_key_secret_ref:
+              name: pagerduty-integration
+              key: key
+            severity: critical
+        
+        - name: operations-webhook
+          type: webhook
+          config:
+            url: "https://webhook.nephoran.io/ca-alerts"
+            timeout: 30s
+            retry_attempts: 3
+
+---
+# Integration Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-ca-integration-config
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: ca-integration
+data:
+  integration-config.yaml: |
+    # TLS Integration
+    tls_integration:
+      enabled: true
+      auto_update_tls_config: true
+      tls_config_secret_name: "nephoran-tls-config"
+      certificate_namespaces:
+        - nephoran-system
+        - production
+        - staging
+        - development
+      default_certificate_ttl: 2160h  # 90 days
+      hot_reload_enabled: true
+    
+    # RBAC Integration
+    rbac_integration:
+      enabled: true
+      certificate_based_auth: true
+      client_cert_namespace: "nephoran-system"
+      service_account_integration: true
+    
+    # Secret Integration
+    secret_integration:
+      enabled: true
+      auto_create_secrets: true
+      secret_name_template: "cert-%s"
+      secret_labels:
+        "app.kubernetes.io/managed-by": "nephoran-ca-manager"
+        "nephoran.io/certificate": "true"
+      secret_annotations:
+        "nephoran.io/auto-generated": "true"
+      encryption_enabled: true
+    
+    # Service Mesh Integration
+    service_mesh:
+      enabled: false
+      mesh_type: "istio"
+      auto_inject_certificates: true
+      namespace_selector:
+        "istio-injection": "enabled"
+      workload_selector:
+        "app": "nephoran"
+      certificate_template: "service-mesh"
+    
+    # Ingress Integration
+    ingress:
+      enabled: true
+      ingress_class: "nginx"
+      auto_generate_certs: true
+      certificate_annotation: "nephoran.io/certificate"
+      tls_secret_template: "tls-%s"
+    
+    # Operator Integration
+    operator:
+      enabled: true
+      webhook_certificates: true
+      operator_namespace: "nephoran-system"
+      webhook_service_name: "nephoran-webhook-service"
+      cert_rotation_days: 365
+
+---
+# Example Custom Resource for Certificate Request
+apiVersion: security.nephoran.io/v1beta1
+kind: CertificateRequest
+metadata:
+  name: example-server-cert
+  namespace: production
+  labels:
+    app.kubernetes.io/name: example-app
+    nephoran.io/tenant: production
+spec:
+  # Certificate Details
+  commonName: "api.nephoran.io"
+  dnsNames:
+    - "api.nephoran.io"
+    - "api-internal.nephoran.io"
+    - "*.api.nephoran.io"
+  ipAddresses:
+    - "10.0.1.100"
+  emailAddresses: []
+  uris: []
+  
+  # Certificate Properties
+  keySize: 2048
+  validityDuration: "2160h"  # 90 days
+  keyUsage:
+    - digital_signature
+    - key_encipherment
+  extKeyUsage:
+    - server_auth
+    - client_auth
+  
+  # CA Configuration
+  backend: vault
+  policyTemplate: production-server
+  tenantId: production
+  autoRenew: true
+  renewBefore: "720h"  # 30 days
+  
+  # Distribution Configuration
+  secretName: "api-tls-cert"
+  distributionTargets:
+    - type: secret
+      name: "api-server-tls"
+      namespace: "production"
+    - type: configmap
+      name: "api-ca-bundle"
+      namespace: "production"
+    - type: file
+      path: "/etc/ssl/certs/api.crt"
+      config:
+        file_name: "api.crt"
+        file_mode: 0644
+  
+  # Metadata
+  metadata:
+    application: "api-server"
+    environment: "production"
+    owner: "platform-team@nephoran.io"
+    cost_center: "engineering"
+  
+  # Approval Configuration
+  approval:
+    required: true
+    workflow: "production"
+    justification: "TLS certificate for production API server"
+    requestedBy: "platform-team@nephoran.io"
+
+---
+# Example Secret for storing sensitive configuration
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-token
+  namespace: nephoran-system
+type: Opaque
+data:
+  token: <base64-encoded-vault-token>
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: certificate-encryption-key
+  namespace: nephoran-system
+type: Opaque
+data:
+  encryption-key: <base64-encoded-32-byte-key>
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hsm-credentials
+  namespace: nephoran-system
+type: Opaque
+data:
+  user-pin: <base64-encoded-pin>
+  so-pin: <base64-encoded-so-pin>
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: smtp-credentials
+  namespace: nephoran-system
+type: Opaque
+data:
+  password: <base64-encoded-smtp-password>
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: slack-webhook
+  namespace: nephoran-system
+type: Opaque
+data:
+  url: <base64-encoded-slack-webhook-url>
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pagerduty-integration
+  namespace: nephoran-system
+type: Opaque
+data:
+  key: <base64-encoded-pagerduty-integration-key>

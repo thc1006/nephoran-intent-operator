@@ -1,0 +1,509 @@
+# Example: Complete 5G Core CNF deployment via NetworkIntent
+# This demonstrates natural language intent processing that results in
+# multiple coordinated CNF deployments for a full 5G Core network
+
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: 5g-core-complete-deployment
+  namespace: 5g-core
+  labels:
+    deployment.type: "5g-core"
+    priority: "high"
+    environment: "production"
+spec:
+  intent: |
+    Deploy a complete 5G Core network with high availability and auto-scaling.
+    I need AMF, SMF, UPF, and NRF functions deployed as cloud native functions
+    using Helm charts. Enable service mesh with mTLS for secure communication
+    between functions. Configure auto-scaling based on CPU and memory utilization
+    with minimum 2 replicas per function and maximum 10 replicas. Enable
+    comprehensive monitoring with Prometheus and Grafana. The UPF should use
+    DPDK for high-performance packet processing. Deploy in production-ready
+    configuration with backup and disaster recovery capabilities.
+  
+  intentType: deployment
+  priority: high
+  
+  targetComponents:
+    - AMF
+    - SMF
+    - UPF
+    - NRF
+  
+  resourceConstraints:
+    cpu: "8"
+    memory: "16Gi"
+    storage: "100Gi"
+    maxCpu: "16"
+    maxMemory: "32Gi"
+  
+  targetNamespace: 5g-core
+  targetCluster: production-cluster
+  networkSlice: "010203-112233"
+  region: us-east-1
+  
+  timeoutSeconds: 1800  # 30 minutes for complete deployment
+  maxRetries: 3
+
+---
+apiVersion: nephoran.com/v1
+kind: CNFDeployment
+metadata:
+  name: amf-deployment
+  namespace: 5g-core
+  labels:
+    cnf.type: "5G-Core"
+    cnf.function: "AMF"
+    deployment.source: "network-intent"
+spec:
+  cnfType: 5G-Core
+  function: AMF
+  deploymentStrategy: Helm
+  replicas: 3
+  
+  resources:
+    cpu: "1000m"
+    memory: "2Gi"
+    storage: "10Gi"
+    maxCpu: "2000m"
+    maxMemory: "4Gi"
+  
+  helm:
+    repository: "https://charts.5g-core.io"
+    chartName: "amf"
+    chartVersion: "1.0.0"
+    releaseName: "nephoran-amf"
+    values:
+      image:
+        repository: "5gc/amf"
+        tag: "v1.4.0"
+        pullPolicy: "IfNotPresent"
+      
+      config:
+        plmnId:
+          mcc: "001"
+          mnc: "01"
+        amfId: "0x000001"
+        guami:
+          plmnId:
+            mcc: "001"
+            mnc: "01"
+          amfRegionId: "0x01"
+          amfSetId: "0x001"
+          amfPointer: "0x01"
+        
+        # Service-based interfaces
+        sbi:
+          scheme: "https"
+          registerIPv4: "0.0.0.0"
+          bindingIPv4: "0.0.0.0"
+          port: 8080
+          tls:
+            enabled: true
+        
+        # Network interfaces
+        ngapIpList:
+          - "0.0.0.0"
+        
+        # NRF integration
+        nrfUri: "https://nrf-service:8080"
+        
+        # Security configuration
+        security:
+          integrityOrder:
+            - "NIA2"
+            - "NIA1"
+            - "NIA0"
+          cipheringOrder:
+            - "NEA2"
+            - "NEA1"
+            - "NEA0"
+  
+  serviceMesh:
+    enabled: true
+    type: istio
+    mtls:
+      enabled: true
+      mode: strict
+    trafficPolicies:
+      - name: "amf-load-balancing"
+        source: "*"
+        destination: "amf-service"
+        loadBalancing:
+          algorithm: "round_robin"
+          healthCheck:
+            path: "/health"
+            port: 8080
+            interval: 30
+            timeout: 10
+            retries: 3
+  
+  autoScaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    cpuUtilization: 70
+    memoryUtilization: 80
+    customMetrics:
+      - name: "amf_sessions_per_second"
+        type: "pods"
+        targetValue: "100"
+  
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+      interval: "30s"
+    customMetrics:
+      - "amf_registered_ues"
+      - "amf_session_establishment_rate"
+      - "amf_handover_success_rate"
+    alertingRules:
+      - "amf_high_cpu_usage"
+      - "amf_memory_exhaustion"
+      - "amf_session_failure_rate"
+  
+  backup:
+    enabled: true
+    schedule: "0 2 * * *"  # Daily at 2 AM
+    retentionDays: 30
+    storageLocation: "s3://nephoran-backups/5g-core/amf"
+  
+  targetNamespace: 5g-core
+  targetCluster: production-cluster
+  networkSlice: "010203-112233"
+
+---
+apiVersion: nephoran.com/v1
+kind: CNFDeployment
+metadata:
+  name: smf-deployment
+  namespace: 5g-core
+  labels:
+    cnf.type: "5G-Core"
+    cnf.function: "SMF"
+    deployment.source: "network-intent"
+spec:
+  cnfType: 5G-Core
+  function: SMF
+  deploymentStrategy: Helm
+  replicas: 3
+  
+  resources:
+    cpu: "1000m"
+    memory: "2Gi"
+    storage: "15Gi"
+    maxCpu: "2000m"
+    maxMemory: "4Gi"
+  
+  helm:
+    repository: "https://charts.5g-core.io"
+    chartName: "smf"
+    chartVersion: "1.0.0"
+    releaseName: "nephoran-smf"
+    values:
+      image:
+        repository: "5gc/smf"
+        tag: "v1.4.0"
+      
+      config:
+        plmnId:
+          mcc: "001"
+          mnc: "01"
+        nfInstanceId: "smf-instance-001"
+        
+        # PFCP configuration for N4 interface
+        pfcp:
+          addr: "0.0.0.0"
+          port: 8805
+        
+        # SBI configuration
+        sbi:
+          scheme: "https"
+          registerIPv4: "0.0.0.0"
+          bindingIPv4: "0.0.0.0"
+          port: 8080
+          tls:
+            enabled: true
+        
+        # DNN configuration
+        snssaiInfos:
+          - sNssai:
+              sst: 1
+              sd: "010203"
+            dnnInfos:
+              - dnn: "internet"
+                dns:
+                  ipv4: "8.8.8.8"
+                  ipv6: "2001:4860:4860::8888"
+          - sNssai:
+              sst: 1
+              sd: "112233"
+            dnnInfos:
+              - dnn: "iot"
+                dns:
+                  ipv4: "8.8.4.4"
+        
+        # UPF connectivity
+        userplaneInformation:
+          upNodes:
+            UPF:
+              type: UPF
+              nodeID: "upf-service"
+          links:
+            - A: gNB1
+              B: UPF
+        
+        nrfUri: "https://nrf-service:8080"
+  
+  serviceMesh:
+    enabled: true
+    type: istio
+    mtls:
+      enabled: true
+      mode: strict
+  
+  autoScaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    cpuUtilization: 70
+    memoryUtilization: 80
+  
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+      interval: "30s"
+    customMetrics:
+      - "smf_active_sessions"
+      - "smf_session_establishment_rate"
+      - "smf_pdu_session_success_rate"
+
+---
+apiVersion: nephoran.com/v1
+kind: CNFDeployment
+metadata:
+  name: upf-deployment
+  namespace: 5g-core
+  labels:
+    cnf.type: "5G-Core"
+    cnf.function: "UPF"
+    deployment.source: "network-intent"
+spec:
+  cnfType: 5G-Core
+  function: UPF
+  deploymentStrategy: Helm
+  replicas: 2
+  
+  resources:
+    cpu: "4000m"
+    memory: "8Gi"
+    storage: "50Gi"
+    maxCpu: "8000m"
+    maxMemory: "16Gi"
+    gpu: 0
+    hugepages:
+      "2Mi": "2Gi"
+      "1Gi": "4Gi"
+    dpdk:
+      enabled: true
+      cores: 6
+      memory: 4096
+      driver: "vfio-pci"
+  
+  helm:
+    repository: "https://charts.5g-core.io"
+    chartName: "upf"
+    chartVersion: "1.0.0"
+    releaseName: "nephoran-upf"
+    values:
+      image:
+        repository: "5gc/upf"
+        tag: "v1.4.0"
+      
+      # High-performance packet processing configuration
+      dpdk:
+        enabled: true
+        cores: 6
+        memory: 4096
+        driver: "vfio-pci"
+        ports:
+          - "0000:00:08.0"
+          - "0000:00:09.0"
+      
+      # PFCP configuration
+      pfcp:
+        addr: "0.0.0.0"
+        port: 8805
+      
+      # GTP-U configuration for N3/N9 interfaces
+      gtpu:
+        forwarder: "gtp5g"
+        ifList:
+          - addr: "0.0.0.0"
+            type: "N3"
+            name: "upf-n3"
+          - addr: "0.0.0.0"
+            type: "N9"
+            name: "upf-n9"
+      
+      # DNN configuration
+      dnnList:
+        - dnn: "internet"
+          cidr: "10.60.0.0/16"
+          natifname: "upf-n6"
+        - dnn: "iot"
+          cidr: "10.70.0.0/16"
+          natifname: "upf-n6-iot"
+      
+      # Performance optimization
+      performance:
+        isolcpus: "2-7"
+        rcu_nocbs: "2-7"
+        nohz_full: "2-7"
+      
+      # Networking configuration
+      networking:
+        sriov:
+          enabled: true
+          resourceName: "intel.com/intel_sriov_netdevice"
+          count: 2
+  
+  serviceMesh:
+    enabled: true
+    type: istio
+    mtls:
+      enabled: true
+      mode: strict
+  
+  autoScaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 4
+    cpuUtilization: 80
+    memoryUtilization: 85
+    customMetrics:
+      - name: "upf_throughput_mbps"
+        type: "pods"
+        targetValue: "1000"
+  
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+      interval: "30s"
+    customMetrics:
+      - "upf_packet_throughput"
+      - "upf_session_count"
+      - "upf_cpu_utilization_per_core"
+      - "upf_memory_usage"
+      - "upf_packet_drop_rate"
+
+---
+apiVersion: nephoran.com/v1
+kind: CNFDeployment
+metadata:
+  name: nrf-deployment
+  namespace: 5g-core
+  labels:
+    cnf.type: "5G-Core"
+    cnf.function: "NRF"
+    deployment.source: "network-intent"
+spec:
+  cnfType: 5G-Core
+  function: NRF
+  deploymentStrategy: Helm
+  replicas: 3
+  
+  resources:
+    cpu: "500m"
+    memory: "1Gi"
+    storage: "20Gi"
+    maxCpu: "1000m"
+    maxMemory: "2Gi"
+  
+  helm:
+    repository: "https://charts.5g-core.io"
+    chartName: "nrf"
+    chartVersion: "1.0.0"
+    releaseName: "nephoran-nrf"
+    values:
+      image:
+        repository: "5gc/nrf"
+        tag: "v1.4.0"
+      
+      config:
+        MongoDBName: "nephoran"
+        MongoDBUrl: "mongodb://nrf-mongodb:27017"
+        
+        sbi:
+          scheme: "https"
+          registerIPv4: "0.0.0.0"
+          bindingIPv4: "0.0.0.0"
+          port: 8080
+          tls:
+            enabled: true
+        
+        DefaultPlmnId:
+          mcc: "001"
+          mnc: "01"
+        
+        serviceNameList:
+          - "nnrf-nfm"
+          - "nnrf-disc"
+      
+      # MongoDB configuration for NF profiles storage
+      mongodb:
+        enabled: true
+        replicaSet: true
+        replicaCount: 3
+        persistence:
+          enabled: true
+          size: "10Gi"
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+  
+  serviceMesh:
+    enabled: true
+    type: istio
+    mtls:
+      enabled: true
+      mode: strict
+  
+  autoScaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    cpuUtilization: 70
+    memoryUtilization: 80
+  
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+      interval: "30s"
+    customMetrics:
+      - "nrf_registered_nf_instances"
+      - "nrf_discovery_requests_per_second"
+      - "nrf_database_response_time"
+  
+  backup:
+    enabled: true
+    schedule: "0 */6 * * *"  # Every 6 hours
+    retentionDays: 7
+    storageLocation: "s3://nephoran-backups/5g-core/nrf"

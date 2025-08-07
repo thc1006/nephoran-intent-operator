@@ -1,0 +1,604 @@
+# Advanced Prometheus Configuration for SLA Monitoring
+# Supports high-cardinality metrics and predictive SLA violation detection
+# Version: 1.0.0
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sla-prometheus-config
+  namespace: monitoring
+  labels:
+    app: nephoran-sla-monitoring
+    component: prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      scrape_timeout: 10s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'nephoran-production'
+        prometheus: 'sla-monitoring'
+
+    # Advanced scrape configurations for SLA monitoring
+    scrape_configs:
+      # High-frequency SLA metrics collection
+      - job_name: 'sla-critical-metrics'
+        scrape_interval: 1s
+        scrape_timeout: 1s
+        metrics_path: '/metrics'
+        static_configs:
+          - targets:
+            - 'sla-monitoring-controller.sla-monitoring:8080'
+            - 'sla-metrics-collector.sla-monitoring:8080'
+        metric_relabel_configs:
+          # Keep only critical SLA metrics for high-frequency collection
+          - source_labels: [__name__]
+            regex: 'sla_(availability|latency_p95|throughput|error_budget).*'
+            action: keep
+
+      # Standard SLA monitoring components
+      - job_name: 'sla-monitoring-components'
+        scrape_interval: 15s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - sla-monitoring
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+            action: replace
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+            target_label: __address__
+          - action: labelmap
+            regex: __meta_kubernetes_service_label_(.+)
+          - source_labels: [__meta_kubernetes_namespace]
+            action: replace
+            target_label: kubernetes_namespace
+          - source_labels: [__meta_kubernetes_service_name]
+            action: replace
+            target_label: kubernetes_name
+
+      # Nephoran Intent Operator components for SLA measurement
+      - job_name: 'nephoran-operator'
+        scrape_interval: 5s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - nephoran
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_service_name]
+            regex: 'nephoran-(llm-processor|nephio-bridge|oran-adaptor).*'
+            action: keep
+
+      # Synthetic monitoring probes
+      - job_name: 'sla-synthetic-probes'
+        scrape_interval: 30s
+        static_configs:
+          - targets:
+            - 'sla-synthetic-monitor.sla-monitoring:8080'
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'synthetic_(availability|latency|success_rate).*'
+            action: keep
+
+      # Kubernetes infrastructure metrics for SLA correlation
+      - job_name: 'kubernetes-infrastructure'
+        scrape_interval: 30s
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'node_(cpu|memory|disk|network).*'
+            action: keep
+
+    # Advanced recording rules for SLA calculations
+    rule_files:
+      - "/etc/prometheus/rules/*.yml"
+
+    # Alerting configuration
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              - 'alertmanager.monitoring:9093'
+          timeout: 10s
+          api_version: v2
+
+    # Remote write for long-term storage and compliance
+    remote_write:
+      - url: "http://sla-storage-manager.sla-monitoring:8001/api/v1/receive"
+        queue_config:
+          max_samples_per_send: 10000
+          max_shards: 200
+          capacity: 500000
+        write_relabel_configs:
+          # Only send SLA-relevant metrics to compliance storage
+          - source_labels: [__name__]
+            regex: 'sla_.*|intent_processing_.*|availability_.*|error_budget_.*'
+            action: keep
+
+  # SLA Recording Rules
+  sla-recording-rules.yml: |
+    groups:
+      # Availability SLA Recording Rules
+      - name: sla_availability_recording
+        interval: 15s
+        rules:
+          # Multi-dimensional availability calculation
+          - record: sla:availability:component_weighted
+            expr: |
+              (
+                (avg_over_time(up{job="nephoran-llm-processor"}[1m]) * 0.3) +
+                (avg_over_time(up{job="nephoran-nephio-bridge"}[1m]) * 0.25) +
+                (avg_over_time(up{job="nephoran-oran-adaptor"}[1m]) * 0.2) +
+                (avg_over_time(up{job="nephoran-gitops"}[1m]) * 0.15) +
+                (avg_over_time(up{job="nephoran-monitoring"}[1m]) * 0.1)
+              ) * 100
+
+          # Service-level availability (end-to-end success rate)
+          - record: sla:availability:service_level
+            expr: |
+              (
+                sum(rate(intent_processing_success_total[5m])) /
+                sum(rate(intent_processing_total[5m]))
+              ) * 100
+
+          # User journey availability (synthetic monitoring)
+          - record: sla:availability:user_journey
+            expr: |
+              (
+                sum(rate(synthetic_test_success_total[5m])) /
+                sum(rate(synthetic_test_total[5m]))
+              ) * 100
+
+          # Composite availability score
+          - record: sla:availability:composite
+            expr: |
+              (
+                (sla:availability:component_weighted * 0.4) +
+                (sla:availability:service_level * 0.35) +
+                (sla:availability:user_journey * 0.25)
+              )
+
+          # Error budget calculation
+          - record: sla:error_budget:remaining_percentage
+            expr: |
+              max(0, 
+                (99.95 - (100 - sla:availability:composite)) / 0.05 * 100
+              )
+
+          # Error budget burn rate (hourly)
+          - record: sla:error_budget:burn_rate_1h
+            expr: |
+              (
+                (100 - sla:availability:composite) -
+                (100 - avg_over_time(sla:availability:composite[1h]))
+              ) / 0.05 * 100
+
+          # Error budget burn rate (6-hour)
+          - record: sla:error_budget:burn_rate_6h
+            expr: |
+              (
+                (100 - sla:availability:composite) -
+                (100 - avg_over_time(sla:availability:composite[6h]))
+              ) / 0.05 * 100 / 6
+
+      # Latency SLA Recording Rules
+      - name: sla_latency_recording
+        interval: 5s
+        rules:
+          # End-to-end latency percentiles
+          - record: sla:latency:p50
+            expr: |
+              histogram_quantile(0.50,
+                sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le)
+              )
+
+          - record: sla:latency:p95
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le)
+              )
+
+          - record: sla:latency:p99
+            expr: |
+              histogram_quantile(0.99,
+                sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le)
+              )
+
+          # Component-specific latency breakdowns
+          - record: sla:latency:llm_processing_p95
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(llm_processing_duration_seconds_bucket[5m])) by (le)
+              )
+
+          - record: sla:latency:rag_retrieval_p95
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(rag_retrieval_duration_seconds_bucket[5m])) by (le)
+              )
+
+          - record: sla:latency:gitops_operation_p95
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(gitops_commit_duration_seconds_bucket[5m])) by (le)
+              )
+
+          # Latency SLA compliance rate
+          - record: sla:latency:compliance_rate
+            expr: |
+              (
+                sum(rate(intent_processing_duration_seconds_bucket{le="2.0"}[5m])) /
+                sum(rate(intent_processing_duration_seconds_count[5m]))
+              ) * 100
+
+          # Latency violation count
+          - record: sla:latency:violations_per_hour
+            expr: |
+              sum(increase(intent_processing_duration_seconds_count[1h])) -
+              sum(increase(intent_processing_duration_seconds_bucket{le="2.0"}[1h]))
+
+      # Throughput SLA Recording Rules
+      - name: sla_throughput_recording
+        interval: 15s
+        rules:
+          # Current throughput (intents per minute)
+          - record: sla:throughput:current_ipm
+            expr: |
+              sum(rate(intent_processing_total[1m])) * 60
+
+          # Peak throughput (max over 5 minutes)
+          - record: sla:throughput:peak_5m
+            expr: |
+              max_over_time(sla:throughput:current_ipm[5m])
+
+          # Sustained throughput (average over 1 hour)
+          - record: sla:throughput:sustained_1h
+            expr: |
+              avg_over_time(sla:throughput:current_ipm[1h])
+
+          # Burst capacity utilization
+          - record: sla:throughput:burst_utilization
+            expr: |
+              (sla:throughput:current_ipm / 60000) * 100  # Burst capacity: 1000/sec = 60000/min
+
+          # Queue depth and processing backlog
+          - record: sla:throughput:queue_depth
+            expr: |
+              sum(intent_processing_queue_size)
+
+          # Capacity utilization percentage
+          - record: sla:throughput:capacity_utilization
+            expr: |
+              (sla:throughput:current_ipm / 45) * 100  # Target: 45 intents/minute
+
+          # Throughput SLA compliance
+          - record: sla:throughput:compliance_rate
+            expr: |
+              (
+                sum(rate(intent_processing_total[5m])) >= bool (45/60)
+              ) * 100
+
+      # Error Budget Recording Rules with Business Impact Weighting
+      - name: sla_error_budget_recording
+        interval: 30s
+        rules:
+          # Weighted error calculation
+          - record: sla:errors:weighted_error_rate
+            expr: |
+              (
+                (sum(rate(intent_processing_errors_total{severity="critical"}[5m])) * 10) +
+                (sum(rate(intent_processing_errors_total{severity="major"}[5m])) * 5) +
+                (sum(rate(intent_processing_errors_total{severity="minor"}[5m])) * 1)
+              ) / (
+                sum(rate(intent_processing_total[5m])) * 1  # Baseline weight
+              ) * 100
+
+          # Business impact score
+          - record: sla:business_impact:score
+            expr: |
+              (
+                (sum(rate(intent_processing_errors_total{severity="critical"}[5m])) * 1000) +  # $1000 per critical error
+                (sum(rate(intent_processing_errors_total{severity="major"}[5m])) * 100) +     # $100 per major error
+                (sum(rate(intent_processing_errors_total{severity="minor"}[5m])) * 10)        # $10 per minor error
+              )
+
+          # Revenue impact calculation
+          - record: sla:business_impact:revenue_hourly
+            expr: |
+              sla:business_impact:score * 60  # Per hour
+
+          # User impact estimation
+          - record: sla:business_impact:affected_users
+            expr: |
+              (
+                sum(rate(intent_processing_errors_total[5m])) *
+                avg(intent_processing_users_per_request)
+              )
+
+      # Predictive SLA Recording Rules
+      - name: sla_predictive_recording
+        interval: 60s
+        rules:
+          # Availability trend prediction (linear)
+          - record: sla:prediction:availability_1h
+            expr: |
+              predict_linear(sla:availability:composite[1h], 3600)
+
+          # Latency trend prediction
+          - record: sla:prediction:latency_p95_30m
+            expr: |
+              predict_linear(sla:latency:p95[30m], 1800)
+
+          # Throughput trend prediction
+          - record: sla:prediction:throughput_15m
+            expr: |
+              predict_linear(sla:throughput:current_ipm[15m], 900)
+
+          # Error budget depletion prediction
+          - record: sla:prediction:error_budget_depletion
+            expr: |
+              (sla:error_budget:remaining_percentage) / 
+              (sla:error_budget:burn_rate_1h + 0.01)  # Hours until depletion
+
+          # Capacity exhaustion prediction
+          - record: sla:prediction:capacity_exhaustion
+            expr: |
+              predict_linear(sla:throughput:capacity_utilization[1h], 3600) > bool 100
+
+      # Composite SLA Score Recording Rules
+      - name: sla_composite_recording
+        interval: 30s
+        rules:
+          # Overall SLA health score (weighted composite)
+          - record: sla:composite:health_score
+            expr: |
+              (
+                (sla:availability:composite * 0.35) +
+                ((2000 - (sla:latency:p95 * 1000)) / 2000 * 100 * 0.25) +  # Invert latency for scoring
+                ((sla:throughput:compliance_rate) * 0.20) +
+                ((100 - sla:errors:weighted_error_rate) * 0.20)
+              )
+
+          # SLA compliance status (boolean)
+          - record: sla:composite:compliant
+            expr: |
+              (sla:availability:composite >= bool 99.95) *
+              (sla:latency:p95 <= bool 2.0) *
+              (sla:throughput:current_ipm >= bool 45) *
+              (sla:errors:weighted_error_rate <= bool 0.5)
+
+          # Risk assessment score
+          - record: sla:risk:assessment_score
+            expr: |
+              (
+                ((99.95 - sla:availability:composite) * 20) +    # Availability risk
+                (max(0, sla:latency:p95 - 2.0) * 50) +          # Latency risk
+                (max(0, 45 - sla:throughput:current_ipm) * 2) + # Throughput risk
+                (sla:errors:weighted_error_rate * 100)          # Error rate risk
+              )
+
+      # Cost and Efficiency Recording Rules
+      - name: sla_cost_efficiency_recording
+        interval: 300s  # 5 minute intervals
+        rules:
+          # Resource efficiency score
+          - record: sla:efficiency:resource_utilization
+            expr: |
+              (
+                (avg(rate(container_cpu_usage_seconds_total{namespace="nephoran"}[5m])) /
+                 avg(kube_pod_container_resource_requests{namespace="nephoran",resource="cpu"})) * 0.5 +
+                (avg(container_memory_working_set_bytes{namespace="nephoran"}) /
+                 avg(kube_pod_container_resource_limits{namespace="nephoran",resource="memory"})) * 0.5
+              ) * 100
+
+          # Cost per intent calculation
+          - record: sla:cost:per_intent
+            expr: |
+              (
+                sum(kube_pod_container_resource_requests{namespace="nephoran",resource="cpu"}) * 0.048 +  # $0.048 per CPU hour
+                sum(kube_pod_container_resource_requests{namespace="nephoran",resource="memory"}) / (1024^3) * 0.0065  # $0.0065 per GB hour
+              ) / (sla:throughput:current_ipm / 60)  # Per second cost / intents per second
+
+          # Optimization savings calculation
+          - record: sla:optimization:savings_percentage
+            expr: |
+              max(0, (1 - sla:efficiency:resource_utilization / 100) * 100)
+
+  # Advanced SLA Alerting Rules
+  sla-alerting-rules.yml: |
+    groups:
+      # Critical SLA Violation Alerts
+      - name: sla_critical_violations
+        rules:
+          # Availability SLA violation
+          - alert: SLAAvailabilityCriticalViolation
+            expr: sla:availability:composite < 99.95
+            for: 2m
+            labels:
+              severity: critical
+              sla_type: availability
+              team: platform-engineering
+            annotations:
+              summary: "SLA availability violation - {{ $value | humanizePercentage }}"
+              description: "Availability {{ $value | humanizePercentage }} is below SLA target of 99.95%"
+              impact: "Revenue impact: ${{ with query \"sla:business_impact:revenue_hourly\" }}{{ . | first | value | humanize }}{{ end }}/hour"
+              runbook_url: "https://docs.nephoran.io/runbooks/availability-sla-violation"
+
+          # Latency SLA violation
+          - alert: SLALatencyP95Violation
+            expr: sla:latency:p95 > 2.0
+            for: 1m
+            labels:
+              severity: critical
+              sla_type: latency
+              team: platform-engineering
+            annotations:
+              summary: "SLA P95 latency violation - {{ $value | humanizeDuration }}"
+              description: "P95 latency {{ $value | humanizeDuration }} exceeds SLA target of 2s"
+              compliance_rate: "{{ with query \"sla:latency:compliance_rate\" }}{{ . | first | value | humanizePercentage }}{{ end }}"
+
+          # Throughput SLA violation
+          - alert: SLAThroughputViolation
+            expr: sla:throughput:current_ipm < 45
+            for: 3m
+            labels:
+              severity: warning
+              sla_type: throughput
+              team: platform-engineering
+            annotations:
+              summary: "SLA throughput violation - {{ $value | humanize }} intents/min"
+              description: "Current throughput {{ $value | humanize }} intents/min is below SLA target of 45/min"
+              queue_depth: "{{ with query \"sla:throughput:queue_depth\" }}{{ . | first | value | humanize }}{{ end }}"
+
+      # Error Budget Alerting
+      - name: sla_error_budget_alerts
+        rules:
+          # Fast burn rate alert (2% of monthly budget in 1 hour)
+          - alert: SLAErrorBudgetFastBurn
+            expr: sla:error_budget:burn_rate_1h > 2.0
+            for: 5m
+            labels:
+              severity: critical
+              sla_type: error_budget
+              burn_rate: fast
+              team: platform-engineering
+            annotations:
+              summary: "SLA error budget fast burn detected - {{ $value | humanizePercentage }}/hour"
+              description: "Consuming {{ $value | humanizePercentage }} of monthly error budget per hour"
+              remaining_budget: "{{ with query \"sla:error_budget:remaining_percentage\" }}{{ . | first | value | humanizePercentage }}{{ end }} remaining"
+              time_to_exhaustion: "{{ with query \"sla:prediction:error_budget_depletion\" }}{{ . | first | value | humanize }}{{ end }} hours"
+
+          # Slow burn rate alert (5% of monthly budget in 6 hours)
+          - alert: SLAErrorBudgetSlowBurn
+            expr: sla:error_budget:burn_rate_6h > 0.83  # 5% / 6 hours
+            for: 30m
+            labels:
+              severity: warning
+              sla_type: error_budget
+              burn_rate: slow
+              team: platform-engineering
+            annotations:
+              summary: "SLA error budget slow burn detected"
+              description: "Consuming error budget at {{ $value | humanizePercentage }}/hour over 6-hour window"
+
+      # Predictive SLA Alerts
+      - name: sla_predictive_alerts
+        rules:
+          # Predicted availability violation
+          - alert: SLAPredictedAvailabilityViolation
+            expr: sla:prediction:availability_1h < 99.95
+            for: 5m
+            labels:
+              severity: warning
+              sla_type: predictive
+              prediction_type: availability
+              team: platform-engineering
+            annotations:
+              summary: "Predicted SLA availability violation in next hour"
+              description: "Availability trend suggests violation within 1 hour: {{ $value | humanizePercentage }}"
+              recommended_actions: "Scale up critical components, enable circuit breakers"
+
+          # Predicted latency violation
+          - alert: SLAPredictedLatencyViolation
+            expr: sla:prediction:latency_p95_30m > 2.0
+            for: 3m
+            labels:
+              severity: warning
+              sla_type: predictive
+              prediction_type: latency
+              team: platform-engineering
+            annotations:
+              summary: "Predicted SLA latency violation in 30 minutes"
+              description: "P95 latency trend suggests violation: {{ $value | humanizeDuration }}"
+              recommended_actions: "Optimize LLM processing, increase cache hit rate"
+
+          # Predicted capacity exhaustion
+          - alert: SLAPredictedCapacityExhaustion
+            expr: sla:prediction:capacity_exhaustion == 1
+            for: 10m
+            labels:
+              severity: warning
+              sla_type: predictive
+              prediction_type: capacity
+              team: platform-engineering
+            annotations:
+              summary: "Predicted capacity exhaustion within 1 hour"
+              description: "Capacity utilization trend suggests exhaustion"
+              current_utilization: "{{ with query \"sla:throughput:capacity_utilization\" }}{{ . | first | value | humanizePercentage }}{{ end }}"
+
+      # Composite SLA Health Alerts
+      - name: sla_composite_health_alerts
+        rules:
+          # Overall SLA health degradation
+          - alert: SLACompositeHealthDegraded
+            expr: sla:composite:health_score < 90
+            for: 10m
+            labels:
+              severity: warning
+              sla_type: composite
+              team: platform-engineering
+            annotations:
+              summary: "Overall SLA health score degraded: {{ $value | humanizePercentage }}"
+              description: "Composite SLA health score below 90%"
+              availability: "{{ with query \"sla:availability:composite\" }}{{ . | first | value | humanizePercentage }}{{ end }}"
+              latency_p95: "{{ with query \"sla:latency:p95\" }}{{ . | first | value | humanizeDuration }}{{ end }}"
+              throughput: "{{ with query \"sla:throughput:current_ipm\" }}{{ . | first | value | humanize }}{{ end }} intents/min"
+
+          # SLA non-compliance alert
+          - alert: SLANonCompliant
+            expr: sla:composite:compliant == 0
+            for: 5m
+            labels:
+              severity: critical
+              sla_type: compliance
+              team: platform-engineering
+            annotations:
+              summary: "SLA non-compliance detected"
+              description: "One or more SLA targets are not being met"
+              risk_score: "{{ with query \"sla:risk:assessment_score\" }}{{ . | first | value | humanize }}{{ end }}"
+
+      # Business Impact Alerts
+      - name: sla_business_impact_alerts
+        rules:
+          # High business impact alert
+          - alert: SLAHighBusinessImpact
+            expr: sla:business_impact:revenue_hourly > 10000  # $10k/hour
+            for: 2m
+            labels:
+              severity: critical
+              sla_type: business_impact
+              team: executive
+            annotations:
+              summary: "High business impact from SLA violations: ${{ $value | humanize }}/hour"
+              description: "Current SLA violations causing significant revenue impact"
+              affected_users: "{{ with query \"sla:business_impact:affected_users\" }}{{ . | first | value | humanize }}{{ end }}"
+
+          # Significant user impact
+          - alert: SLASignificantUserImpact
+            expr: sla:business_impact:affected_users > 1000
+            for: 5m
+            labels:
+              severity: warning
+              sla_type: business_impact
+              team: customer-success
+            annotations:
+              summary: "Significant user impact from SLA issues: {{ $value | humanize }} users"
+              description: "Large number of users affected by current SLA performance"

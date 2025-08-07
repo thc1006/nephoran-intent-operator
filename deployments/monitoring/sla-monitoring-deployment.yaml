@@ -1,0 +1,864 @@
+# Comprehensive SLA Monitoring Deployment for Nephoran Intent Operator
+# Supports 1000+ intents/second burst capacity with predictive violation detection
+# Version: 1.0.0
+# Generated: 2025-01-07
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sla-monitoring
+  labels:
+    app.kubernetes.io/name: nephoran-sla-monitoring
+    app.kubernetes.io/component: monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sla-monitoring-config
+  namespace: sla-monitoring
+data:
+  config.yaml: |
+    # SLA Monitoring Configuration
+    sla_targets:
+      availability:
+        target: 99.95
+        error_budget: 0.05
+        measurement_window: "30d"
+        fast_burn_threshold: 0.02  # 2% of error budget in 1 hour
+        slow_burn_threshold: 0.05  # 5% of error budget in 6 hours
+      
+      latency:
+        p95_target: "2s"
+        p99_target: "5s" 
+        measurement_window: "5m"
+        violation_threshold: 5
+        sustained_violation: "2m"
+      
+      throughput:
+        sustained_target: 45  # intents per minute
+        burst_capacity: 1000  # intents per second
+        capacity_utilization_threshold: 0.85
+        queue_depth_threshold: 100
+      
+      reliability:
+        error_rate_target: 0.5  # 0.5% error rate
+        critical_error_weight: 10.0
+        major_error_weight: 5.0
+        minor_error_weight: 1.0
+
+    # Collection Configuration
+    metrics_collection:
+      high_frequency_interval: "1s"   # Critical metrics
+      standard_interval: "15s"        # Standard metrics
+      low_frequency_interval: "60s"   # Background metrics
+      max_cardinality: 100000
+      sampling_enabled: true
+      adaptive_sampling: true
+      
+    # Prediction Configuration  
+    prediction:
+      enabled: true
+      horizon: "1h"
+      confidence_threshold: 0.85
+      model_update_interval: "1h"
+      accuracy_threshold: 0.80
+      
+    # Storage Configuration
+    storage:
+      retention_period: "30d"
+      compliance_retention: "365d"
+      compression_enabled: true
+      partitioning_strategy: "time_based"
+      
+    # Alerting Configuration
+    alerting:
+      enabled: true
+      notification_channels:
+        - "slack://sla-alerts"
+        - "pagerduty://critical-alerts"
+        - "email://ops-team@nephoran.io"
+      escalation_policy: "standard"
+      
+    # Advanced Features
+    chaos_engineering:
+      enabled: true
+      experiment_schedule: "weekly"
+      resilience_validation: true
+      
+    synthetic_monitoring:
+      enabled: true
+      test_frequency: "30s"
+      test_timeout: "10s"
+      coverage_threshold: 0.95
+      
+    cost_optimization:
+      enabled: true
+      target_efficiency: 0.15  # 15% cost savings
+      right_sizing_enabled: true
+      
+    automated_remediation:
+      enabled: true
+      confidence_threshold: 0.90
+      max_actions_per_hour: 10
+      rollback_enabled: true
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sla-monitoring-controller
+  namespace: sla-monitoring
+  labels:
+    app.kubernetes.io/name: sla-monitoring-controller
+    app.kubernetes.io/component: controller
+spec:
+  replicas: 3  # High availability
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sla-monitoring-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sla-monitoring-controller
+        app.kubernetes.io/component: controller
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: sla-monitoring-controller
+      containers:
+      - name: sla-controller
+        image: nephoran/sla-monitoring-controller:latest
+        ports:
+        - containerPort: 8080
+          name: metrics
+        - containerPort: 8443
+          name: webhook
+        - containerPort: 9090
+          name: health
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: CONFIG_PATH
+          value: "/etc/config/config.yaml"
+        resources:
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9090
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 9090
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+        - name: certs
+          mountPath: /tmp/k8s-webhook-server/serving-certs
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: sla-monitoring-config
+      - name: certs
+        secret:
+          secretName: sla-monitoring-certs
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        operator: Exists
+        effect: NoSchedule
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: sla-monitoring-controller
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: apps/v1
+kind: Deployment  
+metadata:
+  name: sla-metrics-collector
+  namespace: sla-monitoring
+  labels:
+    app.kubernetes.io/name: sla-metrics-collector
+    app.kubernetes.io/component: collector
+spec:
+  replicas: 5  # Horizontal scaling for high throughput
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sla-metrics-collector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sla-metrics-collector
+        app.kubernetes.io/component: collector
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: sla-metrics-collector
+      containers:
+      - name: metrics-collector
+        image: nephoran/sla-metrics-collector:latest
+        ports:
+        - containerPort: 8080
+          name: metrics
+        - containerPort: 9091
+          name: health
+        env:
+        - name: BUFFER_SIZE
+          value: "10000"
+        - name: BATCH_SIZE
+          value: "100"
+        - name: FLUSH_INTERVAL
+          value: "1s"
+        - name: MAX_CARDINALITY
+          value: "100000"
+        - name: SAMPLING_RATE
+          value: "0.1"
+        resources:
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9091
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 9091
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: sla-monitoring-config
+      nodeSelector:
+        kubernetes.io/os: linux
+
+---
+apiVersion: apps/v1  
+kind: Deployment
+metadata:
+  name: sla-predictive-analyzer
+  namespace: sla-monitoring
+  labels:
+    app.kubernetes.io/name: sla-predictive-analyzer
+    app.kubernetes.io/component: analyzer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sla-predictive-analyzer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sla-predictive-analyzer
+        app.kubernetes.io/component: analyzer
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: sla-predictive-analyzer
+      containers:
+      - name: predictive-analyzer
+        image: nephoran/sla-predictive-analyzer:latest
+        ports:
+        - containerPort: 8080
+          name: metrics
+        - containerPort: 9092
+          name: health
+        - containerPort: 8000
+          name: api
+        env:
+        - name: PREDICTION_HORIZON
+          value: "1h"
+        - name: CONFIDENCE_THRESHOLD
+          value: "0.85"
+        - name: MODEL_UPDATE_INTERVAL
+          value: "1h"
+        - name: TRAINING_WINDOW
+          value: "24h"
+        resources:
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9092
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 9092
+          initialDelaySeconds: 15
+          periodSeconds: 15
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+        - name: model-storage
+          mountPath: /var/lib/models
+      volumes:
+      - name: config
+        configMap:
+          name: sla-monitoring-config
+      - name: model-storage
+        persistentVolumeClaim:
+          claimName: sla-model-storage
+      nodeSelector:
+        kubernetes.io/os: linux
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sla-synthetic-monitor
+  namespace: sla-monitoring
+  labels:
+    app.kubernetes.io/name: sla-synthetic-monitor
+    app.kubernetes.io/component: synthetic
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sla-synthetic-monitor
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sla-synthetic-monitor
+        app.kubernetes.io/component: synthetic
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: sla-synthetic-monitor
+      containers:
+      - name: synthetic-monitor
+        image: nephoran/sla-synthetic-monitor:latest
+        ports:
+        - containerPort: 8080
+          name: metrics
+        - containerPort: 9093
+          name: health
+        env:
+        - name: TEST_FREQUENCY
+          value: "30s"
+        - name: TEST_TIMEOUT
+          value: "10s"
+        - name: COVERAGE_THRESHOLD
+          value: "0.95"
+        - name: NEPHORAN_API_ENDPOINT
+          value: "http://nephoran-operator.nephoran.svc.cluster.local:8080"
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9093
+          initialDelaySeconds: 10
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 9093
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+        - name: test-scenarios
+          mountPath: /etc/test-scenarios
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: sla-monitoring-config
+      - name: test-scenarios
+        configMap:
+          name: sla-test-scenarios
+      nodeSelector:
+        kubernetes.io/os: linux
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: sla-storage-manager
+  namespace: sla-monitoring
+  labels:
+    app.kubernetes.io/name: sla-storage-manager
+    app.kubernetes.io/component: storage
+spec:
+  serviceName: sla-storage-manager
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sla-storage-manager
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: sla-storage-manager
+        app.kubernetes.io/component: storage
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      serviceAccountName: sla-storage-manager
+      containers:
+      - name: storage-manager
+        image: nephoran/sla-storage-manager:latest
+        ports:
+        - containerPort: 8080
+          name: metrics
+        - containerPort: 9094
+          name: health
+        - containerPort: 8001
+          name: api
+        env:
+        - name: DATA_RETENTION_PERIOD
+          value: "30d"
+        - name: COMPLIANCE_RETENTION
+          value: "365d"
+        - name: COMPRESSION_ENABLED
+          value: "true"
+        - name: STORAGE_PATH
+          value: "/var/lib/sla-data"
+        resources:
+          limits:
+            cpu: "1"
+            memory: "2Gi"
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 9094
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 9094
+          initialDelaySeconds: 15
+          periodSeconds: 15
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+        - name: sla-storage
+          mountPath: /var/lib/sla-data
+      volumes:
+      - name: config
+        configMap:
+          name: sla-monitoring-config
+  volumeClaimTemplates:
+  - metadata:
+      name: sla-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      storageClassName: fast-ssd
+      resources:
+        requests:
+          storage: 100Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sla-monitoring-controller
+  namespace: sla-monitoring
+  labels:
+    app.kubernetes.io/name: sla-monitoring-controller
+spec:
+  ports:
+  - port: 8080
+    name: metrics
+    targetPort: 8080
+  - port: 8443
+    name: webhook
+    targetPort: 8443
+  - port: 9090
+    name: health
+    targetPort: 9090
+  selector:
+    app.kubernetes.io/name: sla-monitoring-controller
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sla-metrics-collector
+  namespace: sla-monitoring
+  labels:
+    app.kubernetes.io/name: sla-metrics-collector
+spec:
+  ports:
+  - port: 8080
+    name: metrics
+    targetPort: 8080
+  - port: 9091
+    name: health
+    targetPort: 9091
+  selector:
+    app.kubernetes.io/name: sla-metrics-collector
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sla-predictive-analyzer
+  namespace: sla-monitoring
+  labels:
+    app.kubernetes.io/name: sla-predictive-analyzer
+spec:
+  ports:
+  - port: 8080
+    name: metrics
+    targetPort: 8080
+  - port: 9092
+    name: health
+    targetPort: 9092
+  - port: 8000
+    name: api
+    targetPort: 8000
+  selector:
+    app.kubernetes.io/name: sla-predictive-analyzer
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sla-synthetic-monitor
+  namespace: sla-monitoring
+  labels:
+    app.kubernetes.io/name: sla-synthetic-monitor
+spec:
+  ports:
+  - port: 8080
+    name: metrics
+    targetPort: 8080
+  - port: 9093
+    name: health
+    targetPort: 9093
+  selector:
+    app.kubernetes.io/name: sla-synthetic-monitor
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sla-storage-manager
+  namespace: sla-monitoring
+  labels:
+    app.kubernetes.io/name: sla-storage-manager
+spec:
+  ports:
+  - port: 8080
+    name: metrics
+    targetPort: 8080
+  - port: 9094
+    name: health
+    targetPort: 9094
+  - port: 8001
+    name: api
+    targetPort: 8001
+  selector:
+    app.kubernetes.io/name: sla-storage-manager
+  type: ClusterIP
+  clusterIP: None  # Headless service for StatefulSet
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sla-monitoring-controller
+  namespace: sla-monitoring
+automountServiceAccountToken: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sla-metrics-collector
+  namespace: sla-monitoring
+automountServiceAccountToken: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sla-predictive-analyzer
+  namespace: sla-monitoring
+automountServiceAccountToken: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sla-synthetic-monitor
+  namespace: sla-monitoring
+automountServiceAccountToken: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sla-storage-manager
+  namespace: sla-monitoring
+automountServiceAccountToken: true
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sla-monitoring-controller
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "endpoints", "nodes", "namespaces"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors", "prometheusrules"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+- apiGroups: ["custom.metrics.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sla-monitoring-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: sla-monitoring-controller
+subjects:
+- kind: ServiceAccount
+  name: sla-monitoring-controller
+  namespace: sla-monitoring
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sla-metrics-collector
+  namespace: sla-monitoring
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sla-metrics-collector
+  namespace: sla-monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sla-metrics-collector
+subjects:
+- kind: ServiceAccount
+  name: sla-metrics-collector
+  namespace: sla-monitoring
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sla-model-storage
+  namespace: sla-monitoring
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: fast-ssd
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sla-monitoring-controller-pdb
+  namespace: sla-monitoring
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sla-monitoring-controller
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sla-metrics-collector-pdb
+  namespace: sla-monitoring
+spec:
+  minAvailable: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: sla-metrics-collector
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sla-metrics-collector-hpa
+  namespace: sla-monitoring
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sla-metrics-collector
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  - type: Pods
+    pods:
+      metric:
+        name: sla_streaming_collector_buffer_utilization
+      target:
+        type: AverageValue
+        averageValue: "70"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 30
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 4
+        periodSeconds: 15
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sla-monitoring-network-policy
+  namespace: sla-monitoring
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 8080  # Metrics
+    - protocol: TCP
+      port: 8443  # Webhook
+  egress:
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 53   # DNS
+    - protocol: UDP
+      port: 53   # DNS
+    - protocol: TCP
+      port: 443  # HTTPS
+    - protocol: TCP
+      port: 9090 # Prometheus
+    - protocol: TCP
+      port: 8080 # Internal metrics
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system

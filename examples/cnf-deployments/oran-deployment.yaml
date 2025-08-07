@@ -1,0 +1,630 @@
+# Example: O-RAN Network Functions CNF deployment via NetworkIntent
+# This demonstrates natural language intent processing for O-RAN components
+# including Near-RT RIC, O-DU, O-CU-CP, and O-CU-UP deployments
+
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: oran-network-deployment
+  namespace: oran
+  labels:
+    deployment.type: "o-ran"
+    priority: "high"
+    environment: "production"
+spec:
+  intent: |
+    Deploy an O-RAN compliant network with Near-RT RIC for intelligent radio control,
+    O-DU for distributed unit functions, and O-CU-CP/UP for centralized unit functions.
+    Enable xApp deployment capabilities on the RIC platform with E2 interface connectivity.
+    Configure high-performance networking with DPDK where applicable. Enable comprehensive
+    monitoring and observability for RAN intelligence applications. Deploy with service
+    mesh for secure inter-function communication. Configure auto-scaling based on RAN
+    load and traffic patterns. Enable A1 policy management interface for Non-RT RIC
+    integration.
+  
+  intentType: deployment
+  priority: high
+  
+  targetComponents:
+    - Near-RT-RIC
+    - O-DU
+    - O-CU-CP
+    - O-CU-UP
+  
+  resourceConstraints:
+    cpu: "12"
+    memory: "24Gi"
+    storage: "200Gi"
+    maxCpu: "24"
+    maxMemory: "48Gi"
+  
+  targetNamespace: oran
+  targetCluster: edge-cluster
+  region: edge-us-east-1
+  
+  timeoutSeconds: 2400  # 40 minutes for complete O-RAN deployment
+  maxRetries: 3
+
+---
+apiVersion: nephoran.com/v1
+kind: CNFDeployment
+metadata:
+  name: near-rt-ric-deployment
+  namespace: oran
+  labels:
+    cnf.type: "O-RAN"
+    cnf.function: "Near-RT-RIC"
+    deployment.source: "network-intent"
+spec:
+  cnfType: O-RAN
+  function: Near-RT-RIC
+  deploymentStrategy: Helm
+  replicas: 2
+  
+  resources:
+    cpu: "2000m"
+    memory: "4Gi"
+    storage: "50Gi"
+    maxCpu: "4000m"
+    maxMemory: "8Gi"
+  
+  helm:
+    repository: "https://charts.o-ran.io"
+    chartName: "near-rt-ric"
+    chartVersion: "2.0.0"
+    releaseName: "nephoran-near-rt-ric"
+    values:
+      image:
+        repository: "oran/near-rt-ric"
+        tag: "H-Release"
+      
+      config:
+        ricId: "nephoran-ric-001"
+        plmnId:
+          mcc: "001"
+          mnc: "01"
+        
+        # A1 Interface Configuration (to Non-RT RIC)
+        a1:
+          addr: "0.0.0.0"
+          port: 10000
+          tls:
+            enabled: true
+            cert: "/opt/ric/certs/a1.crt"
+            key: "/opt/ric/certs/a1.key"
+        
+        # E2 Interface Configuration (to O-DU/O-CU)
+        e2:
+          addr: "0.0.0.0"
+          port: 36421
+          sctp:
+            enabled: true
+            streams: 10
+        
+        # xApp Management
+        xapps:
+          enabled: true
+          registry: "https://xapp-registry.o-ran.io"
+          helmRepo: "https://charts.oran.io/xapps"
+          namespace: "oran-xapps"
+          
+        # Database Configuration
+        database:
+          type: "redis"
+          redis:
+            addr: "near-rt-ric-redis:6379"
+            password: ""
+            db: 0
+          
+        # Message Router Configuration
+        messageRouter:
+          type: "rmr"
+          rmr:
+            port: 4560
+            threads: 4
+        
+        # SDL (Shared Data Layer) Configuration
+        sdl:
+          enabled: true
+          redis:
+            addr: "near-rt-ric-redis:6379"
+            sentinel:
+              enabled: true
+              masterName: "ric-master"
+        
+        # Subscription Manager
+        subscriptionManager:
+          enabled: true
+          port: 8080
+          
+        # RIC Platform Components
+        platform:
+          appManager:
+            enabled: true
+            port: 8080
+          resourceStatusManager:
+            enabled: true
+            port: 8080
+          routingManager:
+            enabled: true
+            port: 4561
+      
+      # Redis for RIC data storage
+      redis:
+        enabled: true
+        replicaCount: 3
+        sentinel:
+          enabled: true
+        persistence:
+          enabled: true
+          size: "10Gi"
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+          limits:
+            cpu: "500m"
+            memory: "1Gi"
+      
+      # xApp Onboarder
+      xappOnboarder:
+        enabled: true
+        image:
+          repository: "oran/xapp-onboarder"
+          tag: "latest"
+  
+  serviceMesh:
+    enabled: true
+    type: istio
+    mtls:
+      enabled: true
+      mode: strict
+    trafficPolicies:
+      - name: "ric-load-balancing"
+        source: "*"
+        destination: "near-rt-ric-service"
+        loadBalancing:
+          algorithm: "consistent_hash"
+          hashPolicy:
+            sourceIp: true
+  
+  autoScaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 4
+    cpuUtilization: 75
+    memoryUtilization: 80
+    customMetrics:
+      - name: "ric_xapp_count"
+        type: "pods"
+        targetValue: "5"
+      - name: "ric_e2_connections"
+        type: "pods"
+        targetValue: "10"
+  
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+      interval: "15s"
+    customMetrics:
+      - "ric_active_xapps"
+      - "ric_e2_subscriptions"
+      - "ric_a1_policy_executions"
+      - "ric_database_operations"
+      - "ric_message_throughput"
+    alertingRules:
+      - "ric_xapp_failure"
+      - "ric_e2_connection_loss"
+      - "ric_high_memory_usage"
+
+---
+apiVersion: nephoran.com/v1
+kind: CNFDeployment
+metadata:
+  name: o-du-deployment
+  namespace: oran
+  labels:
+    cnf.type: "O-RAN"
+    cnf.function: "O-DU"
+    deployment.source: "network-intent"
+spec:
+  cnfType: O-RAN
+  function: O-DU
+  deploymentStrategy: Helm
+  replicas: 3
+  
+  resources:
+    cpu: "3000m"
+    memory: "6Gi"
+    storage: "40Gi"
+    maxCpu: "6000m"
+    maxMemory: "12Gi"
+    hugepages:
+      "2Mi": "2Gi"
+    dpdk:
+      enabled: true
+      cores: 4
+      memory: 2048
+      driver: "vfio-pci"
+  
+  helm:
+    repository: "https://charts.o-ran.io"
+    chartName: "o-du"
+    chartVersion: "2.0.0"
+    releaseName: "nephoran-o-du"
+    values:
+      image:
+        repository: "oran/o-du"
+        tag: "H-Release"
+      
+      config:
+        duId: 1
+        duName: "nephoran-odu-001"
+        
+        # Cell Configuration
+        cells:
+          - cellId: 1
+            nrCgi: "00101000000001"
+            nrPci: 1
+            trackingAreaCode: "000001"
+            
+        # F1 Interface Configuration (to O-CU)
+        f1:
+          addr: "0.0.0.0"
+          port: 38472
+          cuAddr: "o-cu-cp-service"
+          cuPort: 38472
+          sctp:
+            enabled: true
+            streams: 10
+        
+        # E2 Interface Configuration (to Near-RT RIC)
+        e2:
+          addr: "0.0.0.0"
+          port: 36421
+          ricAddr: "near-rt-ric-service"
+          ricPort: 36421
+          sctp:
+            enabled: true
+            streams: 5
+        
+        # PHY Layer Configuration
+        phyLayer:
+          enabled: true
+          type: "oru"  # O-RAN Radio Unit
+          fhConfig:
+            enabled: true
+            vlan: 100
+            cpri:
+              enabled: true
+              axc: 8
+            ecpri:
+              enabled: true
+              vlan: 200
+        
+        # Fronthaul Configuration
+        fronthaul:
+          enabled: true
+          type: "ecpri"
+          interfaces:
+            - name: "fh0"
+              vlan: 100
+              mtu: 9000
+              ptp:
+                enabled: true
+                domain: 24
+        
+        # L1 Configuration
+        l1Config:
+          numerology: 1
+          bandwidth: 100  # MHz
+          scs: 30  # kHz
+          
+        # Performance settings
+        performance:
+          realtime:
+            enabled: true
+            priority: 99
+          isolcpus: "2-5"
+          
+      # High-performance networking
+      networking:
+        sriov:
+          enabled: true
+          resourceName: "intel.com/intel_sriov_netdevice"
+          count: 2
+        dpdk:
+          enabled: true
+          driver: "vfio-pci"
+          cores: "2-5"
+          memory: 2048
+  
+  serviceMesh:
+    enabled: true
+    type: istio
+    mtls:
+      enabled: true
+      mode: strict
+  
+  autoScaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    cpuUtilization: 80
+    customMetrics:
+      - name: "odu_connected_ues"
+        type: "pods"
+        targetValue: "100"
+  
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+      interval: "15s"
+    customMetrics:
+      - "odu_active_ues"
+      - "odu_f1_message_rate"
+      - "odu_phy_resource_utilization"
+      - "odu_fronthaul_latency"
+
+---
+apiVersion: nephoran.com/v1
+kind: CNFDeployment
+metadata:
+  name: o-cu-cp-deployment
+  namespace: oran
+  labels:
+    cnf.type: "O-RAN"
+    cnf.function: "O-CU-CP"
+    deployment.source: "network-intent"
+spec:
+  cnfType: O-RAN
+  function: O-CU-CP
+  deploymentStrategy: Helm
+  replicas: 2
+  
+  resources:
+    cpu: "2000m"
+    memory: "4Gi"
+    storage: "30Gi"
+    maxCpu: "4000m"
+    maxMemory: "8Gi"
+  
+  helm:
+    repository: "https://charts.o-ran.io"
+    chartName: "o-cu-cp"
+    chartVersion: "2.0.0"
+    releaseName: "nephoran-o-cu-cp"
+    values:
+      image:
+        repository: "oran/o-cu-cp"
+        tag: "H-Release"
+      
+      config:
+        cuId: 1
+        cuName: "nephoran-ocu-cp-001"
+        
+        # F1-C Interface Configuration (to O-DU)
+        f1c:
+          addr: "0.0.0.0"
+          port: 38472
+          sctp:
+            enabled: true
+            streams: 10
+        
+        # NG Interface Configuration (to AMF)
+        ng:
+          addr: "0.0.0.0"
+          port: 38412
+          amfAddr: "amf-service.5g-core.svc.cluster.local"
+          amfPort: 38412
+          sctp:
+            enabled: true
+            streams: 10
+        
+        # Xn Interface Configuration (to other gNBs)
+        xn:
+          addr: "0.0.0.0"
+          port: 36422
+          sctp:
+            enabled: true
+            streams: 5
+        
+        # E1 Interface Configuration (to O-CU-UP)
+        e1:
+          addr: "0.0.0.0"
+          port: 36460
+          cupAddr: "o-cu-up-service"
+          cupPort: 36460
+          sctp:
+            enabled: true
+            streams: 5
+        
+        # RRC Configuration
+        rrc:
+          version: "16.6.0"
+          ueCapability:
+            maxUes: 1000
+            categories: [1, 2, 3, 4]
+        
+        # PDCP Configuration
+        pdcp:
+          maxSduSize: 9000
+          discardTimer: 100
+        
+        # Cell Configuration
+        cells:
+          - cellId: 1
+            trackingAreaCode: "000001"
+            plmnList:
+              - mcc: "001"
+                mnc: "01"
+            nrCgi: "00101000000001"
+  
+  serviceMesh:
+    enabled: true
+    type: istio
+    mtls:
+      enabled: true
+      mode: strict
+  
+  autoScaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 4
+    cpuUtilization: 75
+    memoryUtilization: 80
+  
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+      interval: "15s"
+    customMetrics:
+      - "ocu_cp_active_ues"
+      - "ocu_cp_rrc_connections"
+      - "ocu_cp_handover_success_rate"
+
+---
+apiVersion: nephoran.com/v1
+kind: CNFDeployment
+metadata:
+  name: o-cu-up-deployment
+  namespace: oran
+  labels:
+    cnf.type: "O-RAN"
+    cnf.function: "O-CU-UP"
+    deployment.source: "network-intent"
+spec:
+  cnfType: O-RAN
+  function: O-CU-UP
+  deploymentStrategy: Helm
+  replicas: 2
+  
+  resources:
+    cpu: "3000m"
+    memory: "6Gi"
+    storage: "40Gi"
+    maxCpu: "6000m"
+    maxMemory: "12Gi"
+    hugepages:
+      "2Mi": "2Gi"
+    dpdk:
+      enabled: true
+      cores: 4
+      memory: 2048
+      driver: "vfio-pci"
+  
+  helm:
+    repository: "https://charts.o-ran.io"
+    chartName: "o-cu-up"
+    chartVersion: "2.0.0"
+    releaseName: "nephoran-o-cu-up"
+    values:
+      image:
+        repository: "oran/o-cu-up"
+        tag: "H-Release"
+      
+      config:
+        cupId: 1
+        cupName: "nephoran-ocu-up-001"
+        
+        # E1 Interface Configuration (to O-CU-CP)
+        e1:
+          addr: "0.0.0.0"
+          port: 36460
+          ccpAddr: "o-cu-cp-service"
+          ccpPort: 36460
+          sctp:
+            enabled: true
+            streams: 5
+        
+        # F1-U Interface Configuration (to O-DU)
+        f1u:
+          addr: "0.0.0.0"
+          port: 2152
+          gtpu:
+            enabled: true
+            tunnels: 1000
+        
+        # N3 Interface Configuration (to UPF)
+        n3:
+          addr: "0.0.0.0"
+          port: 2152
+          upfAddr: "upf-service.5g-core.svc.cluster.local"
+          upfPort: 2152
+          gtpu:
+            enabled: true
+            tunnels: 1000
+        
+        # PDCP Configuration
+        pdcp:
+          maxSduSize: 9000
+          reorderingTimer: 40
+          statusReportTimer: 100
+        
+        # GTP-U Configuration
+        gtpu:
+          enabled: true
+          echoInterval: 60
+          pathManagement: true
+          
+        # Performance Configuration
+        performance:
+          dpdk:
+            enabled: true
+            cores: "2-5"
+            memory: 2048
+          realtime:
+            enabled: true
+            priority: 98
+      
+      # High-performance networking
+      networking:
+        sriov:
+          enabled: true
+          resourceName: "intel.com/intel_sriov_netdevice"
+          count: 2
+        dpdk:
+          enabled: true
+          driver: "vfio-pci"
+  
+  serviceMesh:
+    enabled: true
+    type: istio
+    mtls:
+      enabled: true
+      mode: strict
+  
+  autoScaling:
+    enabled: true
+    minReplicas: 1
+    maxReplicas: 4
+    cpuUtilization: 80
+    customMetrics:
+      - name: "ocu_up_active_sessions"
+        type: "pods"
+        targetValue: "500"
+      - name: "ocu_up_throughput_mbps"
+        type: "pods"
+        targetValue: "1000"
+  
+  monitoring:
+    enabled: true
+    prometheus:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+      interval: "15s"
+    customMetrics:
+      - "ocu_up_active_bearers"
+      - "ocu_up_packet_throughput"
+      - "ocu_up_gtpu_tunnels"
+      - "ocu_up_pdcp_sdu_rate"
