@@ -180,7 +180,7 @@ Run our automated validation:
 
 If you encounter issues:
 - Check our comprehensive [QUICKSTART.md](QUICKSTART.md) for detailed steps
-- View [Troubleshooting Guide](docs/troubleshooting.md) for common fixes  
+- View [Documentation](docs/README.md) for organized guides and references
 - Join our [Discord community](https://discord.gg/nephoran) for live support
 
 ## 🏗️ System Architecture
@@ -286,8 +286,8 @@ Key files include:
 
 ### 📖 Advanced Topics
 - **[O-RAN Compliance Certification](docs/ORAN-COMPLIANCE-CERTIFICATION.md)**: Standards compliance details
-- **[Security Implementation](docs/SECURITY-IMPLEMENTATION.md)**: Enterprise security features
-- **[Performance Optimization](docs/PERFORMANCE-CHARACTERISTICS.md)**: Tuning and scaling guides
+- **[Security Implementation](docs/security/implementation-summary.md)**: Enterprise security features
+- **[Performance Optimization](docs/reports/performance-optimization.md)**: Tuning and scaling guides
 - **[Multi-Region Deployment](deployments/multi-region/README.md)**: Global architecture patterns
 
 ### 🎯 Tutorials & Examples
