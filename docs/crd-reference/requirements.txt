@@ -1,0 +1,25 @@
+# MkDocs and Material theme
+mkdocs>=1.5.3
+mkdocs-material>=9.5.0
+mkdocs-material-extensions>=1.3
+
+# Plugins
+mkdocs-macros-plugin>=1.0.5
+mkdocs-minify-plugin>=0.7.2
+mkdocs-git-revision-date-localized-plugin>=1.2.2
+mkdocs-print-site-plugin>=2.3.6
+mkdocs-awesome-pages-plugin>=2.9.2
+mkdocs-redirects>=1.2.1
+
+# Markdown extensions
+pymdown-extensions>=10.5
+pygments>=2.17.0
+
+# Additional tools
+mike>=2.0.0  # For versioning
+mkdocs-pdf-export-plugin>=0.5.10
+mkdocs-with-pdf>=0.9.3
+
+# Development tools
+mkdocs-serve>=1.0.0
+watchdog>=3.0.0

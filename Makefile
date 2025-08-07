@@ -342,6 +342,26 @@ helm-uninstall: ## Uninstall Helm release
 
 ##@ Development Environment
 
+.PHONY: quickstart
+quickstart: ## Run the 15-minute quickstart tutorial
+	@echo "Starting Nephoran Intent Operator Quick Start..."
+	@chmod +x scripts/quickstart.sh
+	@./scripts/quickstart.sh
+
+.PHONY: quickstart-clean
+quickstart-clean: ## Clean up quickstart resources
+	@echo "Cleaning up quickstart resources..."
+	@chmod +x scripts/quickstart.sh
+	@./scripts/quickstart.sh --cleanup
+
+.PHONY: dev-up
+dev-up: quickstart ## Alias for quickstart - set up development environment
+	@echo "Development environment ready!"
+
+.PHONY: dev-down
+dev-down: quickstart-clean ## Tear down development environment
+	@echo "Development environment cleaned up!"
+
 .PHONY: kind-create
 kind-create: ## Create a kind cluster for development
 	@echo "Creating kind cluster..."

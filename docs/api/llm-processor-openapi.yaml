@@ -1,0 +1,696 @@
+openapi: 3.0.3
+info:
+  title: Nephoran Intent Operator LLM Processor Service API
+  description: |
+    Comprehensive OpenAPI specification for the Nephoran Intent Operator's Large Language Model (LLM) Processor Service.
+    
+    ## Key Features
+    - **Intent Processing**: Natural language intent recognition and parameter extraction
+    - **Streaming Processing**: Real-time intent processing with Server-Sent Events
+    - **Intent Validation**: Comprehensive intent validation and verification
+    - **Performance Monitoring**: Detailed performance and quality metrics
+    
+    ## Authentication
+    All endpoints require Bearer token authentication using the `Authorization` header.
+    
+    ## Rate Limits
+    - Standard endpoints: 100 requests/minute
+    - Streaming endpoints: 50 concurrent streams
+    - Validation endpoints: 200 requests/minute
+    
+  version: 1.0.0
+  contact:
+    name: Nephoran Team
+    email: support@nephoran.io
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://api.nephoran.io/v1/llm-processor
+    description: Production server
+  - url: https://staging-api.nephoran.io/v1/llm-processor
+    description: Staging server
+  - url: http://localhost:8080/v1/llm-processor
+    description: Development server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Intent Processing
+    description: Natural language intent processing and extraction
+  - name: Streaming
+    description: Real-time intent processing with Server-Sent Events
+  - name: Validation
+    description: Intent validation and verification
+  - name: Metrics
+    description: Performance and quality metrics for intent processing
+
+paths:
+  /process-intent:
+    post:
+      summary: Process Intent
+      description: |
+        Process a natural language intent and extract structured parameters.
+        
+        This endpoint analyzes the input, matches against predefined intent patterns, 
+        extracts parameters, and provides a structured intent representation.
+        
+        **Performance**: Typically responds in 100-500ms.
+      operationId: processIntent
+      tags:
+        - Intent Processing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntentProcessingRequest'
+            examples:
+              network_function_deployment:
+                summary: Deploy network function
+                value:
+                  input: "Deploy AMF with 3 replicas in production namespace"
+                  confidenceThreshold: 0.7
+                  extractParameters: true
+              network_scaling:
+                summary: Scale network function
+                value:
+                  input: "Scale SMF to 5 instances for high throughput"
+                  confidenceThreshold: 0.8
+                  extractParameters: true
+      responses:
+        '200':
+          description: Successful intent processing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentProcessingResponse'
+              examples:
+                successful_deployment:
+                  summary: Successful intent processing
+                  value:
+                    intentType: "NetworkFunctionDeployment"
+                    confidence: 0.92
+                    extractedParameters:
+                      networkFunction: "AMF"
+                      replicas: 3
+                      namespace: "production"
+                    recommendedActions:
+                      - "Validate AMF deployment requirements"
+                      - "Check production namespace capacity"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /stream-intent:
+    get:
+      summary: Stream Intent Processing
+      description: |
+        Stream real-time intent processing using Server-Sent Events (SSE).
+        
+        This endpoint provides progressive context injection, token-by-token 
+        generation visibility, and intermediate processing status updates.
+        
+        **Performance**: Sub-200ms initialization, continuous streaming
+      operationId: streamIntent
+      tags:
+        - Streaming
+      parameters:
+        - name: input
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 2000
+          description: Natural language intent input
+        - name: confidenceThreshold
+          in: query
+          schema:
+            type: number
+            minimum: 0.0
+            maximum: 1.0
+            default: 0.7
+          description: Minimum confidence threshold for intent matching
+        - name: extractParameters
+          in: query
+          schema:
+            type: boolean
+            default: true
+          description: Extract and stream parameters progressively
+      responses:
+        '200':
+          description: Successful intent streaming
+          content:
+            text/event-stream:
+              schema:
+                $ref: '#/components/schemas/IntentStreamResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /validate-intent:
+    post:
+      summary: Validate Intent
+      description: |
+        Validate and verify the completeness, correctness, and feasibility of an intent.
+        
+        This endpoint performs comprehensive validation including:
+        - Semantic correctness
+        - Parameter completeness
+        - Resource availability
+        - Compliance with network function specifications
+        
+        **Performance**: Typically responds in 200-800ms.
+      operationId: validateIntent
+      tags:
+        - Validation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntentValidationRequest'
+            examples:
+              amf_deployment:
+                summary: Validate AMF deployment
+                value:
+                  intentType: "NetworkFunctionDeployment"
+                  networkFunction: "AMF"
+                  parameters:
+                    replicas: 3
+                    namespace: "production"
+                  environment: "production"
+                  validateResourceAvailability: true
+      responses:
+        '200':
+          description: Successful intent validation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentValidationResponse'
+              examples:
+                valid_intent:
+                  summary: Intent is valid
+                  value:
+                    isValid: true
+                    confidence: 0.95
+                    validationChecks:
+                      - name: "ResourceAvailability"
+                        status: "PASS"
+                      - name: "NetworkFunctionSpecCompliance"
+                        status: "PASS"
+                    warningMessages: []
+                invalid_intent:
+                  summary: Intent is invalid
+                  value:
+                    isValid: false
+                    confidence: 0.4
+                    validationChecks:
+                      - name: "ResourceAvailability"
+                        status: "FAIL"
+                        reason: "Insufficient CPU resources in production namespace"
+                    warningMessages:
+                      - "Consider reducing replica count or adjusting resource quotas"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimitExceeded'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /metrics:
+    get:
+      summary: Intent Processing Metrics
+      description: |
+        Retrieve comprehensive metrics for the LLM Processor Service.
+        
+        Provides insights into:
+        - Processing performance
+        - Accuracy and confidence levels
+        - Resource utilization
+        - Error rates and quality metrics
+      operationId: getIntentProcessingMetrics
+      tags:
+        - Metrics
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: ["1h", "24h", "7d", "30d"]
+            default: "24h"
+          description: Time period for metrics aggregation
+      responses:
+        '200':
+          description: Successful metrics retrieval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IntentProcessingMetricsResponse'
+              examples:
+                daily_metrics:
+                  summary: 24-hour intent processing metrics
+                  value:
+                    totalIntents: 5624
+                    successfulIntents: 5512
+                    successRate: 98.01
+                    averageProcessingTime: 247
+                    confidenceLevels:
+                      high: 4623
+                      medium: 789
+                      low: 212
+                    errorRates:
+                      parameterExtraction: 1.2
+                      intentMatching: 0.8
+                    resourceUtilization:
+                      cpuUsage: 42.5
+                      memoryUsage: 65.3
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /health:
+    get:
+      summary: Health Check
+      description: |
+        Check the health status of the LLM Processor Service.
+        
+        Provides detailed health information including:
+        - Service status
+        - Dependency health
+        - Performance indicators
+      operationId: healthCheck
+      security: []
+      tags:
+        - Metrics
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for API authentication
+
+  schemas:
+    IntentProcessingRequest:
+      type: object
+      required:
+        - input
+      properties:
+        input:
+          type: string
+          minLength: 1
+          maxLength: 2000
+          description: Natural language intent input
+        confidenceThreshold:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          default: 0.7
+          description: Minimum confidence threshold for intent matching
+        extractParameters:
+          type: boolean
+          default: true
+          description: Extract structured parameters from intent
+        includeRelatedKnowledge:
+          type: boolean
+          default: false
+          description: Include related knowledge documents
+        maxPatterns:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 10
+          description: Maximum number of intent patterns to return
+
+    IntentProcessingResponse:
+      type: object
+      properties:
+        intentType:
+          type: string
+          enum:
+            - NetworkFunctionDeployment
+            - NetworkFunctionScale
+            - NetworkSliceConfiguration
+            - PolicyConfiguration
+          description: Identified intent type
+        confidence:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Confidence level of intent matching
+        extractedParameters:
+          type: object
+          additionalProperties: true
+          description: Extracted structured parameters
+        relatedKnowledge:
+          type: array
+          items:
+            $ref: '#/components/schemas/RelatedKnowledgeItem'
+        recommendedActions:
+          type: array
+          items:
+            type: string
+          description: Suggested next steps or actions
+
+    IntentStreamResponse:
+      type: object
+      properties:
+        event:
+          type: string
+          enum:
+            - "intent.start"
+            - "intent.processing"
+            - "intent.parameter"
+            - "intent.completed"
+            - "intent.error"
+          description: Event type for streaming
+        data:
+          type: object
+          description: Event-specific data payload
+        progress:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Processing progress percentage
+        timestamp:
+          type: string
+          format: date-time
+          description: Event timestamp
+
+    IntentValidationRequest:
+      type: object
+      required:
+        - intentType
+        - networkFunction
+      properties:
+        intentType:
+          type: string
+          enum:
+            - NetworkFunctionDeployment
+            - NetworkFunctionScale
+            - NetworkSliceConfiguration
+            - PolicyConfiguration
+          description: Type of intent to validate
+        networkFunction:
+          type: string
+          description: Target network function
+        parameters:
+          type: object
+          additionalProperties: true
+          description: Intent parameters to validate
+        environment:
+          type: string
+          enum:
+            - development
+            - staging
+            - production
+          description: Target deployment environment
+        validateResourceAvailability:
+          type: boolean
+          default: true
+          description: Check resource availability and constraints
+
+    IntentValidationResponse:
+      type: object
+      properties:
+        isValid:
+          type: boolean
+          description: Overall intent validation status
+        confidence:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Validation confidence level
+        validationChecks:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Validation check name
+              status:
+                type: string
+                enum:
+                  - PASS
+                  - FAIL
+                  - WARN
+                description: Result of the validation check
+              reason:
+                type: string
+                description: Explanation for the validation status
+        warningMessages:
+          type: array
+          items:
+            type: string
+          description: Warnings or recommendations
+
+    IntentProcessingMetricsResponse:
+      type: object
+      properties:
+        totalIntents:
+          type: integer
+          description: Total number of intents processed
+        successfulIntents:
+          type: integer
+          description: Number of successfully processed intents
+        successRate:
+          type: number
+          minimum: 0.0
+          maximum: 100.0
+          description: Percentage of successful intent processing
+        averageProcessingTime:
+          type: number
+          description: Average processing time in milliseconds
+        confidenceLevels:
+          type: object
+          properties:
+            high:
+              type: integer
+            medium:
+              type: integer
+            low:
+              type: integer
+        errorRates:
+          type: object
+          properties:
+            parameterExtraction:
+              type: number
+            intentMatching:
+              type: number
+        resourceUtilization:
+          type: object
+          properties:
+            cpuUsage:
+              type: number
+            memoryUsage:
+              type: number
+
+    RelatedKnowledgeItem:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier for knowledge item
+        title:
+          type: string
+          description: Title of knowledge document
+        relevance:
+          type: number
+          minimum: 0.0
+          maximum: 1.0
+          description: Relevance score to the current intent
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - healthy
+            - degraded
+            - unhealthy
+          description: Overall service health status
+        version:
+          type: string
+          description: Current service version
+        services:
+          type: object
+          properties:
+            llmProcessor:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - up
+                    - down
+                    - degraded
+                responseTime:
+                  type: number
+                  description: Response time in milliseconds
+            intentPatternIndex:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - up
+                    - down
+                    - degraded
+            vectorDatabase:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum:
+                    - up
+                    - down
+                    - degraded
+                connections:
+                  type: integer
+        checks:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              status:
+                type: string
+                enum:
+                  - pass
+                  - fail
+                  - warn
+              message:
+                type: string
+              duration:
+                type: number
+                description: Check duration in milliseconds
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters or request format
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            invalid_intent:
+              summary: Invalid intent input
+              value:
+                error: "INVALID_INTENT"
+                message: "Unable to process intent input"
+                code: 4001
+                timestamp: "2025-08-07T12:34:56Z"
+                suggestions:
+                  - "Verify intent input is clear and specific"
+                  - "Check input length and formatting"
+
+    Unauthorized:
+      description: Unauthorized - invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            missing_token:
+              summary: Missing authentication token
+              value:
+                error: "UNAUTHORIZED"
+                message: "Authentication token is required"
+                code: 4011
+                timestamp: "2025-08-07T12:34:56Z"
+                suggestions:
+                  - "Include Bearer token in Authorization header"
+                  - "Verify token is valid and not expired"
+
+    RateLimitExceeded:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            rate_limit:
+              summary: API rate limit exceeded
+              value:
+                error: "RATE_LIMIT_EXCEEDED"
+                message: "Rate limit of 100 requests per minute exceeded"
+                code: 4291
+                timestamp: "2025-08-07T12:34:56Z"
+                details: "Rate limit will reset at 2025-08-07T12:35:00Z"
+                suggestions:
+                  - "Reduce request frequency"
+                  - "Implement exponential backoff"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          examples:
+            llm_processing_error:
+              summary: LLM processing error
+              value:
+                error: "LLM_PROCESSING_ERROR"
+                message: "Unable to process intent due to internal error"
+                code: 5001
+                timestamp: "2025-08-07T12:34:56Z"
+                traceId: "req_123456789"
+                suggestions:
+                  - "Retry the request"
+                  - "Contact support if problem persists"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type identifier
+        message:
+          type: string
+          description: Human-readable error message
+        code:
+          type: integer
+          description: Internal error code
+        timestamp:
+          type: string
+          format: date-time
+        suggestions:
+          type: array
+          items:
+            type: string
+            description: Suggested actions to resolve the error

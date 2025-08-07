@@ -1,0 +1,212 @@
+site_name: Nephoran Intent Operator - CRD Reference
+site_description: Comprehensive Custom Resource Definition reference documentation for the Nephoran Intent Operator
+site_author: Nephoran Team
+site_url: https://nephoran.github.io/intent-operator/
+repo_name: nephoran/intent-operator
+repo_url: https://github.com/nephoran/intent-operator
+edit_uri: edit/main/docs/crd-reference/
+
+theme:
+  name: material
+  custom_dir: overrides
+  logo: assets/logo.png
+  favicon: assets/favicon.ico
+  language: en
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.prune
+    - navigation.indexes
+    - navigation.top
+    - toc.follow
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    - header.autohide
+
+plugins:
+  - search:
+      separator: '[\s\-]+'
+      lang:
+        - en
+  - macros
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+  - print-site:
+      add_to_navigation: true
+      print_page_title: 'Print Documentation'
+      add_print_site_banner: true
+  - tags:
+      tags_file: tags.md
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - pymdownx.snippets:
+      base_path: ['docs/snippets']
+      check_paths: true
+
+extra:
+  version:
+    provider: mike
+    default: latest
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/nephoran/intent-operator
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/r/nephoran/intent-operator
+    - icon: fontawesome/brands/slack
+      link: https://nephoran.slack.com
+  analytics:
+    provider: google
+    property: G-XXXXXXXXXX
+  consent:
+    title: Cookie consent
+    description: >
+      We use cookies to recognize your repeated visits and preferences, as well
+      as to measure the effectiveness of our documentation and whether users
+      find what they're searching for. With your consent, you're helping us to
+      make our documentation better.
+
+extra_css:
+  - stylesheets/extra.css
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+nav:
+  - Home:
+    - index.md
+    - getting-started.md
+    - architecture.md
+  - CRD Reference:
+    - crds/index.md
+    - NetworkIntent:
+      - crds/networkintent/overview.md
+      - crds/networkintent/spec.md
+      - crds/networkintent/status.md
+      - crds/networkintent/examples.md
+      - crds/networkintent/troubleshooting.md
+    - E2NodeSet:
+      - crds/e2nodeset/overview.md
+      - crds/e2nodeset/spec.md
+      - crds/e2nodeset/status.md
+      - crds/e2nodeset/examples.md
+      - crds/e2nodeset/troubleshooting.md
+    - ManagedElement:
+      - crds/managedelement/overview.md
+      - crds/managedelement/spec.md
+      - crds/managedelement/status.md
+      - crds/managedelement/examples.md
+      - crds/managedelement/troubleshooting.md
+    - Disaster Recovery:
+      - crds/disaster-recovery/overview.md
+      - DisasterRecoveryPlan:
+        - crds/disaster-recovery/drp/spec.md
+        - crds/disaster-recovery/drp/status.md
+        - crds/disaster-recovery/drp/examples.md
+      - BackupPolicy:
+        - crds/disaster-recovery/backup/spec.md
+        - crds/disaster-recovery/backup/status.md
+        - crds/disaster-recovery/backup/examples.md
+      - FailoverPolicy:
+        - crds/disaster-recovery/failover/spec.md
+        - crds/disaster-recovery/failover/status.md
+        - crds/disaster-recovery/failover/examples.md
+  - Operations Guide:
+    - operations/index.md
+    - operations/deployment.md
+    - operations/monitoring.md
+    - operations/scaling.md
+    - operations/backup-restore.md
+  - API Reference:
+    - api/index.md
+    - api/rest.md
+    - api/grpc.md
+    - api/webhooks.md
+  - Examples:
+    - examples/index.md
+    - examples/basic.md
+    - examples/advanced.md
+    - examples/production.md
+  - Troubleshooting:
+    - troubleshooting/index.md
+    - troubleshooting/common-issues.md
+    - troubleshooting/error-codes.md
+    - troubleshooting/debugging.md
+  - Contributing:
+    - contributing/index.md
+    - contributing/development.md
+    - contributing/testing.md
+    - contributing/documentation.md
+  - Release Notes:
+    - releases/index.md
+    - releases/v1.0.0.md
+  - Tags: tags.md
