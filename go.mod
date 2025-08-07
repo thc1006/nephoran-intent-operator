@@ -22,7 +22,7 @@ require (
 	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 
 	// Testing framework - pinned for consistent CI/CD
-	github.com/onsi/ginkgo/v2 v2.23.3
+	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 	github.com/pquerna/otp v1.5.0
 
@@ -74,7 +74,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/golangci/golangci-lint v1.64.8
 	github.com/google/ko v0.18.0
-	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad
+	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6
 	github.com/lib/pq v1.10.9
 	github.com/pkg/profile v1.7.0
 	github.com/sony/gobreaker v1.0.0
