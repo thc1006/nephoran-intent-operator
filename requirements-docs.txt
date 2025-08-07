@@ -1,7 +1,7 @@
 # Documentation build requirements for Nephoran Intent Operator
 
 # Core MkDocs
-mkdocs>=1.5.3
+mkdocs>=1.5.3,<2.0.0
 mkdocs-material>=9.5.3
 
 # Plugins
