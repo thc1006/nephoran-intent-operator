@@ -921,7 +921,7 @@ jobs:
             curl -X POST "${{ secrets.SECURITY_EMAIL_WEBHOOK }}" \
               -H "Content-Type: application/json" \
               -d '{
-                "to": ["security-team@nephoran.ai"],
+                "to": ["84045975+thc1006@users.noreply.github.com"],
                 "subject": "Weekly Security Audit Results - ${{ needs.audit-initialization.outputs.audit_id }}",
                 "body": "Security audit completed with ${{ needs.vulnerability-assessment.outputs.critical_vulns }} critical vulnerabilities found. Full report available at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
               }'
