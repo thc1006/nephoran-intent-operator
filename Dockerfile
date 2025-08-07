@@ -84,7 +84,7 @@ RUN file service-binary && \
     (echo "Binary is not statically linked!" && exit 1)
 
 # Binary optimization stage with multi-arch support
-FROM --platform=$TARGETPLATFORM alpine:3.20 AS optimizer
+FROM --platform=$TARGETPLATFORM alpine:3.22 AS optimizer
 ARG TARGETARCH
 # Install platform-specific optimization tools
 RUN apk add --no-cache binutils && \
