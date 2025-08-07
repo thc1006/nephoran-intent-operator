@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 )
 
 // ORANComplianceTestSuite validates O-RAN compliance
@@ -26,8 +27,8 @@ type ORANComplianceTestSuite struct {
 // SetupSuite runs before all tests
 func (s *ORANComplianceTestSuite) SetupSuite() {
 	s.ctx = context.Background()
-	s.baseURL = getEnvOrDefault("ORAN_TEST_URL", "http://localhost:8080")
-	s.apiKey = getEnvOrDefault("ORAN_API_KEY", "test-key")
+	s.baseURL = config.GetEnvOrDefault("ORAN_TEST_URL", "http://localhost:8080")
+	s.apiKey = config.GetEnvOrDefault("ORAN_API_KEY", "test-key")
 
 	// Configure HTTP client with TLS
 	s.httpClient = &http.Client{
@@ -474,12 +475,7 @@ func (s *ORANComplianceTestSuite) makeRequestWithoutAuth(method, path string, bo
 	return resp
 }
 
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
+// Note: Helper functions have been moved to pkg/config/env_helpers.go
 
 // TestORANCompliance runs the compliance test suite
 func TestORANCompliance(t *testing.T) {

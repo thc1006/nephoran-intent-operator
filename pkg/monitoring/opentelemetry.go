@@ -3,9 +3,9 @@ package monitoring
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -94,8 +94,8 @@ func DefaultOpenTelemetryConfig() *OpenTelemetryConfig {
 	return &OpenTelemetryConfig{
 		ServiceName:     ServiceName,
 		ServiceVersion:  ServiceVersion,
-		Environment:     getEnv("NEPHORAN_ENVIRONMENT", "production"),
-		JaegerEndpoint:  getEnv("JAEGER_ENDPOINT", "http://jaeger-collector:14268/api/traces"),
+		Environment:     config.GetEnvOrDefault("NEPHORAN_ENVIRONMENT", "production"),
+		JaegerEndpoint:  config.GetEnvOrDefault("JAEGER_ENDPOINT", "http://jaeger-collector:14268/api/traces"),
 		SamplingRate:    0.1, // 10% sampling rate
 		EnableMetrics:   true,
 		EnableTracing:   true,
@@ -474,15 +474,7 @@ func (mi *MetricsInstrumentation) RecordResourceUsage(ctx context.Context, resou
 	)
 }
 
-// Utility functions
-
-// getEnv gets environment variable with default value
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
+// Note: Utility functions have been moved to pkg/config/env_helpers.go
 
 // TraceWithSpan executes a function within a trace span
 func TraceWithSpan(ctx context.Context, tracer trace.Tracer, spanName string, fn func(context.Context, trace.Span) error, attrs ...attribute.KeyValue) error {

@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2/service_models"
 )
@@ -88,12 +89,12 @@ type SteeringDecision struct {
 
 func main() {
 	// Configuration from environment variables
-	config := &e2.XAppConfig{
-		XAppName:        getEnv("XAPP_NAME", "traffic-steering-xapp"),
-		XAppVersion:     getEnv("XAPP_VERSION", "1.0.0"),
+	xappConfig := &e2.XAppConfig{
+		XAppName:        config.GetEnvOrDefault("XAPP_NAME", "traffic-steering-xapp"),
+		XAppVersion:     config.GetEnvOrDefault("XAPP_VERSION", "1.0.0"),
 		XAppDescription: "Intelligent Traffic Steering xApp",
-		E2NodeID:        getEnv("E2_NODE_ID", "gnb-001"),
-		NearRTRICURL:    getEnv("NEAR_RT_RIC_URL", "http://near-rt-ric:8080"),
+		E2NodeID:        config.GetEnvOrDefault("E2_NODE_ID", "gnb-001"),
+		NearRTRICURL:    config.GetEnvOrDefault("NEAR_RT_RIC_URL", "http://near-rt-ric:8080"),
 		ServiceModels:   []string{"KPM", "RC"},
 		ResourceLimits: &e2.XAppResourceLimits{
 			MaxMemoryMB:      2048,
@@ -110,7 +111,7 @@ func main() {
 	}
 
 	// Create xApp instance
-	xapp, err := NewTrafficSteeringXApp(config)
+	xapp, err := NewTrafficSteeringXApp(xappConfig)
 	if err != nil {
 		log.Fatalf("Failed to create xApp: %v", err)
 	}
@@ -660,10 +661,4 @@ func (x *TrafficSteeringXApp) handleInfo(w http.ResponseWriter, r *http.Request)
 	json.NewEncoder(w).Encode(info)
 }
 
-// getEnv gets environment variable with default value
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
+// Note: Helper functions have been moved to pkg/config/env_helpers.go

@@ -149,7 +149,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	// Service Configuration
 	cfg.Port = getEnvWithValidation("PORT", cfg.Port, validatePort, &validationErrors)
 	cfg.LogLevel = getEnvWithValidation("LOG_LEVEL", cfg.LogLevel, validateLogLevel, &validationErrors)
-	cfg.ServiceVersion = getEnvOrDefault("SERVICE_VERSION", cfg.ServiceVersion)
+	cfg.ServiceVersion = GetEnvOrDefault("SERVICE_VERSION", cfg.ServiceVersion)
 	cfg.GracefulShutdown = parseDurationWithValidation("GRACEFUL_SHUTDOWN_TIMEOUT", cfg.GracefulShutdown, &validationErrors)
 
 	// LLM Configuration
@@ -160,7 +160,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 		validationErrors = append(validationErrors, fmt.Sprintf("LLM API Key: %v", err))
 	}
 	cfg.LLMAPIKey = llmAPIKey
-	cfg.LLMModelName = getEnvOrDefault("LLM_MODEL_NAME", cfg.LLMModelName)
+	cfg.LLMModelName = GetEnvOrDefault("LLM_MODEL_NAME", cfg.LLMModelName)
 	cfg.LLMTimeout = parseDurationWithValidation("LLM_TIMEOUT", cfg.LLMTimeout, &validationErrors)
 	cfg.LLMMaxTokens = parseIntWithValidation("LLM_MAX_TOKENS", cfg.LLMMaxTokens, validatePositiveInt, &validationErrors)
 
@@ -190,7 +190,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg.CORSEnabled = parseBoolWithDefault("CORS_ENABLED", cfg.CORSEnabled)
 	
 	// Parse and validate allowed origins
-	allowedOriginsStr := getEnvOrDefault("LLM_ALLOWED_ORIGINS", "")
+	allowedOriginsStr := GetEnvOrDefault("LLM_ALLOWED_ORIGINS", "")
 	if cfg.CORSEnabled && allowedOriginsStr != "" {
 		parsedOrigins, err := parseAllowedOrigins(allowedOriginsStr)
 		if err != nil {
@@ -234,17 +234,17 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	}
 	cfg.JWTSecretKey = jwtSecretKey
 	cfg.RequireAuth = parseBoolWithDefault("REQUIRE_AUTH", cfg.RequireAuth)
-	cfg.AdminUsers = parseStringSlice(getEnvOrDefault("ADMIN_USERS", ""))
-	cfg.OperatorUsers = parseStringSlice(getEnvOrDefault("OPERATOR_USERS", ""))
+	cfg.AdminUsers = parseStringSlice(GetEnvOrDefault("ADMIN_USERS", ""))
+	cfg.OperatorUsers = parseStringSlice(GetEnvOrDefault("OPERATOR_USERS", ""))
 
 	// TLS Configuration
 	cfg.TLSEnabled = parseBoolWithDefault("TLS_ENABLED", cfg.TLSEnabled)
-	cfg.TLSCertPath = getEnvOrDefault("TLS_CERT_PATH", cfg.TLSCertPath)
-	cfg.TLSKeyPath = getEnvOrDefault("TLS_KEY_PATH", cfg.TLSKeyPath)
+	cfg.TLSCertPath = GetEnvOrDefault("TLS_CERT_PATH", cfg.TLSCertPath)
+	cfg.TLSKeyPath = GetEnvOrDefault("TLS_KEY_PATH", cfg.TLSKeyPath)
 
 	// Secret Management Configuration
 	cfg.UseKubernetesSecrets = parseBoolWithDefault("USE_KUBERNETES_SECRETS", cfg.UseKubernetesSecrets)
-	cfg.SecretNamespace = getEnvOrDefault("SECRET_NAMESPACE", cfg.SecretNamespace)
+	cfg.SecretNamespace = GetEnvOrDefault("SECRET_NAMESPACE", cfg.SecretNamespace)
 
 	// Return validation errors if any
 	if len(validationErrors) > 0 {
@@ -363,15 +363,10 @@ func (c *LLMProcessorConfig) Validate() error {
 
 // Helper functions for validation and parsing
 
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
+// Note: getEnvOrDefault has been replaced with GetEnvOrDefault from this package
 
 func getEnvWithValidation(key, defaultValue string, validator func(string) error, errors *[]string) string {
-	value := getEnvOrDefault(key, defaultValue)
+	value := GetEnvOrDefault(key, defaultValue)
 	if err := validator(value); err != nil {
 		*errors = append(*errors, fmt.Sprintf("%s: %v", key, err))
 	}

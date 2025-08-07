@@ -89,14 +89,14 @@ func LoadAuthConfig(configPath string) (*AuthConfig, error) {
 	jwtSecretKey, _ := config.LoadJWTSecretKeyFromFile(security.GlobalAuditLogger)
 
 	authConfig := &AuthConfig{
-		Enabled:      getBoolEnv("AUTH_ENABLED", false),
+		Enabled:      config.GetBoolEnv("AUTH_ENABLED", false),
 		JWTSecretKey: jwtSecretKey,
-		TokenTTL:     getDurationEnv("TOKEN_TTL", 24*time.Hour),
-		RefreshTTL:   getDurationEnv("REFRESH_TTL", 7*24*time.Hour),
+		TokenTTL:     config.GetDurationEnv("TOKEN_TTL", 24*time.Hour),
+		RefreshTTL:   config.GetDurationEnv("REFRESH_TTL", 7*24*time.Hour),
 		Providers:    make(map[string]ProviderConfig),
 		RBAC: RBACConfig{
-			Enabled:       getBoolEnv("RBAC_ENABLED", true),
-			DefaultRole:   getEnv("DEFAULT_ROLE", "viewer"),
+			Enabled:       config.GetBoolEnv("RBAC_ENABLED", true),
+			DefaultRole:   config.GetEnvOrDefault("DEFAULT_ROLE", "viewer"),
 			RoleMapping:   make(map[string][]string),
 			GroupMapping:  make(map[string][]string),
 			AdminRoles:    []string{"admin", "system-admin", "nephoran-admin"},
@@ -104,8 +104,8 @@ func LoadAuthConfig(configPath string) (*AuthConfig, error) {
 			ReadOnlyRoles: []string{"viewer", "readonly", "guest"},
 			Permissions:   getDefaultPermissions(),
 		},
-		AdminUsers:    getStringSliceEnv("ADMIN_USERS", []string{}),
-		OperatorUsers: getStringSliceEnv("OPERATOR_USERS", []string{}),
+		AdminUsers:    config.GetStringSliceEnv("ADMIN_USERS", []string{}),
+		OperatorUsers: config.GetStringSliceEnv("OPERATOR_USERS", []string{}),
 	}
 
 	// Load provider configurations
@@ -116,7 +116,7 @@ func LoadAuthConfig(configPath string) (*AuthConfig, error) {
 	// Determine config file path: use provided path or fall back to environment variable
 	configFile := configPath
 	if configFile == "" {
-		configFile = getEnv("AUTH_CONFIG_FILE", "")
+		configFile = config.GetEnvOrDefault("AUTH_CONFIG_FILE", "")
 	}
 	
 	// Load from config file if specified
@@ -144,89 +144,89 @@ func (c *AuthConfig) loadProviders() error {
 	var errors []error
 	
 	// Azure AD provider
-	if azureClientID := getEnv("AZURE_CLIENT_ID", ""); azureClientID != "" {
+	if azureClientID := config.GetEnvOrDefault("AZURE_CLIENT_ID", ""); azureClientID != "" {
 		secret, err := getOAuth2ClientSecret("azure")
-		if err != nil && getBoolEnv("AZURE_ENABLED", true) {
+		if err != nil && config.GetBoolEnv("AZURE_ENABLED", true) {
 			errors = append(errors, fmt.Errorf("azure-ad: %w", err))
 		}
 		
 		c.Providers["azure-ad"] = ProviderConfig{
-			Enabled:      getBoolEnv("AZURE_ENABLED", true),
+			Enabled:      config.GetBoolEnv("AZURE_ENABLED", true),
 			Type:         "azure-ad",
 			ClientID:     azureClientID,
 			ClientSecret: secret,
-			TenantID:     getEnv("AZURE_TENANT_ID", ""),
-			Scopes:       getStringSliceEnv("AZURE_SCOPES", []string{"openid", "profile", "email", "User.Read"}),
+			TenantID:     config.GetEnvOrDefault("AZURE_TENANT_ID", ""),
+			Scopes:       config.GetStringSliceEnv("AZURE_SCOPES", []string{"openid", "profile", "email", "User.Read"}),
 		}
 	}
 
 	// Okta provider
-	if oktaClientID := getEnv("OKTA_CLIENT_ID", ""); oktaClientID != "" {
+	if oktaClientID := config.GetEnvOrDefault("OKTA_CLIENT_ID", ""); oktaClientID != "" {
 		secret, err := getOAuth2ClientSecret("okta")
-		if err != nil && getBoolEnv("OKTA_ENABLED", true) {
+		if err != nil && config.GetBoolEnv("OKTA_ENABLED", true) {
 			errors = append(errors, fmt.Errorf("okta: %w", err))
 		}
 		
 		c.Providers["okta"] = ProviderConfig{
-			Enabled:      getBoolEnv("OKTA_ENABLED", true),
+			Enabled:      config.GetBoolEnv("OKTA_ENABLED", true),
 			Type:         "okta",
 			ClientID:     oktaClientID,
 			ClientSecret: secret,
-			Domain:       getEnv("OKTA_DOMAIN", ""),
-			Scopes:       getStringSliceEnv("OKTA_SCOPES", []string{"openid", "profile", "email", "groups"}),
+			Domain:       config.GetEnvOrDefault("OKTA_DOMAIN", ""),
+			Scopes:       config.GetStringSliceEnv("OKTA_SCOPES", []string{"openid", "profile", "email", "groups"}),
 		}
 	}
 
 	// Keycloak provider
-	if keycloakClientID := getEnv("KEYCLOAK_CLIENT_ID", ""); keycloakClientID != "" {
+	if keycloakClientID := config.GetEnvOrDefault("KEYCLOAK_CLIENT_ID", ""); keycloakClientID != "" {
 		secret, err := getOAuth2ClientSecret("keycloak")
-		if err != nil && getBoolEnv("KEYCLOAK_ENABLED", true) {
+		if err != nil && config.GetBoolEnv("KEYCLOAK_ENABLED", true) {
 			errors = append(errors, fmt.Errorf("keycloak: %w", err))
 		}
 		
 		c.Providers["keycloak"] = ProviderConfig{
-			Enabled:      getBoolEnv("KEYCLOAK_ENABLED", true),
+			Enabled:      config.GetBoolEnv("KEYCLOAK_ENABLED", true),
 			Type:         "keycloak",
 			ClientID:     keycloakClientID,
 			ClientSecret: secret,
-			BaseURL:      getEnv("KEYCLOAK_BASE_URL", ""),
-			Realm:        getEnv("KEYCLOAK_REALM", "master"),
-			Scopes:       getStringSliceEnv("KEYCLOAK_SCOPES", []string{"openid", "profile", "email", "roles"}),
+			BaseURL:      config.GetEnvOrDefault("KEYCLOAK_BASE_URL", ""),
+			Realm:        config.GetEnvOrDefault("KEYCLOAK_REALM", "master"),
+			Scopes:       config.GetStringSliceEnv("KEYCLOAK_SCOPES", []string{"openid", "profile", "email", "roles"}),
 		}
 	}
 
 	// Google provider
-	if googleClientID := getEnv("GOOGLE_CLIENT_ID", ""); googleClientID != "" {
+	if googleClientID := config.GetEnvOrDefault("GOOGLE_CLIENT_ID", ""); googleClientID != "" {
 		secret, err := getOAuth2ClientSecret("google")
-		if err != nil && getBoolEnv("GOOGLE_ENABLED", true) {
+		if err != nil && config.GetBoolEnv("GOOGLE_ENABLED", true) {
 			errors = append(errors, fmt.Errorf("google: %w", err))
 		}
 		
 		c.Providers["google"] = ProviderConfig{
-			Enabled:      getBoolEnv("GOOGLE_ENABLED", true),
+			Enabled:      config.GetBoolEnv("GOOGLE_ENABLED", true),
 			Type:         "google",
 			ClientID:     googleClientID,
 			ClientSecret: secret,
-			Scopes:       getStringSliceEnv("GOOGLE_SCOPES", []string{"openid", "profile", "email"}),
+			Scopes:       config.GetStringSliceEnv("GOOGLE_SCOPES", []string{"openid", "profile", "email"}),
 		}
 	}
 
 	// Custom provider
-	if customClientID := getEnv("CUSTOM_CLIENT_ID", ""); customClientID != "" {
+	if customClientID := config.GetEnvOrDefault("CUSTOM_CLIENT_ID", ""); customClientID != "" {
 		secret, err := getOAuth2ClientSecret("custom")
-		if err != nil && getBoolEnv("CUSTOM_ENABLED", true) {
+		if err != nil && config.GetBoolEnv("CUSTOM_ENABLED", true) {
 			errors = append(errors, fmt.Errorf("custom: %w", err))
 		}
 		
 		c.Providers["custom"] = ProviderConfig{
-			Enabled:      getBoolEnv("CUSTOM_ENABLED", true),
+			Enabled:      config.GetBoolEnv("CUSTOM_ENABLED", true),
 			Type:         "custom",
 			ClientID:     customClientID,
 			ClientSecret: secret,
-			AuthURL:      getEnv("CUSTOM_AUTH_URL", ""),
-			TokenURL:     getEnv("CUSTOM_TOKEN_URL", ""),
-			UserInfoURL:  getEnv("CUSTOM_USERINFO_URL", ""),
-			Scopes:       getStringSliceEnv("CUSTOM_SCOPES", []string{"openid", "profile", "email"}),
+			AuthURL:      config.GetEnvOrDefault("CUSTOM_AUTH_URL", ""),
+			TokenURL:     config.GetEnvOrDefault("CUSTOM_TOKEN_URL", ""),
+			UserInfoURL:  config.GetEnvOrDefault("CUSTOM_USERINFO_URL", ""),
+			Scopes:       config.GetStringSliceEnv("CUSTOM_SCOPES", []string{"openid", "profile", "email"}),
 		}
 	}
 
@@ -536,47 +536,8 @@ func getDefaultPermissions() map[string][]string {
 	}
 }
 
-// Helper functions for environment variable parsing
-
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
-
-func getBoolEnv(key string, defaultValue bool) bool {
-	if value := os.Getenv(key); value != "" {
-		return value == "true" || value == "1" || value == "yes"
-	}
-	return defaultValue
-}
-
-func getDurationEnv(key string, defaultValue time.Duration) time.Duration {
-	if value := os.Getenv(key); value != "" {
-		if duration, err := time.ParseDuration(value); err == nil {
-			return duration
-		}
-	}
-	return defaultValue
-}
-
-func getStringSliceEnv(key string, defaultValue []string) []string {
-	if value := os.Getenv(key); value != "" {
-		// Simple comma-separated parsing
-		// In production, you might want more sophisticated parsing
-		result := []string{}
-		for _, item := range strings.Split(value, ",") {
-			if trimmed := strings.TrimSpace(item); trimmed != "" {
-				result = append(result, trimmed)
-			}
-		}
-		if len(result) > 0 {
-			return result
-		}
-	}
-	return defaultValue
-}
+// Note: Environment helper functions have been moved to pkg/config/env_helpers.go
+// All getEnv, getBoolEnv, getDurationEnv, getStringSliceEnv calls now use config.* variants
 
 // getOAuth2ClientSecret loads OAuth2 client secret from environment variables or files with secure error handling
 func getOAuth2ClientSecret(provider string) (string, error) {
@@ -610,6 +571,25 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 			"provider", provider, 
 			"source", "environment",
 			"env_var", envVar)
+		return secret, nil
+	}
+
+	// Step 1.5: Check fallback environment variable for backward compatibility - <PROVIDER>_CLIENT_SECRET
+	fallbackEnvVar := fmt.Sprintf("%s_CLIENT_SECRET", sanitizedProvider)
+	secret = getEnvAtomic(fallbackEnvVar)
+	if secret != "" {
+		// Validate the secret content
+		if err := validateSecretContent(secret); err != nil {
+			auditSecretAccess(provider, "environment", fallbackEnvVar, false, "secret validation failed")
+			return "", fmt.Errorf("invalid OAuth2 client secret format for provider %s", provider)
+		}
+		
+		auditSecretAccess(provider, "environment", fallbackEnvVar, true, "")
+		slog.Info("OAuth2 client secret loaded from environment (backward compatibility)", 
+			"provider", provider, 
+			"source", "environment",
+			"env_var", fallbackEnvVar,
+			"note", "Consider migrating to OAUTH2_<PROVIDER>_CLIENT_SECRET format")
 		return secret, nil
 	}
 
@@ -663,7 +643,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 
 // getEnvAtomic performs atomic read of environment variable to prevent race conditions
 func getEnvAtomic(key string) string {
-	return os.Getenv(key)
+	return config.GetEnvOrDefault(key, "")
 }
 
 // isValidProviderName validates provider name format to prevent injection
@@ -795,11 +775,27 @@ func validateSecretContent(secret string) error {
 	}
 	
 	// Check for common weak patterns
-	if strings.Contains(strings.ToLower(secret), "password") ||
-		strings.Contains(strings.ToLower(secret), "secret") ||
-		strings.Contains(strings.ToLower(secret), "test") ||
-		strings.Contains(strings.ToLower(secret), "example") {
-		return fmt.Errorf("secret contains common weak patterns")
+	lowerSecret := strings.ToLower(secret)
+	
+	// Check if secret starts with obvious weak patterns
+	weakPrefixes := []string{"password", "test", "example", "demo", "sample"}
+	for _, prefix := range weakPrefixes {
+		if strings.HasPrefix(lowerSecret, prefix+"-") || strings.HasPrefix(lowerSecret, prefix+"_") {
+			return fmt.Errorf("secret starts with weak pattern: %s", prefix)
+		}
+	}
+	
+	// Only reject if the secret is JUST a weak pattern or very simple
+	weakPatterns := []string{"password", "secret", "test", "example", "admin", "demo"}
+	for _, pattern := range weakPatterns {
+		// Reject if the secret is exactly the pattern or pattern with simple suffix
+		if lowerSecret == pattern || 
+		   lowerSecret == pattern+"123" || 
+		   lowerSecret == pattern+"1234" ||
+		   lowerSecret == "my"+pattern ||
+		   lowerSecret == "your"+pattern {
+			return fmt.Errorf("secret contains common weak patterns")
+		}
 	}
 	
 	// Basic entropy check - ensure it's not all the same character

@@ -195,10 +195,10 @@ func (s *LLMProcessorService) loadSecureAPIKeys(ctx context.Context) (*config.AP
 	// Fall back to environment variables as last resort
 	s.logger.Info("Falling back to environment variables for API keys")
 	return &config.APIKeys{
-		OpenAI:    getEnvOrDefault("OPENAI_API_KEY", ""),
-		Weaviate:  getEnvOrDefault("WEAVIATE_API_KEY", ""),
-		Generic:   getEnvOrDefault("API_KEY", ""),
-		JWTSecret: getEnvOrDefault("JWT_SECRET_KEY", ""),
+		OpenAI:    config.GetEnvOrDefault("OPENAI_API_KEY", ""),
+		Weaviate:  config.GetEnvOrDefault("WEAVIATE_API_KEY", ""),
+		Generic:   config.GetEnvOrDefault("API_KEY", ""),
+		JWTSecret: config.GetEnvOrDefault("JWT_SECRET_KEY", ""),
 	}, nil
 }
 
@@ -321,10 +321,4 @@ func (s *LLMProcessorService) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// Helper function
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
+// Note: Helper functions have been moved to pkg/config/env_helpers.go

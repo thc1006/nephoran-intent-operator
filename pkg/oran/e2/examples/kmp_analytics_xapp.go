@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 )
 
@@ -79,8 +80,8 @@ func NewKMPAnalyticsXApp() (*KMPAnalyticsXApp, error) {
 		XAppName:        "kmp-analytics-xapp",
 		XAppVersion:     "1.0.0",
 		XAppDescription: "KMP Performance Analytics and Alerting xApp",
-		E2NodeID:        getEnvOrDefault("E2_NODE_ID", "gnb-001"),
-		NearRTRICURL:    getEnvOrDefault("NEAR_RT_RIC_URL", "http://near-rt-ric:8080"),
+		E2NodeID:        config.GetEnvOrDefault("E2_NODE_ID", "gnb-001"),
+		NearRTRICURL:    config.GetEnvOrDefault("NEAR_RT_RIC_URL", "http://near-rt-ric:8080"),
 		ServiceModels:   []string{"KPM"},
 		Environment: map[string]string{
 			"LOG_LEVEL":     "INFO",
@@ -551,12 +552,7 @@ func (x *KMPAnalyticsXApp) interpretCorrelation(correlation float64) string {
 
 // Helper functions
 
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
-}
+// Note: Helper functions have been moved to pkg/config/env_helpers.go
 
 func abs(x int) int {
 	if x < 0 {
