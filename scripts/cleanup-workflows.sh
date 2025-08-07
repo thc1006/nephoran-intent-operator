@@ -170,7 +170,7 @@ main() {
     
     # Capture the found count from list_workflows
     local found_count
-    found_count=$(list_workflows | tail -n 1)
+    found_count=$(list_workflows | grep -Eo 'Found [0-9]+ workflows' | grep -Eo '[0-9]+')
     
     # Delete workflows (this function is always called, checks DRY_RUN internally)
     delete_workflows
