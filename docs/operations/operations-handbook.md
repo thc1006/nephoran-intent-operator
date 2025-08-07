@@ -953,7 +953,14 @@ incident_communication() {
     # Post to incident channel
     curl -X POST -H 'Content-type: application/json' \
         --data '{"text":"🚨 P1 INCIDENT '${INCIDENT_ID}': System impact detected. War room: #'${INCIDENT_CHANNEL}'-'${INCIDENT_ID}'"}' \
-        $SLACK_WEBHOOK_URL
+    # Validate SLACK_WEBHOOK_URL before use
+    if [[ ! "$SLACK_WEBHOOK_URL" =~ ^https://hooks\.slack\.com/.*$ ]]; then
+        echo "Error: SLACK_WEBHOOK_URL is not a valid Slack webhook URL." >&2
+        return 1
+    fi
+    curl -X POST -H 'Content-type: application/json' \
+        --data '{"text":"🚨 P1 INCIDENT '${INCIDENT_ID}': System impact detected. War room: #'${INCIDENT_CHANNEL}'-'${INCIDENT_ID}'"}' \
+        "$SLACK_WEBHOOK_URL"
     
     # Page on-call
     curl -X POST https://events.pagerduty.com/v2/enqueue \
