@@ -14,17 +14,17 @@ import (
 
 // LLMProcessorService manages the lifecycle of LLM processor components
 type LLMProcessorService struct {
-	config            *config.LLMProcessorConfig
-	secretManager     *config.SecretManager
-	processor         *handlers.IntentProcessor
+	config             *config.LLMProcessorConfig
+	secretManager      *config.SecretManager
+	processor          *handlers.IntentProcessor
 	streamingProcessor *llm.StreamingProcessor
-	circuitBreakerMgr *llm.CircuitBreakerManager
-	tokenManager      *llm.TokenManager
-	contextBuilder    *llm.ContextBuilder
-	relevanceScorer   *llm.RelevanceScorer
-	promptBuilder     *llm.RAGAwarePromptBuilder
-	logger            *slog.Logger
-	healthChecker     *health.HealthChecker
+	circuitBreakerMgr  *llm.CircuitBreakerManager
+	tokenManager       *llm.TokenManager
+	contextBuilder     *llm.ContextBuilder
+	relevanceScorer    *llm.RelevanceScorer
+	promptBuilder      *llm.RAGAwarePromptBuilder
+	logger             *slog.Logger
+	healthChecker      *health.HealthChecker
 }
 
 // NewLLMProcessorService creates a new service instance
@@ -69,7 +69,7 @@ func (s *LLMProcessorService) initializeSecretManager() error {
 			s.logger.Info("Falling back to environment variables for secrets")
 			return nil // Non-critical error, fallback to env vars
 		}
-		s.logger.Info("Secret manager initialized successfully", 
+		s.logger.Info("Secret manager initialized successfully",
 			slog.String("namespace", s.config.SecretNamespace))
 	}
 	return nil
@@ -79,28 +79,28 @@ func (s *LLMProcessorService) initializeSecretManager() error {
 func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error {
 	// Initialize token manager
 	s.tokenManager = llm.NewTokenManager()
-	
+
 	// Initialize circuit breaker manager
 	s.circuitBreakerMgr = llm.NewCircuitBreakerManager(nil)
-	
+
 	// Load API keys securely
 	apiKeys, err := s.loadSecureAPIKeys(ctx)
 	if err != nil {
 		s.logger.Error("Failed to load API keys", slog.String("error", err.Error()))
 		return fmt.Errorf("failed to load API keys: %w", err)
 	}
-	
+
 	// Use the secure API key for LLM client
 	apiKey := apiKeys.OpenAI
 	if apiKey == "" {
 		apiKey = s.config.LLMAPIKey // fallback to config
 	}
-	
+
 	// Validate configuration before creating client
 	if err := s.validateLLMConfig(apiKey); err != nil {
 		return fmt.Errorf("LLM configuration validation failed: %w", err)
 	}
-	
+
 	// Create LLM client configuration
 	clientConfig := llm.ClientConfig{
 		APIKey:      apiKey,
@@ -109,45 +109,45 @@ func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error
 		BackendType: s.config.LLMBackendType,
 		Timeout:     s.config.LLMTimeout,
 	}
-	
+
 	// Create base LLM client
 	llmClient := llm.NewClientWithConfig(s.config.RAGAPIURL, clientConfig)
 	if llmClient == nil {
 		return fmt.Errorf("failed to create LLM client - nil client returned")
 	}
-	
+
 	// Initialize relevance scorer
 	s.relevanceScorer = llm.NewRelevanceScorer()
-	
+
 	// Initialize context builder if enabled
 	if s.config.EnableContextBuilder {
 		s.contextBuilder = llm.NewContextBuilder()
 	}
-	
+
 	// Initialize prompt builder
 	s.promptBuilder = llm.NewRAGAwarePromptBuilder()
-	
+
 	// Initialize RAG-enhanced processor if enabled
 	var ragEnhanced *llm.RAGEnhancedProcessor
 	if s.config.RAGEnabled {
 		ragEnhanced = llm.NewRAGEnhancedProcessor()
 	}
-	
+
 	// Initialize streaming processor if enabled
 	if s.config.StreamingEnabled {
 		// StreamingConfig doesn't exist, use basic streaming processor
 		s.streamingProcessor = llm.NewStreamingProcessor()
 	}
-	
+
 	// Initialize main processor with circuit breaker
 	circuitBreaker := s.circuitBreakerMgr.GetOrCreate("llm-processor", nil)
 	s.processor = &handlers.IntentProcessor{
 		LLMClient:         llmClient,
 		RAGEnhancedClient: ragEnhanced,
 		CircuitBreaker:    circuitBreaker,
-		Logger:           s.logger,
+		Logger:            s.logger,
 	}
-	
+
 	return nil
 }
 
@@ -182,7 +182,7 @@ func (s *LLMProcessorService) loadSecureAPIKeys(ctx context.Context) (*config.AP
 	if err != nil {
 		s.logger.Info("Failed to load API keys from files", "error", err.Error())
 	}
-	
+
 	// If file loading failed or returned empty keys, try Kubernetes secrets
 	if s.secretManager != nil {
 		k8sAPIKeys, err := s.secretManager.GetAPIKeys(ctx)
@@ -222,18 +222,27 @@ func (s *LLMProcessorService) registerHealthChecks() {
 					Message: "No circuit breakers registered",
 				}
 			}
-			
+
 			// Check if any circuit breakers are open
-			for name := range stats {
-				return &health.Check{
-					Status:  health.StatusHealthy,
-					Message: fmt.Sprintf("Circuit breaker %s is operational", name),
+			var openBreakers []string
+			for name, cbStats := range stats {
+				if cbMap, ok := cbStats.(map[string]interface{}); ok {
+					if state, ok := cbMap["state"].(string); ok && state == "open" {
+						openBreakers = append(openBreakers, name)
+					}
 				}
 			}
-			
+
+			if len(openBreakers) > 0 {
+				return &health.Check{
+					Status:  health.StatusUnhealthy,
+					Message: fmt.Sprintf("Circuit breakers in open state: %v", openBreakers),
+				}
+			}
+
 			return &health.Check{
 				Status:  health.StatusHealthy,
-				Message: "All circuit breakers operational",
+				Message: fmt.Sprintf("All %d circuit breakers operational", len(stats)),
 			}
 		})
 	}
@@ -257,8 +266,8 @@ func (s *LLMProcessorService) registerHealthChecks() {
 		s.healthChecker.RegisterCheck("streaming_processor", func(ctx context.Context) *health.Check {
 			metrics := s.streamingProcessor.GetMetrics()
 			return &health.Check{
-				Status:  health.StatusHealthy,
-				Message: "Streaming processor operational",
+				Status:   health.StatusHealthy,
+				Message:  "Streaming processor operational",
 				Metadata: metrics,
 			}
 		})
