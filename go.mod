@@ -58,7 +58,7 @@ require (
 	// Kubernetes ecosystem - pinned to k8s v1.32.0 for compatibility
 	k8s.io/api v0.33.2
 	k8s.io/apiextensions-apiserver v0.33.2
-	k8s.io/apimachinery v0.33.2
+	k8s.io/apimachinery v0.33.3
 	k8s.io/client-go v0.33.2
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/controller-runtime v0.21.0
