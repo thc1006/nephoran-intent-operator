@@ -99,7 +99,7 @@ function initializeTooltips() {
                 const parent = node.parentNode;
                 const wrapper = document.createElement('span');
                 wrapper.innerHTML = node.textContent.replace(regex, 
-                    `<span class="md-tooltip" title="${tooltipTerms[term]}">${term}</span>`
+                    `<span class="md-tooltip" title="${escapeHtml(tooltipTerms[term])}">${term}</span>`
                 );
                 
                 parent.insertBefore(wrapper, node);
