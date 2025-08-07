@@ -181,5 +181,21 @@ main() {
     echo -e "${GREEN}✓ Cleanup script completed${NC}"
 }
 
-# Run main function with all arguments
+# Validate command-line arguments before running main
+validate_arguments() {
+    # Only allow known safe arguments: --execute and --dry-run
+    for arg in "$@"; do
+        case "$arg" in
+            --execute|--dry-run)
+                ;;
+            *)
+                echo -e "${RED}Error:${NC} Invalid or potentially unsafe argument: '$arg'"
+                echo "Allowed arguments are: --execute, --dry-run"
+                exit 1
+                ;;
+        esac
+    done
+}
+
+validate_arguments "$@"
 main "$@"
