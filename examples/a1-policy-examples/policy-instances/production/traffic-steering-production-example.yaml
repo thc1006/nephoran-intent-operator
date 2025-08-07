@@ -1,0 +1,517 @@
+# Production Traffic Steering Policy Instance
+# This example demonstrates a production-ready traffic steering policy
+# for a metropolitan area with multiple sites and failover capabilities
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traffic-steering-metro-policy
+  namespace: nephoran-a1
+  labels:
+    policy-type-id: "20008"
+    policy-instance-id: "metro-traffic-steering-001"
+    environment: "production"
+    region: "metro-east"
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/component: policy-instance
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    policy-instance.a1.nephoran.io/created-by: "network-operator"
+    policy-instance.a1.nephoran.io/deployment-time: "2024-01-15T10:30:00Z"
+    policy-instance.a1.nephoran.io/sla-tier: "gold"
+    policy-instance.a1.nephoran.io/business-impact: "high"
+data:
+  policy-instance.json: |
+    {
+      "policy_id": "metro-traffic-steering-001",
+      "policy_type_id": 20008,
+      "policy_data": {
+        "scope": {
+          "ue_id": "*",
+          "cell_list": [
+            "metro_cell_001", "metro_cell_002", "metro_cell_003", "metro_cell_004",
+            "metro_cell_005", "metro_cell_006", "metro_cell_007", "metro_cell_008",
+            "metro_cell_009", "metro_cell_010"
+          ],
+          "slice_id": "000001",
+          "service_type": "all",
+          "geographic_area": {
+            "center_point": [40.7128, -74.0060],
+            "radius_km": 25
+          }
+        },
+        "qos_preference": {
+          "priority_level": 2,
+          "load_balancing": {
+            "algorithm": "performance_based",
+            "targets": [
+              {
+                "target_id": "metro_primary_site",
+                "weight": 60,
+                "capacity": 5000,
+                "priority": 1,
+                "health_threshold": 0.9
+              },
+              {
+                "target_id": "metro_secondary_site",
+                "weight": 30,
+                "capacity": 3000,
+                "priority": 2,
+                "health_threshold": 0.85
+              },
+              {
+                "target_id": "metro_edge_site",
+                "weight": 10,
+                "capacity": 1000,
+                "priority": 3,
+                "health_threshold": 0.8
+              }
+            ],
+            "sticky_sessions": true,
+            "session_timeout": 7200
+          },
+          "performance_requirements": {
+            "max_latency_ms": 50,
+            "min_throughput_mbps": 50,
+            "max_packet_loss": 0.005,
+            "jitter_tolerance_ms": 20
+          },
+          "failover_policy": {
+            "enable_failover": true,
+            "failure_detection_threshold": 3,
+            "recovery_threshold": 5,
+            "check_interval_ms": 2000,
+            "failover_mode": "graceful"
+          }
+        },
+        "time_constraints": {
+          "active_hours": [
+            {
+              "start": "00:00",
+              "end": "23:59",
+              "timezone": "America/New_York"
+            }
+          ],
+          "active_days": [
+            "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
+          ],
+          "validity_period": {
+            "start_time": "2024-01-15T00:00:00Z",
+            "end_time": "2024-12-31T23:59:59Z"
+          }
+        },
+        "monitoring": {
+          "enable_metrics": true,
+          "metric_collection_interval": 30,
+          "alert_thresholds": {
+            "performance_degradation": 0.15,
+            "load_imbalance": 0.2
+          },
+          "reporting_endpoint": "https://monitoring.nephoran.io/a1-metrics"
+        },
+        "metadata": {
+          "policy_owner": "metro-network-ops",
+          "description": "Production traffic steering for metropolitan area with automatic failover",
+          "tags": ["production", "metro", "high-availability", "load-balancing"],
+          "version": "1.2.0"
+        }
+      },
+      "policy_info": {
+        "notification_destination": "https://webhooks.nephoran.io/a1-notifications",
+        "request_id": "metro-deploy-20240115-001",
+        "additional_params": {
+          "enforcement_mode": "strict",
+          "rollback_on_failure": true,
+          "gradual_rollout": true,
+          "rollout_percentage": 100,
+          "health_check_grace_period": 300
+        }
+      }
+    }
+
+---
+# Deployment script for the policy instance
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traffic-steering-metro-deploy
+  namespace: nephoran-a1
+  labels:
+    policy-deployment: "metro-traffic-steering-001"
+data:
+  deploy.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Configuration
+    A1_SERVICE_URL="${A1_SERVICE_URL:-https://a1-api.nephoran.io}"
+    POLICY_TYPE_ID="20008"
+    POLICY_ID="metro-traffic-steering-001"
+    AUTH_TOKEN="${AUTH_TOKEN:-$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)}"
+    
+    echo "Deploying traffic steering policy: ${POLICY_ID}"
+    
+    # Check if policy type exists
+    echo "Checking policy type ${POLICY_TYPE_ID}..."
+    if ! curl -s -f -H "Authorization: Bearer ${AUTH_TOKEN}" \
+         "${A1_SERVICE_URL}/A1-P/v2/policytypes/${POLICY_TYPE_ID}" > /dev/null; then
+        echo "ERROR: Policy type ${POLICY_TYPE_ID} not found"
+        exit 1
+    fi
+    
+    # Deploy policy instance
+    echo "Creating policy instance..."
+    RESPONSE=$(curl -s -w "\n%{http_code}" \
+        -X PUT \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${AUTH_TOKEN}" \
+        -d @- \
+        "${A1_SERVICE_URL}/A1-P/v2/policytypes/${POLICY_TYPE_ID}/policies/${POLICY_ID}" << 'EOF'
+    {
+      "policy_data": {
+        "scope": {
+          "ue_id": "*",
+          "cell_list": [
+            "metro_cell_001", "metro_cell_002", "metro_cell_003", "metro_cell_004",
+            "metro_cell_005", "metro_cell_006", "metro_cell_007", "metro_cell_008",
+            "metro_cell_009", "metro_cell_010"
+          ],
+          "slice_id": "000001",
+          "service_type": "all",
+          "geographic_area": {
+            "center_point": [40.7128, -74.0060],
+            "radius_km": 25
+          }
+        },
+        "qos_preference": {
+          "priority_level": 2,
+          "load_balancing": {
+            "algorithm": "performance_based",
+            "targets": [
+              {
+                "target_id": "metro_primary_site",
+                "weight": 60,
+                "capacity": 5000,
+                "priority": 1,
+                "health_threshold": 0.9
+              },
+              {
+                "target_id": "metro_secondary_site",
+                "weight": 30,
+                "capacity": 3000,
+                "priority": 2,
+                "health_threshold": 0.85
+              },
+              {
+                "target_id": "metro_edge_site",
+                "weight": 10,
+                "capacity": 1000,
+                "priority": 3,
+                "health_threshold": 0.8
+              }
+            ],
+            "sticky_sessions": true,
+            "session_timeout": 7200
+          },
+          "performance_requirements": {
+            "max_latency_ms": 50,
+            "min_throughput_mbps": 50,
+            "max_packet_loss": 0.005,
+            "jitter_tolerance_ms": 20
+          },
+          "failover_policy": {
+            "enable_failover": true,
+            "failure_detection_threshold": 3,
+            "recovery_threshold": 5,
+            "check_interval_ms": 2000,
+            "failover_mode": "graceful"
+          }
+        },
+        "time_constraints": {
+          "active_hours": [
+            {
+              "start": "00:00",
+              "end": "23:59",
+              "timezone": "America/New_York"
+            }
+          ],
+          "active_days": [
+            "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"
+          ]
+        },
+        "monitoring": {
+          "enable_metrics": true,
+          "metric_collection_interval": 30,
+          "alert_thresholds": {
+            "performance_degradation": 0.15,
+            "load_imbalance": 0.2
+          }
+        },
+        "metadata": {
+          "policy_owner": "metro-network-ops",
+          "description": "Production traffic steering for metropolitan area with automatic failover",
+          "tags": ["production", "metro", "high-availability", "load-balancing"],
+          "version": "1.2.0"
+        }
+      },
+      "policy_info": {
+        "notification_destination": "https://webhooks.nephoran.io/a1-notifications",
+        "request_id": "metro-deploy-$(date +%Y%m%d-%H%M%S)",
+        "additional_params": {
+          "enforcement_mode": "strict",
+          "rollback_on_failure": true
+        }
+      }
+    }
+    EOF
+    )
+    
+    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+    BODY=$(echo "$RESPONSE" | head -n -1)
+    
+    if [[ "$HTTP_CODE" == "201" ]]; then
+        echo "Policy instance created successfully"
+    elif [[ "$HTTP_CODE" == "200" ]]; then
+        echo "Policy instance updated successfully"
+    else
+        echo "ERROR: Policy deployment failed with HTTP code: $HTTP_CODE"
+        echo "Response: $BODY"
+        exit 1
+    fi
+    
+    # Wait for policy to be enforced
+    echo "Waiting for policy enforcement..."
+    for i in {1..30}; do
+        sleep 2
+        STATUS_RESPONSE=$(curl -s -H "Authorization: Bearer ${AUTH_TOKEN}" \
+            "${A1_SERVICE_URL}/A1-P/v2/policytypes/${POLICY_TYPE_ID}/policies/${POLICY_ID}/status")
+        
+        if echo "$STATUS_RESPONSE" | jq -r '.enforcement_status' | grep -q "ENFORCED"; then
+            echo "Policy successfully enforced"
+            echo "Status: $(echo "$STATUS_RESPONSE" | jq -r '.enforcement_reason')"
+            break
+        elif [[ $i -eq 30 ]]; then
+            echo "WARNING: Policy enforcement status unclear after 60 seconds"
+            echo "Current status: $(echo "$STATUS_RESPONSE" | jq -r '.enforcement_status')"
+        fi
+    done
+    
+    echo "Deployment completed successfully"
+
+  validate.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Validation script for the deployed policy
+    A1_SERVICE_URL="${A1_SERVICE_URL:-https://a1-api.nephoran.io}"
+    POLICY_TYPE_ID="20008"
+    POLICY_ID="metro-traffic-steering-001"
+    AUTH_TOKEN="${AUTH_TOKEN:-$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)}"
+    
+    echo "Validating policy deployment: ${POLICY_ID}"
+    
+    # Check policy instance exists
+    echo "Checking policy instance..."
+    POLICY_RESPONSE=$(curl -s -H "Authorization: Bearer ${AUTH_TOKEN}" \
+        "${A1_SERVICE_URL}/A1-P/v2/policytypes/${POLICY_TYPE_ID}/policies/${POLICY_ID}")
+    
+    if ! echo "$POLICY_RESPONSE" | jq -e '.policy_id' > /dev/null; then
+        echo "ERROR: Policy instance not found"
+        exit 1
+    fi
+    
+    echo "Policy instance found: $(echo "$POLICY_RESPONSE" | jq -r '.policy_id')"
+    
+    # Check policy status
+    echo "Checking policy status..."
+    STATUS_RESPONSE=$(curl -s -H "Authorization: Bearer ${AUTH_TOKEN}" \
+        "${A1_SERVICE_URL}/A1-P/v2/policytypes/${POLICY_TYPE_ID}/policies/${POLICY_ID}/status")
+    
+    ENFORCEMENT_STATUS=$(echo "$STATUS_RESPONSE" | jq -r '.enforcement_status')
+    
+    case "$ENFORCEMENT_STATUS" in
+        "ENFORCED")
+            echo "✓ Policy is successfully enforced"
+            ;;
+        "NOT_ENFORCED")
+            echo "✗ Policy is not enforced"
+            echo "Reason: $(echo "$STATUS_RESPONSE" | jq -r '.enforcement_reason')"
+            exit 1
+            ;;
+        "UNKNOWN")
+            echo "? Policy enforcement status is unknown"
+            echo "This may be temporary during policy deployment"
+            ;;
+        *)
+            echo "✗ Unexpected enforcement status: $ENFORCEMENT_STATUS"
+            exit 1
+            ;;
+    esac
+    
+    # Validate policy data integrity
+    echo "Validating policy data..."
+    EXPECTED_TARGETS=3
+    ACTUAL_TARGETS=$(echo "$POLICY_RESPONSE" | jq '.policy_data.qos_preference.load_balancing.targets | length')
+    
+    if [[ "$ACTUAL_TARGETS" != "$EXPECTED_TARGETS" ]]; then
+        echo "✗ Expected $EXPECTED_TARGETS targets, found $ACTUAL_TARGETS"
+        exit 1
+    fi
+    
+    # Validate weight sum
+    WEIGHT_SUM=$(echo "$POLICY_RESPONSE" | jq '[.policy_data.qos_preference.load_balancing.targets[].weight] | add')
+    if [[ "$WEIGHT_SUM" != "100" ]]; then
+        echo "✗ Target weights sum to $WEIGHT_SUM, expected 100"
+        exit 1
+    fi
+    
+    echo "✓ Policy data validation passed"
+    
+    # Check metrics collection
+    echo "Validating metrics collection..."
+    METRICS_ENABLED=$(echo "$POLICY_RESPONSE" | jq -r '.policy_data.monitoring.enable_metrics')
+    if [[ "$METRICS_ENABLED" != "true" ]]; then
+        echo "⚠ Metrics collection is disabled"
+    else
+        echo "✓ Metrics collection is enabled"
+    fi
+    
+    echo "Validation completed successfully"
+
+  rollback.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Rollback script for the policy instance
+    A1_SERVICE_URL="${A1_SERVICE_URL:-https://a1-api.nephoran.io}"
+    POLICY_TYPE_ID="20008"
+    POLICY_ID="metro-traffic-steering-001"
+    AUTH_TOKEN="${AUTH_TOKEN:-$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)}"
+    
+    echo "Rolling back policy: ${POLICY_ID}"
+    
+    # Delete policy instance
+    echo "Deleting policy instance..."
+    RESPONSE=$(curl -s -w "\n%{http_code}" \
+        -X DELETE \
+        -H "Authorization: Bearer ${AUTH_TOKEN}" \
+        "${A1_SERVICE_URL}/A1-P/v2/policytypes/${POLICY_TYPE_ID}/policies/${POLICY_ID}")
+    
+    HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+    
+    case "$HTTP_CODE" in
+        "202")
+            echo "Policy deletion initiated successfully"
+            ;;
+        "404")
+            echo "Policy not found (already deleted?)"
+            ;;
+        *)
+            echo "ERROR: Policy deletion failed with HTTP code: $HTTP_CODE"
+            exit 1
+            ;;
+    esac
+    
+    # Wait for policy to be deleted
+    echo "Waiting for policy deletion to complete..."
+    for i in {1..30}; do
+        sleep 2
+        if ! curl -s -f -H "Authorization: Bearer ${AUTH_TOKEN}" \
+             "${A1_SERVICE_URL}/A1-P/v2/policytypes/${POLICY_TYPE_ID}/policies/${POLICY_ID}" > /dev/null; then
+            echo "Policy successfully deleted"
+            break
+        elif [[ $i -eq 30 ]]; then
+            echo "WARNING: Policy still exists after 60 seconds"
+        fi
+    done
+    
+    echo "Rollback completed"
+
+---
+# Monitoring configuration for the policy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traffic-steering-metro-monitoring
+  namespace: nephoran-a1
+data:
+  alerts.yaml: |
+    groups:
+    - name: traffic-steering-metro-policy
+      rules:
+      - alert: TrafficSteeringPolicyNotEnforced
+        expr: a1_policy_enforcement_status{policy_id="metro-traffic-steering-001"} != 1
+        for: 5m
+        labels:
+          severity: critical
+          policy_id: metro-traffic-steering-001
+          environment: production
+        annotations:
+          summary: "Metro traffic steering policy is not enforced"
+          description: "The metro traffic steering policy has not been enforced for {{ $value }} minutes"
+      
+      - alert: TrafficSteeringLoadImbalance
+        expr: |
+          (
+            max(a1_traffic_steering_target_load{policy_id="metro-traffic-steering-001"}) -
+            min(a1_traffic_steering_target_load{policy_id="metro-traffic-steering-001"})
+          ) / 
+          avg(a1_traffic_steering_target_load{policy_id="metro-traffic-steering-001"}) > 0.3
+        for: 2m
+        labels:
+          severity: warning
+          policy_id: metro-traffic-steering-001
+        annotations:
+          summary: "Traffic load imbalance detected"
+          description: "Load imbalance of {{ $value | humanizePercentage }} detected in metro traffic steering"
+      
+      - alert: TrafficSteeringPerformanceDegradation
+        expr: |
+          avg(a1_traffic_steering_latency_ms{policy_id="metro-traffic-steering-001"}) > 50
+        for: 1m
+        labels:
+          severity: warning
+          policy_id: metro-traffic-steering-001
+        annotations:
+          summary: "Traffic steering performance degradation"
+          description: "Average latency is {{ $value }}ms, exceeding threshold of 50ms"
+
+  dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Metro Traffic Steering Policy",
+        "tags": ["a1", "traffic-steering", "production"],
+        "panels": [
+          {
+            "title": "Policy Enforcement Status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "a1_policy_enforcement_status{policy_id=\"metro-traffic-steering-001\"}"
+              }
+            ]
+          },
+          {
+            "title": "Target Load Distribution",
+            "type": "piechart", 
+            "targets": [
+              {
+                "expr": "a1_traffic_steering_target_load{policy_id=\"metro-traffic-steering-001\"}"
+              }
+            ]
+          },
+          {
+            "title": "Performance Metrics",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "a1_traffic_steering_latency_ms{policy_id=\"metro-traffic-steering-001\"}"
+              },
+              {
+                "expr": "a1_traffic_steering_throughput_mbps{policy_id=\"metro-traffic-steering-001\"}"
+              }
+            ]
+          }
+        ]
+      }
+    }

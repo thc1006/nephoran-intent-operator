@@ -181,8 +181,8 @@ git checkout workflow-cleanup-backup
 # 2. Create rollback branch
 git checkout -b rollback-workflows
 
-# 3. Copy original workflows back
-cp .github/workflows-backup/* .github/workflows/
+# 3. Restore from git history if needed (backup removed)
+git checkout HEAD~10 -- .github/workflows/
 
 # 4. Remove new workflows
 rm .github/workflows/main-ci.yml

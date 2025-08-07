@@ -1,0 +1,722 @@
+# Traffic Steering xApp Consumer Configuration
+# This example shows how to register a traffic steering xApp as an A1 consumer
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: traffic-steering-xapp
+  namespace: oran
+  labels:
+    app.kubernetes.io/name: traffic-steering-xapp
+    app.kubernetes.io/instance: traffic-steering-xapp
+    app.kubernetes.io/version: "1.3.0"
+    app.kubernetes.io/component: xapp
+    app.kubernetes.io/part-of: near-rt-ric
+    xapp-type: traffic-steering
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: traffic-steering-xapp
+      app.kubernetes.io/instance: traffic-steering-xapp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: traffic-steering-xapp
+        app.kubernetes.io/instance: traffic-steering-xapp
+        app.kubernetes.io/version: "1.3.0"
+        app.kubernetes.io/component: xapp
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: traffic-steering-xapp
+      containers:
+      - name: traffic-steering-xapp
+        image: oran/traffic-steering-xapp:1.3.0
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        - name: callbacks
+          containerPort: 8081
+          protocol: TCP
+        env:
+        - name: XAPP_NAME
+          value: "traffic-steering-xapp"
+        - name: A1_SERVICE_URL
+          value: "https://a1-policy-service.nephoran-a1.svc.cluster.local"
+        - name: CALLBACK_URL
+          value: "http://traffic-steering-xapp.oran.svc.cluster.local:8081"
+        - name: RIC_PLATFORM_URL
+          value: "http://ric-platform.oran.svc.cluster.local:8080"
+        - name: LOG_LEVEL
+          value: "info"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: config
+          mountPath: /etc/xapp
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: traffic-steering-xapp-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: traffic-steering-xapp
+  namespace: oran
+  labels:
+    app.kubernetes.io/name: traffic-steering-xapp
+    app.kubernetes.io/instance: traffic-steering-xapp
+    app.kubernetes.io/component: xapp
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8080
+    targetPort: http
+    protocol: TCP
+  - name: callbacks
+    port: 8081
+    targetPort: callbacks
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: metrics
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: traffic-steering-xapp
+    app.kubernetes.io/instance: traffic-steering-xapp
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: traffic-steering-xapp
+  namespace: oran
+  labels:
+    app.kubernetes.io/name: traffic-steering-xapp
+    app.kubernetes.io/component: xapp
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: oran
+  name: traffic-steering-xapp
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: traffic-steering-xapp
+  namespace: oran
+subjects:
+- kind: ServiceAccount
+  name: traffic-steering-xapp
+  namespace: oran
+roleRef:
+  kind: Role
+  name: traffic-steering-xapp
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# xApp Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traffic-steering-xapp-config
+  namespace: oran
+  labels:
+    app.kubernetes.io/name: traffic-steering-xapp
+    app.kubernetes.io/component: configuration
+data:
+  xapp-config.yaml: |
+    # Traffic Steering xApp Configuration
+    xapp:
+      name: "traffic-steering-xapp"
+      version: "1.3.0"
+      description: "Intelligent traffic steering and load balancing xApp"
+      
+    # A1 Consumer Configuration
+    a1_consumer:
+      consumer_id: "traffic-steering-xapp"
+      consumer_name: "Traffic Steering xApp"
+      callback_url: "http://traffic-steering-xapp.oran.svc.cluster.local:8081/a1-callbacks"
+      capabilities:
+        - "policy_notifications"
+        - "status_updates"
+        - "health_monitoring"
+      metadata:
+        version: "1.3.0"
+        description: "Advanced traffic steering with ML-based optimization"
+        supported_policy_types: [20008]  # Traffic steering policies
+        vendor: "O-RAN Alliance"
+        certification_level: "production"
+        additional_info:
+          deployment_id: "ts-xapp-prod-001"
+          cluster_id: "oran-cluster-east"
+          features:
+            - "dynamic_load_balancing"
+            - "predictive_failover"
+            - "ml_optimization"
+            - "real_time_analytics"
+          performance_metrics:
+            max_policies: 1000
+            avg_response_time_ms: 15
+            throughput_policies_per_sec: 100
+    
+    # RIC Platform Integration
+    ric_platform:
+      url: "http://ric-platform.oran.svc.cluster.local:8080"
+      timeout: "30s"
+      retry_attempts: 3
+      
+    # Traffic Steering Configuration
+    traffic_steering:
+      algorithms:
+        - name: "weighted_round_robin"
+          enabled: true
+          parameters:
+            min_weight: 1
+            max_weight: 100
+        - name: "least_connections"
+          enabled: true
+          parameters:
+            connection_threshold: 1000
+        - name: "performance_based"
+          enabled: true
+          parameters:
+            latency_weight: 0.4
+            throughput_weight: 0.3
+            loss_weight: 0.3
+      
+      health_monitoring:
+        check_interval_ms: 5000
+        failure_threshold: 3
+        recovery_threshold: 5
+        timeout_ms: 2000
+      
+      optimization:
+        enable_ml: true
+        model_update_interval: "1h"
+        learning_rate: 0.01
+        feature_windows:
+          - "5m"
+          - "15m"
+          - "1h"
+    
+    # Logging Configuration
+    logging:
+      level: "info"
+      format: "json"
+      fields:
+        - "timestamp"
+        - "level"
+        - "component"
+        - "message"
+        - "policy_id"
+        - "request_id"
+    
+    # Metrics Configuration
+    metrics:
+      enabled: true
+      port: 9090
+      path: "/metrics"
+      collection_interval: "30s"
+      custom_metrics:
+        - name: "traffic_steering_policies_active"
+          type: "gauge"
+          description: "Number of active traffic steering policies"
+        - name: "traffic_steering_decisions_total"
+          type: "counter"
+          description: "Total number of traffic steering decisions made"
+        - name: "traffic_steering_latency_seconds"
+          type: "histogram"
+          description: "Time taken to make traffic steering decisions"
+
+  registration-script.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # A1 Consumer Registration Script
+    A1_SERVICE_URL="${A1_SERVICE_URL:-https://a1-policy-service.nephoran-a1.svc.cluster.local}"
+    CONSUMER_ID="traffic-steering-xapp"
+    CALLBACK_URL="${CALLBACK_URL:-http://traffic-steering-xapp.oran.svc.cluster.local:8081/a1-callbacks}"
+    
+    # Wait for xApp to be ready
+    echo "Waiting for xApp to be ready..."
+    until curl -f -s "http://localhost:8080/ready" > /dev/null; do
+        echo "xApp not ready, waiting..."
+        sleep 5
+    done
+    
+    echo "Registering xApp with A1 Policy Service..."
+    
+    # Register as consumer
+    curl -X POST \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
+        -d "{
+            \"consumer_name\": \"Traffic Steering xApp\",
+            \"callback_url\": \"${CALLBACK_URL}\",
+            \"capabilities\": [\"policy_notifications\", \"status_updates\"],
+            \"metadata\": {
+                \"version\": \"1.3.0\",
+                \"description\": \"Advanced traffic steering with ML-based optimization\",
+                \"supported_types\": [20008],
+                \"additional_info\": {
+                    \"xapp_type\": \"traffic_steering\",
+                    \"deployment_id\": \"ts-xapp-prod-001\",
+                    \"features\": [\"dynamic_load_balancing\", \"predictive_failover\"]
+                }
+            }
+        }" \
+        "${A1_SERVICE_URL}/A1-C/v1/consumers/${CONSUMER_ID}"
+    
+    if [[ $? -eq 0 ]]; then
+        echo "Successfully registered with A1 Policy Service"
+    else
+        echo "Failed to register with A1 Policy Service"
+        exit 1
+    fi
+
+  callback-handler.py: |
+    #!/usr/bin/env python3
+    """
+    A1 Policy Notification Callback Handler for Traffic Steering xApp
+    """
+    
+    import json
+    import logging
+    import time
+    from datetime import datetime
+    from typing import Dict, Any
+    from flask import Flask, request, jsonify
+    import requests
+    
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger('traffic-steering-xapp')
+    
+    app = Flask(__name__)
+    
+    # Configuration
+    A1_SERVICE_URL = "https://a1-policy-service.nephoran-a1.svc.cluster.local"
+    RIC_PLATFORM_URL = "http://ric-platform.oran.svc.cluster.local:8080"
+    
+    # Active policies storage
+    active_policies = {}
+    
+    @app.route('/a1-callbacks', methods=['POST'])
+    def handle_policy_notification():
+        """Handle incoming policy notifications from A1 Policy Service"""
+        try:
+            notification = request.get_json()
+            
+            if not notification:
+                logger.error("Received empty notification")
+                return jsonify({"error": "Empty notification"}), 400
+            
+            logger.info(f"Received policy notification: {notification.get('notification_type')} "
+                       f"for policy {notification.get('policy_id')}")
+            
+            # Validate notification format
+            required_fields = ['notification_type', 'policy_id', 'policy_type_id', 'timestamp']
+            for field in required_fields:
+                if field not in notification:
+                    logger.error(f"Missing required field: {field}")
+                    return jsonify({"error": f"Missing field: {field}"}), 400
+            
+            # Check if we support this policy type
+            if notification['policy_type_id'] != 20008:
+                logger.warning(f"Unsupported policy type: {notification['policy_type_id']}")
+                return jsonify({"error": "Unsupported policy type"}), 400
+            
+            # Process the notification based on type
+            result = process_notification(notification)
+            
+            if result['success']:
+                return jsonify({
+                    "status": "acknowledged",
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "message": result['message']
+                }), 200
+            else:
+                return jsonify({
+                    "status": "error",
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                    "message": result['message']
+                }), 500
+                
+        except Exception as e:
+            logger.error(f"Error processing policy notification: {str(e)}")
+            return jsonify({"error": "Internal server error"}), 500
+    
+    def process_notification(notification: Dict[str, Any]) -> Dict[str, Any]:
+        """Process policy notification based on type"""
+        notification_type = notification['notification_type']
+        policy_id = notification['policy_id']
+        policy_type_id = notification['policy_type_id']
+        
+        try:
+            if notification_type == 'CREATE':
+                return handle_policy_create(policy_id, policy_type_id)
+            elif notification_type == 'UPDATE':
+                return handle_policy_update(policy_id, policy_type_id)
+            elif notification_type == 'DELETE':
+                return handle_policy_delete(policy_id, policy_type_id)
+            else:
+                return {
+                    "success": False,
+                    "message": f"Unknown notification type: {notification_type}"
+                }
+        except Exception as e:
+            logger.error(f"Error processing {notification_type} for policy {policy_id}: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Processing error: {str(e)}"
+            }
+    
+    def handle_policy_create(policy_id: str, policy_type_id: int) -> Dict[str, Any]:
+        """Handle policy creation"""
+        logger.info(f"Creating traffic steering policy: {policy_id}")
+        
+        # Fetch the full policy instance from A1 service
+        policy_instance = fetch_policy_instance(policy_type_id, policy_id)
+        if not policy_instance:
+            return {"success": False, "message": "Failed to fetch policy instance"}
+        
+        # Validate policy data
+        validation_result = validate_traffic_steering_policy(policy_instance)
+        if not validation_result['valid']:
+            return {"success": False, "message": f"Policy validation failed: {validation_result['error']}"}
+        
+        # Store the policy
+        active_policies[policy_id] = {
+            'policy_instance': policy_instance,
+            'created_at': datetime.utcnow().isoformat(),
+            'status': 'active'
+        }
+        
+        # Apply the policy to RIC platform
+        apply_result = apply_traffic_steering_policy(policy_instance)
+        if not apply_result['success']:
+            # Remove from active policies if application failed
+            del active_policies[policy_id]
+            return {"success": False, "message": f"Policy application failed: {apply_result['error']}"}
+        
+        # Report successful enforcement
+        report_policy_status(policy_id, policy_type_id, "ENFORCED", "Policy successfully applied and active")
+        
+        logger.info(f"Successfully created and applied policy: {policy_id}")
+        return {"success": True, "message": "Policy created and applied successfully"}
+    
+    def handle_policy_update(policy_id: str, policy_type_id: int) -> Dict[str, Any]:
+        """Handle policy update"""
+        logger.info(f"Updating traffic steering policy: {policy_id}")
+        
+        if policy_id not in active_policies:
+            logger.warning(f"Received update for unknown policy: {policy_id}")
+            # Treat as create
+            return handle_policy_create(policy_id, policy_type_id)
+        
+        # Fetch updated policy instance
+        policy_instance = fetch_policy_instance(policy_type_id, policy_id)
+        if not policy_instance:
+            return {"success": False, "message": "Failed to fetch updated policy instance"}
+        
+        # Validate updated policy
+        validation_result = validate_traffic_steering_policy(policy_instance)
+        if not validation_result['valid']:
+            return {"success": False, "message": f"Updated policy validation failed: {validation_result['error']}"}
+        
+        # Update stored policy
+        active_policies[policy_id]['policy_instance'] = policy_instance
+        active_policies[policy_id]['updated_at'] = datetime.utcnow().isoformat()
+        
+        # Apply updated policy
+        apply_result = apply_traffic_steering_policy(policy_instance)
+        if not apply_result['success']:
+            return {"success": False, "message": f"Policy update application failed: {apply_result['error']}"}
+        
+        # Report successful update
+        report_policy_status(policy_id, policy_type_id, "ENFORCED", "Policy successfully updated and applied")
+        
+        logger.info(f"Successfully updated policy: {policy_id}")
+        return {"success": True, "message": "Policy updated successfully"}
+    
+    def handle_policy_delete(policy_id: str, policy_type_id: int) -> Dict[str, Any]:
+        """Handle policy deletion"""
+        logger.info(f"Deleting traffic steering policy: {policy_id}")
+        
+        if policy_id not in active_policies:
+            logger.warning(f"Received delete for unknown policy: {policy_id}")
+            return {"success": True, "message": "Policy already deleted or not found"}
+        
+        # Remove policy from RIC platform
+        remove_result = remove_traffic_steering_policy(policy_id)
+        if not remove_result['success']:
+            logger.error(f"Failed to remove policy from RIC: {remove_result['error']}")
+            # Continue with deletion from local storage
+        
+        # Remove from active policies
+        del active_policies[policy_id]
+        
+        logger.info(f"Successfully deleted policy: {policy_id}")
+        return {"success": True, "message": "Policy deleted successfully"}
+    
+    def fetch_policy_instance(policy_type_id: int, policy_id: str) -> Dict[str, Any]:
+        """Fetch policy instance from A1 Policy Service"""
+        try:
+            url = f"{A1_SERVICE_URL}/A1-P/v2/policytypes/{policy_type_id}/policies/{policy_id}"
+            headers = {"Authorization": f"Bearer {get_service_token()}"}
+            
+            response = requests.get(url, headers=headers, timeout=10)
+            response.raise_for_status()
+            
+            return response.json()
+        except Exception as e:
+            logger.error(f"Failed to fetch policy instance {policy_id}: {str(e)}")
+            return None
+    
+    def validate_traffic_steering_policy(policy_instance: Dict[str, Any]) -> Dict[str, Any]:
+        """Validate traffic steering policy data"""
+        try:
+            policy_data = policy_instance.get('policy_data', {})
+            
+            # Check required sections
+            if 'scope' not in policy_data:
+                return {"valid": False, "error": "Missing scope section"}
+            
+            if 'qos_preference' not in policy_data:
+                return {"valid": False, "error": "Missing qos_preference section"}
+            
+            scope = policy_data['scope']
+            qos_pref = policy_data['qos_preference']
+            
+            # Validate scope
+            if 'cell_list' not in scope or not scope['cell_list']:
+                return {"valid": False, "error": "cell_list is required and cannot be empty"}
+            
+            # Validate load balancing
+            if 'load_balancing' not in qos_pref:
+                return {"valid": False, "error": "load_balancing is required"}
+            
+            load_balancing = qos_pref['load_balancing']
+            if 'targets' not in load_balancing:
+                return {"valid": False, "error": "load_balancing targets are required"}
+            
+            targets = load_balancing['targets']
+            if not targets or len(targets) < 2:
+                return {"valid": False, "error": "At least 2 load balancing targets are required"}
+            
+            # Validate weight sum
+            total_weight = sum(target.get('weight', 0) for target in targets)
+            if total_weight != 100:
+                return {"valid": False, "error": f"Target weights must sum to 100, got {total_weight}"}
+            
+            return {"valid": True}
+            
+        except Exception as e:
+            return {"valid": False, "error": f"Validation error: {str(e)}"}
+    
+    def apply_traffic_steering_policy(policy_instance: Dict[str, Any]) -> Dict[str, Any]:
+        """Apply traffic steering policy to RIC platform"""
+        try:
+            # Extract policy parameters
+            policy_data = policy_instance['policy_data']
+            scope = policy_data['scope']
+            qos_pref = policy_data['qos_preference']
+            load_balancing = qos_pref['load_balancing']
+            
+            # Create steering configuration
+            steering_config = {
+                'policy_id': policy_instance['policy_id'],
+                'algorithm': load_balancing.get('algorithm', 'weighted_round_robin'),
+                'targets': load_balancing['targets'],
+                'cell_list': scope['cell_list'],
+                'priority_level': qos_pref.get('priority_level', 5)
+            }
+            
+            # Send to RIC platform
+            url = f"{RIC_PLATFORM_URL}/traffic-steering/policies"
+            headers = {"Content-Type": "application/json"}
+            
+            response = requests.post(url, json=steering_config, headers=headers, timeout=30)
+            response.raise_for_status()
+            
+            logger.info(f"Successfully applied steering policy to RIC platform")
+            return {"success": True}
+            
+        except Exception as e:
+            logger.error(f"Failed to apply policy to RIC platform: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    def remove_traffic_steering_policy(policy_id: str) -> Dict[str, Any]:
+        """Remove traffic steering policy from RIC platform"""
+        try:
+            url = f"{RIC_PLATFORM_URL}/traffic-steering/policies/{policy_id}"
+            response = requests.delete(url, timeout=30)
+            response.raise_for_status()
+            
+            logger.info(f"Successfully removed steering policy from RIC platform")
+            return {"success": True}
+            
+        except Exception as e:
+            logger.error(f"Failed to remove policy from RIC platform: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    def report_policy_status(policy_id: str, policy_type_id: int, status: str, reason: str):
+        """Report policy status back to A1 Policy Service via RIC"""
+        try:
+            # This would typically go through the RIC platform
+            # For now, we'll log the status
+            logger.info(f"Policy {policy_id} status: {status} - {reason}")
+        except Exception as e:
+            logger.error(f"Failed to report policy status: {str(e)}")
+    
+    def get_service_token() -> str:
+        """Get service account token"""
+        try:
+            with open('/var/run/secrets/kubernetes.io/serviceaccount/token', 'r') as f:
+                return f.read().strip()
+        except Exception as e:
+            logger.error(f"Failed to read service token: {str(e)}")
+            return ""
+    
+    @app.route('/health', methods=['GET'])
+    def health_check():
+        """Health check endpoint"""
+        return jsonify({
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "active_policies": len(active_policies)
+        }), 200
+    
+    @app.route('/ready', methods=['GET'])
+    def readiness_check():
+        """Readiness check endpoint"""
+        return jsonify({
+            "status": "ready",
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }), 200
+    
+    @app.route('/policies', methods=['GET'])
+    def list_policies():
+        """List active policies"""
+        return jsonify({
+            "policies": list(active_policies.keys()),
+            "count": len(active_policies)
+        }), 200
+    
+    if __name__ == '__main__':
+        app.run(host='0.0.0.0', port=8081, debug=False)
+
+---
+# Init Container Job to register with A1 Service
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: traffic-steering-xapp-registration
+  namespace: oran
+  labels:
+    app.kubernetes.io/name: traffic-steering-xapp
+    app.kubernetes.io/component: registration
+spec:
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: traffic-steering-xapp
+        app.kubernetes.io/component: registration
+    spec:
+      serviceAccountName: traffic-steering-xapp
+      restartPolicy: OnFailure
+      containers:
+      - name: register
+        image: curlimages/curl:latest
+        env:
+        - name: A1_SERVICE_URL
+          value: "https://a1-policy-service.nephoran-a1.svc.cluster.local"
+        - name: CONSUMER_ID
+          value: "traffic-steering-xapp"
+        - name: CALLBACK_URL
+          value: "http://traffic-steering-xapp.oran.svc.cluster.local:8081/a1-callbacks"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          
+          # Wait for A1 service to be ready
+          echo "Waiting for A1 Policy Service..."
+          until curl -k -f "${A1_SERVICE_URL}/health" > /dev/null 2>&1; do
+            echo "A1 service not ready, waiting..."
+            sleep 5
+          done
+          
+          # Wait for xApp to be ready
+          echo "Waiting for Traffic Steering xApp..."
+          until curl -f "${CALLBACK_URL%/a1-callbacks}/ready" > /dev/null 2>&1; do
+            echo "xApp not ready, waiting..."
+            sleep 5
+          done
+          
+          echo "Registering Traffic Steering xApp with A1 Policy Service..."
+          
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" \
+            -d '{
+              "consumer_name": "Traffic Steering xApp",
+              "callback_url": "'"${CALLBACK_URL}"'",
+              "capabilities": ["policy_notifications", "status_updates"],
+              "metadata": {
+                "version": "1.3.0",
+                "description": "Advanced traffic steering with ML-based optimization",
+                "supported_types": [20008],
+                "additional_info": {
+                  "xapp_type": "traffic_steering",
+                  "deployment_id": "ts-xapp-prod-001",
+                  "features": ["dynamic_load_balancing", "predictive_failover"]
+                }
+              }
+            }' \
+            "${A1_SERVICE_URL}/A1-C/v1/consumers/${CONSUMER_ID}"
+          
+          echo "Registration completed successfully"

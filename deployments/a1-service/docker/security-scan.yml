@@ -1,0 +1,371 @@
+# Security Scanning Configuration for A1 Policy Management Service
+# Docker Compose configuration for comprehensive security scanning
+
+version: '3.8'
+
+services:
+  # Trivy Security Scanner
+  trivy-scanner:
+    build:
+      context: ../../../
+      dockerfile: deployments/a1-service/docker/Dockerfile
+      target: security-scanner
+    container_name: a1-trivy-scanner
+    hostname: trivy-scanner
+    volumes:
+      - ../../../:/scan:ro
+      - ./security-results:/results
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - security-network
+    environment:
+      - TRIVY_DB_REPOSITORY=ghcr.io/aquasecurity/trivy-db
+      - TRIVY_JAVA_DB_REPOSITORY=ghcr.io/aquasecurity/trivy-java-db
+      - TRIVY_CACHE_DIR=/tmp/trivy
+    command: >
+      sh -c "
+        echo 'Starting comprehensive security scan...' &&
+        trivy filesystem --security-checks vuln,config,secret --format json --output /results/filesystem-scan.json /scan &&
+        trivy image --format json --output /results/image-scan.json ghcr.io/nephoran/a1-policy-service:latest &&
+        trivy config --format json --output /results/config-scan.json /scan &&
+        echo 'Security scan completed. Results in /results/'
+      "
+    labels:
+      - "com.security.scanner=trivy"
+      - "com.security.target=filesystem,image,config"
+
+  # Grype Vulnerability Scanner
+  grype-scanner:
+    image: anchore/grype:latest
+    container_name: a1-grype-scanner
+    hostname: grype-scanner
+    volumes:
+      - ../../../:/scan:ro
+      - ./security-results:/results
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - security-network
+    command: >
+      sh -c "
+        echo 'Starting Grype vulnerability scan...' &&
+        grype dir:/scan -o json --file /results/grype-filesystem.json &&
+        grype ghcr.io/nephoran/a1-policy-service:latest -o json --file /results/grype-image.json &&
+        echo 'Grype scan completed.'
+      "
+    labels:
+      - "com.security.scanner=grype"
+      - "com.security.target=vulnerability"
+
+  # Syft SBOM Generator
+  syft-sbom:
+    image: anchore/syft:latest
+    container_name: a1-syft-sbom
+    hostname: syft-sbom
+    volumes:
+      - ../../../:/scan:ro
+      - ./security-results:/results
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - security-network
+    command: >
+      sh -c "
+        echo 'Generating Software Bill of Materials (SBOM)...' &&
+        syft packages dir:/scan -o json --file /results/sbom-filesystem.json &&
+        syft packages ghcr.io/nephoran/a1-policy-service:latest -o json --file /results/sbom-image.json &&
+        syft packages ghcr.io/nephoran/a1-policy-service:latest -o spdx-json --file /results/sbom-spdx.json &&
+        echo 'SBOM generation completed.'
+      "
+    labels:
+      - "com.security.scanner=syft"
+      - "com.security.target=sbom"
+
+  # Docker Bench Security
+  docker-bench-security:
+    image: docker/docker-bench-security:latest
+    container_name: a1-docker-bench
+    hostname: docker-bench
+    volumes:
+      - /var/lib:/var/lib:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /usr/lib/systemd:/usr/lib/systemd:ro
+      - /etc:/etc:ro
+      - ./security-results:/results
+    networks:
+      - security-network
+    command: >
+      sh -c "
+        echo 'Running Docker Bench Security...' &&
+        docker-bench-security.sh -l /results/docker-bench.log &&
+        echo 'Docker Bench Security completed.'
+      "
+    privileged: true
+    labels:
+      - "com.security.scanner=docker-bench"
+      - "com.security.target=docker-configuration"
+
+  # Gosec Go Security Analyzer
+  gosec-analyzer:
+    build:
+      context: ../../../
+      dockerfile: deployments/a1-service/docker/Dockerfile
+      target: ci
+    container_name: a1-gosec-analyzer
+    hostname: gosec-analyzer
+    volumes:
+      - ../../../:/workspace:ro
+      - ./security-results:/results
+    working_dir: /workspace
+    networks:
+      - security-network
+    command: >
+      sh -c "
+        echo 'Running Gosec security analysis...' &&
+        gosec -fmt json -out /results/gosec-results.json -stdout ./... &&
+        echo 'Gosec analysis completed.'
+      "
+    labels:
+      - "com.security.scanner=gosec"
+      - "com.security.target=go-code"
+
+  # Hadolint Dockerfile Linter
+  hadolint:
+    image: hadolint/hadolint:latest
+    container_name: a1-hadolint
+    hostname: hadolint
+    volumes:
+      - ../../../:/scan:ro
+      - ./security-results:/results
+    networks:
+      - security-network
+    command: >
+      sh -c "
+        echo 'Running Hadolint Dockerfile analysis...' &&
+        hadolint --format json /scan/deployments/a1-service/docker/Dockerfile > /results/hadolint-results.json &&
+        echo 'Hadolint analysis completed.'
+      "
+    labels:
+      - "com.security.scanner=hadolint"
+      - "com.security.target=dockerfile"
+
+  # Checkov Infrastructure Security Scanner
+  checkov:
+    image: bridgecrew/checkov:latest
+    container_name: a1-checkov
+    hostname: checkov
+    volumes:
+      - ../../../:/scan:ro
+      - ./security-results:/results
+    networks:
+      - security-network
+    command: >
+      sh -c "
+        echo 'Running Checkov infrastructure security scan...' &&
+        checkov --directory /scan --output json --output-file /results/checkov-results.json --framework dockerfile,kubernetes,docker_image &&
+        echo 'Checkov scan completed.'
+      "
+    labels:
+      - "com.security.scanner=checkov"
+      - "com.security.target=infrastructure"
+
+  # Dockle Container Image Linter
+  dockle:
+    image: goodwithtech/dockle:latest
+    container_name: a1-dockle
+    hostname: dockle
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./security-results:/results
+    networks:
+      - security-network
+    command: >
+      sh -c "
+        echo 'Running Dockle container security analysis...' &&
+        dockle --format json --output /results/dockle-results.json ghcr.io/nephoran/a1-policy-service:latest &&
+        echo 'Dockle analysis completed.'
+      "
+    labels:
+      - "com.security.scanner=dockle"
+      - "com.security.target=container-image"
+
+  # Snyk Security Scanner
+  snyk-scanner:
+    image: snyk/snyk:golang
+    container_name: a1-snyk-scanner
+    hostname: snyk-scanner
+    volumes:
+      - ../../../:/project:ro
+      - ./security-results:/results
+      - ~/.snyk:/home/snyk/.snyk:ro
+    working_dir: /project
+    networks:
+      - security-network
+    environment:
+      - SNYK_TOKEN=${SNYK_TOKEN:-}
+    command: >
+      sh -c "
+        if [ -n '$SNYK_TOKEN' ]; then
+          echo 'Running Snyk security analysis...' &&
+          snyk test --json > /results/snyk-vulnerabilities.json &&
+          snyk code test --json > /results/snyk-code-analysis.json &&
+          snyk container test ghcr.io/nephoran/a1-policy-service:latest --json > /results/snyk-container.json &&
+          echo 'Snyk analysis completed.'
+        else
+          echo 'SNYK_TOKEN not provided, skipping Snyk scan.'
+        fi
+      "
+    labels:
+      - "com.security.scanner=snyk"
+      - "com.security.target=vulnerabilities,code,container"
+
+  # Security Report Aggregator
+  security-reporter:
+    image: alpine:3.18
+    container_name: a1-security-reporter
+    hostname: security-reporter
+    volumes:
+      - ./security-results:/results
+      - ./scripts:/scripts:ro
+    networks:
+      - security-network
+    depends_on:
+      - trivy-scanner
+      - grype-scanner
+      - syft-sbom
+      - gosec-analyzer
+      - hadolint
+      - checkov
+      - dockle
+    command: >
+      sh -c "
+        apk add --no-cache jq python3 py3-pip &&
+        pip3 install --no-cache-dir pyyaml requests &&
+        echo 'Generating consolidated security report...' &&
+        python3 /scripts/generate-security-report.py /results &&
+        echo 'Security report generated: /results/security-summary.json'
+      "
+    labels:
+      - "com.security.service=reporter"
+
+  # Vulnerability Database Update
+  vuln-db-updater:
+    image: aquasec/trivy:latest
+    container_name: a1-vuln-db-updater
+    hostname: vuln-db-updater
+    volumes:
+      - trivy-cache:/tmp/trivy
+    networks:
+      - security-network
+    command: >
+      sh -c "
+        echo 'Updating vulnerability databases...' &&
+        trivy --cache-dir /tmp/trivy image --download-db-only &&
+        trivy --cache-dir /tmp/trivy image --download-java-db-only &&
+        echo 'Vulnerability databases updated.'
+      "
+    labels:
+      - "com.security.service=vulnerability-db"
+
+  # OWASP ZAP Dynamic Security Testing
+  zap-baseline:
+    image: owasp/zap2docker-stable:latest
+    container_name: a1-zap-baseline
+    hostname: zap-baseline
+    volumes:
+      - ./security-results:/zap/wrk:rw
+      - ./zap-config:/zap/config:ro
+    networks:
+      - security-network
+      - a1-network
+    depends_on:
+      - a1-policy-service
+    command: >
+      zap-baseline.py 
+        -t http://a1-policy-service:8080 
+        -g gen.conf 
+        -J zap-baseline-report.json 
+        -r zap-baseline-report.html
+    labels:
+      - "com.security.scanner=zap"
+      - "com.security.target=dynamic-analysis"
+
+# Security Testing Service (for API security testing)
+  api-security-tester:
+    build:
+      context: ../../../
+      dockerfile: deployments/a1-service/docker/Dockerfile
+      target: testing
+    container_name: a1-api-security-tester
+    hostname: api-security-tester
+    volumes:
+      - ./security-tests:/tests:ro
+      - ./security-results:/results
+    networks:
+      - security-network
+      - a1-network
+    depends_on:
+      - a1-policy-service
+    environment:
+      - A1_SERVICE_URL=http://a1-policy-service:8080
+      - TEST_RESULTS_PATH=/results
+    command: >
+      sh -c "
+        echo 'Running API security tests...' &&
+        go test -v -tags security ./tests/security/... -test.outputdir=/results &&
+        echo 'API security tests completed.'
+      "
+    labels:
+      - "com.security.tester=api"
+
+networks:
+  security-network:
+    name: a1-security-network
+    driver: bridge
+    internal: true
+    labels:
+      - "com.security.network=isolated"
+
+  # Connect to existing A1 network for dynamic testing
+  a1-network:
+    external: true
+
+volumes:
+  trivy-cache:
+    name: a1-trivy-cache
+    driver: local
+    labels:
+      - "com.security.volume=trivy-cache"
+
+# Security scan profiles
+profiles:
+  security:
+    services:
+      - trivy-scanner
+      - grype-scanner
+      - syft-sbom
+      - gosec-analyzer
+      - hadolint
+      - checkov
+      - dockle
+      - security-reporter
+  
+  dynamic-security:
+    services:
+      - zap-baseline
+      - api-security-tester
+  
+  compliance:
+    services:
+      - docker-bench-security
+      - checkov
+  
+  vulnerability-scan:
+    services:
+      - trivy-scanner
+      - grype-scanner
+      - snyk-scanner
+
+# Environment variables for security scanning
+x-security-environment: &security-environment
+  SECURITY_SCAN: "true"
+  SCAN_TIMESTAMP: "${SCAN_TIMESTAMP:-$(date -u +%Y%m%d_%H%M%S)}"
+  SCAN_VERSION: "1.0.0"

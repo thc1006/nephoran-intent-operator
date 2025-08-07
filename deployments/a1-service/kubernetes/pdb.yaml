@@ -1,0 +1,223 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: a1-policy-service-pdb
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kubernetes
+  annotations:
+    # PDB configuration
+    pdb.nephoran.io/min-available-percentage: "60"
+    pdb.nephoran.io/max-unavailable-percentage: "40"
+    pdb.nephoran.io/critical-service: "true"
+spec:
+  # Ensure at least 60% of pods remain available during disruptions
+  minAvailable: 60%
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: a1-policy-service
+      app.kubernetes.io/instance: a1-policy-service
+  # Unhealthy pod eviction policy
+  unhealthyPodEvictionPolicy: IfHealthyBudget
+
+---
+# PDB for high-availability scenarios (alternative configuration)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: a1-policy-service-pdb-ha
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service-ha
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    pdb-type: high-availability
+  annotations:
+    # HA configuration - more restrictive
+    pdb.nephoran.io/min-available: "2"
+    pdb.nephoran.io/critical-service: "true"
+    pdb.nephoran.io/service-level: "critical"
+spec:
+  # Always keep at least 2 pods available for critical operations
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: a1-policy-service
+      app.kubernetes.io/instance: a1-policy-service
+  unhealthyPodEvictionPolicy: AlwaysAllow
+
+---
+# PDB for development/testing (more lenient)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: a1-policy-service-pdb-dev
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service-dev
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    environment: development
+  annotations:
+    # Development configuration - more lenient
+    pdb.nephoran.io/max-unavailable: "2"
+    pdb.nephoran.io/service-level: "development"
+    nephoran.io/environment: "development"
+    nephoran.io/warning: "Development PDB - not for production use"
+spec:
+  # Allow up to 2 pods to be unavailable in development
+  maxUnavailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: a1-policy-service
+      app.kubernetes.io/instance: a1-policy-service
+      environment: development
+  unhealthyPodEvictionPolicy: AlwaysAllow
+
+---
+# Network Policy for pod-to-pod communication during disruptions
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: a1-policy-service-pdb-support
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/component: network-policy
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    policy-type: pdb-support
+  annotations:
+    # Network policy to support PDB operations
+    networkpolicy.nephoran.io/purpose: "support-pod-disruption-budget"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: a1-policy-service
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow health checks from Kubernetes control plane
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow communication between A1 service pods during shutdown
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: a1-policy-service
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # Allow communication to other A1 service pods
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: a1-policy-service
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Allow database access during shutdown
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: postgresql
+    ports:
+    - protocol: TCP
+      port: 5432
+
+---
+# Custom resource for PDB monitoring
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: a1-policy-service-pdb-monitor
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/component: pdb-monitoring
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  pdb-monitor.yaml: |
+    # PDB monitoring configuration
+    monitor:
+      enabled: true
+      interval: "30s"
+      metrics:
+        - name: "pdb_disruptions_allowed"
+          description: "Number of pod disruptions currently allowed"
+          type: "gauge"
+        - name: "pdb_pods_healthy"
+          description: "Number of healthy pods protected by PDB"
+          type: "gauge"
+        - name: "pdb_pods_desired"
+          description: "Desired number of pods according to PDB"
+          type: "gauge"
+        - name: "pdb_violations_total"
+          description: "Total number of PDB violations"
+          type: "counter"
+      alerts:
+        - name: "PDBViolation"
+          condition: "pdb_disruptions_allowed == 0"
+          severity: "critical"
+          message: "A1 Policy Service PDB is preventing necessary disruptions"
+        - name: "PDBUnhealthy"
+          condition: "pdb_pods_healthy < pdb_pods_desired * 0.6"
+          severity: "warning" 
+          message: "A1 Policy Service has insufficient healthy pods"
+      
+  pdb-alerts.yaml: |
+    groups:
+    - name: a1-policy-service-pdb
+      rules:
+      - alert: A1PolicyServicePDBViolation
+        expr: kube_poddisruptionbudget_status_desired_healthy{poddisruptionbudget="a1-policy-service-pdb"} > kube_poddisruptionbudget_status_current_healthy{poddisruptionbudget="a1-policy-service-pdb"}
+        for: 5m
+        labels:
+          severity: critical
+          service: a1-policy-service
+          component: pdb
+        annotations:
+          summary: "A1 Policy Service PDB violation detected"
+          description: "PDB for A1 Policy Service has {{ $value }} unhealthy pods, which is below the required threshold"
+          runbook_url: "https://docs.nephoran.io/runbooks/a1-policy-service-pdb-violation"
+      
+      - alert: A1PolicyServicePDBAtRisk
+        expr: kube_poddisruptionbudget_status_current_healthy{poddisruptionbudget="a1-policy-service-pdb"} <= kube_poddisruptionbudget_status_disruptions_allowed{poddisruptionbudget="a1-policy-service-pdb"} + 1
+        for: 2m
+        labels:
+          severity: warning
+          service: a1-policy-service
+          component: pdb
+        annotations:
+          summary: "A1 Policy Service PDB at risk"
+          description: "A1 Policy Service has {{ $value }} healthy pods, which is close to the PDB minimum"
+          runbook_url: "https://docs.nephoran.io/runbooks/a1-policy-service-pdb-at-risk"
+      
+      - alert: A1PolicyServicePDBDisabled
+        expr: kube_poddisruptionbudget_created{poddisruptionbudget="a1-policy-service-pdb"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: a1-policy-service
+          component: pdb
+        annotations:
+          summary: "A1 Policy Service PDB is missing"
+          description: "PodDisruptionBudget for A1 Policy Service is not present or not created"
+          runbook_url: "https://docs.nephoran.io/runbooks/a1-policy-service-pdb-missing"

@@ -1,0 +1,358 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: a1-policy-service
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    # Ingress class
+    kubernetes.io/ingress.class: nginx
+    
+    # SSL/TLS configuration
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/ssl-protocols: "TLSv1.2 TLSv1.3"
+    nginx.ingress.kubernetes.io/ssl-ciphers: "ECDHE-ECDSA-AES128-GCM-SHA256,ECDHE-RSA-AES128-GCM-SHA256,ECDHE-ECDSA-AES256-GCM-SHA384,ECDHE-RSA-AES256-GCM-SHA384"
+    nginx.ingress.kubernetes.io/ssl-prefer-server-ciphers: "true"
+    
+    # Backend protocol
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/upstream-vhost: "a1-policy-service.nephoran-a1.svc.cluster.local"
+    
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-Frame-Options "DENY" always;
+      add_header X-XSS-Protection "1; mode=block" always;
+      add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+      add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';" always;
+      add_header Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()" always;
+    
+    # Rate limiting
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/rate-limit-connections: "10"
+    
+    # Request size limits
+    nginx.ingress.kubernetes.io/proxy-body-size: "1m"
+    nginx.ingress.kubernetes.io/client-max-body-size: "1m"
+    
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    
+    # Authentication
+    nginx.ingress.kubernetes.io/auth-url: "https://oauth2-proxy.nephoran-system.svc.cluster.local/oauth2/auth"
+    nginx.ingress.kubernetes.io/auth-signin: "https://oauth2-proxy.nephoran.io/oauth2/start?rd=$escaped_request_uri"
+    nginx.ingress.kubernetes.io/auth-response-headers: "X-Auth-Request-User,X-Auth-Request-Email,X-Auth-Request-Access-Token"
+    
+    # CORS configuration
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "https://*.nephoran.io,https://localhost:3000"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization,X-Request-ID,X-Correlation-ID"
+    nginx.ingress.kubernetes.io/cors-expose-headers: "Content-Length,Content-Range,X-Request-ID,Location"
+    nginx.ingress.kubernetes.io/cors-max-age: "86400"
+    nginx.ingress.kubernetes.io/cors-allow-credentials: "true"
+    
+    # Load balancing
+    nginx.ingress.kubernetes.io/load-balance: "ewma"
+    nginx.ingress.kubernetes.io/upstream-hash-by: "$remote_addr"
+    
+    # Health checks
+    nginx.ingress.kubernetes.io/health-check-path: "/health"
+    nginx.ingress.kubernetes.io/health-check-interval: "30s"
+    nginx.ingress.kubernetes.io/health-check-timeout: "5s"
+    
+    # Monitoring
+    nginx.ingress.kubernetes.io/enable-access-log: "true"
+    nginx.ingress.kubernetes.io/enable-rewrite-log: "true"
+    
+    # External DNS
+    external-dns.alpha.kubernetes.io/hostname: "a1-api.nephoran.io"
+    external-dns.alpha.kubernetes.io/ttl: "300"
+    
+    # Cert-manager
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    cert-manager.io/acme-challenge-type: "http01"
+
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - a1-api.nephoran.io
+    - a1.nephoran.io
+    secretName: a1-policy-service-tls-ingress
+  rules:
+  - host: a1-api.nephoran.io
+    http:
+      paths:
+      # A1-P Policy Interface (v2)
+      - path: /A1-P/v2
+        pathType: Prefix
+        backend:
+          service:
+            name: a1-policy-service
+            port:
+              number: 443
+      # A1-C Consumer Interface (v1)
+      - path: /A1-C/v1
+        pathType: Prefix
+        backend:
+          service:
+            name: a1-policy-service
+            port:
+              number: 443
+      # A1-EI Enrichment Information Interface (v1)
+      - path: /A1-EI/v1
+        pathType: Prefix
+        backend:
+          service:
+            name: a1-policy-service
+            port:
+              number: 443
+      # Health and metrics endpoints
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: a1-policy-service
+            port:
+              number: 443
+      - path: /ready
+        pathType: Exact
+        backend:
+          service:
+            name: a1-policy-service
+            port:
+              number: 443
+      - path: /metrics
+        pathType: Exact
+        backend:
+          service:
+            name: a1-policy-service
+            port:
+              number: 9090
+  - host: a1.nephoran.io
+    http:
+      paths:
+      # Default catch-all for legacy clients
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: a1-policy-service
+            port:
+              number: 443
+
+---
+# Internal ingress for Near-RT RIC communication (no authentication)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: a1-policy-service-internal
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    ingress-type: internal
+  annotations:
+    # Internal ingress class
+    kubernetes.io/ingress.class: nginx-internal
+    
+    # No authentication for internal services
+    nginx.ingress.kubernetes.io/auth-url: ""
+    nginx.ingress.kubernetes.io/auth-signin: ""
+    
+    # Backend protocol
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    
+    # Security headers (reduced for internal use)
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Content-Type-Options "nosniff" always;
+      add_header X-Frame-Options "SAMEORIGIN" always;
+    
+    # Higher rate limits for internal services
+    nginx.ingress.kubernetes.io/rate-limit: "5000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/rate-limit-connections: "50"
+    
+    # Optimized for internal communication
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/client-max-body-size: "10m"
+    
+    # Internal DNS
+    nginx.ingress.kubernetes.io/server-alias: "a1-internal.cluster.local"
+
+spec:
+  ingressClassName: nginx-internal
+  tls:
+  - hosts:
+    - a1-internal.nephoran-a1.svc.cluster.local
+    secretName: a1-policy-service-tls-internal
+  rules:
+  - host: a1-internal.nephoran-a1.svc.cluster.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: a1-policy-service
+            port:
+              number: 443
+
+---
+# Development/testing ingress (with relaxed security)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: a1-policy-service-dev
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service-dev
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    environment: development
+  annotations:
+    # Development ingress class
+    kubernetes.io/ingress.class: nginx
+    
+    # Relaxed authentication for development
+    nginx.ingress.kubernetes.io/auth-url: ""
+    nginx.ingress.kubernetes.io/auth-signin: ""
+    
+    # Allow HTTP for development
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+    
+    # Backend protocol
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    
+    # Relaxed CORS for development
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "*"
+    
+    # Higher rate limits for testing
+    nginx.ingress.kubernetes.io/rate-limit: "10000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    
+    # Development warning
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header X-Development-Warning "This is a development environment - not for production use" always;
+    
+    # This ingress is for development only
+    nephoran.io/environment: "development"
+    nephoran.io/warning: "Not for production use"
+
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: a1-dev.nephoran.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: a1-policy-service
+            port:
+              number: 80
+
+---
+# Istio Gateway for service mesh ingress
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: a1-policy-service-gateway
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: a1-policy-service-tls-istio
+    hosts:
+    - a1-mesh.nephoran.io
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - a1-mesh.nephoran.io
+    tls:
+      httpsRedirect: true
+
+---
+# Istio VirtualService for routing
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: a1-policy-service
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  hosts:
+  - a1-mesh.nephoran.io
+  gateways:
+  - a1-policy-service-gateway
+  http:
+  - match:
+    - uri:
+        prefix: "/A1-P/v2"
+  - match:
+    - uri:
+        prefix: "/A1-C/v1"
+  - match:
+    - uri:
+        prefix: "/A1-EI/v1"
+  - match:
+    - uri:
+        exact: "/health"
+  - match:
+    - uri:
+        exact: "/ready"
+  - match:
+    - uri:
+        exact: "/metrics"
+    route:
+    - destination:
+        host: a1-policy-service
+        port:
+          number: 443
+      weight: 100
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: gateway-error,connect-failure,refused-stream

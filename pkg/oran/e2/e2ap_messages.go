@@ -178,7 +178,8 @@ type RICIndication struct {
 // GlobalE2NodeID represents the global E2 node identifier
 type GlobalE2NodeID struct {
 	PLMNIdentity   PLMNIdentity   `json:"plmn_identity"`
-	E2NodeID       E2NodeID       `json:"e2_node_id"`
+	NodeType       E2NodeType     `json:"node_type"`
+	NodeID         string         `json:"node_id"`
 }
 
 // GlobalRICID represents the global RIC identifier
@@ -232,10 +233,8 @@ type NgENBID struct {
 	LongMacro    *string `json:"long_macro,omitempty"`       // 21-bit string
 }
 
-// RICID represents RIC identifier
-type RICID struct {
-	RICID string `json:"ric_id"` // 20-bit string
-}
+// RICID represents RIC identifier (20-bit)
+type RICID int
 
 // RICRequestID represents RIC request identifier
 type RICRequestID struct {

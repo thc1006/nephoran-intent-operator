@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-a1
+  labels:
+    name: nephoran-a1
+    app.kubernetes.io/name: nephoran-a1-system
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kubernetes
+    security.openshift.io/scc.podSecurityLabelSync: false
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    openshift.io/sa.scc.supplemental-groups: "1000/10000"
+    openshift.io/sa.scc.uid-range: "1000/10000"
+---
+# Network Policy for namespace isolation
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-a1-default-deny
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: nephoran-a1-network-policy
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# Allow ingress from prometheus monitoring
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-a1-allow-monitoring
+  namespace: nephoran-a1
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: a1-policy-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    - namespaceSelector:
+        matchLabels:
+          name: prometheus-system
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+---
+# Allow ingress from nephoran services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-a1-allow-nephoran-services
+  namespace: nephoran-a1
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: a1-policy-service
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-system
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: llm-processor
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: oran-adaptor
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+# Allow egress to database and cache
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-a1-allow-database-egress
+  namespace: nephoran-a1
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: a1-policy-service
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: postgresql
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: redis
+    ports:
+    - protocol: TCP
+      port: 5432
+    - protocol: TCP
+      port: 6379
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow HTTPS for OAuth2 and external APIs
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 80

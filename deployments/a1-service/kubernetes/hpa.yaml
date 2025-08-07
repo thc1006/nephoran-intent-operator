@@ -1,0 +1,339 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: a1-policy-service-hpa
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kubernetes
+  annotations:
+    # HPA configuration annotations
+    autoscaling.alpha.kubernetes.io/behavior: |
+      scaleUp:
+        stabilizationWindowSeconds: 60
+        policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+        selectPolicy: Max
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 180
+        selectPolicy: Min
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: a1-policy-service
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+  # CPU utilization
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  # Memory utilization  
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Custom metrics for A1 policy operations
+  - type: Pods
+    pods:
+      metric:
+        name: a1_policy_operations_per_second
+      target:
+        type: AverageValue
+        averageValue: "50"
+  # Request rate based scaling
+  - type: Object
+    object:
+      metric:
+        name: nginx_ingress_controller_requests_rate
+        selector:
+          matchLabels:
+            ingress: a1-policy-service
+      target:
+        type: Value
+        value: "1000"
+  # Queue depth for policy processing
+  - type: Pods
+    pods:
+      metric:
+        name: a1_policy_queue_depth
+      target:
+        type: AverageValue
+        averageValue: "10"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      - type: Pods
+        value: 1
+        periodSeconds: 180
+      selectPolicy: Min
+
+---
+# Vertical Pod Autoscaler for resource optimization
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: a1-policy-service-vpa
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: a1-policy-service
+  updatePolicy:
+    updateMode: "Off"  # Set to "Auto" for automatic updates
+  resourcePolicy:
+    containerPolicies:
+    - containerName: a1-policy-service
+      minAllowed:
+        memory: "256Mi"
+        cpu: "100m"
+      maxAllowed:
+        memory: "2Gi"
+        cpu: "2000m"
+      controlledResources:
+      - cpu
+      - memory
+      controlledValues: RequestsAndLimits
+    - containerName: health-monitor
+      minAllowed:
+        memory: "16Mi"
+        cpu: "10m"
+      maxAllowed:
+        memory: "64Mi"
+        cpu: "100m"
+      controlledResources:
+      - cpu
+      - memory
+
+---
+# KEDA ScaledObject for advanced autoscaling
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: a1-policy-service-keda
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  scaleTargetRef:
+    name: a1-policy-service
+  pollingInterval: 30
+  cooldownPeriod: 300
+  idleReplicaCount: 3
+  minReplicaCount: 3
+  maxReplicaCount: 50
+  fallback:
+    failureThreshold: 3
+    replicas: 5
+  advanced:
+    restoreToOriginalReplicaCount: true
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 60
+          policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+          - type: Pods
+            value: 5
+            periodSeconds: 60
+        scaleDown:
+          stabilizationWindowSeconds: 300
+          policies:
+          - type: Percent
+            value: 25
+            periodSeconds: 60
+          - type: Pods
+            value: 2
+            periodSeconds: 180
+  triggers:
+  # Prometheus metrics-based scaling
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus.monitoring.svc.cluster.local:9090
+      metricName: a1_policy_requests_per_second
+      threshold: '100'
+      query: sum(rate(nephoran_a1_requests_total{service="a1-policy-service"}[2m]))
+  
+  # PostgreSQL connection count
+  - type: postgresql
+    metadata:
+      connection: postgresql://a1_service:password@postgresql.nephoran-a1.svc.cluster.local:5432/a1_policies
+      query: "SELECT COUNT(*) FROM pg_stat_activity WHERE datname='a1_policies'"
+      targetQueryValue: "80"
+    authenticationRef:
+      name: a1-policy-service-db
+      key: A1_DB_URL
+  
+  # Redis queue depth
+  - type: redis
+    metadata:
+      address: redis.nephoran-a1.svc.cluster.local:6379
+      listName: "a1_policy_queue"
+      listLength: "20"
+    authenticationRef:
+      name: a1-policy-service-secrets
+      key: A1_REDIS_URL
+  
+  # HTTP request queue
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus.monitoring.svc.cluster.local:9090
+      metricName: a1_http_request_queue_depth
+      threshold: '50'
+      query: sum(nginx_ingress_controller_request_queue_depth{ingress="a1-policy-service"})
+  
+  # Memory pressure
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus.monitoring.svc.cluster.local:9090
+      metricName: a1_memory_utilization_percent
+      threshold: '75'
+      query: sum(container_memory_usage_bytes{pod=~"a1-policy-service-.*"}) / sum(container_spec_memory_limit_bytes{pod=~"a1-policy-service-.*"}) * 100
+
+---
+# ScaledObject for consumer notification processing
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: a1-consumer-notification-scaler
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: notification-processing
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  scaleTargetRef:
+    name: a1-policy-service
+  pollingInterval: 15
+  cooldownPeriod: 180
+  idleReplicaCount: 1
+  minReplicaCount: 2
+  maxReplicaCount: 15
+  triggers:
+  # Notification queue depth
+  - type: redis
+    metadata:
+      address: redis.nephoran-a1.svc.cluster.local:6379
+      listName: "a1_notification_queue"
+      listLength: "10"
+      enableTLS: "false"
+    authenticationRef:
+      name: a1-policy-service-secrets
+      key: A1_REDIS_URL
+  
+  # Failed notification retry queue
+  - type: redis
+    metadata:
+      address: redis.nephoran-a1.svc.cluster.local:6379
+      listName: "a1_notification_retry_queue"
+      listLength: "5"
+      enableTLS: "false"
+    authenticationRef:
+      name: a1-policy-service-secrets
+      key: A1_REDIS_URL
+
+---
+# Custom metrics for policy processing
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: a1-policy-service-custom-metrics
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/component: custom-metrics
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  policy-operations-per-second.yaml: |
+    rules:
+    - seriesQuery: 'nephoran_a1_requests_total{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^nephoran_a1_requests_total"
+        as: "a1_policy_operations_per_second"
+      metricsQuery: 'sum(rate(<<.Series>>{<<.LabelMatchers>>}[2m])) by (<<.GroupBy>>)'
+  
+  policy-queue-depth.yaml: |
+    rules:
+    - seriesQuery: 'nephoran_a1_policy_queue_depth{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^nephoran_a1_policy_queue_depth"
+        as: "a1_policy_queue_depth"
+      metricsQuery: 'sum(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'
+  
+  consumer-callback-latency.yaml: |
+    rules:
+    - seriesQuery: 'nephoran_a1_consumer_callback_duration_seconds{namespace!="",pod!=""}'
+      resources:
+        overrides:
+          namespace:
+            resource: namespace
+          pod:
+            resource: pod
+      name:
+        matches: "^nephoran_a1_consumer_callback_duration_seconds"
+        as: "a1_consumer_callback_latency"
+      metricsQuery: 'avg(<<.Series>>{<<.LabelMatchers>>}) by (<<.GroupBy>>)'

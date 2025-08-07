@@ -1,0 +1,493 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: a1-policy-service-config
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kubernetes
+data:
+  # Server configuration
+  A1_PORT: "8080"
+  A1_HOST: "0.0.0.0"
+  A1_LOG_LEVEL: "info"
+  A1_LOG_FORMAT: "json"
+  
+  # Interface enablement
+  A1_ENABLE_A1P: "true"
+  A1_ENABLE_A1C: "true" 
+  A1_ENABLE_A1EI: "true"
+  
+  # TLS configuration
+  A1_TLS_ENABLED: "true"
+  A1_CERT_FILE: "/etc/certs/tls.crt"
+  A1_KEY_FILE: "/etc/certs/tls.key"
+  
+  # Timeout configuration
+  A1_READ_TIMEOUT: "30s"
+  A1_WRITE_TIMEOUT: "30s"
+  A1_IDLE_TIMEOUT: "120s"
+  A1_MAX_HEADER_BYTES: "1048576"
+  
+  # Database configuration
+  A1_DB_MAX_OPEN_CONNECTIONS: "25"
+  A1_DB_MAX_IDLE_CONNECTIONS: "5"
+  A1_DB_CONNECTION_MAX_LIFETIME: "5m"
+  A1_DB_CONNECTION_MAX_IDLE_TIME: "30s"
+  
+  # Cache configuration
+  A1_CACHE_ENABLED: "true"
+  A1_CACHE_TTL: "5m"
+  
+  # Authentication configuration
+  A1_AUTH_ENABLED: "true"
+  A1_AUTH_METHOD: "oauth2"
+  A1_AUTH_TOKEN_VALIDATION: "true"
+  
+  # Rate limiting configuration
+  A1_RATE_LIMIT_ENABLED: "true"
+  A1_RATE_LIMIT_REQUESTS_PER_MIN: "1000"
+  A1_RATE_LIMIT_BURST_SIZE: "100"
+  A1_RATE_LIMIT_WINDOW_SIZE: "1m"
+  
+  # Circuit breaker configuration
+  A1_CIRCUIT_BREAKER_MAX_REQUESTS: "10"
+  A1_CIRCUIT_BREAKER_INTERVAL: "60s"
+  A1_CIRCUIT_BREAKER_TIMEOUT: "30s"
+  
+  # Metrics configuration
+  A1_METRICS_ENABLED: "true"
+  A1_METRICS_ENDPOINT: "/metrics"
+  A1_METRICS_NAMESPACE: "nephoran"
+  A1_METRICS_SUBSYSTEM: "a1"
+  
+  # Validation configuration
+  A1_VALIDATION_ENABLE_SCHEMA: "true"
+  A1_VALIDATION_STRICT: "false"
+  A1_VALIDATION_ADDITIONAL_FIELDS: "true"
+  
+  # Health check configuration
+  A1_HEALTH_CHECK_INTERVAL: "30s"
+  A1_HEALTH_CHECK_TIMEOUT: "5s"
+  
+  # Tracing configuration
+  A1_TRACING_ENABLED: "true"
+  A1_TRACING_JAEGER_AGENT_HOST: "jaeger-agent.monitoring.svc.cluster.local"
+  A1_TRACING_JAEGER_AGENT_PORT: "6831"
+  A1_TRACING_SERVICE_NAME: "a1-policy-service"
+  A1_TRACING_SAMPLING_RATE: "0.1"
+  
+  # O-RAN compliance configuration
+  A1_ORAN_COMPLIANCE_STRICT: "true"
+  A1_ORAN_SPECIFICATION_VERSION: "O-RAN.WG2.A1AP-v03.01"
+  
+  # Integration configuration
+  A1_NEPHORAN_INTEGRATION_ENABLED: "true"
+  A1_NEPHORAN_CONTROLLER_URL: "http://nephoran-controller.nephoran-system.svc.cluster.local:8080"
+  A1_NEAR_RT_RIC_URL: "http://near-rt-ric.oran.svc.cluster.local:8080"
+  
+  # Notification configuration
+  A1_NOTIFICATION_TIMEOUT: "10s"
+  A1_NOTIFICATION_RETRY_COUNT: "3"
+  A1_NOTIFICATION_RETRY_INTERVAL: "5s"
+  
+  # Policy configuration
+  A1_POLICY_INSTANCE_MAX_SIZE: "1048576"  # 1MB
+  A1_POLICY_TYPE_MAX_SIZE: "524288"       # 512KB
+  A1_POLICY_MAX_INSTANCES_PER_TYPE: "1000"
+  
+  # EI Job configuration
+  A1_EI_JOB_MAX_SIZE: "1048576"           # 1MB
+  A1_EI_JOB_EXECUTION_TIMEOUT: "300s"    # 5 minutes
+  A1_EI_JOB_MAX_PARALLEL: "10"
+  
+  # Consumer configuration
+  A1_CONSUMER_MAX_COUNT: "100"
+  A1_CONSUMER_CALLBACK_TIMEOUT: "30s"
+  A1_CONSUMER_HEARTBEAT_INTERVAL: "60s"
+  
+  # Application configuration file
+  config.yaml: |
+    server:
+      port: 8080
+      host: "0.0.0.0"
+      tls:
+        enabled: true
+        cert_file: "/etc/certs/tls.crt"
+        key_file: "/etc/certs/tls.key"
+      timeouts:
+        read: 30s
+        write: 30s
+        idle: 120s
+      max_header_bytes: 1048576
+
+    interfaces:
+      a1p:
+        enabled: true
+        version: "v2"
+      a1c:
+        enabled: true
+        version: "v1"
+      a1ei:
+        enabled: true
+        version: "v1"
+
+    database:
+      max_open_connections: 25
+      max_idle_connections: 5
+      connection_max_lifetime: "5m"
+      connection_max_idle_time: "30s"
+
+    cache:
+      ttl: "5m"
+      enabled: true
+
+    authentication:
+      enabled: true
+      method: "oauth2"
+      token_validation: true
+
+    rate_limiting:
+      enabled: true
+      requests_per_minute: 1000
+      burst_size: 100
+      window_size: "1m"
+
+    circuit_breaker:
+      max_requests: 10
+      interval: "60s"
+      timeout: "30s"
+
+    metrics:
+      enabled: true
+      endpoint: "/metrics"
+      namespace: "nephoran"
+      subsystem: "a1"
+
+    validation:
+      enable_schema_validation: true
+      strict_validation: false
+      validate_additional_fields: true
+
+    logging:
+      level: "info"
+      format: "json"
+      structured: true
+
+    tracing:
+      enabled: true
+      jaeger:
+        agent_host: "jaeger-agent.monitoring.svc.cluster.local"
+        agent_port: 6831
+        service_name: "a1-policy-service"
+        sampling_rate: 0.1
+
+    oran_compliance:
+      strict: true
+      specification_version: "O-RAN.WG2.A1AP-v03.01"
+
+    integration:
+      nephoran:
+        enabled: true
+        controller_url: "http://nephoran-controller.nephoran-system.svc.cluster.local:8080"
+      near_rt_ric:
+        url: "http://near-rt-ric.oran.svc.cluster.local:8080"
+
+    policies:
+      instance_max_size: 1048576
+      type_max_size: 524288
+      max_instances_per_type: 1000
+
+    ei_jobs:
+      max_size: 1048576
+      execution_timeout: "300s"
+      max_parallel: 10
+
+    consumers:
+      max_count: 100
+      callback_timeout: "30s"
+      heartbeat_interval: "60s"
+---
+# ConfigMap for O-RAN policy templates
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: a1-policy-templates
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-templates
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  traffic_steering_policy_type.json: |
+    {
+      "policy_type_id": 20008,
+      "policy_type_name": "Traffic Steering Policy",
+      "description": "Policy for steering traffic based on load balancing requirements",
+      "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "properties": {
+              "ue_id": {
+                "type": "string",
+                "description": "UE identifier or * for all UEs"
+              },
+              "cell_list": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "List of cell identifiers"
+              }
+            },
+            "required": ["ue_id"]
+          },
+          "qos_preference": {
+            "type": "object",
+            "properties": {
+              "priority_level": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 15
+              },
+              "load_balancing": {
+                "type": "object",
+                "properties": {
+                  "site_a_weight": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "site_b_weight": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                "required": ["site_a_weight", "site_b_weight"]
+              }
+            },
+            "required": ["priority_level"]
+          }
+        },
+        "required": ["scope", "qos_preference"]
+      }
+    }
+  
+  qos_management_policy_type.json: |
+    {
+      "policy_type_id": 20009,
+      "policy_type_name": "QoS Management Policy",
+      "description": "Policy for managing Quality of Service parameters",
+      "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "properties": {
+              "slice_id": {
+                "type": "string",
+                "description": "Network slice identifier"
+              },
+              "service_type": {
+                "type": "string",
+                "enum": ["eMBB", "URLLC", "mMTC"]
+              }
+            },
+            "required": ["slice_id", "service_type"]
+          },
+          "qos_parameters": {
+            "type": "object",
+            "properties": {
+              "5qi": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 255
+              },
+              "gbr_dl": {
+                "type": "integer",
+                "description": "Guaranteed Bit Rate downlink (kbps)"
+              },
+              "gbr_ul": {
+                "type": "integer",
+                "description": "Guaranteed Bit Rate uplink (kbps)"
+              },
+              "mbr_dl": {
+                "type": "integer",
+                "description": "Maximum Bit Rate downlink (kbps)"
+              },
+              "mbr_ul": {
+                "type": "integer",
+                "description": "Maximum Bit Rate uplink (kbps)"
+              },
+              "packet_delay_budget": {
+                "type": "integer",
+                "description": "Packet Delay Budget in milliseconds"
+              },
+              "packet_error_rate": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "required": ["5qi"]
+          }
+        },
+        "required": ["scope", "qos_parameters"]
+      }
+    }
+
+  admission_control_policy_type.json: |
+    {
+      "policy_type_id": 20010,
+      "policy_type_name": "Admission Control Policy",
+      "description": "Policy for controlling admission of new connections",
+      "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "properties": {
+              "cell_list": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "slice_list": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "admission_criteria": {
+            "type": "object",
+            "properties": {
+              "max_concurrent_sessions": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "resource_threshold": {
+                "type": "object",
+                "properties": {
+                  "cpu_utilization": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "memory_utilization": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "bandwidth_utilization": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                }
+              },
+              "priority_levels": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 15
+                }
+              }
+            },
+            "required": ["max_concurrent_sessions"]
+          }
+        },
+        "required": ["scope", "admission_criteria"]
+      }
+    }
+
+  energy_saving_policy_type.json: |
+    {
+      "policy_type_id": 20011,
+      "policy_type_name": "Energy Saving Policy",
+      "description": "Policy for energy optimization in RAN components",
+      "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "properties": {
+              "cell_list": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "time_windows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "start_time": {
+                      "type": "string",
+                      "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+                    },
+                    "end_time": {
+                      "type": "string",
+                      "pattern": "^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$"
+                    }
+                  },
+                  "required": ["start_time", "end_time"]
+                }
+              }
+            },
+            "required": ["cell_list"]
+          },
+          "energy_settings": {
+            "type": "object",
+            "properties": {
+              "power_reduction_percentage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 50
+              },
+              "sleep_mode_enabled": {
+                "type": "boolean"
+              },
+              "carrier_shutdown_threshold": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100,
+                "description": "Traffic threshold below which carriers can be shut down"
+              },
+              "wake_up_conditions": {
+                "type": "object",
+                "properties": {
+                  "traffic_increase_threshold": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "emergency_call_detected": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "required": ["power_reduction_percentage"]
+          }
+        },
+        "required": ["scope", "energy_settings"]
+      }
+    }

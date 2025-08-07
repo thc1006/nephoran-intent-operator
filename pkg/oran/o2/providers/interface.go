@@ -494,6 +494,8 @@ type ProviderConfiguration struct {
 const (
 	// Provider Types
 	ProviderTypeKubernetes = "kubernetes"
+	ProviderTypeOpenStack  = "openstack"
+	ProviderTypeVMware     = "vmware"
 	ProviderTypeAWS        = "aws"
 	ProviderTypeAzure      = "azure"
 	ProviderTypeGCP        = "gcp"

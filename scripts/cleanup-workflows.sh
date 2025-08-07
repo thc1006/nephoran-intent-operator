@@ -150,7 +150,7 @@ show_summary() {
     fi
     
     echo ""
-    echo -e "${GREEN}Backup location:${NC} .github/workflows-backup/"
+    echo -e "${GREEN}Backup location:${NC} Git history (backup removed after successful cleanup)"
     echo ""
     
     if [ "$DRY_RUN" = true ]; then

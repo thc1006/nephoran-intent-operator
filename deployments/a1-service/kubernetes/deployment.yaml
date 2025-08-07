@@ -1,0 +1,394 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: a1-policy-service
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kubernetes
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    # Restart policy for configuration changes
+    configmap.reloader.stakater.com/reload: "a1-policy-service-config,a1-policy-templates"
+    secret.reloader.stakater.com/reload: "a1-policy-service-secrets,a1-policy-service-tls"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: a1-policy-service
+      app.kubernetes.io/instance: a1-policy-service
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: a1-policy-service
+        app.kubernetes.io/instance: a1-policy-service
+        app.kubernetes.io/version: "1.0.0"
+        app.kubernetes.io/component: policy-management
+        app.kubernetes.io/part-of: nephoran-intent-operator
+        # Service mesh labels
+        version: v1.0.0
+        security.istio.io/tlsMode: istio
+      annotations:
+        # Prometheus scraping
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+        # Service mesh injection
+        sidecar.istio.io/inject: "true"
+        # Security annotations
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+        container.apparmor.security.beta.kubernetes.io/a1-policy-service: runtime/default
+        # Configuration checksum for rolling updates
+        checksum/config: ""
+        checksum/secrets: ""
+    spec:
+      serviceAccountName: a1-policy-service
+      automountServiceAccountToken: false
+      # Security context for the pod
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: "OnRootMismatch"
+        seccompProfile:
+          type: RuntimeDefault
+      # Pod anti-affinity for high availability
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - a1-policy-service
+              topologyKey: kubernetes.io/hostname
+          - weight: 50
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - a1-policy-service
+              topologyKey: topology.kubernetes.io/zone
+      # Topology spread constraints
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: topology.kubernetes.io/zone
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: a1-policy-service
+      - maxSkew: 2
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: ScheduleAnyway
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/name: a1-policy-service
+      # Node selector for deployment on appropriate nodes
+      nodeSelector:
+        kubernetes.io/os: linux
+        node.kubernetes.io/instance-type: "standard"
+      tolerations:
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 30
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 30
+      # Init containers for setup tasks
+      initContainers:
+      - name: wait-for-database
+        image: postgres:15-alpine
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 999
+          runAsGroup: 999
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        command:
+        - sh
+        - -c
+        - |
+          until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER"; do
+            echo "Waiting for database to be ready..."
+            sleep 2
+          done
+          echo "Database is ready!"
+        env:
+        - name: POSTGRES_HOST
+          valueFrom:
+            secretKeyRef:
+              name: a1-policy-service-db
+              key: POSTGRES_HOST
+        - name: POSTGRES_PORT
+          valueFrom:
+            secretKeyRef:
+              name: a1-policy-service-db
+              key: POSTGRES_PORT
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: a1-policy-service-db
+              key: POSTGRES_USER
+        resources:
+          requests:
+            memory: "32Mi"
+            cpu: "10m"
+          limits:
+            memory: "64Mi"
+            cpu: "50m"
+      - name: database-migration
+        image: ghcr.io/nephoran/a1-policy-service:v1.0.0
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        command:
+        - /usr/local/bin/a1-policy-service
+        args:
+        - migrate
+        - --config=/etc/config/config.yaml
+        envFrom:
+        - configMapRef:
+            name: a1-policy-service-config
+        - secretRef:
+            name: a1-policy-service-secrets
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      containers:
+      - name: a1-policy-service
+        image: ghcr.io/nephoran/a1-policy-service:v1.0.0
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        # Environment variables from ConfigMap and Secrets
+        envFrom:
+        - configMapRef:
+            name: a1-policy-service-config
+        - secretRef:
+            name: a1-policy-service-secrets
+        env:
+        # Pod information
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        # Service account token
+        - name: SERVICE_ACCOUNT_TOKEN_PATH
+          value: /var/run/secrets/kubernetes.io/serviceaccount/token
+        # Volume mounts
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+        - name: policy-templates
+          mountPath: /etc/templates
+          readOnly: true
+        - name: tls-certs
+          mountPath: /etc/certs
+          readOnly: true
+        - name: service-account-token
+          mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /var/cache/a1-service
+        # Resource limits and requests
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+            ephemeral-storage: "1Gi"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+            ephemeral-storage: "2Gi"
+        # Health checks
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 30
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTPS
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        # Lifecycle hooks
+        lifecycle:
+          preStop:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - |
+                echo "Gracefully shutting down A1 Policy Service..."
+                curl -X POST https://localhost:8080/shutdown || true
+                sleep 15
+      # Sidecar container for monitoring and health checks
+      - name: health-monitor
+        image: curlimages/curl:8.4.0
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65534
+          runAsGroup: 65534
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        command:
+        - /bin/sh
+        - -c
+        - |
+          while true; do
+            sleep 60
+            if ! curl -k --fail --max-time 10 https://localhost:8080/health; then
+              echo "Health check failed at $(date)"
+            fi
+          done
+        resources:
+          requests:
+            memory: "16Mi"
+            cpu: "10m"
+          limits:
+            memory: "32Mi"
+            cpu: "50m"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      # DNS configuration
+      dnsPolicy: ClusterFirst
+      dnsConfig:
+        options:
+        - name: ndots
+          value: "2"
+        - name: edns0
+      # Volumes
+      volumes:
+      - name: config
+        configMap:
+          name: a1-policy-service-config
+          defaultMode: 0444
+      - name: policy-templates
+        configMap:
+          name: a1-policy-templates
+          defaultMode: 0444
+      - name: tls-certs
+        secret:
+          secretName: a1-policy-service-tls
+          defaultMode: 0400
+      - name: service-account-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: api
+              expirationSeconds: 3600
+              path: token
+          - configMap:
+              name: kube-root-ca.crt
+              items:
+              - key: ca.crt
+                path: ca.crt
+          - downwardAPI:
+              items:
+              - path: namespace
+                fieldRef:
+                  fieldPath: metadata.namespace
+      - name: tmp
+        emptyDir:
+          sizeLimit: "100Mi"
+      - name: cache
+        emptyDir:
+          sizeLimit: "500Mi"
+      # Termination grace period
+      terminationGracePeriodSeconds: 30
+      # Priority class
+      priorityClassName: system-cluster-critical
+      # Restart policy
+      restartPolicy: Always

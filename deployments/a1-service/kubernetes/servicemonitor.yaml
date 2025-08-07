@@ -1,0 +1,345 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: a1-policy-service
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: prometheus-operator
+    # Prometheus discovery labels
+    prometheus: kube-prometheus
+    release: prometheus
+  annotations:
+    # ServiceMonitor configuration
+    monitoring.nephoran.io/scrape-interval: "30s"
+    monitoring.nephoran.io/scrape-timeout: "10s"
+    monitoring.nephoran.io/metrics-path: "/metrics"
+spec:
+  jobLabel: app.kubernetes.io/name
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: a1-policy-service
+      app.kubernetes.io/instance: a1-policy-service
+  endpoints:
+  - port: metrics
+    interval: 30s
+    scrapeTimeout: 10s
+    path: /metrics
+    scheme: https
+    tlsConfig:
+      # Skip TLS verification for internal metrics (configure properly in production)
+      insecureSkipVerify: true
+      # Use service certificate for TLS
+      # ca:
+      #   secret:
+      #     name: a1-policy-service-tls
+      #     key: ca.crt
+      # cert:
+      #   secret:
+      #     name: a1-policy-service-tls
+      #     key: tls.crt
+      # keySecret:
+      #   name: a1-policy-service-tls
+      #   key: tls.key
+    relabelings:
+    # Add namespace label
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+    # Add pod name label
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    # Add service name label
+    - sourceLabels: [__meta_kubernetes_service_name]
+      targetLabel: service
+    # Add endpoint port label
+    - sourceLabels: [__meta_kubernetes_endpoint_port_name]
+      targetLabel: port
+    # Add node name label
+    - sourceLabels: [__meta_kubernetes_pod_node_name]
+      targetLabel: node
+    # Add custom labels
+    - targetLabel: component
+      replacement: a1-policy-service
+    - targetLabel: system
+      replacement: nephoran-intent-operator
+    metricRelabelings:
+    # Drop high-cardinality metrics
+    - sourceLabels: [__name__]
+      regex: 'go_memstats_.*'
+      action: drop
+    - sourceLabels: [__name__]
+      regex: 'go_gc_.*'
+      action: drop
+    # Rename metrics for consistency
+    - sourceLabels: [__name__]
+      regex: 'nephoran_a1_(.*)'
+      targetLabel: __name__
+      replacement: 'a1_policy_service_${1}'
+    # Add deployment info
+    - targetLabel: deployment
+      replacement: a1-policy-service
+    - targetLabel: version
+      replacement: "1.0.0"
+  namespaceSelector:
+    matchNames:
+    - nephoran-a1
+  sampleLimit: 10000
+  targetLimit: 100
+
+---
+# ServiceMonitor for health metrics with different configuration
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: a1-policy-service-health
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/component: health-monitoring
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    monitoring-type: health
+    prometheus: kube-prometheus
+    release: prometheus
+spec:
+  jobLabel: app.kubernetes.io/name
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: a1-policy-service
+      app.kubernetes.io/instance: a1-policy-service
+  endpoints:
+  - port: http
+    interval: 15s
+    scrapeTimeout: 5s
+    path: /health/metrics
+    scheme: https
+    tlsConfig:
+      insecureSkipVerify: true
+    relabelings:
+    - sourceLabels: [__meta_kubernetes_namespace]
+      targetLabel: namespace
+    - sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod
+    - targetLabel: job
+      replacement: a1-policy-service-health
+    metricRelabelings:
+    # Focus only on health-related metrics
+    - sourceLabels: [__name__]
+      regex: '(a1_policy_service_health_.*|a1_policy_service_up|a1_policy_service_ready)'
+      action: keep
+  namespaceSelector:
+    matchNames:
+    - nephoran-a1
+  sampleLimit: 1000
+  targetLimit: 50
+
+---
+# PrometheusRule for A1 Policy Service alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: a1-policy-service-alerts
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    prometheus: kube-prometheus
+    release: prometheus
+    rule-type: alerts
+spec:
+  groups:
+  - name: a1-policy-service.rules
+    interval: 30s
+    rules:
+    # Service availability alerts
+    - alert: A1PolicyServiceDown
+      expr: up{job="a1-policy-service"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: a1-policy-service
+        component: availability
+      annotations:
+        summary: "A1 Policy Service is down"
+        description: "A1 Policy Service has been down for more than 1 minute"
+        runbook_url: "https://docs.nephoran.io/runbooks/a1-policy-service-down"
+    
+    - alert: A1PolicyServiceHighLatency
+      expr: histogram_quantile(0.95, sum(rate(a1_policy_service_request_duration_seconds_bucket[5m])) by (le)) > 0.5
+      for: 5m
+      labels:
+        severity: warning
+        service: a1-policy-service
+        component: performance
+      annotations:
+        summary: "A1 Policy Service high latency"
+        description: "95th percentile latency is {{ $value }}s for A1 Policy Service"
+        runbook_url: "https://docs.nephoran.io/runbooks/a1-policy-service-high-latency"
+    
+    # Error rate alerts
+    - alert: A1PolicyServiceHighErrorRate
+      expr: sum(rate(a1_policy_service_requests_total{status_code=~"5.."}[5m])) / sum(rate(a1_policy_service_requests_total[5m])) > 0.05
+      for: 2m
+      labels:
+        severity: critical
+        service: a1-policy-service
+        component: error-rate
+      annotations:
+        summary: "A1 Policy Service high error rate"
+        description: "A1 Policy Service error rate is {{ $value | humanizePercentage }} over the last 5 minutes"
+        runbook_url: "https://docs.nephoran.io/runbooks/a1-policy-service-high-error-rate"
+    
+    # Resource utilization alerts
+    - alert: A1PolicyServiceHighMemoryUsage
+      expr: container_memory_usage_bytes{container="a1-policy-service"} / container_spec_memory_limit_bytes{container="a1-policy-service"} > 0.9
+      for: 5m
+      labels:
+        severity: warning
+        service: a1-policy-service
+        component: memory
+      annotations:
+        summary: "A1 Policy Service high memory usage"
+        description: "A1 Policy Service memory usage is {{ $value | humanizePercentage }} of limit"
+        runbook_url: "https://docs.nephoran.io/runbooks/a1-policy-service-high-memory"
+    
+    - alert: A1PolicyServiceHighCPUUsage
+      expr: rate(container_cpu_usage_seconds_total{container="a1-policy-service"}[5m]) / container_spec_cpu_quota{container="a1-policy-service"} * container_spec_cpu_period{container="a1-policy-service"} > 0.8
+      for: 10m
+      labels:
+        severity: warning
+        service: a1-policy-service
+        component: cpu
+      annotations:
+        summary: "A1 Policy Service high CPU usage"
+        description: "A1 Policy Service CPU usage is {{ $value | humanizePercentage }} of limit"
+        runbook_url: "https://docs.nephoran.io/runbooks/a1-policy-service-high-cpu"
+    
+    # Business logic alerts
+    - alert: A1PolicyServicePolicyCreationFailures
+      expr: sum(rate(a1_policy_service_policy_operations_total{operation="create",result="failure"}[5m])) > 0.1
+      for: 2m
+      labels:
+        severity: warning
+        service: a1-policy-service
+        component: policy-creation
+      annotations:
+        summary: "A1 Policy Service policy creation failures"
+        description: "A1 Policy Service has {{ $value }} policy creation failures per second"
+        runbook_url: "https://docs.nephoran.io/runbooks/a1-policy-creation-failures"
+    
+    - alert: A1PolicyServiceConsumerNotificationFailures
+      expr: sum(rate(a1_policy_service_consumer_notifications_total{result="failure"}[5m])) > 0.05
+      for: 3m
+      labels:
+        severity: warning
+        service: a1-policy-service
+        component: notifications
+      annotations:
+        summary: "A1 Policy Service consumer notification failures"
+        description: "A1 Policy Service has {{ $value }} consumer notification failures per second"
+        runbook_url: "https://docs.nephoran.io/runbooks/a1-consumer-notification-failures"
+    
+    # Circuit breaker alerts
+    - alert: A1PolicyServiceCircuitBreakerOpen
+      expr: a1_policy_service_circuit_breaker_state > 1
+      for: 1m
+      labels:
+        severity: critical
+        service: a1-policy-service
+        component: circuit-breaker
+      annotations:
+        summary: "A1 Policy Service circuit breaker open"
+        description: "A1 Policy Service circuit breaker {{ $labels.name }} is open"
+        runbook_url: "https://docs.nephoran.io/runbooks/a1-circuit-breaker-open"
+    
+    # Database connectivity alerts
+    - alert: A1PolicyServiceDatabaseConnectionFailures
+      expr: sum(rate(a1_policy_service_database_connections_failed_total[5m])) > 0.01
+      for: 1m
+      labels:
+        severity: critical
+        service: a1-policy-service
+        component: database
+      annotations:
+        summary: "A1 Policy Service database connection failures"
+        description: "A1 Policy Service has {{ $value }} database connection failures per second"
+        runbook_url: "https://docs.nephoran.io/runbooks/a1-database-connection-failures"
+
+  - name: a1-policy-service.slo
+    interval: 60s
+    rules:
+    # SLI: Request success rate
+    - record: a1_policy_service:request_success_rate:5m
+      expr: sum(rate(a1_policy_service_requests_total{status_code!~"5.."}[5m])) / sum(rate(a1_policy_service_requests_total[5m]))
+    
+    # SLI: Request latency P99
+    - record: a1_policy_service:request_latency_p99:5m
+      expr: histogram_quantile(0.99, sum(rate(a1_policy_service_request_duration_seconds_bucket[5m])) by (le))
+    
+    # SLI: Policy operation success rate
+    - record: a1_policy_service:policy_operation_success_rate:5m
+      expr: sum(rate(a1_policy_service_policy_operations_total{result="success"}[5m])) / sum(rate(a1_policy_service_policy_operations_total[5m]))
+    
+    # SLO: 99.9% availability
+    - alert: A1PolicyServiceSLOAvailability
+      expr: a1_policy_service:request_success_rate:5m < 0.999
+      for: 5m
+      labels:
+        severity: critical
+        service: a1-policy-service
+        slo: availability
+      annotations:
+        summary: "A1 Policy Service SLO availability breach"
+        description: "A1 Policy Service availability is {{ $value | humanizePercentage }}, below 99.9% SLO"
+        runbook_url: "https://docs.nephoran.io/runbooks/a1-slo-availability-breach"
+    
+    # SLO: P99 latency < 500ms
+    - alert: A1PolicyServiceSLOLatency
+      expr: a1_policy_service:request_latency_p99:5m > 0.5
+      for: 5m
+      labels:
+        severity: warning
+        service: a1-policy-service
+        slo: latency
+      annotations:
+        summary: "A1 Policy Service SLO latency breach"
+        description: "A1 Policy Service P99 latency is {{ $value }}s, above 500ms SLO"
+        runbook_url: "https://docs.nephoran.io/runbooks/a1-slo-latency-breach"
+
+---
+# PodMonitor for additional pod-level metrics
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: a1-policy-service-pods
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/component: pod-monitoring
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    prometheus: kube-prometheus
+spec:
+  jobLabel: app.kubernetes.io/name
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: a1-policy-service
+      app.kubernetes.io/instance: a1-policy-service
+  podMetricsEndpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    scheme: https
+    tlsConfig:
+      insecureSkipVerify: true
+  namespaceSelector:
+    matchNames:
+    - nephoran-a1
+  sampleLimit: 5000

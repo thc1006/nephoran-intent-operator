@@ -1,0 +1,591 @@
+# Traffic Steering Policy Type - O-RAN Compliant
+# This policy type enables intelligent traffic steering and load balancing
+# across multiple sites, cells, or network elements.
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traffic-steering-policy-type
+  namespace: nephoran-a1
+  labels:
+    policy-type-id: "20008"
+    policy-category: "traffic-steering"
+    o-ran-spec-version: "v03.01"
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/component: policy-type
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    policy-type.a1.nephoran.io/version: "1.0"
+    policy-type.a1.nephoran.io/compatibility: "o-ran-wg2-a1ap-v03.01"
+    policy-type.a1.nephoran.io/description: "Intelligent traffic steering and load balancing policy"
+    policy-type.a1.nephoran.io/use-cases: "load-balancing,failover,traffic-optimization"
+data:
+  policy-type.json: |
+    {
+      "policy_type_id": 20008,
+      "policy_type_name": "Traffic Steering Policy",
+      "description": "Policy for intelligent traffic steering and load balancing across network elements. Supports dynamic weight allocation, failover scenarios, and performance-based routing decisions.",
+      "schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "title": "Traffic Steering Policy Schema",
+        "description": "Schema for defining traffic steering policies with advanced load balancing capabilities",
+        "properties": {
+          "scope": {
+            "type": "object",
+            "description": "Defines the scope of traffic steering policy application",
+            "properties": {
+              "ue_id": {
+                "type": "string",
+                "description": "User Equipment identifier (* for all UEs, or specific UE ID)",
+                "pattern": "^(\\*|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9]{10,15})$",
+                "examples": ["*", "123456789012345", "550e8400-e29b-41d4-a716-446655440000"]
+              },
+              "cell_list": {
+                "type": "array",
+                "description": "List of cell identifiers where the policy applies",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-zA-Z0-9_-]+$",
+                  "maxLength": 32
+                },
+                "minItems": 1,
+                "maxItems": 100,
+                "uniqueItems": true,
+                "examples": [["cell_001", "cell_002"], ["sector_A_cell_1", "sector_B_cell_1"]]
+              },
+              "slice_id": {
+                "type": "string",
+                "description": "Network slice identifier (optional, for slice-specific steering)",
+                "pattern": "^[0-9a-fA-F]{6}$",
+                "examples": ["000001", "ABC123"]
+              },
+              "service_type": {
+                "type": "string",
+                "description": "Service type for specialized steering rules",
+                "enum": ["eMBB", "URLLC", "mMTC", "all"],
+                "default": "all"
+              },
+              "geographic_area": {
+                "type": "object",
+                "description": "Geographic boundaries for policy application",
+                "properties": {
+                  "coordinates": {
+                    "type": "array",
+                    "description": "Polygon coordinates defining the area",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
+                    },
+                    "minItems": 3
+                  },
+                  "radius_km": {
+                    "type": "number",
+                    "description": "Radius in kilometers from center point",
+                    "minimum": 0.1,
+                    "maximum": 1000
+                  },
+                  "center_point": {
+                    "type": "array",
+                    "description": "Center point [latitude, longitude]",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                  }
+                }
+              }
+            },
+            "required": ["ue_id", "cell_list"],
+            "additionalProperties": false
+          },
+          "qos_preference": {
+            "type": "object",
+            "description": "Quality of Service preferences and requirements",
+            "properties": {
+              "priority_level": {
+                "type": "integer",
+                "description": "Priority level for traffic steering (1=highest, 15=lowest)",
+                "minimum": 1,
+                "maximum": 15,
+                "default": 5
+              },
+              "load_balancing": {
+                "type": "object",
+                "description": "Load balancing configuration with multiple targets",
+                "properties": {
+                  "algorithm": {
+                    "type": "string",
+                    "description": "Load balancing algorithm",
+                    "enum": ["weighted_round_robin", "least_connections", "hash_based", "performance_based", "geographic_proximity"],
+                    "default": "weighted_round_robin"
+                  },
+                  "targets": {
+                    "type": "array",
+                    "description": "Load balancing targets with weights",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "target_id": {
+                          "type": "string",
+                          "description": "Target identifier (site, cell, or network element)",
+                          "maxLength": 64
+                        },
+                        "weight": {
+                          "type": "integer",
+                          "description": "Weight percentage for this target",
+                          "minimum": 0,
+                          "maximum": 100
+                        },
+                        "capacity": {
+                          "type": "integer",
+                          "description": "Maximum capacity (sessions or bandwidth)",
+                          "minimum": 1
+                        },
+                        "priority": {
+                          "type": "integer",
+                          "description": "Target priority (1=primary, 2=secondary, etc.)",
+                          "minimum": 1,
+                          "maximum": 10,
+                          "default": 1
+                        },
+                        "health_threshold": {
+                          "type": "number",
+                          "description": "Health threshold below which target is avoided (0-1)",
+                          "minimum": 0,
+                          "maximum": 1,
+                          "default": 0.8
+                        }
+                      },
+                      "required": ["target_id", "weight"],
+                      "additionalProperties": false
+                    },
+                    "minItems": 2,
+                    "maxItems": 10
+                  },
+                  "sticky_sessions": {
+                    "type": "boolean",
+                    "description": "Enable session affinity",
+                    "default": false
+                  },
+                  "session_timeout": {
+                    "type": "integer",
+                    "description": "Session timeout in seconds",
+                    "minimum": 60,
+                    "maximum": 86400,
+                    "default": 3600
+                  }
+                },
+                "required": ["algorithm", "targets"],
+                "additionalProperties": false
+              },
+              "performance_requirements": {
+                "type": "object",
+                "description": "Performance requirements for traffic steering decisions",
+                "properties": {
+                  "max_latency_ms": {
+                    "type": "integer",
+                    "description": "Maximum acceptable latency in milliseconds",
+                    "minimum": 1,
+                    "maximum": 10000,
+                    "examples": [10, 50, 200, 1000]
+                  },
+                  "min_throughput_mbps": {
+                    "type": "number",
+                    "description": "Minimum required throughput in Mbps",
+                    "minimum": 0.1,
+                    "maximum": 10000,
+                    "examples": [1, 10, 100, 1000]
+                  },
+                  "max_packet_loss": {
+                    "type": "number",
+                    "description": "Maximum acceptable packet loss ratio (0-1)",
+                    "minimum": 0,
+                    "maximum": 0.1,
+                    "default": 0.01
+                  },
+                  "jitter_tolerance_ms": {
+                    "type": "integer",
+                    "description": "Maximum acceptable jitter in milliseconds",
+                    "minimum": 0,
+                    "maximum": 1000,
+                    "default": 50
+                  }
+                },
+                "additionalProperties": false
+              },
+              "failover_policy": {
+                "type": "object",
+                "description": "Failover and recovery policies",
+                "properties": {
+                  "enable_failover": {
+                    "type": "boolean",
+                    "description": "Enable automatic failover",
+                    "default": true
+                  },
+                  "failure_detection_threshold": {
+                    "type": "integer",
+                    "description": "Number of consecutive failures before failover",
+                    "minimum": 1,
+                    "maximum": 10,
+                    "default": 3
+                  },
+                  "recovery_threshold": {
+                    "type": "integer",
+                    "description": "Number of successful checks before recovery",
+                    "minimum": 1,
+                    "maximum": 10,
+                    "default": 5
+                  },
+                  "check_interval_ms": {
+                    "type": "integer",
+                    "description": "Health check interval in milliseconds",
+                    "minimum": 1000,
+                    "maximum": 60000,
+                    "default": 5000
+                  },
+                  "failover_mode": {
+                    "type": "string",
+                    "description": "Failover strategy",
+                    "enum": ["immediate", "graceful", "load_based"],
+                    "default": "graceful"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": ["priority_level", "load_balancing"],
+            "additionalProperties": false
+          },
+          "time_constraints": {
+            "type": "object",
+            "description": "Time-based constraints and scheduling",
+            "properties": {
+              "active_hours": {
+                "type": "array",
+                "description": "Active hours for the policy (24-hour format)",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "start": {
+                      "type": "string",
+                      "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+                      "description": "Start time in HH:MM format"
+                    },
+                    "end": {
+                      "type": "string",
+                      "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+                      "description": "End time in HH:MM format"
+                    },
+                    "timezone": {
+                      "type": "string",
+                      "description": "Timezone (IANA timezone name)",
+                      "default": "UTC",
+                      "examples": ["UTC", "America/New_York", "Europe/London", "Asia/Tokyo"]
+                    }
+                  },
+                  "required": ["start", "end"],
+                  "additionalProperties": false
+                }
+              },
+              "active_days": {
+                "type": "array",
+                "description": "Active days of the week",
+                "items": {
+                  "type": "string",
+                  "enum": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+                },
+                "uniqueItems": true,
+                "default": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+              },
+              "validity_period": {
+                "type": "object",
+                "description": "Policy validity time period",
+                "properties": {
+                  "start_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Policy start time (ISO 8601 format)"
+                  },
+                  "end_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Policy end time (ISO 8601 format)"
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "monitoring": {
+            "type": "object",
+            "description": "Monitoring and reporting configuration",
+            "properties": {
+              "enable_metrics": {
+                "type": "boolean",
+                "description": "Enable metric collection for this policy",
+                "default": true
+              },
+              "metric_collection_interval": {
+                "type": "integer",
+                "description": "Metric collection interval in seconds",
+                "minimum": 10,
+                "maximum": 3600,
+                "default": 60
+              },
+              "alert_thresholds": {
+                "type": "object",
+                "description": "Alert thresholds for policy violations",
+                "properties": {
+                  "performance_degradation": {
+                    "type": "number",
+                    "description": "Performance degradation threshold (percentage)",
+                    "minimum": 0.1,
+                    "maximum": 0.9,
+                    "default": 0.2
+                  },
+                  "load_imbalance": {
+                    "type": "number",
+                    "description": "Load imbalance threshold (percentage)",
+                    "minimum": 0.1,
+                    "maximum": 0.9,
+                    "default": 0.3
+                  }
+                },
+                "additionalProperties": false
+              },
+              "reporting_endpoint": {
+                "type": "string",
+                "format": "uri",
+                "description": "Endpoint for policy status reporting"
+              }
+            },
+            "additionalProperties": false
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Additional metadata for the policy",
+            "properties": {
+              "policy_owner": {
+                "type": "string",
+                "description": "Policy owner identifier",
+                "maxLength": 128
+              },
+              "description": {
+                "type": "string",
+                "description": "Human-readable policy description",
+                "maxLength": 512
+              },
+              "tags": {
+                "type": "array",
+                "description": "Policy tags for categorization",
+                "items": {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "maxItems": 10,
+                "uniqueItems": true
+              },
+              "version": {
+                "type": "string",
+                "description": "Policy version",
+                "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+                "default": "1.0.0"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required": ["scope", "qos_preference"],
+        "additionalProperties": false
+      },
+      "create_schema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "description": "Schema for creating traffic steering policy instances",
+        "properties": {
+          "policy_data": {
+            "$ref": "#/definitions/traffic_steering_policy"
+          },
+          "policy_info": {
+            "type": "object",
+            "properties": {
+              "notification_destination": {
+                "type": "string",
+                "format": "uri",
+                "description": "Callback URL for policy notifications"
+              },
+              "request_id": {
+                "type": "string",
+                "description": "Client-provided request identifier",
+                "maxLength": 128
+              },
+              "additional_params": {
+                "type": "object",
+                "description": "Additional parameters for policy creation",
+                "properties": {
+                  "enforcement_mode": {
+                    "type": "string",
+                    "enum": ["strict", "advisory", "monitoring"],
+                    "default": "strict",
+                    "description": "Policy enforcement mode"
+                  },
+                  "rollback_on_failure": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Rollback policy on enforcement failure"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "required": ["policy_data"],
+        "definitions": {
+          "traffic_steering_policy": {
+            "$ref": "#/properties"
+          }
+        }
+      }
+    }
+
+  validation-rules.yaml: |
+    # Additional validation rules for traffic steering policies
+    validation_rules:
+      - name: "weight_sum_validation"
+        description: "Sum of all target weights must equal 100"
+        rule: "sum(policy_data.qos_preference.load_balancing.targets[*].weight) == 100"
+        severity: "error"
+      
+      - name: "cell_list_validation"
+        description: "All cells must exist in the network topology"
+        rule: "all_exist(policy_data.scope.cell_list, network_topology.cells)"
+        severity: "error"
+      
+      - name: "target_capacity_check"
+        description: "Target capacity should be reasonable for the cell type"
+        rule: "all(policy_data.qos_preference.load_balancing.targets[*].capacity <= 1000000)"
+        severity: "warning"
+      
+      - name: "performance_consistency"
+        description: "Performance requirements should be consistent with service type"
+        rule: "policy_data.scope.service_type == 'URLLC' implies policy_data.qos_preference.performance_requirements.max_latency_ms <= 10"
+        severity: "warning"
+
+  examples.yaml: |
+    # Example policy instances for different scenarios
+    examples:
+      basic_load_balancing:
+        description: "Basic load balancing between two sites"
+        policy_data:
+          scope:
+            ue_id: "*"
+            cell_list: ["cell_001", "cell_002"]
+            service_type: "all"
+          qos_preference:
+            priority_level: 5
+            load_balancing:
+              algorithm: "weighted_round_robin"
+              targets:
+                - target_id: "site_a"
+                  weight: 70
+                  capacity: 1000
+                  priority: 1
+                - target_id: "site_b"
+                  weight: 30
+                  capacity: 800
+                  priority: 2
+      
+      urllc_failover:
+        description: "URLLC traffic with fast failover"
+        policy_data:
+          scope:
+            ue_id: "*"
+            cell_list: ["urllc_cell_001"]
+            service_type: "URLLC"
+          qos_preference:
+            priority_level: 1
+            load_balancing:
+              algorithm: "performance_based"
+              targets:
+                - target_id: "primary_urllc_site"
+                  weight: 100
+                  capacity: 500
+                  priority: 1
+                  health_threshold: 0.95
+                - target_id: "backup_urllc_site"
+                  weight: 0
+                  capacity: 300
+                  priority: 2
+                  health_threshold: 0.90
+            performance_requirements:
+              max_latency_ms: 1
+              min_throughput_mbps: 100
+              max_packet_loss: 0.0001
+            failover_policy:
+              enable_failover: true
+              failure_detection_threshold: 1
+              recovery_threshold: 3
+              check_interval_ms: 100
+              failover_mode: "immediate"
+      
+      geographic_steering:
+        description: "Geographic-based traffic steering"
+        policy_data:
+          scope:
+            ue_id: "*"
+            cell_list: ["geo_cell_001", "geo_cell_002"]
+            geographic_area:
+              center_point: [37.7749, -122.4194]
+              radius_km: 10
+          qos_preference:
+            priority_level: 3
+            load_balancing:
+              algorithm: "geographic_proximity"
+              targets:
+                - target_id: "west_coast_site"
+                  weight: 80
+                  capacity: 2000
+                  priority: 1
+                - target_id: "central_site"
+                  weight: 20
+                  capacity: 1500
+                  priority: 2
+      
+      time_based_steering:
+        description: "Time-based traffic steering for peak hours"
+        policy_data:
+          scope:
+            ue_id: "*"
+            cell_list: ["business_district_cell"]
+          qos_preference:
+            priority_level: 2
+            load_balancing:
+              algorithm: "weighted_round_robin"
+              targets:
+                - target_id: "peak_capacity_site"
+                  weight: 90
+                  capacity: 5000
+                  priority: 1
+                - target_id: "standard_site"
+                  weight: 10
+                  capacity: 1000
+                  priority: 2
+          time_constraints:
+            active_hours:
+              - start: "08:00"
+                end: "18:00"
+                timezone: "America/New_York"
+            active_days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+          monitoring:
+            enable_metrics: true
+            metric_collection_interval: 30
+            alert_thresholds:
+              performance_degradation: 0.15
+              load_imbalance: 0.25

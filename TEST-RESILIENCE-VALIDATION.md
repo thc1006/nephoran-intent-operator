@@ -170,7 +170,7 @@ The coverage badge has been generated and integrated into the README.md, display
 - Emergency contacts and escalation
 - Post-incident documentation
 
-### ✅ test-summary-report.md
+### ✅ tests/comprehensive-test-summary-report.md
 - Complete test validation summary
 - All success criteria verification
 - Performance metrics analysis

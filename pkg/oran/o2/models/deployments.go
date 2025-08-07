@@ -8,31 +8,33 @@ import (
 
 // Deployment Template and Management Models following O-RAN.WG6.O2ims-Interface-v01.01
 
-// DeploymentTemplate represents a template for deploying resources
+// DeploymentTemplate represents a deployment template following O2 IMS specification
 type DeploymentTemplate struct {
-	DeploymentTemplateID   string                 `json:"deploymentTemplateId"`
-	Name                   string                 `json:"name"`
-	Description            string                 `json:"description,omitempty"`
-	Version                string                 `json:"version"`
-	Category               string                 `json:"category"` // VNF, CNF, PNF, NS
-	Type                   string                 `json:"type"` // HELM, KUBERNETES, TERRAFORM, ANSIBLE
-	Content                *runtime.RawExtension  `json:"content"`
-	InputSchema            *runtime.RawExtension  `json:"inputSchema,omitempty"`
-	OutputSchema           *runtime.RawExtension  `json:"outputSchema,omitempty"`
-	Extensions             map[string]interface{} `json:"extensions,omitempty"`
+	DeploymentTemplateID string                 `json:"deploymentTemplateId"`
+	Name                string                 `json:"name"`
+	Description         string                 `json:"description,omitempty"`
+	Version             string                 `json:"version"`
+	Provider            string                 `json:"provider,omitempty"`
+	Category            string                 `json:"category,omitempty"` // VNF, CNF, PNF, NS
 	
-	// Template metadata
-	Author                 string                 `json:"author,omitempty"`
-	License                string                 `json:"license,omitempty"`
-	Keywords               []string               `json:"keywords,omitempty"`
-	Dependencies           []*TemplateDependency  `json:"dependencies,omitempty"`
-	Requirements           *ResourceRequirements  `json:"requirements,omitempty"`
+	// Template specifications
+	TemplateSpec        *TemplateSpecification `json:"templateSpec"`
+	RequiredResources   *ResourceRequirements  `json:"requiredResources"`
+	SupportedParameters []*TemplateParameter   `json:"supportedParameters,omitempty"`
 	
-	// Lifecycle information
-	CreatedAt              time.Time              `json:"createdAt"`
-	UpdatedAt              time.Time              `json:"updatedAt"`
-	CreatedBy              string                 `json:"createdBy,omitempty"`
-	UpdatedBy              string                 `json:"updatedBy,omitempty"`
+	// Validation and compatibility
+	ValidationRules     []*ValidationRule      `json:"validationRules,omitempty"`
+	CompatibilityMatrix []*CompatibilityInfo   `json:"compatibilityMatrix,omitempty"`
+	
+	// Metadata and lifecycle
+	Tags                map[string]string      `json:"tags,omitempty"`
+	Labels              map[string]string      `json:"labels,omitempty"`
+	Extensions          map[string]interface{} `json:"extensions,omitempty"`
+	Status              *TemplateStatus        `json:"status"`
+	CreatedAt           time.Time              `json:"createdAt"`
+	UpdatedAt           time.Time              `json:"updatedAt"`
+	CreatedBy           string                 `json:"createdBy,omitempty"`
+	UpdatedBy           string                 `json:"updatedBy,omitempty"`
 }
 
 // TemplateDependency represents a dependency of a deployment template
@@ -44,14 +46,53 @@ type TemplateDependency struct {
 	Description  string `json:"description,omitempty"`
 }
 
-// ResourceRequirements represents resource requirements for a deployment template
+// TemplateSpecification defines the deployment template specification
+type TemplateSpecification struct {
+	Type                string                 `json:"type"` // HEAT, HELM, KUBERNETES, TERRAFORM
+	Content             *runtime.RawExtension  `json:"content"`
+	ContentType         string                 `json:"contentType"` // yaml, json, zip
+	MainTemplate        string                 `json:"mainTemplate,omitempty"`
+	NestedTemplates     map[string]*runtime.RawExtension `json:"nestedTemplates,omitempty"`
+	
+	// Deployment configuration
+	DeploymentOptions   *DeploymentOptions     `json:"deploymentOptions,omitempty"`
+	Hooks               []*DeploymentHook      `json:"hooks,omitempty"`
+	
+	// Resource mappings
+	ResourceMappings    []*ResourceMapping     `json:"resourceMappings,omitempty"`
+	NetworkMappings     []*NetworkMapping      `json:"networkMappings,omitempty"`
+	StorageMappings     []*StorageMapping      `json:"storageMappings,omitempty"`
+	
+	// Dependencies
+	Dependencies        []*TemplateDependency  `json:"dependencies,omitempty"`
+	Prerequisites       []*Prerequisite        `json:"prerequisites,omitempty"`
+}
+
+// DeploymentOptions defines options for template deployment
+type DeploymentOptions struct {
+	Timeout             time.Duration          `json:"timeout"`
+	RetryPolicy         *RetryPolicy           `json:"retryPolicy,omitempty"`
+	RollbackPolicy      *RollbackPolicy        `json:"rollbackPolicy,omitempty"`
+	ScalingPolicy       *ScalingPolicy         `json:"scalingPolicy,omitempty"`
+	MonitoringConfig    *MonitoringConfig      `json:"monitoringConfig,omitempty"`
+	SecurityConfig      *SecurityConfiguration `json:"securityConfig,omitempty"`
+}
+
+// ResourceRequirements defines resource requirements for deployment templates
 type ResourceRequirements struct {
-	MinResources     map[string]string `json:"minResources,omitempty"`
-	MaxResources     map[string]string `json:"maxResources,omitempty"`
-	PreferredResources map[string]string `json:"preferredResources,omitempty"`
-	NodeSelector     map[string]string `json:"nodeSelector,omitempty"`
-	Tolerations      []string          `json:"tolerations,omitempty"`
-	Affinity         *AffinityRules    `json:"affinity,omitempty"`
+	MinCPU              string                 `json:"minCpu,omitempty"`
+	MinMemory           string                 `json:"minMemory,omitempty"`
+	MinStorage          string                 `json:"minStorage,omitempty"`
+	MinNodes            int                    `json:"minNodes,omitempty"`
+	MaxCPU              string                 `json:"maxCpu,omitempty"`
+	MaxMemory           string                 `json:"maxMemory,omitempty"`
+	MaxStorage          string                 `json:"maxStorage,omitempty"`
+	MaxNodes            int                    `json:"maxNodes,omitempty"`
+	RequiredFeatures    []string               `json:"requiredFeatures,omitempty"`
+	SupportedArch       []string               `json:"supportedArchitectures,omitempty"`
+	NetworkRequirements []*NetworkRequirement  `json:"networkRequirements,omitempty"`
+	StorageRequirements []*StorageRequirement  `json:"storageRequirements,omitempty"`
+	AcceleratorReq      []*AcceleratorRequirement `json:"acceleratorRequirements,omitempty"`
 }
 
 // AffinityRules represents affinity and anti-affinity rules

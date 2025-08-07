@@ -1,0 +1,478 @@
+version: '3.8'
+
+# A1 Policy Management Service - Docker Compose Configuration
+# This configuration provides a complete local development and testing environment
+
+services:
+  # A1 Policy Management Service
+  a1-policy-service:
+    build:
+      context: ../../../
+      dockerfile: deployments/a1-service/docker/Dockerfile
+      target: development
+      args:
+        - GO_VERSION=1.24
+        - ALPINE_VERSION=3.18
+    container_name: a1-policy-service
+    hostname: a1-policy-service
+    restart: unless-stopped
+    ports:
+      - "8080:8080"    # HTTPS API
+      - "8081:8080"    # HTTP API (dev only)
+      - "9090:9090"    # Metrics
+      - "2345:2345"    # Debug port
+    environment:
+      # Server configuration
+      - A1_PORT=8080
+      - A1_HOST=0.0.0.0
+      - A1_LOG_LEVEL=debug
+      - A1_LOG_FORMAT=json
+      
+      # Interface enablement
+      - A1_ENABLE_A1P=true
+      - A1_ENABLE_A1C=true
+      - A1_ENABLE_A1EI=true
+      
+      # TLS configuration (disabled for development)
+      - A1_TLS_ENABLED=false
+      
+      # Database configuration
+      - A1_DB_URL=postgresql://a1_service:a1_password@postgres:5432/a1_policies?sslmode=disable
+      
+      # Cache configuration
+      - A1_REDIS_URL=redis://:redis_password@redis:6379/0
+      - A1_CACHE_ENABLED=true
+      - A1_CACHE_TTL=5m
+      
+      # Authentication (disabled for development)
+      - A1_AUTH_ENABLED=false
+      
+      # Metrics configuration
+      - A1_METRICS_ENABLED=true
+      - A1_METRICS_ENDPOINT=/metrics
+      
+      # Development OAuth2 configuration
+      - A1_OAUTH2_CLIENT_ID=dev-client-id
+      - A1_OAUTH2_CLIENT_SECRET=dev-client-secret
+      - A1_OAUTH2_ISSUER=http://oauth2-mock:8080
+      
+      # Integration configuration
+      - A1_NEPHORAN_INTEGRATION_ENABLED=true
+      - A1_NEPHORAN_CONTROLLER_URL=http://nephoran-controller:8080
+      - A1_NEAR_RT_RIC_URL=http://near-rt-ric-mock:8080
+      
+      # Tracing configuration
+      - A1_TRACING_ENABLED=true
+      - A1_TRACING_JAEGER_AGENT_HOST=jaeger
+      - A1_TRACING_JAEGER_AGENT_PORT=6831
+    volumes:
+      - ../../../:/workspace:ro
+      - ./config:/etc/config:ro
+      - ./templates:/etc/templates:ro
+      - a1-cache:/var/cache/a1-service
+      - a1-logs:/var/log/a1-service
+    networks:
+      - a1-network
+      - nephoran-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.a1-api.rule=Host(`a1.localhost`)"
+      - "traefik.http.services.a1-api.loadbalancer.server.port=8080"
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: a1-postgres
+    hostname: postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=a1_policies
+      - POSTGRES_USER=a1_service
+      - POSTGRES_PASSWORD=a1_password
+      - POSTGRES_INITDB_ARGS=--auth-host=md5
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - a1-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U a1_service -d a1_policies"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "com.a1.service=database"
+      - "com.a1.environment=development"
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: a1-redis
+    hostname: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass redis_password --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      - a1-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis_password", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "com.a1.service=cache"
+      - "com.a1.environment=development"
+
+  # Prometheus Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: a1-prometheus
+    hostname: prometheus
+    restart: unless-stopped
+    ports:
+      - "9091:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts:/etc/prometheus/alerts:ro
+      - prometheus-data:/prometheus
+    networks:
+      - a1-network
+      - monitoring-network
+    labels:
+      - "com.a1.service=monitoring"
+      - "com.a1.environment=development"
+
+  # Grafana Dashboard
+  grafana:
+    image: grafana/grafana:latest
+    container_name: a1-grafana
+    hostname: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - a1-network
+      - monitoring-network
+    depends_on:
+      - prometheus
+    labels:
+      - "com.a1.service=dashboard"
+      - "com.a1.environment=development"
+
+  # Jaeger Tracing
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: a1-jaeger
+    hostname: jaeger
+    restart: unless-stopped
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "14268:14268"  # Jaeger HTTP
+      - "6831:6831/udp"  # Jaeger UDP
+    environment:
+      - COLLECTOR_ZIPKIN_HTTP_PORT=9411
+    volumes:
+      - jaeger-data:/tmp
+    networks:
+      - a1-network
+      - monitoring-network
+    labels:
+      - "com.a1.service=tracing"
+      - "com.a1.environment=development"
+
+  # Near-RT RIC Mock Service
+  near-rt-ric-mock:
+    image: mockserver/mockserver:latest
+    container_name: near-rt-ric-mock
+    hostname: near-rt-ric-mock
+    restart: unless-stopped
+    ports:
+      - "8082:1080"
+    environment:
+      - MOCKSERVER_PROPERTY_FILE=/config/mockserver.properties
+      - MOCKSERVER_INITIALIZATION_JSON_PATH=/config/ric-expectations.json
+    volumes:
+      - ./mocks/near-rt-ric:/config:ro
+    networks:
+      - a1-network
+    labels:
+      - "com.a1.service=mock"
+      - "com.a1.component=near-rt-ric"
+      - "com.a1.environment=development"
+
+  # Nephoran Controller Mock Service
+  nephoran-controller:
+    image: mockserver/mockserver:latest
+    container_name: nephoran-controller-mock
+    hostname: nephoran-controller
+    restart: unless-stopped
+    ports:
+      - "8083:1080"
+    environment:
+      - MOCKSERVER_PROPERTY_FILE=/config/mockserver.properties
+      - MOCKSERVER_INITIALIZATION_JSON_PATH=/config/controller-expectations.json
+    volumes:
+      - ./mocks/nephoran-controller:/config:ro
+    networks:
+      - nephoran-network
+    labels:
+      - "com.a1.service=mock"
+      - "com.a1.component=nephoran-controller"
+      - "com.a1.environment=development"
+
+  # OAuth2 Mock Service
+  oauth2-mock:
+    image: mockserver/mockserver:latest
+    container_name: oauth2-mock
+    hostname: oauth2-mock
+    restart: unless-stopped
+    ports:
+      - "8084:1080"
+    environment:
+      - MOCKSERVER_PROPERTY_FILE=/config/mockserver.properties
+      - MOCKSERVER_INITIALIZATION_JSON_PATH=/config/oauth2-expectations.json
+    volumes:
+      - ./mocks/oauth2:/config:ro
+    networks:
+      - a1-network
+    labels:
+      - "com.a1.service=mock"
+      - "com.a1.component=oauth2"
+      - "com.a1.environment=development"
+
+  # Reverse Proxy / Load Balancer
+  traefik:
+    image: traefik:v3.0
+    container_name: a1-traefik
+    hostname: traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard (conflicts with A1 service - use different port)
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik:/etc/traefik:ro
+    networks:
+      - a1-network
+      - monitoring-network
+      - nephoran-network
+    labels:
+      - "com.a1.service=proxy"
+      - "com.a1.environment=development"
+
+  # Log Aggregation
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: a1-elasticsearch
+    hostname: elasticsearch
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - a1-network
+      - monitoring-network
+    labels:
+      - "com.a1.service=logging"
+      - "com.a1.component=elasticsearch"
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.11.0
+    container_name: a1-kibana
+    hostname: kibana
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    networks:
+      - a1-network
+      - monitoring-network
+    depends_on:
+      - elasticsearch
+    labels:
+      - "com.a1.service=logging"
+      - "com.a1.component=kibana"
+
+  # Test Runner Service
+  test-runner:
+    build:
+      context: ../../../
+      dockerfile: deployments/a1-service/docker/Dockerfile
+      target: testing
+    container_name: a1-test-runner
+    hostname: test-runner
+    profiles:
+      - testing
+    volumes:
+      - ../../../:/app:ro
+      - test-results:/test-results
+    networks:
+      - a1-network
+    environment:
+      - A1_DB_URL=postgresql://a1_service:a1_password@postgres:5432/a1_policies_test?sslmode=disable
+      - A1_REDIS_URL=redis://:redis_password@redis:6379/1
+      - TEST_RESULTS_PATH=/test-results
+    depends_on:
+      - postgres
+      - redis
+    command: ["make", "test-integration"]
+
+  # Load Testing Service
+  load-tester:
+    image: loadimpact/k6:latest
+    container_name: a1-load-tester
+    hostname: load-tester
+    profiles:
+      - load-testing
+    volumes:
+      - ./load-tests:/scripts:ro
+      - test-results:/results
+    networks:
+      - a1-network
+    environment:
+      - A1_SERVICE_URL=http://a1-policy-service:8080
+    depends_on:
+      - a1-policy-service
+    command: ["run", "--out", "json=/results/load-test-results.json", "/scripts/load-test.js"]
+
+networks:
+  a1-network:
+    name: a1-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    labels:
+      - "com.a1.network=internal"
+  
+  nephoran-network:
+    name: nephoran-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+    labels:
+      - "com.nephoran.network=integration"
+  
+  monitoring-network:
+    name: monitoring-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.22.0.0/16
+    labels:
+      - "com.monitoring.network=observability"
+
+volumes:
+  postgres-data:
+    name: a1-postgres-data
+    driver: local
+    labels:
+      - "com.a1.volume=database"
+  
+  redis-data:
+    name: a1-redis-data
+    driver: local
+    labels:
+      - "com.a1.volume=cache"
+  
+  prometheus-data:
+    name: a1-prometheus-data
+    driver: local
+    labels:
+      - "com.a1.volume=metrics"
+  
+  grafana-data:
+    name: a1-grafana-data
+    driver: local
+    labels:
+      - "com.a1.volume=dashboard"
+  
+  jaeger-data:
+    name: a1-jaeger-data
+    driver: local
+    labels:
+      - "com.a1.volume=tracing"
+  
+  elasticsearch-data:
+    name: a1-elasticsearch-data
+    driver: local
+    labels:
+      - "com.a1.volume=logging"
+  
+  a1-cache:
+    name: a1-cache
+    driver: local
+    labels:
+      - "com.a1.volume=cache"
+  
+  a1-logs:
+    name: a1-logs
+    driver: local
+    labels:
+      - "com.a1.volume=logs"
+  
+  test-results:
+    name: a1-test-results
+    driver: local
+    labels:
+      - "com.a1.volume=testing"
+
+# Health check definitions for compose
+x-healthcheck-common: &healthcheck-common
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 30s
+
+# Common service template
+x-service-common: &service-common
+  restart: unless-stopped
+  networks:
+    - a1-network
+  labels:
+    - "com.a1.environment=development"

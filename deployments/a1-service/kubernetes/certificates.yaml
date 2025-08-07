@@ -1,0 +1,390 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: nephoran-ca-issuer
+  labels:
+    app.kubernetes.io/name: cert-manager
+    app.kubernetes.io/instance: nephoran-ca-issuer
+    app.kubernetes.io/component: ca-issuer
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  ca:
+    secretName: nephoran-ca-key-pair
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: a1-policy-service-tls
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: tls-certificate
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    # Certificate lifecycle annotations
+    cert-manager.io/revision-history-limit: "3"
+    cert-manager.io/private-key-algorithm: "ECDSA"
+    cert-manager.io/private-key-size: "256"
+spec:
+  # Certificate validity period
+  duration: 8760h  # 1 year
+  renewBefore: 720h  # 30 days before expiry
+  
+  # Subject information
+  subject:
+    organizations:
+    - Nephoran Intent Operator
+    organizationalUnits:
+    - A1 Policy Management Service
+    countries:
+    - US
+    provinces:
+    - CA
+    localities:
+    - San Francisco
+  
+  # Alternative names
+  commonName: a1-policy-service.nephoran-a1.svc.cluster.local
+  dnsNames:
+  - a1-policy-service
+  - a1-policy-service.nephoran-a1
+  - a1-policy-service.nephoran-a1.svc
+  - a1-policy-service.nephoran-a1.svc.cluster.local
+  - a1-api.nephoran.io
+  - a1.nephoran.io
+  - a1-mesh.nephoran.io
+  - localhost
+  ipAddresses:
+  - 127.0.0.1
+  - ::1
+  
+  # Secret to store the certificate
+  secretName: a1-policy-service-tls
+  
+  # Private key configuration
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  
+  # Certificate issuer
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+  
+  # Certificate usages
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
+  
+  # ACME configuration (if using Let's Encrypt)
+  # acme:
+  #   config:
+  #   - http01:
+  #       ingressClass: nginx
+  #     domains:
+  #     - a1-api.nephoran.io
+  #     - a1.nephoran.io
+
+---
+# Certificate for internal service-to-service communication
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: a1-policy-service-internal-tls
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/component: internal-tls-certificate
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    certificate-type: internal
+spec:
+  duration: 2160h  # 90 days
+  renewBefore: 360h  # 15 days before expiry
+  
+  subject:
+    organizations:
+    - Nephoran Intent Operator
+    organizationalUnits:
+    - A1 Internal Services
+  
+  commonName: a1-policy-service-internal.nephoran-a1.svc.cluster.local
+  dnsNames:
+  - a1-policy-service-internal
+  - a1-policy-service-internal.nephoran-a1
+  - a1-policy-service-internal.nephoran-a1.svc
+  - a1-policy-service-internal.nephoran-a1.svc.cluster.local
+  - a1-internal.nephoran-a1.svc.cluster.local
+  
+  secretName: a1-policy-service-tls-internal
+  
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+  
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth
+
+---
+# Certificate for Istio service mesh
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: a1-policy-service-istio-tls
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/component: istio-tls-certificate
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    certificate-type: istio
+spec:
+  duration: 720h  # 30 days
+  renewBefore: 168h  # 7 days before expiry
+  
+  subject:
+    organizations:
+    - Nephoran Intent Operator
+    organizationalUnits:
+    - Istio Service Mesh
+  
+  commonName: a1-mesh.nephoran.io
+  dnsNames:
+  - a1-mesh.nephoran.io
+  - a1-policy-service.nephoran-a1.svc.cluster.local
+  
+  secretName: a1-policy-service-tls-istio
+  
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+  
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+
+---
+# Certificate for ingress TLS
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: a1-policy-service-ingress-tls
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/component: ingress-tls-certificate
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    certificate-type: ingress
+spec:
+  duration: 2160h  # 90 days
+  renewBefore: 360h  # 15 days before expiry
+  
+  subject:
+    organizations:
+    - Nephoran Intent Operator
+    organizationalUnits:
+    - Public API Gateway
+  
+  commonName: a1-api.nephoran.io
+  dnsNames:
+  - a1-api.nephoran.io
+  - a1.nephoran.io
+  
+  secretName: a1-policy-service-tls-ingress
+  
+  privateKey:
+    algorithm: RSA
+    size: 2048
+    rotationPolicy: Always
+  
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+  
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+
+---
+# Certificate for client authentication (mTLS)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: a1-policy-service-client-tls
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/component: client-tls-certificate
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    certificate-type: client
+spec:
+  duration: 720h  # 30 days
+  renewBefore: 168h  # 7 days before expiry
+  
+  subject:
+    organizations:
+    - Nephoran Intent Operator
+    organizationalUnits:
+    - A1 Policy Service Client
+    commonName: a1-policy-service-client
+  
+  secretName: a1-policy-service-client-tls
+  
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+    rotationPolicy: Always
+  
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+  
+  usages:
+  - digital signature
+  - key encipherment
+  - client auth
+
+---
+# CertificateRequest for emergency certificate issuance
+apiVersion: cert-manager.io/v1
+kind: CertificateRequest
+metadata:
+  name: a1-policy-service-emergency-cert
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/component: emergency-certificate
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    certificate-type: emergency
+  annotations:
+    # Emergency certificate - manually managed
+    cert-manager.io/certificate-name: a1-policy-service-emergency
+    cert-manager.io/private-key-algorithm: "ECDSA"
+    cert-manager.io/private-key-size: "256"
+spec:
+  # CSR (Certificate Signing Request) - would be populated by cert-manager
+  request: ""
+  
+  duration: 24h  # Short-lived emergency certificate
+  
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+  
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+
+---
+# Certificate monitoring and alerting
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: a1-policy-service-cert-monitor
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/component: certificate-monitoring
+    app.kubernetes.io/part-of: nephoran-intent-operator
+data:
+  certificate-alerts.yaml: |
+    groups:
+    - name: a1-policy-service-certificates
+      rules:
+      - alert: A1PolicyServiceCertificateExpiringSoon
+        expr: (cert_manager_certificate_expiration_timestamp_seconds{name="a1-policy-service-tls"} - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+          service: a1-policy-service
+          component: certificate
+        annotations:
+          summary: "A1 Policy Service certificate expiring soon"
+          description: "A1 Policy Service TLS certificate will expire in {{ $value }} days"
+          runbook_url: "https://docs.nephoran.io/runbooks/certificate-renewal"
+      
+      - alert: A1PolicyServiceCertificateExpired
+        expr: cert_manager_certificate_expiration_timestamp_seconds{name="a1-policy-service-tls"} < time()
+        for: 5m
+        labels:
+          severity: critical
+          service: a1-policy-service
+          component: certificate
+        annotations:
+          summary: "A1 Policy Service certificate expired"
+          description: "A1 Policy Service TLS certificate has expired"
+          runbook_url: "https://docs.nephoran.io/runbooks/certificate-expired"
+      
+      - alert: A1PolicyServiceCertificateRenewalFailed
+        expr: cert_manager_certificate_renewal_timestamp_seconds{name="a1-policy-service-tls"} == 0
+        for: 30m
+        labels:
+          severity: critical
+          service: a1-policy-service
+          component: certificate
+        annotations:
+          summary: "A1 Policy Service certificate renewal failed"
+          description: "A1 Policy Service certificate renewal has failed"
+          runbook_url: "https://docs.nephoran.io/runbooks/certificate-renewal-failed"
+  
+  certificate-rotation.sh: |
+    #!/bin/bash
+    # Emergency certificate rotation script
+    set -euo pipefail
+    
+    NAMESPACE="nephoran-a1"
+    CERT_NAME="a1-policy-service-tls"
+    
+    echo "Starting emergency certificate rotation for A1 Policy Service..."
+    
+    # Check if certificate exists and is expiring
+    EXPIRY=$(kubectl get certificate $CERT_NAME -n $NAMESPACE -o jsonpath='{.status.notAfter}')
+    CURRENT=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    
+    echo "Certificate expires at: $EXPIRY"
+    echo "Current time: $CURRENT"
+    
+    # Force certificate renewal
+    kubectl patch certificate $CERT_NAME -n $NAMESPACE -p '{"spec":{"renewBefore":"8760h"}}'
+    
+    # Wait for renewal
+    echo "Waiting for certificate renewal..."
+    kubectl wait --for=condition=Ready certificate/$CERT_NAME -n $NAMESPACE --timeout=300s
+    
+    # Restart pods to pick up new certificate
+    echo "Restarting A1 Policy Service pods..."
+    kubectl rollout restart deployment/a1-policy-service -n $NAMESPACE
+    kubectl rollout status deployment/a1-policy-service -n $NAMESPACE --timeout=300s
+    
+    echo "Certificate rotation completed successfully"

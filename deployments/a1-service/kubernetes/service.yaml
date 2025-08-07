@@ -1,0 +1,244 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: a1-policy-service
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kubernetes
+  annotations:
+    # Service mesh annotations
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+    # Prometheus scraping
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
+    prometheus.io/scheme: "https"
+    # External DNS
+    external-dns.alpha.kubernetes.io/hostname: "a1.nephoran.io"
+    external-dns.alpha.kubernetes.io/ttl: "300"
+spec:
+  type: ClusterIP
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3 hours
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8080
+    protocol: TCP
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+
+---
+# Headless service for StatefulSet-like behavior (if needed for clustering)
+apiVersion: v1
+kind: Service
+metadata:
+  name: a1-policy-service-headless
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    service-type: headless
+spec:
+  type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+
+---
+# NodePort service for external access (if needed)
+apiVersion: v1
+kind: Service
+metadata:
+  name: a1-policy-service-nodeport
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    service-type: nodeport
+  annotations:
+    # This service is for development/testing only
+    nephoran.io/environment: "development"
+    nephoran.io/warning: "Not for production use"
+spec:
+  type: NodePort
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8080
+    nodePort: 30443
+    protocol: TCP
+  - name: http
+    port: 80
+    targetPort: 8080
+    nodePort: 30080
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+
+---
+# LoadBalancer service for cloud environments
+apiVersion: v1
+kind: Service
+metadata:
+  name: a1-policy-service-loadbalancer
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    service-type: loadbalancer
+  annotations:
+    # Cloud provider specific annotations
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-scheme: "internal"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "https"
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:region:account:certificate/certificate-id"
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "300"
+    
+    # Azure specific annotations
+    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
+    service.beta.kubernetes.io/azure-load-balancer-internal-subnet: "nephoran-subnet"
+    
+    # GCP specific annotations
+    cloud.google.com/load-balancer-type: "Internal"
+    cloud.google.com/backend-config: '{"default": "a1-policy-service-backendconfig"}'
+    
+    # External DNS
+    external-dns.alpha.kubernetes.io/hostname: "a1-api.nephoran.io"
+    external-dns.alpha.kubernetes.io/ttl: "300"
+    
+    # Health checks
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-path: "/health"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "8080"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "HTTPS"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-interval: "30"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-healthy-threshold: "2"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-unhealthy-threshold: "3"
+spec:
+  type: LoadBalancer
+  loadBalancerSourceRanges:
+  # Restrict access to specific IP ranges (customize as needed)
+  - "10.0.0.0/8"      # Private networks
+  - "172.16.0.0/12"   # Private networks
+  - "192.168.0.0/16"  # Private networks
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8080
+    protocol: TCP
+  - name: metrics
+    port: 9090
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+
+---
+# Service for Near-RT RIC communication (internal only)
+apiVersion: v1
+kind: Service
+metadata:
+  name: a1-policy-service-ric
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    service-type: ric-internal
+  annotations:
+    # This service is for Near-RT RIC communication only
+    service.nephoran.io/purpose: "near-rt-ric-communication"
+    service.nephoran.io/internal-only: "true"
+spec:
+  type: ClusterIP
+  ports:
+  - name: a1-p
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: a1-c
+    port: 8081
+    targetPort: 8080
+    protocol: TCP
+  - name: a1-ei
+    port: 8082
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+
+---
+# Service for Nephoran controller communication
+apiVersion: v1
+kind: Service
+metadata:
+  name: a1-policy-service-nephoran
+  namespace: nephoran-a1
+  labels:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: policy-management
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    service-type: nephoran-internal
+  annotations:
+    # This service is for Nephoran controller communication only
+    service.nephoran.io/purpose: "nephoran-controller-communication"
+    service.nephoran.io/internal-only: "true"
+spec:
+  type: ClusterIP
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8080
+    protocol: TCP
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: a1-policy-service
+    app.kubernetes.io/instance: a1-policy-service
