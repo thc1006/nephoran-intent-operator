@@ -65,15 +65,46 @@ groups:
 #!/bin/bash
 # sli-measurement-script.sh
 
+# Define PromQL queries using heredocs for clarity
+INTENT_P50_QUERY=$(cat <<'EOF'
+histogram_quantile(0.5, sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le))
+EOF
+)
+
+INTENT_P95_QUERY=$(cat <<'EOF'
+histogram_quantile(0.95, sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le))
+EOF
+)
+
+INTENT_P99_QUERY=$(cat <<'EOF'
+histogram_quantile(0.99, sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le))
+EOF
+)
+
+LLM_P50_QUERY=$(cat <<'EOF'
+histogram_quantile(0.5, sum(rate(llm_request_duration_seconds_bucket[5m])) by (le))
+EOF
+)
+
+LLM_P95_QUERY=$(cat <<'EOF'
+histogram_quantile(0.95, sum(rate(llm_request_duration_seconds_bucket[5m])) by (le))
+EOF
+)
+
+LLM_P99_QUERY=$(cat <<'EOF'
+histogram_quantile(0.99, sum(rate(llm_request_duration_seconds_bucket[5m])) by (le))
+EOF
+)
+
 # Intent Processing Latency (P50, P95, P99)
-INTENT_P50=$(promtool query instant 'histogram_quantile(0.5, sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le))')
-INTENT_P95=$(promtool query instant 'histogram_quantile(0.95, sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le))')
-INTENT_P99=$(promtool query instant 'histogram_quantile(0.99, sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le))')
+INTENT_P50=$(promtool query instant "$INTENT_P50_QUERY")
+INTENT_P95=$(promtool query instant "$INTENT_P95_QUERY")
+INTENT_P99=$(promtool query instant "$INTENT_P99_QUERY")
 
 # LLM Response Time
-LLM_P50=$(promtool query instant 'histogram_quantile(0.5, sum(rate(llm_request_duration_seconds_bucket[5m])) by (le))')
-LLM_P95=$(promtool query instant 'histogram_quantile(0.95, sum(rate(llm_request_duration_seconds_bucket[5m])) by (le))')
-LLM_P99=$(promtool query instant 'histogram_quantile(0.99, sum(rate(llm_request_duration_seconds_bucket[5m])) by (le))')
+LLM_P50=$(promtool query instant "$LLM_P50_QUERY")
+LLM_P95=$(promtool query instant "$LLM_P95_QUERY")
+LLM_P99=$(promtool query instant "$LLM_P99_QUERY")
 
 # Generate SLO report
 cat << EOF > /tmp/slo-report-$(date +%Y%m%d).json
@@ -976,12 +1007,16 @@ echo "📝 Incident log saved to: $INCIDENT_LOG"
 # Check component response times
 echo "🔍 Investigating high latency..."
 
+# Define PromQL queries
+LLM_P95_QUERY='histogram_quantile(0.95, sum(rate(llm_request_duration_seconds_bucket[5m])) by (le))'
+RAG_P95_QUERY='histogram_quantile(0.95, sum(rate(rag_query_latency_seconds_bucket[5m])) by (le))'
+
 # LLM service latency
-LLM_P95=$(promtool query instant 'histogram_quantile(0.95, sum(rate(llm_request_duration_seconds_bucket[5m])) by (le))')
+LLM_P95=$(promtool query instant "$LLM_P95_QUERY")
 echo "LLM P95 Latency: ${LLM_P95}s"
 
 # RAG query latency  
-RAG_P95=$(promtool query instant 'histogram_quantile(0.95, sum(rate(rag_query_latency_seconds_bucket[5m])) by (le))')
+RAG_P95=$(promtool query instant "$RAG_P95_QUERY")
 echo "RAG P95 Latency: ${RAG_P95}s"
 
 # Check for resource constraints
@@ -1491,8 +1526,11 @@ kubectl get events -n nephoran-system --sort-by='.lastTimestamp'
 kubectl top pods -n nephoran-system --sort-by=memory
 
 # Performance metrics
-promtool query instant 'rate(intent_processing_total[5m])'
-promtool query instant 'histogram_quantile(0.95, sum(rate(llm_request_duration_seconds_bucket[5m])) by (le))'
+INTENT_RATE_QUERY='rate(intent_processing_total[5m])'
+LLM_P95_QUERY='histogram_quantile(0.95, sum(rate(llm_request_duration_seconds_bucket[5m])) by (le))'
+
+promtool query instant "$INTENT_RATE_QUERY"
+promtool query instant "$LLM_P95_QUERY"
 
 # Log aggregation
 kubectl logs -n nephoran-system -l app=llm-processor --tail=100
