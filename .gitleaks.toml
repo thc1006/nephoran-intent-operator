@@ -1,0 +1,117 @@
+# Gitleaks configuration for Nephoran Intent Operator
+title = "Gitleaks Configuration for Nephoran Intent Operator"
+
+# Rules to detect secrets
+[[rules]]
+id = "aws-access-token"
+description = "AWS Access Token"
+regex = '''(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+keywords = ["AKIA", "AGPA", "AIDA", "AROA", "AIPA", "ANPA", "ANVA", "ASIA"]
+
+[[rules]]
+id = "private-key"
+description = "Private Key"
+regex = '''-----BEGIN ((EC|PGP|DSA|RSA|OPENSSH) )?PRIVATE KEY( BLOCK)?-----'''
+keywords = ["-----BEGIN PRIVATE KEY-----", "-----BEGIN RSA PRIVATE KEY-----", "-----BEGIN EC PRIVATE KEY-----", "-----BEGIN PGP PRIVATE KEY BLOCK-----"]
+
+[[rules]]
+id = "github-pat"
+description = "GitHub Personal Access Token"
+regex = '''ghp_[0-9a-zA-Z]{36}'''
+keywords = ["ghp_"]
+
+[[rules]]
+id = "slack-access-token"
+description = "Slack Access Token"
+regex = '''xox[baprs]-([0-9a-zA-Z]{10,48})'''
+keywords = ["xoxb-", "xoxp-", "xoxa-", "xoxr-", "xoxs-"]
+
+[[rules]]
+id = "stripe-access-token"
+description = "Stripe Access Token"
+regex = '''(?i)(sk|rk)_(test|live)_[0-9a-z]{10,32}'''
+keywords = ["sk_test", "rk_test", "sk_live", "rk_live"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)api[_-]?key['"\s]*[:=]['"\s]*[0-9a-z\-_]{10,}'''
+keywords = ["api_key", "api-key", "apikey"]
+
+[[rules]]
+id = "jwt-token"
+description = "JWT Token"
+regex = '''eyJ[0-9a-zA-Z_-]*\.eyJ[0-9a-zA-Z_-]*\.[0-9a-zA-Z_-]*'''
+keywords = ["eyJ"]
+
+[[rules]]
+id = "password"
+description = "Password"
+regex = '''(?i)password['"\s]*[:=]['"\s]*[^'"\s]{3,}'''
+keywords = ["password"]
+
+[[rules]]
+id = "basic-auth"
+description = "Basic Auth"
+regex = '''(?i)basic\s+[a-z0-9+/]{4,}={0,2}'''
+keywords = ["basic "]
+
+# Global allowlist
+[allowlist]
+description = "Global allowlist"
+regexes = [
+    # Allow example/dummy values
+    '''password['"]*[:=]['"]*\s*(example|test|dummy|placeholder|xxx|changeme|password123)''',
+    # Allow template variables
+    '''\{\{.*\}\}''',
+    # Allow environment variable references
+    '''\$\{.*\}''',
+    # Allow Kubernetes secrets references
+    '''valueFrom:\s*secretKeyRef''',
+    # Allow documentation examples
+    '''example\.com''',
+    # Allow test fixtures
+    '''testdata/''',
+    # Allow license headers
+    '''Copyright \(c\)''',
+]
+
+paths = [
+    # Ignore test files and examples
+    '''**/testdata/**''',
+    '''**/*_test.go''',
+    '''**/examples/**''',
+    '''**/docs/**''',
+    '''**/*.md''',
+    # Ignore vendor and build artifacts
+    '''**/vendor/**''',
+    '''**/node_modules/**''',
+    '''**/bin/**''',
+    '''**/*.log''',
+    # Ignore git and CI files
+    '''.git/**''',
+    '''.github/**''',
+    '''**/.github/**''',
+    # Ignore configuration files that might contain template values
+    '''**/values.yaml''',
+    '''**/values-*.yaml''',
+]
+
+# Custom rules for telecommunications security
+[[rules]]
+id = "telecom-credentials"
+description = "Telecommunications Credentials"
+regex = '''(?i)(imsi|imei|msisdn|plmn)['"]*[:=]['"]*[0-9]{10,}'''
+keywords = ["imsi", "imei", "msisdn", "plmn"]
+
+[[rules]]
+id = "5g-security-key"
+description = "5G Security Key"
+regex = '''(?i)(k|opc|op|ki)['"]*[:=]['"]*[0-9a-f]{32}'''
+keywords = ["5g", "k=", "opc=", "op=", "ki="]
+
+[[rules]]
+id = "ran-credentials"
+description = "RAN Credentials"
+regex = '''(?i)(pci|tac|cellid)['"]*[:=]['"]*[0-9]{1,}'''
+keywords = ["pci", "tac", "cellid"]

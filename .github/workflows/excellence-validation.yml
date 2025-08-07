@@ -1,0 +1,435 @@
+name: Excellence Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      validation_scope:
+        description: 'Validation scope (all, security, docs, community)'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+        - all
+        - security
+        - docs
+        - community
+      skip_tests:
+        description: 'Skip test suite execution'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REPORTS_DIR: .excellence-reports
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  excellence-validation:
+    name: Excellence Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+      
+    outputs:
+      excellence-score: ${{ steps.scoring.outputs.excellence_score }}
+      excellence-grade: ${{ steps.scoring.outputs.excellence_grade }}
+      validation-status: ${{ steps.scoring.outputs.validation_status }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for trend analysis
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+        cache: true
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y jq bc curl wget unzip
+        
+        # Install additional security tools
+        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+        
+        # Install govulncheck if Go is available
+        if command -v go >/dev/null 2>&1; then
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+        fi
+
+    - name: Create reports directory
+      run: |
+        mkdir -p ${{ env.REPORTS_DIR }}
+        echo "Reports will be saved to: ${{ env.REPORTS_DIR }}"
+
+    - name: Documentation Quality Validation
+      if: ${{ github.event.inputs.validation_scope == 'all' || github.event.inputs.validation_scope == 'docs' || github.event.inputs.validation_scope == '' }}
+      run: |
+        echo "::group::Documentation Quality Validation"
+        bash scripts/validate-docs.sh --report-dir "${{ env.REPORTS_DIR }}" || echo "Documentation validation completed with warnings"
+        echo "::endgroup::"
+
+    - name: Security Compliance Check  
+      if: ${{ github.event.inputs.validation_scope == 'all' || github.event.inputs.validation_scope == 'security' || github.event.inputs.validation_scope == '' }}
+      run: |
+        echo "::group::Security Compliance Check"
+        bash scripts/daily-compliance-check.sh --report-dir "${{ env.REPORTS_DIR }}" --security-only || echo "Security compliance check completed with warnings"
+        echo "::endgroup::"
+
+    - name: Community Engagement Analysis
+      if: ${{ github.event.inputs.validation_scope == 'all' || github.event.inputs.validation_scope == 'community' || github.event.inputs.validation_scope == '' }}
+      env:
+        GITHUB_OWNER: ${{ github.repository_owner }}
+        GITHUB_REPO: ${{ github.event.repository.name }}
+      run: |
+        echo "::group::Community Engagement Analysis"
+        bash scripts/community-metrics.sh --report-dir "${{ env.REPORTS_DIR }}" --github-owner "${{ env.GITHUB_OWNER }}" --github-repo "${{ env.GITHUB_REPO }}" || echo "Community metrics collection completed with warnings"
+        echo "::endgroup::"
+
+    - name: Excellence Test Suite
+      if: ${{ github.event.inputs.skip_tests != 'true' }}
+      run: |
+        echo "::group::Excellence Test Suite"
+        if [ -d "tests/excellence" ]; then
+          go test ./tests/excellence/... -v -timeout=30m --ginkgo.v || echo "Excellence test suite completed with some failures"
+        else
+          echo "Excellence test suite not found, skipping"
+        fi
+        echo "::endgroup::"
+
+    - name: Calculate Excellence Score
+      id: scoring
+      run: |
+        echo "::group::Excellence Scoring System"
+        
+        # Run excellence scoring system
+        if bash scripts/excellence-scoring-system.sh --report-dir "${{ env.REPORTS_DIR }}"; then
+          exit_code=0
+        else
+          exit_code=$?
+        fi
+        
+        # Extract scores from the report
+        if [ -f "${{ env.REPORTS_DIR }}/excellence_dashboard.json" ]; then
+          excellence_score=$(jq -r '.summary.overall_score' "${{ env.REPORTS_DIR }}/excellence_dashboard.json")
+          excellence_grade=$(jq -r '.summary.grade' "${{ env.REPORTS_DIR }}/excellence_dashboard.json")
+          excellence_status=$(jq -r '.summary.status' "${{ env.REPORTS_DIR }}/excellence_dashboard.json")
+        else
+          excellence_score="0"
+          excellence_grade="F"
+          excellence_status="unknown"
+        fi
+        
+        echo "excellence_score=$excellence_score" >> $GITHUB_OUTPUT
+        echo "excellence_grade=$excellence_grade" >> $GITHUB_OUTPUT
+        echo "validation_status=$excellence_status" >> $GITHUB_OUTPUT
+        
+        # Set step conclusion based on score
+        if [ "$exit_code" -eq 0 ]; then
+          echo "validation_conclusion=success" >> $GITHUB_OUTPUT
+        elif [ "$exit_code" -eq 1 ]; then
+          echo "validation_conclusion=neutral" >> $GITHUB_OUTPUT
+        else
+          echo "validation_conclusion=failure" >> $GITHUB_OUTPUT
+        fi
+        
+        echo "Excellence Score: $excellence_score ($excellence_grade - $excellence_status)"
+        echo "::endgroup::"
+        
+        # Return original exit code
+        exit $exit_code
+
+    - name: Upload Excellence Reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: excellence-reports-${{ github.run_id }}
+        path: ${{ env.REPORTS_DIR }}/
+        retention-days: 30
+
+    - name: Generate Excellence Summary
+      if: always()
+      run: |
+        echo "# 🏆 Excellence Validation Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f "${{ env.REPORTS_DIR }}/excellence_dashboard.json" ]; then
+          excellence_score=$(jq -r '.summary.overall_score' "${{ env.REPORTS_DIR }}/excellence_dashboard.json")
+          excellence_grade=$(jq -r '.summary.grade' "${{ env.REPORTS_DIR }}/excellence_dashboard.json")
+          excellence_status=$(jq -r '.summary.status' "${{ env.REPORTS_DIR }}/excellence_dashboard.json")
+          trend=$(jq -r '.summary.trend' "${{ env.REPORTS_DIR }}/excellence_dashboard.json")
+          
+          echo "## Overall Score: $excellence_score/100 (Grade: $excellence_grade)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** $excellence_status  " >> $GITHUB_STEP_SUMMARY
+          echo "**Trend:** $trend  " >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## Category Breakdown" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Category | Score | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|---------|" >> $GITHUB_STEP_SUMMARY
+          
+          for category in documentation security performance api_specification community; do
+            score=$(jq -r ".categories.$category.score" "${{ env.REPORTS_DIR }}/excellence_dashboard.json")
+            status=$(jq -r ".categories.$category.status" "${{ env.REPORTS_DIR }}/excellence_dashboard.json")
+            
+            status_icon="❌"
+            if [ "$status" = "good" ]; then
+              status_icon="✅"
+            elif [ "$status" = "fair" ]; then
+              status_icon="⚠️"
+            fi
+            
+            category_name=$(echo $category | sed 's/_/ /g' | sed 's/\b\w/\U&/g')
+            echo "| $category_name | $score | $status_icon $status |" >> $GITHUB_STEP_SUMMARY
+          done
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Add alerts if any
+          critical_count=$(jq -r '.alerts.critical' "${{ env.REPORTS_DIR }}/excellence_dashboard.json")
+          high_count=$(jq -r '.alerts.high' "${{ env.REPORTS_DIR }}/excellence_dashboard.json")
+          medium_count=$(jq -r '.alerts.medium' "${{ env.REPORTS_DIR }}/excellence_dashboard.json")
+          
+          if [ "$critical_count" -gt 0 ] || [ "$high_count" -gt 0 ] || [ "$medium_count" -gt 0 ]; then
+            echo "## 🚨 Alerts" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            if [ "$critical_count" -gt 0 ]; then
+              echo "- 🔴 **Critical:** $critical_count issues" >> $GITHUB_STEP_SUMMARY
+            fi
+            if [ "$high_count" -gt 0 ]; then
+              echo "- 🟠 **High:** $high_count issues" >> $GITHUB_STEP_SUMMARY  
+            fi
+            if [ "$medium_count" -gt 0 ]; then
+              echo "- 🟡 **Medium:** $medium_count issues" >> $GITHUB_STEP_SUMMARY
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          # Add top recommendations
+          if [ -f "${{ env.REPORTS_DIR }}/excellence_score_"*.json ]; then
+            latest_report=$(ls -t "${{ env.REPORTS_DIR }}/excellence_score_"*.json | head -1)
+            if [ -f "$latest_report" ]; then
+              echo "## 💡 Key Recommendations" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              jq -r '.recommendations[0:3][] | "- " + .' "$latest_report" >> $GITHUB_STEP_SUMMARY || true
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+        else
+          echo "❌ Excellence scoring failed - check logs for details" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "## 📁 Reports" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Excellence reports have been uploaded as workflow artifacts and are available for 30 days." >> $GITHUB_STEP_SUMMARY
+
+    - name: Comment on PR
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          // Read excellence dashboard data
+          const dashboardPath = '${{ env.REPORTS_DIR }}/excellence_dashboard.json';
+          
+          if (!fs.existsSync(dashboardPath)) {
+            console.log('Excellence dashboard not found, skipping PR comment');
+            return;
+          }
+          
+          const dashboard = JSON.parse(fs.readFileSync(dashboardPath, 'utf8'));
+          
+          const score = dashboard.summary.overall_score;
+          const grade = dashboard.summary.grade;
+          const status = dashboard.summary.status;
+          const trend = dashboard.summary.trend;
+          
+          let statusEmoji = '❌';
+          if (status === 'excellent') statusEmoji = '🌟';
+          else if (status === 'good') statusEmoji = '👍';
+          else if (status === 'fair') statusEmoji = '⚠️';
+          
+          let trendEmoji = '➡️';
+          if (trend === 'improving') trendEmoji = '📈';
+          else if (trend === 'declining') trendEmoji = '📉';
+          
+          const body = `
+          ## 🏆 Excellence Validation Results
+          
+          **Overall Score:** ${score}/100 (Grade: **${grade}**)  
+          **Status:** ${statusEmoji} ${status}  
+          **Trend:** ${trendEmoji} ${trend}
+          
+          ### Category Breakdown
+          | Category | Score | Status |
+          |----------|-------|---------|
+          | 📚 Documentation | ${dashboard.categories.documentation.score} | ${dashboard.categories.documentation.status === 'good' ? '✅' : dashboard.categories.documentation.status === 'fair' ? '⚠️' : '❌'} |
+          | 🔒 Security | ${dashboard.categories.security.score} | ${dashboard.categories.security.status === 'good' ? '✅' : dashboard.categories.security.status === 'fair' ? '⚠️' : '❌'} |
+          | ⚡ Performance | ${dashboard.categories.performance.score} | ${dashboard.categories.performance.status === 'good' ? '✅' : dashboard.categories.performance.status === 'fair' ? '⚠️' : '❌'} |
+          | 🔧 API Specification | ${dashboard.categories.api_specification.score} | ${dashboard.categories.api_specification.status === 'good' ? '✅' : dashboard.categories.api_specification.status === 'fair' ? '⚠️' : '❌'} |
+          | 👥 Community | ${dashboard.categories.community.score} | ${dashboard.categories.community.status === 'good' ? '✅' : dashboard.categories.community.status === 'fair' ? '⚠️' : '❌'} |
+          
+          ${dashboard.alerts.critical + dashboard.alerts.high + dashboard.alerts.medium > 0 ? 
+            `### 🚨 Alerts
+            ${dashboard.alerts.critical > 0 ? `- 🔴 **${dashboard.alerts.critical}** Critical issues` : ''}
+            ${dashboard.alerts.high > 0 ? `- 🟠 **${dashboard.alerts.high}** High priority issues` : ''}  
+            ${dashboard.alerts.medium > 0 ? `- 🟡 **${dashboard.alerts.medium}** Medium priority issues` : ''}
+            ` : ''}
+          
+          📊 Detailed reports are available in the workflow artifacts.
+          `;
+          
+          // Find existing comment
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          const existingComment = comments.find(comment => 
+            comment.user.type === 'Bot' && comment.body.includes('🏆 Excellence Validation Results')
+          );
+          
+          if (existingComment) {
+            // Update existing comment
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: body
+            });
+          } else {
+            // Create new comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+          }
+
+  excellence-gate:
+    name: Excellence Gate
+    runs-on: ubuntu-latest
+    needs: excellence-validation
+    if: always()
+    
+    steps:
+    - name: Evaluate Excellence Gate
+      run: |
+        echo "Excellence Score: ${{ needs.excellence-validation.outputs.excellence-score }}"
+        echo "Excellence Grade: ${{ needs.excellence-validation.outputs.excellence-grade }}"
+        echo "Validation Status: ${{ needs.excellence-validation.outputs.validation-status }}"
+        
+        score="${{ needs.excellence-validation.outputs.excellence-score }}"
+        grade="${{ needs.excellence-validation.outputs.excellence-grade }}"
+        status="${{ needs.excellence-validation.outputs.validation-status }}"
+        
+        # Define gate thresholds
+        min_score_for_merge=60
+        min_score_for_release=75
+        
+        echo "Minimum score for merge: $min_score_for_merge"
+        echo "Minimum score for release: $min_score_for_release"
+        
+        # Check if this is a release branch or main branch merge
+        if [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.base_ref }}" == "main" ]]; then
+          echo "Evaluating against release standards (minimum score: $min_score_for_release)"
+          if (( $(echo "$score < $min_score_for_release" | bc -l) )); then
+            echo "::error::Excellence score ($score) is below the required threshold for main branch ($min_score_for_release)"
+            echo "::error::Please improve the project quality before merging to main"
+            exit 1
+          else
+            echo "::notice::Excellence gate passed for main branch merge (score: $score >= $min_score_for_release)"
+          fi
+        else
+          echo "Evaluating against development standards (minimum score: $min_score_for_merge)"
+          if (( $(echo "$score < $min_score_for_merge" | bc -l) )); then
+            echo "::warning::Excellence score ($score) is below recommended threshold ($min_score_for_merge)"
+            echo "::warning::Consider improving quality before merging"
+            # Don't fail for development branches, just warn
+          else
+            echo "::notice::Excellence gate passed for development branch (score: $score >= $min_score_for_merge)"
+          fi
+        fi
+        
+        # Set outputs for downstream jobs
+        echo "gate_passed=true" >> $GITHUB_OUTPUT
+        echo "excellence_score=$score" >> $GITHUB_OUTPUT
+
+  deploy-dashboard:
+    name: Deploy Excellence Dashboard
+    runs-on: ubuntu-latest
+    needs: excellence-validation
+    if: github.ref == 'refs/heads/main' && always()
+    
+    permissions:
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Download excellence reports
+      uses: actions/download-artifact@v4
+      with:
+        name: excellence-reports-${{ github.run_id }}
+        path: excellence-reports/
+    
+    - name: Prepare dashboard for deployment
+      run: |
+        mkdir -p dashboard
+        
+        # Copy HTML dashboard
+        if [ -f "excellence-reports/excellence_dashboard.html" ]; then
+          cp excellence-reports/excellence_dashboard.html dashboard/index.html
+          echo "Dashboard prepared for deployment"
+        else
+          echo "<h1>Excellence Dashboard Not Available</h1><p>The excellence validation did not complete successfully.</p>" > dashboard/index.html
+        fi
+        
+        # Copy JSON data for API access
+        if [ -f "excellence-reports/excellence_dashboard.json" ]; then
+          cp excellence-reports/excellence_dashboard.json dashboard/data.json
+        fi
+        
+        if [ -f "excellence-reports/excellence_trends.json" ]; then
+          cp excellence-reports/excellence_trends.json dashboard/trends.json
+        fi
+    
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+    
+    - name: Upload to GitHub Pages
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: dashboard/
+    
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4

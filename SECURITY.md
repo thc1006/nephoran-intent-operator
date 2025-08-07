@@ -1,0 +1,208 @@
+# Security Policy
+
+## Reporting Security Vulnerabilities
+
+The Nephoran Intent Operator team takes security seriously. We appreciate your efforts to responsibly disclose your findings and will make every effort to acknowledge your contributions.
+
+## Supported Versions
+
+We release patches for security vulnerabilities in the following versions:
+
+| Version | Supported          |
+| ------- | ------------------ |
+| 1.0.x   | :white_check_mark: |
+| 0.9.x   | :white_check_mark: |
+| < 0.9   | :x:                |
+
+## Reporting a Vulnerability
+
+To report a security vulnerability, please follow these steps:
+
+1. **DO NOT** create a public GitHub issue for the vulnerability
+2. Email your findings to security@nephoran.io
+3. Include the following information:
+   - Type of vulnerability (e.g., XSS, SQL injection, RCE)
+   - Full paths of source file(s) related to the vulnerability
+   - Location of the affected source code (tag/branch/commit or direct URL)
+   - Step-by-step instructions to reproduce the issue
+   - Proof-of-concept or exploit code (if possible)
+   - Impact of the vulnerability, including how an attacker might exploit it
+
+## Response Timeline
+
+- **Initial Response**: Within 48 hours
+- **Vulnerability Assessment**: Within 7 days
+- **Patch Development**: Based on severity
+  - CRITICAL: Within 24 hours
+  - HIGH: Within 7 days
+  - MEDIUM: Within 30 days
+  - LOW: Within 90 days
+
+## Disclosure Policy
+
+- Security vulnerabilities will be disclosed via GitHub Security Advisories
+- We follow a coordinated disclosure timeline:
+  1. Security report received
+  2. Vulnerability confirmed and assessed
+  3. Patch developed and tested
+  4. Patch released with security advisory
+  5. Public disclosure after 90 days or when patch is available
+
+## Security Measures
+
+### Architecture Security
+
+The Nephoran Intent Operator implements defense-in-depth with multiple security layers:
+
+#### 1. Zero Trust Architecture
+- Never trust, always verify principle
+- Continuous authentication and authorization
+- Micro-segmentation for network isolation
+- Least privilege access model
+
+#### 2. Container Security
+- Non-root user execution (UID > 10000)
+- Read-only root filesystem
+- All capabilities dropped
+- Seccomp and AppArmor profiles enabled
+- Distroless base images
+
+#### 3. Network Security
+- TLS 1.3 minimum for all communications
+- Mutual TLS (mTLS) for service-to-service
+- Network policies with default deny
+- Egress restrictions to approved endpoints
+
+#### 4. Secrets Management
+- AES-256-GCM encryption for secrets at rest
+- Automatic rotation every 90 days
+- HashiCorp Vault integration
+- No plaintext secrets in code or configuration
+
+#### 5. O-RAN Security Compliance
+- WG11 security specifications implementation
+- Interface-specific security (A1, O1, O2, E2)
+- IPsec for CU-DU communications
+- xApp sandboxing and code signing
+
+### Compliance Standards
+
+The platform maintains compliance with:
+
+- **SOC2 Type 2**: Continuous monitoring and audit controls
+- **ISO 27001:2022**: Information security management system
+- **PCI-DSS v4**: Payment card data protection
+- **GDPR**: Data privacy and protection
+- **O-RAN Alliance WG11**: Telecommunications security specifications
+- **3GPP TS 33.501**: 5G security architecture
+
+### Security Testing
+
+Continuous security validation through:
+
+#### Automated Testing
+- Static Application Security Testing (SAST) with SonarQube
+- Dynamic Application Security Testing (DAST) with OWASP ZAP
+- Container vulnerability scanning with Trivy
+- Dependency scanning with Snyk
+- Secret scanning with GitLeaks
+
+#### Manual Testing
+- Quarterly penetration testing
+- Annual security audits
+- Red team exercises
+- Threat modeling sessions
+
+### Vulnerability Management
+
+- **Scanning Frequency**: Daily automated scans
+- **Critical Vulnerabilities**: Blocked at build time
+- **High Vulnerabilities**: Require approval before deployment
+- **Patch Management**: Automated patching with rollback capability
+- **CVE Tracking**: Continuous monitoring of CVE databases
+
+### Access Control
+
+#### RBAC Policies
+- No wildcard permissions
+- Least privilege principle
+- Regular access reviews
+- Automated deprovisioning
+
+#### Authentication
+- Multi-factor authentication (MFA) required
+- OAuth2/OIDC for external access
+- Certificate-based authentication for services
+- Session timeout after 15 minutes of inactivity
+
+### Incident Response
+
+#### Response Team
+- 24/7 on-call rotation
+- Defined escalation procedures
+- Regular incident response drills
+
+#### Response Procedures
+1. **Detection**: SIEM alerts and monitoring
+2. **Containment**: Automated isolation of affected components
+3. **Eradication**: Root cause analysis and remediation
+4. **Recovery**: Validated restoration procedures
+5. **Lessons Learned**: Post-incident review and improvement
+
+### Data Protection
+
+#### Encryption
+- **At Rest**: AES-256-GCM with HSM key management
+- **In Transit**: TLS 1.3 minimum
+- **Key Management**: Automated rotation and secure storage
+
+#### Data Classification
+- Public, Internal, Confidential, Restricted
+- Mandatory data tagging
+- Access controls based on classification
+
+#### Privacy
+- GDPR compliance with privacy by design
+- Data minimization principles
+- Right to erasure implementation
+- Data portability support
+
+## Security Contacts
+
+- **Security Team Email**: security@nephoran.io
+- **Security Updates**: https://github.com/nephoran/nephoran-intent-operator/security/advisories
+- **Bug Bounty Program**: https://nephoran.io/security/bug-bounty
+
+## Acknowledgments
+
+We would like to thank the following individuals for responsibly disclosing security vulnerabilities:
+
+- [Security Hall of Fame](https://nephoran.io/security/hall-of-fame)
+
+## Security Resources
+
+- [Security Best Practices](docs/security/best-practices.md)
+- [Hardening Guide](docs/security/hardening.md)
+- [Threat Model](docs/security/threat-model.md)
+- [Compliance Documentation](docs/security/compliance.md)
+
+## PGP Key
+
+For encrypted communications, use our PGP key:
+
+```
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+[PGP key would be inserted here]
+-----END PGP PUBLIC KEY BLOCK-----
+```
+
+## Commitment
+
+The Nephoran Intent Operator team is committed to:
+- Rapid response to security reports
+- Transparent communication about security issues
+- Continuous improvement of security posture
+- Regular security training for team members
+- Collaboration with the security community
+
+Thank you for helping keep the Nephoran Intent Operator and its users safe!

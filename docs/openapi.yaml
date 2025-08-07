@@ -1,0 +1,358 @@
+openapi: 3.0.3
+info:
+  title: Nephoran Intent Operator API
+  version: 1.0.0
+  description: |
+    # Nephoran Intent Operator API Specification
+
+    ## Overview
+    The Nephoran Intent Operator API provides comprehensive interfaces for telecommunications 
+    network intent processing, vector search, machine learning optimization, and E2 node management.
+
+    ## Authentication
+    All API endpoints require Bearer token authentication using OAuth2.
+    - OAuth2 providers: Google, Azure AD, Keycloak
+    - Token scopes: intent.read, intent.write, ml.optimize, e2node.manage
+
+    ## Rate Limiting
+    - Intent Processing: 10 requests/second
+    - Query Endpoints: 50 requests/second
+    - Burst capacity: 2x base rate for 30 seconds
+
+    ## SLA Guarantees
+    - Processing Latency: <30 seconds 
+    - Success Rate: >99.5%
+    - Availability: 99.95%
+
+  contact:
+    name: Nephoran Technical Support
+    email: support@nephoran.io
+    url: https://nephoran.io/support
+
+  x-sla-guarantees:
+    processing-latency-ms: 30000
+    success-rate-percentage: 99.5
+    availability-percentage: 99.95
+
+servers:
+  - url: https://api.nephoran.io/v1
+    description: Production API Server
+  - url: https://staging-api.nephoran.io/v1
+    description: Staging API Server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token issued by supported OAuth2 providers.
+        Requires appropriate scopes for API access.
+
+  schemas:
+    NetworkIntent:
+      type: object
+      required: 
+        - intentType
+        - description
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the network intent
+          format: uuid
+        intentType:
+          type: string
+          enum: 
+            - 5G_CORE_DEPLOYMENT
+            - RAN_CONFIGURATION
+            - NETWORK_SLICE
+            - QOS_POLICY
+        description:
+          type: string
+          description: Natural language description of the network intent
+          minLength: 10
+          maxLength: 1000
+        parameters:
+          type: object
+          description: Structured parameters for intent processing
+        status:
+          type: string
+          enum: 
+            - PENDING
+            - PROCESSING
+            - COMPLETED
+            - FAILED
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    E2NodeSet:
+      type: object
+      required:
+        - name
+        - nodeType
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          minLength: 3
+          maxLength: 64
+        nodeType:
+          type: string
+          enum:
+            - O_DU
+            - O_CU
+            - NEAR_RT_RIC
+        configuration:
+          type: object
+          description: Detailed node configuration
+        status:
+          type: string
+          enum:
+            - PROVISIONING
+            - ACTIVE
+            - DEGRADED
+            - MAINTENANCE
+
+    MLOptimizationRequest:
+      type: object
+      required:
+        - optimizationType
+        - parameters
+      properties:
+        optimizationType:
+          type: string
+          enum:
+            - INTENT_PROCESSING
+            - RETRIEVAL_AUGMENTATION
+            - RESOURCE_ALLOCATION
+        parameters:
+          type: object
+          description: Optimization parameters specific to the type
+        objectiveFunction:
+          type: string
+          description: Mathematical objective for optimization
+        constraints:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+              value:
+                type: object
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          enum:
+            - INVALID_REQUEST
+            - AUTHENTICATION_FAILED
+            - RATE_LIMIT_EXCEEDED
+            - RESOURCE_NOT_FOUND
+            - INTERNAL_SERVER_ERROR
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: string
+
+  parameters:
+    XCorrelationID:
+      name: X-Correlation-ID
+      in: header
+      required: true
+      schema:
+        type: string
+        format: uuid
+      description: Unique identifier for tracing request across system components
+
+  responses:
+    RateLimitError:
+      description: Rate limit exceeded
+      headers:
+        X-RateLimit-Limit:
+          schema:
+            type: integer
+        X-RateLimit-Remaining:
+          schema:
+            type: integer
+        X-RateLimit-Reset:
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+paths:
+  /intents:
+    post:
+      summary: Submit a network intent for processing
+      description: |
+        Submits a natural language network intent for AI-powered processing and deployment.
+        Supports various telecommunications network configuration scenarios.
+      operationId: submitNetworkIntent
+      security:
+        - bearerAuth: ['intent.write']
+      parameters:
+        - $ref: '#/components/parameters/XCorrelationID'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkIntent'
+            examples:
+              5GCoreDeployment:
+                value:
+                  intentType: 5G_CORE_DEPLOYMENT
+                  description: "Deploy a high-availability AMF instance for production with auto-scaling"
+      responses:
+        '202':
+          description: Intent accepted for processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  intentId:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: ['PENDING', 'PROCESSING']
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+        '400':
+          description: Invalid intent specification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /intents/{intentId}:
+    get:
+      summary: Retrieve intent processing status
+      operationId: getIntentStatus
+      security:
+        - bearerAuth: ['intent.read']
+      parameters:
+        - name: intentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - $ref: '#/components/parameters/XCorrelationID'
+      responses:
+        '200':
+          description: Intent status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+        '404':
+          description: Intent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /e2nodesets:
+    post:
+      summary: Create a new E2 Node Set
+      description: Manages E2 node configuration for RAN intelligent control
+      operationId: createE2NodeSet
+      security:
+        - bearerAuth: ['e2node.manage']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/E2NodeSet'
+      responses:
+        '201':
+          description: E2 Node Set created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/E2NodeSet'
+        '400':
+          description: Invalid E2 Node Set configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /ml/optimize:
+    post:
+      summary: Request machine learning optimization
+      description: |
+        Submit optimization request for various ML-driven improvements 
+        in intent processing, resource allocation, and retrieval augmentation
+      operationId: requestMLOptimization
+      security:
+        - bearerAuth: ['ml.optimize']
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MLOptimizationRequest'
+      responses:
+        '200':
+          description: Optimization request processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  optimizationJobId:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: ['QUEUED', 'IN_PROGRESS', 'COMPLETED']
+        '429':
+          $ref: '#/components/responses/RateLimitError'
+
+x-webhooks:
+  intentProcessingCallback:
+    post:
+      summary: Webhook for intent processing updates
+      description: Receive real-time updates on intent processing status
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkIntent'
+      responses:
+        '200':
+          description: Callback received successfully
+
+x-async-operations:
+  supported: true
+  max-concurrent-jobs: 200
+  job-timeout-seconds: 3600
+
+x-versioning:
+  current-version: 1.0.0
+  deprecation-policy:
+    - old-version: 0.9.0
+      deprecation-date: '2024-12-31'
+      removal-date: '2025-06-30'
+  upgrade-paths:
+    - from: 0.9.0
+      to: 1.0.0
+      migration-guide: https://nephoran.io/api/migration/0.9.0-to-1.0.0

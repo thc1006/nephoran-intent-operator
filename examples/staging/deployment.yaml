@@ -1,0 +1,501 @@
+# Staging Environment Deployment Examples
+# These examples simulate production-like conditions for pre-production testing
+
+---
+# Staging Environment Foundation
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: staging-environment-setup
+  namespace: nephoran-staging
+  labels:
+    environment: staging
+    purpose: foundation
+    tier: infrastructure
+spec:
+  intent: "Establish production-like staging environment with security and monitoring"
+  target_environment: "staging"
+  priority: "high"
+  security:
+    enabled: true
+    tls_required: true
+    authentication: "oauth2"
+  monitoring:
+    enabled: true
+    retention: "30d"
+    alerting: true
+  backup:
+    enabled: true
+    schedule: "0 2 * * *"  # Daily at 2 AM
+
+---
+# High-Availability AMF for Staging
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: staging-amf-ha
+  namespace: nephoran-staging
+  labels:
+    environment: staging
+    component: amf
+    availability: high
+spec:
+  intent: "Deploy high-availability AMF configuration for staging testing"
+  target_environment: "staging"
+  components:
+    - name: "amf-staging"
+      type: "5gc-amf"
+      config:
+        replicas: 3  # Multi-replica for HA testing
+        resources:
+          cpu: "500m"
+          memory: "1Gi"
+        anti_affinity: true  # Spread across nodes
+        security:
+          enabled: true
+          tls_version: "1.3"
+          certificate_rotation: true
+        monitoring:
+          detailed: true
+          sla_targets:
+            availability: "99.9%"
+            response_time_p95: "< 100ms"
+        health_checks:
+          liveness:
+            enabled: true
+            initial_delay: "30s"
+            period: "10s"
+          readiness:
+            enabled: true
+            initial_delay: "5s"
+            period: "5s"
+
+---
+# Complete 5G Core Staging Deployment
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: staging-5g-core-complete
+  namespace: nephoran-staging
+  labels:
+    environment: staging
+    component: 5g-core
+    complexity: production-like
+spec:
+  intent: "Deploy complete 5G core network in staging with production configurations"
+  target_environment: "staging"
+  components:
+    - name: "amf-staging"
+      type: "5gc-amf"
+      config:
+        replicas: 3
+        resources:
+          cpu: "500m"
+          memory: "1Gi"
+        persistence:
+          enabled: true
+          size: "10Gi"
+    - name: "smf-staging"
+      type: "5gc-smf"
+      config:
+        replicas: 2
+        resources:
+          cpu: "400m"
+          memory: "768Mi"
+        persistence:
+          enabled: true
+          size: "5Gi"
+    - name: "upf-staging"
+      type: "5gc-upf"
+      config:
+        replicas: 2
+        resources:
+          cpu: "1000m"
+          memory: "2Gi"
+        networking:
+          sr_iov: true  # Enhanced networking
+    - name: "nssf-staging"
+      type: "5gc-nssf"
+      config:
+        replicas: 2
+        resources:
+          cpu: "200m"
+          memory: "512Mi"
+    - name: "udm-staging"
+      type: "5gc-udm"
+      config:
+        replicas: 2
+        resources:
+          cpu: "300m"
+          memory: "512Mi"
+        database:
+          enabled: true
+          type: "postgresql"
+          high_availability: true
+  networking:
+    service_mesh: true
+    ingress:
+      enabled: true
+      tls: true
+      class: "nginx"
+    network_policies: true
+  security:
+    pod_security_standards: "restricted"
+    service_mesh_auth: "mutual_tls"
+
+---
+# O-RAN Staging Environment
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: staging-oran-ecosystem
+  namespace: nephoran-staging
+  labels:
+    environment: staging
+    component: oran
+    integration: full
+spec:
+  intent: "Deploy comprehensive O-RAN ecosystem for staging validation"
+  target_environment: "staging"
+  components:
+    - name: "near-rt-ric-staging"
+      type: "near-rt-ric"
+      config:
+        replicas: 2
+        resources:
+          cpu: "1000m"
+          memory: "2Gi"
+        interfaces:
+          - name: "a1"
+            enabled: true
+          - name: "e2"
+            enabled: true
+        xapps:
+          enabled: true
+          marketplace: true
+    - name: "non-rt-ric-staging"
+      type: "non-rt-ric"
+      config:
+        replicas: 2
+        resources:
+          cpu: "500m"
+          memory: "1Gi"
+        interfaces:
+          - name: "a1"
+            enabled: true
+          - name: "o1"
+            enabled: true
+    - name: "o-cu-cp-staging"
+      type: "o-cu-cp"
+      config:
+        replicas: 2
+        resources:
+          cpu: "800m"
+          memory: "1.5Gi"
+    - name: "o-cu-up-staging"
+      type: "o-cu-up"
+      config:
+        replicas: 2
+        resources:
+          cpu: "1200m"
+          memory: "2Gi"
+    - name: "o-du-staging"
+      type: "o-du"
+      config:
+        replicas: 3
+        resources:
+          cpu: "600m"
+          memory: "1Gi"
+
+---
+# Multi-Vendor E2 Nodes for Staging
+apiVersion: nephoran.com/v1alpha1
+kind: E2NodeSet
+metadata:
+  name: staging-e2-multivendor
+  namespace: nephoran-staging
+  labels:
+    environment: staging
+    purpose: multi-vendor-testing
+spec:
+  intent: "Deploy multi-vendor E2 nodes for interoperability testing"
+  replica: 10
+  nodeTemplate:
+    nodeId: "gnb-staging-{index:03d}"
+    plmnId: "00101"
+    vendorVariations:
+      - vendor: "ericsson"
+        ratio: 0.4
+        features: ["advanced-beamforming", "carrier-aggregation"]
+      - vendor: "nokia"
+        ratio: 0.3
+        features: ["massive-mimo", "edge-computing"]
+      - vendor: "samsung"
+        ratio: 0.3
+        features: ["open-fronthaul", "cloud-ran"]
+    cellConfiguration:
+      cellId: "0x200{index:02d}"
+      trackingAreaCode: 200
+      frequencyBands: ["n78", "n77", "n41"]
+    resources:
+      cpu: "200m"
+      memory: "512Mi"
+  monitoring:
+    enabled: true
+    detailed: true
+    metrics:
+      - "rrc_connections"
+      - "throughput_detailed"
+      - "latency_measurements"
+      - "interference_levels"
+
+---
+# Network Slicing Staging Test
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: staging-network-slicing
+  namespace: nephoran-staging
+  labels:
+    environment: staging
+    feature: network-slicing
+    complexity: advanced
+spec:
+  intent: "Configure advanced network slicing for different service types in staging"
+  target_environment: "staging"
+  slices:
+    - name: "embb-slice"
+      type: "eMBB"
+      sst: 1
+      sd: "000001"
+      config:
+        bandwidth: "1Gbps"
+        latency: "< 20ms"
+        reliability: "99.9%"
+      resources:
+        cpu: "2000m"
+        memory: "4Gi"
+    - name: "urllc-slice"
+      type: "uRLLC"
+      sst: 2
+      sd: "000002"
+      config:
+        bandwidth: "100Mbps"
+        latency: "< 1ms"
+        reliability: "99.999%"
+      resources:
+        cpu: "1500m"
+        memory: "3Gi"
+    - name: "mmtc-slice"
+      type: "mMTC"
+      sst: 3
+      sd: "000003"
+      config:
+        bandwidth: "10Mbps"
+        latency: "< 100ms"
+        device_density: "high"
+      resources:
+        cpu: "500m"
+        memory: "1Gi"
+
+---
+# Staging Performance Testing
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: staging-performance-test
+  namespace: nephoran-staging
+  labels:
+    environment: staging
+    purpose: performance-validation
+spec:
+  intent: "Execute comprehensive performance testing suite in staging environment"
+  target_environment: "staging"
+  performance_tests:
+    - name: "load-test-standard"
+      type: "load"
+      duration: "1h"
+      concurrent_users: 1000
+      ramp_up: "10m"
+      scenarios:
+        - "user-registration"
+        - "session-establishment"
+        - "data-transfer"
+    - name: "stress-test-peak"
+      type: "stress"
+      duration: "30m"
+      concurrent_users: 2000
+      ramp_up: "5m"
+    - name: "endurance-test"
+      type: "endurance"
+      duration: "8h"
+      concurrent_users: 500
+      steady_state: true
+  validation:
+    success_criteria:
+      - metric: "cpu_usage"
+        threshold: "< 80%"
+      - metric: "memory_usage"
+        threshold: "< 85%"
+      - metric: "response_time_p99"
+        threshold: "< 500ms"
+      - metric: "error_rate"
+        threshold: "< 0.1%"
+
+---
+# Staging Security Hardening
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: staging-security-hardening
+  namespace: nephoran-staging
+  labels:
+    environment: staging
+    focus: security
+    compliance: production-ready
+spec:
+  intent: "Apply production-level security hardening to staging environment"
+  target_environment: "staging"
+  security:
+    encryption:
+      at_rest: true
+      in_transit: true
+      key_rotation: "daily"
+    authentication:
+      multi_factor: true
+      session_timeout: "8h"
+      password_policy: "strict"
+    authorization:
+      rbac: "fine_grained"
+      network_policies: "zero_trust"
+    compliance:
+      standards: ["SOC2", "ISO27001"]
+      auditing: true
+      vulnerability_scanning: "daily"
+    secrets_management:
+      external_vault: true
+      auto_rotation: true
+      access_logging: true
+
+---
+# Staging Data Migration Test
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: staging-data-migration
+  namespace: nephoran-staging
+  labels:
+    environment: staging
+    purpose: data-migration-test
+spec:
+  intent: "Test data migration procedures with production-like data volumes"
+  target_environment: "staging"
+  data_migration:
+    source: "legacy-system-simulator"
+    target: "nephoran-staging"
+    data_types:
+      - "subscriber_data"
+      - "network_configurations"
+      - "performance_metrics"
+      - "billing_records"
+    validation:
+      data_integrity: true
+      performance_impact: true
+      rollback_capability: true
+    estimated_duration: "4h"
+    batch_size: "10000"
+
+---
+# Staging Disaster Recovery Test
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: staging-dr-test
+  namespace: nephoran-staging
+  labels:
+    environment: staging
+    purpose: disaster-recovery-test
+spec:
+  intent: "Execute disaster recovery procedures in staging environment"
+  target_environment: "staging"
+  disaster_recovery:
+    scenarios:
+      - name: "primary-cluster-failure"
+        type: "cluster_failure"
+        expected_rto: "15m"
+        expected_rpo: "5m"
+      - name: "database-corruption"
+        type: "data_corruption"
+        expected_rto: "30m"
+        expected_rpo: "1m"
+      - name: "network-partition"
+        type: "network_failure"
+        expected_rto: "10m"
+        expected_rpo: "0m"
+    validation:
+      automated_failover: true
+      data_consistency: true
+      service_continuity: true
+
+---
+# Staging Monitoring and Alerting
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: staging-monitoring-complete
+  namespace: nephoran-staging
+  labels:
+    environment: staging
+    component: observability
+    scope: comprehensive
+spec:
+  intent: "Deploy comprehensive monitoring and alerting for staging environment"
+  target_environment: "staging"
+  monitoring:
+    components:
+      - "prometheus"
+      - "grafana"
+      - "jaeger"
+      - "elasticsearch"
+      - "kibana"
+    retention:
+      metrics: "90d"
+      logs: "30d"
+      traces: "7d"
+    dashboards:
+      - "network-functions-overview"
+      - "intent-processing-details"
+      - "oran-interfaces-status"
+      - "performance-analytics"
+      - "security-monitoring"
+    alerting:
+      rules:
+        - "high-cpu-usage"
+        - "memory-pressure"
+        - "intent-processing-failures"
+        - "network-function-unavailable"
+        - "security-violations"
+      channels:
+        - "slack"
+        - "email"
+        - "pagerduty"
+
+---
+# Staging Resource Limits and Quotas
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: staging-resource-quota
+  namespace: nephoran-staging
+spec:
+  hard:
+    requests.cpu: "20"
+    requests.memory: "40Gi"
+    limits.cpu: "30"
+    limits.memory: "60Gi"
+    persistentvolumeclaims: "20"
+    requests.storage: "200Gi"
+    pods: "100"
+    services: "50"
+    secrets: "20"
+    configmaps: "50"

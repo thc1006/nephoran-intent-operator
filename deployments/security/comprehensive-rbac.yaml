@@ -1,0 +1,593 @@
+---
+# Comprehensive RBAC Configuration for Nephoran Intent Operator
+# Implements least-privilege access control for all components
+# O-RAN compliant with WG11 security specifications
+
+################################################################################
+# Service Accounts
+################################################################################
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephoran-operator
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: controller-manager
+    security.nephoran.io/clearance: high
+automountServiceAccountToken: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: llm-processor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: llm-processor
+    security.nephoran.io/clearance: medium
+automountServiceAccountToken: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rag-api
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rag-api
+    security.nephoran.io/clearance: medium
+automountServiceAccountToken: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephio-bridge
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: nephio-bridge
+    security.nephoran.io/clearance: high
+automountServiceAccountToken: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: oran-adaptor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: oran-adaptor
+    security.nephoran.io/clearance: high
+automountServiceAccountToken: true
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: weaviate
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: weaviate
+    security.nephoran.io/clearance: low
+automountServiceAccountToken: false
+
+################################################################################
+# ClusterRoles - Least Privilege Implementation
+################################################################################
+
+---
+# Nephoran Operator Controller Manager ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-operator
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: controller-manager
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+rules:
+# Core CRD Management
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources:
+  - networkintents
+  - managedelements
+  - e2nodesets
+  - disasterrecoveries
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources:
+  - networkintents/status
+  - managedelements/status
+  - e2nodesets/status
+  - disasterrecoveries/status
+  verbs: ["get", "update", "patch"]
+# Finalizer management
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources:
+  - networkintents/finalizers
+  - managedelements/finalizers
+  - e2nodesets/finalizers
+  - disasterrecoveries/finalizers
+  verbs: ["update"]
+# Nephio Integration
+- apiGroups: ["porch.kpt.dev"]
+  resources:
+  - packagerevisions
+  - packagerevisionresources
+  - repositories
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Event Management
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+# ConfigMap and Secret Access (read-only for configuration)
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+# Service Account Token Creation
+- apiGroups: [""]
+  resources: ["serviceaccounts/token"]
+  verbs: ["create"]
+# Coordination for leader election
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Webhook configuration
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources: ["validatingwebhookconfigurations", "mutatingwebhookconfigurations"]
+  verbs: ["get", "list", "watch"]
+
+---
+# LLM Processor Service ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: llm-processor
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: llm-processor
+rules:
+# Read network intents for processing
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources: ["networkintents"]
+  verbs: ["get", "list", "watch"]
+# Update intent status with processing results
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources: ["networkintents/status"]
+  verbs: ["update", "patch"]
+# Access to configuration
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["llm-config", "prompt-templates", "model-config"]
+# Access to secrets for API keys
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["openai-api-key", "llm-credentials"]
+# Metrics and monitoring
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+
+---
+# RAG API Service ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rag-api
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rag-api
+rules:
+# Read access to knowledge base configuration
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["rag-config", "knowledge-base", "embedding-config"]
+# Secret access for vector DB credentials
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["weaviate-credentials", "embedding-api-key"]
+# Persistent volume claims for document storage
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "watch"]
+# Service discovery
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+
+---
+# Nephio Bridge ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephio-bridge
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: nephio-bridge
+rules:
+# Full Nephio package management
+- apiGroups: ["porch.kpt.dev"]
+  resources:
+  - packagerevisions
+  - packagerevisionresources
+  - repositories
+  - functions
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# GitOps integration
+- apiGroups: ["configsync.gke.io"]
+  resources: ["rootsyncs", "reposyncs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# ArgoCD integration
+- apiGroups: ["argoproj.io"]
+  resources: ["applications", "applicationsets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Network intent processing
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources: ["networkintents", "managedelements"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources: ["networkintents/status", "managedelements/status"]
+  verbs: ["update", "patch"]
+# ConfigMap and Secret management for package rendering
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Service discovery and endpoint management
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+---
+# O-RAN Adaptor ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: oran-adaptor
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: oran-adaptor
+rules:
+# O-RAN CRD management
+- apiGroups: ["oran.opennetworking.org"]
+  resources:
+  - a1policies
+  - a1policyinstances
+  - e2nodeconfigs
+  - e2subscriptions
+  - o1configs
+  - o2infrastructures
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Near-RT RIC integration
+- apiGroups: ["ricplt.o-ran-sc.org"]
+  resources: ["xapps", "subscriptions", "policies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# SMO integration
+- apiGroups: ["smo.o-ran.org"]
+  resources: ["networkfunctions", "deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# E2NodeSet management
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources: ["e2nodesets", "managedelements"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources: ["e2nodesets/status", "managedelements/status"]
+  verbs: ["update", "patch"]
+# NETCONF/YANG configuration
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+  resourceNames: ["yang-models", "netconf-config", "o1-config"]
+# Secret access for O-RAN interface credentials
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["oran-credentials", "netconf-keys", "ric-auth"]
+
+---
+# Weaviate Vector Database Role (Namespace-scoped)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: weaviate
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: weaviate
+rules:
+# Persistent volume management
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Configuration access
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["weaviate-config", "schema-config"]
+# No secret access - credentials injected via environment
+
+################################################################################
+# ClusterRoleBindings
+################################################################################
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-operator
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: controller-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nephoran-operator
+subjects:
+- kind: ServiceAccount
+  name: nephoran-operator
+  namespace: nephoran-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: llm-processor
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: llm-processor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: llm-processor
+subjects:
+- kind: ServiceAccount
+  name: llm-processor
+  namespace: nephoran-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: rag-api
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rag-api
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rag-api
+subjects:
+- kind: ServiceAccount
+  name: rag-api
+  namespace: nephoran-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephio-bridge
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: nephio-bridge
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nephio-bridge
+subjects:
+- kind: ServiceAccount
+  name: nephio-bridge
+  namespace: nephoran-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: oran-adaptor
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: oran-adaptor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: oran-adaptor
+subjects:
+- kind: ServiceAccount
+  name: oran-adaptor
+  namespace: nephoran-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: weaviate
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: weaviate
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: weaviate
+subjects:
+- kind: ServiceAccount
+  name: weaviate
+  namespace: nephoran-system
+
+################################################################################
+# Aggregated Roles for Human Operators
+################################################################################
+
+---
+# Network Intent Developer Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-intent-developer
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+rules:
+# Create and manage network intents
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources: ["networkintents"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# View status and events
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources: ["networkintents/status"]
+  verbs: ["get", "list", "watch"]
+# View managed elements and E2 nodes
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources: ["managedelements", "e2nodesets"]
+  verbs: ["get", "list", "watch"]
+# View events
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "list", "watch"]
+
+---
+# Network Intent Viewer Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-intent-viewer
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+rules:
+# View all Nephoran resources
+- apiGroups: ["nephoran.io", "nephoran.com"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+
+---
+# O-RAN Network Function Operator Role
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: oran-nf-operator
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    oran.o-ran.org/role: "nf-operator"
+rules:
+# Manage O-RAN network functions
+- apiGroups: ["oran.opennetworking.org"]
+  resources:
+  - a1policies
+  - e2nodeconfigs
+  - o1configs
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# View infrastructure
+- apiGroups: ["oran.opennetworking.org"]
+  resources: ["o2infrastructures"]
+  verbs: ["get", "list", "watch"]
+# Manage xApps
+- apiGroups: ["ricplt.o-ran-sc.org"]
+  resources: ["xapps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+################################################################################
+# Pod Security Policy Usage (if PSPs are enabled)
+################################################################################
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-psp-restricted
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+rules:
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["use"]
+  resourceNames: ["restricted"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-psp-restricted
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nephoran-psp-restricted
+subjects:
+- kind: ServiceAccount
+  name: nephoran-operator
+  namespace: nephoran-system
+- kind: ServiceAccount
+  name: llm-processor
+  namespace: nephoran-system
+- kind: ServiceAccount
+  name: rag-api
+  namespace: nephoran-system
+- kind: ServiceAccount
+  name: nephio-bridge
+  namespace: nephoran-system
+- kind: ServiceAccount
+  name: oran-adaptor
+  namespace: nephoran-system
+- kind: ServiceAccount
+  name: weaviate
+  namespace: nephoran-system
+
+################################################################################
+# Security Context Constraints (for OpenShift)
+################################################################################
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-scc-restricted
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+rules:
+- apiGroups: ["security.openshift.io"]
+  resources: ["securitycontextconstraints"]
+  verbs: ["use"]
+  resourceNames: ["restricted"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-scc-restricted
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nephoran-scc-restricted
+subjects:
+- kind: ServiceAccount
+  name: nephoran-operator
+  namespace: nephoran-system
+- kind: ServiceAccount
+  name: llm-processor
+  namespace: nephoran-system
+- kind: ServiceAccount
+  name: rag-api
+  namespace: nephoran-system
+- kind: ServiceAccount
+  name: nephio-bridge
+  namespace: nephoran-system
+- kind: ServiceAccount
+  name: oran-adaptor
+  namespace: nephoran-system
+- kind: ServiceAccount
+  name: weaviate
+  namespace: nephoran-system

@@ -1,0 +1,736 @@
+# Pull Request Validation Pipeline for Nephoran Intent Operator
+# This workflow runs comprehensive validation on all pull requests
+# Ensures code quality, security, and functionality before merge
+
+name: Pull Request Validation
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, ready_for_review]
+  pull_request_review:
+    types: [submitted]
+
+# Cancels previous runs when new commits are pushed
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  # Container registry for PR testing
+  REGISTRY: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran
+  # Quality gate thresholds
+  MIN_COVERAGE: "90"
+  MAX_CRITICAL_VULNS: "0"
+  MAX_HIGH_VULNS: "3"
+
+jobs:
+  # ===================================
+  # FAST FEEDBACK: BASIC CHECKS
+  # ===================================
+  basic-validation:
+    name: "Basic Validation & Fast Feedback"
+    runs-on: ubuntu-22.04
+    if: github.event.pull_request.draft == false
+    outputs:
+      go_changed: ${{ steps.changes.outputs.go }}
+      docker_changed: ${{ steps.changes.outputs.docker }}
+      k8s_changed: ${{ steps.changes.outputs.kubernetes }}
+      docs_changed: ${{ steps.changes.outputs.docs }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect file changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+            docker:
+              - 'Dockerfile*'
+              - '**/Dockerfile*'
+              - 'docker-compose.yml'
+            kubernetes:
+              - 'deployments/**/*.yaml'
+              - 'deployments/**/*.yml'
+            docs:
+              - '**/*.md'
+              - 'docs/**/*'
+
+      - name: Set up Go
+        if: steps.changes.outputs.go == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Verify Go modules
+        if: steps.changes.outputs.go == 'true'
+        run: |
+          go mod tidy
+          git diff --exit-code go.mod go.sum || {
+            echo "❌ go.mod/go.sum not tidy. Run 'go mod tidy'"
+            exit 1
+          }
+
+      - name: Code formatting check
+        if: steps.changes.outputs.go == 'true'
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "❌ Code formatting issues found:"
+            echo "$unformatted"
+            echo ""
+            echo "Run: gofmt -w $unformatted"
+            exit 1
+          fi
+          echo "✅ Code formatting passed"
+
+      - name: Basic linting
+        if: steps.changes.outputs.go == 'true'
+        run: |
+          go vet ./...
+          
+          # Check for common issues
+          if grep -r "fmt.Print" --include="*.go" . | grep -v "_test.go"; then
+            echo "❌ Found fmt.Print* statements. Use structured logging instead."
+            exit 1
+          fi
+          
+          echo "✅ Basic linting passed"
+
+      - name: Validate Kubernetes manifests
+        if: steps.changes.outputs.kubernetes == 'true'
+        run: |
+          # Install kubeval
+          curl -L https://github.com/instrumenta/kubeval/releases/latest/download/kubeval-linux-amd64.tar.gz | tar xz
+          chmod +x kubeval && sudo mv kubeval /usr/local/bin/
+          
+          # Validate all YAML files
+          find deployments/ -name "*.yaml" -o -name "*.yml" | while read -r file; do
+            if ! kubeval "$file" 2>/dev/null; then
+              echo "❌ Invalid Kubernetes manifest: $file"
+              exit 1
+            fi
+          done
+          
+          echo "✅ Kubernetes manifests validation passed"
+
+      - name: Documentation link check
+        if: steps.changes.outputs.docs == 'true'
+        run: |
+          # Install markdown link checker
+          npm install -g markdown-link-check
+          
+          # Check all markdown files
+          find . -name "*.md" | grep -v node_modules | while read -r file; do
+            echo "Checking links in $file..."
+            markdown-link-check "$file" --config .github/mlc_config.json || true
+          done
+          
+          echo "✅ Documentation check completed"
+
+  # ===================================
+  # COMPREHENSIVE CODE QUALITY
+  # ===================================
+  code-quality:
+    name: "Comprehensive Code Quality Analysis"
+    runs-on: ubuntu-22.04
+    needs: [basic-validation]
+    if: needs.basic-validation.outputs.go_changed == 'true' && github.event.pull_request.draft == false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Install quality tools
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run golangci-lint
+        run: |
+          golangci-lint run --timeout=10m --out-format=github-actions \
+            --issues-exit-code=1 --new-from-rev=origin/main ./...
+
+      - name: Run staticcheck
+        run: |
+          staticcheck -f stylish ./...
+
+      - name: Security scan (SAST)
+        run: |
+          mkdir -p security-reports
+          
+          # Run gosec
+          gosec -fmt sarif -out security-reports/gosec.sarif ./...
+          gosec -fmt json -out security-reports/gosec.json ./...
+          
+          # Check for critical security issues
+          CRITICAL_ISSUES=$(jq '.Results | length' security-reports/gosec.json)
+          if [ "$CRITICAL_ISSUES" -gt 5 ]; then
+            echo "❌ Too many security issues found: $CRITICAL_ISSUES"
+            exit 1
+          fi
+
+      - name: Vulnerability scan
+        run: |
+          govulncheck -json ./... > security-reports/vulns.json || true
+          
+          # Check for high/critical vulnerabilities
+          VULN_COUNT=$(jq '.Finding | length' security-reports/vulns.json 2>/dev/null || echo "0")
+          if [ "$VULN_COUNT" -gt 0 ]; then
+            echo "⚠️ Found $VULN_COUNT vulnerabilities - review required"
+          fi
+
+      - name: Upload security scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: security-reports/gosec.sarif
+          category: "pr-security-scan"
+
+      - name: Store quality reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-quality-reports
+          path: security-reports/
+          retention-days: 7
+
+  # ===================================
+  # COMPREHENSIVE TESTING
+  # ===================================
+  testing:
+    name: "Comprehensive Testing Suite"
+    runs-on: ubuntu-22.04
+    needs: [basic-validation]
+    if: needs.basic-validation.outputs.go_changed == 'true' && github.event.pull_request.draft == false
+    strategy:
+      matrix:
+        test-type: [unit, integration]
+    outputs:
+      unit_coverage: ${{ steps.unit-coverage.outputs.coverage }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Install test dependencies
+        run: |
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+          go mod download
+
+      - name: Set up test infrastructure
+        if: matrix.test-type == 'integration'
+        run: |
+          # Install kind for integration tests
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+          chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
+          
+          # Install kubectl
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl && sudo mv kubectl /usr/local/bin/kubectl
+
+      - name: Run ${{ matrix.test-type }} tests
+        run: |
+          case "${{ matrix.test-type }}" in
+            "unit")
+              ./scripts/run-comprehensive-tests.sh --type unit
+              ;;
+            "integration")
+              # Create ephemeral cluster for integration tests
+              kind create cluster --name pr-test --wait=300s
+              kubectl cluster-info
+              ./scripts/run-comprehensive-tests.sh --type integration
+              ;;
+          esac
+
+      - name: Calculate unit test coverage
+        id: unit-coverage
+        if: matrix.test-type == 'unit'
+        run: |
+          if [ -f test-results/coverage/coverage.out ]; then
+            coverage=$(go tool cover -func=test-results/coverage/coverage.out | grep total: | awk '{print $3}' | sed 's/%//')
+            echo "coverage=$coverage" >> $GITHUB_OUTPUT
+            
+            echo "## 📊 Test Coverage: $coverage%" >> $GITHUB_STEP_SUMMARY
+            
+            # Generate coverage badge
+            go tool cover -html=test-results/coverage/coverage.out -o test-results/coverage/coverage.html
+            
+            if (( $(echo "$coverage < $MIN_COVERAGE" | bc -l) )); then
+              echo "❌ Coverage $coverage% below required $MIN_COVERAGE%"
+              echo "## ❌ Coverage Check Failed" >> $GITHUB_STEP_SUMMARY
+              echo "Required: $MIN_COVERAGE%, Actual: $coverage%" >> $GITHUB_STEP_SUMMARY
+              exit 1
+            fi
+            
+            echo "✅ Coverage $coverage% meets requirement $MIN_COVERAGE%"
+            echo "## ✅ Coverage Check Passed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Coverage file not found"
+            exit 1
+          fi
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-test-results-${{ matrix.test-type }}
+          path: test-results/
+          retention-days: 7
+
+      - name: Cleanup test cluster
+        if: always() && matrix.test-type == 'integration'
+        run: |
+          kind delete cluster --name pr-test || true
+
+  # ===================================
+  # BUILD AND SCAN VALIDATION
+  # ===================================
+  build-validation:
+    name: "Build & Container Security Validation"
+    runs-on: ubuntu-22.04
+    needs: [basic-validation]
+    if: needs.basic-validation.outputs.go_changed == 'true' || needs.basic-validation.outputs.docker_changed == 'true'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build containers for testing
+        run: |
+          # Generate test version
+          VERSION="pr-${{ github.event.pull_request.number }}-$(git rev-parse --short HEAD)"
+          
+          # Build all services
+          make docker-build VERSION=$VERSION
+          
+          echo "Built containers with version: $VERSION"
+
+      - name: Install security scanners
+        run: |
+          # Install Trivy
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          
+          # Install Syft
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Container security scan
+        run: |
+          VERSION="pr-${{ github.event.pull_request.number }}-$(git rev-parse --short HEAD)"
+          SERVICES=("llm-processor" "nephio-bridge" "oran-adaptor" "rag-api")
+          
+          mkdir -p security-reports
+          
+          for service in "${SERVICES[@]}"; do
+            echo "Scanning $service container..."
+            
+            # Trivy scan
+            trivy image --format json --output security-reports/trivy-$service.json \
+              --severity HIGH,CRITICAL \
+              $REGISTRY/$service:$VERSION
+            
+            # Count critical vulnerabilities
+            CRITICAL=$(jq '.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL") | .VulnerabilityID' \
+              security-reports/trivy-$service.json 2>/dev/null | wc -l)
+            HIGH=$(jq '.Results[].Vulnerabilities[]? | select(.Severity=="HIGH") | .VulnerabilityID' \
+              security-reports/trivy-$service.json 2>/dev/null | wc -l)
+            
+            echo "Service: $service, Critical: $CRITICAL, High: $HIGH"
+            
+            # Fail if too many vulnerabilities
+            if [ "$CRITICAL" -gt "$MAX_CRITICAL_VULNS" ]; then
+              echo "❌ $service has $CRITICAL critical vulnerabilities (max: $MAX_CRITICAL_VULNS)"
+              exit 1
+            fi
+            
+            if [ "$HIGH" -gt "$MAX_HIGH_VULNS" ]; then
+              echo "❌ $service has $HIGH high vulnerabilities (max: $MAX_HIGH_VULNS)"
+              exit 1
+            fi
+          done
+          
+          echo "✅ Container security scan passed"
+
+      - name: Generate SBOM
+        run: |
+          VERSION="pr-${{ github.event.pull_request.number }}-$(git rev-parse --short HEAD)"
+          SERVICES=("llm-processor" "nephio-bridge" "oran-adaptor" "rag-api")
+          
+          for service in "${SERVICES[@]}"; do
+            syft $REGISTRY/$service:$VERSION -o spdx-json > security-reports/sbom-$service.json
+          done
+
+      - name: Upload container scan results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-container-scan-results
+          path: security-reports/
+          retention-days: 7
+
+  # ===================================
+  # PERFORMANCE IMPACT ASSESSMENT
+  # ===================================
+  performance-check:
+    name: "Performance Impact Assessment"
+    runs-on: ubuntu-22.04
+    needs: [basic-validation, build-validation]
+    if: needs.basic-validation.outputs.go_changed == 'true' && github.event.pull_request.draft == false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Run benchmarks
+        run: |
+          echo "Running Go benchmarks..."
+          go test -bench=. -benchmem -run=^$ ./... > benchmark-results.txt
+          
+          # Store benchmark results
+          mkdir -p perf-results
+          cp benchmark-results.txt perf-results/
+
+      - name: Performance smoke test
+        run: |
+          # Create minimal test cluster
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+          chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
+          
+          kind create cluster --name perf-test --wait=300s
+          
+          # Build and load test images
+          VERSION="pr-${{ github.event.pull_request.number }}-$(git rev-parse --short HEAD)"
+          
+          kind load docker-image $REGISTRY/llm-processor:$VERSION
+          kind load docker-image $REGISTRY/nephio-bridge:$VERSION
+          kind load docker-image $REGISTRY/oran-adaptor:$VERSION
+          
+          # Deploy minimal configuration for testing
+          kubectl apply -f deployments/kustomize/overlays/dev/
+          kubectl wait --for=condition=available --timeout=300s deployment/llm-processor
+          
+          # Simple load test
+          kubectl port-forward service/llm-processor 8080:80 &
+          sleep 10
+          
+          # Install hey for load testing
+          curl -L https://github.com/rakyll/hey/releases/latest/download/hey_linux_amd64 -o hey
+          chmod +x hey
+          
+          # Run brief load test
+          ./hey -n 50 -c 5 -t 30 http://localhost:8080/health > perf-results/load-test.txt
+
+      - name: Store performance results
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-performance-results
+          path: perf-results/
+          retention-days: 7
+
+      - name: Cleanup performance test
+        if: always()
+        run: |
+          kind delete cluster --name perf-test || true
+
+  # ===================================
+  # INTEGRATION VALIDATION
+  # ===================================
+  integration-validation:
+    name: "End-to-End Integration Validation"
+    runs-on: ubuntu-22.04
+    needs: [basic-validation, code-quality, testing, build-validation]
+    if: |
+      (needs.basic-validation.outputs.go_changed == 'true' || 
+       needs.basic-validation.outputs.kubernetes_changed == 'true') &&
+      github.event.pull_request.draft == false
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up test environment
+        run: |
+          # Install tools
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+          chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
+          
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl && sudo mv kubectl /usr/local/bin/kubectl
+
+      - name: Create integration test cluster
+        run: |
+          # Create cluster with specific configuration for integration tests
+          cat > kind-config.yaml << EOF
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          nodes:
+          - role: control-plane
+            kubeadmConfigPatches:
+            - |
+              kind: InitConfiguration
+              nodeRegistration:
+                kubeletExtraArgs:
+                  node-labels: "ingress-ready=true"
+            extraPortMappings:
+            - containerPort: 80
+              hostPort: 80
+              protocol: TCP
+            - containerPort: 443
+              hostPort: 443
+              protocol: TCP
+          EOF
+          
+          kind create cluster --name integration-test --config kind-config.yaml --wait=300s
+
+      - name: Deploy full system for integration testing
+        run: |
+          VERSION="pr-${{ github.event.pull_request.number }}-$(git rev-parse --short HEAD)"
+          
+          # Load container images
+          kind load docker-image $REGISTRY/llm-processor:$VERSION --name integration-test
+          kind load docker-image $REGISTRY/nephio-bridge:$VERSION --name integration-test
+          kind load docker-image $REGISTRY/oran-adaptor:$VERSION --name integration-test
+          
+          # Deploy complete system
+          cd deployments/kustomize/overlays/dev
+          kustomize edit set image llm-processor=$REGISTRY/llm-processor:$VERSION
+          kustomize edit set image nephio-bridge=$REGISTRY/nephio-bridge:$VERSION
+          kustomize edit set image oran-adaptor=$REGISTRY/oran-adaptor:$VERSION
+          
+          kustomize build . | kubectl apply -f -
+          
+          # Wait for all components
+          kubectl wait --for=condition=available --timeout=600s deployment/llm-processor
+          kubectl wait --for=condition=available --timeout=600s deployment/nephio-bridge
+          kubectl wait --for=condition=available --timeout=600s deployment/oran-adaptor
+
+      - name: Run integration tests
+        run: |
+          # Create integration test suite
+          kubectl create job integration-test --image=curlimages/curl:latest -- sh -c '
+            echo "Running integration tests..."
+            
+            # Test service connectivity
+            curl -f http://llm-processor.default.svc.cluster.local/health || exit 1
+            curl -f http://nephio-bridge.default.svc.cluster.local/health || exit 1
+            curl -f http://oran-adaptor.default.svc.cluster.local/health || exit 1
+            
+            echo "Integration tests passed"
+          '
+          
+          # Wait for test completion
+          kubectl wait --for=condition=complete --timeout=300s job/integration-test
+          
+          # Check test results
+          if kubectl get job integration-test -o jsonpath='{.status.succeeded}' | grep -q "1"; then
+            echo "✅ Integration tests passed"
+          else
+            echo "❌ Integration tests failed"
+            kubectl logs job/integration-test
+            exit 1
+          fi
+
+      - name: Store integration test results
+        if: always()
+        run: |
+          mkdir -p integration-results
+          kubectl logs job/integration-test > integration-results/integration-test.log || true
+          kubectl get all > integration-results/cluster-state.txt
+
+      - name: Upload integration results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pr-integration-results
+          path: integration-results/
+          retention-days: 7
+
+      - name: Cleanup integration test cluster
+        if: always()
+        run: |
+          kind delete cluster --name integration-test || true
+
+  # ===================================
+  # PR QUALITY SUMMARY
+  # ===================================
+  pr-summary:
+    name: "PR Quality Summary"
+    runs-on: ubuntu-22.04
+    needs: [basic-validation, code-quality, testing, build-validation, performance-check, integration-validation]
+    if: always() && github.event.pull_request.draft == false
+    steps:
+      - name: Generate PR summary
+        run: |
+          echo "## 🔍 Pull Request Validation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.event.pull_request.head.ref }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commits:** ${{ github.event.pull_request.commits }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### 📋 Validation Results:" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Result | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Basic Validation | ${{ needs.basic-validation.result }} | Code format, linting, manifest validation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.code-quality.result }} | Security scan, vulnerability check |" >> $GITHUB_STEP_SUMMARY
+          echo "| Testing | ${{ needs.testing.result }} | Unit (${{ needs.testing.outputs.unit_coverage }}% coverage) & integration tests |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Validation | ${{ needs.build-validation.result }} | Container build & security scan |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance | ${{ needs.performance-check.result }} | Benchmark & load test |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration | ${{ needs.integration-validation.result }} | End-to-end system validation |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Calculate overall status
+          if [[ "${{ needs.basic-validation.result }}" == "success" && 
+                "${{ needs.code-quality.result }}" == "success" && 
+                "${{ needs.testing.result }}" == "success" && 
+                "${{ needs.build-validation.result }}" == "success" ]]; then
+            echo "### ✅ Overall Status: PASSED" >> $GITHUB_STEP_SUMMARY
+            echo "This PR meets all quality requirements and is ready for review." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Overall Status: FAILED" >> $GITHUB_STEP_SUMMARY
+            echo "This PR has failing checks that must be resolved before merge." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const results = {
+              basicValidation: '${{ needs.basic-validation.result }}',
+              codeQuality: '${{ needs.code-quality.result }}',
+              testing: '${{ needs.testing.result }}',
+              buildValidation: '${{ needs.build-validation.result }}',
+              performance: '${{ needs.performance-check.result }}',
+              integration: '${{ needs.integration-validation.result }}'
+            };
+            
+            const coverage = '${{ needs.testing.outputs.unit_coverage }}';
+            
+            let status = '✅ PASSED';
+            if (Object.values(results).some(result => result === 'failure')) {
+              status = '❌ FAILED';
+            }
+            
+            const comment = `## 🔍 PR Validation Results ${status}
+            
+            | Check | Status | Details |
+            |-------|--------|---------|
+            | 🎯 Basic Validation | ${results.basicValidation === 'success' ? '✅' : '❌'} | Code formatting, linting |
+            | 🔒 Code Quality | ${results.codeQuality === 'success' ? '✅' : '❌'} | Security analysis |
+            | 🧪 Testing | ${results.testing === 'success' ? '✅' : '❌'} | Coverage: ${coverage}% |
+            | 🐳 Build Validation | ${results.buildValidation === 'success' ? '✅' : '❌'} | Container security |
+            | ⚡ Performance | ${results.performance === 'success' ? '✅' : '❌'} | Benchmarks & load test |
+            | 🔗 Integration | ${results.integration === 'success' ? '✅' : '❌'} | E2E validation |
+            
+            ${status === '✅ PASSED' 
+              ? '**This PR is ready for review!** 🚀' 
+              : '**Please resolve the failing checks before requesting review.**'}
+            
+            _Validation performed by [Nephoran CI/CD Pipeline](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})_
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+# ===================================
+# AUTO-MERGE CONDITIONS
+# ===================================
+  auto-merge-check:
+    name: "Auto-merge Eligibility Check"
+    runs-on: ubuntu-22.04
+    needs: [basic-validation, code-quality, testing, build-validation, performance-check, integration-validation]
+    if: |
+      always() &&
+      needs.basic-validation.result == 'success' &&
+      needs.code-quality.result == 'success' &&
+      needs.testing.result == 'success' &&
+      needs.build-validation.result == 'success' &&
+      github.event.pull_request.draft == false &&
+      contains(github.event.pull_request.labels.*.name, 'auto-merge')
+    steps:
+      - name: Check auto-merge conditions
+        run: |
+          echo "Checking auto-merge eligibility..."
+          
+          # Check if PR has required approvals
+          APPROVALS=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/reviews" | \
+            jq '[.[] | select(.state == "APPROVED")] | length')
+          
+          echo "Approvals: $APPROVALS"
+          
+          if [ "$APPROVALS" -ge 1 ]; then
+            echo "✅ Auto-merge conditions met"
+            echo "auto_merge_eligible=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Insufficient approvals for auto-merge"
+            echo "auto_merge_eligible=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Enable auto-merge
+        if: steps.auto-merge-check.outputs.auto_merge_eligible == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              event: 'APPROVE',
+              body: '✅ Automated approval - all quality checks passed'
+            });
+            
+            // Enable auto-merge
+            const mutation = `
+              mutation($pullRequestId: ID!) {
+                enablePullRequestAutoMerge(input: {
+                  pullRequestId: $pullRequestId,
+                  mergeMethod: SQUASH
+                }) {
+                  pullRequest {
+                    autoMergeRequest {
+                      enabledAt
+                    }
+                  }
+                }
+              }
+            `;
+            
+            github.graphql(mutation, {
+              pullRequestId: context.payload.pull_request.node_id,
+            });
+            
+            console.log('Auto-merge enabled for PR');

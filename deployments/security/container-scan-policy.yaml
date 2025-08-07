@@ -1,0 +1,532 @@
+---
+# Container Image Vulnerability Scanning Policy
+# Admission Controller Configuration for Nephoran Intent Operator
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: container-scan-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+    security.nephoran.com/type: admission-policy
+data:
+  policy.yaml: |
+    # Vulnerability scanning policy configuration
+    vulnerability_policy:
+      # Critical vulnerabilities threshold (CVSS score)
+      critical_threshold: 7.0
+      
+      # High vulnerabilities threshold (CVSS score)
+      high_threshold: 4.0
+      
+      # Maximum allowed vulnerabilities by severity
+      max_critical: 0
+      max_high: 5
+      max_medium: 20
+      
+      # Grace period for existing workloads (days)
+      grace_period: 30
+      
+      # Allowed registries (security verified)
+      allowed_registries:
+        - "us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran"
+        - "gcr.io/distroless"
+        - "docker.io/library/alpine"
+        - "registry.k8s.io"
+      
+      # Blocked registries (known vulnerabilities or policy violations)
+      blocked_registries:
+        - "docker.io/library/node:12"
+        - "docker.io/library/ubuntu:18.04"
+        - "docker.io/library/centos:7"
+      
+      # Required image scanning labels
+      required_labels:
+        - "security.nephoran.com/scanned"
+        - "security.nephoran.com/scan-date"
+        - "security.nephoran.com/trivy-version"
+      
+      # Exemptions for critical system components
+      exemptions:
+        namespaces:
+          - "kube-system"
+          - "kube-public"
+          - "istio-system"
+        workloads:
+          - "coredns"
+          - "kube-proxy"
+          - "istio-proxy"
+      
+      # Telecommunications-specific security requirements
+      telecom_security:
+        # O-RAN compliance requirements
+        oran_compliance:
+          require_signed_images: true
+          require_sbom: true
+          max_container_privileges: "restricted"
+        
+        # 5G security requirements
+        fiveg_security:
+          network_function_isolation: true
+          secure_boot_verification: true
+          encryption_at_rest: true
+
+---
+# ValidatingAdmissionWebhook for container scanning enforcement
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: container-scan-validator
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+    security.nephoran.com/type: admission-webhook
+webhooks:
+- name: container-scan.security.nephoran.com
+  clientConfig:
+    service:
+      name: nephoran-security-webhook
+      namespace: nephoran-system
+      path: "/validate-container-scan"
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: [""]
+    apiVersions: ["v1"]
+    resources: ["pods"]
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["apps"]
+    apiVersions: ["v1"]
+    resources: ["deployments", "daemonsets", "statefulsets"]
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["batch"]
+    apiVersions: ["v1", "v1beta1"]
+    resources: ["jobs", "cronjobs"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
+  namespaceSelector:
+    matchLabels:
+      security.nephoran.com/scan-policy: "enforced"
+
+---
+# NetworkPolicy for security webhook communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: security-webhook-netpol
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+spec:
+  podSelector:
+    matchLabels:
+      app: nephoran-security-webhook
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 8443
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-system
+    ports:
+    - protocol: TCP
+      port: 5432  # Database connection
+  - to: []  # Allow external API calls for vulnerability database updates
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Security webhook service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-security-webhook
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+spec:
+  selector:
+    app: nephoran-security-webhook
+  ports:
+  - name: https
+    port: 443
+    targetPort: 8443
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Security webhook deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephoran-security-webhook
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nephoran-security-webhook
+  template:
+    metadata:
+      labels:
+        app: nephoran-security-webhook
+        security.nephoran.com/scan-policy: "internal"
+    spec:
+      serviceAccountName: nephoran-security-webhook
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: webhook
+        image: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran/security-webhook:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8443
+          name: webhook-api
+        env:
+        - name: TLS_CERT_FILE
+          value: "/etc/webhook/certs/tls.crt"
+        - name: TLS_PRIVATE_KEY_FILE
+          value: "/etc/webhook/certs/tls.key"
+        - name: WEBHOOK_PORT
+          value: "8443"
+        - name: POLICY_CONFIG_PATH
+          value: "/etc/webhook/policy/policy.yaml"
+        - name: TRIVY_SERVER_URL
+          value: "http://trivy-server:4954"
+        - name: LOG_LEVEL
+          value: "info"
+        volumeMounts:
+        - name: webhook-certs
+          mountPath: "/etc/webhook/certs"
+          readOnly: true
+        - name: policy-config
+          mountPath: "/etc/webhook/policy"
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8443
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 256Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: nephoran-security-webhook-certs
+      - name: policy-config
+        configMap:
+          name: container-scan-policy
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - nephoran-security-webhook
+              topologyKey: kubernetes.io/hostname
+
+---
+# ServiceAccount for security webhook
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephoran-security-webhook
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+
+---
+# ClusterRole for security webhook
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-security-webhook
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+rules:
+- apiGroups: [""]
+  resources: ["pods", "configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "cronjobs"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources: ["validatingadmissionwebhooks"]
+  verbs: ["get", "list", "watch", "update"]
+
+---
+# ClusterRoleBinding for security webhook
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-security-webhook
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nephoran-security-webhook
+subjects:
+- kind: ServiceAccount
+  name: nephoran-security-webhook
+  namespace: nephoran-system
+
+---
+# PodDisruptionBudget for security webhook
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nephoran-security-webhook
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: nephoran-security-webhook
+
+---
+# Trivy server for vulnerability scanning
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trivy-server
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: trivy-server
+    app.kubernetes.io/component: security-scanner
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trivy-server
+  template:
+    metadata:
+      labels:
+        app: trivy-server
+        security.nephoran.com/scan-policy: "internal"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: trivy
+        image: aquasec/trivy:latest
+        imagePullPolicy: Always
+        args:
+        - "server"
+        - "--listen"
+        - "0.0.0.0:4954"
+        - "--cache-dir"
+        - "/tmp/trivy/.cache"
+        - "--debug"
+        ports:
+        - containerPort: 4954
+          name: trivy-http
+        env:
+        - name: TRIVY_DEBUG
+          value: "false"
+        - name: TRIVY_CACHE_DIR
+          value: "/tmp/trivy/.cache"
+        - name: TRIVY_TIMEOUT
+          value: "10m"
+        volumeMounts:
+        - name: cache
+          mountPath: "/tmp/trivy/.cache"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 4954
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 4954
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+      volumes:
+      - name: cache
+        emptyDir:
+          sizeLimit: 5Gi
+
+---
+# Trivy server service
+apiVersion: v1
+kind: Service
+metadata:
+  name: trivy-server
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: trivy-server
+    app.kubernetes.io/component: security-scanner
+spec:
+  selector:
+    app: trivy-server
+  ports:
+  - name: http
+    port: 4954
+    targetPort: 4954
+    protocol: TCP
+  type: ClusterIP
+
+---
+# OPA Gatekeeper policies for container security
+apiVersion: templates.gatekeeper.sh/v1beta1
+kind: ConstraintTemplate
+metadata:
+  name: k8srequiredvulnscanning
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sRequiredVulnScanning
+      validation:
+        properties:
+          exemptImages:
+            description: Images that are exempt from vulnerability scanning
+            type: array
+            items:
+              type: string
+          maxCriticalVulns:
+            description: Maximum number of critical vulnerabilities allowed
+            type: integer
+            default: 0
+          maxHighVulns:
+            description: Maximum number of high vulnerabilities allowed
+            type: integer
+            default: 5
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package k8srequiredvulnscanning
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          image := container.image
+          not is_exempt_image(image)
+          not has_scan_labels(input.review.object.metadata.labels)
+          msg := sprintf("Container image '%v' must be scanned for vulnerabilities", [image])
+        }
+        
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          image := container.image
+          not is_exempt_image(image)
+          scan_date := input.review.object.metadata.labels["security.nephoran.com/scan-date"]
+          is_scan_outdated(scan_date)
+          msg := sprintf("Container image '%v' vulnerability scan is outdated (>7 days)", [image])
+        }
+        
+        is_exempt_image(image) {
+          input.parameters.exemptImages[_] == image
+        }
+        
+        has_scan_labels(labels) {
+          labels["security.nephoran.com/scanned"] == "true"
+          labels["security.nephoran.com/scan-date"]
+        }
+        
+        is_scan_outdated(scan_date) {
+          now := time.now_ns()
+          scan_time := time.parse_rfc3339_ns(scan_date)
+          age_days := (now - scan_time) / (24 * 60 * 60 * 1000000000)
+          age_days > 7
+        }
+
+---
+# Constraint for vulnerability scanning enforcement
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: K8sRequiredVulnScanning
+metadata:
+  name: must-have-vuln-scanning
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+      - apiGroups: ["apps"]
+        kinds: ["Deployment", "StatefulSet", "DaemonSet"]
+    excludedNamespaces:
+      - "kube-system"
+      - "kube-public"
+      - "gatekeeper-system"
+      - "istio-system"
+  parameters:
+    exemptImages:
+      - "gcr.io/distroless/static:nonroot"
+      - "registry.k8s.io/pause:3.9"
+    maxCriticalVulns: 0
+    maxHighVulns: 5

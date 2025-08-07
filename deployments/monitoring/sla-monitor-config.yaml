@@ -1,0 +1,70 @@
+# SLA Monitor Configuration
+# Version: 1.0.0
+
+monitoring:
+  prometheus:
+    url: "http://localhost:9090"
+    timeout: 30s
+    
+  grafana:
+    url: "http://localhost:3000"
+    
+  alert_manager:
+    url: "http://localhost:9093"
+
+sla_targets:
+  platform:
+    availability: 99.9  # 99.9% uptime
+    intent_processing_p95: 30.0  # 30 seconds
+    intent_processing_p99: 45.0  # 45 seconds
+    error_rate: 0.5  # 0.5% error rate
+    resource_optimization: 20.0  # 20% savings
+    
+  telecommunications:
+    amf_deployment_time: 180  # 3 minutes
+    smf_deployment_time: 150  # 2.5 minutes
+    upf_deployment_time: 120  # 2 minutes
+    oran_a1_latency: 100  # 100ms
+    oran_o1_latency: 30000  # 30s
+    oran_e2_latency: 10  # 10ms
+    handover_success_rate: 99.5  # 99.5%
+    slice_creation_time: 60  # 60 seconds
+    
+  ai_ml:
+    token_generation_rate: 50  # tokens/second
+    rag_retrieval_latency: 200  # 200ms
+    cache_hit_rate: 75  # 75%
+    ml_inference_latency: 200  # 200ms
+
+reporting:
+  output_dir: "./reports/sla"
+  log_dir: "./logs/sla-monitor"
+  
+  formats:
+    - json
+    - prometheus_metrics
+    
+  retention:
+    reports: 30d
+    logs: 7d
+
+alerting:
+  channels:
+    - type: log
+      level: info
+    # Additional channels can be configured:
+    # - type: slack
+    #   webhook_url: "${SLACK_WEBHOOK_URL}"
+    # - type: pagerduty
+    #   integration_key: "${PAGERDUTY_KEY}"
+
+thresholds:
+  degraded:
+    availability: 99.5
+    intent_processing_p95: 25.0
+    error_rate: 0.3
+    
+  critical:
+    availability: 99.0
+    intent_processing_p95: 40.0
+    error_rate: 1.0

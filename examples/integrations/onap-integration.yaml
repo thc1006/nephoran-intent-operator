@@ -1,0 +1,370 @@
+# ONAP Integration Examples
+# These examples show how to integrate Nephoran Intent Operator with ONAP components
+
+---
+# ONAP Service Orchestrator Integration
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: onap-so-integration
+  namespace: nephoran-integration
+  labels:
+    integration: onap
+    component: service-orchestrator
+  annotations:
+    onap.nephoran.com/so-endpoint: "https://so.onap.example.com"
+    onap.nephoran.com/service-model: "5GCore_AMF_v1.0"
+spec:
+  intent: "Deploy 5G AMF through ONAP Service Orchestrator integration"
+  integration:
+    onap:
+      enabled: true
+      components:
+        so:
+          endpoint: "https://so.onap.example.com"
+          api_version: "v8"
+          authentication:
+            type: "basic"
+            secret: "onap-so-credentials"
+        aai:
+          endpoint: "https://aai.onap.example.com"
+          api_version: "v21"
+          authentication:
+            type: "basic"
+            secret: "onap-aai-credentials"
+      service_mapping:
+        service_model_name: "5GCore_AMF_v1.0"
+        service_model_uuid: "12345678-1234-1234-1234-123456789012"
+        customer_id: "nephoran-customer"
+        subscription_type: "5G-Network-Service"
+  components:
+    - name: "amf-onap"
+      type: "5gc-amf"
+      config:
+        replicas: 2
+        resources:
+          cpu: "1000m"
+          memory: "2Gi"
+  workflow:
+    create_service_instance: true
+    instantiate_vnf: true
+    update_aai_inventory: true
+    notify_dcae: true
+
+---
+# ONAP Policy Framework Integration
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: onap-policy-integration
+  namespace: nephoran-integration
+  labels:
+    integration: onap
+    component: policy-framework
+spec:
+  intent: "Configure network slice with ONAP policy enforcement"
+  integration:
+    onap:
+      enabled: true
+      components:
+        policy:
+          endpoint: "https://policy-api.onap.example.com"
+          api_version: "v1"
+          authentication:
+            type: "basic"
+            secret: "onap-policy-credentials"
+        drools:
+          endpoint: "https://policy-drools.onap.example.com"
+          api_version: "v1"
+        xacml:
+          endpoint: "https://policy-xacml.onap.example.com"
+          api_version: "v1"
+  policy_enforcement:
+    enabled: true
+    policies:
+      - name: "bandwidth-allocation-policy"
+        type: "operational"
+        properties:
+          slice_type: "eMBB"
+          max_bandwidth: "1Gbps"
+          priority: "high"
+      - name: "security-policy"
+        type: "guard"
+        properties:
+          encryption_required: true
+          authentication_method: "5G-AKA"
+  monitoring:
+    policy_violations: true
+    compliance_reporting: true
+
+---
+# ONAP DCAE Integration
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: onap-dcae-integration
+  namespace: nephoran-integration
+  labels:
+    integration: onap
+    component: dcae
+spec:
+  intent: "Deploy network functions with ONAP DCAE monitoring and analytics"
+  integration:
+    onap:
+      enabled: true
+      components:
+        dcae:
+          endpoint: "https://dcae.onap.example.com"
+          authentication:
+            type: "basic"
+            secret: "onap-dcae-credentials"
+          microservices:
+            - name: "ves-collector"
+              enabled: true
+            - name: "tca-analytics"
+              enabled: true
+            - name: "holmes-engine"
+              enabled: true
+        dmaap:
+          message_router: "https://dmaap-mr.onap.example.com"
+          data_router: "https://dmaap-dr.onap.example.com"
+  components:
+    - name: "upf-dcae-monitored"
+      type: "5gc-upf"
+      config:
+        replicas: 3
+        resources:
+          cpu: "2000m"
+          memory: "4Gi"
+        monitoring:
+          dcae_integration: true
+          event_streaming: true
+          analytics: true
+  data_collection:
+    ves_events: true
+    performance_metrics: true
+    fault_notifications: true
+    threshold_crossing_alerts: true
+
+---
+# ONAP SDNC Integration
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: onap-sdnc-integration
+  namespace: nephoran-integration
+  labels:
+    integration: onap
+    component: sdnc
+spec:
+  intent: "Configure network connectivity through ONAP SDNC"
+  integration:
+    onap:
+      enabled: true
+      components:
+        sdnc:
+          endpoint: "https://sdnc.onap.example.com"
+          api_version: "v1"
+          authentication:
+            type: "basic"
+            secret: "onap-sdnc-credentials"
+        netconf:
+          enabled: true
+          devices:
+            - name: "network-device-1"
+              endpoint: "netconf://device1.example.com:830"
+              credentials_secret: "device1-credentials"
+  network_configuration:
+    connectivity:
+      - source: "amf-instance"
+        destination: "smf-instance"
+        bandwidth: "10Gbps"
+        vlan: 100
+      - source: "smf-instance"
+        destination: "upf-instance"
+        bandwidth: "20Gbps"
+        vlan: 200
+    routing:
+      protocol: "bgp"
+      autonomous_system: 65001
+      networks:
+        - "10.0.0.0/16"
+        - "192.168.0.0/16"
+
+---
+# ONAP VID Integration
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: onap-vid-integration
+  namespace: nephoran-integration
+  labels:
+    integration: onap
+    component: vid
+spec:
+  intent: "Create service instance through ONAP VID visual designer integration"
+  integration:
+    onap:
+      enabled: true
+      components:
+        vid:
+          endpoint: "https://vid.onap.example.com"
+          authentication:
+            type: "sso"
+            portal_integration: true
+        portal:
+          endpoint: "https://portal.onap.example.com"
+  service_design:
+    template_name: "5G_Network_Service_Template"
+    visual_modeling: true
+    component_library: true
+  deployment:
+    approval_workflow: true
+    rollback_capability: true
+    change_management: true
+
+---
+# ONAP Integration Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: onap-integration-config
+  namespace: nephoran-integration
+data:
+  onap.yaml: |
+    onap:
+      global:
+        cluster_name: "nephoran-integration-cluster"
+        namespace: "onap"
+      
+      service_orchestrator:
+        endpoint: "https://so.onap.example.com"
+        api_paths:
+          service_instances: "/onap/so/infra/serviceInstantiation/v7/serviceInstances"
+          vnf_instances: "/onap/so/infra/serviceInstantiation/v7/serviceInstances/{service-instance-id}/vnfs"
+          networks: "/onap/so/infra/serviceInstantiation/v7/serviceInstances/{service-instance-id}/networks"
+        timeout: "1800s"
+      
+      active_inventory:
+        endpoint: "https://aai.onap.example.com"
+        api_paths:
+          customers: "/aai/v21/business/customers"
+          service_instances: "/aai/v21/business/customers/customer/{customer-id}/service-subscriptions/service-subscription/{subscription-id}/service-instances"
+          vnfs: "/aai/v21/network/generic-vnfs"
+        
+      policy_framework:
+        api_endpoint: "https://policy-api.onap.example.com"
+        pap_endpoint: "https://policy-pap.onap.example.com"
+        pdp_endpoint: "https://policy-pdp.onap.example.com"
+        
+      dcae:
+        inventory_endpoint: "https://inventory.onap.example.com"
+        deployment_handler: "https://deployment-handler.onap.example.com"
+        
+      sdnc:
+        restconf_endpoint: "https://sdnc.onap.example.com/restconf"
+        netconf_endpoint: "netconf://sdnc.onap.example.com:830"
+    
+    service_mappings:
+      nephoran_to_onap:
+        "5gc-amf": "5G_AMF_VNF"
+        "5gc-smf": "5G_SMF_VNF"
+        "5gc-upf": "5G_UPF_VNF"
+        "near-rt-ric": "NEAR_RT_RIC_VNF"
+        "o-cu": "O_CU_VNF"
+        "o-du": "O_DU_VNF"
+
+---
+# ONAP Authentication Secrets
+apiVersion: v1
+kind: Secret
+metadata:
+  name: onap-credentials
+  namespace: nephoran-integration
+type: Opaque
+stringData:
+  # Service Orchestrator credentials
+  so-username: "so_admin"
+  so-password: "so_admin_password"
+  
+  # A&AI credentials
+  aai-username: "aai_admin"
+  aai-password: "aai_admin_password"
+  
+  # Policy Framework credentials
+  policy-username: "policy_admin"
+  policy-password: "policy_admin_password"
+  
+  # DCAE credentials
+  dcae-username: "dcae_admin"
+  dcae-password: "dcae_admin_password"
+  
+  # SDNC credentials
+  sdnc-username: "sdnc_admin"
+  sdnc-password: "sdnc_admin_password"
+
+---
+# ONAP Workflow Integration
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: onap-workflow-example
+  namespace: nephoran-integration
+  labels:
+    integration: onap
+    workflow: complete
+spec:
+  intent: "Execute complete ONAP workflow for 5G network service deployment"
+  workflow:
+    steps:
+      - name: "design_service"
+        component: "sdc"
+        action: "create_service_template"
+        parameters:
+          service_name: "5G_Core_Network_Service"
+          category: "Network Service"
+      
+      - name: "distribute_service"
+        component: "sdc"
+        action: "distribute_service"
+        depends_on: "design_service"
+      
+      - name: "create_customer"
+        component: "aai"
+        action: "create_customer"
+        parameters:
+          customer_name: "nephoran-customer"
+          customer_type: "enterprise"
+      
+      - name: "create_service_instance"
+        component: "so"
+        action: "create_service_instance"
+        depends_on: ["distribute_service", "create_customer"]
+        parameters:
+          service_model_uuid: "{design_service.service_uuid}"
+          customer_id: "nephoran-customer"
+      
+      - name: "instantiate_vnfs"
+        component: "so"
+        action: "instantiate_vnfs"
+        depends_on: "create_service_instance"
+        parameters:
+          vnf_models:
+            - "5G_AMF_VNF"
+            - "5G_SMF_VNF"
+            - "5G_UPF_VNF"
+      
+      - name: "configure_policies"
+        component: "policy"
+        action: "create_policies"
+        depends_on: "instantiate_vnfs"
+      
+      - name: "enable_monitoring"
+        component: "dcae"
+        action: "deploy_microservices"
+        depends_on: "instantiate_vnfs"
+  
+  validation:
+    onap_compliance: true
+    integration_tests: true
+    end_to_end_validation: true

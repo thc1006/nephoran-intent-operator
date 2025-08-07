@@ -1,0 +1,522 @@
+# Kubernetes Operators Integration Examples
+# These examples show integration with popular Kubernetes operators
+
+---
+# Istio Service Mesh Integration
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: istio-service-mesh-integration
+  namespace: nephoran-integration
+  labels:
+    integration: istio
+    component: service-mesh
+spec:
+  intent: "Deploy 5G network functions with Istio service mesh integration"
+  integration:
+    service_mesh:
+      enabled: true
+      provider: "istio"
+      version: "1.19"
+      configuration:
+        mtls: "strict"
+        tracing: "jaeger"
+        metrics: "prometheus"
+        access_logging: true
+  components:
+    - name: "amf-with-istio"
+      type: "5gc-amf"
+      config:
+        replicas: 3
+        resources:
+          cpu: "500m"
+          memory: "1Gi"
+        service_mesh:
+          sidecar_injection: true
+          traffic_policy:
+            load_balancer: "round_robin"
+            connection_pool:
+              tcp:
+                max_connections: 100
+              http:
+                http1_max_pending_requests: 50
+                http2_max_requests: 100
+          circuit_breaker:
+            enabled: true
+            max_connections: 100
+            max_pending_requests: 50
+            max_requests: 200
+            max_retries: 3
+  networking:
+    ingress_gateway:
+      enabled: true
+      hosts:
+        - "amf.nephoran.example.com"
+      tls:
+        mode: "SIMPLE"
+        certificate_secret: "amf-tls-cert"
+    virtual_services:
+      - name: "amf-routing"
+        routes:
+          - match:
+              uri:
+                prefix: "/nf-management/"
+            destination:
+              host: "amf-with-istio"
+              port: 8080
+    destination_rules:
+      - name: "amf-destination"
+        traffic_policy:
+          tls:
+            mode: "ISTIO_MUTUAL"
+
+---
+# ArgoCD GitOps Integration
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: argocd-gitops-integration
+  namespace: nephoran-integration
+  labels:
+    integration: argocd
+    workflow: gitops
+spec:
+  intent: "Deploy network functions using ArgoCD GitOps workflow"
+  integration:
+    gitops:
+      enabled: true
+      provider: "argocd"
+      repository:
+        url: "https://github.com/nephoran/network-manifests.git"
+        branch: "main"
+        path: "network-functions"
+        credentials_secret: "git-credentials"
+      sync_policy:
+        automated: true
+        prune: true
+        self_heal: true
+      application:
+        name: "nephoran-network-functions"
+        namespace: "argocd"
+        project: "default"
+  components:
+    - name: "smf-gitops"
+      type: "5gc-smf"
+      config:
+        replicas: 2
+        resources:
+          cpu: "400m"
+          memory: "768Mi"
+        gitops:
+          manifest_path: "smf/manifests"
+          values_overlay: "production"
+          health_check: true
+          sync_wave: "1"
+  deployment:
+    strategy: "gitops"
+    approval_required: false
+    rollback_on_failure: true
+    notification:
+      slack_channel: "#network-ops"
+
+---
+# Prometheus Operator Integration
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: prometheus-monitoring-integration
+  namespace: nephoran-integration
+  labels:
+    integration: prometheus-operator
+    component: monitoring
+spec:
+  intent: "Deploy network functions with comprehensive Prometheus monitoring"
+  integration:
+    monitoring:
+      enabled: true
+      provider: "prometheus-operator"
+      configuration:
+        retention: "90d"
+        storage: "100Gi"
+        replicas: 2
+        external_labels:
+          cluster: "nephoran-production"
+          region: "us-east-1"
+  components:
+    - name: "upf-monitored"
+      type: "5gc-upf"
+      config:
+        replicas: 3
+        resources:
+          cpu: "1000m"
+          memory: "2Gi"
+        monitoring:
+          service_monitor:
+            enabled: true
+            interval: "30s"
+            scrape_timeout: "10s"
+            metrics_path: "/metrics"
+            port: "metrics"
+          custom_metrics:
+            - name: "upf_active_sessions"
+              type: "gauge"
+              help: "Number of active UPF sessions"
+            - name: "upf_throughput_mbps"
+              type: "gauge"
+              help: "UPF throughput in Mbps"
+            - name: "upf_packet_loss_rate"
+              type: "gauge"
+              help: "UPF packet loss rate percentage"
+          alerts:
+            - name: "UPFHighCPUUsage"
+              condition: "cpu_usage > 80"
+              for: "5m"
+              severity: "warning"
+            - name: "UPFHighMemoryUsage"
+              condition: "memory_usage > 85"
+              for: "3m"
+              severity: "critical"
+  alerting:
+    alert_manager:
+      enabled: true
+      replicas: 2
+      configuration:
+        global:
+          smtp_smarthost: "smtp.example.com:587"
+          smtp_from: "alerts@nephoran.example.com"
+        receivers:
+          - name: "network-ops"
+            email_configs:
+              - to: "network-ops@example.com"
+                subject: "Nephoran Alert: {{ .GroupLabels.alertname }}"
+          - name: "slack-alerts"
+            slack_configs:
+              - api_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+                channel: "#network-alerts"
+
+---
+# Cert-Manager TLS Integration
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: cert-manager-tls-integration
+  namespace: nephoran-integration
+  labels:
+    integration: cert-manager
+    security: tls
+spec:
+  intent: "Deploy network functions with automated TLS certificate management"
+  integration:
+    certificate_management:
+      enabled: true
+      provider: "cert-manager"
+      cluster_issuer: "letsencrypt-prod"
+      dns_provider: "cloudflare"
+      auto_renewal: true
+  components:
+    - name: "nssf-tls"
+      type: "5gc-nssf"
+      config:
+        replicas: 2
+        resources:
+          cpu: "300m"
+          memory: "512Mi"
+        tls:
+          enabled: true
+          certificate:
+            issuer: "letsencrypt-prod"
+            common_name: "nssf.nephoran.example.com"
+            dns_names:
+              - "nssf.nephoran.example.com"
+              - "nssf-api.nephoran.example.com"
+            secret_name: "nssf-tls-cert"
+            renewal_before: "720h"  # 30 days
+        ingress:
+          enabled: true
+          class: "nginx"
+          annotations:
+            cert-manager.io/cluster-issuer: "letsencrypt-prod"
+            nginx.ingress.kubernetes.io/ssl-redirect: "true"
+            nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+          hosts:
+            - host: "nssf.nephoran.example.com"
+              paths:
+                - path: "/"
+                  path_type: "Prefix"
+          tls:
+            - hosts:
+                - "nssf.nephoran.example.com"
+              secret_name: "nssf-tls-cert"
+
+---
+# External Secrets Operator Integration
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: external-secrets-integration
+  namespace: nephoran-integration
+  labels:
+    integration: external-secrets
+    security: secrets-management
+spec:
+  intent: "Deploy network functions with external secrets management integration"
+  integration:
+    secrets_management:
+      enabled: true
+      provider: "external-secrets-operator"
+      secret_stores:
+        - name: "vault-backend"
+          type: "vault"
+          endpoint: "https://vault.example.com"
+          auth:
+            kubernetes:
+              mount_path: "kubernetes"
+              role: "nephoran-operator"
+        - name: "aws-secrets-manager"
+          type: "aws"
+          region: "us-east-1"
+          auth:
+            service_account: "nephoran-secrets-sa"
+  components:
+    - name: "amf-secure"
+      type: "5gc-amf"
+      config:
+        replicas: 2
+        resources:
+          cpu: "400m"
+          memory: "768Mi"
+        secrets:
+          - name: "amf-database-credentials"
+            external_secret:
+              secret_store: "vault-backend"
+              target: "amf-db-secret"
+              data:
+                - secret_key: "username"
+                  remote_ref:
+                    key: "database/amf"
+                    property: "username"
+                - secret_key: "password"
+                  remote_ref:
+                    key: "database/amf"
+                    property: "password"
+          - name: "amf-api-keys"
+            external_secret:
+              secret_store: "aws-secrets-manager"
+              target: "amf-api-keys"
+              data:
+                - secret_key: "openai-api-key"
+                  remote_ref:
+                    key: "prod/nephoran/api-keys"
+                    property: "openai_api_key"
+        env_from_secrets:
+          - secret: "amf-db-secret"
+            keys:
+              - "username"
+              - "password"
+          - secret: "amf-api-keys"
+            keys:
+              - "openai-api-key"
+
+---
+# Kustomize Configuration Management
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: kustomize-config-management
+  namespace: nephoran-integration
+  labels:
+    integration: kustomize
+    management: configuration
+spec:
+  intent: "Deploy network functions using Kustomize for configuration management"
+  integration:
+    configuration_management:
+      enabled: true
+      provider: "kustomize"
+      base_path: "config/base"
+      overlays:
+        - name: "development"
+          path: "config/overlays/dev"
+          patches:
+            - target:
+                kind: "Deployment"
+                name: ".*"
+              patch: |
+                - op: replace
+                  path: /spec/replicas
+                  value: 1
+        - name: "production"
+          path: "config/overlays/prod"
+          patches:
+            - target:
+                kind: "Deployment"
+                name: ".*"
+              patch: |
+                - op: replace
+                  path: /spec/replicas
+                  value: 3
+  components:
+    - name: "udm-kustomized"
+      type: "5gc-udm"
+      config:
+        base_configuration:
+          replicas: 1  # Will be overridden by overlay
+          resources:
+            cpu: "200m"
+            memory: "384Mi"
+        kustomize:
+          enable_patches: true
+          enable_transformers: true
+          enable_generators: true
+
+---
+# KEDA Autoscaling Integration
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: keda-autoscaling-integration
+  namespace: nephoran-integration
+  labels:
+    integration: keda
+    feature: autoscaling
+spec:
+  intent: "Deploy network functions with KEDA-based event-driven autoscaling"
+  integration:
+    autoscaling:
+      enabled: true
+      provider: "keda"
+      version: "2.12"
+      configuration:
+        metrics_server: "prometheus"
+        polling_interval: "30s"
+        cooldown_period: "300s"
+  components:
+    - name: "upf-keda-scaled"
+      type: "5gc-upf"
+      config:
+        replicas: 2  # Minimum replicas
+        resources:
+          cpu: "500m"
+          memory: "1Gi"
+        autoscaling:
+          keda:
+            enabled: true
+            min_replicas: 2
+            max_replicas: 10
+            scalers:
+              - name: "prometheus-cpu"
+                type: "prometheus"
+                metadata:
+                  server_address: "http://prometheus:9090"
+                  metric_name: "cpu_usage_percentage"
+                  threshold: "70"
+                  query: "avg(cpu_usage{job='upf-keda-scaled'})"
+              - name: "prometheus-sessions"
+                type: "prometheus"
+                metadata:
+                  server_address: "http://prometheus:9090"
+                  metric_name: "active_sessions"
+                  threshold: "1000"
+                  query: "sum(active_sessions{job='upf-keda-scaled'})"
+              - name: "kafka-lag"
+                type: "kafka"
+                metadata:
+                  bootstrapServers: "kafka:9092"
+                  consumerGroup: "upf-processor"
+                  topic: "network-events"
+                  lagThreshold: "50"
+            behavior:
+              scale_up:
+                stabilization_window_seconds: 60
+                policies:
+                  - type: "Percent"
+                    value: 100
+                    period_seconds: 60
+              scale_down:
+                stabilization_window_seconds: 300
+                policies:
+                  - type: "Percent"
+                    value: 50
+                    period_seconds: 300
+
+---
+# Operators Integration Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: operators-integration-config
+  namespace: nephoran-integration
+data:
+  operators.yaml: |
+    operators:
+      istio:
+        namespace: "istio-system"
+        version: "1.19.0"
+        components:
+          - istiod
+          - istio-proxy
+          - istio-gateway
+        features:
+          - mtls
+          - traffic_management
+          - security_policies
+          - observability
+      
+      argocd:
+        namespace: "argocd"
+        version: "2.8.0"
+        repositories:
+          - name: "nephoran-configs"
+            url: "https://github.com/nephoran/network-configs"
+            type: "git"
+        projects:
+          - name: "network-functions"
+            description: "Network functions deployment"
+            source_repos:
+              - "https://github.com/nephoran/network-configs"
+            destinations:
+              - server: "https://kubernetes.default.svc"
+                namespace: "nephoran-*"
+      
+      prometheus_operator:
+        namespace: "monitoring"
+        version: "0.68.0"
+        components:
+          - prometheus
+          - alertmanager
+          - grafana
+          - node-exporter
+        configuration:
+          retention: "90d"
+          storage: "100Gi"
+          replicas: 2
+      
+      cert_manager:
+        namespace: "cert-manager"
+        version: "1.13.0"
+        issuers:
+          - name: "letsencrypt-staging"
+            type: "acme"
+            server: "https://acme-staging-v02.api.letsencrypt.org/directory"
+          - name: "letsencrypt-prod"
+            type: "acme"
+            server: "https://acme-v02.api.letsencrypt.org/directory"
+      
+      external_secrets:
+        namespace: "external-secrets-system"
+        version: "0.9.0"
+        providers:
+          - vault
+          - aws-secrets-manager
+          - azure-keyvault
+          - gcp-secret-manager
+      
+      keda:
+        namespace: "keda"
+        version: "2.12.0"
+        scalers:
+          - prometheus
+          - kafka
+          - rabbitmq
+          - azure-monitor
+          - aws-cloudwatch

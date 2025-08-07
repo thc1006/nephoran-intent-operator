@@ -1,0 +1,8 @@
+# Nancy vulnerability ignore file
+# Format: CVE-YYYY-NNNN reason
+
+# Example entries (uncomment and modify as needed):
+# CVE-2023-1234 False positive - not applicable to our use case
+# CVE-2023-5678 Risk accepted - will be addressed in next release
+
+# Add CVEs to ignore here with justification

@@ -1,0 +1,714 @@
+# Production Environment Deployment Examples
+# These examples represent enterprise-grade production deployments
+
+---
+# Production Environment Foundation
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: production-foundation
+  namespace: nephoran-production
+  labels:
+    environment: production
+    criticality: high
+    tier: infrastructure
+    compliance: "soc2,iso27001"
+spec:
+  intent: "Establish enterprise-grade production environment with full security, monitoring, and compliance"
+  target_environment: "production"
+  priority: "critical"
+  security:
+    enabled: true
+    tls_required: true
+    authentication: "oauth2_with_mfa"
+    encryption_at_rest: true
+    compliance_scanning: true
+  monitoring:
+    enabled: true
+    retention: "365d"
+    alerting: true
+    sla_monitoring: true
+  backup:
+    enabled: true
+    schedule: "0 1 * * *"  # Daily at 1 AM
+    retention: "90d"
+    offsite_backup: true
+  high_availability:
+    enabled: true
+    multi_zone: true
+    auto_failover: true
+
+---
+# Enterprise AMF Production Deployment
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: production-amf-enterprise
+  namespace: nephoran-production
+  labels:
+    environment: production
+    component: amf
+    availability: enterprise
+    sla_tier: tier1
+spec:
+  intent: "Deploy enterprise-grade AMF with 99.99% availability and full redundancy"
+  target_environment: "production"
+  components:
+    - name: "amf-production"
+      type: "5gc-amf"
+      config:
+        replicas: 5  # Active-active multi-replica
+        resources:
+          cpu: "2000m"
+          memory: "4Gi"
+        anti_affinity: "required"  # Strict node separation
+        topology_spread: true
+        security:
+          enabled: true
+          tls_version: "1.3"
+          certificate_rotation: true
+          mtls: true  # Mutual TLS
+          security_context:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+        persistence:
+          enabled: true
+          size: "100Gi"
+          storage_class: "fast-ssd"
+          backup: true
+        monitoring:
+          detailed: true
+          custom_metrics: true
+          distributed_tracing: true
+          sla_targets:
+            availability: "99.99%"
+            response_time_p95: "< 50ms"
+            response_time_p99: "< 100ms"
+            error_rate: "< 0.01%"
+        health_checks:
+          liveness:
+            enabled: true
+            initial_delay: "60s"
+            period: "10s"
+            failure_threshold: 3
+          readiness:
+            enabled: true
+            initial_delay: "30s"
+            period: "5s"
+            failure_threshold: 2
+          startup:
+            enabled: true
+            initial_delay: "10s"
+            period: "10s"
+            failure_threshold: 30
+
+---
+# Production 5G Core Complete Ecosystem
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: production-5g-core-ecosystem
+  namespace: nephoran-production
+  labels:
+    environment: production
+    component: 5g-core
+    scope: complete
+    sla_tier: tier1
+spec:
+  intent: "Deploy complete production 5G core network with enterprise-grade reliability and performance"
+  target_environment: "production"
+  components:
+    - name: "amf-production"
+      type: "5gc-amf"
+      config:
+        replicas: 5
+        resources:
+          cpu: "2000m"
+          memory: "4Gi"
+        persistence:
+          enabled: true
+          size: "100Gi"
+          backup: true
+        database:
+          type: "postgresql"
+          high_availability: true
+          read_replicas: 3
+    - name: "smf-production"
+      type: "5gc-smf"
+      config:
+        replicas: 4
+        resources:
+          cpu: "1500m"
+          memory: "3Gi"
+        persistence:
+          enabled: true
+          size: "80Gi"
+          backup: true
+        database:
+          type: "postgresql"
+          high_availability: true
+          read_replicas: 2
+    - name: "upf-production"
+      type: "5gc-upf"
+      config:
+        replicas: 6
+        resources:
+          cpu: "4000m"
+          memory: "8Gi"
+        networking:
+          sr_iov: true
+          dpdk: true
+          huge_pages: true
+        persistence:
+          enabled: true
+          size: "50Gi"
+    - name: "nssf-production"
+      type: "5gc-nssf"
+      config:
+        replicas: 3
+        resources:
+          cpu: "1000m"
+          memory: "2Gi"
+        persistence:
+          enabled: true
+          size: "50Gi"
+          backup: true
+    - name: "udm-production"
+      type: "5gc-udm"
+      config:
+        replicas: 4
+        resources:
+          cpu: "1200m"
+          memory: "2.5Gi"
+        database:
+          type: "postgresql"
+          high_availability: true
+          read_replicas: 2
+          encryption: true
+    - name: "udr-production"
+      type: "5gc-udr"
+      config:
+        replicas: 3
+        resources:
+          cpu: "800m"
+          memory: "2Gi"
+        database:
+          type: "postgresql"
+          high_availability: true
+          sharding: true
+    - name: "ausf-production"
+      type: "5gc-ausf"
+      config:
+        replicas: 3
+        resources:
+          cpu: "600m"
+          memory: "1.5Gi"
+        security:
+          hsm_integration: true
+  networking:
+    service_mesh: "istio"
+    ingress:
+      enabled: true
+      tls: true
+      class: "nginx"
+      waf: true
+    network_policies: "zero_trust"
+    load_balancer: "enterprise"
+  security:
+    pod_security_standards: "restricted"
+    service_mesh_auth: "mutual_tls"
+    vulnerability_scanning: "continuous"
+    compliance_auditing: true
+
+---
+# Production O-RAN Complete Platform
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: production-oran-platform
+  namespace: nephoran-production
+  labels:
+    environment: production
+    component: oran
+    scope: complete-platform
+    standards_compliance: "oran-alliance"
+spec:
+  intent: "Deploy complete production O-RAN platform with full interface compliance and multi-vendor support"
+  target_environment: "production"
+  components:
+    - name: "smo-production"
+      type: "smo"
+      config:
+        replicas: 3
+        resources:
+          cpu: "2000m"
+          memory: "4Gi"
+        interfaces:
+          - name: "o1"
+            enabled: true
+            compliance: "oran-wg1"
+          - name: "o2"
+            enabled: true
+            compliance: "oran-wg6"
+        database:
+          type: "postgresql"
+          high_availability: true
+    - name: "non-rt-ric-production"
+      type: "non-rt-ric"
+      config:
+        replicas: 3
+        resources:
+          cpu: "1500m"
+          memory: "3Gi"
+        interfaces:
+          - name: "a1"
+            enabled: true
+            compliance: "oran-wg2"
+          - name: "o1"
+            enabled: true
+            compliance: "oran-wg1"
+        rapp_manager:
+          enabled: true
+          marketplace: "enterprise"
+    - name: "near-rt-ric-production"
+      type: "near-rt-ric"
+      config:
+        replicas: 4
+        resources:
+          cpu: "3000m"
+          memory: "6Gi"
+        interfaces:
+          - name: "a1"
+            enabled: true
+            compliance: "oran-wg2"
+          - name: "e2"
+            enabled: true
+            compliance: "oran-wg3"
+        xapp_framework:
+          enabled: true
+          sdk_version: "latest"
+          resource_limits: true
+    - name: "o-cu-cp-production"
+      type: "o-cu-cp"
+      config:
+        replicas: 6
+        resources:
+          cpu: "2500m"
+          memory: "5Gi"
+        interfaces:
+          - name: "e1"
+            enabled: true
+          - name: "f1-c"
+            enabled: true
+          - name: "xn-c"
+            enabled: true
+        high_availability: true
+    - name: "o-cu-up-production"
+      type: "o-cu-up"
+      config:
+        replicas: 8
+        resources:
+          cpu: "4000m"
+          memory: "8Gi"
+        networking:
+          sr_iov: true
+          dpdk: true
+        interfaces:
+          - name: "e1"
+            enabled: true
+          - name: "f1-u"
+            enabled: true
+          - name: "xn-u"
+            enabled: true
+    - name: "o-du-production"
+      type: "o-du"
+      config:
+        replicas: 12
+        resources:
+          cpu: "3000m"
+          memory: "6Gi"
+        interfaces:
+          - name: "f1"
+            enabled: true
+          - name: "open-fronthaul"
+            enabled: true
+            version: "7.2"
+        real_time_processing: true
+
+---
+# Production Multi-Region E2 Nodes
+apiVersion: nephoran.com/v1alpha1
+kind: E2NodeSet
+metadata:
+  name: production-e2-global
+  namespace: nephoran-production
+  labels:
+    environment: production
+    scope: global
+    deployment: multi-region
+spec:
+  intent: "Deploy production E2 nodes across multiple regions for global coverage"
+  replica: 1000  # Large-scale deployment
+  regions:
+    - name: "us-east-1"
+      replica: 300
+      zones:
+        - "us-east-1a"
+        - "us-east-1b"
+        - "us-east-1c"
+    - name: "eu-west-1"
+      replica: 400
+      zones:
+        - "eu-west-1a"
+        - "eu-west-1b"
+        - "eu-west-1c"
+    - name: "ap-southeast-1"
+      replica: 300
+      zones:
+        - "ap-southeast-1a"
+        - "ap-southeast-1b"
+        - "ap-southeast-1c"
+  nodeTemplate:
+    nodeId: "gnb-prod-{region}-{zone}-{index:04d}"
+    plmnId: "00101"
+    globalGnbId:
+      plmnId: "00101"
+      gnbId: "0x{hash:06x}"
+    cellConfiguration:
+      cellId: "0x{region_id:01d}{zone_id:01d}{index:04d}"
+      trackingAreaCode: "{region_code:03d}"
+      frequencyBands: ["n78", "n77", "n41", "n260", "n261"]
+    resources:
+      cpu: "500m"
+      memory: "1Gi"
+      storage: "10Gi"
+    performance:
+      throughput: "10Gbps"
+      latency: "< 1ms"
+      connections: 10000
+  monitoring:
+    enabled: true
+    detailed: true
+    real_time: true
+    metrics:
+      - "rrc_connections"
+      - "data_throughput"
+      - "handover_success_rate"
+      - "latency_measurements"
+      - "interference_levels"
+      - "energy_consumption"
+
+---
+# Production Network Slicing Enterprise
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: production-network-slicing-enterprise
+  namespace: nephoran-production
+  labels:
+    environment: production
+    feature: network-slicing
+    tier: enterprise
+spec:
+  intent: "Deploy enterprise network slicing with SLA guarantees and multi-tenancy"
+  target_environment: "production"
+  slices:
+    - name: "enterprise-embb"
+      type: "eMBB"
+      sst: 1
+      sd: "000001"
+      sla:
+        availability: "99.99%"
+        bandwidth: "10Gbps"
+        latency: "< 10ms"
+        jitter: "< 1ms"
+      tenants:
+        - "enterprise-customer-a"
+        - "enterprise-customer-b"
+      resources:
+        cpu: "10000m"
+        memory: "20Gi"
+        guaranteed: true
+      billing:
+        enabled: true
+        model: "usage-based"
+    - name: "critical-urllc"
+      type: "uRLLC"
+      sst: 2
+      sd: "000002"
+      sla:
+        availability: "99.999%"
+        bandwidth: "1Gbps"
+        latency: "< 0.5ms"
+        reliability: "99.999%"
+      resources:
+        cpu: "8000m"
+        memory: "16Gi"
+        guaranteed: true
+        priority: "highest"
+      billing:
+        enabled: true
+        model: "premium-sla"
+    - name: "iot-mmtc"
+      type: "mMTC"
+      sst: 3
+      sd: "000003"
+      sla:
+        availability: "99.9%"
+        device_density: "1M/km²"
+        latency: "< 100ms"
+        power_efficiency: "optimized"
+      resources:
+        cpu: "4000m"
+        memory: "8Gi"
+        burstable: true
+      billing:
+        enabled: true
+        model: "device-count"
+
+---
+# Production Security and Compliance
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: production-security-compliance
+  namespace: nephoran-production
+  labels:
+    environment: production
+    focus: security
+    compliance: "enterprise"
+spec:
+  intent: "Implement enterprise-grade security and compliance controls for production"
+  target_environment: "production"
+  security:
+    encryption:
+      at_rest: true
+      in_transit: true
+      key_management: "enterprise_hsm"
+      key_rotation: "monthly"
+      algorithms: ["AES-256", "RSA-4096", "ECDSA-P384"]
+    authentication:
+      multi_factor: true
+      sso_integration: true
+      session_timeout: "4h"
+      password_policy: "enterprise"
+      certificate_based: true
+    authorization:
+      rbac: "fine_grained"
+      network_policies: "zero_trust"
+      api_gateway: "enterprise"
+      audit_logging: "comprehensive"
+    compliance:
+      standards: ["SOC2", "ISO27001", "NIST", "GDPR", "HIPAA"]
+      auditing: true
+      vulnerability_scanning: "continuous"
+      penetration_testing: "quarterly"
+      compliance_reporting: "automated"
+    secrets_management:
+      external_vault: true
+      auto_rotation: true
+      access_logging: true
+      approval_workflow: true
+    monitoring:
+      security_monitoring: true
+      threat_detection: true
+      incident_response: "automated"
+      forensics: "enabled"
+
+---
+# Production Disaster Recovery
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: production-disaster-recovery
+  namespace: nephoran-production
+  labels:
+    environment: production
+    purpose: disaster-recovery
+    criticality: essential
+spec:
+  intent: "Implement comprehensive disaster recovery with RPO/RTO guarantees"
+  target_environment: "production"
+  disaster_recovery:
+    strategy: "active-passive"
+    regions:
+      primary: "us-east-1"
+      secondary: "us-west-2"
+      tertiary: "eu-west-1"
+    objectives:
+      rpo: "1m"  # Recovery Point Objective
+      rto: "5m"  # Recovery Time Objective
+    backup:
+      frequency: "continuous"
+      retention: "7y"
+      encryption: true
+      offsite: true
+      testing: "monthly"
+    failover:
+      automatic: true
+      health_checks: "comprehensive"
+      traffic_switching: "dns_based"
+      notification: "immediate"
+    testing:
+      schedule: "monthly"
+      scenarios:
+        - "region_failure"
+        - "data_corruption"
+        - "network_partition"
+        - "cyber_attack"
+      automated: true
+      reporting: true
+
+---
+# Production Performance and Scaling
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: production-performance-scaling
+  namespace: nephoran-production
+  labels:
+    environment: production
+    purpose: performance-optimization
+    scope: platform-wide
+spec:
+  intent: "Configure enterprise-grade performance optimization and auto-scaling"
+  target_environment: "production"
+  performance:
+    optimization:
+      cpu_optimization: true
+      memory_optimization: true
+      network_optimization: true
+      storage_optimization: true
+    scaling:
+      horizontal: true
+      vertical: true
+      predictive: true
+      custom_metrics: true
+    targets:
+      response_time_p95: "< 50ms"
+      response_time_p99: "< 100ms"
+      throughput: "> 100k req/s"
+      availability: "99.99%"
+      error_rate: "< 0.01%"
+    monitoring:
+      real_time: true
+      alerting: true
+      analytics: true
+      reporting: true
+
+---
+# Production Monitoring and Observability
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: production-observability-platform
+  namespace: nephoran-production
+  labels:
+    environment: production
+    component: observability
+    scope: enterprise
+spec:
+  intent: "Deploy enterprise observability platform with comprehensive monitoring"
+  target_environment: "production"
+  observability:
+    components:
+      - name: "prometheus"
+        config:
+          retention: "2y"
+          high_availability: true
+          federation: true
+          remote_storage: true
+      - name: "grafana"
+        config:
+          high_availability: true
+          authentication: "enterprise_sso"
+          provisioning: "automated"
+      - name: "jaeger"
+        config:
+          sampling_rate: "adaptive"
+          storage: "elasticsearch"
+          retention: "90d"
+      - name: "elasticsearch"
+        config:
+          cluster_size: 6
+          hot_warm_cold: true
+          security: "enterprise"
+      - name: "kibana"
+        config:
+          authentication: "enterprise_sso"
+          spaces: "multi_tenant"
+    metrics:
+      business_kpis: true
+      technical_metrics: true
+      custom_metrics: true
+      real_time: true
+    logging:
+      centralized: true
+      structured: true
+      retention: "2y"
+      compliance: true
+    tracing:
+      distributed: true
+      sampling: "intelligent"
+      correlation: true
+    alerting:
+      multi_channel: true
+      escalation: true
+      correlation: true
+      suppression: true
+
+---
+# Production Resource Management
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: production-enterprise-quota
+  namespace: nephoran-production
+spec:
+  hard:
+    requests.cpu: "500"
+    requests.memory: "1000Gi"
+    limits.cpu: "800"
+    limits.memory: "1500Gi"
+    persistentvolumeclaims: "200"
+    requests.storage: "10Ti"
+    pods: "1000"
+    services: "200"
+    secrets: "100"
+    configmaps: "200"
+    replicationcontrollers: "50"
+    count/deployments.apps: "100"
+    count/statefulsets.apps: "50"
+
+---
+# Production Network Policies (Zero Trust)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: production-zero-trust-base
+  namespace: nephoran-production
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          environment: production
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          environment: production
+  - to: []  # External APIs (controlled by separate policies)
+    ports:
+    - protocol: TCP
+      port: 443

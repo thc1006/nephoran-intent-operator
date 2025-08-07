@@ -1,0 +1,321 @@
+# Development Environment Deployment Examples
+# These examples are designed for local development and testing
+
+---
+# Basic Development Setup
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: dev-environment-setup
+  namespace: nephoran-dev
+  labels:
+    environment: development
+    purpose: basic-setup
+spec:
+  intent: "Set up complete development environment for 5G network functions testing"
+  target_environment: "development"
+  priority: "medium"
+  resources:
+    cpu: "100m"
+    memory: "256Mi"
+    storage: "1Gi"
+  validation:
+    enabled: true
+    timeout: "300s"
+
+---
+# Single AMF Instance for Development
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: dev-amf-basic
+  namespace: nephoran-dev
+  labels:
+    environment: development
+    component: amf
+    complexity: basic
+spec:
+  intent: "Deploy single AMF instance for development testing with minimal resources"
+  target_environment: "development"
+  components:
+    - name: "amf-dev"
+      type: "5gc-amf"
+      config:
+        replicas: 1
+        resources:
+          cpu: "100m"
+          memory: "256Mi"
+        security:
+          enabled: false  # Simplified for development
+        monitoring:
+          basic: true
+          detailed: false
+
+---
+# Development 5G Core Network
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: dev-5g-core
+  namespace: nephoran-dev
+  labels:
+    environment: development
+    component: 5g-core
+    complexity: complete
+spec:
+  intent: "Deploy complete 5G core network for development with all components"
+  target_environment: "development"
+  components:
+    - name: "amf-dev"
+      type: "5gc-amf"
+      config:
+        replicas: 1
+        resources:
+          cpu: "100m"
+          memory: "256Mi"
+    - name: "smf-dev"
+      type: "5gc-smf"
+      config:
+        replicas: 1
+        resources:
+          cpu: "100m"
+          memory: "256Mi"
+    - name: "upf-dev"
+      type: "5gc-upf"
+      config:
+        replicas: 1
+        resources:
+          cpu: "200m"
+          memory: "512Mi"
+    - name: "nssf-dev"
+      type: "5gc-nssf"
+      config:
+        replicas: 1
+        resources:
+          cpu: "50m"
+          memory: "128Mi"
+  networking:
+    internal_communication: "http"  # No TLS in development
+    service_mesh: false
+  cleanup:
+    enabled: true
+    after: "24h"  # Auto-cleanup after 24 hours
+
+---
+# O-RAN Development Components
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: dev-oran-components
+  namespace: nephoran-dev
+  labels:
+    environment: development
+    component: oran
+spec:
+  intent: "Deploy basic O-RAN components for development and testing"
+  target_environment: "development"
+  components:
+    - name: "near-rt-ric-dev"
+      type: "near-rt-ric"
+      config:
+        replicas: 1
+        resources:
+          cpu: "200m"
+          memory: "512Mi"
+        features:
+          - "basic-xapp-management"
+          - "simple-policy-enforcement"
+    - name: "o-cu-dev"
+      type: "o-cu"
+      config:
+        replicas: 1
+        resources:
+          cpu: "100m"
+          memory: "256Mi"
+    - name: "o-du-dev"
+      type: "o-du"
+      config:
+        replicas: 1
+        resources:
+          cpu: "150m"
+          memory: "384Mi"
+
+---
+# E2 Node Simulation for Development
+apiVersion: nephoran.com/v1alpha1
+kind: E2NodeSet
+metadata:
+  name: dev-e2-nodes
+  namespace: nephoran-dev
+  labels:
+    environment: development
+    purpose: simulation
+spec:
+  intent: "Create simulated E2 nodes for development testing"
+  replica: 3
+  nodeType: "gNodeB"
+  nodeTemplate:
+    nodeId: "gnb-dev-{index:03d}"
+    plmnId: "00101"
+    cellConfiguration:
+      cellId: "0x100{index:01d}"
+      trackingAreaCode: 100
+      frequencyBand: "n78"
+    resources:
+      cpu: "50m"
+      memory: "128Mi"
+  monitoring:
+    enabled: true
+    metrics:
+      - "connection_count"
+      - "throughput_basic"
+
+---
+# Developer Testing Intent
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: dev-test-scenario
+  namespace: nephoran-dev
+  labels:
+    environment: development
+    purpose: testing
+    scenario: load-test
+spec:
+  intent: "Create test scenario for load testing with 100 concurrent users"
+  target_environment: "development"
+  test_configuration:
+    type: "load_test"
+    duration: "10m"
+    concurrent_users: 100
+    ramp_up_time: "2m"
+  validation:
+    success_criteria:
+      - metric: "response_time_p95"
+        threshold: "< 2s"
+      - metric: "error_rate"
+        threshold: "< 1%"
+      - metric: "throughput"
+        threshold: "> 500 req/s"
+
+---
+# Quick Feature Test Intent
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: dev-feature-test
+  namespace: nephoran-dev
+  labels:
+    environment: development
+    purpose: feature-test
+spec:
+  intent: "Test new LLM processing feature with sample telecommunications data"
+  target_environment: "development"
+  experimental:
+    enabled: true
+    features:
+      - "enhanced-rag-processing"
+      - "multi-model-fallback"
+  validation:
+    enabled: true
+    compare_with_baseline: true
+    timeout: "600s"
+  cleanup:
+    enabled: true
+    after: "2h"
+
+---
+# Development Monitoring Setup
+apiVersion: nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: dev-monitoring
+  namespace: nephoran-dev
+  labels:
+    environment: development
+    component: monitoring
+spec:
+  intent: "Set up basic monitoring and observability for development environment"
+  target_environment: "development"
+  monitoring:
+    enabled: true
+    components:
+      - "prometheus"
+      - "grafana"
+    dashboards:
+      - "intent-processing-basic"
+      - "network-functions-health"
+    retention: "7d"  # Short retention for development
+    
+---
+# Local Development with Port Forwarding
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dev-port-forward-commands
+  namespace: nephoran-dev
+data:
+  port-forward.sh: |
+    #!/bin/bash
+    # Development port forwarding commands for local access
+    
+    echo "Setting up port forwarding for development..."
+    
+    # LLM Processor
+    kubectl port-forward -n nephoran-system svc/llm-processor 8080:8080 &
+    echo "LLM Processor available at: http://localhost:8080"
+    
+    # RAG API
+    kubectl port-forward -n nephoran-system svc/rag-api 8081:8081 &
+    echo "RAG API available at: http://localhost:8081"
+    
+    # Weaviate
+    kubectl port-forward -n nephoran-system svc/weaviate 8082:8080 &
+    echo "Weaviate available at: http://localhost:8082"
+    
+    # Grafana (if enabled)
+    kubectl port-forward -n nephoran-dev svc/grafana 3000:3000 &
+    echo "Grafana available at: http://localhost:3000"
+    
+    echo "All services forwarded. Press Ctrl+C to stop."
+    wait
+
+---
+# Development Secrets Template
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dev-secrets-template
+  namespace: nephoran-dev
+type: Opaque
+stringData:
+  # Development API keys (replace with actual values)
+  openai-api-key: "sk-development-key-replace-me"
+  
+  # Development database credentials
+  db-username: "nephoran_dev"
+  db-password: "development_password_change_me"
+  
+  # Development OAuth2 credentials
+  oauth2-client-id: "nephoran-dev-client"
+  oauth2-client-secret: "development-secret"
+  
+  # Git token for development GitOps (if needed)
+  git-token: "ghp_development_token_replace_me"
+
+---
+# Development Network Policy (Permissive)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: dev-permissive-policy
+  namespace: nephoran-dev
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - {}  # Allow all ingress for development
+  egress:
+  - {}  # Allow all egress for development

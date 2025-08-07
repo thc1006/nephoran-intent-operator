@@ -1,0 +1,439 @@
+# Prometheus SLA Alerting Rules for Nephoran Intent Operator
+# Version: 1.0.0
+# Generated: 2025-01-07
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sla-alert-rules
+  namespace: monitoring
+  labels:
+    app: nephoran-operator
+    component: sla-monitoring
+    prometheus: kube-prometheus
+data:
+  sla-alerts.yaml: |
+    groups:
+      # Platform Availability Alerts
+      - name: platform_availability
+        interval: 30s
+        rules:
+          - alert: PlatformAvailabilityCritical
+            expr: |
+              (
+                avg_over_time(up{job="nephoran-operator"}[5m]) * 100
+              ) < 99.0
+            for: 5m
+            labels:
+              severity: critical
+              sla_category: availability
+              team: platform-engineering
+            annotations:
+              summary: "Platform availability below critical threshold"
+              description: "Platform availability is {{ $value | humanize }}%, below critical threshold of 99.0%"
+              runbook_url: "https://docs.nephoran.io/runbooks/platform-availability"
+              dashboard_url: "https://grafana.nephoran.io/d/platform-sla"
+              
+          - alert: PlatformAvailabilityDegraded
+            expr: |
+              (
+                avg_over_time(up{job="nephoran-operator"}[5m]) * 100
+              ) < 99.5
+            for: 10m
+            labels:
+              severity: warning
+              sla_category: availability
+              team: platform-engineering
+            annotations:
+              summary: "Platform availability degraded"
+              description: "Platform availability is {{ $value | humanize }}%, below target of 99.9%"
+              
+          - alert: ComponentUnavailable
+            expr: |
+              up{job=~"nephoran-.*"} == 0
+            for: 2m
+            labels:
+              severity: critical
+              sla_category: availability
+              team: platform-engineering
+            annotations:
+              summary: "Component {{ $labels.job }} is unavailable"
+              description: "Component {{ $labels.job }} in namespace {{ $labels.namespace }} has been down for more than 2 minutes"
+
+      # Intent Processing Performance Alerts
+      - name: intent_processing_performance
+        interval: 30s
+        rules:
+          - alert: IntentProcessingP95Violation
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le)
+              ) > 30
+            for: 5m
+            labels:
+              severity: warning
+              sla_category: performance
+              team: platform-engineering
+            annotations:
+              summary: "Intent processing P95 latency exceeds SLA"
+              description: "P95 latency is {{ $value | humanize }}s, exceeding 30s SLA target"
+              impact: "Users experiencing slow intent processing"
+              
+          - alert: IntentProcessingP99Critical
+            expr: |
+              histogram_quantile(0.99,
+                sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le)
+              ) > 45
+            for: 3m
+            labels:
+              severity: critical
+              sla_category: performance
+              team: platform-engineering
+            annotations:
+              summary: "Intent processing P99 latency critical"
+              description: "P99 latency is {{ $value | humanize }}s, exceeding 45s threshold"
+              
+          - alert: IntentProcessingBacklog
+            expr: |
+              sum(intent_processing_queue_size) > 100
+            for: 5m
+            labels:
+              severity: warning
+              sla_category: performance
+              team: platform-engineering
+            annotations:
+              summary: "Intent processing backlog detected"
+              description: "{{ $value }} intents waiting in queue, may impact SLA"
+
+      # Error Rate Alerts
+      - name: error_rate_monitoring
+        interval: 30s
+        rules:
+          - alert: ErrorRateSLAViolation
+            expr: |
+              (
+                sum(rate(http_requests_total{status=~"5.."}[5m]))
+                /
+                sum(rate(http_requests_total[5m]))
+              ) * 100 > 0.5
+            for: 5m
+            labels:
+              severity: warning
+              sla_category: reliability
+              team: platform-engineering
+            annotations:
+              summary: "Error rate exceeds SLA threshold"
+              description: "Error rate is {{ $value | humanize }}%, exceeding 0.5% SLA"
+              
+          - alert: ErrorRateCritical
+            expr: |
+              (
+                sum(rate(http_requests_total{status=~"5.."}[5m]))
+                /
+                sum(rate(http_requests_total[5m]))
+              ) * 100 > 2
+            for: 2m
+            labels:
+              severity: critical
+              sla_category: reliability
+              team: platform-engineering
+            annotations:
+              summary: "Critical error rate detected"
+              description: "Error rate is {{ $value | humanize }}%, immediate action required"
+              
+          - alert: IntentProcessingFailureRate
+            expr: |
+              (
+                sum(rate(intent_processing_failures_total[5m]))
+                /
+                sum(rate(intent_processing_total[5m]))
+              ) * 100 > 1
+            for: 5m
+            labels:
+              severity: warning
+              sla_category: reliability
+              team: platform-engineering
+            annotations:
+              summary: "High intent processing failure rate"
+              description: "{{ $value | humanize }}% of intents are failing"
+
+      # Resource Optimization Alerts
+      - name: resource_optimization
+        interval: 60s
+        rules:
+          - alert: ResourceOptimizationBelowTarget
+            expr: |
+              (
+                1 - (
+                  sum(rate(container_cpu_usage_seconds_total{namespace="nephoran"}[5m]))
+                  /
+                  sum(kube_pod_container_resource_requests{namespace="nephoran",resource="cpu"})
+                )
+              ) * 100 < 15
+            for: 30m
+            labels:
+              severity: warning
+              sla_category: efficiency
+              team: platform-engineering
+            annotations:
+              summary: "Resource optimization below target"
+              description: "Resource savings at {{ $value | humanize }}%, below 15% target"
+              
+          - alert: MemoryEfficiencyLow
+            expr: |
+              (
+                sum(container_memory_working_set_bytes{namespace="nephoran"})
+                /
+                sum(kube_pod_container_resource_limits{namespace="nephoran",resource="memory"})
+              ) > 0.85
+            for: 15m
+            labels:
+              severity: warning
+              sla_category: efficiency
+              team: platform-engineering
+            annotations:
+              summary: "Memory efficiency below target"
+              description: "Memory usage at {{ $value | humanizePercentage }}, indicating poor efficiency"
+
+      # Telecommunications-Specific Alerts
+      - name: telecom_sla_monitoring
+        interval: 30s
+        rules:
+          - alert: NetworkFunctionDeploymentSlow
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(nf_deployment_duration_seconds_bucket[5m])) by (le, function_type)
+              ) > 180
+            for: 5m
+            labels:
+              severity: warning
+              sla_category: telecom
+              team: network-operations
+            annotations:
+              summary: "Network function deployment exceeds SLA"
+              description: "{{ $labels.function_type }} deployment taking {{ $value | humanize }}s"
+              
+          - alert: ORANInterfaceLatencyHigh
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(oran_interface_latency_seconds_bucket[1m])) by (le, interface)
+              ) * 1000 > 100
+            for: 3m
+            labels:
+              severity: warning
+              sla_category: oran
+              team: ran-operations
+            annotations:
+              summary: "O-RAN interface {{ $labels.interface }} latency high"
+              description: "{{ $labels.interface }} latency is {{ $value | humanize }}ms"
+              
+          - alert: RANHandoverFailureRate
+            expr: |
+              (
+                sum(rate(ran_handover_failures_total[5m]))
+                /
+                sum(rate(ran_handover_attempts_total[5m]))
+              ) * 100 > 0.5
+            for: 5m
+            labels:
+              severity: critical
+              sla_category: ran_performance
+              team: ran-operations
+            annotations:
+              summary: "RAN handover failure rate exceeds threshold"
+              description: "Handover failure rate at {{ $value | humanize }}%"
+              
+          - alert: NetworkSliceCreationSlow
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(slice_creation_duration_seconds_bucket[5m])) by (le)
+              ) > 60
+            for: 5m
+            labels:
+              severity: warning
+              sla_category: network_slicing
+              team: network-operations
+            annotations:
+              summary: "Network slice creation exceeds SLA"
+              description: "Slice creation taking {{ $value | humanize }}s, target is 60s"
+
+      # O-RAN KPI Alerts
+      - name: oran_kpi_monitoring
+        interval: 30s
+        rules:
+          - alert: RICAvailabilityLow
+            expr: |
+              avg_over_time(up{job="near-rt-ric"}[5m]) * 100 < 99.95
+            for: 5m
+            labels:
+              severity: warning
+              sla_category: oran_ric
+              team: ran-operations
+            annotations:
+              summary: "RIC availability below target"
+              description: "RIC availability at {{ $value | humanize }}%, target is 99.95%"
+              
+          - alert: xAppDeploymentSlow
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(xapp_deployment_duration_seconds_bucket[5m])) by (le)
+              ) > 45
+            for: 5m
+            labels:
+              severity: warning
+              sla_category: oran_ric
+              team: ran-operations
+            annotations:
+              summary: "xApp deployment exceeds target time"
+              description: "xApp deployment taking {{ $value | humanize }}s"
+              
+          - alert: MLInferenceLatencyHigh
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(ml_inference_duration_seconds_bucket[1m])) by (le, model)
+              ) * 1000 > 200
+            for: 3m
+            labels:
+              severity: warning
+              sla_category: ai_ml
+              team: ml-operations
+            annotations:
+              summary: "ML inference latency exceeds threshold"
+              description: "Model {{ $labels.model }} inference at {{ $value | humanize }}ms"
+
+      # LLM and RAG Performance Alerts
+      - name: llm_rag_performance
+        interval: 30s
+        rules:
+          - alert: LLMTokenGenerationSlow
+            expr: |
+              rate(llm_tokens_generated_total[1m]) < 50
+            for: 5m
+            labels:
+              severity: warning
+              sla_category: llm_performance
+              team: ml-operations
+            annotations:
+              summary: "LLM token generation below target"
+              description: "Token generation rate at {{ $value | humanize }}/s, target is 50/s"
+              
+          - alert: RAGRetrievalLatencyHigh
+            expr: |
+              histogram_quantile(0.95,
+                sum(rate(rag_retrieval_duration_seconds_bucket[5m])) by (le)
+              ) * 1000 > 200
+            for: 5m
+            labels:
+              severity: warning
+              sla_category: rag_performance
+              team: ml-operations
+            annotations:
+              summary: "RAG retrieval latency exceeds SLA"
+              description: "P95 retrieval latency at {{ $value | humanize }}ms"
+              
+          - alert: RAGCacheHitRateLow
+            expr: |
+              (
+                sum(rate(rag_cache_hits_total[5m]))
+                /
+                sum(rate(rag_requests_total[5m]))
+              ) * 100 < 75
+            for: 15m
+            labels:
+              severity: warning
+              sla_category: rag_performance
+              team: ml-operations
+            annotations:
+              summary: "RAG cache hit rate below target"
+              description: "Cache hit rate at {{ $value | humanize }}%, target is 75%"
+
+      # Predictive SLA Alerts
+      - name: predictive_sla_monitoring
+        interval: 60s
+        rules:
+          - alert: PredictedSLABreach
+            expr: |
+              predict_linear(
+                avg_over_time(up{job="nephoran-operator"}[1h])[6h:1m],
+                3600
+              ) * 100 < 99.9
+            for: 5m
+            labels:
+              severity: warning
+              sla_category: predictive
+              team: platform-engineering
+            annotations:
+              summary: "Predicted SLA breach in next hour"
+              description: "Availability trend suggests SLA breach within 1 hour"
+              
+          - alert: PredictedResourceExhaustion
+            expr: |
+              predict_linear(
+                container_memory_working_set_bytes{namespace="nephoran"}[1h],
+                3600
+              ) > kube_pod_container_resource_limits{namespace="nephoran",resource="memory"} * 0.95
+            for: 10m
+            labels:
+              severity: warning
+              sla_category: predictive
+              team: platform-engineering
+            annotations:
+              summary: "Predicted memory exhaustion"
+              description: "Memory usage trend suggests exhaustion within 1 hour"
+              
+          - alert: PredictedLatencyIncrease
+            expr: |
+              (
+                predict_linear(
+                  histogram_quantile(0.95,
+                    sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le)
+                  )[1h:1m],
+                  1800
+                )
+              ) > 30
+            for: 5m
+            labels:
+              severity: warning
+              sla_category: predictive
+              team: platform-engineering
+            annotations:
+              summary: "Predicted latency SLA breach"
+              description: "Latency trend suggests SLA breach within 30 minutes"
+
+      # Composite SLA Score Alerts
+      - name: composite_sla_scores
+        interval: 60s
+        rules:
+          - alert: OverallPlatformHealthDegraded
+            expr: |
+              (
+                (avg_over_time(up{job="nephoran-operator"}[5m]) * 0.3) +
+                ((1 - histogram_quantile(0.95, sum(rate(intent_processing_duration_seconds_bucket[5m])) by (le)) / 30) * 0.25) +
+                ((1 - sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m]))) * 0.25) +
+                ((1 - sum(rate(container_cpu_usage_seconds_total{namespace="nephoran"}[5m])) / sum(kube_pod_container_resource_requests{namespace="nephoran",resource="cpu"})) * 0.2)
+              ) * 100 < 90
+            for: 10m
+            labels:
+              severity: warning
+              sla_category: composite
+              team: platform-engineering
+            annotations:
+              summary: "Overall platform health degraded"
+              description: "Composite health score at {{ $value | humanize }}%, below threshold"
+              
+          - alert: TelecomServiceQualityCritical
+            expr: |
+              (
+                (1 - histogram_quantile(0.95, sum(rate(nf_deployment_duration_seconds_bucket[5m])) by (le)) / 180) * 0.3 +
+                (1 - histogram_quantile(0.95, sum(rate(oran_interface_latency_seconds_bucket[5m])) by (le)) / 0.1) * 0.3 +
+                ((sum(rate(ran_handover_success_total[5m])) / sum(rate(ran_handover_attempts_total[5m]))) * 0.2) +
+                (1 - histogram_quantile(0.95, sum(rate(slice_creation_duration_seconds_bucket[5m])) by (le)) / 60) * 0.2
+              ) * 100 < 90
+            for: 5m
+            labels:
+              severity: critical
+              sla_category: composite
+              team: network-operations
+            annotations:
+              summary: "Telecom service quality critical"
+              description: "Composite telecom quality score at {{ $value | humanize }}%"
