@@ -56,10 +56,10 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 
 	// Kubernetes ecosystem - pinned to k8s v1.32.0 for compatibility
-	k8s.io/api v0.33.2
-	k8s.io/apiextensions-apiserver v0.33.2
-	k8s.io/apimachinery v0.33.2
-	k8s.io/client-go v0.33.2
+	k8s.io/api v0.33.3
+	k8s.io/apiextensions-apiserver v0.33.3
+	k8s.io/apimachinery v0.33.3
+	k8s.io/client-go v0.33.3
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/controller-runtime v0.21.0
 	sigs.k8s.io/yaml v1.6.0
@@ -91,7 +91,7 @@ require (
 	google.golang.org/protobuf v1.36.6
 	gotest.tools/gotestsum v1.12.3
 	helm.sh/helm/v3 v3.18.4
-	k8s.io/code-generator v0.33.2
+	k8s.io/code-generator v0.33.3
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff
 	sigs.k8s.io/controller-tools v0.18.0
 )
@@ -511,9 +511,9 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/tools v0.6.1 // indirect
-	k8s.io/apiserver v0.33.2 // indirect
+	k8s.io/apiserver v0.33.3 // indirect
 	k8s.io/cli-runtime v0.33.2 // indirect
-	k8s.io/component-base v0.33.2 // indirect
+	k8s.io/component-base v0.33.3 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250207200755-1244d31929d7 // indirect
 	k8s.io/kubectl v0.33.2 // indirect
 	k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e // indirect
