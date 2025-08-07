@@ -13,7 +13,7 @@
 [![Code Coverage](https://img.shields.io/codecov/c/github/thc1006/nephoran-intent-operator?style=flat-square&logo=codecov)](https://codecov.io/gh/thc1006/nephoran-intent-operator)
 [![Docker Pulls](https://img.shields.io/docker/pulls/nephoran/intent-operator?style=flat-square&logo=docker)](https://hub.docker.com/r/nephoran/intent-operator)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.27+-blue?style=flat-square&logo=kubernetes)](https://kubernetes.io/)
-[![O-RAN Compliant](https://img.shields.io/badge/O--RAN-Compliant-green?style=flat-square&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMjIgMjJIMloiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K)](https://www.o-ran.org/)
+[![O-RAN Compliant](https://img.shields.io/badge/O--RAN-Compliant-green?style=flat-square&logo=verified)](https://www.o-ran.org/)
 [![Security Scan](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/security-scan.yml?branch=main&style=flat-square&logo=security&label=security)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/security-scan.yml)
 [![Release](https://img.shields.io/github/v/release/thc1006/nephoran-intent-operator?style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/releases)
 
