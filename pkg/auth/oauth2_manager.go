@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
 )
 
 // OAuth2Manager handles OAuth2 authentication setup and middleware
@@ -16,12 +17,14 @@ type OAuth2Manager struct {
 
 // OAuth2ManagerConfig holds configuration for OAuth2 manager
 type OAuth2ManagerConfig struct {
-	Enabled        bool
-	AuthConfigFile string
-	JWTSecretKey   string
-	RequireAuth    bool
-	AdminUsers     []string
-	OperatorUsers  []string
+	Enabled          bool
+	AuthConfigFile   string
+	JWTSecretKey     string
+	RequireAuth      bool
+	AdminUsers       []string
+	OperatorUsers    []string
+	StreamingEnabled bool
+	MaxRequestSize   int64
 }
 
 // NewOAuth2Manager creates a new OAuth2Manager instance
@@ -34,7 +37,7 @@ func NewOAuth2Manager(config *OAuth2ManagerConfig, logger *slog.Logger) (*OAuth2
 		}, nil
 	}
 
-	authConfig, err := LoadAuthConfig("")  // Empty path to use default from environment
+	authConfig, err := LoadAuthConfig(config.AuthConfigFile)
 	if err != nil {
 		return nil, err
 	}
@@ -46,13 +49,13 @@ func NewOAuth2Manager(config *OAuth2ManagerConfig, logger *slog.Logger) (*OAuth2
 
 	authMiddleware := NewAuthMiddleware(oauth2Config, []byte(config.JWTSecretKey))
 
-	logger.Info("OAuth2 authentication enabled", 
+	logger.Info("OAuth2 authentication enabled",
 		slog.Int("providers", len(oauth2Config.Providers)))
 
 	return &OAuth2Manager{
 		authMiddleware: authMiddleware,
-		config:        config,
-		logger:        logger,
+		config:         config,
+		logger:         logger,
 	}, nil
 }
 
@@ -88,8 +91,8 @@ func (om *OAuth2Manager) ConfigureProtectedRoutes(router *mux.Router, handlers *
 	protectedRouter.HandleFunc("/process", handlers.ProcessIntent).Methods("POST")
 	protectedRouter.Use(om.authMiddleware.RequireOperator())
 
-	// Streaming endpoint - requires operator role
-	if handlers.StreamingHandler != nil {
+	// Streaming endpoint - requires operator role (conditional registration)
+	if om.config.StreamingEnabled && handlers.StreamingHandler != nil {
 		protectedRouter.HandleFunc("/stream", handlers.StreamingHandler).Methods("POST")
 	}
 
@@ -108,7 +111,8 @@ func (om *OAuth2Manager) setupDirectRoutes(router *mux.Router, handlers *RouteHa
 	router.HandleFunc("/status", handlers.Status).Methods("GET")
 	router.HandleFunc("/circuit-breaker/status", handlers.CircuitBreakerStatus).Methods("GET")
 
-	if handlers.StreamingHandler != nil {
+	// Streaming endpoint (conditional registration)
+	if om.config.StreamingEnabled && handlers.StreamingHandler != nil {
 		router.HandleFunc("/stream", handlers.StreamingHandler).Methods("POST")
 	}
 
@@ -132,6 +136,37 @@ type RouteHandlers struct {
 	CircuitBreakerStatus http.HandlerFunc
 	StreamingHandler     http.HandlerFunc
 	Metrics              http.HandlerFunc
+}
+
+// CreateHandlersWithSizeLimit creates RouteHandlers with MaxBytesHandler applied to POST endpoints
+func (om *OAuth2Manager) CreateHandlersWithSizeLimit(
+	processIntent http.HandlerFunc,
+	status http.HandlerFunc,
+	circuitBreakerStatus http.HandlerFunc,
+	streamingHandler http.HandlerFunc,
+	metrics http.HandlerFunc,
+) *RouteHandlers {
+	// Apply MaxBytesHandler to POST endpoints that need request size limiting
+	var processIntentHandler http.HandlerFunc
+	var streamingHandlerWrapped http.HandlerFunc
+
+	if om.config.MaxRequestSize > 0 {
+		processIntentHandler = middleware.MaxBytesHandler(om.config.MaxRequestSize, om.logger, processIntent)
+		if streamingHandler != nil {
+			streamingHandlerWrapped = middleware.MaxBytesHandler(om.config.MaxRequestSize, om.logger, streamingHandler)
+		}
+	} else {
+		processIntentHandler = processIntent
+		streamingHandlerWrapped = streamingHandler
+	}
+
+	return &RouteHandlers{
+		ProcessIntent:        processIntentHandler,
+		Status:               status,
+		CircuitBreakerStatus: circuitBreakerStatus,
+		StreamingHandler:     streamingHandlerWrapped,
+		Metrics:              metrics,
+	}
 }
 
 // AuthenticationInfo provides information about the authentication state

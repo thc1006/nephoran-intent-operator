@@ -88,7 +88,7 @@ func main() {
 	// Start server
 	go func() {
 		if cfg.TLSEnabled {
-			logger.Info("Server starting with TLS", 
+			logger.Info("Server starting with TLS",
 				slog.String("addr", server.Addr),
 				slog.String("cert_path", cfg.TLSCertPath),
 				slog.String("key_path", cfg.TLSKeyPath))
@@ -97,7 +97,7 @@ func main() {
 				os.Exit(1)
 			}
 		} else {
-			logger.Info("Server starting (HTTP only)", 
+			logger.Info("Server starting (HTTP only)",
 				slog.String("addr", server.Addr))
 			logger.Warn("Server running in HTTP mode - consider enabling TLS for production use",
 				slog.String("tls_config", "set TLS_ENABLED=true, TLS_CERT_PATH, and TLS_KEY_PATH to enable TLS"))
@@ -250,9 +250,6 @@ func createLoggerWithLevel(level string) *slog.Logger {
 func setupHTTPServer() *http.Server {
 	router := mux.NewRouter()
 
-	// Initialize request size limiting middleware
-	requestSizeLimiter := middleware.NewRequestSizeLimiter(cfg.MaxRequestSize, logger)
-	
 	logger.Info("Request size limiting enabled",
 		slog.Int64("max_request_size_bytes", cfg.MaxRequestSize),
 		slog.String("max_request_size_human", fmt.Sprintf("%.2f MB", float64(cfg.MaxRequestSize)/(1024*1024))))
@@ -265,7 +262,7 @@ func setupHTTPServer() *http.Server {
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 			AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"},
 			AllowCredentials: false, // Security: disabled by default
-			MaxAge:          24 * time.Hour,
+			MaxAge:           24 * time.Hour,
 		}
 
 		if err := middleware.ValidateConfig(corsConfig); err != nil {
@@ -279,32 +276,20 @@ func setupHTTPServer() *http.Server {
 			slog.Bool("credentials_allowed", corsConfig.AllowCredentials))
 	}
 
-	// Initialize OAuth2 middleware if enabled
-	var authMiddleware *auth.AuthMiddleware
-	if cfg.AuthEnabled {
-		authConfig, err := auth.LoadAuthConfig(cfg.AuthConfigFile)
-		if err != nil {
-			logger.Error("Failed to load auth config", slog.String("error", err.Error()))
-			os.Exit(1)
-		}
+	// Initialize OAuth2Manager
+	oauth2Config := &auth.OAuth2ManagerConfig{
+		Enabled:          cfg.AuthEnabled,
+		AuthConfigFile:   cfg.AuthConfigFile,
+		JWTSecretKey:     cfg.JWTSecretKey,
+		RequireAuth:      cfg.RequireAuth,
+		StreamingEnabled: cfg.StreamingEnabled,
+		MaxRequestSize:   cfg.MaxRequestSize,
+	}
 
-		oauth2Config, err := authConfig.ToOAuth2Config()
-		if err != nil {
-			logger.Error("Failed to create OAuth2 config", slog.String("error", err.Error()))
-			os.Exit(1)
-		}
-
-		authMiddleware = auth.NewAuthMiddleware(oauth2Config, []byte(cfg.JWTSecretKey))
-
-		// OAuth2 authentication routes (no size limits needed for these)
-		router.HandleFunc("/auth/login/{provider}", authMiddleware.LoginHandler).Methods("GET")
-		router.HandleFunc("/auth/callback/{provider}", authMiddleware.CallbackHandler).Methods("GET")
-		router.HandleFunc("/auth/refresh", authMiddleware.RefreshHandler).Methods("POST")
-		router.HandleFunc("/auth/logout", authMiddleware.LogoutHandler).Methods("POST")
-		router.HandleFunc("/auth/userinfo", authMiddleware.UserInfoHandler).Methods("GET")
-
-		logger.Info("OAuth2 authentication enabled",
-			slog.Int("providers", len(oauth2Config.Providers)))
+	oauth2Manager, err := auth.NewOAuth2Manager(oauth2Config, logger)
+	if err != nil {
+		logger.Error("Failed to create OAuth2Manager", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 
 	// Apply CORS middleware to all routes if enabled
@@ -312,47 +297,26 @@ func setupHTTPServer() *http.Server {
 		router.Use(corsMiddleware.Middleware)
 	}
 
+	// Setup OAuth2 routes if enabled
+	oauth2Manager.SetupRoutes(router)
+
 	// Public health endpoints (no authentication required)
 	_, _, _, _, _, _, _, healthChecker := service.GetComponents()
 	router.HandleFunc("/healthz", healthChecker.HealthzHandler).Methods("GET")
 	router.HandleFunc("/readyz", healthChecker.ReadyzHandler).Methods("GET")
 	router.HandleFunc("/metrics", handler.MetricsHandler).Methods("GET")
 
-	// Protected endpoints
-	if cfg.AuthEnabled && cfg.RequireAuth {
-		// Apply authentication middleware to protected routes
-		protectedRouter := router.PathPrefix("/").Subrouter()
-		protectedRouter.Use(authMiddleware.Authenticate)
+	// Create handlers with MaxBytesHandler applied to POST endpoints
+	handlers := oauth2Manager.CreateHandlersWithSizeLimit(
+		handler.ProcessIntentHandler,
+		handler.StatusHandler,
+		handler.CircuitBreakerStatusHandler,
+		handler.StreamingHandler,
+		handler.MetricsHandler,
+	)
 
-		// Main processing endpoint - requires operator role and size limits
-		protectedRouter.HandleFunc("/process", 
-			middleware.MaxBytesHandler(cfg.MaxRequestSize, logger, handler.ProcessIntentHandler)).Methods("POST")
-		protectedRouter.Use(authMiddleware.RequireOperator())
-
-		// Streaming endpoint - requires operator role and size limits
-		if cfg.StreamingEnabled {
-			protectedRouter.HandleFunc("/stream", 
-				middleware.MaxBytesHandler(cfg.MaxRequestSize, logger, handler.StreamingHandler)).Methods("POST")
-		}
-
-		// Admin endpoints - requires admin role (no size limits for status endpoints)
-		adminRouter := protectedRouter.PathPrefix("/admin").Subrouter()
-		adminRouter.Use(authMiddleware.RequireAdmin())
-		adminRouter.HandleFunc("/status", handler.StatusHandler).Methods("GET")
-		adminRouter.HandleFunc("/circuit-breaker/status", handler.CircuitBreakerStatusHandler).Methods("GET")
-
-	} else {
-		// No authentication required - direct routes with size limits for POST endpoints
-		router.HandleFunc("/process", 
-			middleware.MaxBytesHandler(cfg.MaxRequestSize, logger, handler.ProcessIntentHandler)).Methods("POST")
-		router.HandleFunc("/status", handler.StatusHandler).Methods("GET")
-		router.HandleFunc("/circuit-breaker/status", handler.CircuitBreakerStatusHandler).Methods("GET")
-
-		if cfg.StreamingEnabled {
-			router.HandleFunc("/stream", 
-				middleware.MaxBytesHandler(cfg.MaxRequestSize, logger, handler.StreamingHandler)).Methods("POST")
-		}
-	}
+	// Configure protected routes using OAuth2Manager
+	oauth2Manager.ConfigureProtectedRoutes(router, handlers)
 
 	return &http.Server{
 		Addr:         ":" + cfg.Port,
