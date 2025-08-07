@@ -1,0 +1,58 @@
+# CodeQL configuration for Nephoran Intent Operator
+name: "Nephoran CodeQL Configuration"
+
+# Disable default queries and use custom query suites
+disable-default-queries: false
+
+# Query suites to run
+queries:
+  - uses: security-and-quality
+  - uses: security-experimental
+  - name: Custom telecom queries
+    uses: ./.github/codeql/queries/
+
+# Paths to analyze
+paths:
+  - pkg/
+  - cmd/
+  - api/
+  
+# Paths to ignore  
+paths-ignore:
+  - "**/*_test.go"
+  - "**/vendor/**"
+  - "**/testdata/**"
+  - "bin/"
+  - ".excellence-reports/"
+  - "chaos-results/"
+
+# Build configuration for Go
+build-mode: manual
+
+# Language-specific configuration
+go:
+  # Use Go build tags for conditional compilation
+  build-tags:
+    - "integration"
+    - "security"
+  # Include test files for analysis
+  include-test-files: false
+  
+# Query filters
+query-filters:
+  - exclude:
+      id: go/hardcoded-credentials
+      # Exclude test credentials and examples
+      paths:
+        - "**/examples/**"
+        - "**/testutils/**"
+        - "**/fixtures/**"
+  
+  - exclude:
+      id: go/clear-text-logging
+      # Exclude logging in test files
+      paths:
+        - "**/*_test.go"
+
+# Enable experimental features
+experimental: true

@@ -1,0 +1,505 @@
+---
+# Chaos Scenarios for Nephoran Intent Operator
+# These scenarios combine multiple experiments to test complex failure conditions
+
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: baseline-chaos
+  namespace: nephoran-system
+spec:
+  engineState: active
+  chaosServiceAccount: litmus-admin
+  monitoring: true
+  jobCleanUpPolicy: retain
+  appinfo:
+    appns: nephoran-system
+    applabel: "app=nephoran-operator"
+    appkind: deployment
+  experiments:
+    - name: pod-kill
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "60"
+            - name: CHAOS_INTERVAL
+              value: "15"
+            - name: PODS_AFFECTED_PERC
+              value: "25"
+        probe:
+          - name: service-availability
+            type: httpProbe
+            httpProbe/inputs:
+              url: http://nephoran-operator:8080/health
+              method:
+                get:
+                  criteria: ==
+                  responseCode: "200"
+            mode: Continuous
+            runProperties:
+              probeTimeout: 5
+              interval: 10
+              retry: 3
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: spike-chaos
+  namespace: nephoran-system
+spec:
+  engineState: active
+  chaosServiceAccount: litmus-admin
+  monitoring: true
+  jobCleanUpPolicy: retain
+  appinfo:
+    appns: nephoran-system
+    applabel: "app=nephoran-operator"
+    appkind: deployment
+  experiments:
+    # Combine pod kills with CPU stress
+    - name: pod-kill
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "180"
+            - name: CHAOS_INTERVAL
+              value: "30"
+            - name: PODS_AFFECTED_PERC
+              value: "50"
+    - name: pod-cpu-hog
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "180"
+            - name: CPU_CORES
+              value: "4"
+            - name: CPU_LOAD
+              value: "90"
+            - name: PODS_AFFECTED_PERC
+              value: "30"
+        probe:
+          - name: latency-check
+            type: promProbe
+            promProbe/inputs:
+              endpoint: http://prometheus:9090
+              query: "histogram_quantile(0.95, http_request_duration_seconds_bucket{job='nephoran-operator'})"
+              comparator:
+                type: float
+                criteria: "<"
+                value: "2"  # P95 < 2s SLA
+            mode: Edge
+            runProperties:
+              probeTimeout: 10
+              interval: 15
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: stress-chaos
+  namespace: nephoran-system
+spec:
+  engineState: active
+  chaosServiceAccount: litmus-admin
+  monitoring: true
+  jobCleanUpPolicy: retain
+  appinfo:
+    appns: nephoran-system
+    applabel: "app=nephoran-operator"
+    appkind: deployment
+  experiments:
+    # Network partition test
+    - name: network-loss
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "300"
+            - name: NETWORK_PACKET_LOSS_PERCENTAGE
+              value: "70"
+            - name: PODS_AFFECTED_PERC
+              value: "40"
+    # Memory pressure test
+    - name: pod-memory-hog
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "300"
+            - name: MEMORY_CONSUMPTION
+              value: "1024"  # 1GB
+            - name: PODS_AFFECTED_PERC
+              value: "50"
+    # Disk pressure test
+    - name: disk-fill
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "300"
+            - name: FILL_SIZE
+              value: "2048"  # 2GB
+            - name: PODS_AFFECTED_PERC
+              value: "30"
+        probe:
+          - name: error-rate-check
+            type: promProbe
+            promProbe/inputs:
+              endpoint: http://prometheus:9090
+              query: "rate(http_requests_total{job='nephoran-operator',status=~'5..'}[5m])"
+              comparator:
+                type: float
+                criteria: "<"
+                value: "0.01"  # Error rate < 1%
+            mode: Continuous
+            runProperties:
+              probeTimeout: 10
+              interval: 30
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: chaos-under-load
+  namespace: nephoran-system
+spec:
+  engineState: active
+  chaosServiceAccount: litmus-admin
+  monitoring: true
+  jobCleanUpPolicy: retain
+  appinfo:
+    appns: nephoran-system
+    applabel: "app=nephoran-operator"
+    appkind: deployment
+  experiments:
+    # Combined chaos while system is under load
+    - name: pod-kill
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "600"
+            - name: CHAOS_INTERVAL
+              value: "60"
+            - name: PODS_AFFECTED_PERC
+              value: "30"
+    - name: network-latency
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "600"
+            - name: NETWORK_LATENCY
+              value: "1000"  # 1s latency
+            - name: JITTER
+              value: "200"
+            - name: PODS_AFFECTED_PERC
+              value: "40"
+    - name: pod-cpu-hog
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "600"
+            - name: CPU_CORES
+              value: "2"
+            - name: CPU_LOAD
+              value: "80"
+            - name: PODS_AFFECTED_PERC
+              value: "25"
+    - name: container-kill
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "600"
+            - name: CHAOS_INTERVAL
+              value: "120"
+            - name: TARGET_CONTAINER
+              value: "llm-processor"
+            - name: PODS_AFFECTED_PERC
+              value: "20"
+        probe:
+          - name: comprehensive-health
+            type: cmdProbe
+            cmdProbe/inputs:
+              command: |
+                #!/bin/bash
+                # Check all critical components
+                kubectl get pods -n nephoran-system --no-headers | grep -v Running && exit 1
+                kubectl get deployment -n nephoran-system -o json | jq '.items[] | select(.status.readyReplicas != .spec.replicas) | .metadata.name' | grep . && exit 1
+                curl -f http://nephoran-operator:8080/health || exit 1
+                curl -f http://rag-api:8081/health || exit 1
+                exit 0
+              source: inline
+            mode: Continuous
+            runProperties:
+              probeTimeout: 30
+              interval: 60
+              retry: 3
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: etcd-disruption
+  namespace: nephoran-system
+spec:
+  engineState: active
+  chaosServiceAccount: litmus-admin
+  monitoring: true
+  jobCleanUpPolicy: retain
+  appinfo:
+    appns: kube-system
+    applabel: "component=etcd"
+    appkind: pod
+  experiments:
+    - name: etcd-kill
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "30"
+            - name: CHAOS_INTERVAL
+              value: "10"
+        probe:
+          - name: control-plane-recovery
+            type: cmdProbe
+            cmdProbe/inputs:
+              command: |
+                #!/bin/bash
+                # Check etcd cluster health
+                kubectl exec -n kube-system etcd-0 -- etcdctl endpoint health || exit 1
+                # Check API server responsiveness
+                kubectl get nodes --request-timeout=10s || exit 1
+                # Check operator recovery
+                kubectl get networkintents -n nephoran-system --request-timeout=10s || exit 1
+                exit 0
+              source: inline
+            mode: Edge
+            runProperties:
+              probeTimeout: 30
+              interval: 10
+              retry: 5
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: database-chaos
+  namespace: nephoran-system
+spec:
+  engineState: active
+  chaosServiceAccount: litmus-admin
+  monitoring: true
+  jobCleanUpPolicy: retain
+  appinfo:
+    appns: nephoran-system
+    applabel: "app=weaviate"
+    appkind: statefulset
+  experiments:
+    - name: pod-kill
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "120"
+            - name: CHAOS_INTERVAL
+              value: "30"
+            - name: FORCE
+              value: "true"
+    - name: network-loss
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "120"
+            - name: NETWORK_PACKET_LOSS_PERCENTAGE
+              value: "50"
+        probe:
+          - name: rag-functionality
+            type: httpProbe
+            httpProbe/inputs:
+              url: http://rag-api:8081/api/v1/search
+              method:
+                post:
+                  contentType: application/json
+                  body: '{"query":"deploy AMF"}'
+                  criteria: ==
+                  responseCode: "200"
+            mode: Continuous
+            runProperties:
+              probeTimeout: 10
+              interval: 20
+              retry: 3
+---
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosEngine
+metadata:
+  name: node-failure
+  namespace: nephoran-system
+spec:
+  engineState: active
+  chaosServiceAccount: litmus-admin
+  monitoring: true
+  jobCleanUpPolicy: retain
+  appinfo:
+    appns: nephoran-system
+    applabel: "app=nephoran-operator"
+    appkind: deployment
+  experiments:
+    - name: node-drain
+      spec:
+        components:
+          env:
+            - name: TOTAL_CHAOS_DURATION
+              value: "300"
+            - name: GRACE_PERIOD
+              value: "30"
+        probe:
+          - name: pod-redistribution
+            type: cmdProbe
+            cmdProbe/inputs:
+              command: |
+                #!/bin/bash
+                # Check pod redistribution across remaining nodes
+                nodes=$(kubectl get nodes --no-headers | grep Ready | wc -l)
+                if [ $nodes -lt 2 ]; then
+                  echo "Not enough nodes for redistribution test"
+                  exit 0
+                fi
+                
+                # Check all pods are rescheduled
+                pending=$(kubectl get pods -n nephoran-system --field-selector=status.phase=Pending --no-headers | wc -l)
+                if [ $pending -gt 0 ]; then
+                  echo "Pods still pending: $pending"
+                  exit 1
+                fi
+                
+                # Check deployments are healthy
+                kubectl get deployment -n nephoran-system -o json | \
+                  jq -e '.items[] | select(.status.readyReplicas != .spec.replicas)' && exit 1
+                
+                exit 0
+              source: inline
+            mode: Edge
+            runProperties:
+              probeTimeout: 60
+              interval: 30
+              retry: 10
+---
+# Chaos Schedule for automated testing
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosSchedule
+metadata:
+  name: daily-chaos
+  namespace: nephoran-system
+spec:
+  schedule:
+    repeat:
+      timeRange:
+        startTime: "2025-01-01T00:00:00Z"
+        endTime: "2025-12-31T23:59:59Z"
+      properties:
+        minChaosInterval: "24h"
+      workDays:
+        includedDays: "Mon,Tue,Wed,Thu,Fri"
+      workHours:
+        includedHours: "2:00AM-4:00AM"
+  engineTemplateSpec:
+    engineState: active
+    chaosServiceAccount: litmus-admin
+    monitoring: true
+    jobCleanUpPolicy: retain
+    appinfo:
+      appns: nephoran-system
+      applabel: "app=nephoran-operator"
+      appkind: deployment
+    experiments:
+      - name: pod-kill
+        spec:
+          components:
+            env:
+              - name: TOTAL_CHAOS_DURATION
+                value: "300"
+              - name: PODS_AFFECTED_PERC
+                value: "30"
+---
+# Monitoring ConfigMap for Chaos Experiments
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: chaos-monitoring
+  namespace: litmus
+data:
+  prometheus-rules.yaml: |
+    groups:
+      - name: chaos_experiments
+        interval: 30s
+        rules:
+          - alert: ChaosExperimentFailed
+            expr: litmuschaos_experiment_verdict{verdict="Fail"} == 1
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Chaos experiment {{ $labels.chaosengine_name }} failed"
+              description: "The chaos experiment {{ $labels.experiment_name }} in namespace {{ $labels.chaosengine_namespace }} has failed."
+          
+          - alert: RecoveryTimeExceeded
+            expr: (time() - litmuschaos_experiment_start_time) > 120 and litmuschaos_experiment_verdict{verdict="Awaited"} == 1
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Recovery time exceeded 120s threshold"
+              description: "The system has not recovered from chaos experiment {{ $labels.experiment_name }} within the 120s SLA."
+          
+          - alert: ServiceUnavailableDuringChaos
+            expr: up{job="nephoran-operator"} == 0 and litmuschaos_experiment_verdict{verdict="Running"} == 1
+            for: 30s
+            labels:
+              severity: critical
+            annotations:
+              summary: "Service unavailable during chaos testing"
+              description: "The Nephoran operator service is down during active chaos testing."
+  
+  grafana-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Chaos Engineering Dashboard",
+        "panels": [
+          {
+            "title": "Experiment Success Rate",
+            "targets": [
+              {
+                "expr": "sum(rate(litmuschaos_experiment_verdict{verdict=\"Pass\"}[5m])) / sum(rate(litmuschaos_experiment_verdict[5m]))"
+              }
+            ]
+          },
+          {
+            "title": "Recovery Time",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, litmuschaos_recovery_time_bucket)"
+              }
+            ]
+          },
+          {
+            "title": "Service Availability During Chaos",
+            "targets": [
+              {
+                "expr": "avg_over_time(up{job=\"nephoran-operator\"}[5m])"
+              }
+            ]
+          },
+          {
+            "title": "Intent Processing During Chaos",
+            "targets": [
+              {
+                "expr": "rate(intent_processed_total[5m])"
+              }
+            ]
+          }
+        ]
+      }
+    }

@@ -1,0 +1,516 @@
+---
+# Litmus Chaos Experiments for Nephoran Intent Operator
+# These experiments test resilience and auto-healing capabilities
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: litmus
+---
+# Chaos Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: litmus-admin
+  namespace: litmus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: litmus-admin
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/exec", "services", "endpoints", "events", "configmaps", "secrets"]
+    verbs: ["*"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]
+    verbs: ["*"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["*"]
+  - apiGroups: ["litmuschaos.io"]
+    resources: ["chaosengines", "chaosexperiments", "chaosresults"]
+    verbs: ["*"]
+  - apiGroups: ["intent.nephoran.io"]
+    resources: ["networkintents", "networkintents/status"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: litmus-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: litmus-admin
+subjects:
+  - kind: ServiceAccount
+    name: litmus-admin
+    namespace: litmus
+---
+# Experiment 1: Pod Kill - Random pod termination
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: pod-kill
+  namespace: litmus
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create", "delete", "get", "list", "patch", "update", "deletecollection"]
+      - apiGroups: ["apps"]
+        resources: ["deployments", "statefulsets", "replicasets", "daemonsets"]
+        verbs: ["list", "get", "patch", "update"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+      - -c
+      - ./experiments -name pod-delete
+    command:
+      - /bin/bash
+    env:
+      - name: TOTAL_CHAOS_DURATION
+        value: "60"
+      - name: CHAOS_INTERVAL
+        value: "10"
+      - name: FORCE
+        value: "true"
+      - name: PODS_AFFECTED_PERC
+        value: "30"
+      - name: TARGET_PODS
+        value: ""
+      - name: SEQUENCE
+        value: "parallel"
+    labels:
+      name: pod-kill
+      app.kubernetes.io/part-of: litmus
+      app.kubernetes.io/component: chaosexperiment
+      app.kubernetes.io/version: latest
+---
+# Experiment 2: Network Loss - Network partition and latency injection
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: network-loss
+  namespace: litmus
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create", "delete", "get", "list", "patch", "update"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["create", "get", "list"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+      - -c
+      - ./experiments -name network-loss
+    command:
+      - /bin/bash
+    env:
+      - name: TOTAL_CHAOS_DURATION
+        value: "120"
+      - name: NETWORK_INTERFACE
+        value: "eth0"
+      - name: NETWORK_PACKET_LOSS_PERCENTAGE
+        value: "50"
+      - name: CONTAINER_RUNTIME
+        value: "containerd"
+      - name: SOCKET_PATH
+        value: "/run/containerd/containerd.sock"
+      - name: TARGET_PODS
+        value: ""
+      - name: PODS_AFFECTED_PERC
+        value: "25"
+    labels:
+      name: network-loss
+      app.kubernetes.io/part-of: litmus
+      app.kubernetes.io/component: chaosexperiment
+---
+# Experiment 3: Network Latency - Introduce network delays
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: network-latency
+  namespace: litmus
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create", "delete", "get", "list", "patch", "update"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["create", "get", "list"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+      - -c
+      - ./experiments -name network-latency
+    command:
+      - /bin/bash
+    env:
+      - name: TOTAL_CHAOS_DURATION
+        value: "90"
+      - name: NETWORK_INTERFACE
+        value: "eth0"
+      - name: NETWORK_LATENCY
+        value: "500"  # 500ms latency
+      - name: JITTER
+        value: "100"   # 100ms jitter
+      - name: CONTAINER_RUNTIME
+        value: "containerd"
+      - name: TARGET_PODS
+        value: ""
+      - name: PODS_AFFECTED_PERC
+        value: "30"
+    labels:
+      name: network-latency
+      app.kubernetes.io/part-of: litmus
+---
+# Experiment 4: Pod CPU Hog - CPU stress testing
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: pod-cpu-hog
+  namespace: litmus
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create", "delete", "get", "list", "patch", "update"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["create", "get", "list"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+      - -c
+      - ./experiments -name pod-cpu-hog
+    command:
+      - /bin/bash
+    env:
+      - name: TOTAL_CHAOS_DURATION
+        value: "60"
+      - name: CPU_CORES
+        value: "2"
+      - name: CPU_LOAD
+        value: "80"  # 80% CPU load
+      - name: PODS_AFFECTED_PERC
+        value: "50"
+      - name: CONTAINER_RUNTIME
+        value: "containerd"
+    labels:
+      name: pod-cpu-hog
+      app.kubernetes.io/part-of: litmus
+---
+# Experiment 5: Pod Memory Hog - Memory stress testing
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: pod-memory-hog
+  namespace: litmus
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["create", "delete", "get", "list", "patch", "update"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["create", "get", "list"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+      - -c
+      - ./experiments -name pod-memory-hog
+    command:
+      - /bin/bash
+    env:
+      - name: TOTAL_CHAOS_DURATION
+        value: "60"
+      - name: MEMORY_CONSUMPTION
+        value: "500"  # 500MB
+      - name: PODS_AFFECTED_PERC
+        value: "30"
+      - name: CONTAINER_RUNTIME
+        value: "containerd"
+    labels:
+      name: pod-memory-hog
+      app.kubernetes.io/part-of: litmus
+---
+# Experiment 6: ETCD Kill - Control plane disruption
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: etcd-kill
+  namespace: litmus
+spec:
+  definition:
+    scope: Cluster
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["get", "list", "delete"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["create"]
+      - apiGroups: [""]
+        resources: ["nodes"]
+        verbs: ["get", "list"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+      - -c
+      - ./experiments -name etcd-pod-delete
+    command:
+      - /bin/bash
+    env:
+      - name: TOTAL_CHAOS_DURATION
+        value: "30"
+      - name: CHAOS_INTERVAL
+        value: "10"
+      - name: FORCE
+        value: "false"
+      - name: ETCD_NAMESPACE
+        value: "kube-system"
+      - name: ETCD_LABEL_SELECTOR
+        value: "component=etcd"
+    labels:
+      name: etcd-kill
+      app.kubernetes.io/part-of: litmus
+---
+# Experiment 7: Container Kill - Specific container termination
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: container-kill
+  namespace: litmus
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["get", "list", "patch", "update"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["create", "get", "list"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+      - -c
+      - ./experiments -name container-kill
+    command:
+      - /bin/bash
+    env:
+      - name: TOTAL_CHAOS_DURATION
+        value: "60"
+      - name: CHAOS_INTERVAL
+        value: "10"
+      - name: CONTAINER_RUNTIME
+        value: "containerd"
+      - name: SOCKET_PATH
+        value: "/run/containerd/containerd.sock"
+      - name: TARGET_CONTAINER
+        value: ""
+      - name: PODS_AFFECTED_PERC
+        value: "25"
+      - name: SIGNAL
+        value: "SIGTERM"
+    labels:
+      name: container-kill
+      app.kubernetes.io/part-of: litmus
+---
+# Experiment 8: Disk Fill - Storage stress testing
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: disk-fill
+  namespace: litmus
+spec:
+  definition:
+    scope: Namespaced
+    permissions:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["get", "list", "patch", "update"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["create", "get", "list"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+      - -c
+      - ./experiments -name disk-fill
+    command:
+      - /bin/bash
+    env:
+      - name: TOTAL_CHAOS_DURATION
+        value: "60"
+      - name: FILL_SIZE
+        value: "1024"  # 1GB
+      - name: FILL_PATH
+        value: "/tmp"
+      - name: PODS_AFFECTED_PERC
+        value: "20"
+      - name: CONTAINER_RUNTIME
+        value: "containerd"
+    labels:
+      name: disk-fill
+      app.kubernetes.io/part-of: litmus
+---
+# Experiment 9: Node Drain - Simulate node maintenance
+apiVersion: litmuschaos.io/v1alpha1
+kind: ChaosExperiment
+metadata:
+  name: node-drain
+  namespace: litmus
+spec:
+  definition:
+    scope: Cluster
+    permissions:
+      - apiGroups: [""]
+        resources: ["nodes"]
+        verbs: ["get", "list", "patch", "update"]
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["get", "list", "delete"]
+      - apiGroups: [""]
+        resources: ["pods/eviction"]
+        verbs: ["create"]
+      - apiGroups: ["apps"]
+        resources: ["daemonsets"]
+        verbs: ["get", "list"]
+    image: "litmuschaos/go-runner:latest"
+    imagePullPolicy: Always
+    args:
+      - -c
+      - ./experiments -name node-drain
+    command:
+      - /bin/bash
+    env:
+      - name: TOTAL_CHAOS_DURATION
+        value: "120"
+      - name: TARGET_NODE
+        value: ""
+      - name: GRACE_PERIOD
+        value: "30"
+      - name: IGNORE_DAEMONSETS
+        value: "true"
+      - name: DELETE_EMPTYDIR_DATA
+        value: "true"
+    labels:
+      name: node-drain
+      app.kubernetes.io/part-of: litmus
+---
+# Chaos Result CRD for tracking experiment results
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: chaosresults.litmuschaos.io
+spec:
+  group: litmuschaos.io
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+            status:
+              type: object
+              properties:
+                experimentStatus:
+                  type: object
+                  properties:
+                    phase:
+                      type: string
+                    verdict:
+                      type: string
+                    failStep:
+                      type: string
+                history:
+                  type: object
+  scope: Namespaced
+  names:
+    plural: chaosresults
+    singular: chaosresult
+    kind: ChaosResult
+---
+# Auto-healing validation job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: auto-healing-validator
+  namespace: litmus
+spec:
+  template:
+    spec:
+      serviceAccountName: litmus-admin
+      restartPolicy: OnFailure
+      containers:
+        - name: validator
+          image: bitnami/kubectl:latest
+          command:
+            - /bin/bash
+            - -c
+            - |
+              #!/bin/bash
+              set -e
+              
+              # Function to check pod recovery
+              check_recovery() {
+                local namespace=$1
+                local deployment=$2
+                local start_time=$(date +%s)
+                local timeout=120
+                
+                echo "Checking recovery for $deployment in $namespace..."
+                
+                while true; do
+                  current_time=$(date +%s)
+                  elapsed=$((current_time - start_time))
+                  
+                  if [ $elapsed -gt $timeout ]; then
+                    echo "ERROR: Recovery timeout exceeded for $deployment"
+                    return 1
+                  fi
+                  
+                  # Check if deployment is ready
+                  ready=$(kubectl get deployment -n $namespace $deployment -o jsonpath='{.status.readyReplicas}')
+                  desired=$(kubectl get deployment -n $namespace $deployment -o jsonpath='{.spec.replicas}')
+                  
+                  if [ "$ready" == "$desired" ] && [ ! -z "$ready" ]; then
+                    echo "SUCCESS: $deployment recovered in ${elapsed}s"
+                    return 0
+                  fi
+                  
+                  echo "Waiting for recovery... (${elapsed}s elapsed, ready: $ready/$desired)"
+                  sleep 5
+                done
+              }
+              
+              # Monitor all deployments in nephoran-system
+              echo "Starting auto-healing validation..."
+              
+              deployments=$(kubectl get deployments -n nephoran-system -o jsonpath='{.items[*].metadata.name}')
+              
+              for deployment in $deployments; do
+                check_recovery "nephoran-system" "$deployment"
+              done
+              
+              echo "Auto-healing validation completed successfully"

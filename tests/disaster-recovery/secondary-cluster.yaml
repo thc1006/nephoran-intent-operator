@@ -1,0 +1,66 @@
+# Secondary cluster configuration for DR testing
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: secondary
+nodes:
+- role: control-plane
+  kubeadmConfigPatches:
+  - |
+    kind: InitConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "cluster-role=secondary"
+  extraPortMappings:
+  - containerPort: 30080
+    hostPort: 8081
+    protocol: TCP
+  - containerPort: 30443
+    hostPort: 8444
+    protocol: TCP
+- role: worker
+  kubeadmConfigPatches:
+  - |
+    kind: JoinConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "cluster-role=secondary"
+- role: worker
+  kubeadmConfigPatches:
+  - |
+    kind: JoinConfiguration
+    nodeRegistration:
+      kubeletExtraArgs:
+        node-labels: "cluster-role=secondary"
+networking:
+  apiServerAddress: "127.0.0.1"
+  apiServerPort: 6444
+  podSubnet: "10.241.0.0/16"
+  serviceSubnet: "10.97.0.0/16"
+kubeadmConfigPatches:
+- |
+  kind: ClusterConfiguration
+  etcd:
+    local:
+      dataDir: /tmp/etcd-secondary
+      serverCertSANs:
+      - localhost
+      - 127.0.0.1
+  apiServer:
+    extraArgs:
+      enable-admission-plugins: "NamespaceLifecycle,LimitRanger,ServiceAccount,DefaultStorageClass,DefaultTolerationSeconds,MutatingAdmissionWebhook,ValidatingAdmissionWebhook,ResourceQuota"
+      audit-log-maxage: "30"
+      audit-log-maxbackup: "10"
+      audit-log-maxsize: "100"
+      audit-log-path: "/var/log/audit.log"
+    extraVolumes:
+    - name: audit-log
+      hostPath: /tmp/audit-log-secondary
+      mountPath: /var/log
+      readOnly: false
+  controllerManager:
+    extraArgs:
+      enable-hostpath-provisioner: "true"
+containerdConfigPatches:
+- |-
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."localhost:5001"]
+    endpoint = ["http://localhost:5001"]

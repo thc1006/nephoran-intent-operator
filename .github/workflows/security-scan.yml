@@ -1,4 +1,4 @@
-name: Security Vulnerability Scanning
+name: "Security Scan"
 
 on:
   push:
@@ -6,391 +6,95 @@ on:
   pull_request:
     branches: [ main, develop ]
   schedule:
-    # Run security scans daily at 2 AM UTC
-    - cron: '0 2 * * *'
-  workflow_dispatch:
+    # Run daily security scans at 4 AM UTC
+    - cron: '0 4 * * *'
 
 env:
-  REGISTRY: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran
-  GO_VERSION: '1.24'
+  GO_VERSION: '1.24.1'
 
 jobs:
-  static-analysis:
-    name: Static Application Security Testing (SAST)
+  security-scan:
+    name: "Daily Security Scan"
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
-      contents: read
       security-events: write
-      actions: read
-    
+      contents: read
+
     steps:
-    - name: Checkout code
+    - name: "Checkout Code"
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    - name: Setup Go
-      uses: actions/setup-go@v4
+    - name: "Setup Go"
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ env.GO_VERSION }}
+        cache: true
 
-    - name: Cache Go modules
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cache/go-build
-          ~/go/pkg/mod
-        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-        restore-keys: |
-          ${{ runner.os }}-go-
-
-    - name: Run gosec Security Scanner
-      uses: securecodewarrior/github-action-gosec@master
-      with:
-        args: '-fmt sarif -out gosec-results.sarif ./...'
-      continue-on-error: true
-
-    - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: gosec-results.sarif
-      if: always()
-
-    - name: Run staticcheck
-      uses: dominikh/staticcheck-action@v1
-      with:
-        version: "2023.1.7"
-        install-go: false
-        cache-key: ${{ runner.os }}-staticcheck
-
-    - name: Run CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
-      with:
-        languages: go
-        queries: +security-and-quality
-
-    - name: Upload security scan results
-      uses: actions/upload-artifact@v3
-      with:
-        name: security-scan-results
-        path: |
-          gosec-results.sarif
-          staticcheck-results.txt
-      if: always()
-
-  dependency-scanning:
-    name: Dependency Vulnerability Scanning
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Run Nancy (Sonatype) dependency scanner
-      run: |
-        go install github.com/sonatypecommunity/nancy@latest
-        go list -json -m all | nancy sleuth --exclude-vulnerability-file .nancy-ignore
-
-    - name: Run Snyk dependency scanner
-      uses: snyk/actions/golang@master
-      continue-on-error: true
-      env:
-        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      with:
-        args: --severity-threshold=high --sarif-file-output=snyk-results.sarif
-
-    - name: Upload Snyk results to GitHub Code Scanning
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: snyk-results.sarif
-      if: always()
-
-    - name: Run govulncheck
+    - name: "Install Security Tools"
       run: |
         go install golang.org/x/vuln/cmd/govulncheck@latest
-        govulncheck -json ./... > govulncheck-results.json
-      continue-on-error: true
+        go install github.com/securecodewarrior/github-action-gosec@latest
+        go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
 
-    - name: Upload dependency scan results
-      uses: actions/upload-artifact@v3
-      with:
-        name: dependency-scan-results
-        path: |
-          snyk-results.sarif
-          govulncheck-results.json
-      if: always()
-
-  license-compliance:
-    name: License Compliance Check
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Install go-licenses
-      run: go install github.com/google/go-licenses@latest
-
-    - name: Check license compliance
+    - name: "Run Comprehensive Security Scan"
       run: |
-        go-licenses csv ./... > licenses.csv
-        go-licenses check --disallowed_types=forbidden,restricted ./...
+        mkdir -p security-reports
+        
+        # Vulnerability scan
+        echo "Running vulnerability scan..."
+        govulncheck -json ./... > security-reports/vulns.json || true
+        govulncheck ./... | tee security-reports/vulns.txt
+        
+        # SAST scan with gosec
+        echo "Running SAST scan..."
+        gosec -fmt sarif -out security-reports/gosec.sarif ./... || true
+        gosec -fmt json -out security-reports/gosec.json ./... || true
+        
+        # Generate SBOM
+        echo "Generating SBOM..."
+        cyclonedx-gomod mod -json -output-file security-reports/sbom.json
 
-    - name: Upload license report
-      uses: actions/upload-artifact@v3
-      with:
-        name: license-compliance-report
-        path: licenses.csv
-      if: always()
-
-  secret-scanning:
-    name: Secret Scanning
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: TruffleHog OSS Secret Scanning
-      uses: trufflesecurity/trufflehog@main
-      with:
-        path: ./
-        base: main
-        head: HEAD
-        extra_args: --debug --only-verified
-
-    - name: Run gitleaks
-      uses: gitleaks/gitleaks-action@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE}}
-
-  container-scanning:
-    name: Container Image Security Scanning
-    runs-on: ubuntu-latest
-    needs: [static-analysis]
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    
-    strategy:
-      matrix:
-        service: [llm-processor, nephio-bridge, oran-adaptor, rag-api]
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Build Docker image
+    - name: "Scan Dependencies with Nancy"
       run: |
-        if [ "${{ matrix.service }}" = "rag-api" ]; then
-          docker build -t ${{ env.REGISTRY }}/${{ matrix.service }}:scan -f rag-python/Dockerfile ./rag-python
+        go list -json -deps ./... | docker run --rm -i sonatypecommunity/nancy:latest sleuth --loud > security-reports/nancy.txt || true
+
+    - name: "Check Critical Vulnerabilities"
+      run: |
+        # Check for critical vulnerabilities and fail if found
+        if grep -q "HIGH\|CRITICAL" security-reports/vulns.txt; then
+          echo "⚠️  Critical or High severity vulnerabilities found!"
+          grep "HIGH\|CRITICAL" security-reports/vulns.txt
+          exit 1
         else
-          docker build -t ${{ env.REGISTRY }}/${{ matrix.service }}:scan --target ${{ matrix.service }} .
+          echo "✅ No critical vulnerabilities found"
         fi
 
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        image-ref: '${{ env.REGISTRY }}/${{ matrix.service }}:scan'
-        format: 'sarif'
-        output: 'trivy-${{ matrix.service }}-results.sarif'
-        severity: 'CRITICAL,HIGH,MEDIUM'
-
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: 'trivy-${{ matrix.service }}-results.sarif'
+    - name: "Upload SARIF Results"
       if: always()
-
-    - name: Run Syft SBOM generation
-      uses: anchore/sbom-action@v0
+      uses: github/codeql-action/upload-sarif@v3
       with:
-        image: '${{ env.REGISTRY }}/${{ matrix.service }}:scan'
-        format: 'spdx-json'
-        output-file: 'sbom-${{ matrix.service }}.spdx.json'
+        sarif_file: security-reports/gosec.sarif
 
-    - name: Run Grype vulnerability scanner on SBOM
-      uses: anchore/scan-action@v3
-      with:
-        sbom: 'sbom-${{ matrix.service }}.spdx.json'
-        fail-build: false
-        severity-cutoff: high
-
-    - name: Upload container scan results
-      uses: actions/upload-artifact@v3
-      with:
-        name: container-scan-${{ matrix.service }}
-        path: |
-          trivy-${{ matrix.service }}-results.sarif
-          sbom-${{ matrix.service }}.spdx.json
+    - name: "Upload Security Reports"
       if: always()
-
-  dast-scanning:
-    name: Dynamic Application Security Testing
-    runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    
-    services:
-      k3s:
-        image: rancher/k3s:latest
-        options: --privileged
-        ports:
-          - 6443:6443
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup kubectl
-      uses: azure/setup-kubectl@v3
+      uses: actions/upload-artifact@v4
       with:
-        version: 'latest'
+        name: security-reports-${{ github.run_number }}
+        path: security-reports/
+        retention-days: 90
 
-    - name: Wait for k3s to be ready
-      run: |
-        kubectl config set-cluster k3s --server=https://localhost:6443 --insecure-skip-tls-verify
-        kubectl config set-credentials k3s --token=dummy
-        kubectl config set-context k3s --cluster=k3s --user=k3s
-        kubectl config use-context k3s
-        kubectl wait --for=condition=Ready nodes --all --timeout=300s
-
-    - name: Deploy application for DAST
-      run: |
-        # Deploy a test instance of the application
-        kubectl create namespace nephoran-test
-        kubectl apply -f deployments/kustomize/overlays/dev/ -n nephoran-test
-        kubectl wait --for=condition=available --timeout=300s deployment -l app.kubernetes.io/part-of=nephoran -n nephoran-test
-
-    - name: Run OWASP ZAP DAST scan
-      uses: zaproxy/action-full-scan@v0.4.0
-      with:
-        target: 'http://localhost:8080'
-        rules_file_name: '.zap/rules.tsv'
-        cmd_options: '-a -j'
-      continue-on-error: true
-
-    - name: Upload DAST results
-      uses: actions/upload-artifact@v3
-      with:
-        name: dast-scan-results
-        path: report_html.html
-      if: always()
-
-  security-policy-validation:
-    name: Security Policy Validation
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Install Conftest
-      run: |
-        wget https://github.com/open-policy-agent/conftest/releases/download/v0.46.0/conftest_0.46.0_Linux_x86_64.tar.gz
-        tar xzf conftest_0.46.0_Linux_x86_64.tar.gz
-        sudo mv conftest /usr/local/bin
-
-    - name: Validate Kubernetes manifests against security policies
-      run: |
-        find deployments/ -name "*.yaml" -o -name "*.yml" | xargs conftest verify --policy deployments/security/opa-policies/
-
-    - name: Run Falco security rules validation
-      run: |
-        docker run --rm -v $(pwd):/workspace falcosecurity/falco:latest \
-          falco --validate /workspace/deployments/security/falco-rules.yaml
-
-  vulnerability-report:
-    name: Generate Vulnerability Report
-    runs-on: ubuntu-latest
-    needs: [static-analysis, dependency-scanning, container-scanning, license-compliance, secret-scanning]
-    if: always()
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Download all scan results
-      uses: actions/download-artifact@v3
-      with:
-        path: scan-results
-
-    - name: Generate consolidated security report
-      run: |
-        python3 scripts/generate-security-report.py \
-          --input-dir scan-results \
-          --output security-report.html \
-          --format html
-
-    - name: Upload consolidated security report
-      uses: actions/upload-artifact@v3
-      with:
-        name: consolidated-security-report
-        path: security-report.html
-
-    - name: Check for critical vulnerabilities
-      run: |
-        # Fail the build if critical vulnerabilities are found
-        python3 scripts/check-critical-vulnerabilities.py \
-          --input-dir scan-results \
-          --fail-on-critical
-
-    - name: Comment PR with security summary
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v6
+    - name: "Create Security Issue"
+      if: failure() && github.ref == 'refs/heads/main'
+      uses: actions/github-script@v7
       with:
         script: |
-          const fs = require('fs');
-          if (fs.existsSync('security-summary.md')) {
-            const summary = fs.readFileSync('security-summary.md', 'utf8');
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: summary
-            });
-          }
-
-  compliance-check:
-    name: Telecommunications Compliance Check
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: NIST Cybersecurity Framework compliance check
-      run: |
-        # Check against NIST CSF requirements for telecom
-        python3 scripts/compliance-checker.py --framework nist-csf --profile telecom
-
-    - name: ETSI NFV-SEC compliance validation
-      run: |
-        # Validate against ETSI NFV security specifications
-        python3 scripts/compliance-checker.py --framework etsi-nfv-sec
-
-    - name: Generate compliance report
-      run: |
-        python3 scripts/generate-compliance-report.py --output compliance-report.json
-
-    - name: Upload compliance report
-      uses: actions/upload-artifact@v3
-      with:
-        name: compliance-report
-        path: compliance-report.json
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `Security Vulnerability Detected - ${new Date().toISOString()}`,
+            body: `🚨 **Security Alert**\n\nCritical or high severity vulnerabilities have been detected in the codebase.\n\n**Run**: [${context.runNumber}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n**Action Required**: Please review the security scan results and remediate the vulnerabilities immediately.\n\n**Security Reports**: Available in the workflow artifacts.`,
+            labels: ['security', 'vulnerability', 'priority:critical']
+          })

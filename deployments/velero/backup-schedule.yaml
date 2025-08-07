@@ -1,0 +1,364 @@
+---
+# Daily full backup schedule for all Nephoran resources
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: nephoran-daily-backup
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    nephoran.com/backup-type: daily-full
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM UTC
+  template:
+    metadata:
+      labels:
+        backup-type: daily-scheduled
+        nephoran.com/backup-scope: full
+    spec:
+      # Include all Nephoran-related namespaces and resources
+      includedNamespaces:
+      - nephoran-system
+      - nephoran-production
+      - velero
+      - monitoring
+      - istio-system
+      - cert-manager
+      - kube-system  # For critical cluster resources
+      
+      # Include specific resource types critical for Nephoran
+      includedResources:
+      - networkintents.nephoran.com
+      - e2nodesets.nephoran.com  
+      - managedelements.nephoran.com
+      - deployments
+      - services
+      - configmaps
+      - secrets
+      - persistentvolumes
+      - persistentvolumeclaims
+      - customresourcedefinitions
+      - clusterroles
+      - clusterrolebindings
+      - roles
+      - rolebindings
+      - serviceaccounts
+      - ingresses
+      - networkpolicies
+      - pods
+      
+      # Storage location and retention
+      storageLocation: nephoran-s3-backup
+      volumeSnapshotLocations:
+      - nephoran-volume-snapshots
+      ttl: 720h  # 30 days retention
+      
+      # Advanced backup options
+      snapshotVolumes: true
+      includeClusterResources: true
+      
+      # Backup hooks for application consistency
+      hooks:
+        resources:
+        - name: weaviate-pre-backup
+          includedNamespaces:
+          - nephoran-system
+          - nephoran-production
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: weaviate
+          pre:
+          - exec:
+              container: weaviate
+              command:
+              - /bin/sh
+              - -c
+              - "curl -X POST http://localhost:8080/v1/schema/dump > /tmp/schema-backup.json"
+              onError: Continue
+              timeout: 5m
+        - name: llm-processor-pre-backup
+          includedNamespaces:
+          - nephoran-system
+          - nephoran-production
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: llm-processor
+          pre:
+          - exec:
+              container: llm-processor
+              command:
+              - /bin/sh
+              - -c
+              - "kill -USR1 1"  # Graceful state flush
+              onError: Continue
+              timeout: 2m
+      
+      # Resource filters and transformations
+      orLabelSelectors:
+      - matchLabels:
+          nephoran.com/backup: "true"
+      - matchLabels:
+          app.kubernetes.io/part-of: "nephoran"
+      - matchLabels:
+          velero.io/backup: "include"
+      
+      # Exclude resources that shouldn't be backed up
+      excludedResources:
+      - events
+      - pods/log
+      - pods/status
+      - nodes
+      - endpoints
+      - endpointslices
+      
+      # Default volumes to snapshot unless explicitly excluded
+      defaultVolumesToSnapshot: true
+---
+# Weekly full backup with extended retention
+apiVersion: velero.io/v1
+kind: Schedule  
+metadata:
+  name: nephoran-weekly-backup
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    nephoran.com/backup-type: weekly-full
+spec:
+  schedule: "0 1 * * 0"  # Sunday at 1 AM UTC
+  template:
+    metadata:
+      labels:
+        backup-type: weekly-scheduled
+        nephoran.com/backup-scope: full-extended
+    spec:
+      includedNamespaces:
+      - "*"  # Include all namespaces for weekly backup
+      
+      includedResources:
+      - "*"  # Include all resource types
+      
+      storageLocation: nephoran-s3-backup
+      volumeSnapshotLocations:
+      - nephoran-volume-snapshots
+      ttl: 2160h  # 90 days retention for weekly backups
+      
+      snapshotVolumes: true
+      includeClusterResources: true
+      
+      # More comprehensive hooks for weekly backup
+      hooks:
+        resources:
+        - name: cluster-state-backup
+          includedNamespaces:
+          - kube-system
+          pre:
+          - exec:
+              container: etcd
+              command:
+              - /bin/sh
+              - -c
+              - "ETCDCTL_API=3 etcdctl snapshot save /tmp/etcd-snapshot.db"
+              onError: Fail
+              timeout: 10m
+      
+      defaultVolumesToSnapshot: true
+---
+# Critical components backup (runs every 6 hours)
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: nephoran-critical-backup
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    nephoran.com/backup-type: critical-frequent
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  template:
+    metadata:
+      labels:
+        backup-type: critical-scheduled
+        nephoran.com/backup-scope: critical-only
+    spec:
+      # Focus on critical components only
+      includedNamespaces:
+      - nephoran-system
+      - nephoran-production
+      
+      # Critical resources only
+      includedResources:
+      - networkintents.nephoran.com
+      - e2nodesets.nephoran.com
+      - managedelements.nephoran.com
+      - secrets
+      - configmaps
+      - persistentvolumeclaims
+      
+      # Label selector for critical components
+      labelSelector:
+        matchLabels:
+          nephoran.com/critical: "true"
+      
+      storageLocation: nephoran-s3-backup
+      ttl: 168h  # 7 days retention for frequent backups
+      
+      snapshotVolumes: true
+      includeClusterResources: false  # Skip cluster resources for frequent backups
+      
+      defaultVolumesToSnapshot: true
+---
+# Configuration-only backup (runs hourly)
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: nephoran-config-backup
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    nephoran.com/backup-type: config-only
+spec:
+  schedule: "0 * * * *"  # Hourly
+  template:
+    metadata:
+      labels:
+        backup-type: config-scheduled
+        nephoran.com/backup-scope: config-only
+    spec:
+      includedNamespaces:
+      - nephoran-system
+      - nephoran-production
+      
+      # Configuration resources only
+      includedResources:
+      - networkintents.nephoran.com
+      - e2nodesets.nephoran.com
+      - managedelements.nephoran.com
+      - configmaps
+      - secrets
+      - customresourcedefinitions
+      
+      storageLocation: nephoran-s3-backup
+      ttl: 24h  # 1 day retention for config-only backups
+      
+      snapshotVolumes: false  # No volume snapshots for config backups
+      includeClusterResources: true
+      
+      defaultVolumesToSnapshot: false
+---
+# Disaster recovery test backup (monthly)
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: nephoran-dr-test-backup
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    nephoran.com/backup-type: dr-test
+spec:
+  schedule: "0 3 1 * *"  # First day of each month at 3 AM UTC
+  template:
+    metadata:
+      labels:
+        backup-type: dr-test-scheduled
+        nephoran.com/backup-scope: disaster-recovery-validation
+    spec:
+      includedNamespaces:
+      - "*"
+      
+      includedResources:
+      - "*"
+      
+      storageLocation: nephoran-s3-backup
+      volumeSnapshotLocations:
+      - nephoran-volume-snapshots
+      ttl: 8760h  # 1 year retention for DR test backups
+      
+      snapshotVolumes: true
+      includeClusterResources: true
+      
+      # Comprehensive validation hooks
+      hooks:
+        resources:
+        - name: pre-dr-test-validation
+          includedNamespaces:
+          - nephoran-system
+          - nephoran-production
+          pre:
+          - exec:
+              container: nephoran-operator
+              command:
+              - /manager
+              - --health-check
+              - --validate-crds
+              onError: Fail
+              timeout: 5m
+        - name: post-backup-verification
+          includedNamespaces:
+          - nephoran-system
+          post:
+          - exec:
+              container: velero
+              command:
+              - /bin/sh
+              - -c
+              - "velero backup describe nephoran-dr-test-backup --details"
+              onError: Continue
+              timeout: 2m
+      
+      defaultVolumesToSnapshot: true
+---
+# Backup cleanup policy
+apiVersion: velero.io/v1
+kind: DeleteBackupRequest
+metadata:
+  name: cleanup-old-backups
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    nephoran.com/cleanup-policy: automatic
+spec:
+  backupName: "*"  # This would be applied to specific backup patterns in practice
+---
+# Monitoring and alerting for backup failures
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backup-monitoring-config
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    nephoran.com/component: monitoring
+data:
+  alert-rules.yaml: |
+    groups:
+    - name: velero-backup-alerts
+      rules:
+      - alert: VeleroBackupFailure
+        expr: increase(velero_backup_failure_total[1h]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: disaster-recovery
+        annotations:
+          summary: "Velero backup failed"
+          description: "Backup {{ $labels.schedule }} failed. RTO may be compromised."
+          
+      - alert: VeleroBackupDuration
+        expr: velero_backup_duration_seconds > 3600  # 1 hour
+        for: 10m
+        labels:
+          severity: warning
+          component: disaster-recovery
+        annotations:
+          summary: "Velero backup taking too long"
+          description: "Backup {{ $labels.schedule }} has been running for over 1 hour."
+          
+      - alert: VeleroBackupStorageLow
+        expr: velero_backup_storage_size_bytes / velero_backup_storage_available_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          component: disaster-recovery
+        annotations:
+          summary: "Backup storage space low"
+          description: "Backup storage is over 80% full. Consider cleanup or expansion."

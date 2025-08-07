@@ -1,0 +1,323 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/component: disaster-recovery
+    nephoran.com/component: backup-system
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cloud-credentials
+  namespace: velero
+type: Opaque
+data:
+  # Base64 encoded credentials file for S3-compatible storage
+  # Update these values with your actual S3 credentials
+  cloud: |
+    W2RlZmF1bHRdCmF3c19hY2Nlc3Nfa2V5X2lkID0gWU9VUl9BQ0NFU1NfS0VZCmF3c19zZWNyZXRfYWNjZXNzX2tleSA9IFlPVVJfU0VDUkVUX0tFWQ==
+---
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  name: velero-backup-location
+  namespace: velero
+spec:
+  # Configure backup storage location for S3-compatible storage
+  # This will be used by the BackupStorageLocation resource
+---
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: nephoran-s3-backup
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    nephoran.com/backup-location: primary
+spec:
+  provider: aws
+  objectStorage:
+    bucket: nephoran-disaster-recovery-backups
+    prefix: production-cluster
+  config:
+    # S3-compatible storage configuration
+    region: us-west-2
+    s3ForcePathStyle: "true"
+    # For MinIO or other S3-compatible storage, uncomment and configure:
+    # s3Url: https://minio.example.com
+    # insecureSkipTLSVerify: "false"
+  credential:
+    name: cloud-credentials
+    key: cloud
+---
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: nephoran-volume-snapshots
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    nephoran.com/snapshot-location: primary
+spec:
+  provider: aws
+  config:
+    region: us-west-2
+  credential:
+    name: cloud-credentials
+    key: cloud
+---
+# Velero deployment with enterprise configuration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: velero
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/component: disaster-recovery
+spec:
+  replicas: 2  # High availability deployment
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: velero
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: velero
+        app.kubernetes.io/component: disaster-recovery
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8085"
+    spec:
+      serviceAccountName: velero
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+      containers:
+      - name: velero
+        image: velero/velero:v1.12.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: metrics
+          containerPort: 8085
+          protocol: TCP
+        command:
+        - /velero
+        args:
+        - server
+        - --uploader-type=restic
+        - --default-backup-storage-location=nephoran-s3-backup
+        - --default-volume-snapshot-locations=nephoran-volume-snapshots
+        - --metrics-bind-addr=:8085
+        - --log-level=info
+        - --log-format=json
+        - --features=EnableCSI
+        volumeMounts:
+        - name: plugins
+          mountPath: /plugins
+        - name: cloud-credentials
+          mountPath: /credentials
+          readOnly: true
+        - name: scratch
+          mountPath: /scratch
+        env:
+        - name: VELERO_SCRATCH_DIR
+          value: /scratch
+        - name: VELERO_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: LD_LIBRARY_PATH
+          value: /plugins
+        - name: AWS_SHARED_CREDENTIALS_FILE
+          value: /credentials/cloud
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 8085
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 8085
+          initialDelaySeconds: 15
+          periodSeconds: 15
+      - name: aws-plugin
+        image: velero/velero-plugin-for-aws:v1.8.0
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: plugins
+          mountPath: /target
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "10m"
+          limits:
+            memory: "128Mi"
+            cpu: "50m"
+      - name: csi-plugin
+        image: velero/velero-plugin-for-csi:v0.6.0
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: plugins
+          mountPath: /target
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "10m"
+          limits:
+            memory: "128Mi"
+            cpu: "50m"
+      volumes:
+      - name: plugins
+        emptyDir: {}
+      - name: cloud-credentials
+        secret:
+          secretName: cloud-credentials
+      - name: scratch
+        emptyDir: {}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app.kubernetes.io/name: velero
+              topologyKey: kubernetes.io/hostname
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: velero
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/component: disaster-recovery
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/component: disaster-recovery
+rules:
+# Core Velero permissions
+- apiGroups:
+  - "*"
+  resources:
+  - "*"
+  verbs:
+  - "*"
+- nonResourceURLs:
+  - "*"
+  verbs:
+  - "*"
+# Specific permissions for Nephoran resources
+- apiGroups:
+  - "nephoran.com"
+  resources:
+  - "networkintents"
+  - "e2nodesets"
+  - "managedelements"
+  verbs:
+  - "get"
+  - "list"
+  - "watch"
+  - "create"
+  - "update"
+  - "patch"
+  - "delete"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/component: disaster-recovery
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: velero
+subjects:
+- kind: ServiceAccount
+  name: velero
+  namespace: velero
+---
+# Service for metrics and monitoring
+apiVersion: v1
+kind: Service
+metadata:
+  name: velero-metrics
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/component: disaster-recovery
+spec:
+  selector:
+    app.kubernetes.io/name: velero
+  ports:
+  - name: metrics
+    port: 8085
+    targetPort: 8085
+    protocol: TCP
+  type: ClusterIP
+---
+# ServiceMonitor for Prometheus integration
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: velero-metrics
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/component: disaster-recovery
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: velero
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+---
+# Network policy for Velero security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: velero-netpol
+  namespace: velero
+  labels:
+    app.kubernetes.io/name: velero
+    app.kubernetes.io/component: disaster-recovery
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: velero
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8085
+  egress:
+  - {} # Allow all egress for S3 access and Kubernetes API

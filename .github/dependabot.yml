@@ -1,111 +1,133 @@
-# Dependabot configuration for Nephoran Intent Operator
-# This configuration ensures dependencies are kept up-to-date and secure
-
+# Dependabot configuration for automated dependency updates
 version: 2
 updates:
-  # Go modules
+  # Go modules dependencies
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
-      time: "04:00"
+      time: "06:00"
+      timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
-      - "security-team"
+      - "thc1006"
     assignees:
-      - "devops-team"
+      - "thc1006"
     commit-message:
-      prefix: "deps"
+      prefix: "build(deps): "
       include: "scope"
     labels:
       - "dependencies"
-      - "security"
-      - "auto-merge"
-    ignore:
-      # Ignore major version updates for critical dependencies
-      - dependency-name: "k8s.io/*"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "sigs.k8s.io/*"
-        update-types: ["version-update:semver-major"]
+      - "go"
+      - "automated"
+    # Security updates get higher priority
+    groups:
+      security-updates:
+        patterns:
+          - "*"
+        update-types:
+          - "security"
+    # Group non-security updates by ecosystem
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+        update-types:
+          - "minor"
+          - "patch"
+      kubernetes-dependencies:
+        patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+        update-types:
+          - "minor"
+          - "patch"
 
   # Docker dependencies
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "04:30"
+      day: "tuesday"
+      time: "06:00"
+      timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
-      - "security-team"
+      - "thc1006"
     assignees:
-      - "devops-team"
+      - "thc1006"
     commit-message:
-      prefix: "docker"
-      include: "scope"
+      prefix: "build(docker): "
     labels:
       - "dependencies"
       - "docker"
-      - "security"
+      - "automated"
 
-  # RAG Python dependencies
-  - package-ecosystem: "pip"
-    directory: "/rag-python"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "security-team"
-    assignees:
-      - "ai-team"
-    commit-message:
-      prefix: "python-deps"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "python"
-      - "rag-api"
-      - "security"
-
-  # GitHub Actions
+  # GitHub Actions dependencies
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-      day: "monday"
-      time: "05:30"
+      day: "wednesday"
+      time: "06:00"
+      timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
-      - "devops-team"
+      - "thc1006"
     assignees:
-      - "devops-team"
+      - "thc1006"
     commit-message:
-      prefix: "ci"
-      include: "scope"
+      prefix: "ci: "
     labels:
       - "dependencies"
       - "github-actions"
       - "ci-cd"
+      - "automated"
 
-  # Terraform modules (if any)
-  - package-ecosystem: "terraform"
-    directory: "/deployments/multi-region/terraform"
+  # Helm dependencies
+  - package-ecosystem: "bundler"
+    directory: "/deployments/helm"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "monthly"
+      day: 15
       time: "06:00"
+      timezone: "UTC"
     open-pull-requests-limit: 3
     reviewers:
-      - "infrastructure-team"
+      - "thc1006"
     assignees:
-      - "devops-team"
+      - "thc1006"
     commit-message:
-      prefix: "terraform"
-      include: "scope"
+      prefix: "build(helm): "
     labels:
       - "dependencies"
-      - "terraform"
-      - "infrastructure"
+      - "helm"
+      - "automated"
+
+  # Python dependencies (for rag-python module)
+  - package-ecosystem: "pip"
+    directory: "/rag-python"
+    schedule:
+      interval: "weekly"
+      day: "thursday"
+      time: "06:00"
+      timezone: "UTC"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "thc1006"
+    assignees:
+      - "thc1006"
+    commit-message:
+      prefix: "build(python): "
+    labels:
+      - "dependencies"
+      - "python"
+      - "rag"
+      - "automated"
+
+# Global settings for all ecosystems
+enable-beta-ecosystems: true
