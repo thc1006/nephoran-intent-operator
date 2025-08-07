@@ -1,0 +1,13 @@
+# Page navigation order for awesome-pages plugin
+nav:
+  - index.md
+  - getting-started
+  - architecture  
+  - user-guide
+  - api
+  - operations
+  - developer
+  - oran
+  - tutorials
+  - reference
+  - community

@@ -1,0 +1,240 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '0 6 * * *'  # Daily at 6 AM UTC
+  workflow_dispatch:
+    inputs:
+      scan_type:
+        description: 'Type of security scan'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - full
+          - dependencies
+          - containers
+          - secrets
+
+env:
+  GO_VERSION: '1.24'
+
+jobs:
+  # =============================================================================
+  # Dependency Security Scan
+  # =============================================================================
+  dependencies:
+    name: Dependency Scan
+    runs-on: ubuntu-latest
+    if: inputs.scan_type == 'dependencies' || inputs.scan_type == 'full' || github.event_name == 'schedule'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install Security Tools
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install github.com/sonatypecommunity/nancy@latest
+
+      - name: Vulnerability Scan
+        run: |
+          mkdir -p security-reports
+          govulncheck -json ./... > security-reports/govulncheck.json || true
+
+      - name: Nancy Dependency Scan
+        run: |
+          go list -json -deps ./... | nancy sleuth --output-format=json > security-reports/nancy.json || true
+
+      - name: Upload Dependency Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-security-reports
+          path: security-reports/
+          retention-days: 30
+
+  # =============================================================================
+  # SAST - Static Application Security Testing
+  # =============================================================================
+  sast:
+    name: SAST Analysis
+    runs-on: ubuntu-latest
+    if: inputs.scan_type == 'full' || github.event_name != 'schedule'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Go Environment
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run Gosec Security Scanner
+        uses: securecodewarrior/github-action-gosec@master
+        with:
+          args: '-fmt sarif -out gosec-results.sarif ./...'
+
+      - name: Upload SARIF Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: gosec-results.sarif
+          category: gosec
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: go
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: codeql
+
+  # =============================================================================
+  # Container Security Scan
+  # =============================================================================
+  container:
+    name: Container Security
+    runs-on: ubuntu-latest
+    if: inputs.scan_type == 'containers' || inputs.scan_type == 'full' || github.event_name == 'schedule'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Test Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: nephoran-test:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install trivy
+
+      - name: Run Trivy Security Scan
+        run: |
+          mkdir -p security-reports
+          trivy image --format sarif --output security-reports/trivy-results.sarif nephoran-test:latest
+          trivy image --format json --output security-reports/trivy-results.json nephoran-test:latest
+
+      - name: Upload Container Security Results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: security-reports/trivy-results.sarif
+          category: container-scan
+
+      - name: Upload Container Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-security-reports
+          path: security-reports/
+          retention-days: 30
+
+  # =============================================================================
+  # Secrets Detection
+  # =============================================================================
+  secrets:
+    name: Secrets Scan
+    runs-on: ubuntu-latest
+    if: inputs.scan_type == 'secrets' || inputs.scan_type == 'full' || github.event_name == 'schedule'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Gitleaks
+        run: |
+          curl -L https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64 -o gitleaks
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/
+
+      - name: Run Gitleaks
+        run: |
+          mkdir -p security-reports
+          gitleaks detect --source . --report-format json --report-path security-reports/gitleaks.json --verbose || true
+
+      - name: Check for Secrets
+        run: |
+          if [ -f security-reports/gitleaks.json ]; then
+            secret_count=$(jq length security-reports/gitleaks.json)
+            if [ "$secret_count" -gt 0 ]; then
+              echo "❌ Found $secret_count potential secrets"
+              jq . security-reports/gitleaks.json
+              exit 1
+            fi
+          fi
+          echo "✅ No secrets detected"
+
+      - name: Upload Secrets Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: secrets-security-reports
+          path: security-reports/
+          retention-days: 30
+
+  # =============================================================================
+  # Security Summary
+  # =============================================================================
+  summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [dependencies, sast, container, secrets]
+    if: always()
+    steps:
+      - name: Download All Reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-security-reports/
+
+      - name: Generate Security Summary
+        run: |
+          echo "## 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check each scan result
+          echo "| Scan Type | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|---------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependencies | ${{ needs.dependencies.result }} | Vulnerability and license checks |" >> $GITHUB_STEP_SUMMARY
+          echo "| SAST | ${{ needs.sast.result }} | Static code analysis |" >> $GITHUB_STEP_SUMMARY
+          echo "| Container | ${{ needs.container.result }} | Container image security |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secrets | ${{ needs.secrets.result }} | Secret detection |" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall status
+          if [[ "${{ needs.dependencies.result }}" == "success" && 
+                "${{ needs.sast.result }}" == "success" && 
+                "${{ needs.container.result }}" == "success" && 
+                "${{ needs.secrets.result }}" == "success" ]]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "✅ **All security scans passed**" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Security issues detected - please review**" >> $GITHUB_STEP_SUMMARY
+          fi

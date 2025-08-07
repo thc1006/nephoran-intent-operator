@@ -1,0 +1,283 @@
+site_name: Nephoran Intent Operator
+site_description: Intent-driven network automation for O-RAN and 5G networks using AI/ML
+site_author: Nephoran Development Team
+site_url: https://nephoran.github.io/nephoran-intent-operator/
+
+# Repository
+repo_name: nephoran/nephoran-intent-operator
+repo_url: https://github.com/nephoran/nephoran-intent-operator
+edit_uri: edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2024 Nephoran Development Team
+
+# Configuration
+theme:
+  name: material
+  custom_dir: docs/overrides
+  language: en
+  
+  # Color scheme and appearance
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue
+      accent: blue
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  
+  # Features
+  features:
+    - announce.dismiss
+    - content.action.edit
+    - content.action.view
+    - content.code.annotate
+    - content.code.copy
+    - content.tooltips
+    - header.autohide
+    - navigation.expand
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.path
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+    - toc.integrate
+
+  # Icons and logos
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+    logo: material/network
+  
+  favicon: assets/favicon.ico
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+      lang: en
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+          remove_comments: true
+      cache_safe: true
+  - git-revision-date-localized:
+      enable_creation_date: true
+      type: timeago
+      fallback_to_build_date: true
+  - git-authors:
+      show_contribution: true
+      show_line_count: true
+      count_empty_lines: true
+  - awesome-pages
+  - macros
+  - swagger-ui-tag
+  - open-in-new-tab
+  - glightbox:
+      touchNavigation: true
+      loop: false
+      effect: zoom
+      slide_effect: slide
+      width: 100%
+      height: auto
+      zoomable: true
+      draggable: true
+  - mermaid2
+
+# Extensions
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - meta
+  - tables
+  - toc:
+      permalink: true
+      title: Table of Contents
+      baselevel: 2
+      separator: "_"
+
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.critic
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+      use_pygments: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+      base_path: [docs/snippets]
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Page tree
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Overview: getting-started/index.md
+    - Quick Start: getting-started/quickstart.md
+    - Installation: getting-started/installation.md
+    - Configuration: getting-started/configuration.md
+    - First Intent: getting-started/first-intent.md
+  - Architecture:
+    - Overview: architecture/index.md
+    - System Architecture: architecture/system-architecture.md
+    - LLM Integration: architecture/llm-integration.md
+    - RAG Pipeline: architecture/rag-pipeline.md
+    - O-RAN Compliance: architecture/oran-compliance.md
+    - Microservices: architecture/microservices.md
+    - Security: architecture/security.md
+  - User Guide:
+    - Intent Processing: user-guide/intent-processing.md
+    - Network Functions: user-guide/network-functions.md
+    - Custom Resources: user-guide/custom-resources.md
+    - GitOps Integration: user-guide/gitops.md
+    - Monitoring: user-guide/monitoring.md
+    - Troubleshooting: user-guide/troubleshooting.md
+  - API Reference:
+    - Overview: api/index.md
+    - REST APIs: api/rest-apis.md
+    - Custom Resource Definitions: api/crds.md
+    - OpenAPI Specification: api/openapi.md
+    - Examples: api/examples.md
+  - Operations:
+    - Deployment Guide: operations/deployment.md
+    - Production Setup: operations/production.md
+    - Monitoring & Alerting: operations/monitoring.md
+    - Backup & Recovery: operations/backup-recovery.md
+    - Maintenance: operations/maintenance.md
+    - Security Hardening: operations/security.md
+    - Performance Tuning: operations/performance.md
+  - Developer Guide:
+    - Overview: developer/index.md
+    - Development Environment: developer/environment.md
+    - Building from Source: developer/building.md
+    - Testing: developer/testing.md
+    - Contributing: developer/contributing.md
+    - Custom Controllers: developer/controllers.md
+    - Extending the System: developer/extending.md
+  - O-RAN Integration:
+    - Overview: oran/index.md
+    - A1 Interface: oran/a1-interface.md
+    - O1 Interface: oran/o1-interface.md
+    - O2 Interface: oran/o2-interface.md
+    - E2 Interface: oran/e2-interface.md
+    - Network Slicing: oran/network-slicing.md
+    - xApps Development: oran/xapps.md
+  - Tutorials:
+    - Basic Scenarios: tutorials/basic-scenarios.md
+    - Advanced Use Cases: tutorials/advanced-use-cases.md
+    - Integration Examples: tutorials/integration-examples.md
+    - Performance Testing: tutorials/performance-testing.md
+  - Reference:
+    - Configuration Reference: reference/configuration.md
+    - Command Line Interface: reference/cli.md
+    - Environment Variables: reference/environment.md
+    - Glossary: reference/glossary.md
+    - FAQ: reference/faq.md
+  - Community:
+    - Contributing: community/contributing.md
+    - Code of Conduct: community/code-of-conduct.md
+    - Security Policy: community/security.md
+    - Changelog: community/changelog.md
+    - License: community/license.md
+
+# Extra CSS and JavaScript
+extra_css:
+  - assets/stylesheets/extra.css
+  - assets/stylesheets/telecom.css
+
+extra_javascript:
+  - assets/javascripts/extra.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+# Additional configuration
+extra:
+  # Analytics
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY:null
+  
+  # Social links
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/nephoran/nephoran-intent-operator
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/r/nephoran/intent-operator
+    - icon: fontawesome/brands/slack
+      link: https://nephoran.slack.com
+  
+  # Version selector
+  version:
+    provider: mike
+    default: stable
+  
+  # Generator notice
+  generator: false
+  
+  # Status badges
+  status:
+    new: Recently added
+    deprecated: Deprecated
+
+# Validation and optimization
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+    absolute_links: info
+  links:
+    not_found: warn
+    absolute_links: info
+    unrecognized_links: info
+
+# Watch for changes
+watch:
+  - docs/
+  - mkdocs.yml

@@ -1,0 +1,775 @@
+name: "Comprehensive CI/CD Pipeline"
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run chaos engineering tests weekly (Sundays at 02:00 UTC)
+    - cron: '0 2 * * 0'
+    # Run DR tests weekly (Saturdays at 03:00 UTC)  
+    - cron: '0 3 * * 6'
+  workflow_dispatch:
+    inputs:
+      run_chaos_tests:
+        description: 'Run chaos engineering tests'
+        type: boolean
+        default: false
+      run_dr_tests:
+        description: 'Run disaster recovery tests'
+        type: boolean
+        default: false
+      skip_performance_tests:
+        description: 'Skip performance tests'
+        type: boolean
+        default: false
+
+# Global environment variables
+env:
+  GO_VERSION: '1.24.1'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  COVERAGE_THRESHOLD: 95
+  GOPROXY: "https://proxy.golang.org,direct"
+  GOSUMDB: "sum.golang.org"
+  GOPRIVATE: "github.com/${{ github.repository_owner }}/*"
+
+# Define job outputs for artifact sharing
+jobs:
+  # Stage 1: Build and Basic Validation
+  build-and-lint:
+    name: "Build & Code Quality"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      go-cache-key: ${{ steps.go-cache.outputs.cache-primary-key }}
+      
+    steps:
+    - name: "Checkout Code"
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: "Setup Go"
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+
+    - name: "Configure Go Environment"
+      run: |
+        go env -w GOPROXY=${{ env.GOPROXY }}
+        go env -w GOSUMDB=${{ env.GOSUMDB }}
+        go env -w GOPRIVATE=${{ env.GOPRIVATE }}
+
+    - name: "Cache Go Modules"
+      id: go-cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ env.GO_VERSION }}-
+          ${{ runner.os }}-go-
+
+    - name: "Install Dependencies & Tools"
+      run: make deps install-security-tools
+
+    - name: "Generate Code & Manifests"
+      run: make generate manifests
+
+    - name: "Run Code Quality Checks"
+      run: |
+        make fmt
+        make vet
+        make lint
+
+    - name: "Verify Go Module Integrity"
+      run: make verify-modules
+
+    - name: "Run Supply Chain Security Checks"
+      run: make verify-supply-chain
+
+    - name: "Build Operator Binary"
+      run: make build
+
+    - name: "Upload Build Artifacts"
+      uses: actions/upload-artifact@v4
+      with:
+        name: binaries
+        path: bin/
+        retention-days: 7
+
+  # Stage 2: Unit Tests with Coverage
+  unit-tests:
+    name: "Unit Tests (Go ${{ matrix.go-version }})"
+    runs-on: ubuntu-latest
+    needs: build-and-lint
+    timeout-minutes: 20
+    strategy:
+      matrix:
+        go-version: ['1.23', '1.24'] # Test multiple Go versions
+      fail-fast: false
+
+    steps:
+    - name: "Checkout Code"
+      uses: actions/checkout@v4
+
+    - name: "Setup Go ${{ matrix.go-version }}"
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go-version }}
+        cache: true
+
+    - name: "Restore Go Dependencies"
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ needs.build-and-lint.outputs.go-cache-key }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ env.GO_VERSION }}-
+
+    - name: "Install Test Dependencies"
+      run: |
+        go install github.com/onsi/ginkgo/v2/ginkgo@latest
+        go install github.com/onsi/gomega/...@latest
+
+    - name: "Run Unit Tests with Coverage"
+      run: |
+        mkdir -p .excellence-reports
+        go test -v -race -timeout=10m \
+          -coverprofile=.excellence-reports/coverage-${{ matrix.go-version }}.out \
+          -covermode=atomic \
+          -coverpkg=./pkg/... \
+          ./tests/unit/... ./pkg/...
+
+    - name: "Generate Coverage Report"
+      run: |
+        go tool cover -html=.excellence-reports/coverage-${{ matrix.go-version }}.out \
+          -o .excellence-reports/coverage-${{ matrix.go-version }}.html
+
+    - name: "Check Coverage Threshold"
+      run: |
+        COVERAGE=$(go tool cover -func=.excellence-reports/coverage-${{ matrix.go-version }}.out | grep total: | awk '{print $3}' | sed 's/%//')
+        echo "Coverage: $COVERAGE%"
+        if (( $(echo "$COVERAGE >= ${{ env.COVERAGE_THRESHOLD }}" | bc -l) )); then
+          echo "✅ Coverage meets threshold ($COVERAGE% >= ${{ env.COVERAGE_THRESHOLD }}%)"
+        else
+          echo "❌ Coverage below threshold ($COVERAGE% < ${{ env.COVERAGE_THRESHOLD }}%)"
+          exit 1
+        fi
+
+    - name: "Upload Coverage Reports"
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-${{ matrix.go-version }}
+        path: .excellence-reports/coverage-*
+        retention-days: 30
+
+    - name: "Upload to Codecov"
+      if: matrix.go-version == '1.24' # Only upload once
+      uses: codecov/codecov-action@v3
+      with:
+        files: .excellence-reports/coverage-${{ matrix.go-version }}.out
+        flags: unittests
+        name: codecov-umbrella
+
+  # Stage 3: Integration Tests
+  integration-tests:
+    name: "Integration Tests"
+    runs-on: ubuntu-latest
+    needs: [build-and-lint, unit-tests]
+    timeout-minutes: 45
+    services:
+      weaviate:
+        image: semitechnologies/weaviate:1.25.0
+        env:
+          QUERY_DEFAULTS_LIMIT: 25
+          AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: true
+          PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+          DEFAULT_VECTORIZER_MODULE: 'none'
+          ENABLE_MODULES: 'text2vec-openai,generative-openai'
+          CLUSTER_HOSTNAME: 'node1'
+        ports:
+          - 8080:8080
+
+    steps:
+    - name: "Checkout Code"
+      uses: actions/checkout@v4
+
+    - name: "Setup Go"
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+
+    - name: "Setup Kind Cluster"
+      uses: helm/kind-action@v1.10.0
+      with:
+        cluster_name: nephoran-test
+        config: tests/e2e/kind-config.yaml
+        wait: 300s
+
+    - name: "Install Cert-Manager"
+      run: |
+        kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
+        kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=cert-manager -n cert-manager --timeout=300s
+
+    - name: "Install Test Dependencies"
+      run: |
+        go install github.com/onsi/ginkgo/v2/ginkgo@latest
+        make install-crds
+
+    - name: "Setup Test Environment"
+      run: |
+        kubectl create namespace nephoran-system || true
+        kubectl create secret generic llm-secrets \
+          --from-literal=openai-api-key=${{ secrets.OPENAI_API_KEY || 'test-key' }} \
+          --from-literal=azure-api-key=${{ secrets.AZURE_OPENAI_API_KEY || 'test-key' }} \
+          -n nephoran-system || true
+
+    - name: "Run Integration Tests"
+      env:
+        KUBEBUILDER_ASSETS: /home/runner/.local/share/kubebuilder-envtest/k8s/current
+        WEAVIATE_URL: http://localhost:8080
+      run: |
+        export PATH=$PATH:/home/runner/.local/share/kubebuilder-envtest/k8s/current/bin
+        ginkgo run -v -timeout=30m --trace ./tests/integration/...
+
+    - name: "Collect Test Logs"
+      if: failure()
+      run: |
+        mkdir -p .excellence-reports/integration-logs
+        kubectl logs --all-containers=true --tail=1000 -n nephoran-system > .excellence-reports/integration-logs/controller.log || true
+        kubectl describe pods -n nephoran-system > .excellence-reports/integration-logs/pod-describe.log || true
+
+    - name: "Upload Integration Test Results"
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-test-results
+        path: .excellence-reports/integration-logs/
+        retention-days: 7
+
+  # Stage 4: Security Scanning
+  security-scan:
+    name: "Security Scanning"
+    runs-on: ubuntu-latest
+    needs: build-and-lint
+    timeout-minutes: 20
+    permissions:
+      security-events: write
+
+    steps:
+    - name: "Checkout Code"
+      uses: actions/checkout@v4
+
+    - name: "Setup Go"
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+
+    - name: "Run Vulnerability Scan"
+      run: |
+        go install golang.org/x/vuln/cmd/govulncheck@latest
+        govulncheck ./...
+
+    - name: "Run gosec Security Scan"
+      uses: securecodewarrior/github-action-gosec@master
+      with:
+        args: '-fmt sarif -out gosec.sarif ./...'
+
+    - name: "Upload SARIF file"
+      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: gosec.sarif
+
+    - name: "Run Nancy (Dependency Vulnerability Scanner)"
+      run: |
+        go list -json -deps ./... | docker run --rm -i sonatypecommunity/nancy:latest sleuth --loud
+
+    - name: "Generate SBOM"
+      run: make generate-sbom
+
+    - name: "Upload Security Artifacts"
+      uses: actions/upload-artifact@v4
+      with:
+        name: security-reports
+        path: |
+          .excellence-reports/sbom/
+          gosec.sarif
+        retention-days: 30
+
+  # Stage 5: Container Build and Scan
+  container-security:
+    name: "Container Security"
+    runs-on: ubuntu-latest
+    needs: [build-and-lint, security-scan]
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+
+    steps:
+    - name: "Checkout Code"
+      uses: actions/checkout@v4
+
+    - name: "Setup Docker Buildx"
+      uses: docker/setup-buildx-action@v3
+
+    - name: "Log in to Container Registry"
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: "Extract Metadata"
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix=commit-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: "Build and Push Container Image"
+      id: build
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+
+    - name: "Scan Container with Trivy"
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+        format: 'sarif'
+        output: 'trivy-results.sarif'
+
+    - name: "Upload Trivy Results"
+      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: 'trivy-results.sarif'
+
+    - name: "Check for Critical Vulnerabilities"
+      run: |
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          aquasec/trivy:latest image --exit-code 1 --severity CRITICAL \
+          ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  # Stage 6: Performance and Load Testing
+  performance-tests:
+    name: "Performance Testing"
+    runs-on: ubuntu-latest
+    needs: [integration-tests, container-security]
+    timeout-minutes: 60
+    if: ${{ !inputs.skip_performance_tests && github.event_name != 'schedule' }}
+
+    steps:
+    - name: "Checkout Code"
+      uses: actions/checkout@v4
+
+    - name: "Setup Go"
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+
+    - name: "Setup Kind Cluster"
+      uses: helm/kind-action@v1.10.0
+      with:
+        cluster_name: nephoran-perf
+        config: tests/performance/kind-config.yaml
+        wait: 300s
+
+    - name: "Deploy Operator for Performance Testing"
+      run: |
+        make kind-load-image
+        make deploy
+        kubectl wait --for=condition=ready pod -l control-plane=controller-manager -n nephoran-system --timeout=300s
+
+    - name: "Install k6"
+      run: |
+        sudo gpg -k
+        sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+        echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+        sudo apt-get update
+        sudo apt-get install k6
+
+    - name: "Run Load Tests"
+      run: |
+        kubectl port-forward svc/nephoran-operator -n nephoran-system 8080:8080 &
+        sleep 10
+        
+        # Run baseline performance test
+        k6 run --out json=performance-results.json \
+          --scenario baseline_load \
+          --vus 50 --duration 10m \
+          tests/performance/k6-load-test.js
+
+    - name: "Validate SLA Requirements"
+      run: |
+        # Extract key metrics and validate against SLAs
+        INTENT_SUCCESS_RATE=$(jq '.metrics.intent_success_rate.values.rate' performance-results.json)
+        P95_LATENCY=$(jq '.metrics."http_req_duration{type:intent_create}".values."p(95)"' performance-results.json)
+        ERROR_RATE=$(jq '.metrics.intent_error_rate.values.rate' performance-results.json)
+        
+        echo "Performance Test Results:"
+        echo "Success Rate: $(echo "$INTENT_SUCCESS_RATE * 100" | bc)%"
+        echo "P95 Latency: ${P95_LATENCY}ms"
+        echo "Error Rate: $(echo "$ERROR_RATE * 100" | bc)%"
+        
+        # Validate SLAs
+        if (( $(echo "$INTENT_SUCCESS_RATE >= 0.99" | bc -l) )); then
+          echo "✅ Success Rate SLA met (≥99%)"
+        else
+          echo "❌ Success Rate SLA failed (<99%)"
+          exit 1
+        fi
+        
+        if (( $(echo "$P95_LATENCY <= 2000" | bc -l) )); then
+          echo "✅ P95 Latency SLA met (≤2s)"
+        else
+          echo "❌ P95 Latency SLA failed (>2s)"
+          exit 1
+        fi
+        
+        if (( $(echo "$ERROR_RATE <= 0.01" | bc -l) )); then
+          echo "✅ Error Rate SLA met (≤1%)"
+        else
+          echo "❌ Error Rate SLA failed (>1%)"
+          exit 1
+        fi
+
+    - name: "Upload Performance Results"
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-results
+        path: |
+          performance-results.json
+          k6-report.html
+        retention-days: 30
+
+  # Stage 7: Chaos Engineering Tests (Scheduled/Manual)
+  chaos-tests:
+    name: "Chaos Engineering"
+    runs-on: ubuntu-latest
+    needs: [integration-tests, container-security]
+    timeout-minutes: 90
+    if: ${{ (github.event_name == 'schedule' && github.event.schedule == '0 2 * * 0') || inputs.run_chaos_tests }}
+
+    steps:
+    - name: "Checkout Code"
+      uses: actions/checkout@v4
+
+    - name: "Setup Kind Cluster"
+      uses: helm/kind-action@v1.10.0
+      with:
+        cluster_name: nephoran-chaos
+        config: tests/chaos/kind-config.yaml
+        wait: 300s
+
+    - name: "Deploy Full System"
+      run: |
+        make deploy
+        kubectl wait --for=condition=ready pod -l control-plane=controller-manager -n nephoran-system --timeout=300s
+
+    - name: "Install Litmus Chaos"
+      run: |
+        kubectl apply -f https://raw.githubusercontent.com/litmuschaos/litmus/master/litmus-operator-v3.0.0.yaml
+        kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=litmus -n litmus --timeout=300s
+
+    - name: "Run Chaos Test Suite"
+      run: |
+        chmod +x scripts/run-chaos-suite.sh
+        ./scripts/run-chaos-suite.sh
+
+    - name: "Validate Auto-Healing SLA"
+      run: |
+        # Check that auto-healing completed within 120 seconds
+        HEALING_TIME=$(grep "Auto-healing completed in" chaos-results/chaos-suite-*.log | grep -oE '[0-9]+s' | sed 's/s//' | head -1)
+        if [ "$HEALING_TIME" -le 120 ]; then
+          echo "✅ Auto-healing SLA met (${HEALING_TIME}s ≤ 120s)"
+        else
+          echo "❌ Auto-healing SLA failed (${HEALING_TIME}s > 120s)"
+          exit 1
+        fi
+
+    - name: "Upload Chaos Test Results"
+      uses: actions/upload-artifact@v4
+      with:
+        name: chaos-test-results
+        path: chaos-results/
+        retention-days: 30
+
+    - name: "Create Issue on Chaos Failure"
+      if: failure()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: `Chaos Engineering Tests Failed - ${new Date().toISOString()}`,
+            body: `🔥 **Chaos Engineering Test Failure**\n\n**Run**: [${context.runNumber}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n**Branch**: ${context.ref}\n\n**Commit**: ${context.sha}\n\nPlease investigate the chaos test failures and ensure auto-healing capabilities are working correctly.`,
+            labels: ['bug', 'chaos-engineering', 'priority:high']
+          })
+
+  # Stage 8: Disaster Recovery Tests (Scheduled/Manual)
+  disaster-recovery:
+    name: "Disaster Recovery"
+    runs-on: ubuntu-latest
+    needs: [integration-tests, container-security]
+    timeout-minutes: 60
+    if: ${{ (github.event_name == 'schedule' && github.event.schedule == '0 3 * * 6') || inputs.run_dr_tests }}
+
+    steps:
+    - name: "Checkout Code"
+      uses: actions/checkout@v4
+
+    - name: "Setup Multi-Cluster Environment"
+      run: |
+        # Create primary cluster
+        kind create cluster --name primary --config tests/disaster-recovery/primary-cluster.yaml
+        
+        # Create secondary cluster
+        kind create cluster --name secondary --config tests/disaster-recovery/secondary-cluster.yaml
+
+    - name: "Deploy Primary Cluster"
+      run: |
+        kubectl config use-context kind-primary
+        make deploy
+        kubectl wait --for=condition=ready pod -l control-plane=controller-manager -n nephoran-system --timeout=300s
+
+    - name: "Setup Backup System"
+      run: |
+        # Install Velero for backup/restore
+        kubectl apply -f https://github.com/vmware-tanzu/velero/releases/download/v1.12.0/00-prereqs.yaml
+        kubectl apply -f https://github.com/vmware-tanzu/velero/releases/download/v1.12.0/20-crds.yaml
+        
+        # Configure backup to test location
+        kubectl create secret generic velero-backup-locations \
+          --from-literal=config='{"provider":"aws","objectStorage":{"bucket":"test-backup"}}' \
+          -n velero
+
+    - name: "Run DR Validation Tests"
+      run: |
+        chmod +x scripts/test-disaster-recovery.sh
+        ./scripts/test-disaster-recovery.sh
+
+    - name: "Validate RTO/RPO Metrics"
+      run: |
+        # Validate Recovery Time Objective (RTO) < 5 minutes
+        RTO=$(grep "Recovery completed in" dr-test-results.log | grep -oE '[0-9]+' | head -1)
+        if [ "$RTO" -le 300 ]; then
+          echo "✅ RTO SLA met (${RTO}s ≤ 300s)"
+        else
+          echo "❌ RTO SLA failed (${RTO}s > 300s)"
+          exit 1
+        fi
+        
+        # Validate Recovery Point Objective (RPO) - no data loss
+        DATA_LOSS=$(grep "Data loss:" dr-test-results.log | grep -oE '[0-9]+' | head -1)
+        if [ "$DATA_LOSS" -eq 0 ]; then
+          echo "✅ RPO SLA met (no data loss)"
+        else
+          echo "❌ RPO SLA failed (${DATA_LOSS} items lost)"
+          exit 1
+        fi
+
+    - name: "Upload DR Test Results"
+      uses: actions/upload-artifact@v4
+      with:
+        name: dr-test-results
+        path: |
+          dr-test-results.log
+          backup-restore-logs/
+        retention-days: 30
+
+  # Stage 9: Excellence Gate
+  excellence-gate:
+    name: "Excellence Gate"
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests, security-scan, container-security, performance-tests]
+    timeout-minutes: 15
+    if: ${{ always() && !cancelled() }}
+
+    steps:
+    - name: "Checkout Code"
+      uses: actions/checkout@v4
+
+    - name: "Setup Go"
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GO_VERSION }}
+        cache: true
+
+    - name: "Download All Artifacts"
+      uses: actions/download-artifact@v4
+
+    - name: "Run Excellence Scoring"
+      run: |
+        chmod +x scripts/excellence-scoring-system.sh
+        ./scripts/excellence-scoring-system.sh --report-dir .excellence-reports
+
+    - name: "Check Excellence Gate"
+      run: make excellence-gate
+
+    - name: "Generate Coverage Badge"
+      if: github.ref == 'refs/heads/main'
+      run: |
+        COVERAGE=$(jq -r '.summary.overall_score' .excellence-reports/excellence_dashboard.json)
+        COLOR="red"
+        if (( $(echo "$COVERAGE >= 95" | bc -l) )); then
+          COLOR="brightgreen"
+        elif (( $(echo "$COVERAGE >= 90" | bc -l) )); then
+          COLOR="green"
+        elif (( $(echo "$COVERAGE >= 80" | bc -l) )); then
+          COLOR="yellow"
+        fi
+        curl -o coverage-badge.svg "https://img.shields.io/badge/Excellence-${COVERAGE}%25-${COLOR}"
+
+    - name: "Upload Excellence Reports"
+      uses: actions/upload-artifact@v4
+      with:
+        name: excellence-reports
+        path: .excellence-reports/
+        retention-days: 90
+
+    - name: "Comment PR with Results"
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          let dashboard = '';
+          try {
+            dashboard = JSON.parse(fs.readFileSync('.excellence-reports/excellence_dashboard.json'));
+          } catch (e) {
+            console.log('No excellence dashboard found');
+            return;
+          }
+          
+          const score = dashboard.summary.overall_score;
+          const status = score >= 75 ? '✅ PASSED' : '❌ FAILED';
+          
+          const comment = `## Excellence Gate Report ${status}
+          
+          **Overall Excellence Score**: ${score}%
+          
+          ### Component Scores
+          - **Coverage**: ${dashboard.coverage?.score || 'N/A'}%
+          - **Security**: ${dashboard.security?.score || 'N/A'}%
+          - **Performance**: ${dashboard.performance?.score || 'N/A'}%
+          - **Documentation**: ${dashboard.documentation?.score || 'N/A'}%
+          
+          ### SLA Compliance
+          - **Unit Test Coverage**: ${dashboard.coverage?.unit_test_coverage >= 95 ? '✅' : '❌'} ${dashboard.coverage?.unit_test_coverage || 0}%
+          - **Integration Tests**: ${dashboard.tests?.integration_passed ? '✅' : '❌'}
+          - **Security Scans**: ${dashboard.security?.vulnerabilities_count === 0 ? '✅' : '❌'} ${dashboard.security?.vulnerabilities_count || 'Unknown'} issues
+          - **Performance SLAs**: ${dashboard.performance?.sla_met ? '✅' : '❌'}
+          
+          [View Full Report](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
+
+  # Stage 10: Notification and Reporting
+  notify-results:
+    name: "Notify Results"
+    runs-on: ubuntu-latest
+    needs: [excellence-gate, chaos-tests, disaster-recovery]
+    timeout-minutes: 5
+    if: ${{ always() && !cancelled() }}
+
+    steps:
+    - name: "Determine Overall Status"
+      id: status
+      run: |
+        EXCELLENCE_STATUS="${{ needs.excellence-gate.result }}"
+        CHAOS_STATUS="${{ needs.chaos-tests.result }}"
+        DR_STATUS="${{ needs.disaster-recovery.result }}"
+        
+        if [[ "$EXCELLENCE_STATUS" == "success" && ("$CHAOS_STATUS" == "success" || "$CHAOS_STATUS" == "skipped") && ("$DR_STATUS" == "success" || "$DR_STATUS" == "skipped") ]]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+        else
+          echo "status=failure" >> $GITHUB_OUTPUT
+        fi
+
+    - name: "Create Failure Issue"
+      if: steps.status.outputs.status == 'failure' && github.ref == 'refs/heads/main'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const excellence = '${{ needs.excellence-gate.result }}';
+          const chaos = '${{ needs.chaos-tests.result }}';
+          const dr = '${{ needs.disaster-recovery.result }}';
+          
+          let failures = [];
+          if (excellence === 'failure') failures.push('Excellence Gate');
+          if (chaos === 'failure') failures.push('Chaos Engineering');
+          if (dr === 'failure') failures.push('Disaster Recovery');
+          
+          if (failures.length > 0) {
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `CI/CD Pipeline Failure - ${new Date().toISOString()}`,
+              body: `🚨 **Pipeline Failure Alert**\n\n**Failed Components**: ${failures.join(', ')}\n\n**Run**: [${context.runNumber}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})\n\n**Branch**: ${context.ref}\n**Commit**: ${context.sha}\n\n**Action Required**: Please investigate and resolve the failing components to maintain production readiness.`,
+              labels: ['bug', 'ci-cd', 'priority:high'],
+              assignees: ['${{ github.actor }}']
+            })
+          }
+
+    - name: "Send Slack Notification"
+      if: steps.status.outputs.status == 'failure' && github.ref == 'refs/heads/main'
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        text: |
+          🚨 CI/CD Pipeline Failed for Nephoran Intent Operator
+          
+          Excellence Gate: ${{ needs.excellence-gate.result }}
+          Chaos Tests: ${{ needs.chaos-tests.result }}
+          DR Tests: ${{ needs.disaster-recovery.result }}
+          
+          Action Required: Please investigate immediately.
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: "Update Commit Status"
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.repos.createCommitStatus({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            sha: context.sha,
+            state: '${{ steps.status.outputs.status }}',
+            target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            description: 'Comprehensive CI/CD Pipeline',
+            context: 'ci/full-suite'
+          });

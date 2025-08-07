@@ -1,0 +1,196 @@
+/* Extra styles for Nephoran Intent Operator documentation */
+
+/* Custom color palette for telecommunications theme */
+:root {
+  --nephoran-primary: #1565c0;
+  --nephoran-secondary: #0277bd;
+  --nephoran-accent: #29b6f6;
+  --nephoran-success: #2e7d32;
+  --nephoran-warning: #f57c00;
+  --nephoran-error: #d32f2f;
+  --nephoran-info: #1976d2;
+}
+
+/* Hero section styling */
+.md-typeset .hero-section {
+  background: linear-gradient(135deg, var(--nephoran-primary) 0%, var(--nephoran-secondary) 100%);
+  color: white;
+  padding: 3rem 2rem;
+  margin: -2rem -2rem 2rem -2rem;
+  border-radius: 0.5rem;
+  text-align: center;
+}
+
+.hero-section h1 {
+  color: white;
+  margin-bottom: 1rem;
+  font-size: 2.5rem;
+  font-weight: 300;
+}
+
+.hero-section p {
+  font-size: 1.2rem;
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Feature cards */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  background: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.feature-card h3 {
+  color: var(--nephoran-primary);
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.feature-card .feature-icon {
+  font-size: 1.5rem;
+  color: var(--nephoran-accent);
+}
+
+/* Status badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025rem;
+}
+
+.status-badge--stable {
+  background: rgba(46, 125, 50, 0.1);
+  color: var(--nephoran-success);
+}
+
+.status-badge--beta {
+  background: rgba(245, 124, 0, 0.1);
+  color: var(--nephoran-warning);
+}
+
+.status-badge--alpha {
+  background: rgba(211, 47, 47, 0.1);
+  color: var(--nephoran-error);
+}
+
+/* Code blocks with enhanced styling */
+.md-typeset .highlight {
+  position: relative;
+}
+
+.md-typeset .highlight::before {
+  content: attr(data-title);
+  position: absolute;
+  top: -0.5rem;
+  right: 1rem;
+  background: var(--md-default-bg-color);
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--md-default-fg-color--light);
+  border: 1px solid var(--md-default-fg-color--lightest);
+}
+
+/* Architecture diagrams */
+.architecture-diagram {
+  background: var(--md-default-bg-color);
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  padding: 2rem;
+  margin: 2rem 0;
+  text-align: center;
+}
+
+/* API reference styling */
+.api-endpoint {
+  background: var(--md-code-bg-color);
+  border-left: 4px solid var(--nephoran-accent);
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 0 0.25rem 0.25rem 0;
+}
+
+.api-endpoint .method {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-right: 0.5rem;
+}
+
+.api-endpoint .method--get { background: rgba(76, 175, 80, 0.1); color: #4caf50; }
+.api-endpoint .method--post { background: rgba(33, 150, 243, 0.1); color: #2196f3; }
+.api-endpoint .method--put { background: rgba(255, 152, 0, 0.1); color: #ff9800; }
+.api-endpoint .method--delete { background: rgba(244, 67, 54, 0.1); color: #f44336; }
+
+/* Tabbed content styling */
+.md-typeset .tabbed-set {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Responsive design */
+@media screen and (max-width: 768px) {
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .hero-section {
+    padding: 2rem 1rem;
+    margin: -1rem -1rem 1rem -1rem;
+  }
+  
+  .hero-section h1 {
+    font-size: 2rem;
+  }
+}
+
+/* Dark mode adjustments */
+[data-md-color-scheme="slate"] {
+  .feature-card {
+    background: var(--md-default-bg-color--light);
+    border-color: var(--md-default-fg-color--lightest);
+  }
+  
+  .architecture-diagram {
+    background: var(--md-default-bg-color--light);
+    border-color: var(--md-default-fg-color--lightest);
+  }
+}
+
+/* Print styles */
+@media print {
+  .hero-section {
+    background: none !important;
+    color: var(--md-default-fg-color) !important;
+  }
+  
+  .feature-card {
+    border: 1px solid #ccc !important;
+    break-inside: avoid;
+  }
+}

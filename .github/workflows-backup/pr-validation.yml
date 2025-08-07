@@ -679,11 +679,11 @@ jobs:
       needs.testing.result == 'success' &&
       needs.build-validation.result == 'success' &&
       github.event.pull_request.draft == false &&
-      contains(github.event.pull_request.labels.*.name, 'dependencies')
+      contains(github.event.pull_request.labels.*.name, 'auto-merge')
     steps:
       - name: Check auto-merge conditions
         run: |
-          echo "Checking dependency auto-merge eligibility..."
+          echo "Checking auto-merge eligibility..."
           
           # Check if PR has required approvals
           APPROVALS=$(curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
