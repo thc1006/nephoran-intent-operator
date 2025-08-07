@@ -49,7 +49,7 @@ require (
 
 	// Security and crypto libraries - critical for supply chain security
 	golang.org/x/crypto v0.40.0
-	golang.org/x/mod v0.25.0
+	golang.org/x/mod v0.26.0
 	golang.org/x/oauth2 v0.30.0
 
 	// Configuration management
