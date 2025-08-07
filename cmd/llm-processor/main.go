@@ -282,7 +282,7 @@ func setupHTTPServer() *http.Server {
 	// Initialize OAuth2 middleware if enabled
 	var authMiddleware *auth.AuthMiddleware
 	if cfg.AuthEnabled {
-		authConfig, err := auth.LoadAuthConfig()
+		authConfig, err := auth.LoadAuthConfig(cfg.AuthConfigFile)
 		if err != nil {
 			logger.Error("Failed to load auth config", slog.String("error", err.Error()))
 			os.Exit(1)

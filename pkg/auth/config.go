@@ -83,7 +83,8 @@ const (
 )
 
 // LoadAuthConfig loads authentication configuration from environment and file
-func LoadAuthConfig() (*AuthConfig, error) {
+// configPath: Path to the auth config file. If empty, falls back to AUTH_CONFIG_FILE env var
+func LoadAuthConfig(configPath string) (*AuthConfig, error) {
 	// Load JWT secret key from file or env
 	jwtSecretKey, _ := config.LoadJWTSecretKeyFromFile(security.GlobalAuditLogger)
 
@@ -112,11 +113,16 @@ func LoadAuthConfig() (*AuthConfig, error) {
 		return nil, fmt.Errorf("failed to load providers: %w", err)
 	}
 
+	// Determine config file path: use provided path or fall back to environment variable
+	configFile := configPath
+	if configFile == "" {
+		configFile = getEnv("AUTH_CONFIG_FILE", "")
+	}
+	
 	// Load from config file if specified
-	configFile := getEnv("AUTH_CONFIG_FILE", "")
 	if configFile != "" {
 		if err := authConfig.loadFromFile(configFile); err != nil {
-			return nil, fmt.Errorf("failed to load config file: %w", err)
+			return nil, fmt.Errorf("failed to load config file %q: %w", configFile, err)
 		}
 	}
 

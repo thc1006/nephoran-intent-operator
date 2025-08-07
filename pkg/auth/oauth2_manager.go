@@ -34,7 +34,7 @@ func NewOAuth2Manager(config *OAuth2ManagerConfig, logger *slog.Logger) (*OAuth2
 		}, nil
 	}
 
-	authConfig, err := LoadAuthConfig()
+	authConfig, err := LoadAuthConfig("")  // Empty path to use default from environment
 	if err != nil {
 		return nil, err
 	}

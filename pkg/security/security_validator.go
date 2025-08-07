@@ -2,7 +2,7 @@ package security
 
 import (
 	"context"
-	"crypto/tls"
+	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
@@ -725,7 +725,7 @@ func (v *SecurityValidator) validateCertificate(certData []byte, secretName stri
 	
 	// Check key strength
 	if cert.PublicKeyAlgorithm == x509.RSA {
-		if rsaKey, ok := cert.PublicKey.(*x509.RSA); ok {
+		if rsaKey, ok := cert.PublicKey.(*rsa.PublicKey); ok {
 			if rsaKey.N.BitLen() < 2048 {
 				issues = append(issues, SecurityIssue{
 					Severity:    "High",

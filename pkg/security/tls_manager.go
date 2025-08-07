@@ -3,7 +3,6 @@
 package security
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -20,7 +19,6 @@ import (
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 var (
