@@ -35,8 +35,8 @@ require (
 	github.com/tsenart/vegeta/v12 v12.12.0
 
 	// RAG/Vector database - pinned for ML pipeline stability
-	github.com/weaviate/weaviate v1.26.0
-	github.com/weaviate/weaviate-go-client/v4 v4.15.0
+	github.com/weaviate/weaviate v1.27.0
+	github.com/weaviate/weaviate-go-client/v4 v4.16.1
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.37.0
@@ -79,7 +79,7 @@ require (
 	github.com/pkg/profile v1.7.0
 	github.com/sony/gobreaker v1.0.0
 	github.com/swaggo/swag v1.16.6
-	github.com/testcontainers/testcontainers-go v0.32.0
+	github.com/testcontainers/testcontainers-go v0.33.0
 	github.com/valyala/fasthttp v1.64.0
 	github.com/valyala/fastjson v1.6.4
 	github.com/vektra/mockery/v2 v2.53.4
@@ -131,7 +131,6 @@ require (
 	github.com/Masterminds/squirrel v1.5.4 // indirect
 	github.com/Masterminds/vcs v1.13.3 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
-	github.com/Microsoft/hcsshim v0.11.7 // indirect
 	github.com/OpenPeeDeeP/depguard/v2 v2.2.1 // indirect
 	github.com/ProtonMail/go-crypto v1.1.3 // indirect
 	github.com/alecthomas/go-check-sumtype v0.3.1 // indirect
@@ -328,7 +327,7 @@ require (
 	github.com/kisielk/errcheck v1.9.0 // indirect
 	github.com/kkHAIKE/contextcheck v1.1.6 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.6 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/kulti/thelper v0.6.3 // indirect
 	github.com/kunwardeep/paralleltest v1.0.10 // indirect
 	github.com/kyokomi/emoji/v2 v2.2.11 // indirect
