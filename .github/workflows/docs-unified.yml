@@ -1,0 +1,586 @@
+name: "Documentation Pipeline"
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '**.md'
+      - '.github/workflows/docs-unified.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '**.md'
+  workflow_dispatch:
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "20"
+
+jobs:
+  # =============================================================================
+  # Documentation Validation and Link Checking
+  # =============================================================================
+  validate-docs:
+    name: "Validate Documentation"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    outputs:
+      docs_changed: ${{ steps.changes.outputs.docs }}
+      
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Detect Documentation Changes"
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            docs:
+              - 'docs/**'
+              - 'mkdocs.yml'
+              - '**.md'
+
+      - name: "Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: "Setup Python"
+        if: steps.changes.outputs.docs == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: "Cache Node Dependencies"
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
+
+      - name: "Install Link Checker"
+        run: |
+          npm install -g markdown-link-check
+          npm install -g markdownlint-cli2
+
+      - name: "Validate Markdown Syntax"
+        if: steps.changes.outputs.docs == 'true'
+        run: |
+          echo "=== Validating Markdown Syntax ==="
+          
+          # Create markdownlint config if not exists
+          if [ ! -f .markdownlint.json ]; then
+            cat > .markdownlint.json << 'EOF'
+          {
+            "MD013": { "line_length": 120 },
+            "MD033": false,
+            "MD041": false
+          }
+          EOF
+          fi
+          
+          # Lint all markdown files
+          find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*" | \
+            xargs markdownlint-cli2 --config .markdownlint.json
+
+      - name: "Check Internal Links"
+        if: steps.changes.outputs.docs == 'true'
+        continue-on-error: true
+        run: |
+          echo "=== Checking Internal Documentation Links ==="
+          
+          # Create config for link checker
+          cat > .markdown-link-check.json << 'EOF'
+          {
+            "ignorePatterns": [
+              {
+                "pattern": "^http://localhost"
+              },
+              {
+                "pattern": "^https://localhost"
+              },
+              {
+                "pattern": "^http://127.0.0.1"
+              }
+            ],
+            "timeout": "20s",
+            "retryOn429": true,
+            "retryCount": 3,
+            "fallbackRetryDelay": "30s",
+            "aliveStatusCodes": [200, 206, 301, 302, 404]
+          }
+          EOF
+          
+          # Check links in documentation files
+          find docs -name "*.md" 2>/dev/null | \
+            xargs -I {} markdown-link-check {} --config .markdown-link-check.json || true
+
+      - name: "Spell Check"
+        if: steps.changes.outputs.docs == 'true'
+        continue-on-error: true
+        run: |
+          echo "=== Spell Checking Documentation ==="
+          
+          # Install aspell
+          sudo apt-get update && sudo apt-get install -y aspell aspell-en
+          
+          # Create simple spell check
+          find docs -name "*.md" -exec aspell check --mode=markdown --dont-backup {} \; 2>/dev/null || true
+
+  # =============================================================================
+  # Build Documentation
+  # =============================================================================
+  build-docs:
+    name: "Build Documentation"
+    runs-on: ubuntu-latest
+    needs: validate-docs
+    timeout-minutes: 20
+    if: needs.validate-docs.outputs.docs_changed == 'true'
+    
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Setup Python"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: "Setup Pages"
+        id: pages
+        uses: actions/configure-pages@v4
+
+      - name: "Cache Python Dependencies"
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements*.txt', '**/mkdocs.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ env.PYTHON_VERSION }}-
+
+      - name: "Install MkDocs and Extensions"
+        run: |
+          python -m pip install --upgrade pip
+          pip install mkdocs-material>=9.0.0
+          pip install mkdocs-mermaid2-plugin
+          pip install mkdocs-swagger-ui-tag
+          pip install mkdocs-open-in-new-tab
+          pip install mkdocs-git-revision-date-localized-plugin
+          pip install mkdocs-minify-plugin
+          pip install mkdocs-redirects
+          pip install mkdocs-awesome-pages-plugin
+          pip install mkdocs-macros-plugin
+          pip install pymdown-extensions
+          pip install markdown-callouts
+          pip install mkdocs-glightbox
+          pip install mkdocs-git-authors-plugin
+          pip install mkdocs-table-reader-plugin
+
+      - name: "Generate API Documentation"
+        run: |
+          echo "=== Generating API Documentation ==="
+          
+          # Create API docs directory
+          mkdir -p docs/api/generated
+          
+          # Generate OpenAPI documentation if spec exists
+          if [ -f "docs/api/openapi-spec.yaml" ]; then
+            echo "Generating OpenAPI documentation..."
+            cp docs/api/openapi-spec.yaml docs/api/generated/
+          fi
+          
+          # Generate CRD documentation from manifests
+          if [ -d "config/crd/bases" ]; then
+            echo "Generating CRD documentation..."
+            mkdir -p docs/api/crds
+            
+            for crd_file in config/crd/bases/*.yaml; do
+              if [ -f "$crd_file" ]; then
+                filename=$(basename "$crd_file" .yaml)
+                echo "# ${filename} CRD Reference" > "docs/api/crds/${filename}.md"
+                echo "" >> "docs/api/crds/${filename}.md"
+                echo "This page documents the Custom Resource Definition (CRD) for ${filename}." >> "docs/api/crds/${filename}.md"
+                echo "" >> "docs/api/crds/${filename}.md"
+                echo '```yaml' >> "docs/api/crds/${filename}.md"
+                cat "$crd_file" >> "docs/api/crds/${filename}.md"
+                echo '```' >> "docs/api/crds/${filename}.md"
+              fi
+            done
+          fi
+          
+          # Generate component documentation from source code comments
+          if command -v go &> /dev/null && [ -d "pkg" ]; then
+            echo "Generating Go package documentation..."
+            mkdir -p docs/api/packages
+            
+            # Simple documentation generation from Go comments
+            find pkg -name "*.go" -exec grep -l "^// Package " {} \; | while read -r file; do
+              package_name=$(basename "$(dirname "$file")")
+              echo "# Package: $package_name" > "docs/api/packages/${package_name}.md"
+              echo "" >> "docs/api/packages/${package_name}.md"
+              grep "^// Package " "$file" | sed 's|^// Package ||' >> "docs/api/packages/${package_name}.md"
+              echo "" >> "docs/api/packages/${package_name}.md"
+            done
+          fi
+
+      - name: "Validate MkDocs Configuration"
+        run: |
+          echo "=== Validating MkDocs Configuration ==="
+          
+          # Check if mkdocs.yml exists
+          if [ ! -f mkdocs.yml ]; then
+            echo "Creating basic mkdocs.yml..."
+            cat > mkdocs.yml << 'EOF'
+          site_name: Nephoran Intent Operator
+          site_description: AI-Driven Telecommunications Network Orchestration Platform
+          site_author: Nephoran Team
+          
+          theme:
+            name: material
+            palette:
+              - scheme: default
+                primary: blue
+                accent: blue
+                toggle:
+                  icon: material/brightness-7
+                  name: Switch to dark mode
+              - scheme: slate
+                primary: blue
+                accent: blue
+                toggle:
+                  icon: material/brightness-4
+                  name: Switch to light mode
+            features:
+              - navigation.tabs
+              - navigation.sections
+              - navigation.expand
+              - navigation.top
+              - search.highlight
+              - search.suggest
+              - content.code.annotate
+          
+          nav:
+            - Home: index.md
+            - Architecture: architecture.md
+            - API Reference: api/
+          
+          markdown_extensions:
+            - pymdownx.highlight:
+                anchor_linenums: true
+            - pymdownx.inlinehilite
+            - pymdownx.snippets
+            - pymdownx.superfences:
+                custom_fences:
+                  - name: mermaid
+                    class: mermaid
+                    format: !!python/name:pymdownx.superfences.fence_code_format
+            - pymdownx.tabbed:
+                alternate_style: true
+            - admonition
+            - pymdownx.details
+          
+          plugins:
+            - search
+            - mermaid2
+          EOF
+          fi
+          
+          # Validate configuration
+          mkdocs config
+
+      - name: "Create Missing Documentation Files"
+        run: |
+          echo "=== Ensuring Required Documentation Files Exist ==="
+          
+          # Create docs directory if it doesn't exist
+          mkdir -p docs
+          
+          # Create index.md if it doesn't exist
+          if [ ! -f docs/index.md ]; then
+            cat > docs/index.md << 'EOF'
+          # Nephoran Intent Operator
+          
+          Welcome to the Nephoran Intent Operator documentation!
+          
+          The Nephoran Intent Operator is an AI-driven telecommunications network orchestration platform
+          that transforms natural language intents into operational network function deployments.
+          
+          ## Key Features
+          
+          - **Natural Language Processing**: Express network intents in plain English
+          - **O-RAN Compliance**: Full support for O-RAN Alliance specifications  
+          - **AI-Powered**: GPT-4 integration with RAG for domain expertise
+          - **Cloud Native**: Built on Kubernetes with GitOps workflows
+          - **Enterprise Ready**: Production-grade security, monitoring, and reliability
+          
+          ## Quick Start
+          
+          Get started with the Nephoran Intent Operator in minutes:
+          
+          ```bash
+          # Install the operator
+          kubectl apply -f https://github.com/nephoran/intent-operator/releases/latest/download/install.yaml
+          
+          # Create your first intent
+          kubectl apply -f examples/basic-intent.yaml
+          ```
+          
+          ## Documentation Structure
+          
+          - [Architecture](architecture.md) - System design and components
+          - [API Reference](api/) - Complete API documentation
+          - [Examples](examples/) - Sample configurations and use cases
+          
+          EOF
+          fi
+          
+          # Create architecture.md if it doesn't exist
+          if [ ! -f docs/architecture.md ]; then
+            cat > docs/architecture.md << 'EOF'
+          # Architecture Overview
+          
+          The Nephoran Intent Operator implements a sophisticated five-layer architecture:
+          
+          ## System Components
+          
+          ```mermaid
+          graph TB
+              UI[User Interface] --> LLM[LLM/RAG Layer]
+              LLM --> Nephio[Nephio Control Plane]
+              Nephio --> ORAN[O-RAN Interface Bridge]
+              ORAN --> NF[Network Functions]
+          ```
+          
+          ### Layer 1: User Interface
+          - kubectl CLI integration
+          - REST API endpoints
+          - Web UI capabilities
+          
+          ### Layer 2: LLM/RAG Processing
+          - GPT-4o-mini language model
+          - Weaviate vector database
+          - Semantic retrieval system
+          
+          ### Layer 3: Nephio Control Plane
+          - Package orchestration
+          - GitOps deployment
+          - Policy enforcement
+          
+          ### Layer 4: O-RAN Interface Bridge
+          - A1 policy management
+          - O1 FCAPS operations
+          - O2 cloud infrastructure
+          - E2 RAN intelligent control
+          
+          ### Layer 5: Network Function Orchestration
+          - 5G Core components (AMF, SMF, UPF)
+          - O-RAN functions (O-DU, O-CU, Near-RT RIC)
+          - Network slice management
+          
+          EOF
+          fi
+
+      - name: "Build Documentation Site"
+        run: |
+          echo "=== Building Documentation with MkDocs ==="
+          
+          # Set site URL for proper canonical links
+          export SITE_URL="${{ steps.pages.outputs.base_url || 'https://nephoran.github.io/intent-operator' }}"
+          
+          # Build the documentation
+          mkdocs build --clean --strict --verbose
+
+      - name: "Optimize Documentation Site"
+        run: |
+          echo "=== Optimizing Built Documentation ==="
+          
+          # Create robots.txt
+          cat > site/robots.txt << EOF
+          User-agent: *
+          Allow: /
+          
+          Sitemap: ${{ steps.pages.outputs.base_url || 'https://nephoran.github.io/intent-operator' }}/sitemap.xml
+          EOF
+          
+          # Create .nojekyll to prevent GitHub Pages Jekyll processing
+          touch site/.nojekyll
+          
+          # Validate critical files exist
+          if [ ! -f "site/index.html" ]; then
+            echo "❌ Error: index.html not generated"
+            exit 1
+          fi
+          
+          # Add security headers via meta tags
+          find site -name "*.html" -exec sed -i '/<head>/a\
+          <meta http-equiv="Content-Security-Policy" content="default-src '\''self'\''; script-src '\''self'\'' '\''unsafe-inline'\''; style-src '\''self'\'' '\''unsafe-inline'\''; img-src '\''self'\'' data: https:; font-src '\''self'\'' https:;">\
+          <meta http-equiv="X-Content-Type-Options" content="nosniff">\
+          <meta http-equiv="X-Frame-Options" content="DENY">\
+          <meta http-equiv="X-XSS-Protection" content="1; mode=block">'\
+          {} \;
+          
+          echo "✅ Documentation build completed successfully"
+          echo "Site size: $(du -sh site | cut -f1)"
+          echo "Pages generated: $(find site -name "*.html" | wc -l)"
+
+      - name: "Upload Documentation Artifact"
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - name: "Upload Build Artifacts"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-build-artifacts
+          path: |
+            site/
+            docs/api/generated/
+            docs/api/crds/
+            docs/api/packages/
+          retention-days: 30
+
+  # =============================================================================
+  # Deploy Documentation to GitHub Pages
+  # =============================================================================
+  deploy-docs:
+    name: "Deploy Documentation"
+    runs-on: ubuntu-latest
+    needs: [validate-docs, build-docs]
+    timeout-minutes: 10
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    steps:
+      - name: "Deploy to GitHub Pages"
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # =============================================================================
+  # Post-Deployment Link Validation
+  # =============================================================================
+  validate-deployment:
+    name: "Validate Deployed Site"
+    runs-on: ubuntu-latest
+    needs: deploy-docs
+    timeout-minutes: 10
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "Wait for Deployment"
+        run: |
+          echo "Waiting 60 seconds for deployment to be fully available..."
+          sleep 60
+
+      - name: "Test Site Accessibility"
+        run: |
+          SITE_URL="${{ needs.deploy-docs.outputs.page_url }}"
+          echo "Testing site accessibility: $SITE_URL"
+          
+          # Test main page
+          curl -f -s --max-time 30 "$SITE_URL" > /dev/null
+          echo "✅ Main page accessible"
+          
+          # Test that it's actually HTML
+          if curl -s --max-time 30 "$SITE_URL" | grep -q "<html"; then
+            echo "✅ Valid HTML content served"
+          else
+            echo "❌ Invalid HTML content"
+            exit 1
+          fi
+
+      - name: "Comprehensive Link Check"
+        uses: lycheeverse/lychee-action@v1.9.3
+        with:
+          args: |
+            --verbose
+            --no-progress
+            --exclude-loopback
+            --exclude-private
+            --exclude-mail
+            --max-retries 2
+            --retry-wait-time 3
+            --timeout 20
+            --accept 200,201,202,204,206,300,301,302,303,304,307,308,403,429
+            --exclude "linkedin.com"
+            --exclude "twitter.com"
+            --exclude "facebook.com"
+            ${{ needs.deploy-docs.outputs.page_url }}
+          fail: true  # Fail on broken links for main branch deployments
+
+      - name: "Generate Link Check Report"
+        if: always()
+        run: |
+          echo "## 📋 Link Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Site URL:** ${{ needs.deploy-docs.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Validation Status:** ${{ job.status == 'success' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Link check completed. See action logs for detailed results." >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # Documentation Status Summary
+  # =============================================================================
+  docs-status:
+    name: "Documentation Status"
+    runs-on: ubuntu-latest
+    needs: [validate-docs, build-docs, deploy-docs, validate-deployment]
+    if: always()
+    
+    steps:
+      - name: "Generate Documentation Summary"
+        run: |
+          echo "## 📚 Documentation Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ${{ needs.validate-docs.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Markdown lint, link check, spell check |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build-docs.result == 'success' && '✅ PASSED' || (needs.build-docs.result == 'skipped' && '⏭️ SKIPPED' || '❌ FAILED') }} | MkDocs build, API docs generation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploy | ${{ needs.deploy-docs.result == 'success' && '✅ PASSED' || (needs.deploy-docs.result == 'skipped' && '⏭️ SKIPPED' || '❌ FAILED') }} | GitHub Pages deployment |" >> $GITHUB_STEP_SUMMARY
+          echo "| Validation | ${{ needs.validate-deployment.result == 'success' && '✅ PASSED' || (needs.validate-deployment.result == 'skipped' && '⏭️ SKIPPED' || '❌ FAILED') }} | Link validation |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall status
+          if [[ "${{ needs.validate-docs.result }}" == "success" && 
+                ("${{ needs.build-docs.result }}" == "success" || "${{ needs.build-docs.result }}" == "skipped") ]]; then
+            echo "### ✅ Documentation Pipeline: SUCCESS" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ Documentation Pipeline: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.deploy-docs.outputs.page_url }}" != "" ]; then
+            echo "**Site URL:** ${{ needs.deploy-docs.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          fi

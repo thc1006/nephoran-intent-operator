@@ -1,0 +1,413 @@
+name: "Main CI/CD Pipeline"
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  GO_VERSION: '1.24'
+  COVERAGE_THRESHOLD: 90
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
+
+jobs:
+  # =============================================================================
+  # Code Quality and Linting
+  # =============================================================================
+  lint:
+    name: "Code Quality & Linting"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      go_changed: ${{ steps.changes.outputs.go }}
+      
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Detect Changes"
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+              - 'Makefile'
+
+      - name: "Setup Go Environment"
+        if: steps.changes.outputs.go == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: true
+
+      - name: "Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+
+      - name: "Cache Go Dependencies"
+        if: steps.changes.outputs.go == 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum', '**/go.mod') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ env.GO_VERSION }}-
+            ${{ runner.os }}-go-
+
+      - name: "Download Dependencies"
+        if: steps.changes.outputs.go == 'true'
+        run: |
+          go mod download
+          go mod verify
+
+      - name: "Install Linting Tools"
+        if: steps.changes.outputs.go == 'true'
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      - name: "Verify Go Formatting"
+        if: steps.changes.outputs.go == 'true'
+        run: |
+          unformatted=$(gofmt -s -l . | grep -v vendor/ || true)
+          if [ -n "$unformatted" ]; then
+            echo "❌ Code is not properly formatted:"
+            echo "$unformatted"
+            echo ""
+            echo "Run: gofmt -w $unformatted"
+            exit 1
+          fi
+          echo "✅ All Go code is properly formatted"
+
+      - name: "Run Go Vet"
+        if: steps.changes.outputs.go == 'true'
+        run: go vet ./...
+
+      - name: "Run golangci-lint"
+        if: steps.changes.outputs.go == 'true'
+        run: |
+          golangci-lint run --timeout=10m \
+            --out-format=github-actions \
+            --issues-exit-code=1 \
+            --enable=gofmt,govet,ineffassign,misspell,revive,staticcheck,unused,gosimple
+
+  # =============================================================================
+  # Matrix Testing with Coverage
+  # =============================================================================
+  test:
+    name: "Test & Coverage (Go ${{ matrix.go-version }})"
+    runs-on: ubuntu-latest
+    needs: lint
+    timeout-minutes: 30
+    if: needs.lint.outputs.go_changed == 'true'
+    
+    strategy:
+      matrix:
+        go-version: ['1.23', '1.24']
+      fail-fast: false
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      weaviate:
+        image: semitechnologies/weaviate:1.28.0
+        ports:
+          - 8080:8080
+        env:
+          QUERY_DEFAULTS_LIMIT: 25
+          AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+          PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+          DEFAULT_VECTORIZER_MODULE: 'none'
+          ENABLE_MODULES: 'text2vec-openai,generative-openai'
+          CLUSTER_HOSTNAME: 'node1'
+        options: >-
+          --health-cmd="wget --no-verbose --tries=3 --spider http://localhost:8080/v1/.well-known/ready || exit 1"
+          --health-interval=30s
+          --health-timeout=10s
+          --health-retries=5
+
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "Setup Go ${{ matrix.go-version }}"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
+          cache: true
+
+      - name: "Cache Go Dependencies"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum', '**/go.mod') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.go-version }}-
+            ${{ runner.os }}-go-
+
+      - name: "Install Test Dependencies"
+        run: |
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          go install golang.org/x/tools/cmd/cover@latest
+          go install github.com/wadey/gocovmerge@latest
+          go install github.com/jstemmer/go-junit-report/v2@latest
+
+      - name: "Setup Test Environment"
+        run: |
+          setup-envtest use 1.29.0 --bin-dir ~/.local/bin
+          echo "KUBEBUILDER_ASSETS=~/.local/bin" >> $GITHUB_ENV
+          echo "USE_EXISTING_CLUSTER=false" >> $GITHUB_ENV
+          echo "ENVTEST_K8S_VERSION=1.29.0" >> $GITHUB_ENV
+
+      - name: "Download Dependencies"
+        run: |
+          go mod download
+          go mod verify
+
+      - name: "Run Tests with Coverage"
+        env:
+          WEAVIATE_URL: http://localhost:8080
+          REDIS_URL: redis://localhost:6379
+          GOMAXPROCS: 4
+          TEST_CATEGORY: ci
+        run: |
+          echo "=== Running Tests with Coverage ==="
+          mkdir -p coverage
+          
+          go test ./... \
+            -race \
+            -coverprofile=cover.out \
+            -covermode=atomic \
+            -timeout=20m \
+            -v \
+            -parallel=4 \
+            -json | tee test-results.json
+          
+          echo "=== Test execution completed ==="
+
+      - name: "Generate Test Reports"
+        if: always()
+        run: |
+          if [ -f test-results.json ]; then
+            cat test-results.json | go-junit-report -set-exit-code > test-report.xml
+          fi
+          
+          echo "## Test Results Summary" > test-summary.md
+          echo "**Go Version:** ${{ matrix.go-version }}" >> test-summary.md
+          if [ -f test-results.json ]; then
+            echo "**Test Results:** Available in artifacts" >> test-summary.md
+          fi
+
+      - name: "Calculate Coverage"
+        id: coverage
+        if: matrix.go-version == '1.24'  # Only calculate once
+        run: |
+          echo "=== Calculating Coverage ==="
+          go tool cover -func=cover.out > coverage-report.txt
+          go tool cover -html=cover.out -o coverage-report.html
+          
+          coverage_percent=$(go tool cover -func=cover.out | grep total: | awk '{print $3}' | sed 's/%//')
+          echo "Current coverage: ${coverage_percent}%"
+          echo "Threshold: ${{ env.COVERAGE_THRESHOLD }}%"
+          
+          echo "coverage_percent=${coverage_percent}" >> $GITHUB_OUTPUT
+          
+          if (( $(echo "${coverage_percent} >= ${{ env.COVERAGE_THRESHOLD }}" | bc -l) )); then
+            echo "✅ Coverage threshold met: ${coverage_percent}% >= ${{ env.COVERAGE_THRESHOLD }}%"
+            echo "coverage_passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Coverage threshold not met: ${coverage_percent}% < ${{ env.COVERAGE_THRESHOLD }}%"
+            echo "coverage_passed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: "Generate Coverage Summary"
+        if: matrix.go-version == '1.24'
+        run: |
+          echo "## 📊 Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Total Coverage:** ${{ steps.coverage.outputs.coverage_percent }}%" >> $GITHUB_STEP_SUMMARY
+          echo "**Coverage Threshold:** ${{ env.COVERAGE_THRESHOLD }}%" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ steps.coverage.outputs.coverage_passed == 'true' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: "Upload Test Artifacts"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-go${{ matrix.go-version }}
+          path: |
+            cover.out
+            coverage-report.txt
+            coverage-report.html
+            test-results.json
+            test-report.xml
+            test-summary.md
+          retention-days: 30
+
+      - name: "Upload Coverage to Codecov"
+        if: matrix.go-version == '1.24'
+        uses: codecov/codecov-action@v4
+        with:
+          files: cover.out
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: "Coverage Gate Check"
+        if: matrix.go-version == '1.24' && steps.coverage.outputs.coverage_passed == 'false'
+        run: |
+          echo "❌ Code coverage ${{ steps.coverage.outputs.coverage_percent }}% is below the required threshold of ${{ env.COVERAGE_THRESHOLD }}%"
+          echo ""
+          echo "Please add more tests to improve coverage."
+          exit 1
+
+  # =============================================================================
+  # Build Verification Matrix
+  # =============================================================================
+  build:
+    name: "Build (${{ matrix.goos }}/${{ matrix.goarch }})"
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    if: always() && needs.lint.result == 'success' && needs.lint.outputs.go_changed == 'true'
+    timeout-minutes: 15
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64]
+        include:
+          - goos: linux
+            goarch: arm64
+
+    steps:
+      - name: "Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: "Cache Build Cache"
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-go-build-${{ matrix.goos }}-${{ matrix.goarch }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-${{ matrix.goos }}-${{ matrix.goarch }}-
+            ${{ runner.os }}-go-build-
+
+      - name: "Build Binaries"
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          echo "=== Building for ${{ matrix.goos }}/${{ matrix.goarch }} ==="
+          
+          mkdir -p bin/${{ matrix.goos }}_${{ matrix.goarch }}
+          
+          # Build main binary
+          binary_name="nephoran-operator"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            binary_name="${binary_name}.exe"
+          fi
+          
+          go build -ldflags="-s -w -X main.version=${GITHUB_SHA}" \
+            -o "bin/${{ matrix.goos }}_${{ matrix.goarch }}/${binary_name}" \
+            ./cmd/main.go
+          
+          echo "✅ Build completed successfully"
+          ls -la bin/${{ matrix.goos }}_${{ matrix.goarch }}/
+
+      - name: "Upload Build Artifacts"
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: bin/${{ matrix.goos }}_${{ matrix.goarch }}/
+          retention-days: 7
+
+  # =============================================================================
+  # Final Status Check
+  # =============================================================================
+  ci-status:
+    name: "CI Status Summary"
+    runs-on: ubuntu-latest
+    needs: [lint, test, build]
+    if: always()
+    
+    steps:
+      - name: "Check Job Results"
+        run: |
+          echo "=== CI Pipeline Status Summary ==="
+          echo ""
+          echo "**Job Results:**"
+          echo "- Lint: ${{ needs.lint.result }}"
+          echo "- Test: ${{ needs.test.result }}"  
+          echo "- Build: ${{ needs.build.result }}"
+          echo ""
+
+      - name: "Determine Overall Status"
+        id: status
+        run: |
+          if [ "${{ needs.lint.result }}" != "success" ] || [ "${{ needs.test.result }}" != "success" ]; then
+            echo "❌ Critical jobs failed - CI pipeline failed"
+            echo "overall_status=failure" >> $GITHUB_OUTPUT
+            exit 1
+          elif [ "${{ needs.build.result }}" != "success" ]; then
+            echo "⚠️  Build jobs failed - review required"
+            echo "overall_status=warning" >> $GITHUB_OUTPUT
+          else
+            echo "✅ All CI jobs completed successfully!"
+            echo "overall_status=success" >> $GITHUB_OUTPUT
+          fi
+
+      - name: "Generate CI Summary"
+        if: always()
+        run: |
+          echo "## 🔄 CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Overall Status:** ${{ steps.status.outputs.overall_status == 'success' && '✅ SUCCESS' || (steps.status.outputs.overall_status == 'warning' && '⚠️ WARNING' || '❌ FAILED') }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Job Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality & Linting | ${{ needs.lint.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Format, vet, lint checks |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test & Coverage | ${{ needs.test.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Unit tests with ${{ env.COVERAGE_THRESHOLD }}% coverage |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Verification | ${{ needs.build.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Cross-platform builds |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY

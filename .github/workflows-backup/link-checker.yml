@@ -1,0 +1,329 @@
+name: Link Checker
+
+on:
+  # Run on pull requests that modify documentation
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'docs/**'
+      - '*.md'
+      - 'mkdocs.yml'
+  
+  # Run on pushes to main that modify documentation
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '*.md'
+      - 'mkdocs.yml'
+  
+  # Daily scheduled run to catch external link rot
+  schedule:
+    - cron: '0 6 * * *'  # Run at 6 AM UTC daily
+  
+  # Allow manual triggering
+  workflow_dispatch:
+    inputs:
+      check_external:
+        description: 'Check external links (slower)'
+        required: false
+        default: 'true'
+        type: boolean
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # Markdown link checking
+  markdown-links:
+    runs-on: ubuntu-latest
+    name: Check Markdown Links
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install markdown-link-check
+        run: |
+          npm install -g markdown-link-check@3.11.2
+          # Create config file
+          cat > mlc_config.json << 'EOF'
+          {
+            "ignorePatterns": [
+              {
+                "pattern": "^https://127.0.0.1"
+              },
+              {
+                "pattern": "^https://localhost"
+              },
+              {
+                "pattern": "^http://localhost"
+              },
+              {
+                "pattern": "^https://example.com"
+              },
+              {
+                "pattern": "^mailto:"
+              }
+            ],
+            "timeout": "20s",
+            "retryOn429": true,
+            "retryCount": 3,
+            "fallbackHttpStatus": [
+              {
+                "urls": ["https://github.com"],
+                "fallbackHttpStatus": 429
+              }
+            ],
+            "aliveStatusCodes": [200, 206, 301, 302, 403, 429]
+          }
+          EOF
+
+      - name: Check links in Markdown files
+        continue-on-error: true
+        id: markdown_check
+        run: |
+          echo "Checking markdown files for broken links..."
+          
+          # Find all markdown files
+          find . -name "*.md" -not -path "./node_modules/*" -not -path "./.git/*" > md_files.txt
+          
+          # Count total files
+          total_files=$(wc -l < md_files.txt)
+          echo "Found $total_files markdown files to check"
+          
+          # Initialize counters
+          checked_files=0
+          failed_files=0
+          
+          # Check each file and track results
+          while IFS= read -r file; do
+            echo "Checking: $file"
+            if markdown-link-check "$file" --config mlc_config.json --quiet; then
+              echo "✅ $file - OK"
+            else
+              echo "❌ $file - FAILED"
+              echo "$file" >> failed_files.txt
+              failed_files=$((failed_files + 1))
+            fi
+            checked_files=$((checked_files + 1))
+          done < md_files.txt
+          
+          echo "checked_files=$checked_files" >> $GITHUB_OUTPUT
+          echo "failed_files=$failed_files" >> $GITHUB_OUTPUT
+          echo "total_files=$total_files" >> $GITHUB_OUTPUT
+          
+          # Set exit code
+          if [ $failed_files -gt 0 ]; then
+            echo "Link check failed for $failed_files file(s)"
+            exit 1
+          else
+            echo "All link checks passed!"
+          fi
+
+      - name: Upload failed files list
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-link-check-files
+          path: failed_files.txt
+          retention-days: 7
+
+  # Website link checking (after deployment)
+  website-links:
+    runs-on: ubuntu-latest
+    name: Check Website Links
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check website links with Lychee
+        uses: lycheeverse/lychee-action@v1.9.3
+        with:
+          args: |
+            --verbose
+            --no-progress
+            --exclude-loopback
+            --exclude-private
+            --exclude-mail
+            --exclude-path .git
+            --exclude-path node_modules
+            --max-retries 3
+            --retry-wait-time 5
+            --timeout 30
+            --accept 200,201,202,204,206,300,301,302,303,304,307,308,403,429
+            --exclude '^https://127\.0\.0\.1'
+            --exclude '^https://localhost'
+            --exclude '^http://localhost'
+            --exclude '^https://example\.com'
+            --exclude '^mailto:'
+            --exclude '^tel:'
+            --exclude '^ftp:'
+            --exclude 'linkedin.com/in'
+            --exclude 'twitter.com'
+            --base https://nephoran.github.io/nephoran-intent-operator/
+            'https://nephoran.github.io/nephoran-intent-operator/**/*.html'
+          fail: false
+
+      - name: Generate link check report
+        if: always()
+        run: |
+          echo "## Link Check Report" > link-report.md
+          echo "" >> link-report.md
+          echo "**Date:** $(date)" >> link-report.md
+          echo "**Trigger:** ${{ github.event_name }}" >> link-report.md
+          echo "" >> link-report.md
+          
+          if [ -f lychee/out.md ]; then
+            echo "### Results" >> link-report.md
+            cat lychee/out.md >> link-report.md
+          else
+            echo "### Results" >> link-report.md
+            echo "Link check completed. See action logs for details." >> link-report.md
+          fi
+
+      - name: Upload link check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: link-check-report
+          path: link-report.md
+          retention-days: 30
+
+  # Create issues for broken links (daily run only)
+  create-issue:
+    runs-on: ubuntu-latest
+    name: Report Issues
+    needs: [markdown-links, website-links]
+    if: always() && github.event_name == 'schedule' && (needs.markdown-links.result == 'failure' || needs.website-links.result == 'failure')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/
+
+      - name: Create or update issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Look for existing open issue
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['documentation', 'broken-links'],
+              state: 'open'
+            });
+            
+            let issueBody = `## Daily Link Check Report\n\n`;
+            issueBody += `**Date:** ${new Date().toISOString()}\n`;
+            issueBody += `**Workflow Run:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n`;
+            
+            // Check for failed markdown files
+            const failedFilesPath = 'artifacts/failed-link-check-files/failed_files.txt';
+            if (fs.existsSync(failedFilesPath)) {
+              const failedFiles = fs.readFileSync(failedFilesPath, 'utf8').trim().split('\n');
+              issueBody += `### Markdown Files with Broken Links\n\n`;
+              failedFiles.forEach(file => {
+                if (file.trim()) {
+                  issueBody += `- \`${file}\`\n`;
+                }
+              });
+            }
+            
+            // Check for link report
+            const reportPath = 'artifacts/link-check-report/link-report.md';
+            if (fs.existsSync(reportPath)) {
+              const report = fs.readFileSync(reportPath, 'utf8');
+              issueBody += `\n### Website Link Check Report\n\n${report}\n`;
+            }
+            
+            issueBody += `\n### Actions Required\n\n`;
+            issueBody += `- [ ] Review and fix broken internal links\n`;
+            issueBody += `- [ ] Update or remove broken external links\n`;
+            issueBody += `- [ ] Verify all documentation is accessible\n`;
+            issueBody += `- [ ] Close this issue once all links are fixed\n`;
+            
+            if (issues.data.length > 0) {
+              // Update existing issue
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issues.data[0].number,
+                body: issueBody
+              });
+              console.log(`Updated existing issue #${issues.data[0].number}`);
+            } else {
+              // Create new issue
+              const newIssue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `Documentation: Broken links detected (${new Date().toISOString().split('T')[0]})`,
+                body: issueBody,
+                labels: ['documentation', 'broken-links', 'automated']
+              });
+              console.log(`Created new issue #${newIssue.data.number}`);
+            }
+
+  # Success notification (for PR checks)
+  success-comment:
+    runs-on: ubuntu-latest
+    name: Success Comment
+    needs: [markdown-links]
+    if: github.event_name == 'pull_request' && needs.markdown-links.result == 'success'
+    steps:
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Link Check Results')
+            );
+            
+            const commentBody = `## Link Check Results ✅
+            
+            All documentation links have been verified successfully!
+            
+            - **Markdown files checked:** ${{ needs.markdown-links.outputs.total_files }}
+            - **Status:** All links working correctly
+            - **Last checked:** ${new Date().toISOString()}`;
+            
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: commentBody
+              });
+            }

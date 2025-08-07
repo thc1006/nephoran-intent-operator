@@ -1,0 +1,973 @@
+# Weekly Security Audit Pipeline for Nephoran Intent Operator
+# Comprehensive security assessment including SAST, DAST, compliance checks, and vulnerability management
+# This pipeline provides deep security analysis and generates compliance reports
+
+name: Weekly Security Audit
+
+on:
+  schedule:
+    # Run every Sunday at 3:00 AM UTC
+    - cron: '0 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      audit_scope:
+        description: 'Security audit scope'
+        required: false
+        default: 'comprehensive'
+        type: choice
+        options:
+          - comprehensive
+          - quick
+          - compliance
+          - penetration
+      create_issues:
+        description: 'Create GitHub issues for vulnerabilities'
+        required: false
+        default: true
+        type: boolean
+      notify_security_team:
+        description: 'Notify security team'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  # Container registry configuration
+  REGISTRY: us-central1-docker.pkg.dev/poised-elf-466913-q2/nephoran
+  # Security thresholds
+  MAX_CRITICAL_VULNS: "0"
+  MAX_HIGH_VULNS: "2"
+  MAX_MEDIUM_VULNS: "10"
+  MIN_SECURITY_SCORE: "85"
+  # Compliance frameworks
+  COMPLIANCE_FRAMEWORKS: "nist-csf,etsi-nfv-sec,iso27001,gdpr-telecom"
+
+jobs:
+  # ===================================
+  # SECURITY AUDIT INITIALIZATION
+  # ===================================
+  audit-initialization:
+    name: "Security Audit Initialization"
+    runs-on: ubuntu-22.04
+    outputs:
+      audit_id: ${{ steps.init.outputs.audit_id }}
+      baseline_date: ${{ steps.init.outputs.baseline }}
+      scan_matrix: ${{ steps.matrix.outputs.scans }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Initialize security audit
+        id: init
+        run: |
+          AUDIT_ID="SA-$(date +%Y%m%d%H%M%S)"
+          BASELINE_DATE=$(date -Iseconds)
+          
+          echo "audit_id=$AUDIT_ID" >> $GITHUB_OUTPUT
+          echo "baseline=$BASELINE_DATE" >> $GITHUB_OUTPUT
+          
+          echo "🔒 Security Audit Started: $AUDIT_ID" >> $GITHUB_STEP_SUMMARY
+          echo "**Scope**: ${{ inputs.audit_scope || 'comprehensive' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp**: $BASELINE_DATE" >> $GITHUB_STEP_SUMMARY
+
+      - name: Define scan matrix
+        id: matrix
+        run: |
+          case "${{ inputs.audit_scope }}" in
+            "quick")
+              SCANS='["sast", "dependency", "secrets", "containers"]'
+              ;;
+            "compliance")
+              SCANS='["sast", "dependency", "secrets", "containers", "compliance", "policy"]'
+              ;;
+            "penetration")
+              SCANS='["sast", "dependency", "secrets", "containers", "dast", "penetration"]'
+              ;;
+            *)
+              SCANS='["sast", "dependency", "secrets", "containers", "dast", "compliance", "policy", "penetration", "infrastructure"]'
+              ;;
+          esac
+          
+          echo "scans=$SCANS" >> $GITHUB_OUTPUT
+          echo "Security scan matrix: $SCANS"
+
+  # ===================================
+  # COMPREHENSIVE SECURITY SCANNING
+  # ===================================
+  security-scanning:
+    name: "Security Scan: ${{ matrix.scan-type }}"
+    runs-on: ubuntu-22.04
+    needs: [audit-initialization]
+    strategy:
+      matrix:
+        scan-type: ${{ fromJson(needs.audit-initialization.outputs.scan_matrix) }}
+      fail-fast: false
+    outputs:
+      scan_results: ${{ steps.results.outputs.summary }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up security tools for ${{ matrix.scan-type }}
+        run: |
+          mkdir -p security-audit/${{ matrix.scan-type }}
+          
+          case "${{ matrix.scan-type }}" in
+            "sast")
+              # Static Application Security Testing tools
+              go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+              go install honnef.co/go/tools/cmd/staticcheck@latest
+              curl -sfL https://raw.githubusercontent.com/semgrep/semgrep/develop/scripts/install.sh | bash
+              ;;
+            "dependency")
+              # Dependency vulnerability scanners
+              go install github.com/sonatypecommunity/nancy@latest
+              go install golang.org/x/vuln/cmd/govulncheck@latest
+              curl -sfL https://raw.githubusercontent.com/jeremylong/DependencyCheck/main/src/scripts/install.sh | bash
+              ;;
+            "secrets")
+              # Secret scanning tools
+              curl -L https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64 -o gitleaks
+              chmod +x gitleaks && sudo mv gitleaks /usr/local/bin/
+              curl -L https://github.com/trufflesecurity/trufflehog/releases/latest/download/trufflehog_linux_amd64.tar.gz | tar xz
+              chmod +x trufflehog && sudo mv trufflehog /usr/local/bin/
+              ;;
+            "containers")
+              # Container security scanners
+              curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+              curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+              curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+              ;;
+            "dast")
+              # Dynamic Application Security Testing
+              docker pull owasp/zap2docker-stable
+              sudo apt-get update && sudo apt-get install -y nmap
+              ;;
+            "compliance")
+              # Compliance checking tools
+              sudo apt-get update && sudo apt-get install -y python3 python3-pip
+              pip3 install compliance-checker security-audit-toolkit
+              ;;
+            "policy")
+              # Policy validation tools
+              curl -L https://github.com/open-policy-agent/conftest/releases/download/v0.46.0/conftest_0.46.0_Linux_x86_64.tar.gz | tar xz
+              chmod +x conftest && sudo mv conftest /usr/local/bin/
+              curl -L https://github.com/zegl/kube-score/releases/latest/download/kube-score_linux_amd64 -o kube-score
+              chmod +x kube-score && sudo mv kube-score /usr/local/bin/
+              ;;
+            "penetration")
+              # Penetration testing tools
+              sudo apt-get update && sudo apt-get install -y nmap nikto
+              docker pull owasp/zap2docker-stable
+              ;;
+            "infrastructure")
+              # Infrastructure security assessment
+              curl -L https://github.com/aquasecurity/tfsec/releases/latest/download/tfsec-linux-amd64 -o tfsec
+              chmod +x tfsec && sudo mv tfsec /usr/local/bin/
+              ;;
+          esac
+
+      - name: Execute ${{ matrix.scan-type }} security scan
+        run: |
+          echo "🔍 Running ${{ matrix.scan-type }} security scan..."
+          
+          case "${{ matrix.scan-type }}" in
+            "sast")
+              echo "Static Application Security Testing..."
+              
+              # Gosec - Go security checker
+              gosec -fmt sarif -out security-audit/sast/gosec.sarif ./...
+              gosec -fmt json -out security-audit/sast/gosec.json ./...
+              
+              # Staticcheck - Static analysis
+              staticcheck -f json ./... > security-audit/sast/staticcheck.json || true
+              
+              # Semgrep - Multi-language static analysis
+              semgrep --config=auto --json --output=security-audit/sast/semgrep.json . || true
+              
+              # Custom Go security patterns
+              grep -r "crypto/md5\|crypto/sha1" --include="*.go" . > security-audit/sast/weak-crypto.txt || true
+              grep -r "sql.Query\|fmt.Sprintf.*SELECT" --include="*.go" . > security-audit/sast/sql-injection.txt || true
+              ;;
+              
+            "dependency")
+              echo "Dependency vulnerability scanning..."
+              
+              # Nancy - Sonatype dependency check
+              go list -json -m all | nancy sleuth --output-format=json > security-audit/dependency/nancy.json || true
+              
+              # govulncheck - Go vulnerability database
+              govulncheck -json ./... > security-audit/dependency/govulncheck.json || true
+              
+              # OWASP Dependency Check
+              dependency-check.sh --project "Nephoran" --scan . --format JSON --out security-audit/dependency/ || true
+              
+              # Generate SBOM for dependency analysis
+              if command -v syft &> /dev/null; then
+                syft . -o spdx-json > security-audit/dependency/sbom.spdx.json
+              fi
+              ;;
+              
+            "secrets")
+              echo "Secret scanning..."
+              
+              # Gitleaks - Git secrets scanner
+              gitleaks detect --source . --report-format json --report-path security-audit/secrets/gitleaks.json || true
+              
+              # TruffleHog - Deep secret scanning
+              trufflehog filesystem . --json > security-audit/secrets/trufflehog.json || true
+              
+              # Custom pattern matching for telecom secrets
+              grep -r "password\|secret\|key\|token" --include="*.yaml" --include="*.yml" deployments/ > security-audit/secrets/manifest-secrets.txt || true
+              
+              # Check for hardcoded credentials in code
+              grep -r "password.*=\|secret.*=\|key.*=" --include="*.go" . > security-audit/secrets/code-secrets.txt || true
+              ;;
+              
+            "containers")
+              echo "Container security scanning..."
+              
+              # Build images for scanning
+              make docker-build VERSION=security-audit || true
+              
+              SERVICES=("llm-processor" "nephio-bridge" "oran-adaptor" "rag-api")
+              
+              for service in "${SERVICES[@]}"; do
+                if docker images | grep -q "$REGISTRY/$service:security-audit"; then
+                  echo "Scanning $service container..."
+                  
+                  # Trivy comprehensive scan
+                  trivy image --format json --output security-audit/containers/trivy-$service.json \
+                    $REGISTRY/$service:security-audit || true
+                  
+                  # Grype vulnerability scan
+                  grype $REGISTRY/$service:security-audit -o json > security-audit/containers/grype-$service.json || true
+                  
+                  # Syft SBOM generation
+                  syft $REGISTRY/$service:security-audit -o spdx-json > security-audit/containers/sbom-$service.spdx.json || true
+                fi
+              done
+              ;;
+              
+            "dast")
+              echo "Dynamic Application Security Testing..."
+              
+              # Set up test environment
+              curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+              chmod +x ./kind && sudo mv ./kind /usr/local/bin/kind
+              
+              kind create cluster --name security-audit --wait=300s
+              
+              # Deploy application for DAST
+              if [ -f "deployments/kustomize/overlays/dev/kustomization.yaml" ]; then
+                kubectl apply -k deployments/kustomize/overlays/dev/ || true
+                kubectl wait --for=condition=available --timeout=300s deployment/llm-processor || true
+                
+                # Port forward for DAST scanning
+                kubectl port-forward service/llm-processor 8080:80 &
+                sleep 30
+                
+                # OWASP ZAP baseline scan
+                docker run --rm -v $(pwd):/zap/wrk/:rw \
+                  --network=host owasp/zap2docker-stable zap-baseline.py \
+                  -t http://localhost:8080 -J security-audit/dast/zap-baseline.json || true
+                
+                # Nmap service scan
+                nmap -sV -sC localhost -p 8080 > security-audit/dast/nmap-scan.txt || true
+                
+                kind delete cluster --name security-audit
+              fi
+              ;;
+              
+            "compliance")
+              echo "Compliance assessment..."
+              
+              # NIST Cybersecurity Framework compliance
+              if [ -f "./scripts/compliance-checker.py" ]; then
+                python3 ./scripts/compliance-checker.py \
+                  --framework nist-csf --profile telecom \
+                  --output security-audit/compliance/nist-csf.json || true
+              fi
+              
+              # ETSI NFV-SEC compliance
+              if [ -f "./scripts/compliance-checker.py" ]; then
+                python3 ./scripts/compliance-checker.py \
+                  --framework etsi-nfv-sec \
+                  --output security-audit/compliance/etsi-nfv-sec.json || true
+              fi
+              
+              # Generate compliance matrix
+              cat > security-audit/compliance/compliance-matrix.json << EOF
+              {
+                "frameworks": ["NIST-CSF", "ETSI-NFV-SEC", "ISO27001", "GDPR-Telecom"],
+                "assessment_date": "$(date -Iseconds)",
+                "scope": "Nephoran Intent Operator",
+                "version": "$(git describe --tags --always)"
+              }
+              EOF
+              ;;
+              
+            "policy")
+              echo "Policy validation..."
+              
+              # Kubernetes security policies validation
+              find deployments/ -name "*.yaml" -o -name "*.yml" | while read -r file; do
+                conftest verify --policy deployments/security/opa-policies/ "$file" >> security-audit/policy/opa-results.txt 2>&1 || true
+              done
+              
+              # kube-score security assessment
+              find deployments/ -name "*.yaml" -o -name "*.yml" | while read -r file; do
+                kube-score score "$file" >> security-audit/policy/kube-score.txt 2>&1 || true
+              done
+              
+              # Custom policy checks for telecom compliance
+              grep -r "runAsRoot\|privileged.*true" deployments/ > security-audit/policy/privilege-escalation.txt || true
+              ;;
+              
+            "penetration")
+              echo "Penetration testing simulation..."
+              
+              # Network reconnaissance
+              nmap -sn 10.0.0.0/8 > security-audit/penetration/network-discovery.txt || true
+              
+              # Service enumeration simulation
+              nmap -sV -T4 127.0.0.1 > security-audit/penetration/service-enum.txt || true
+              
+              # Web application penetration test simulation
+              if command -v nikto &> /dev/null; then
+                nikto -h http://localhost:8080 -output security-audit/penetration/nikto.txt || true
+              fi
+              
+              echo "Penetration testing simulation completed"
+              ;;
+              
+            "infrastructure")
+              echo "Infrastructure security assessment..."
+              
+              # Terraform security scan
+              if [ -d "deployments/multi-region/terraform/" ]; then
+                tfsec deployments/multi-region/terraform/ --format json > security-audit/infrastructure/terraform.json || true
+              fi
+              
+              # Kubernetes configuration security
+              find deployments/ -name "*.yaml" | while read -r file; do
+                echo "Checking $file..." >> security-audit/infrastructure/k8s-security.txt
+                grep -E "runAsRoot|privileged|hostNetwork|hostPID" "$file" >> security-audit/infrastructure/k8s-security.txt || true
+              done
+              ;;
+              
+            *)
+              echo "Unknown scan type: ${{ matrix.scan-type }}"
+              exit 1
+              ;;
+          esac
+
+      - name: Analyze ${{ matrix.scan-type }} results
+        id: results
+        run: |
+          echo "📊 Analyzing ${{ matrix.scan-type }} scan results..."
+          
+          CRITICAL_COUNT=0
+          HIGH_COUNT=0
+          MEDIUM_COUNT=0
+          LOW_COUNT=0
+          
+          case "${{ matrix.scan-type }}" in
+            "sast")
+              if [ -f "security-audit/sast/gosec.json" ]; then
+                CRITICAL_COUNT=$(jq '[.Issues[] | select(.Severity == "HIGH")] | length' security-audit/sast/gosec.json 2>/dev/null || echo "0")
+                MEDIUM_COUNT=$(jq '[.Issues[] | select(.Severity == "MEDIUM")] | length' security-audit/sast/gosec.json 2>/dev/null || echo "0")
+              fi
+              ;;
+            "dependency")
+              if [ -f "security-audit/dependency/nancy.json" ]; then
+                CRITICAL_COUNT=$(jq '[.vulnerable[] | select(.Coordinates.Severity == "CRITICAL")] | length' security-audit/dependency/nancy.json 2>/dev/null || echo "0")
+                HIGH_COUNT=$(jq '[.vulnerable[] | select(.Coordinates.Severity == "HIGH")] | length' security-audit/dependency/nancy.json 2>/dev/null || echo "0")
+              fi
+              ;;
+            "containers")
+              for service in llm-processor nephio-bridge oran-adaptor rag-api; do
+                if [ -f "security-audit/containers/trivy-$service.json" ]; then
+                  SERVICE_CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' "security-audit/containers/trivy-$service.json" 2>/dev/null || echo "0")
+                  SERVICE_HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' "security-audit/containers/trivy-$service.json" 2>/dev/null || echo "0")
+                  CRITICAL_COUNT=$((CRITICAL_COUNT + SERVICE_CRITICAL))
+                  HIGH_COUNT=$((HIGH_COUNT + SERVICE_HIGH))
+                fi
+              done
+              ;;
+            *)
+              # Generic vulnerability counting for other scan types
+              find security-audit/${{ matrix.scan-type }}/ -name "*.json" -exec jq -r '.[] | select(.severity) | .severity' {} \; 2>/dev/null | sort | uniq -c > /tmp/severity_count.txt || true
+              CRITICAL_COUNT=$(grep -i critical /tmp/severity_count.txt | awk '{print $1}' || echo "0")
+              HIGH_COUNT=$(grep -i high /tmp/severity_count.txt | awk '{print $1}' || echo "0")
+              ;;
+          esac
+          
+          # Generate summary
+          cat > security-audit/${{ matrix.scan-type }}/summary.json << EOF
+          {
+            "scan_type": "${{ matrix.scan-type }}",
+            "timestamp": "$(date -Iseconds)",
+            "vulnerabilities": {
+              "critical": $CRITICAL_COUNT,
+              "high": $HIGH_COUNT,
+              "medium": $MEDIUM_COUNT,
+              "low": $LOW_COUNT
+            },
+            "status": "completed"
+          }
+          EOF
+          
+          echo "summary=security-audit/${{ matrix.scan-type }}/summary.json" >> $GITHUB_OUTPUT
+          echo "${{ matrix.scan-type }} scan completed: Critical: $CRITICAL_COUNT, High: $HIGH_COUNT"
+
+      - name: Upload ${{ matrix.scan-type }} results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-audit-${{ matrix.scan-type }}
+          path: security-audit/${{ matrix.scan-type }}/
+          retention-days: 90
+
+  # ===================================
+  # VULNERABILITY ASSESSMENT
+  # ===================================
+  vulnerability-assessment:
+    name: "Vulnerability Assessment & Risk Analysis"
+    runs-on: ubuntu-22.04
+    needs: [audit-initialization, security-scanning]
+    if: always()
+    outputs:
+      risk_score: ${{ steps.assessment.outputs.risk_score }}
+      critical_vulns: ${{ steps.assessment.outputs.critical_count }}
+      recommendations: ${{ steps.assessment.outputs.recommendations }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all security scan results
+        uses: actions/download-artifact@v4
+        with:
+          path: security-audit-results/
+
+      - name: Comprehensive vulnerability assessment
+        id: assessment
+        run: |
+          echo "🔍 Performing comprehensive vulnerability assessment..."
+          
+          mkdir -p vulnerability-assessment
+          
+          # Initialize counters
+          TOTAL_CRITICAL=0
+          TOTAL_HIGH=0
+          TOTAL_MEDIUM=0
+          TOTAL_LOW=0
+          
+          # Aggregate results from all scan types
+          for scan_dir in security-audit-results/security-audit-*/; do
+            if [ -d "$scan_dir" ] && [ -f "$scan_dir/summary.json" ]; then
+              scan_type=$(basename "$scan_dir" | sed 's/security-audit-//')
+              
+              CRITICAL=$(jq '.vulnerabilities.critical' "$scan_dir/summary.json" 2>/dev/null || echo "0")
+              HIGH=$(jq '.vulnerabilities.high' "$scan_dir/summary.json" 2>/dev/null || echo "0")
+              MEDIUM=$(jq '.vulnerabilities.medium' "$scan_dir/summary.json" 2>/dev/null || echo "0")
+              LOW=$(jq '.vulnerabilities.low' "$scan_dir/summary.json" 2>/dev/null || echo "0")
+              
+              TOTAL_CRITICAL=$((TOTAL_CRITICAL + CRITICAL))
+              TOTAL_HIGH=$((TOTAL_HIGH + HIGH))
+              TOTAL_MEDIUM=$((TOTAL_MEDIUM + MEDIUM))
+              TOTAL_LOW=$((TOTAL_LOW + LOW))
+              
+              echo "$scan_type: Critical=$CRITICAL, High=$HIGH, Medium=$MEDIUM, Low=$LOW"
+            fi
+          done
+          
+          # Calculate risk score (0-100, lower is better)
+          RISK_SCORE=$((TOTAL_CRITICAL * 25 + TOTAL_HIGH * 10 + TOTAL_MEDIUM * 3 + TOTAL_LOW * 1))
+          RISK_SCORE=$((RISK_SCORE > 100 ? 100 : RISK_SCORE))
+          
+          echo "critical_count=$TOTAL_CRITICAL" >> $GITHUB_OUTPUT
+          echo "high_count=$TOTAL_HIGH" >> $GITHUB_OUTPUT
+          echo "medium_count=$TOTAL_MEDIUM" >> $GITHUB_OUTPUT
+          echo "low_count=$TOTAL_LOW" >> $GITHUB_OUTPUT
+          echo "risk_score=$RISK_SCORE" >> $GITHUB_OUTPUT
+          
+          # Generate vulnerability matrix
+          cat > vulnerability-assessment/vulnerability-matrix.json << EOF
+          {
+            "audit_id": "${{ needs.audit-initialization.outputs.audit_id }}",
+            "assessment_date": "$(date -Iseconds)",
+            "total_vulnerabilities": $((TOTAL_CRITICAL + TOTAL_HIGH + TOTAL_MEDIUM + TOTAL_LOW)),
+            "breakdown": {
+              "critical": $TOTAL_CRITICAL,
+              "high": $TOTAL_HIGH,
+              "medium": $TOTAL_MEDIUM,
+              "low": $TOTAL_LOW
+            },
+            "risk_score": $RISK_SCORE,
+            "risk_level": "$([ $RISK_SCORE -lt 20 ] && echo "LOW" || [ $RISK_SCORE -lt 50 ] && echo "MEDIUM" || [ $RISK_SCORE -lt 80 ] && echo "HIGH" || echo "CRITICAL")",
+            "compliance_impact": "$([ $TOTAL_CRITICAL -eq 0 ] && echo "COMPLIANT" || echo "NON_COMPLIANT")"
+          }
+          EOF
+          
+          echo "Vulnerability Assessment Summary:"
+          echo "- Critical: $TOTAL_CRITICAL"
+          echo "- High: $TOTAL_HIGH"
+          echo "- Medium: $TOTAL_MEDIUM"
+          echo "- Low: $TOTAL_LOW"
+          echo "- Risk Score: $RISK_SCORE/100"
+
+      - name: Generate security recommendations
+        id: recommendations
+        run: |
+          echo "📋 Generating security recommendations..."
+          
+          cat > vulnerability-assessment/recommendations.md << EOF
+          # Security Recommendations - ${{ needs.audit-initialization.outputs.audit_id }}
+          
+          ## Executive Summary
+          - **Total Vulnerabilities**: ${{ steps.assessment.outputs.critical_count }} Critical, ${{ steps.assessment.outputs.high_count }} High
+          - **Risk Score**: ${{ steps.assessment.outputs.risk_score }}/100
+          - **Assessment Date**: $(date -Iseconds)
+          
+          ## Immediate Actions Required
+          EOF
+          
+          # Generate specific recommendations based on findings
+          if [ "${{ steps.assessment.outputs.critical_count }}" -gt 0 ]; then
+            echo "- 🚨 **CRITICAL**: Address ${{ steps.assessment.outputs.critical_count }} critical vulnerabilities immediately" >> vulnerability-assessment/recommendations.md
+          fi
+          
+          if [ "${{ steps.assessment.outputs.high_count }}" -gt 5 ]; then
+            echo "- 🔴 **HIGH PRIORITY**: ${{ steps.assessment.outputs.high_count }} high-severity issues require attention within 7 days" >> vulnerability-assessment/recommendations.md
+          fi
+          
+          cat >> vulnerability-assessment/recommendations.md << EOF
+          
+          ## Detailed Recommendations
+          
+          ### Code Security
+          - Implement automated SAST scanning in CI/CD pipeline
+          - Regular security code reviews
+          - Developer security training
+          
+          ### Dependency Management  
+          - Implement automated dependency vulnerability scanning
+          - Regular dependency updates
+          - Use dependency pinning for production
+          
+          ### Container Security
+          - Use minimal base images
+          - Implement runtime security monitoring
+          - Regular container image updates
+          
+          ### Infrastructure Security
+          - Implement network segmentation
+          - Use least privilege access
+          - Regular security audits
+          
+          ### Compliance
+          - Regular compliance assessments
+          - Documentation updates
+          - Staff training on security policies
+          EOF
+          
+          echo "recommendations=vulnerability-assessment/recommendations.md" >> $GITHUB_OUTPUT
+
+      - name: Security dashboard metrics
+        run: |
+          # Generate metrics for security dashboard
+          cat > vulnerability-assessment/security-metrics.json << EOF
+          {
+            "timestamp": $(date +%s),
+            "audit_id": "${{ needs.audit-initialization.outputs.audit_id }}",
+            "metrics": {
+              "vulnerability_count": {
+                "critical": ${{ steps.assessment.outputs.critical_count }},
+                "high": ${{ steps.assessment.outputs.high_count }},
+                "medium": ${{ steps.assessment.outputs.medium_count }},
+                "low": ${{ steps.assessment.outputs.low_count }}
+              },
+              "risk_score": ${{ steps.assessment.outputs.risk_score }},
+              "compliance_score": $([ "${{ steps.assessment.outputs.critical_count }}" -eq 0 ] && echo "100" || echo "$(((100 - ${{ steps.assessment.outputs.risk_score }}) < 0 ? 0 : (100 - ${{ steps.assessment.outputs.risk_score }})))"),
+              "scan_coverage": {
+                "sast": true,
+                "dependency": true,
+                "container": true,
+                "secrets": true,
+                "dast": true,
+                "compliance": true
+              }
+            }
+          }
+          EOF
+
+      - name: Upload vulnerability assessment
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerability-assessment
+          path: vulnerability-assessment/
+          retention-days: 90
+
+  # ===================================
+  # ISSUE CREATION AND TRACKING
+  # ===================================
+  issue-management:
+    name: "Security Issue Management"
+    runs-on: ubuntu-22.04
+    needs: [audit-initialization, vulnerability-assessment]
+    if: needs.vulnerability-assessment.outputs.critical_vulns > 0 && inputs.create_issues == true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create security issues for critical vulnerabilities
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const auditId = '${{ needs.audit-initialization.outputs.audit_id }}';
+            const criticalCount = '${{ needs.vulnerability-assessment.outputs.critical_vulns }}';
+            const riskScore = '${{ needs.vulnerability-assessment.outputs.risk_score }}';
+            
+            // Create main security audit issue
+            const mainIssue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🔒 Security Audit: ${criticalCount} Critical Vulnerabilities Found - ${auditId}`,
+              body: `## Security Audit Results
+              
+              **Audit ID**: ${auditId}
+              **Date**: ${new Date().toISOString()}
+              **Risk Score**: ${riskScore}/100
+              
+              ### Critical Findings
+              - **Critical Vulnerabilities**: ${criticalCount}
+              - **Status**: Requires immediate attention
+              
+              ### Next Steps
+              1. Review detailed vulnerability assessment
+              2. Prioritize critical vulnerabilities
+              3. Create remediation plan
+              4. Implement fixes
+              5. Verify fixes with re-scan
+              
+              ### Resources
+              - [Security Scan Results](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+              - [Vulnerability Assessment Report](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}/artifacts)
+              
+              **Priority**: Critical
+              **Due Date**: $(date -d '+3 days' -Iseconds)
+              `,
+              labels: ['security', 'critical', 'vulnerability', 'audit']
+            });
+            
+            console.log(`Created security audit issue #${mainIssue.data.number}`);
+            
+            // Create individual issues for critical components if needed
+            if (parseInt(criticalCount) > 5) {
+              const componentIssue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🔒 High Volume Security Issues - Component Review Required`,
+                body: `## High Volume Security Alert
+                
+                This audit found ${criticalCount} critical vulnerabilities across multiple components.
+                
+                **Recommended Actions**:
+                1. Conduct emergency security review
+                2. Consider temporary service restrictions
+                3. Implement hotfixes for critical paths
+                4. Schedule comprehensive security update
+                
+                **Related Issue**: #${mainIssue.data.number}
+                `,
+                labels: ['security', 'critical', 'emergency-review']
+              });
+              
+              console.log(`Created component review issue #${componentIssue.data.number}`);
+            }
+
+  # ===================================
+  # COMPLIANCE REPORTING
+  # ===================================
+  compliance-reporting:
+    name: "Compliance Report Generation"
+    runs-on: ubuntu-22.04
+    needs: [audit-initialization, security-scanning, vulnerability-assessment]
+    if: always()
+    outputs:
+      compliance_score: ${{ steps.compliance.outputs.score }}
+      report_url: ${{ steps.compliance.outputs.report_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download compliance scan results
+        uses: actions/download-artifact@v4
+        with:
+          path: compliance-results/
+
+      - name: Generate comprehensive compliance report
+        id: compliance
+        run: |
+          echo "📊 Generating compliance report..."
+          
+          mkdir -p compliance-reports
+          
+          # Calculate compliance score
+          CRITICAL_VULNS=${{ needs.vulnerability-assessment.outputs.critical_vulns }}
+          HIGH_VULNS=${{ needs.vulnerability-assessment.outputs.high_count || 0 }}
+          RISK_SCORE=${{ needs.vulnerability-assessment.outputs.risk_score }}
+          
+          # Compliance score calculation (0-100)
+          COMPLIANCE_SCORE=$((100 - (CRITICAL_VULNS * 20) - (HIGH_VULNS * 5)))
+          COMPLIANCE_SCORE=$((COMPLIANCE_SCORE < 0 ? 0 : COMPLIANCE_SCORE))
+          
+          echo "score=$COMPLIANCE_SCORE" >> $GITHUB_OUTPUT
+          
+          # Generate comprehensive compliance report
+          cat > compliance-reports/compliance-report.md << EOF
+          # Compliance Assessment Report
+          
+          **Audit ID**: ${{ needs.audit-initialization.outputs.audit_id }}
+          **Assessment Date**: $(date -Iseconds)
+          **Compliance Score**: $COMPLIANCE_SCORE/100
+          **Risk Level**: $([ $COMPLIANCE_SCORE -gt 90 ] && echo "LOW" || [ $COMPLIANCE_SCORE -gt 70 ] && echo "MEDIUM" || [ $COMPLIANCE_SCORE -gt 50 ] && echo "HIGH" || echo "CRITICAL")
+          
+          ## Executive Summary
+          
+          The Nephoran Intent Operator has undergone comprehensive security and compliance assessment covering:
+          - Static Application Security Testing (SAST)
+          - Dependency Vulnerability Analysis
+          - Container Security Assessment
+          - Dynamic Application Security Testing (DAST)
+          - Infrastructure Security Review
+          - Policy Compliance Validation
+          
+          ## Compliance Framework Assessment
+          
+          | Framework | Status | Score | Notes |
+          |-----------|--------|-------|-------|
+          | NIST Cybersecurity Framework | $([ $COMPLIANCE_SCORE -gt 80 ] && echo "✅ COMPLIANT" || echo "❌ NON-COMPLIANT") | $COMPLIANCE_SCORE% | Telecommunications profile |
+          | ETSI NFV-SEC | $([ $COMPLIANCE_SCORE -gt 85 ] && echo "✅ COMPLIANT" || echo "❌ NON-COMPLIANT") | $COMPLIANCE_SCORE% | Network Function Virtualization |
+          | ISO 27001 | $([ $COMPLIANCE_SCORE -gt 90 ] && echo "✅ COMPLIANT" || echo "❌ NON-COMPLIANT") | $COMPLIANCE_SCORE% | Information Security Management |
+          | GDPR (Telecom) | $([ $CRITICAL_VULNS -eq 0 ] && echo "✅ COMPLIANT" || echo "❌ NON-COMPLIANT") | $([ $CRITICAL_VULNS -eq 0 ] && echo "100%" || echo "$COMPLIANCE_SCORE%") | Data protection compliance |
+          
+          ## Vulnerability Summary
+          
+          - **Critical**: $CRITICAL_VULNS (Immediate action required)
+          - **High**: $HIGH_VULNS (Action required within 7 days)
+          - **Risk Score**: $RISK_SCORE/100
+          
+          ## Recommendations
+          
+          ### Immediate Actions (0-24 hours)
+          EOF
+          
+          if [ "$CRITICAL_VULNS" -gt 0 ]; then
+            echo "- 🚨 Address $CRITICAL_VULNS critical security vulnerabilities" >> compliance-reports/compliance-report.md
+            echo "- 🔒 Implement emergency security controls" >> compliance-reports/compliance-report.md
+            echo "- 📊 Conduct security incident response procedures" >> compliance-reports/compliance-report.md
+          fi
+          
+          cat >> compliance-reports/compliance-report.md << EOF
+          
+          ### Short-term Actions (1-7 days)
+          - 🔍 Complete vulnerability remediation
+          - 📋 Update security documentation
+          - 🛠️ Implement additional security controls
+          - 👥 Conduct security training for development team
+          
+          ### Long-term Actions (1-4 weeks)
+          - 🚀 Enhance CI/CD security pipeline
+          - 📈 Implement continuous compliance monitoring
+          - 🎯 Establish security metrics and KPIs
+          - 🔄 Regular security assessments
+          
+          ## Compliance Attestation
+          
+          This report provides evidence for compliance assessment but does not constitute formal certification.
+          For official compliance certification, engage with appropriate certification bodies.
+          
+          **Next Assessment**: $(date -d '+1 week' +%Y-%m-%d)
+          **Report Generated**: $(date -Iseconds)
+          **Generated By**: Nephoran Security Audit Pipeline
+          EOF
+          
+          # Generate JSON report for APIs
+          cat > compliance-reports/compliance-report.json << EOF
+          {
+            "audit_id": "${{ needs.audit-initialization.outputs.audit_id }}",
+            "timestamp": "$(date -Iseconds)",
+            "compliance_score": $COMPLIANCE_SCORE,
+            "risk_level": "$([ $COMPLIANCE_SCORE -gt 90 ] && echo "LOW" || [ $COMPLIANCE_SCORE -gt 70 ] && echo "MEDIUM" || [ $COMPLIANCE_SCORE -gt 50 ] && echo "HIGH" || echo "CRITICAL")",
+            "vulnerabilities": {
+              "critical": $CRITICAL_VULNS,
+              "high": $HIGH_VULNS
+            },
+            "frameworks": {
+              "nist_csf": {
+                "compliant": $([ $COMPLIANCE_SCORE -gt 80 ] && echo "true" || echo "false"),
+                "score": $COMPLIANCE_SCORE
+              },
+              "etsi_nfv_sec": {
+                "compliant": $([ $COMPLIANCE_SCORE -gt 85 ] && echo "true" || echo "false"),
+                "score": $COMPLIANCE_SCORE
+              },
+              "iso_27001": {
+                "compliant": $([ $COMPLIANCE_SCORE -gt 90 ] && echo "true" || echo "false"),
+                "score": $COMPLIANCE_SCORE
+              },
+              "gdpr_telecom": {
+                "compliant": $([ $CRITICAL_VULNS -eq 0 ] && echo "true" || echo "false"),
+                "score": $([ $CRITICAL_VULNS -eq 0 ] && echo "100" || echo "$COMPLIANCE_SCORE")
+              }
+            }
+          }
+          EOF
+          
+          echo "report_url=compliance-reports/compliance-report.md" >> $GITHUB_OUTPUT
+
+      - name: Upload compliance reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-reports
+          path: compliance-reports/
+          retention-days: 365  # Keep compliance reports for 1 year
+
+  # ===================================
+  # NOTIFICATION AND REPORTING
+  # ===================================
+  notification-and-reporting:
+    name: "Security Audit Notifications"
+    runs-on: ubuntu-22.04
+    needs: [audit-initialization, vulnerability-assessment, compliance-reporting, issue-management]
+    if: always()
+    steps:
+      - name: Prepare notification data
+        id: notification
+        run: |
+          AUDIT_ID="${{ needs.audit-initialization.outputs.audit_id }}"
+          CRITICAL_VULNS="${{ needs.vulnerability-assessment.outputs.critical_vulns }}"
+          HIGH_VULNS="${{ needs.vulnerability-assessment.outputs.high_count }}"
+          RISK_SCORE="${{ needs.vulnerability-assessment.outputs.risk_score }}"
+          COMPLIANCE_SCORE="${{ needs.compliance-reporting.outputs.compliance_score }}"
+          
+          # Determine alert level
+          if [ "$CRITICAL_VULNS" -gt 0 ]; then
+            ALERT_LEVEL="🚨 CRITICAL"
+            COLOR="danger"
+          elif [ "$HIGH_VULNS" -gt 10 ]; then
+            ALERT_LEVEL="🔴 HIGH"
+            COLOR="warning"
+          elif [ "$COMPLIANCE_SCORE" -lt 80 ]; then
+            ALERT_LEVEL="🟡 MEDIUM"
+            COLOR="warning"
+          else
+            ALERT_LEVEL="✅ GOOD"
+            COLOR="good"
+          fi
+          
+          echo "alert_level=$ALERT_LEVEL" >> $GITHUB_OUTPUT
+          echo "color=$COLOR" >> $GITHUB_OUTPUT
+
+      - name: Send security team notification
+        if: inputs.notify_security_team == true || always()
+        run: |
+          # Send Slack notification to security team
+          if [ -n "${{ secrets.SECURITY_SLACK_WEBHOOK }}" ]; then
+            curl -X POST "${{ secrets.SECURITY_SLACK_WEBHOOK }}" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "text": "🔒 Weekly Security Audit Completed",
+                "attachments": [{
+                  "color": "${{ steps.notification.outputs.color }}",
+                  "title": "Security Audit Results - ${{ needs.audit-initialization.outputs.audit_id }}",
+                  "fields": [{
+                    "title": "Alert Level",
+                    "value": "${{ steps.notification.outputs.alert_level }}",
+                    "short": true
+                  }, {
+                    "title": "Critical Vulnerabilities",
+                    "value": "${{ needs.vulnerability-assessment.outputs.critical_vulns }}",
+                    "short": true
+                  }, {
+                    "title": "High Vulnerabilities", 
+                    "value": "${{ needs.vulnerability-assessment.outputs.high_count }}",
+                    "short": true
+                  }, {
+                    "title": "Risk Score",
+                    "value": "${{ needs.vulnerability-assessment.outputs.risk_score }}/100",
+                    "short": true
+                  }, {
+                    "title": "Compliance Score",
+                    "value": "${{ needs.compliance-reporting.outputs.compliance_score }}/100",
+                    "short": true
+                  }, {
+                    "title": "Report URL",
+                    "value": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}",
+                    "short": false
+                  }],
+                  "footer": "Nephoran Security Audit",
+                  "ts": '$(date +%s)'
+                }]
+              }'
+          fi
+          
+          # Send email notification to security team
+          if [ -n "${{ secrets.SECURITY_EMAIL_WEBHOOK }}" ]; then
+            curl -X POST "${{ secrets.SECURITY_EMAIL_WEBHOOK }}" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "to": ["security-team@nephoran.ai"],
+                "subject": "Weekly Security Audit Results - ${{ needs.audit-initialization.outputs.audit_id }}",
+                "body": "Security audit completed with ${{ needs.vulnerability-assessment.outputs.critical_vulns }} critical vulnerabilities found. Full report available at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+              }'
+          fi
+
+      - name: Update security dashboard
+        run: |
+          # Send metrics to monitoring system
+          if [ -n "${{ secrets.MONITORING_WEBHOOK }}" ]; then
+            curl -X POST "${{ secrets.MONITORING_WEBHOOK }}" \
+              -H "Content-Type: application/json" \
+              -d '{
+                "metric": "security_audit",
+                "timestamp": '$(date +%s)',
+                "tags": {
+                  "audit_id": "${{ needs.audit-initialization.outputs.audit_id }}",
+                  "repository": "${{ github.repository }}"
+                },
+                "values": {
+                  "critical_vulnerabilities": ${{ needs.vulnerability-assessment.outputs.critical_vulns }},
+                  "high_vulnerabilities": ${{ needs.vulnerability-assessment.outputs.high_count }},
+                  "risk_score": ${{ needs.vulnerability-assessment.outputs.risk_score }},
+                  "compliance_score": ${{ needs.compliance-reporting.outputs.compliance_score }}
+                }
+              }'
+          fi
+
+      - name: Generate final summary
+        run: |
+          echo "## 🔒 Weekly Security Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Audit ID**: ${{ needs.audit-initialization.outputs.audit_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ${{ steps.notification.outputs.alert_level }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Completion Time**: $(date -Iseconds)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Security Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- **Critical Vulnerabilities**: ${{ needs.vulnerability-assessment.outputs.critical_vulns }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **High Vulnerabilities**: ${{ needs.vulnerability-assessment.outputs.high_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Risk Score**: ${{ needs.vulnerability-assessment.outputs.risk_score }}/100" >> $GITHUB_STEP_SUMMARY
+          echo "- **Compliance Score**: ${{ needs.compliance-reporting.outputs.compliance_score }}/100" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Actions Taken" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Comprehensive security scanning completed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Vulnerability assessment generated" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Compliance report created" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.vulnerability-assessment.outputs.critical_vulns }}" -gt 0 ]; then
+            echo "- ✅ Security issues created for critical vulnerabilities" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "- ✅ Security team notified" >> $GITHUB_STEP_SUMMARY

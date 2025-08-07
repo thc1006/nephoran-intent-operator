@@ -1,0 +1,89 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 2 AM UTC daily
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  nightly-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+      
+      - name: Run tests
+        if: ${{ !inputs.skip_tests }}
+        run: |
+          go test -v -race -coverprofile=coverage.out ./...
+          echo "### Test Coverage: $(go tool cover -func=coverage.out | grep total | awk '{print $3}')" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Build all binaries
+        run: |
+          echo "Building binaries..."
+          make build-all || go build -v ./...
+          echo "### ✅ Nightly build successful" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Build Docker images
+        run: |
+          echo "Building Docker images..."
+          docker build -t nephoran/intent-operator:nightly .
+          docker build -t nephoran/llm-processor:nightly -f services/llm-processor/Dockerfile .
+          docker build -t nephoran/rag-api:nightly -f services/rag-api/Dockerfile .
+      
+      - name: Security scan
+        run: |
+          echo "Running security scan..."
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt json -out gosec-report.json ./... || true
+          
+          if [ -f gosec-report.json ]; then
+            issues=$(cat gosec-report.json | jq '.Issues | length')
+            echo "### Security Issues Found: $issues" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Generate metrics
+        if: always()
+        run: |
+          echo "### Nightly Build Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- Go Version: $(go version)" >> $GITHUB_STEP_SUMMARY
+          echo "- Docker Version: $(docker --version)" >> $GITHUB_STEP_SUMMARY
+          echo "- Build Time: $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload artifacts
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-build-${{ github.run_number }}
+          path: |
+            bin/
+            *.out
+            *-report.json
+          retention-days: 7
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Nightly build failed! Check the logs for details."
+          echo "### ❌ Nightly build failed" >> $GITHUB_STEP_SUMMARY
