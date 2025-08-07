@@ -1,0 +1,524 @@
+# NetworkPolicies enforcing mTLS communication between Nephoran services
+# Implements zero-trust network architecture with deny-by-default
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: nephoran-system
+  labels:
+    security.nephoran.io/policy: "zero-trust"
+    security.nephoran.io/enforcement: "strict"
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# Allow DNS resolution for all pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-access
+  namespace: nephoran-system
+  labels:
+    security.nephoran.io/policy: "infrastructure"
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+---
+# Nephoran Operator Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-operator-network-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    security.nephoran.io/mtls: "required"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: nephoran-operator
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow metrics scraping from Prometheus
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow webhook calls from API server
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 9443
+  # Allow health checks
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8081
+  egress:
+  # Allow connections to LLM Processor
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: llm-processor
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow connections to RAG API
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: rag-api
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow connections to Nephio Bridge
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephio-bridge
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow connections to O-RAN Adaptor
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: oran-adaptor
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow Kubernetes API access
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 6443
+---
+# LLM Processor Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: llm-processor-network-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: llm-processor
+    security.nephoran.io/mtls: "required"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: llm-processor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow from Nephoran Operator
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-operator
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow from RAG API for context enrichment
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: rag-api
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow metrics scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # Allow connections to RAG API
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: rag-api
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow external API calls (OpenAI, etc.) - should be restricted to specific IPs in production
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow connections to Redis for caching
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+---
+# RAG API Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rag-api-network-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: rag-api
+    security.nephoran.io/mtls: "required"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: rag-api
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow from Nephoran Operator
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-operator
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow from LLM Processor
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: llm-processor
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow metrics scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # Allow connections to Weaviate
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: weaviate
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+  # Allow external embedding API calls
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Nephio Bridge Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephio-bridge-network-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephio-bridge
+    security.nephoran.io/mtls: "required"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: nephio-bridge
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow from Nephoran Operator
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-operator
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow metrics scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # Allow Kubernetes API access for Nephio operations
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 6443
+  # Allow Git operations (for GitOps)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 22
+  # Allow connections to Porch
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: porch-system
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: porch-server
+    ports:
+    - protocol: TCP
+      port: 4443
+---
+# O-RAN Adaptor Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: oran-adaptor-network-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: oran-adaptor
+    security.nephoran.io/mtls: "required"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: oran-adaptor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow from Nephoran Operator
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-operator
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow from O-RAN components (RIC, CU, DU)
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          oran.opennetworking.org/namespace: "true"
+    ports:
+    - protocol: TCP
+      port: 8443
+    - protocol: TCP
+      port: 830  # NETCONF
+  # Allow metrics scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # Allow connections to O-RAN components
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          oran.opennetworking.org/namespace: "true"
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+    - protocol: TCP
+      port: 830  # NETCONF
+    - protocol: TCP
+      port: 6640 # OVSDB
+  # Allow Kubernetes API access
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 6443
+---
+# Weaviate Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: weaviate-network-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: weaviate
+    security.nephoran.io/mtls: "required"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: weaviate
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow from RAG API
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: rag-api
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+  # Allow inter-pod communication for clustering
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: weaviate
+    ports:
+    - protocol: TCP
+      port: 7000  # Gossip
+    - protocol: TCP
+      port: 7001  # Data transfer
+  # Allow metrics scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/name: prometheus
+    ports:
+    - protocol: TCP
+      port: 2112
+  egress:
+  # Allow inter-pod communication
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: weaviate
+    ports:
+    - protocol: TCP
+      port: 7000
+    - protocol: TCP
+      port: 7001
+  # Allow external model API calls for vectorization
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Emergency break-glass policy (disabled by default)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: emergency-access
+  namespace: nephoran-system
+  labels:
+    security.nephoran.io/policy: "emergency"
+    security.nephoran.io/enabled: "false"
+  annotations:
+    security.nephoran.io/description: "Emergency access policy for troubleshooting. Enable only during incidents."
+    security.nephoran.io/approval-required: "true"
+spec:
+  podSelector:
+    matchLabels:
+      security.nephoran.io/debug: "true"
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          security.nephoran.io/admin: "true"
+  egress:
+  - to:
+    - namespaceSelector: {}
+---
+# Certificate Manager Access Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: cert-manager-access
+  namespace: nephoran-system
+  labels:
+    security.nephoran.io/policy: "pki"
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  # Allow access to cert-manager for certificate operations
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: cert-manager
+    ports:
+    - protocol: TCP
+      port: 9402
+  # Allow ACME challenge responses
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 80
+    - protocol: TCP
+      port: 443

@@ -1,0 +1,445 @@
+# Certificate monitoring and alerting configuration for Nephoran Intent Operator
+# Implements comprehensive certificate lifecycle management and alerting
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cert-monitor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: cert-monitor
+    app.kubernetes.io/part-of: nephoran
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cert-monitor
+  labels:
+    app.kubernetes.io/name: cert-monitor
+rules:
+- apiGroups: ["cert-manager.io"]
+  resources: ["certificates", "certificaterequests"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cert-monitor
+  labels:
+    app.kubernetes.io/name: cert-monitor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cert-monitor
+subjects:
+- kind: ServiceAccount
+  name: cert-monitor
+  namespace: nephoran-system
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cert-monitor-config
+  namespace: nephoran-system
+data:
+  config.yaml: |
+    # Certificate monitoring configuration
+    monitoring:
+      interval: 1h
+      namespaces:
+        - nephoran-system
+        - cert-manager
+      
+      thresholds:
+        # Alert when certificate expires in less than 30 days
+        warning_days: 30
+        # Critical alert when certificate expires in less than 7 days
+        critical_days: 7
+        # Emergency alert when certificate expires in less than 1 day
+        emergency_hours: 24
+      
+      certificates:
+        - name: nephoran-operator-tls
+          namespace: nephoran-system
+          type: service
+          critical: true
+        - name: llm-processor-tls
+          namespace: nephoran-system
+          type: service
+          critical: true
+        - name: rag-api-tls
+          namespace: nephoran-system
+          type: service
+          critical: true
+        - name: nephio-bridge-tls
+          namespace: nephoran-system
+          type: service
+          critical: true
+        - name: oran-adaptor-tls
+          namespace: nephoran-system
+          type: service
+          critical: true
+        - name: weaviate-tls
+          namespace: nephoran-system
+          type: service
+          critical: false
+        - name: nephoran-webhook-tls
+          namespace: nephoran-system
+          type: webhook
+          critical: true
+        - name: nephoran-client-tls
+          namespace: nephoran-system
+          type: client
+          critical: true
+      
+      notifications:
+        slack:
+          enabled: true
+          webhook_url: "${SLACK_WEBHOOK_URL}"
+          channel: "#security-alerts"
+          username: "Certificate Monitor"
+          icon_emoji: ":lock:"
+        
+        email:
+          enabled: true
+          smtp_host: "smtp.example.com"
+          smtp_port: 587
+          from: "cert-monitor@nephoran.io"
+          recipients:
+            - "security@nephoran.io"
+            - "ops@nephoran.io"
+        
+        pagerduty:
+          enabled: false
+          integration_key: "${PAGERDUTY_KEY}"
+          
+      audit:
+        enabled: true
+        log_path: "/var/log/cert-monitor/audit.log"
+        retention_days: 90
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cert-monitor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: cert-monitor
+    security.nephoran.io/component: "certificate-monitoring"
+spec:
+  schedule: "0 */6 * * *" # Every 6 hours
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: cert-monitor
+            sidecar.istio.io/inject: "false"
+        spec:
+          serviceAccountName: cert-monitor
+          restartPolicy: OnFailure
+          containers:
+          - name: monitor
+            image: nephoran/cert-monitor:latest
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - |
+              #!/bin/sh
+              set -e
+              
+              # Function to check certificate expiry
+              check_cert_expiry() {
+                NAMESPACE=$1
+                NAME=$2
+                
+                # Get certificate details
+                CERT_JSON=$(kubectl get certificate $NAME -n $NAMESPACE -o json 2>/dev/null)
+                if [ $? -ne 0 ]; then
+                  echo "Certificate $NAME not found in namespace $NAMESPACE"
+                  return 1
+                fi
+                
+                # Extract expiry time
+                NOT_AFTER=$(echo $CERT_JSON | jq -r '.status.notAfter')
+                if [ "$NOT_AFTER" = "null" ]; then
+                  echo "Certificate $NAME has no expiry information"
+                  return 1
+                fi
+                
+                # Calculate days until expiry
+                EXPIRY_EPOCH=$(date -d "$NOT_AFTER" +%s)
+                CURRENT_EPOCH=$(date +%s)
+                SECONDS_UNTIL_EXPIRY=$((EXPIRY_EPOCH - CURRENT_EPOCH))
+                DAYS_UNTIL_EXPIRY=$((SECONDS_UNTIL_EXPIRY / 86400))
+                
+                echo "Certificate $NAME expires in $DAYS_UNTIL_EXPIRY days"
+                
+                # Check thresholds
+                if [ $DAYS_UNTIL_EXPIRY -lt 1 ]; then
+                  send_alert "EMERGENCY" "$NAME" "$NAMESPACE" "$DAYS_UNTIL_EXPIRY"
+                elif [ $DAYS_UNTIL_EXPIRY -lt 7 ]; then
+                  send_alert "CRITICAL" "$NAME" "$NAMESPACE" "$DAYS_UNTIL_EXPIRY"
+                elif [ $DAYS_UNTIL_EXPIRY -lt 30 ]; then
+                  send_alert "WARNING" "$NAME" "$NAMESPACE" "$DAYS_UNTIL_EXPIRY"
+                fi
+                
+                # Update metrics
+                update_metrics "$NAME" "$NAMESPACE" "$DAYS_UNTIL_EXPIRY"
+              }
+              
+              # Function to send alerts
+              send_alert() {
+                SEVERITY=$1
+                CERT_NAME=$2
+                NAMESPACE=$3
+                DAYS_LEFT=$4
+                
+                MESSAGE="[$SEVERITY] Certificate $CERT_NAME in namespace $NAMESPACE expires in $DAYS_LEFT days"
+                
+                # Log the alert
+                echo "$(date -Iseconds) $MESSAGE" >> /var/log/cert-monitor/alerts.log
+                
+                # Send to configured notification channels
+                if [ -n "$SLACK_WEBHOOK_URL" ]; then
+                  curl -X POST $SLACK_WEBHOOK_URL \
+                    -H 'Content-Type: application/json' \
+                    -d "{\"text\":\"$MESSAGE\",\"username\":\"Certificate Monitor\",\"icon_emoji\":\":warning:\"}"
+                fi
+                
+                # Create Kubernetes event
+                kubectl create event \
+                  --namespace=$NAMESPACE \
+                  --type=Warning \
+                  --reason=CertificateExpiring \
+                  --message="$MESSAGE" \
+                  certificate-expiry-$CERT_NAME
+              }
+              
+              # Function to update Prometheus metrics
+              update_metrics() {
+                CERT_NAME=$1
+                NAMESPACE=$2
+                DAYS_LEFT=$3
+                
+                # Write to metrics file for node exporter
+                echo "nephoran_certificate_expiry_days{certificate=\"$CERT_NAME\",namespace=\"$NAMESPACE\"} $DAYS_LEFT" >> /var/lib/prometheus/node-exporter/certificate_expiry.prom.$$
+              }
+              
+              # Main monitoring loop
+              echo "Starting certificate monitoring at $(date -Iseconds)"
+              
+              # Monitor all certificates in nephoran-system namespace
+              for cert in $(kubectl get certificates -n nephoran-system -o name); do
+                CERT_NAME=$(echo $cert | cut -d'/' -f2)
+                check_cert_expiry "nephoran-system" "$CERT_NAME"
+              done
+              
+              # Move metrics file to final location atomically
+              if [ -f /var/lib/prometheus/node-exporter/certificate_expiry.prom.$$ ]; then
+                mv /var/lib/prometheus/node-exporter/certificate_expiry.prom.$$ \
+                   /var/lib/prometheus/node-exporter/certificate_expiry.prom
+              fi
+              
+              echo "Certificate monitoring completed at $(date -Iseconds)"
+            env:
+            - name: SLACK_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: cert-monitor-secrets
+                  key: slack-webhook-url
+                  optional: true
+            - name: PAGERDUTY_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cert-monitor-secrets
+                  key: pagerduty-key
+                  optional: true
+            volumeMounts:
+            - name: config
+              mountPath: /etc/cert-monitor
+              readOnly: true
+            - name: logs
+              mountPath: /var/log/cert-monitor
+            - name: metrics
+              mountPath: /var/lib/prometheus/node-exporter
+            resources:
+              requests:
+                memory: "64Mi"
+                cpu: "100m"
+              limits:
+                memory: "128Mi"
+                cpu: "200m"
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 1000
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+          volumes:
+          - name: config
+            configMap:
+              name: cert-monitor-config
+          - name: logs
+            emptyDir: {}
+          - name: metrics
+            emptyDir: {}
+---
+# PrometheusRule for certificate monitoring alerts
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: certificate-alerts
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: cert-monitor
+    prometheus: kube-prometheus
+spec:
+  groups:
+  - name: certificate-expiry
+    interval: 5m
+    rules:
+    - alert: CertificateExpiringSoon
+      expr: |
+        cert_manager_certificate_expiration_timestamp_seconds - time() < 30 * 86400
+      for: 1h
+      labels:
+        severity: warning
+        component: security
+        category: certificates
+      annotations:
+        summary: "Certificate {{ $labels.name }} expiring soon"
+        description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} will expire in {{ $value | humanizeDuration }}"
+        runbook_url: "https://docs.nephoran.io/runbooks/certificate-expiry"
+    
+    - alert: CertificateExpiringCritical
+      expr: |
+        cert_manager_certificate_expiration_timestamp_seconds - time() < 7 * 86400
+      for: 15m
+      labels:
+        severity: critical
+        component: security
+        category: certificates
+        pager: true
+      annotations:
+        summary: "Certificate {{ $labels.name }} expiring critically soon"
+        description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} will expire in {{ $value | humanizeDuration }}"
+        action: "Renew certificate immediately"
+        runbook_url: "https://docs.nephoran.io/runbooks/certificate-expiry"
+    
+    - alert: CertificateExpiringEmergency
+      expr: |
+        cert_manager_certificate_expiration_timestamp_seconds - time() < 86400
+      for: 5m
+      labels:
+        severity: emergency
+        component: security
+        category: certificates
+        pager: true
+        oncall: true
+      annotations:
+        summary: "EMERGENCY: Certificate {{ $labels.name }} expires within 24 hours"
+        description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} will expire in {{ $value | humanizeDuration }}"
+        action: "IMMEDIATE ACTION REQUIRED: Renew certificate NOW"
+        runbook_url: "https://docs.nephoran.io/runbooks/certificate-emergency"
+    
+    - alert: CertificateRenewalFailed
+      expr: |
+        increase(cert_manager_certificate_renewal_errors_total[1h]) > 0
+      for: 15m
+      labels:
+        severity: error
+        component: security
+        category: certificates
+      annotations:
+        summary: "Certificate renewal failed for {{ $labels.name }}"
+        description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} failed to renew. Error count: {{ $value }}"
+        action: "Check cert-manager logs and certificate status"
+        runbook_url: "https://docs.nephoran.io/runbooks/certificate-renewal-failure"
+    
+    - alert: CertificateNotReady
+      expr: |
+        cert_manager_certificate_ready_status{condition="False"} == 1
+      for: 10m
+      labels:
+        severity: warning
+        component: security
+        category: certificates
+      annotations:
+        summary: "Certificate {{ $labels.name }} is not ready"
+        description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} is in not ready state"
+        action: "Check certificate status and cert-manager logs"
+        runbook_url: "https://docs.nephoran.io/runbooks/certificate-not-ready"
+  
+  - name: mtls-violations
+    interval: 1m
+    rules:
+    - alert: NonMTLSTrafficDetected
+      expr: |
+        sum(rate(istio_request_total{security_policy!="mutual_tls"}[5m])) by (destination_service_name, source_workload) > 0
+      for: 5m
+      labels:
+        severity: critical
+        component: security
+        category: mtls
+        compliance: violation
+      annotations:
+        summary: "Non-mTLS traffic detected to {{ $labels.destination_service_name }}"
+        description: "Service {{ $labels.destination_service_name }} received non-mTLS traffic from {{ $labels.source_workload }}. This violates O-RAN security requirements."
+        action: "Investigate and block non-mTLS traffic immediately"
+        runbook_url: "https://docs.nephoran.io/runbooks/mtls-violation"
+    
+    - alert: TLSVersionPolicyViolation
+      expr: |
+        sum(rate(nephoran_tls_version_connections_total{version!="1.3"}[5m])) by (version) > 0
+      for: 5m
+      labels:
+        severity: warning
+        component: security
+        category: tls
+        compliance: violation
+      annotations:
+        summary: "TLS version policy violation detected"
+        description: "Connections using TLS {{ $labels.version }} detected. Only TLS 1.3 is allowed per O-RAN security requirements."
+        action: "Update client configurations to use TLS 1.3"
+        runbook_url: "https://docs.nephoran.io/runbooks/tls-version-violation"
+    
+    - alert: HighMTLSAuthenticationFailureRate
+      expr: |
+        sum(rate(nephoran_mtls_authentication_failure_total[5m])) by (reason, service) > 0.1
+      for: 10m
+      labels:
+        severity: error
+        component: security
+        category: mtls
+      annotations:
+        summary: "High mTLS authentication failure rate for {{ $labels.service }}"
+        description: "Service {{ $labels.service }} experiencing high mTLS authentication failures. Reason: {{ $labels.reason }}. Rate: {{ $value | humanizePercentage }}"
+        action: "Check client certificates and CA configuration"
+        runbook_url: "https://docs.nephoran.io/runbooks/mtls-auth-failure"
+---
+# Secret for notification credentials (create manually with actual values)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cert-monitor-secrets
+  namespace: nephoran-system
+type: Opaque
+stringData:
+  slack-webhook-url: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+  pagerduty-key: "your-pagerduty-integration-key"
+  smtp-password: "your-smtp-password"

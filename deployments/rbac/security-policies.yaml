@@ -1,0 +1,325 @@
+# Security Policies for Nephoran Intent Operator
+# Implements defense-in-depth with Pod Security Standards and Network Policies
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+    security.nephoran.io/zone: trusted
+  annotations:
+    security.nephoran.io/compliance: "O-RAN-WG11-v1.0"
+    security.nephoran.io/encryption: "required"
+---
+# Pod Security Policy (for clusters < 1.25)
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: nephoran-restricted
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    security.nephoran.io/level: restricted
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+    seccomp.security.alpha.kubernetes.io/defaultProfileName: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/defaultProfileName: 'runtime/default'
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: true
+---
+# Resource Quota for namespace
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: nephoran-quota
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    security.nephoran.io/enforcement: strict
+spec:
+  hard:
+    requests.cpu: "100"
+    requests.memory: "100Gi"
+    limits.cpu: "200"
+    limits.memory: "200Gi"
+    persistentvolumeclaims: "20"
+    services.loadbalancers: "5"
+    services.nodeports: "0"  # Deny NodePort services for security
+---
+# LimitRange for pod resources
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: nephoran-limits
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+spec:
+  limits:
+  - max:
+      cpu: "4"
+      memory: "8Gi"
+    min:
+      cpu: "100m"
+      memory: "128Mi"
+    default:
+      cpu: "500m"
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "100m"
+      memory: "128Mi"
+    type: Container
+  - max:
+      cpu: "8"
+      memory: "16Gi"
+    type: Pod
+---
+# NetworkPolicy for zero-trust networking
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-deny-all
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    security.nephoran.io/policy: deny-all-default
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# Allow DNS for all pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-allow-dns
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    security.nephoran.io/policy: allow-dns
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    - podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+---
+# Allow operator controller traffic
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-operator-controller-network
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: controller
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: controller
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-operator
+    ports:
+    - protocol: TCP
+      port: 8080  # Metrics
+    - protocol: TCP
+      port: 9443  # Webhook
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: llm-processor
+    ports:
+    - protocol: TCP
+      port: 8081
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: nephio-bridge
+    ports:
+    - protocol: TCP
+      port: 8082
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/component: oran-adaptor
+    ports:
+    - protocol: TCP
+      port: 8083
+  # Allow Kubernetes API access
+  - to:
+    - namespaceSelector: {}
+      podSelector:
+        matchLabels:
+          component: kube-apiserver
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Audit Policy for API server (apply at cluster level)
+apiVersion: audit.k8s.io/v1
+kind: Policy
+metadata:
+  name: nephoran-audit-policy
+rules:
+  # Don't log read-only requests
+  - level: None
+    verbs: ["get", "list", "watch"]
+    resources:
+    - group: ""
+      resources: ["configmaps", "endpoints", "services"]
+  
+  # Log nephoran namespace at Metadata level
+  - level: Metadata
+    namespaces: ["nephoran-system"]
+    verbs: ["create", "update", "patch", "delete"]
+  
+  # Log RBAC changes at RequestResponse level
+  - level: RequestResponse
+    resources:
+    - group: "rbac.authorization.k8s.io"
+      resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+    verbs: ["create", "update", "patch", "delete"]
+  
+  # Log secret access at Metadata level (never log secret data)
+  - level: Metadata
+    resources:
+    - group: ""
+      resources: ["secrets"]
+  
+  # Log service account token requests
+  - level: RequestResponse
+    resources:
+    - group: "authentication.k8s.io"
+      resources: ["tokenreviews"]
+  
+  # Log all Nephoran CRD operations
+  - level: RequestResponse
+    resources:
+    - group: "intent.nephoran.io"
+    - group: "oran.nephoran.io"
+  
+  # Default level for everything else
+  - level: None
+---
+# ValidatingWebhookConfiguration for RBAC validation
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: nephoran-rbac-validator
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    security.nephoran.io/component: rbac-validator
+webhooks:
+- name: validate-rbac.nephoran.io
+  clientConfig:
+    service:
+      name: nephoran-rbac-validator
+      namespace: nephoran-system
+      path: "/validate"
+    caBundle: LS0tLS1CRUdJTi... # Add actual CA bundle
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["rbac.authorization.k8s.io"]
+    apiVersions: ["v1"]
+    resources: ["rolebindings", "clusterrolebindings"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
+  namespaceSelector:
+    matchLabels:
+      security.nephoran.io/zone: trusted
+---
+# MutatingWebhookConfiguration for automatic security injection
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: nephoran-security-injector
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    security.nephoran.io/component: security-injector
+webhooks:
+- name: inject-security.nephoran.io
+  clientConfig:
+    service:
+      name: nephoran-security-injector
+      namespace: nephoran-system
+      path: "/mutate"
+    caBundle: LS0tLS1CRUdJTi... # Add actual CA bundle
+  rules:
+  - operations: ["CREATE"]
+    apiGroups: ["apps"]
+    apiVersions: ["v1"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
+  namespaceSelector:
+    matchLabels:
+      security.nephoran.io/auto-inject: "true"
+---
+# Certificate for webhook TLS
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nephoran-webhook-cert
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+spec:
+  secretName: nephoran-webhook-tls
+  dnsNames:
+  - nephoran-rbac-validator.nephoran-system.svc
+  - nephoran-rbac-validator.nephoran-system.svc.cluster.local
+  - nephoran-security-injector.nephoran-system.svc
+  - nephoran-security-injector.nephoran-system.svc.cluster.local
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: ClusterIssuer
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth

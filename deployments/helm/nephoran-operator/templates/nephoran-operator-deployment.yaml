@@ -6,10 +6,13 @@ metadata:
   labels:
     {{- include "nephoran-operator.labels" . | nindent 4 }}
     app.kubernetes.io/component: controller
+    security.nephoran.io/tls-version: "1.3"
+    security.nephoran.io/mtls: "enabled"
   annotations:
     deployment.kubernetes.io/revision: "1"
     nephoran.com/component: "controller"
     nephoran.com/version: "{{ .Values.nephoranOperator.image.tag }}"
+    cert-manager.io/inject-ca-from: "nephoran-system/nephoran-operator-tls"
 spec:
   replicas: {{ .Values.nephoranOperator.replicaCount }}
   strategy:
@@ -26,11 +29,16 @@ spec:
       labels:
         {{- include "nephoran-operator.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: controller
+        app.kubernetes.io/name: nephoran-operator
+        security.nephoran.io/tls-enabled: "true"
+        sidecar.istio.io/inject: "{{ .Values.serviceMesh.enabled }}"
       annotations:
         prometheus.io/scrape: "true"
-        prometheus.io/port: "8080"
+        prometheus.io/port: "8443"
         prometheus.io/path: "/metrics"
+        prometheus.io/scheme: "https"
         kubectl.kubernetes.io/default-container: manager
+        checksum/tls-secret: "{{ .Values.nephoranOperator.tlsChecksum | default \"\" }}"
     spec:
       {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:
@@ -48,8 +56,11 @@ spec:
             - /manager
           args:
             - --health-probe-bind-address=:8081
-            - --metrics-bind-address=:8080
+            - --metrics-bind-address=:8443
             - --webhook-port=9443
+            - --tls-cert-dir=/etc/tls/certs
+            - --tls-private-key-dir=/etc/tls/private
+            - --client-ca-file=/etc/tls/ca/ca.crt
             {{- if .Values.nephoranOperator.leaderElection.enabled }}
             - --leader-elect
             - --leader-elect-lease-duration={{ .Values.nephoranOperator.leaderElection.leaseDuration }}
@@ -60,11 +71,11 @@ spec:
             - --zap-encoder=json
             - --zap-log-level=info
           ports:
-            - name: webhook
+            - name: webhook-tls
               containerPort: {{ .Values.nephoranOperator.service.targetPort }}
               protocol: TCP
-            - name: metrics
-              containerPort: 8080
+            - name: metrics-tls
+              containerPort: 8443
               protocol: TCP
             - name: health
               containerPort: 8081
@@ -86,11 +97,33 @@ spec:
             
             # Service configuration
             - name: CONTROLLER_RUNTIME_METRICS_ADDR
-              value: ":8080"
+              value: ":8443"
             - name: CONTROLLER_RUNTIME_HEALTH_ADDR
               value: ":8081"
             - name: WEBHOOK_PORT
               value: "9443"
+            
+            # TLS Configuration
+            - name: TLS_ENABLED
+              value: "true"
+            - name: TLS_CERT_FILE
+              value: "/etc/tls/certs/tls.crt"
+            - name: TLS_KEY_FILE
+              value: "/etc/tls/private/tls.key"
+            - name: TLS_CA_FILE
+              value: "/etc/tls/ca/ca.crt"
+            - name: TLS_MIN_VERSION
+              value: "1.3"
+            - name: TLS_MAX_VERSION
+              value: "1.3"
+            - name: TLS_CIPHER_SUITES
+              value: "TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256"
+            - name: MTLS_ENABLED
+              value: "true"
+            - name: MTLS_CLIENT_CERT_FILE
+              value: "/etc/tls/client/tls.crt"
+            - name: MTLS_CLIENT_KEY_FILE
+              value: "/etc/tls/client/tls.key"
             
             # Feature flags
             - name: ENABLE_WEBHOOKS
@@ -98,17 +131,17 @@ spec:
             - name: ENABLE_LEADER_ELECTION
               value: "{{ .Values.nephoranOperator.leaderElection.enabled }}"
             
-            # Component service endpoints
+            # Component service endpoints with TLS
             - name: LLM_PROCESSOR_URL
-              value: "http://{{ include "nephoran-operator.fullname" . }}-llm-processor:{{ .Values.llmProcessor.service.port }}"
+              value: "https://{{ include "nephoran-operator.fullname" . }}-llm-processor:{{ .Values.llmProcessor.service.port }}"
             - name: RAG_API_URL
-              value: "http://{{ include "nephoran-operator.fullname" . }}-rag-api:{{ .Values.ragApi.service.port }}"
+              value: "https://{{ include "nephoran-operator.fullname" . }}-rag-api:{{ .Values.ragApi.service.port }}"
             - name: NEPHIO_BRIDGE_URL
-              value: "http://{{ include "nephoran-operator.fullname" . }}-nephio-bridge:{{ .Values.nephioBridge.service.port }}"
+              value: "https://{{ include "nephoran-operator.fullname" . }}-nephio-bridge:{{ .Values.nephioBridge.service.port }}"
             - name: ORAN_ADAPTOR_URL
-              value: "http://{{ include "nephoran-operator.fullname" . }}-oran-adaptor:{{ .Values.oranAdaptor.service.port }}"
+              value: "https://{{ include "nephoran-operator.fullname" . }}-oran-adaptor:{{ .Values.oranAdaptor.service.port }}"
             - name: WEAVIATE_URL
-              value: "http://{{ include "nephoran-operator.fullname" . }}-weaviate:{{ .Values.weaviate.service.port }}"
+              value: "https://{{ include "nephoran-operator.fullname" . }}-weaviate:{{ .Values.weaviate.service.port }}"
             
             # Timeouts and limits
             - name: RECONCILE_TIMEOUT
@@ -119,10 +152,18 @@ spec:
               value: "10"
             
             # Security settings
-            - name: TLS_MIN_VERSION
-              value: "1.2"
-            - name: CIPHER_SUITES
-              value: "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+            - name: SECURITY_COMPLIANCE_MODE
+              value: "strict"
+            - name: AUDIT_LOG_ENABLED
+              value: "true"
+            - name: AUDIT_LOG_PATH
+              value: "/var/log/audit/nephoran-operator.log"
+            
+            # Certificate rotation
+            - name: CERT_ROTATION_CHECK_INTERVAL
+              value: "1h"
+            - name: CERT_RENEWAL_THRESHOLD
+              value: "720h" # 30 days
             
             # Monitoring and observability
             - name: ENABLE_METRICS
@@ -130,7 +171,7 @@ spec:
             - name: ENABLE_TRACING
               value: "true"
             - name: JAEGER_ENDPOINT
-              value: "http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
+              value: "https://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
             - name: OTEL_SERVICE_NAME
               value: "nephoran-operator-controller"
             - name: OTEL_SERVICE_VERSION
@@ -154,7 +195,7 @@ spec:
             httpGet:
               path: {{ .Values.nephoranOperator.healthCheck.livenessProbe.httpGet.path }}
               port: {{ .Values.nephoranOperator.healthCheck.livenessProbe.httpGet.port }}
-              scheme: {{ .Values.nephoranOperator.healthCheck.livenessProbe.httpGet.scheme }}
+              scheme: HTTPS
             initialDelaySeconds: {{ .Values.nephoranOperator.healthCheck.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.nephoranOperator.healthCheck.livenessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.nephoranOperator.healthCheck.livenessProbe.timeoutSeconds }}
@@ -165,7 +206,7 @@ spec:
             httpGet:
               path: {{ .Values.nephoranOperator.healthCheck.readinessProbe.httpGet.path }}
               port: {{ .Values.nephoranOperator.healthCheck.readinessProbe.httpGet.port }}
-              scheme: {{ .Values.nephoranOperator.healthCheck.readinessProbe.httpGet.scheme }}
+              scheme: HTTPS
             initialDelaySeconds: {{ .Values.nephoranOperator.healthCheck.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.nephoranOperator.healthCheck.readinessProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.nephoranOperator.healthCheck.readinessProbe.timeoutSeconds }}
@@ -176,7 +217,7 @@ spec:
             httpGet:
               path: {{ .Values.nephoranOperator.healthCheck.startupProbe.httpGet.path }}
               port: {{ .Values.nephoranOperator.healthCheck.startupProbe.httpGet.port }}
-              scheme: {{ .Values.nephoranOperator.healthCheck.startupProbe.httpGet.scheme }}
+              scheme: HTTPS
             initialDelaySeconds: {{ .Values.nephoranOperator.healthCheck.startupProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.nephoranOperator.healthCheck.startupProbe.periodSeconds }}
             timeoutSeconds: {{ .Values.nephoranOperator.healthCheck.startupProbe.timeoutSeconds }}
@@ -194,25 +235,68 @@ spec:
             - name: tmp
               mountPath: /tmp
               readOnly: false
+            - name: tls-certs
+              mountPath: /etc/tls/certs
+              readOnly: true
+            - name: tls-private
+              mountPath: /etc/tls/private
+              readOnly: true
+            - name: tls-ca
+              mountPath: /etc/tls/ca
+              readOnly: true
+            - name: tls-client
+              mountPath: /etc/tls/client
+              readOnly: true
             - name: webhook-certs
               mountPath: /tmp/k8s-webhook-server/serving-certs
               readOnly: true
             - name: config-volume
               mountPath: /etc/config
               readOnly: true
+            - name: audit-log
+              mountPath: /var/log/audit
+              readOnly: false
       
       volumes:
         - name: tmp
           emptyDir:
             sizeLimit: 1Gi
+        - name: tls-certs
+          secret:
+            secretName: nephoran-operator-tls-secret
+            defaultMode: 0400
+            items:
+              - key: tls.crt
+                path: tls.crt
+        - name: tls-private
+          secret:
+            secretName: nephoran-operator-tls-secret
+            defaultMode: 0400
+            items:
+              - key: tls.key
+                path: tls.key
+        - name: tls-ca
+          secret:
+            secretName: nephoran-operator-tls-secret
+            defaultMode: 0400
+            items:
+              - key: ca.crt
+                path: ca.crt
+        - name: tls-client
+          secret:
+            secretName: nephoran-client-tls-secret
+            defaultMode: 0400
         - name: webhook-certs
           secret:
-            secretName: webhook-server-certs
-            defaultMode: 0644
+            secretName: nephoran-webhook-tls-secret
+            defaultMode: 0400
         - name: config-volume
           configMap:
             name: {{ include "nephoran-operator.fullname" . }}-config
             defaultMode: 0644
+        - name: audit-log
+          emptyDir:
+            sizeLimit: 5Gi
       
       {{- with .Values.nephoranOperator.nodeSelector }}
       nodeSelector:

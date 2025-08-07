@@ -1,0 +1,320 @@
+# Namespaced Roles for Nephoran Intent Operator
+# Implements least-privilege with explicit allow rules only
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-operator-controller
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: controller
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Controller permissions for NetworkIntent management"
+    security.nephoran.io/audit-frequency: "weekly"
+rules:
+# NetworkIntent CRD management (owned resources)
+- apiGroups: ["intent.nephoran.io"]
+  resources: ["networkintents"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["intent.nephoran.io"]
+  resources: ["networkintents/status"]
+  verbs: ["get", "update", "patch"]
+- apiGroups: ["intent.nephoran.io"]
+  resources: ["networkintents/finalizers"]
+  verbs: ["update"]
+# ConfigMap access for configuration
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["nephoran-config", "nephoran-operator-config"]
+# Secret access for credentials (read-only)
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["nephoran-llm-credentials", "nephoran-oran-credentials"]
+# Event creation for audit
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+# Lease for leader election
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "create", "update"]
+  resourceNames: ["nephoran-operator-controller-leader"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-llm-processor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: llm-processor
+    security.nephoran.io/rbac-version: "v1"
+rules:
+# ConfigMap access for prompts and configuration
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["nephoran-llm-config", "nephoran-prompts"]
+# Secret access for API keys (read-only)
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["nephoran-llm-api-keys", "nephoran-llm-credentials"]
+# NetworkIntent read access for context
+- apiGroups: ["intent.nephoran.io"]
+  resources: ["networkintents"]
+  verbs: ["get", "list"]
+# Events for audit logging
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-rag-api
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: rag-api
+    security.nephoran.io/rbac-version: "v1"
+rules:
+# ConfigMap for knowledge base configuration
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["nephoran-rag-config", "nephoran-knowledge-base"]
+# Secret for vector DB credentials
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["weaviate-credentials", "nephoran-rag-credentials"]
+# Events for audit
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-oran-adaptor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: oran-adaptor
+    security.nephoran.io/rbac-version: "v1"
+rules:
+# E2NodeSet CRD management
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["e2nodesets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["e2nodesets/status"]
+  verbs: ["get", "update", "patch"]
+# RIC configuration management
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["ricconfigurations", "a1policies", "o1configurations"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["ricconfigurations/status", "a1policies/status", "o1configurations/status"]
+  verbs: ["get", "update", "patch"]
+# ConfigMap for O-RAN configurations
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+  resourceNames: ["oran-config", "ric-config", "e2-config"]
+# Secret for O-RAN credentials
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["oran-credentials", "ric-credentials", "smo-credentials"]
+# Service discovery
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+# Events for audit
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-nephio-bridge
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: nephio-bridge
+    security.nephoran.io/rbac-version: "v1"
+rules:
+# Porch package management
+- apiGroups: ["porch.kpt.dev"]
+  resources: ["packagerevisions", "packagerevisionresources"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+- apiGroups: ["porch.kpt.dev"]
+  resources: ["packagerevisions/status"]
+  verbs: ["get", "update", "patch"]
+# Repository access
+- apiGroups: ["porch.kpt.dev"]
+  resources: ["repositories"]
+  verbs: ["get", "list", "watch"]
+# ConfigSync integration
+- apiGroups: ["configsync.gke.io"]
+  resources: ["reposyncs", "rootsyncs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# NetworkIntent status updates
+- apiGroups: ["intent.nephoran.io"]
+  resources: ["networkintents"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["intent.nephoran.io"]
+  resources: ["networkintents/status"]
+  verbs: ["update", "patch"]
+# ConfigMap for Nephio configuration
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch"]
+  resourceNames: ["nephio-config", "porch-config"]
+# Secret for Git credentials
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+  resourceNames: ["git-credentials", "nephio-credentials"]
+# Events for audit
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-metrics-reader
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: monitoring
+    security.nephoran.io/rbac-version: "v1"
+rules:
+# Pod metrics
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+# Service discovery for scraping
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list"]
+# ServiceMonitor access
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-audit-logger
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: audit
+    security.nephoran.io/rbac-version: "v1"
+rules:
+# Event access for audit collection
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "list", "watch"]
+# Audit sink configuration
+- apiGroups: ["auditregistration.k8s.io"]
+  resources: ["auditsinks"]
+  verbs: ["get", "list"]
+---
+# Human operator roles (aggregated)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-viewer
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+    security.nephoran.io/rbac-version: "v1"
+rules:
+# Read-only access to all Nephoran resources
+- apiGroups: ["intent.nephoran.io"]
+  resources: ["networkintents"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["e2nodesets", "ricconfigurations", "a1policies", "o1configurations"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods", "services", "configmaps", "events"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-developer
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    security.nephoran.io/rbac-version: "v1"
+rules:
+# Full access to NetworkIntents
+- apiGroups: ["intent.nephoran.io"]
+  resources: ["networkintents"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Read access to O-RAN resources
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["e2nodesets", "ricconfigurations", "a1policies", "o1configurations"]
+  verbs: ["get", "list", "watch"]
+# Pod operations for debugging
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods/log", "pods/portforward"]
+  verbs: ["get", "create"]
+# ConfigMap management (non-sensitive)
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: nephoran-admin
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    security.nephoran.io/rbac-version: "v1"
+rules:
+# Full access to all Nephoran resources
+- apiGroups: ["intent.nephoran.io"]
+  resources: ["*"]
+  verbs: ["*"]
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["*"]
+  verbs: ["*"]
+# Deployment management
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "daemonsets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["apps"]
+  resources: ["deployments/scale", "statefulsets/scale"]
+  verbs: ["update"]
+# Service account management (restricted)
+- apiGroups: [""]
+  resources: ["serviceaccounts"]
+  verbs: ["get", "list", "watch"]
+# Secret management (restricted to specific secrets)
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "create", "update", "patch"]
+  resourceNames: ["nephoran-llm-credentials", "nephoran-oran-credentials", "git-credentials"]
+# RBAC viewing (no modification)
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
+  verbs: ["get", "list", "watch"]

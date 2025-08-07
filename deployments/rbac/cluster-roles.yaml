@@ -1,0 +1,338 @@
+# Cluster-wide Roles for Nephoran Intent Operator
+# Minimal cluster-level permissions following least-privilege principle
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-operator-controller-cluster
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: controller
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Cluster-wide CRD management for operator"
+    security.nephoran.io/audit-frequency: "weekly"
+rules:
+# CRD discovery and watching
+- apiGroups: ["apiextensions.k8s.io"]
+  resources: ["customresourcedefinitions"]
+  verbs: ["get", "list", "watch"]
+  resourceNames:
+  - "networkintents.intent.nephoran.io"
+  - "e2nodesets.oran.nephoran.io"
+  - "ricconfigurations.oran.nephoran.io"
+  - "a1policies.oran.nephoran.io"
+  - "o1configurations.oran.nephoran.io"
+# Namespace listing for multi-tenancy
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch"]
+# Node information for scheduling decisions
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list"]
+# StorageClass for PVC creation
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-oran-adaptor-cluster
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: oran-adaptor
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "O-RAN multi-cluster management"
+rules:
+# E2NodeSet management across namespaces
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["e2nodesets"]
+  verbs: ["get", "list", "watch"]
+# Service discovery across namespaces for RIC
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch"]
+# NetworkPolicy for O-RAN security
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-nephio-bridge-cluster
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: nephio-bridge
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Nephio package management across clusters"
+rules:
+# Porch package management
+- apiGroups: ["porch.kpt.dev"]
+  resources: ["packagerevisions", "repositories"]
+  verbs: ["get", "list", "watch"]
+# ConfigSync management
+- apiGroups: ["configsync.gke.io"]
+  resources: ["reposyncs", "rootsyncs"]
+  verbs: ["get", "list", "watch"]
+# Cluster-wide package deployment
+- apiGroups: ["kpt.dev"]
+  resources: ["kptfiles"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-metrics-aggregator
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: monitoring
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Cluster-wide metrics collection"
+rules:
+# Metrics from all namespaces
+- apiGroups: ["metrics.k8s.io"]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+# Custom metrics
+- apiGroups: ["custom.metrics.k8s.io"]
+  resources: ["*"]
+  verbs: ["get", "list"]
+# Prometheus ServiceMonitor discovery
+- apiGroups: ["monitoring.coreos.com"]
+  resources: ["servicemonitors", "podmonitors"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-audit-aggregator
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: audit
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Cluster-wide audit event collection"
+rules:
+# Audit events from all namespaces
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "list", "watch"]
+# Audit policy configuration
+- apiGroups: ["audit.k8s.io"]
+  resources: ["policies"]
+  verbs: ["get", "list"]
+---
+# Aggregated ClusterRoles for human operators
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-cluster-viewer
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
+    security.nephoran.io/rbac-version: "v1"
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      nephoran.io/aggregate-to-viewer: "true"
+rules: []  # Rules are automatically filled by aggregation
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-cluster-operator
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    rbac.authorization.k8s.io/aggregate-to-edit: "true"
+    security.nephoran.io/rbac-version: "v1"
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      nephoran.io/aggregate-to-operator: "true"
+rules: []  # Rules are automatically filled by aggregation
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-cluster-admin
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/warning: "High privilege role - use with caution"
+    security.nephoran.io/require-mfa: "true"
+aggregationRule:
+  clusterRoleSelectors:
+  - matchLabels:
+      nephoran.io/aggregate-to-admin: "true"
+rules: []  # Rules are automatically filled by aggregation
+---
+# Component-specific aggregated roles
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-viewer-base
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    nephoran.io/aggregate-to-viewer: "true"
+    security.nephoran.io/rbac-version: "v1"
+rules:
+# Read all Nephoran CRDs
+- apiGroups: ["intent.nephoran.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-operator-base
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    nephoran.io/aggregate-to-operator: "true"
+    security.nephoran.io/rbac-version: "v1"
+rules:
+# Manage NetworkIntents across namespaces
+- apiGroups: ["intent.nephoran.io"]
+  resources: ["networkintents"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["intent.nephoran.io"]
+  resources: ["networkintents/status"]
+  verbs: ["get", "update", "patch"]
+# Read O-RAN resources
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-admin-base
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    nephoran.io/aggregate-to-admin: "true"
+    security.nephoran.io/rbac-version: "v1"
+rules:
+# Full management of all Nephoran resources
+- apiGroups: ["intent.nephoran.io", "oran.nephoran.io"]
+  resources: ["*"]
+  verbs: ["*"]
+# Deployment management across namespaces
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+  verbs: ["get", "list", "watch", "update", "patch", "delete"]
+# Service management
+- apiGroups: [""]
+  resources: ["services", "endpoints"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# ConfigMap and Secret management (with restrictions)
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["*"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# NetworkPolicy management
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["*"]
+---
+# O-RAN specific roles
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-ric-operator
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: ric
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "RIC management operations"
+rules:
+# RIC configuration management
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["ricconfigurations", "a1policies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["ricconfigurations/status", "a1policies/status"]
+  verbs: ["get", "update", "patch"]
+# xApp management
+- apiGroups: ["ricplt.o-ran.org"]
+  resources: ["xapps", "xappconfigs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-nf-operator
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: network-functions
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Network Function lifecycle management"
+rules:
+# 5G Core NF management
+- apiGroups: ["nf.5gc.io"]
+  resources: ["amfs", "smfs", "upfs", "udms", "ausfs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# O-RAN NF management
+- apiGroups: ["oran.nephoran.io"]
+  resources: ["odus", "ocus", "orus"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Network slice management
+- apiGroups: ["slice.5gc.io"]
+  resources: ["networkslices", "sliceprofiles"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+# Security-focused roles
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-security-auditor
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Security audit and compliance checking"
+rules:
+# Read-only access to all resources for audit
+- apiGroups: ["*"]
+  resources: ["*"]
+  verbs: ["get", "list", "watch"]
+# No create/update/delete permissions
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nephoran-compliance-manager
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: compliance
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "O-RAN compliance validation"
+rules:
+# Compliance policy management
+- apiGroups: ["policy.nephoran.io"]
+  resources: ["compliancepolicies", "securitypolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Pod Security Policy/Standards
+- apiGroups: ["policy"]
+  resources: ["podsecuritypolicies"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["policy"]
+  resources: ["poddisruptionbudgets"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+# Network policies for zero-trust
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]

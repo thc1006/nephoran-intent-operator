@@ -1,0 +1,223 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: opa-policy-alerts
+  namespace: nephoran-operator
+  labels:
+    app: opa-sidecar
+    component: policy-engine
+    monitoring: prometheus
+spec:
+  groups:
+    - name: opa.policy.security
+      interval: 15s
+      rules:
+        # High number of policy violations
+        - alert: OPAHighPolicyViolations
+          expr: rate(opa_http_request_duration_seconds_count{code!="200"}[5m]) > 0.1
+          for: 2m
+          labels:
+            severity: warning
+            component: opa-sidecar
+            category: security
+          annotations:
+            summary: "High rate of OPA policy violations detected"
+            description: "OPA is rejecting {{ $value | humanize }} requests per second due to policy violations in namespace {{ $labels.namespace }}"
+            runbook_url: "https://github.com/thc1006/nephoran-intent-operator/blob/main/docs/runbooks/opa-policy-violations.md"
+
+        # Critical security violations
+        - alert: OPACriticalSecurityViolation
+          expr: increase(opa_http_request_duration_seconds_count{code="403"}[1m]) > 5
+          for: 0m
+          labels:
+            severity: critical
+            component: opa-sidecar
+            category: security
+          annotations:
+            summary: "Critical security violation detected by OPA"
+            description: "OPA has blocked {{ $value }} requests in the last minute due to security policy violations in namespace {{ $labels.namespace }}"
+            runbook_url: "https://github.com/thc1006/nephoran-intent-operator/blob/main/docs/runbooks/critical-security-violations.md"
+
+        # OPA service unavailable
+        - alert: OPAServiceDown
+          expr: up{job="opa-diagnostics"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            component: opa-sidecar
+            category: availability
+          annotations:
+            summary: "OPA policy engine is down"
+            description: "OPA sidecar is not responding to health checks in pod {{ $labels.pod_name }}"
+            runbook_url: "https://github.com/thc1006/nephoran-intent-operator/blob/main/docs/runbooks/opa-service-down.md"
+
+        # High policy evaluation latency
+        - alert: OPAHighLatency
+          expr: histogram_quantile(0.95, rate(opa_http_request_duration_seconds_bucket[5m])) > 0.5
+          for: 3m
+          labels:
+            severity: warning
+            component: opa-sidecar
+            category: performance
+          annotations:
+            summary: "OPA policy evaluation latency is high"
+            description: "95th percentile latency for OPA policy evaluation is {{ $value | humanize }}s"
+            runbook_url: "https://github.com/thc1006/nephoran-intent-operator/blob/main/docs/runbooks/opa-high-latency.md"
+
+        # Bundle loading failures
+        - alert: OPABundleLoadFailure
+          expr: increase(opa_bundle_load_duration_seconds_count{code!="200"}[10m]) > 0
+          for: 0m
+          labels:
+            severity: warning
+            component: opa-sidecar
+            category: configuration
+          annotations:
+            summary: "OPA bundle loading failed"
+            description: "OPA failed to load policy bundles {{ $value }} times in the last 10 minutes"
+            runbook_url: "https://github.com/thc1006/nephoran-intent-operator/blob/main/docs/runbooks/opa-bundle-failures.md"
+
+    - name: opa.policy.business
+      interval: 30s
+      rules:
+        # O-RAN compliance violations
+        - alert: ORANComplianceViolation
+          expr: increase(opa_http_request_duration_seconds_count{path="/v0/data/nephoran/oran/compliance", decision="deny"}[5m]) > 0
+          for: 1m
+          labels:
+            severity: warning
+            component: opa-sidecar
+            category: compliance
+          annotations:
+            summary: "O-RAN compliance violation detected"
+            description: "{{ $value }} O-RAN compliance violations detected in the last 5 minutes"
+            runbook_url: "https://github.com/thc1006/nephoran-intent-operator/blob/main/docs/runbooks/oran-compliance-violations.md"
+
+        # Intent format violations
+        - alert: IntentFormatViolation
+          expr: increase(opa_http_request_duration_seconds_count{path="/v0/data/nephoran/api/validation", decision="deny"}[5m]) > 10
+          for: 2m
+          labels:
+            severity: info
+            component: opa-sidecar
+            category: data-quality
+          annotations:
+            summary: "High number of intent format violations"
+            description: "{{ $value }} intent format violations detected in the last 5 minutes, indicating potential client issues"
+
+        # Rate limiting violations
+        - alert: RateLimitViolation
+          expr: increase(opa_http_request_duration_seconds_count{path=~".*rate.*", decision="deny"}[1m]) > 20
+          for: 0m
+          labels:
+            severity: info
+            component: opa-sidecar
+            category: rate-limiting
+          annotations:
+            summary: "Rate limiting violations detected"
+            description: "{{ $value }} requests were rate limited in the last minute"
+
+    - name: opa.policy.performance
+      interval: 30s
+      rules:
+        # High memory usage
+        - alert: OPAHighMemoryUsage
+          expr: container_memory_usage_bytes{container="opa-sidecar"} / container_spec_memory_limit_bytes{container="opa-sidecar"} > 0.8
+          for: 5m
+          labels:
+            severity: warning
+            component: opa-sidecar
+            category: resource
+          annotations:
+            summary: "OPA sidecar memory usage is high"
+            description: "OPA sidecar memory usage is {{ $value | humanizePercentage }} in pod {{ $labels.pod_name }}"
+
+        # High CPU usage
+        - alert: OPAHighCPUUsage
+          expr: rate(container_cpu_usage_seconds_total{container="opa-sidecar"}[5m]) / container_spec_cpu_quota{container="opa-sidecar"} * container_spec_cpu_period{container="opa-sidecar"} > 0.8
+          for: 5m
+          labels:
+            severity: warning
+            component: opa-sidecar
+            category: resource
+          annotations:
+            summary: "OPA sidecar CPU usage is high"
+            description: "OPA sidecar CPU usage is {{ $value | humanizePercentage }} in pod {{ $labels.pod_name }}"
+
+        # Policy cache efficiency
+        - alert: OPAPolicyLowCacheHitRate
+          expr: rate(opa_http_request_duration_seconds_count{cached="false"}[10m]) / rate(opa_http_request_duration_seconds_count[10m]) > 0.7
+          for: 5m
+          labels:
+            severity: info
+            component: opa-sidecar
+            category: performance
+          annotations:
+            summary: "OPA policy cache hit rate is low"
+            description: "OPA policy cache hit rate is {{ $value | humanizePercentage }}, consider tuning cache settings"
+
+    - name: opa.policy.telecommunications
+      interval: 30s
+      rules:
+        # 5G network function deployment violations
+        - alert: FiveGNetworkFunctionViolation
+          expr: increase(opa_http_request_duration_seconds_count{path="/v0/data/nephoran/oran/compliance", violation_type="network_function"}[10m]) > 0
+          for: 1m
+          labels:
+            severity: warning
+            component: opa-sidecar
+            category: telecom-compliance
+          annotations:
+            summary: "5G network function deployment violation"
+            description: "{{ $value }} violations detected for 5G network function deployments"
+
+        # Network slice configuration violations
+        - alert: NetworkSliceConfigViolation
+          expr: increase(opa_http_request_duration_seconds_count{path="/v0/data/nephoran/oran/compliance", violation_type="slice_config"}[10m]) > 0
+          for: 1m
+          labels:
+            severity: warning
+            component: opa-sidecar
+            category: telecom-compliance
+          annotations:
+            summary: "Network slice configuration violation"
+            description: "{{ $value }} violations detected for network slice configurations"
+
+        # QoS policy violations
+        - alert: QoSPolicyViolation
+          expr: increase(opa_http_request_duration_seconds_count{path="/v0/data/nephoran/oran/compliance", violation_type="qos_config"}[10m]) > 0
+          for: 1m
+          labels:
+            severity: info
+            component: opa-sidecar
+            category: telecom-compliance
+          annotations:
+            summary: "QoS policy violation detected"
+            description: "{{ $value }} QoS policy violations detected, check 5QI configurations"
+
+    - name: opa.policy.audit
+      interval: 60s
+      rules:
+        # Decision log volume tracking
+        - alert: OPADecisionLogVolumeHigh
+          expr: increase(opa_decision_logs_nd_builtin_print_calls_total[1h]) > 1000
+          for: 10m
+          labels:
+            severity: info
+            component: opa-sidecar
+            category: audit
+          annotations:
+            summary: "High volume of OPA decision logs"
+            description: "Generated {{ $value }} decision log entries in the last hour"
+
+        # Policy evaluation frequency
+        - alert: OPAUnusedPolicyDetected
+          expr: increase(opa_http_request_duration_seconds_count[24h]) == 0
+          for: 1h
+          labels:
+            severity: info
+            component: opa-sidecar
+            category: optimization
+          annotations:
+            summary: "Unused OPA policy detected"
+            description: "Policy has not been evaluated in the last 24 hours, consider removing if obsolete"

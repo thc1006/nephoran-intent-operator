@@ -1,0 +1,47 @@
+# OPA Configuration for Nephoran Intent Operator
+# This configuration file defines the OPA server settings and policy loading
+
+services:
+  authz:
+    url: http://localhost:8181
+
+bundles:
+  authz:
+    resource: "bundles/authz.tar.gz"
+    polling:
+      min_delay_seconds: 10
+      max_delay_seconds: 20
+
+decision_logs:
+  console: true
+  reporting:
+    min_delay_seconds: 5
+    max_delay_seconds: 10
+
+status:
+  console: true
+  prometheus: true
+
+server:
+  address: 0.0.0.0:8181
+  diagnostic-address: 0.0.0.0:8282
+
+# Logging configuration
+log:
+  level: info
+  format: json-pretty
+
+# Plugin configuration for decision logging
+plugins:
+  decision_logs:
+    console: true
+  status:
+    console: true
+    prometheus: true
+
+# Default authorization decision
+default_decision: "/v0/data/nephoran"
+
+# Cache configuration
+cache:
+  directory: /tmp/opa-cache

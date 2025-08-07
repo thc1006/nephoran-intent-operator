@@ -7,10 +7,15 @@ COMMIT = $(shell git rev-parse --short HEAD)
 DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
 # Go configuration
-GO_VERSION = 1.21
+GO_VERSION = 1.24.1
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 CGO_ENABLED ?= 0
+
+# Supply Chain Security Configuration
+GOSUMDB ?= sum.golang.org
+GOPROXY ?= https://proxy.golang.org,direct
+GOPRIVATE ?= github.com/thc1006/*
 
 # Docker configuration  
 REGISTRY ?= ghcr.io
@@ -40,8 +45,11 @@ help: ## Show this help message
 .PHONY: deps
 deps: ## Install development dependencies
 	@echo "Installing development dependencies..."
+	@echo "Configuring supply chain security..."
+	@export GOSUMDB=$(GOSUMDB) && export GOPROXY=$(GOPROXY) && export GOPRIVATE=$(GOPRIVATE)
 	go mod tidy
 	go mod download
+	go mod verify
 	@if ! command -v ginkgo >/dev/null 2>&1; then \
 		echo "Installing Ginkgo..."; \
 		go install github.com/onsi/ginkgo/v2/ginkgo@latest; \
@@ -54,6 +62,69 @@ deps: ## Install development dependencies
 		echo "Installing kustomize..."; \
 		go install sigs.k8s.io/kustomize/kustomize/v5@latest; \
 	fi
+	
+install-security-tools: ## Install security and supply chain tools
+	@echo "Installing security and supply chain tools..."
+	go generate tools.go
+	@echo "Security tools installed successfully"
+
+verify-supply-chain: ## Run comprehensive supply chain security verification
+	@echo "Running supply chain security verification..."
+	@./scripts/verify-supply-chain.sh
+
+verify-modules: ## Verify Go module integrity
+	@echo "Verifying Go module integrity..."
+	@export GOSUMDB=$(GOSUMDB)
+	go mod verify
+	@echo "✅ Module integrity verification passed"
+
+scan-vulnerabilities: ## Scan for vulnerabilities using govulncheck
+	@echo "Scanning for vulnerabilities..."
+	@if ! command -v govulncheck >/dev/null 2>&1; then \
+		echo "Installing govulncheck..."; \
+		go install golang.org/x/vuln/cmd/govulncheck@latest; \
+	fi
+	govulncheck ./...
+	@echo "✅ Vulnerability scan completed"
+
+generate-sbom: ## Generate Software Bill of Materials
+	@echo "Generating Software Bill of Materials..."
+	@mkdir -p $(REPORTS_DIR)/sbom
+	@if command -v cyclonedx-gomod >/dev/null 2>&1; then \
+		cyclonedx-gomod mod -json -output-file $(REPORTS_DIR)/sbom/sbom-cyclonedx.json; \
+		echo "CycloneDX SBOM generated"; \
+	else \
+		echo "Installing cyclonedx-gomod..."; \
+		go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest; \
+		cyclonedx-gomod mod -json -output-file $(REPORTS_DIR)/sbom/sbom-cyclonedx.json; \
+	fi
+	@go list -m -f '{{.Path}}@{{.Version}}' all > $(REPORTS_DIR)/sbom/dependencies.txt
+	@echo "✅ SBOM generated in $(REPORTS_DIR)/sbom/"
+
+check-supply-chain-config: ## Verify supply chain security configuration
+	@echo "Checking supply chain security configuration..."
+	@echo "GOPROXY: $(GOPROXY)"
+	@echo "GOSUMDB: $(GOSUMDB)"
+	@echo "GOPRIVATE: $(GOPRIVATE)"
+	@go env | grep -E "(GOPROXY|GOSUMDB|GOPRIVATE|GOINSECURE)"
+
+update-security-tools: ## Update all security tools to latest versions
+	@echo "Updating security tools..."
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@echo "✅ Security tools updated"
+
+supply-chain-report: verify-supply-chain generate-sbom ## Generate comprehensive supply chain security report
+	@echo "Generating comprehensive supply chain security report..."
+	@mkdir -p $(REPORTS_DIR)/supply-chain
+	@./scripts/verify-supply-chain.sh > $(REPORTS_DIR)/supply-chain/supply-chain-report.txt 2>&1 || true
+	@echo "✅ Supply chain security report generated in $(REPORTS_DIR)/supply-chain/"
+
+##@ Supply Chain Security
+
+.PHONY: install-security-tools verify-supply-chain verify-modules scan-vulnerabilities generate-sbom
+.PHONY: check-supply-chain-config update-security-tools supply-chain-report
 
 .PHONY: generate
 generate: deps ## Generate code (CRDs, deepcopy, etc.)
@@ -130,7 +201,7 @@ validate-docs: ## Validate documentation quality
 	bash scripts/validate-docs.sh --report-dir $(REPORTS_DIR)
 
 .PHONY: validate-security
-validate-security: ## Run security compliance checks
+validate-security: verify-supply-chain scan-vulnerabilities ## Run security compliance checks
 	@echo "Running security compliance validation..."
 	mkdir -p $(REPORTS_DIR)
 	bash scripts/daily-compliance-check.sh --report-dir $(REPORTS_DIR) --security-only
@@ -312,7 +383,7 @@ update-deps: ## Update Go dependencies
 	go mod tidy
 
 .PHONY: security-scan
-security-scan: ## Run comprehensive security scanning
+security-scan: verify-supply-chain generate-sbom ## Run comprehensive security scanning
 	@echo "Running comprehensive security scan..."
 	mkdir -p $(REPORTS_DIR)
 	@if [ -f "scripts/security-scan.sh" ]; then \

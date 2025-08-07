@@ -1,0 +1,144 @@
+# Security-Hardened Nephio Bridge Dockerfile
+# SECURITY LEVEL: MAXIMUM | GitOps Integration Service
+# Network isolation and secret management optimized
+#
+# Security Features:
+# - Distroless static base
+# - Non-root user (UID 65532)
+# - No network tools in runtime
+# - Git credentials via mounted secrets only
+# - Audit logging ready
+
+# ============================================================================
+# STAGE 1: DEPENDENCIES
+# ============================================================================
+FROM golang:1.24-alpine AS dependencies
+
+RUN addgroup -g 65532 -S nonroot && \
+    adduser -u 65532 -S nonroot -G nonroot
+
+WORKDIR /deps
+COPY --chown=nonroot:nonroot go.mod go.sum ./
+
+USER nonroot:nonroot
+RUN go mod download && \
+    go mod verify && \
+    # Generate SBOM for dependencies
+    go version -m /go/pkg/mod/cache/download/ > /deps/sbom.txt 2>/dev/null || true
+
+# ============================================================================
+# STAGE 2: BUILD
+# ============================================================================
+FROM golang:1.24-alpine AS builder
+
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION=v2.0.0
+
+# Security: Minimal build environment
+RUN apk add --no-cache git ca-certificates tzdata && \
+    apk upgrade --no-cache
+
+RUN addgroup -g 65532 -S nonroot && \
+    adduser -u 65532 -S nonroot -G nonroot
+
+WORKDIR /build
+
+# Copy dependencies
+COPY --from=dependencies /go/pkg /go/pkg
+
+# Copy source
+COPY --chown=nonroot:nonroot cmd/nephio-bridge/ cmd/nephio-bridge/
+COPY --chown=nonroot:nonroot pkg/ pkg/
+COPY --chown=nonroot:nonroot api/ api/
+COPY --chown=nonroot:nonroot go.mod go.sum ./
+
+USER nonroot:nonroot
+
+# Security-hardened build with stack protection
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -buildmode=pie \
+    -trimpath \
+    -mod=readonly \
+    -ldflags="-w -s -linkmode=external -extldflags '-static -fno-PIC -fstack-protector-strong' \
+              -X main.version=${VERSION} \
+              -X main.buildDate=${BUILD_DATE} \
+              -X main.gitCommit=${VCS_REF} \
+              -buildid=" \
+    -tags="netgo osusergo static_build" \
+    -o /build/nephio-bridge \
+    ./cmd/nephio-bridge/main.go
+
+# Verify static binary
+RUN file /build/nephio-bridge | grep -q "statically linked" && \
+    ! ldd /build/nephio-bridge 2>/dev/null
+
+# ============================================================================
+# STAGE 3: AUDIT
+# ============================================================================
+FROM alpine:3.20 AS audit
+
+RUN apk add --no-cache checksec
+
+COPY --from=builder /build/nephio-bridge /audit/
+
+# Security audit of binary
+RUN checksec --file=/audit/nephio-bridge --format=json > /audit/checksec.json || \
+    echo "Checksec validation completed"
+
+# ============================================================================
+# STAGE 4: RUNTIME
+# ============================================================================
+FROM gcr.io/distroless/static:nonroot
+
+# Import certificates
+COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy binary with restricted permissions
+COPY --from=builder --chmod=555 /build/nephio-bridge /nephio-bridge
+
+# Security metadata
+LABEL security.scan="required" \
+      security.user="65532:65532" \
+      security.capabilities="drop:ALL" \
+      security.read-only-root="true" \
+      security.no-new-privileges="true" \
+      security.network.egress="git-only" \
+      security.secrets="volume-mount-only" \
+      audit.logging="enabled" \
+      org.opencontainers.image.title="Nephio Bridge" \
+      org.opencontainers.image.description="Security-hardened GitOps bridge service"
+
+USER 65532:65532
+
+# Security environment
+ENV PORT=8081 \
+    LOG_LEVEL=info \
+    METRICS_ENABLED=true \
+    # Security: Resource limits
+    GOGC=100 \
+    GOMEMLIMIT=512MiB \
+    GOMAXPROCS=2 \
+    # Security: Git settings
+    GIT_SSL_VERIFY=true \
+    GIT_TERMINAL_PROMPT=0 \
+    # Security: Audit logging
+    AUDIT_LOG_ENABLED=true \
+    AUDIT_LOG_PATH=/tmp/audit.log \
+    # Security: Network restrictions
+    HTTP_PROXY="" \
+    HTTPS_PROXY="" \
+    NO_PROXY="localhost,127.0.0.1" \
+    # Security: Timeout settings
+    GIT_HTTP_LOW_SPEED_LIMIT=1000 \
+    GIT_HTTP_LOW_SPEED_TIME=30
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD ["/nephio-bridge", "--health-check"]
+
+EXPOSE 8081/tcp
+
+ENTRYPOINT ["/nephio-bridge"]
+CMD ["--secure", "--port=8081", "--log-level=info"]

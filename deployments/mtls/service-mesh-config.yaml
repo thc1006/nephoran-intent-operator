@@ -1,0 +1,372 @@
+# Service Mesh Configuration for Nephoran Intent Operator
+# Supports both Istio and Linkerd with mTLS enforcement and TLS 1.3
+---
+# Istio Configuration
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: nephoran-mtls
+  namespace: nephoran-system
+  labels:
+    security.nephoran.io/mesh: "istio"
+    security.nephoran.io/mtls: "strict"
+spec:
+  mtls:
+    mode: STRICT
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: nephoran-tls-config
+  namespace: nephoran-system
+  labels:
+    security.nephoran.io/mesh: "istio"
+spec:
+  host: "*.nephoran-system.svc.cluster.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+      minProtocolVersion: TLSV1_3
+      maxProtocolVersion: TLSV1_3
+      cipherSuites:
+        - TLS_AES_256_GCM_SHA384
+        - TLS_CHACHA20_POLY1305_SHA256
+---
+# Service-specific Istio configurations
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: nephoran-operator-tls
+  namespace: nephoran-system
+spec:
+  host: nephoran-operator.nephoran-system.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http2MaxRequests: 1000
+        maxRequestsPerConnection: 2
+        h2UpgradePolicy: UPGRADE
+    tls:
+      mode: ISTIO_MUTUAL
+      minProtocolVersion: TLSV1_3
+      sni: nephoran-operator.nephoran-system.svc.cluster.local
+    outlierDetection:
+      consecutiveErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 50
+---
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: llm-processor-tls
+  namespace: nephoran-system
+spec:
+  host: llm-processor.nephoran-system.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 50
+      http:
+        http2MaxRequests: 500
+        maxRequestsPerConnection: 2
+        h2UpgradePolicy: UPGRADE
+    tls:
+      mode: ISTIO_MUTUAL
+      minProtocolVersion: TLSV1_3
+      sni: llm-processor.nephoran-system.svc.cluster.local
+    outlierDetection:
+      consecutiveErrors: 3
+      interval: 30s
+      baseEjectionTime: 60s
+---
+# Authorization policies for fine-grained access control
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: nephoran-operator-authz
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nephoran-operator
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/nephoran-operator"]
+    - source:
+        principals: ["cluster.local/ns/monitoring/sa/prometheus"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/metrics", "/health", "/ready"]
+  - from:
+    - source:
+        principals: ["cluster.local/ns/kube-system/sa/apiserver"]
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/validate", "/mutate"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: llm-processor-authz
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: llm-processor
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/nephoran-operator"]
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/v1/process", "/v1/stream"]
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/rag-api"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/v1/context"]
+---
+# Linkerd Configuration (alternative to Istio)
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: nephoran-mtls
+  namespace: nephoran-system
+  labels:
+    security.nephoran.io/mesh: "linkerd"
+spec:
+  server:
+    name: nephoran-services
+  client:
+    meshTLS:
+      identities:
+        - "nephoran-operator.nephoran-system.serviceaccount.identity.linkerd.cluster.local"
+        - "llm-processor.nephoran-system.serviceaccount.identity.linkerd.cluster.local"
+        - "rag-api.nephoran-system.serviceaccount.identity.linkerd.cluster.local"
+        - "nephio-bridge.nephoran-system.serviceaccount.identity.linkerd.cluster.local"
+        - "oran-adaptor.nephoran-system.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: nephoran-services
+  namespace: nephoran-system
+  labels:
+    security.nephoran.io/mesh: "linkerd"
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/part-of: nephoran
+  port: 8443
+  proxyProtocol: "HTTP/2"
+---
+# Service Mesh Traffic Policy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mesh-traffic-policy
+  namespace: nephoran-system
+data:
+  policy.yaml: |
+    # Traffic management policies for service mesh
+    trafficPolicy:
+      tls:
+        mode: STRICT
+        minVersion: "1.3"
+        maxVersion: "1.3"
+        cipherSuites:
+          - TLS_AES_256_GCM_SHA384
+          - TLS_CHACHA20_POLY1305_SHA256
+      connectionPool:
+        tcp:
+          maxConnections: 100
+          connectTimeout: 30s
+          tcpKeepalive:
+            time: 7200s
+            interval: 75s
+            probes: 10
+        http:
+          http1MaxPendingRequests: 1024
+          http2MaxRequests: 1024
+          maxRequestsPerConnection: 2
+          h2UpgradePolicy: UPGRADE
+          useClientProtocol: false
+      loadBalancer:
+        simple: LEAST_REQUEST
+        consistentHash:
+          httpCookie:
+            name: "x-session"
+            ttl: 3600s
+      outlierDetection:
+        consecutiveErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+        maxEjectionPercent: 50
+        minHealthPercent: 30
+        splitExternalLocalOriginErrors: true
+      retryPolicy:
+        attempts: 3
+        perTryTimeout: 30s
+        retryOn: "5xx,refused-stream,cancelled,deadline-exceeded,resource-exhausted"
+        retryRemoteLocalities: true
+---
+# Virtual Service for traffic management
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: nephoran-routing
+  namespace: nephoran-system
+spec:
+  hosts:
+  - nephoran-operator.nephoran-system.svc.cluster.local
+  - llm-processor.nephoran-system.svc.cluster.local
+  - rag-api.nephoran-system.svc.cluster.local
+  - nephio-bridge.nephoran-system.svc.cluster.local
+  - oran-adaptor.nephoran-system.svc.cluster.local
+  http:
+  - match:
+    - headers:
+        x-tls-version:
+          exact: "1.3"
+    route:
+    - destination:
+        host: nephoran-operator.nephoran-system.svc.cluster.local
+        port:
+          number: 8443
+      weight: 100
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+      retryOn: 5xx,reset,connect-failure,refused-stream
+---
+# Service Entry for external TLS connections
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: external-apis
+  namespace: nephoran-system
+spec:
+  hosts:
+  - api.openai.com
+  - api.mistral.ai
+  - api.anthropic.com
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+# Sidecar configuration for optimized proxy behavior
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: default
+  namespace: nephoran-system
+spec:
+  egress:
+  - hosts:
+    - "./*"
+    - "istio-system/*"
+    - "cert-manager/*"
+    - "monitoring/*"
+  outboundTrafficPolicy:
+    mode: REGISTRY_ONLY
+---
+# Telemetry configuration for mTLS metrics
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: mtls-metrics
+  namespace: nephoran-system
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+    dimensions:
+      request_protocol: request.protocol | "unknown"
+      response_code: response.code | 0
+      source_workload: source.workload.name | "unknown"
+      destination_service: destination.service.name | "unknown"
+      tls_version: connection.tls_version | "unknown"
+      mtls_mode: connection.mtls | false
+  - overrides:
+    - match:
+        metric: ALL_METRICS
+      tagOverrides:
+        tls_cipher:
+          value: connection.tls_cipher_suite | "unknown"
+---
+# Certificate monitoring and alerting
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: certificate-monitoring
+  namespace: nephoran-system
+data:
+  alerts.yaml: |
+    groups:
+    - name: certificate-expiry
+      interval: 1h
+      rules:
+      - alert: CertificateExpiringSoon
+        expr: cert_manager_certificate_expiration_timestamp_seconds - time() < 7 * 86400
+        for: 1h
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "Certificate expiring soon"
+          description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} will expire in less than 7 days"
+      - alert: CertificateExpiryCritical
+        expr: cert_manager_certificate_expiration_timestamp_seconds - time() < 86400
+        for: 10m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "Certificate expiry critical"
+          description: "Certificate {{ $labels.name }} in namespace {{ $labels.namespace }} will expire in less than 24 hours"
+      - alert: CertificateRenewalFailed
+        expr: increase(cert_manager_certificate_renewal_errors_total[1h]) > 0
+        for: 15m
+        labels:
+          severity: error
+          component: security
+        annotations:
+          summary: "Certificate renewal failed"
+          description: "Certificate renewal failed for {{ $labels.name }} in namespace {{ $labels.namespace }}"
+    - name: mtls-health
+      interval: 5m
+      rules:
+      - alert: mTLSViolation
+        expr: sum(rate(istio_request_total{security_policy!="mutual_tls"}[5m])) by (destination_service_name) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: security
+        annotations:
+          summary: "mTLS policy violation detected"
+          description: "Service {{ $labels.destination_service_name }} received non-mTLS traffic"
+      - alert: TLSVersionViolation
+        expr: sum(rate(istio_request_total{tls_version!~"1.3"}[5m])) by (destination_service_name) > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: security
+        annotations:
+          summary: "TLS version policy violation"
+          description: "Service {{ $labels.destination_service_name }} accepted non-TLS 1.3 connection"

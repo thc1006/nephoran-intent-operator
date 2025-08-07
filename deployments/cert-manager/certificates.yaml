@@ -1,0 +1,451 @@
+# Individual certificates for each Nephoran service with mTLS support
+# Implements O-RAN WG11 security requirements and zero-trust architecture
+---
+# Nephoran Operator Controller Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nephoran-operator-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: controller
+    security.nephoran.io/tls-version: "1.3"
+    security.nephoran.io/mtls: "enabled"
+spec:
+  secretName: nephoran-operator-tls-secret
+  duration: 2160h # 90 days
+  renewBefore: 720h # 30 days before expiry
+  subject:
+    organizations:
+      - Nephoran
+    organizationalUnits:
+      - Intent Operator
+    countries:
+      - US
+  commonName: nephoran-operator.nephoran-system.svc.cluster.local
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+    encoding: PKCS8
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+    - client auth
+  dnsNames:
+    - nephoran-operator
+    - nephoran-operator.nephoran-system
+    - nephoran-operator.nephoran-system.svc
+    - nephoran-operator.nephoran-system.svc.cluster.local
+    - "*.nephoran-operator.nephoran-system.svc.cluster.local"
+  ipAddresses:
+    - 127.0.0.1
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+  secretTemplate:
+    annotations:
+      security.nephoran.io/tls-version: "1.3"
+      security.nephoran.io/cipher-suites: "TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256"
+    labels:
+      app.kubernetes.io/name: nephoran-operator
+      security.nephoran.io/certificate-type: "service"
+---
+# LLM Processor Service Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: llm-processor-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: llm-processor
+    app.kubernetes.io/component: ai-service
+    security.nephoran.io/tls-version: "1.3"
+    security.nephoran.io/mtls: "enabled"
+spec:
+  secretName: llm-processor-tls-secret
+  duration: 2160h # 90 days
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+      - Nephoran
+    organizationalUnits:
+      - AI Services
+    countries:
+      - US
+  commonName: llm-processor.nephoran-system.svc.cluster.local
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+    encoding: PKCS8
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+    - client auth
+  dnsNames:
+    - llm-processor
+    - llm-processor.nephoran-system
+    - llm-processor.nephoran-system.svc
+    - llm-processor.nephoran-system.svc.cluster.local
+  ipAddresses:
+    - 127.0.0.1
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+  secretTemplate:
+    annotations:
+      security.nephoran.io/tls-version: "1.3"
+      security.nephoran.io/cipher-suites: "TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256"
+    labels:
+      app.kubernetes.io/name: llm-processor
+      security.nephoran.io/certificate-type: "service"
+---
+# RAG API Service Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: rag-api-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: rag-api
+    app.kubernetes.io/component: knowledge-base
+    security.nephoran.io/tls-version: "1.3"
+    security.nephoran.io/mtls: "enabled"
+spec:
+  secretName: rag-api-tls-secret
+  duration: 2160h # 90 days
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+      - Nephoran
+    organizationalUnits:
+      - Knowledge Management
+    countries:
+      - US
+  commonName: rag-api.nephoran-system.svc.cluster.local
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+    encoding: PKCS8
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+    - client auth
+  dnsNames:
+    - rag-api
+    - rag-api.nephoran-system
+    - rag-api.nephoran-system.svc
+    - rag-api.nephoran-system.svc.cluster.local
+  ipAddresses:
+    - 127.0.0.1
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+  secretTemplate:
+    annotations:
+      security.nephoran.io/tls-version: "1.3"
+      security.nephoran.io/cipher-suites: "TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256"
+    labels:
+      app.kubernetes.io/name: rag-api
+      security.nephoran.io/certificate-type: "service"
+---
+# Nephio Bridge Service Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nephio-bridge-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephio-bridge
+    app.kubernetes.io/component: orchestration
+    security.nephoran.io/tls-version: "1.3"
+    security.nephoran.io/mtls: "enabled"
+spec:
+  secretName: nephio-bridge-tls-secret
+  duration: 2160h # 90 days
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+      - Nephoran
+    organizationalUnits:
+      - Orchestration
+    countries:
+      - US
+  commonName: nephio-bridge.nephoran-system.svc.cluster.local
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+    encoding: PKCS8
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+    - client auth
+  dnsNames:
+    - nephio-bridge
+    - nephio-bridge.nephoran-system
+    - nephio-bridge.nephoran-system.svc
+    - nephio-bridge.nephoran-system.svc.cluster.local
+  ipAddresses:
+    - 127.0.0.1
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+  secretTemplate:
+    annotations:
+      security.nephoran.io/tls-version: "1.3"
+      security.nephoran.io/cipher-suites: "TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256"
+    labels:
+      app.kubernetes.io/name: nephio-bridge
+      security.nephoran.io/certificate-type: "service"
+---
+# O-RAN Adaptor Service Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: oran-adaptor-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    security.nephoran.io/tls-version: "1.3"
+    security.nephoran.io/mtls: "enabled"
+spec:
+  secretName: oran-adaptor-tls-secret
+  duration: 2160h # 90 days
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+      - Nephoran
+    organizationalUnits:
+      - O-RAN Interface
+    countries:
+      - US
+  commonName: oran-adaptor.nephoran-system.svc.cluster.local
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+    encoding: PKCS8
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+    - client auth
+  dnsNames:
+    - oran-adaptor
+    - oran-adaptor.nephoran-system
+    - oran-adaptor.nephoran-system.svc
+    - oran-adaptor.nephoran-system.svc.cluster.local
+  ipAddresses:
+    - 127.0.0.1
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+  secretTemplate:
+    annotations:
+      security.nephoran.io/tls-version: "1.3"
+      security.nephoran.io/cipher-suites: "TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256"
+    labels:
+      app.kubernetes.io/name: oran-adaptor
+      security.nephoran.io/certificate-type: "service"
+---
+# Weaviate Vector Database Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: weaviate-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: weaviate
+    app.kubernetes.io/component: vector-database
+    security.nephoran.io/tls-version: "1.3"
+    security.nephoran.io/mtls: "enabled"
+spec:
+  secretName: weaviate-tls-secret
+  duration: 2160h # 90 days
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+      - Nephoran
+    organizationalUnits:
+      - Data Services
+    countries:
+      - US
+  commonName: weaviate.nephoran-system.svc.cluster.local
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+    encoding: PKCS8
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+    - client auth
+  dnsNames:
+    - weaviate
+    - weaviate.nephoran-system
+    - weaviate.nephoran-system.svc
+    - weaviate.nephoran-system.svc.cluster.local
+    - weaviate-0.weaviate.nephoran-system.svc.cluster.local
+    - weaviate-1.weaviate.nephoran-system.svc.cluster.local
+    - weaviate-2.weaviate.nephoran-system.svc.cluster.local
+  ipAddresses:
+    - 127.0.0.1
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+  secretTemplate:
+    annotations:
+      security.nephoran.io/tls-version: "1.3"
+      security.nephoran.io/cipher-suites: "TLS_AES_256_GCM_SHA384,TLS_CHACHA20_POLY1305_SHA256"
+    labels:
+      app.kubernetes.io/name: weaviate
+      security.nephoran.io/certificate-type: "service"
+---
+# Client Certificate for inter-service mTLS communication
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nephoran-client-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-client
+    security.nephoran.io/tls-version: "1.3"
+    security.nephoran.io/mtls: "enabled"
+spec:
+  secretName: nephoran-client-tls-secret
+  duration: 2160h # 90 days
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+      - Nephoran
+    organizationalUnits:
+      - Service Client
+    countries:
+      - US
+  commonName: nephoran-client
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+    encoding: PKCS8
+  usages:
+    - digital signature
+    - key encipherment
+    - client auth
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+  secretTemplate:
+    annotations:
+      security.nephoran.io/tls-version: "1.3"
+      security.nephoran.io/purpose: "client-authentication"
+    labels:
+      security.nephoran.io/certificate-type: "client"
+---
+# Webhook Certificate for admission controller
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nephoran-webhook-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-webhook
+    security.nephoran.io/tls-version: "1.3"
+spec:
+  secretName: nephoran-webhook-tls-secret
+  duration: 2160h # 90 days
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+      - Nephoran
+    organizationalUnits:
+      - Admission Control
+    countries:
+      - US
+  commonName: nephoran-webhook.nephoran-system.svc
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+    encoding: PKCS8
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+  dnsNames:
+    - nephoran-webhook
+    - nephoran-webhook.nephoran-system
+    - nephoran-webhook.nephoran-system.svc
+    - nephoran-webhook.nephoran-system.svc.cluster.local
+  issuerRef:
+    name: nephoran-ca-issuer
+    kind: Issuer
+    group: cert-manager.io
+  secretTemplate:
+    annotations:
+      security.nephoran.io/tls-version: "1.3"
+      cert-manager.io/inject-ca-from: "nephoran-system/nephoran-webhook-tls"
+    labels:
+      security.nephoran.io/certificate-type: "webhook"
+---
+# Certificate for external ingress (optional)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nephoran-ingress-tls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-ingress
+    security.nephoran.io/tls-version: "1.3"
+spec:
+  secretName: nephoran-ingress-tls-secret
+  duration: 2160h # 90 days
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+      - Nephoran
+    organizationalUnits:
+      - External Services
+    countries:
+      - US
+  commonName: api.nephoran.io
+  isCA: false
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+    encoding: PKCS8
+  usages:
+    - digital signature
+    - key encipherment
+    - server auth
+  dnsNames:
+    - api.nephoran.io
+    - "*.api.nephoran.io"
+    - nephoran.io
+  issuerRef:
+    name: nephoran-letsencrypt-prod
+    kind: ClusterIssuer
+    group: cert-manager.io
+  secretTemplate:
+    annotations:
+      security.nephoran.io/tls-version: "1.3"
+      security.nephoran.io/hsts: "max-age=31536000; includeSubDomains; preload"
+    labels:
+      security.nephoran.io/certificate-type: "ingress"

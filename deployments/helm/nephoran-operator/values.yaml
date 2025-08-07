@@ -151,3 +151,163 @@ monitoring:
     enabled: false
     interval: 30s
     scrapeTimeout: 10s
+
+# Security Configuration
+security:
+  # Enable mTLS for service-to-service communication
+  mtls:
+    enabled: false
+  
+  # Pod Security Standards
+  podSecurityStandards:
+    enforce: "restricted"
+    audit: "restricted"
+    warn: "restricted"
+  
+  # Network Policies
+  networkPolicies:
+    enabled: true
+    allowNamespaces: []
+  
+  # Security scanning
+  scanning:
+    enabled: true
+    trivy:
+      enabled: true
+    falco:
+      enabled: false
+
+# Secrets Configuration (SOPS-encrypted)
+secrets:
+  # API Keys secret
+  apiKeys:
+    name: "nephoran-api-keys"
+    namespace: "nephoran-system"
+  
+  # Database credentials secret
+  database:
+    name: "nephoran-database-credentials"
+    namespace: "nephoran-system"
+  
+  # Authentication secrets
+  auth:
+    name: "nephoran-auth-secrets"
+    namespace: "nephoran-system"
+  
+  # TLS certificates secret
+  tls:
+    name: "nephoran-tls-certificates"
+    namespace: "nephoran-system"
+  
+  # mTLS certificates secret
+  mtls:
+    name: "nephoran-mtls-certificates"
+    namespace: "nephoran-system"
+  
+  # O-RAN credentials secret
+  oran:
+    name: "nephoran-oran-credentials"
+    namespace: "nephoran-system"
+  
+  # External secrets operator (if using)
+  external:
+    enabled: false
+    backend: "vault"  # vault, aws-secrets-manager, azure-keyvault, gcp-secret-manager
+    refreshInterval: "1h"
+
+# LLM Provider Configuration
+llmProcessor:
+  enabled: true
+  replicaCount: 1
+  
+  # Log level
+  logLevel: "info"
+  
+  # LLM provider configuration
+  providers:
+    openai:
+      enabled: true
+      model: "gpt-4o-mini"
+    anthropic:
+      enabled: false
+      model: "claude-3-sonnet"
+    azure:
+      enabled: false
+      deployment: "gpt-4"
+    google:
+      enabled: false
+      model: "gemini-pro"
+  
+  # Database configuration
+  database:
+    enabled: false
+    type: "postgres"
+  
+  image:
+    repository: thc1006/nephoran-llm-processor
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  
+  # Health check configuration
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 8080
+      failureThreshold: 3
+      periodSeconds: 10
+      initialDelaySeconds: 30
+      timeoutSeconds: 5
+    readinessProbe:
+      httpGet:
+        path: /health
+        port: 8080
+      failureThreshold: 3
+      periodSeconds: 10
+      initialDelaySeconds: 5
+      timeoutSeconds: 5
+  
+  # Resource limits and requests
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  
+  # Node selection
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  
+  # Pod security context
+  podSecurityContext:
+    fsGroup: 65534
+  
+  # RAG service configuration (conditional)
+  ragService:
+    url: "http://rag-api:5001/process_intent"
+
+# Weaviate Vector Database
+weaviate:
+  enabled: false
+  service:
+    port: 8080
+    grpcPort: 50051

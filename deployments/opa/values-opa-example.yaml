@@ -1,0 +1,404 @@
+# Example Helm values for enabling OPA sidecar
+# Add these values to your existing values.yaml file
+
+security:
+  # OPA (Open Policy Agent) configuration
+  opa:
+    enabled: true
+    image:
+      registry: docker.io
+      repository: openpolicyagent/opa
+      tag: 0.58.0-envoy
+      pullPolicy: IfNotPresent
+    
+    # Logging configuration
+    logLevel: info  # debug, info, warn, error
+    
+    # Policy evaluation timeout
+    timeout: 5s
+    
+    # Resource allocation
+    resources:
+      requests:
+        memory: 64Mi
+        cpu: 50m
+      limits:
+        memory: 128Mi
+        cpu: 100m
+    
+    # Envoy proxy integration (optional)
+    envoy:
+      enabled: false  # Set to true for advanced filtering
+      image:
+        registry: docker.io
+        repository: envoyproxy/envoy
+        tag: v1.28.0
+        pullPolicy: IfNotPresent
+      logLevel: info
+      resources:
+        requests:
+          memory: 64Mi
+          cpu: 50m
+        limits:
+          memory: 128Mi
+          cpu: 100m
+    
+    # Policy configuration
+    policies:
+      # Request size limits (in bytes)
+      maxRequestSizes:
+        default: 1048576      # 1MB
+        process: 2097152      # 2MB
+        stream: 1048576       # 1MB
+        admin: 4096          # 4KB
+        health: 1024         # 1KB
+      
+      # Rate limiting (requests per second)
+      rateLimits:
+        anonymous: 5
+        user: 10
+        operator: 25
+        admin: 50
+      
+      # Security validation
+      security:
+        # Enable specific security checks
+        sqlInjectionDetection: true
+        xssDetection: true
+        commandInjectionDetection: true
+        pathTraversalDetection: true
+        
+        # Blocked user agent patterns
+        blockedUserAgents:
+          - "(?i)(sqlmap|nmap|nikto|burp|zap)"
+          - "(?i)(scan|attack|exploit)"
+        
+        # Suspicious IP ranges
+        blockedIpRanges:
+          - "127.0.0.0/8"
+          - "169.254.0.0/16"
+          - "224.0.0.0/4"
+      
+      # O-RAN compliance validation
+      oran:
+        # Valid interface types
+        validInterfaces:
+          - "A1"
+          - "O1" 
+          - "O2"
+          - "E2"
+          - "F1"
+          - "X2"
+          - "Xn"
+          - "N1"
+          - "N2"
+          - "N3"
+          - "N4"
+          - "N6"
+        
+        # Valid network function types
+        validNetworkFunctions:
+          - "AMF"
+          - "SMF"
+          - "UPF"
+          - "NSSF"
+          - "PCF"
+          - "UDM"
+          - "UDR"
+          - "AUSF"
+          - "NRF"
+          - "CHF"
+          - "O-DU"
+          - "O-CU"
+          - "O-RU"
+          - "Near-RT-RIC"
+          - "Non-RT-RIC"
+          - "SMO"
+        
+        # Valid 5G slice types
+        validSliceTypes:
+          - "eMBB"
+          - "URLLC"
+          - "mMTC"
+        
+        # Valid 5QI values
+        valid5QI:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 65
+          - 66
+          - 67
+          - 75
+      
+      # Intent validation
+      intent:
+        minLength: 10
+        maxLength: 5000
+        allowedCharPattern: '^[a-zA-Z0-9\\s\\-_.,!?()/:@#\\[\\]{}=\"\']+$'
+      
+      # JSON validation
+      json:
+        maxDepth: 10
+
+# LLM Processor configuration with OPA integration
+llmProcessor:
+  enabled: true
+  replicaCount: 2
+  
+  # Health check configuration
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+      initialDelaySeconds: 30
+      periodSeconds: 30
+      timeoutSeconds: 10
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+  
+  # Resource allocation
+  resources:
+    requests:
+      memory: 512Mi
+      cpu: 250m
+    limits:
+      memory: 1Gi
+      cpu: 500m
+  
+  # Security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    runAsGroup: 3000
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  
+  # Pod security context
+  podSecurityContext:
+    fsGroup: 3000
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+
+# RAG API configuration with OPA integration
+rag:
+  enabled: true
+  replicaCount: 2
+  
+  # OPA integration for RAG API
+  opa:
+    enabled: true
+    policies:
+      # RAG-specific validation
+      maxDocumentSize: 10485760  # 10MB
+      allowedDocumentTypes:
+        - "application/pdf"
+        - "text/plain"
+        - "text/markdown"
+        - "application/json"
+      
+      # Vector search validation
+      maxVectorDimensions: 1536
+      maxSearchResults: 100
+
+# Monitoring configuration for OPA
+monitoring:
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 15s
+      scrapeTimeout: 10s
+  
+  grafana:
+    enabled: true
+    dashboards:
+      opa:
+        enabled: true
+        configMapName: opa-dashboard
+  
+  alerting:
+    enabled: true
+    rules:
+      opa:
+        enabled: true
+        configMapName: opa-alerts
+
+# Network policies for OPA sidecar
+networkPolicies:
+  enabled: true
+  opa:
+    enabled: true
+    ingress:
+      # Allow traffic from LLM processor
+      - from:
+          - podSelector:
+              matchLabels:
+                app.kubernetes.io/component: llm-processor
+        ports:
+          - protocol: TCP
+            port: 8181
+          - protocol: TCP
+            port: 9191
+      
+      # Allow monitoring scraping
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                name: monitoring
+        ports:
+          - protocol: TCP
+            port: 8181
+          - protocol: TCP
+            port: 8282
+    
+    egress:
+      # Allow DNS resolution
+      - to: []
+        ports:
+          - protocol: UDP
+            port: 53
+      
+      # Allow access to Kubernetes API
+      - to:
+          - namespaceSelector: {}
+            podSelector:
+              matchLabels:
+                component: kube-apiserver
+        ports:
+          - protocol: TCP
+            port: 443
+
+# RBAC for OPA
+rbac:
+  enabled: true
+  opa:
+    enabled: true
+    rules:
+      # Allow reading ConfigMaps for policy updates
+      - apiGroups: [""]
+        resources: ["configmaps"]
+        verbs: ["get", "list", "watch"]
+      
+      # Allow reading Secrets for configuration
+      - apiGroups: [""]
+        resources: ["secrets"]
+        verbs: ["get"]
+      
+      # Allow creating Events for audit logging
+      - apiGroups: [""]
+        resources: ["events"]
+        verbs: ["create"]
+
+# Secrets configuration
+secrets:
+  opa:
+    # OPA-specific secrets (if needed)
+    name: opa-secrets
+    keys:
+      - opa-signing-key
+      - opa-encryption-key
+
+# Service configuration for OPA metrics
+services:
+  opa:
+    enabled: true
+    type: ClusterIP
+    ports:
+      http:
+        port: 8181
+        targetPort: 8181
+        name: opa-http
+      grpc:
+        port: 9191
+        targetPort: 9191
+        name: opa-grpc
+      diagnostics:
+        port: 8282
+        targetPort: 8282
+        name: opa-diag
+    
+    # Service monitor labels
+    labels:
+      monitoring: prometheus
+      security: opa
+
+# Pod disruption budget for OPA-enabled services
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+  
+# Horizontal Pod Autoscaler
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    # OPA-specific metrics
+    - type: Pods
+      pods:
+        metric:
+          name: opa_policy_violations_per_second
+        target:
+          type: AverageValue
+          averageValue: "0.1"
+
+# Deployment strategy
+deploymentStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 1
+
+# Node selector for OPA-enabled workloads
+nodeSelector:
+  kubernetes.io/arch: amd64
+  node-role.kubernetes.io/worker: "true"
+
+# Tolerations
+tolerations: []
+
+# Affinity rules
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                  - llm-processor
+          topologyKey: kubernetes.io/hostname

@@ -5,25 +5,34 @@ go 1.24.1
 toolchain go1.24.5
 
 require (
+	// AWS SDK for cloud integrations - pinned for supply chain security
 	github.com/aws/aws-sdk-go-v2 v1.37.2
 	github.com/aws/aws-sdk-go-v2/config v1.27.23
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.86.0
+	
+	// Git operations for GitOps workflows
 	github.com/go-git/go-git/v5 v5.12.0
+	
+	// Core dependencies - pinned versions for security
 	github.com/go-logr/logr v1.4.3
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
+	github.com/pquerna/otp v1.5.0
+	
+	// Testing framework - pinned for consistent CI/CD
 	github.com/onsi/ginkgo/v2 v2.22.0
 	github.com/onsi/gomega v1.36.1
-	github.com/pquerna/otp v1.5.0
+	github.com/stretchr/testify v1.10.0
+	
+	// Performance testing - pinned version for reproducible benchmarks
+	github.com/tsenart/vegeta/v12 v12.12.0
+	
+	// Observability stack - pinned for consistent metrics/tracing
 	github.com/prometheus/client_golang v1.22.0
 	github.com/prometheus/common v0.65.0
-	github.com/stretchr/testify v1.10.0
-	github.com/tsenart/vegeta/v12 v12.12.0
-	github.com/weaviate/weaviate v1.26.0
-	github.com/weaviate/weaviate-go-client/v4 v4.15.0
 	go.opentelemetry.io/otel v1.37.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.37.0
@@ -33,10 +42,17 @@ require (
 	go.opentelemetry.io/otel/sdk v1.37.0
 	go.opentelemetry.io/otel/trace v1.37.0
 	go.uber.org/zap v1.27.0
+	
+	// RAG/Vector database - pinned for ML pipeline stability
+	github.com/weaviate/weaviate v1.26.0
+	github.com/weaviate/weaviate-go-client/v4 v4.15.0
+	
+	// Security and crypto libraries - critical for supply chain security
 	golang.org/x/crypto v0.40.0
 	golang.org/x/mod v0.25.0
 	golang.org/x/oauth2 v0.30.0
-	gopkg.in/yaml.v2 v2.4.0
+	
+	// Kubernetes ecosystem - pinned to k8s v1.32.0 for compatibility
 	k8s.io/api v0.32.0
 	k8s.io/apiextensions-apiserver v0.32.0
 	k8s.io/apimachinery v0.32.0
@@ -44,7 +60,11 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/controller-runtime v0.20.0
 	sigs.k8s.io/yaml v1.4.0
+	
+	// Configuration management
+	gopkg.in/yaml.v2 v2.4.0
 )
+
 
 require (
 	dario.cat/mergo v1.0.0 // indirect

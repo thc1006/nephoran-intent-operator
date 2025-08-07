@@ -1,0 +1,405 @@
+# RoleBindings and ClusterRoleBindings for Nephoran Intent Operator
+# Binds service accounts to their respective roles with time-bound validity where appropriate
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-operator-controller
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: controller
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/expires: "2025-07-07"  # 6-month validity
+    security.nephoran.io/last-review: "2025-01-07"
+subjects:
+- kind: ServiceAccount
+  name: nephoran-operator-controller
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: nephoran-operator-controller
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-operator-controller-cluster
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: controller
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/expires: "2025-07-07"
+    security.nephoran.io/last-review: "2025-01-07"
+subjects:
+- kind: ServiceAccount
+  name: nephoran-operator-controller
+  namespace: nephoran-system
+roleRef:
+  kind: ClusterRole
+  name: nephoran-operator-controller-cluster
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-llm-processor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: llm-processor
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/expires: "2025-07-07"
+subjects:
+- kind: ServiceAccount
+  name: nephoran-llm-processor
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: nephoran-llm-processor
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-rag-api
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: rag-api
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/expires: "2025-07-07"
+subjects:
+- kind: ServiceAccount
+  name: nephoran-rag-api
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: nephoran-rag-api
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-oran-adaptor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: oran-adaptor
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/expires: "2025-07-07"
+subjects:
+- kind: ServiceAccount
+  name: nephoran-oran-adaptor
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: nephoran-oran-adaptor
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-oran-adaptor-cluster
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: oran-adaptor
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/expires: "2025-07-07"
+subjects:
+- kind: ServiceAccount
+  name: nephoran-oran-adaptor
+  namespace: nephoran-system
+roleRef:
+  kind: ClusterRole
+  name: nephoran-oran-adaptor-cluster
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-nephio-bridge
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: nephio-bridge
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/expires: "2025-07-07"
+subjects:
+- kind: ServiceAccount
+  name: nephoran-nephio-bridge
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: nephoran-nephio-bridge
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-nephio-bridge-cluster
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: nephio-bridge
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/expires: "2025-07-07"
+subjects:
+- kind: ServiceAccount
+  name: nephoran-nephio-bridge
+  namespace: nephoran-system
+roleRef:
+  kind: ClusterRole
+  name: nephoran-nephio-bridge-cluster
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-metrics-reader
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: monitoring
+    security.nephoran.io/rbac-version: "v1"
+subjects:
+- kind: ServiceAccount
+  name: nephoran-metrics-reader
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: nephoran-metrics-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-metrics-aggregator
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: monitoring
+    security.nephoran.io/rbac-version: "v1"
+subjects:
+- kind: ServiceAccount
+  name: nephoran-metrics-reader
+  namespace: nephoran-system
+roleRef:
+  kind: ClusterRole
+  name: nephoran-metrics-aggregator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-audit-logger
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: audit
+    security.nephoran.io/rbac-version: "v1"
+subjects:
+- kind: ServiceAccount
+  name: nephoran-audit-logger
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: nephoran-audit-logger
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-audit-aggregator
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: audit
+    security.nephoran.io/rbac-version: "v1"
+subjects:
+- kind: ServiceAccount
+  name: nephoran-audit-logger
+  namespace: nephoran-system
+roleRef:
+  kind: ClusterRole
+  name: nephoran-audit-aggregator
+  apiGroup: rbac.authorization.k8s.io
+---
+# Human operator bindings (examples - customize with actual users/groups)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-viewers
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Read-only access for monitoring team"
+    security.nephoran.io/expires: "2025-04-07"  # 3-month validity for viewers
+subjects:
+# Add actual users or groups here
+- kind: Group
+  name: nephoran-viewers
+  apiGroup: rbac.authorization.k8s.io
+# Example for specific user
+# - kind: User
+#   name: john.doe@example.com
+#   apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: nephoran-viewer
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-developers
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Development team access"
+    security.nephoran.io/expires: "2025-07-07"  # 6-month validity
+    security.nephoran.io/require-mfa: "true"
+subjects:
+- kind: Group
+  name: nephoran-developers
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: nephoran-developer
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: nephoran-admins
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Platform administrators"
+    security.nephoran.io/expires: "2025-04-07"  # 3-month validity for admins
+    security.nephoran.io/require-mfa: "true"
+    security.nephoran.io/require-approval: "true"
+subjects:
+- kind: Group
+  name: nephoran-admins
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: nephoran-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+# Cluster-wide viewer binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-cluster-viewers
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Cluster-wide read access"
+    security.nephoran.io/expires: "2025-04-07"
+subjects:
+- kind: Group
+  name: nephoran-viewers
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: nephoran-cluster-viewer
+  apiGroup: rbac.authorization.k8s.io
+---
+# RIC operator binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-ric-operators
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: ric
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "RIC management team"
+    security.nephoran.io/expires: "2025-07-07"
+subjects:
+- kind: Group
+  name: ric-operators
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: nephoran-ric-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+# Network function operator binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-nf-operators
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: network-functions
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Network function management team"
+    security.nephoran.io/expires: "2025-07-07"
+subjects:
+- kind: Group
+  name: nf-operators
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: nephoran-nf-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+# Security auditor binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-security-auditors
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: security
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Security audit team"
+    security.nephoran.io/expires: "2025-02-07"  # 1-month validity for auditors
+    security.nephoran.io/require-mfa: "true"
+subjects:
+- kind: Group
+  name: security-auditors
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: nephoran-security-auditor
+  apiGroup: rbac.authorization.k8s.io
+---
+# Compliance manager binding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: nephoran-compliance-managers
+  labels:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: compliance
+    security.nephoran.io/rbac-version: "v1"
+  annotations:
+    security.nephoran.io/purpose: "Compliance management team"
+    security.nephoran.io/expires: "2025-07-07"
+    security.nephoran.io/require-mfa: "true"
+subjects:
+- kind: Group
+  name: compliance-managers
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: nephoran-compliance-manager
+  apiGroup: rbac.authorization.k8s.io

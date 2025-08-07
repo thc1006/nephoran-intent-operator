@@ -1,0 +1,191 @@
+# Test requests for OPA policy validation
+# These examples demonstrate various scenarios for testing OPA policies
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-test-requests
+  namespace: nephoran-operator
+  labels:
+    app: opa-sidecar
+    component: test-examples
+data:
+  # Valid intent processing request
+  valid-intent-request.json: |
+    {
+      "method": "POST",
+      "path": "/process",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjE2ODY5NzI4MDAsImlzcyI6Im5lcGhvcmFuLWF1dGgtc2VydmljZSIsInJvbGVzIjpbIm9wZXJhdG9yIl0sInVzZXJfdHlwZSI6Im9wZXJhdG9yIn0.sampletoken",
+        "content-length": "450",
+        "user-agent": "nephoran-client/1.0.0"
+      },
+      "body": "{\"intent\": \"Deploy a high-availability AMF network function with auto-scaling enabled for 5G core network\", \"network_function\": {\"type\": \"AMF\", \"ha_enabled\": true, \"auto_scaling\": true}, \"oran_config\": {\"interface_type\": \"N2\"}, \"slice_config\": {\"type\": \"eMBB\"}, \"qos_config\": {\"five_qi\": 1}}",
+      "client_ip": "10.0.1.100",
+      "user_id": "user123",
+      "timestamp": 1686972800
+    }
+
+  # Invalid request - SQL injection attempt
+  sql-injection-request.json: |
+    {
+      "method": "POST",
+      "path": "/process",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer validtoken",
+        "content-length": "200"
+      },
+      "body": "{\"intent\": \"Deploy AMF'; DROP TABLE users; --\", \"network_function\": {\"type\": \"AMF\"}}",
+      "client_ip": "192.168.1.100",
+      "user_id": "attacker",
+      "timestamp": 1686972800
+    }
+
+  # Invalid request - XSS attempt
+  xss-attack-request.json: |
+    {
+      "method": "POST",
+      "path": "/process",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer validtoken",
+        "content-length": "150"
+      },
+      "body": "{\"intent\": \"Deploy <script>alert('XSS')</script> network function\"}",
+      "client_ip": "192.168.1.101",
+      "user_id": "attacker2",
+      "timestamp": 1686972800
+    }
+
+  # Invalid request - Command injection
+  command-injection-request.json: |
+    {
+      "method": "POST",
+      "path": "/process",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer validtoken",
+        "content-length": "180"
+      },
+      "body": "{\"intent\": \"Deploy AMF && rm -rf /etc/passwd network function\"}",
+      "client_ip": "192.168.1.102",
+      "user_id": "attacker3",
+      "timestamp": 1686972800
+    }
+
+  # Invalid request - Oversized request
+  oversized-request.json: |
+    {
+      "method": "POST",
+      "path": "/process",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer validtoken",
+        "content-length": "3000000"
+      },
+      "body": "{\"intent\": \"" + "A".repeat(2999900) + "\"}",
+      "client_ip": "192.168.1.103",
+      "user_id": "user456",
+      "timestamp": 1686972800
+    }
+
+  # Invalid request - Missing authorization
+  no-auth-request.json: |
+    {
+      "method": "POST",
+      "path": "/process",
+      "headers": {
+        "content-type": "application/json",
+        "content-length": "100"
+      },
+      "body": "{\"intent\": \"Deploy AMF network function\"}",
+      "client_ip": "192.168.1.104",
+      "user_id": "anonymous",
+      "timestamp": 1686972800
+    }
+
+  # Invalid request - Invalid O-RAN interface
+  invalid-oran-request.json: |
+    {
+      "method": "POST",
+      "path": "/process",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer validtoken",
+        "content-length": "200"
+      },
+      "body": "{\"intent\": \"Deploy network function\", \"oran_config\": {\"interface_type\": \"INVALID_INTERFACE\"}, \"network_function\": {\"type\": \"INVALID_NF\"}}",
+      "client_ip": "192.168.1.105",
+      "user_id": "user789",
+      "timestamp": 1686972800
+    }
+
+  # Invalid request - Invalid 5G slice type
+  invalid-slice-request.json: |
+    {
+      "method": "POST",
+      "path": "/process",
+      "headers": {
+        "content-type": "application/json",
+        "authorization": "Bearer validtoken",
+        "content-length": "200"
+      },
+      "body": "{\"intent\": \"Deploy network slice\", \"slice_config\": {\"type\": \"INVALID_SLICE\"}, \"qos_config\": {\"five_qi\": 999}}",
+      "client_ip": "192.168.1.106",
+      "user_id": "user101",
+      "timestamp": 1686972800
+    }
+
+  # Invalid request - Suspicious User-Agent
+  suspicious-ua-request.json: |
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "headers": {
+        "user-agent": "sqlmap/1.0.0 automated security scanner"
+      },
+      "client_ip": "192.168.1.107",
+      "user_id": "scanner",
+      "timestamp": 1686972800
+    }
+
+  # Valid health check request
+  valid-health-request.json: |
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "headers": {
+        "user-agent": "kubernetes/1.25.0 health-checker"
+      },
+      "client_ip": "10.0.1.1",
+      "user_id": "system",
+      "timestamp": 1686972800
+    }
+
+  # Admin request with proper authorization
+  valid-admin-request.json: |
+    {
+      "method": "GET",
+      "path": "/admin/status",
+      "headers": {
+        "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkFkbWluIFVzZXIiLCJpYXQiOjE1MTYyMzkwMjIsImV4cCI6MTY4Njk3MjgwMCwiaXNzIjoibmVwaG9yYW4tYXV0aC1zZXJ2aWNlIiwicm9sZXMiOlsiYWRtaW4iXSwidXNlcl90eXBlIjoiYWRtaW4ifQ.admintoken"
+      },
+      "client_ip": "10.0.1.50",
+      "user_id": "admin123",
+      "timestamp": 1686972800
+    }
+
+  # Invalid admin request - insufficient privileges
+  invalid-admin-request.json: |
+    {
+      "method": "GET",
+      "path": "/admin/status",
+      "headers": {
+        "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlJlZ3VsYXIgVXNlciIsImlhdCI6MTUxNjIzOTAyMiwiZXhwIjoxNjg2OTcyODAwLCJpc3MiOiJuZXBob3Jhbi1hdXRoLXNlcnZpY2UiLCJyb2xlcyI6WyJ1c2VyIl0sInVzZXJfdHlwZSI6InVzZXIifQ.usertoken"
+      },
+      "client_ip": "10.0.1.200",
+      "user_id": "user456",
+      "timestamp": 1686972800
+    }

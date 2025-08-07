@@ -41,27 +41,80 @@ spec:
               containerPort: {{ .Values.llmProcessor.service.targetPort }}
               protocol: TCP
           env:
-            {{- toYaml .Values.llmProcessor.env | nindent 12 }}
-            {{- if .Values.rag.enabled }}
+            # Service configuration
+            - name: PORT
+              value: "{{ .Values.llmProcessor.service.targetPort }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.llmProcessor.logLevel | default "info" }}"
+            
+            # Feature flags
             - name: RAG_ENABLED
-              value: "true"
-            {{- else }}
-            - name: RAG_ENABLED
-              value: "false"
-            {{- end }}
-            {{- if .Values.ml.enabled }}
+              value: "{{ .Values.rag.enabled }}"
             - name: ML_ENABLED
-              value: "true"
-            {{- else }}
-            - name: ML_ENABLED
-              value: "false"
+              value: "{{ .Values.ml.enabled }}"
+            
+            # OpenAI API credentials (from SOPS-encrypted secret)
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.apiKeys.name | default "nephoran-api-keys" }}
+                  key: openai-api-key
+            - name: OPENAI_API_BASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.apiKeys.name | default "nephoran-api-keys" }}
+                  key: openai-api-base
+            - name: OPENAI_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.apiKeys.name | default "nephoran-api-keys" }}
+                  key: openai-model
+            
+            # Alternative LLM providers (optional)
+            {{- if .Values.llmProcessor.providers.anthropic.enabled }}
+            - name: ANTHROPIC_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.apiKeys.name | default "nephoran-api-keys" }}
+                  key: anthropic-api-key
             {{- end }}
-            {{- if .Values.git.tokenSecret }}
+            
+            {{- if .Values.llmProcessor.providers.azure.enabled }}
+            - name: AZURE_OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.apiKeys.name | default "nephoran-api-keys" }}
+                  key: azure-openai-api-key
+            - name: AZURE_OPENAI_ENDPOINT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.apiKeys.name | default "nephoran-api-keys" }}
+                  key: azure-openai-endpoint
+            {{- end }}
+            
+            # Git credentials (from SOPS-encrypted secret)
+            {{- if .Values.git.enabled }}
             - name: GIT_TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.git.tokenSecret }}
-                  key: token
+                  name: {{ .Values.secrets.apiKeys.name | default "nephoran-api-keys" }}
+                  key: github-token
+            {{- end }}
+            
+            # JWT signing key (from SOPS-encrypted secret)
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.auth.name | default "nephoran-auth-secrets" }}
+                  key: jwt-signing-key
+            
+            # Database credentials (if needed)
+            {{- if .Values.llmProcessor.database.enabled }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.database.name | default "nephoran-database-credentials" }}
+                  key: postgres-connection-string
             {{- end }}
           {{- if .Values.llmProcessor.healthCheck.enabled }}
           livenessProbe:
@@ -86,9 +139,46 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            # Mount TLS certificates for mTLS
+            {{- if .Values.security.mtls.enabled }}
+            - name: mtls-certs
+              mountPath: /etc/tls/client
+              readOnly: true
+            - name: ca-cert
+              mountPath: /etc/tls/ca
+              readOnly: true
+            {{- end }}
+            # Mount service account token for Kubernetes API access
+            - name: service-account-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
       volumes:
         - name: tmp
           emptyDir: {}
+        {{- if .Values.security.mtls.enabled }}
+        - name: mtls-certs
+          secret:
+            secretName: {{ .Values.secrets.mtls.name | default "nephoran-mtls-certificates" }}
+            items:
+              - key: llm-processor-client.crt
+                path: client.crt
+              - key: llm-processor-client.key
+                path: client.key
+                mode: 0400
+        - name: ca-cert
+          secret:
+            secretName: {{ .Values.secrets.mtls.name | default "nephoran-mtls-certificates" }}
+            items:
+              - key: ca.crt
+                path: ca.crt
+        {{- end }}
+        - name: service-account-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3600
+                  audience: api
       {{- with .Values.llmProcessor.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

@@ -1,0 +1,452 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "OPA Policy Engine Dashboard - Nephoran Intent Operator",
+    "tags": ["opa", "security", "nephoran", "telecommunications"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "schemaVersion": 16,
+    "version": 1,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Policy Decision Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(opa_http_request_duration_seconds_count[5m]))",
+            "legendFormat": "Total Decisions/sec"
+          },
+          {
+            "expr": "sum(rate(opa_http_request_duration_seconds_count{decision=\"allow\"}[5m]))",
+            "legendFormat": "Allow/sec"
+          },
+          {
+            "expr": "sum(rate(opa_http_request_duration_seconds_count{decision=\"deny\"}[5m]))",
+            "legendFormat": "Deny/sec"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 10
+                },
+                {
+                  "color": "red",
+                  "value": 50
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Policy Violation Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(opa_http_request_duration_seconds_count{decision=\"deny\"}[5m])",
+            "legendFormat": "Violations/sec - {{instance}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Violations per second",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {
+                "params": [0.1],
+                "type": "gt"
+              },
+              "operator": {
+                "type": "and"
+              },
+              "query": {
+                "params": ["A", "5m", "now"]
+              },
+              "reducer": {
+                "params": [],
+                "type": "avg"
+              },
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "2m",
+          "frequency": "10s",
+          "handler": 1,
+          "name": "Policy Violation Rate Alert",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      },
+      {
+        "id": 3,
+        "title": "Security Threat Detection",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, sum by (violation_type) (increase(opa_http_request_duration_seconds_count{path=\"/v0/data/nephoran/security/validation\", decision=\"deny\"}[1h])))",
+            "legendFormat": "{{violation_type}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "displayMode": "list",
+              "filterable": true
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "O-RAN Compliance Violations",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (violation_type) (increase(opa_http_request_duration_seconds_count{path=\"/v0/data/nephoran/oran/compliance\", decision=\"deny\"}[1h]))",
+            "legendFormat": "{{violation_type}}"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        }
+      },
+      {
+        "id": 5,
+        "title": "Policy Evaluation Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(opa_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(opa_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(opa_http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "99th percentile"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Response Time (seconds)",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        }
+      },
+      {
+        "id": 6,
+        "title": "OPA Resource Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{container=\"opa-sidecar\"} / 1024 / 1024",
+            "legendFormat": "Memory Usage (MB) - {{pod_name}}"
+          },
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{container=\"opa-sidecar\"}[5m]) * 100",
+            "legendFormat": "CPU Usage (%) - {{pod_name}}"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Usage",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        }
+      },
+      {
+        "id": 7,
+        "title": "Request Size Distribution",
+        "type": "histogram",
+        "targets": [
+          {
+            "expr": "increase(opa_http_request_size_bytes_bucket[10m])",
+            "legendFormat": "{{le}} bytes"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        }
+      },
+      {
+        "id": 8,
+        "title": "Telecommunications-Specific Violations",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "sum by (violation_type, severity) (increase(opa_http_request_duration_seconds_count{path=~\".*telecom.*|.*5g.*|.*oran.*\", decision=\"deny\"}[1h]))",
+            "legendFormat": "{{violation_type}} ({{severity}})"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        },
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "displayMode": "color-background",
+              "filterable": true
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 5
+                },
+                {
+                  "color": "red",
+                  "value": 20
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Policy Cache Performance",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(opa_http_request_duration_seconds_count{cached=\"true\"}[5m]) / rate(opa_http_request_duration_seconds_count[5m]) * 100",
+            "legendFormat": "Cache Hit Rate (%)"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 60
+                },
+                {
+                  "color": "green",
+                  "value": 80
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 0,
+          "y": 32
+        }
+      },
+      {
+        "id": 10,
+        "title": "Bundle Load Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(opa_bundle_loaded{name!=\"\"})",
+            "legendFormat": "Loaded Bundles"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 6,
+          "y": 32
+        }
+      },
+      {
+        "id": 11,
+        "title": "Decision Log Volume",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(opa_decision_logs_nd_builtin_print_calls_total[1h])",
+            "legendFormat": "Decisions/hour"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "continuous-GrYlRd"
+            }
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 12,
+          "y": 32
+        }
+      },
+      {
+        "id": 12,
+        "title": "OPA Service Health",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"opa-diagnostics\"}",
+            "legendFormat": "{{instance}} Health"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "text": "DOWN",
+                    "color": "red"
+                  },
+                  "1": {
+                    "text": "UP",
+                    "color": "green"
+                  }
+                },
+                "type": "value"
+              }
+            ]
+          }
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 6,
+          "x": 18,
+          "y": 32
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "type": "query",
+          "query": "label_values(opa_http_request_duration_seconds_count, namespace)",
+          "refresh": 2,
+          "includeAll": true,
+          "multi": true
+        },
+        {
+          "name": "instance",
+          "type": "query",
+          "query": "label_values(opa_http_request_duration_seconds_count{namespace=~\"$namespace\"}, instance)",
+          "refresh": 2,
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Policy Updates",
+          "datasource": "Prometheus",
+          "expr": "changes(opa_bundle_loaded[1m]) > 0",
+          "titleFormat": "Policy Bundle Updated",
+          "textFormat": "OPA policy bundle was updated on {{instance}}"
+        }
+      ]
+    }
+  }
+}

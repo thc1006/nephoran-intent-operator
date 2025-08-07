@@ -1,0 +1,61 @@
+# Dependency Review Configuration
+# This configuration file defines the security policies for dependency review
+
+# Security vulnerability threshold
+vulnerability-check: true
+license-check: true
+
+# Fail on these vulnerability severities
+fail-on-severity: high
+
+# Allowed licenses (SPDX identifiers)
+allowed-licenses:
+  - Apache-2.0
+  - MIT
+  - BSD-2-Clause
+  - BSD-3-Clause
+  - ISC
+  - MPL-2.0
+
+# Denied licenses
+denied-licenses:
+  - GPL-2.0
+  - GPL-3.0
+  - AGPL-1.0
+  - AGPL-3.0
+  - LGPL-2.0
+  - LGPL-2.1
+  - LGPL-3.0
+
+# Allow specific packages even if they have denied licenses
+license-exceptions:
+  - pkg:npm/@example/package@1.0.0
+
+# Fail if dependency changes license to one not in allowed-licenses
+fail-on-license-change: true
+
+# Additional security policies
+security-policies:
+  # Block dependencies with known malicious patterns
+  block-malicious-packages: true
+  
+  # Require dependencies to be from trusted sources
+  trusted-sources:
+    - "https://proxy.golang.org"
+    - "https://sum.golang.org"
+  
+  # Maximum age for dependencies (in days)
+  max-dependency-age: 365
+  
+  # Minimum dependency popularity score (if available)
+  min-popularity-score: 10
+
+# Comment customization
+comment-summary-in-pr: true
+comment-details-in-pr: false
+
+# Review path filters
+exclude-paths:
+  - "test/**"
+  - "examples/**"
+  - "docs/**"

@@ -1,0 +1,171 @@
+# cert-manager Issuer and ClusterIssuer resources for Nephoran Intent Operator
+# Implements O-RAN WG11 security requirements for PKI management
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: nephoran-ca-cluster-issuer
+  namespace: cert-manager
+spec:
+  ca:
+    secretName: nephoran-ca-key-pair
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: nephoran-ca-issuer
+  namespace: nephoran-system
+spec:
+  ca:
+    secretName: nephoran-ca-key-pair
+---
+# Self-signed issuer for root CA generation
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: nephoran-selfsigned-issuer
+  namespace: cert-manager
+spec:
+  selfSigned: {}
+---
+# Root CA Certificate
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nephoran-ca-certificate
+  namespace: cert-manager
+spec:
+  isCA: true
+  commonName: nephoran-ca
+  secretName: nephoran-ca-key-pair
+  duration: 8760h # 365 days
+  renewBefore: 720h # 30 days
+  subject:
+    organizations:
+      - Nephoran
+    countries:
+      - US
+    organizationalUnits:
+      - Security
+    localities:
+      - San Francisco
+    provinces:
+      - CA
+  privateKey:
+    algorithm: ECDSA
+    size: 384
+    encoding: PKCS8
+  issuerRef:
+    name: nephoran-selfsigned-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+---
+# Production Issuer using Let's Encrypt (optional for external-facing services)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: nephoran-letsencrypt-prod
+  namespace: cert-manager
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: security@nephoran.io
+    privateKeySecretRef:
+      name: nephoran-letsencrypt-prod-key
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+          serviceType: ClusterIP
+    - dns01:
+        cloudDNS:
+          project: nephoran-prod
+          serviceAccountSecretRef:
+            name: clouddns-dns01-solver-svc-acct
+            key: key.json
+---
+# Staging Issuer for testing
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: nephoran-letsencrypt-staging
+  namespace: cert-manager
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: security@nephoran.io
+    privateKeySecretRef:
+      name: nephoran-letsencrypt-staging-key
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+          serviceType: ClusterIP
+---
+# Vault PKI Backend Issuer (for production environments with HashiCorp Vault)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: nephoran-vault-issuer
+  namespace: cert-manager
+spec:
+  vault:
+    server: https://vault.nephoran.io:8200
+    path: pki_int/sign/nephoran-role
+    caBundle: LS0tLS1CRUdJTi... # Base64 encoded CA bundle
+    auth:
+      kubernetes:
+        role: cert-manager
+        mountPath: /v1/auth/kubernetes
+        serviceAccountRef:
+          name: cert-manager-vault
+          namespace: cert-manager
+---
+# Certificate Policy for O-RAN compliance
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: certificate-policy
+  namespace: cert-manager
+data:
+  policy.yaml: |
+    # O-RAN WG11 compliant certificate policy
+    certificatePolicy:
+      version: "1.0"
+      standards:
+        - "O-RAN.WG11.Security-Requirements-v05.00"
+        - "3GPP-TS-33.501"
+        - "ETSI-NFV-SEC-006"
+      requirements:
+        keyAlgorithm: 
+          - ECDSA-P384
+          - RSA-4096
+        signatureAlgorithm:
+          - SHA384WithECDSA
+          - SHA512WithRSA
+        validity:
+          maximum: 90d
+          minimum: 30d
+          renewBefore: 30d
+        extensions:
+          keyUsage:
+            required:
+              - digitalSignature
+              - keyEncipherment
+            optional:
+              - dataEncipherment
+          extKeyUsage:
+            required:
+              - serverAuth
+              - clientAuth
+          sanTypes:
+            - DNS
+            - IP
+            - URI
+        subjectRequirements:
+          organization: required
+          country: required
+          commonName: required
+        auditLogging:
+          enabled: true
+          retention: 365d

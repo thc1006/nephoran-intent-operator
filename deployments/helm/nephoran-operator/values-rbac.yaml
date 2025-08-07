@@ -1,0 +1,356 @@
+# RBAC-specific values for Nephoran Intent Operator
+# Implements least-privilege and zero-trust security principles
+
+# Global RBAC settings
+rbac:
+  # Enable RBAC creation
+  create: true
+  
+  # Use existing service accounts if false
+  createServiceAccounts: true
+  
+  # Aggregate roles for human operators
+  aggregateRoles:
+    viewer: true
+    developer: true
+    admin: true
+  
+  # Time-bound role bindings (in days)
+  bindingValidity:
+    serviceAccounts: 180  # 6 months
+    viewers: 90          # 3 months
+    developers: 180      # 6 months
+    admins: 90          # 3 months
+    auditors: 30        # 1 month
+  
+  # MFA requirements
+  requireMFA:
+    admins: true
+    developers: true
+    auditors: true
+    viewers: false
+  
+  # Audit settings
+  audit:
+    enabled: true
+    retentionDays: 90
+    logLevel: Metadata  # None, Metadata, Request, RequestResponse
+
+# Service account configuration
+serviceAccounts:
+  # Controller service account
+  controller:
+    create: true
+    name: nephoran-operator-controller
+    automountServiceAccountToken: true
+    annotations:
+      security.nephoran.io/purpose: "Main operator controller"
+      security.nephoran.io/last-audit: ""
+  
+  # LLM processor service account
+  llmProcessor:
+    create: true
+    name: nephoran-llm-processor
+    automountServiceAccountToken: true
+    annotations:
+      security.nephoran.io/purpose: "LLM processing service"
+      security.nephoran.io/deny-escalation: "true"
+  
+  # RAG API service account
+  ragApi:
+    create: true
+    name: nephoran-rag-api
+    automountServiceAccountToken: true
+    annotations:
+      security.nephoran.io/purpose: "RAG knowledge retrieval"
+      security.nephoran.io/deny-escalation: "true"
+  
+  # Weaviate service account
+  weaviate:
+    create: true
+    name: nephoran-weaviate
+    automountServiceAccountToken: false  # No K8s API access needed
+    annotations:
+      security.nephoran.io/purpose: "Vector database"
+  
+  # O-RAN adaptor service account
+  oranAdaptor:
+    create: true
+    name: nephoran-oran-adaptor
+    automountServiceAccountToken: true
+    annotations:
+      security.nephoran.io/purpose: "O-RAN interface adapter"
+  
+  # Nephio bridge service account
+  nephioBridge:
+    create: true
+    name: nephoran-nephio-bridge
+    automountServiceAccountToken: true
+    annotations:
+      security.nephoran.io/purpose: "Nephio integration"
+  
+  # Metrics reader service account
+  metricsReader:
+    create: true
+    name: nephoran-metrics-reader
+    automountServiceAccountToken: true
+    annotations:
+      security.nephoran.io/purpose: "Metrics collection"
+  
+  # Audit logger service account
+  auditLogger:
+    create: true
+    name: nephoran-audit-logger
+    automountServiceAccountToken: true
+    annotations:
+      security.nephoran.io/purpose: "Audit logging"
+
+# Pod Security Standards
+podSecurityStandards:
+  enforce: restricted
+  audit: restricted
+  warn: restricted
+
+# Network Policies
+networkPolicies:
+  enabled: true
+  
+  # Default deny-all policy
+  denyAll: true
+  
+  # Allow DNS for all pods
+  allowDNS: true
+  
+  # Component-specific policies
+  controller:
+    enabled: true
+    ingress:
+      - from: metrics-scraper
+        ports: [8080]
+      - from: webhook-clients
+        ports: [9443]
+    egress:
+      - to: llm-processor
+        ports: [8081]
+      - to: nephio-bridge
+        ports: [8082]
+      - to: oran-adaptor
+        ports: [8083]
+      - to: kube-apiserver
+        ports: [443]
+  
+  llmProcessor:
+    enabled: true
+    ingress:
+      - from: controller
+        ports: [8081]
+    egress:
+      - to: openai-api
+        ports: [443]
+      - to: rag-api
+        ports: [8084]
+  
+  ragApi:
+    enabled: true
+    ingress:
+      - from: llm-processor
+        ports: [8084]
+    egress:
+      - to: weaviate
+        ports: [8085]
+  
+  weaviate:
+    enabled: true
+    ingress:
+      - from: rag-api
+        ports: [8085]
+    egress: []  # No external access needed
+  
+  oranAdaptor:
+    enabled: true
+    ingress:
+      - from: controller
+        ports: [8083]
+    egress:
+      - to: ric-components
+        ports: [8090, 8091, 8092]
+      - to: kube-apiserver
+        ports: [443]
+  
+  nephioBridge:
+    enabled: true
+    ingress:
+      - from: controller
+        ports: [8082]
+    egress:
+      - to: porch-api
+        ports: [443]
+      - to: git-server
+        ports: [22, 443]
+
+# Resource Quotas
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "100"
+    requests.memory: "100Gi"
+    limits.cpu: "200"
+    limits.memory: "200Gi"
+    persistentvolumeclaims: "20"
+    services.loadbalancers: "5"
+    services.nodeports: "0"  # Disable NodePort for security
+
+# Limit Ranges
+limitRange:
+  enabled: true
+  limits:
+    - max:
+        cpu: "4"
+        memory: "8Gi"
+      min:
+        cpu: "100m"
+        memory: "128Mi"
+      default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "100m"
+        memory: "128Mi"
+      type: Container
+    - max:
+        cpu: "8"
+        memory: "16Gi"
+      type: Pod
+
+# Security Contexts (applied to all pods)
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+  capabilities:
+    drop:
+      - ALL
+    add: []  # No additional capabilities
+
+# Container Security Context
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+  capabilities:
+    drop:
+      - ALL
+
+# Admission Controllers
+admissionControllers:
+  validatingWebhooks:
+    enabled: true
+    failurePolicy: Fail
+    namespaceSelector:
+      matchLabels:
+        security.nephoran.io/zone: trusted
+  
+  mutatingWebhooks:
+    enabled: true
+    failurePolicy: Fail
+    namespaceSelector:
+      matchLabels:
+        security.nephoran.io/auto-inject: "true"
+
+# Certificate Management
+certificates:
+  # Use cert-manager for automatic certificate rotation
+  certManager:
+    enabled: true
+    issuerRef:
+      name: nephoran-ca-issuer
+      kind: ClusterIssuer
+  
+  # Certificate validity period
+  duration: 8760h  # 1 year
+  renewBefore: 720h  # 30 days
+
+# Compliance Settings
+compliance:
+  # O-RAN WG11 compliance
+  oran:
+    enabled: true
+    version: "v1.0"
+    auditFrequency: weekly
+  
+  # Pod Security Policy (for K8s < 1.25)
+  podSecurityPolicy:
+    enabled: false  # Enable if using K8s < 1.25
+    spec:
+      privileged: false
+      allowPrivilegeEscalation: false
+      requiredDropCapabilities:
+        - ALL
+      volumes:
+        - configMap
+        - emptyDir
+        - projected
+        - secret
+        - downwardAPI
+        - persistentVolumeClaim
+      hostNetwork: false
+      hostIPC: false
+      hostPID: false
+      runAsUser:
+        rule: MustRunAsNonRoot
+      seLinux:
+        rule: RunAsAny
+      supplementalGroups:
+        rule: RunAsAny
+      fsGroup:
+        rule: RunAsAny
+      readOnlyRootFilesystem: true
+
+# Audit Configuration
+auditLog:
+  enabled: true
+  
+  # Audit policy rules
+  policy:
+    # Don't log read requests
+    omitReadRequests: true
+    
+    # Log level for different resources
+    levels:
+      secrets: Metadata  # Never log secret data
+      rbac: RequestResponse
+      nephoran: RequestResponse
+      default: Metadata
+  
+  # Webhook for external audit collection
+  webhook:
+    enabled: false
+    url: ""
+    
+# RBAC Groups (for human operators)
+rbacGroups:
+  viewers:
+    - name: monitoring-team
+      namespace: nephoran-system
+  developers:
+    - name: dev-team
+      namespace: nephoran-system
+  admins:
+    - name: platform-admins
+      namespace: nephoran-system
+  ricOperators:
+    - name: ric-team
+      namespace: nephoran-system
+  nfOperators:
+    - name: nf-team
+      namespace: nephoran-system
+  securityAuditors:
+    - name: security-team
+      namespace: nephoran-system
+  complianceManagers:
+    - name: compliance-team
+      namespace: nephoran-system

@@ -1,0 +1,345 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: opa-policies
+  namespace: nephoran-operator
+  labels:
+    app: opa-sidecar
+    component: policy-engine
+    version: v1
+data:
+  # Main request validation policy
+  request-validation.rego: |
+    # Comprehensive API Request Validation Policy
+    # Open Policy Agent (OPA) policies for Nephoran Intent Operator
+    # Validates incoming API requests for security, format, and compliance
+
+    package nephoran.api.validation
+
+    import rego.v1
+
+    # ============================================================================
+    # REQUEST SIZE VALIDATION
+    # ============================================================================
+
+    # Maximum request sizes (in bytes)
+    max_request_sizes := {
+    	"default": 1048576,         # 1MB default
+    	"/process": 2097152,        # 2MB for intent processing
+    	"/stream": 1048576,         # 1MB for streaming
+    	"/admin/status": 4096,      # 4KB for status endpoints
+    	"/healthz": 1024,           # 1KB for health checks
+    	"/readyz": 1024,            # 1KB for readiness checks
+    	"/metrics": 1024,           # 1KB for metrics
+    }
+
+    # Deny requests exceeding size limits
+    deny contains msg if {
+    	input.method in {"POST", "PUT", "PATCH"}
+    	content_length := to_number(input.headers["content-length"])
+    	path := input.path
+    	max_size := object.get(max_request_sizes, path, max_request_sizes.default)
+    	content_length > max_size
+    	msg := sprintf("Request size %d exceeds limit %d for path %s", [content_length, max_size, path])
+    }
+
+    # ============================================================================
+    # RATE LIMITING VALIDATION
+    # ============================================================================
+
+    # Rate limits per user (requests per second)
+    rate_limits := {
+    	"anonymous": 5,
+    	"user": 10,
+    	"operator": 25,
+    	"admin": 50,
+    }
+
+    # Rate limit enforcement
+    deny contains msg if {
+    	user_type := get_user_type(input)
+    	limit := object.get(rate_limits, user_type, rate_limits.anonymous)
+    	# In a real implementation, this would check external rate limiting store
+    	# For now, we assume rate limiting is handled by external middleware
+    	false  # Placeholder - actual rate limiting logic would go here
+    }
+
+    # ============================================================================
+    # JWT TOKEN VALIDATION
+    # ============================================================================
+
+    # JWT validation rules
+    deny contains msg if {
+    	input.method != "GET"
+    	input.path not in {"/healthz", "/readyz", "/metrics"}
+    	not input.headers.authorization
+    	msg := "Authorization header required for non-GET requests to protected endpoints"
+    }
+
+    deny contains msg if {
+    	input.headers.authorization
+    	not startswith(input.headers.authorization, "Bearer ")
+    	msg := "Authorization header must use Bearer token format"
+    }
+
+    # ============================================================================
+    # INPUT SANITIZATION AND VALIDATION
+    # ============================================================================
+
+    # SQL injection patterns
+    sql_injection_patterns := [
+    	"(?i)(union\\s+select)",
+    	"(?i)(drop\\s+table)",
+    	"(?i)(insert\\s+into)",
+    	"(?i)(delete\\s+from)",
+    	"(?i)(update\\s+.+\\s+set)",
+    	"'\\s*;\\s*--",
+    	"'\\s*or\\s+'?\\d",
+    	"'\\s*and\\s+'?\\d",
+    ]
+
+    # XSS patterns
+    xss_patterns := [
+    	"(?i)<script[^>]*>",
+    	"(?i)</script>",
+    	"(?i)javascript:",
+    	"(?i)vbscript:",
+    	"(?i)onload\\s*=",
+    	"(?i)onerror\\s*=",
+    	"(?i)onclick\\s*=",
+    ]
+
+    # Check for SQL injection attempts
+    deny contains msg if {
+    	request_body := input.body
+    	some pattern in sql_injection_patterns
+    	regex.match(pattern, request_body)
+    	msg := sprintf("Potential SQL injection detected: pattern %s", [pattern])
+    }
+
+    # Check for XSS attempts
+    deny contains msg if {
+    	request_body := input.body
+    	some pattern in xss_patterns
+    	regex.match(pattern, request_body)
+    	msg := sprintf("Potential XSS attack detected: pattern %s", [pattern])
+    }
+
+    # ============================================================================
+    # INTENT FORMAT VALIDATION
+    # ============================================================================
+
+    # Valid intent structure for /process endpoint
+    deny contains msg if {
+    	input.path == "/process"
+    	input.method == "POST"
+    	not is_valid_json(input.body)
+    	msg := "Request body must be valid JSON"
+    }
+
+    deny contains msg if {
+    	input.path == "/process"
+    	input.method == "POST"
+    	request_data := json.unmarshal(input.body)
+    	not request_data.intent
+    	msg := "Request must contain 'intent' field"
+    }
+
+    deny contains msg if {
+    	input.path == "/process"
+    	input.method == "POST"
+    	request_data := json.unmarshal(input.body)
+    	intent_text := request_data.intent
+    	count(intent_text) < 10
+    	msg := "Intent text must be at least 10 characters long"
+    }
+
+    deny contains msg if {
+    	input.path == "/process"
+    	input.method == "POST"
+    	request_data := json.unmarshal(input.body)
+    	intent_text := request_data.intent
+    	count(intent_text) > 5000
+    	msg := "Intent text must not exceed 5000 characters"
+    }
+
+    # ============================================================================
+    # HELPER FUNCTIONS
+    # ============================================================================
+
+    # Get user type from request context
+    get_user_type(input) := user_type if {
+    	auth_header := input.headers.authorization
+    	startswith(auth_header, "Bearer ")
+    	# In real implementation, would decode and validate JWT
+    	user_type := "user"  # Placeholder
+    } else := "anonymous"
+
+    # Validate JSON format
+    is_valid_json(body) if {
+    	json.unmarshal(body)
+    }
+
+  # Security-focused validation policy  
+  security-validation.rego: |
+    # Security-focused validation policies for Nephoran Intent Operator
+    package nephoran.security.validation
+
+    import rego.v1
+
+    # Command injection patterns
+    command_injection_patterns := [
+    	"(?i);\\s*(rm|del|format|shutdown|reboot)",
+    	"(?i)\\|\\s*(cat|type|more|less)",
+    	"(?i)&&\\s*(whoami|id|pwd)",
+    	"(?i)`[^`]*`",
+    	"(?i)\\$\\([^)]*\\)",
+    	"(?i)nc\\s+-",
+    	"(?i)curl\\s+",
+    	"(?i)wget\\s+",
+    ]
+
+    # Path traversal patterns
+    path_traversal_patterns := [
+    	"\\.\\./",
+    	"\\.\\.\\\\",
+    	"%2e%2e%2f",
+    	"%2e%2e%5c",
+    ]
+
+    # Detect command injection attempts
+    deny contains msg if {
+    	some pattern in command_injection_patterns
+    	regex.match(pattern, input.body)
+    	msg := sprintf("Command injection attempt detected: %s", [pattern])
+    }
+
+    # Detect path traversal attempts
+    deny contains msg if {
+    	some pattern in path_traversal_patterns
+    	contains(input.body, pattern)
+    	msg := sprintf("Path traversal attempt detected: %s", [pattern])
+    }
+
+    # Block suspicious User-Agent patterns
+    suspicious_user_agents := [
+    	"(?i)(sqlmap|nmap|nikto|burp|zap)",
+    	"(?i)(scan|attack|exploit)",
+    ]
+
+    deny contains msg if {
+    	user_agent := input.headers["user-agent"]
+    	some pattern in suspicious_user_agents
+    	regex.match(pattern, user_agent)
+    	msg := sprintf("Suspicious User-Agent detected: %s", [user_agent])
+    }
+
+  # O-RAN compliance policy
+  oran-compliance.rego: |
+    # O-RAN compliance validation for Nephoran Intent Operator
+    package nephoran.oran.compliance
+
+    import rego.v1
+
+    # Valid O-RAN interface types
+    valid_oran_interfaces := {
+    	"A1", "O1", "O2", "E2",
+    	"F1", "X2", "Xn", "N1", "N2", "N3", "N4", "N6",
+    }
+
+    # Valid 5G network function types
+    valid_nf_types := {
+    	"AMF", "SMF", "UPF", "NSSF", "PCF", "UDM", "UDR", 
+    	"AUSF", "NRF", "CHF", "O-DU", "O-CU", "O-RU", 
+    	"Near-RT-RIC", "Non-RT-RIC", "SMO"
+    }
+
+    # Valid 5G network slice types
+    valid_slice_types := {"eMBB", "URLLC", "mMTC"}
+
+    # Valid QoS class identifiers (5QI)
+    valid_5qi_values := [1, 2, 3, 4, 5, 6, 7, 8, 9, 65, 66, 67, 75]
+
+    # O-RAN interface validation
+    deny contains msg if {
+    	input.path == "/process"
+    	request_data := json.unmarshal(input.body)
+    	oran_config := request_data.oran_config
+    	interface_type := oran_config.interface_type
+    	interface_type
+    	not interface_type in valid_oran_interfaces
+    	msg := sprintf("Invalid O-RAN interface type: %s", [interface_type])
+    }
+
+    # Network function type validation
+    deny contains msg if {
+    	input.path == "/process"
+    	request_data := json.unmarshal(input.body)
+    	nf_config := request_data.network_function
+    	nf_type := nf_config.type
+    	nf_type
+    	not nf_type in valid_nf_types
+    	msg := sprintf("Invalid network function type: %s", [nf_type])
+    }
+
+    # Network slice validation
+    deny contains msg if {
+    	input.path == "/process"
+    	request_data := json.unmarshal(input.body)
+    	slice_config := request_data.slice_config
+    	slice_type := slice_config.type
+    	slice_type
+    	not slice_type in valid_slice_types
+    	msg := sprintf("Invalid 5G slice type: %s", [slice_type])
+    }
+
+    # QoS validation
+    deny contains msg if {
+    	input.path == "/process"
+    	request_data := json.unmarshal(input.body)
+    	qos_config := request_data.qos_config
+    	five_qi := qos_config.five_qi
+    	five_qi
+    	not five_qi in valid_5qi_values
+    	msg := sprintf("Invalid 5QI value: %d", [five_qi])
+    }
+
+  # OPA server configuration
+  opa-config.yaml: |
+    services:
+      authz:
+        url: http://localhost:8181
+
+    bundles:
+      authz:
+        polling:
+          min_delay_seconds: 10
+          max_delay_seconds: 20
+
+    decision_logs:
+      console: true
+      reporting:
+        min_delay_seconds: 5
+        max_delay_seconds: 10
+
+    status:
+      console: true
+      prometheus: true
+
+    server:
+      address: 0.0.0.0:8181
+      diagnostic-address: 0.0.0.0:8282
+
+    log:
+      level: info
+      format: json-pretty
+
+    plugins:
+      decision_logs:
+        console: true
+      status:
+        console: true
+        prometheus: true
+
+    cache:
+      directory: /tmp/opa-cache

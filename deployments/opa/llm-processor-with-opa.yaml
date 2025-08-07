@@ -1,0 +1,362 @@
+# LLM Processor Deployment with OPA Sidecar
+# This template integrates OPA policy validation as a sidecar container
+
+{{- if .Values.llmProcessor.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nephoran-operator.fullname" . }}-llm-processor
+  labels:
+    {{- include "nephoran-operator.labels" . | nindent 4 }}
+    app.kubernetes.io/component: llm-processor
+    security.nephoran.com/opa-enabled: "true"
+spec:
+  replicas: {{ .Values.llmProcessor.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nephoran-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: llm-processor
+  template:
+    metadata:
+      labels:
+        {{- include "nephoran-operator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: llm-processor
+        security.nephoran.com/opa-enabled: "true"
+      annotations:
+        # Force pod restart when OPA policies change
+        checksum/opa-policies: {{ include (print $.Template.BasePath "/opa-configmap.yaml") . | sha256sum }}
+        security.nephoran.com/policy-version: "v1.0.0"
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "nephoran-operator.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.llmProcessor.podSecurityContext | nindent 8 }}
+      containers:
+        # Main LLM Processor container
+        - name: llm-processor
+          securityContext:
+            {{- toYaml .Values.llmProcessor.securityContext | nindent 12 }}
+          image: "{{ .Values.global.imageRegistry }}{{ .Values.llmProcessor.image.repository }}:{{ .Values.llmProcessor.image.tag }}"
+          imagePullPolicy: {{ .Values.llmProcessor.image.pullPolicy }}
+          command: ["/llm-processor"]
+          args:
+            {{- if .Values.rag.enabled }}
+            - "--rag-service-url={{ .Values.llmProcessor.ragService.url }}"
+            {{- end }}
+            {{- if .Values.security.opa.enabled }}
+            - "--opa-url=http://localhost:8181"
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.llmProcessor.service.targetPort }}
+              protocol: TCP
+          env:
+            # Service configuration
+            - name: PORT
+              value: "{{ .Values.llmProcessor.service.targetPort }}"
+            - name: LOG_LEVEL
+              value: "{{ .Values.llmProcessor.logLevel | default "info" }}"
+            
+            # OPA integration
+            {{- if .Values.security.opa.enabled }}
+            - name: OPA_ENABLED
+              value: "true"
+            - name: OPA_URL
+              value: "http://localhost:8181"
+            - name: OPA_POLICY_PATH
+              value: "/v0/data/nephoran"
+            - name: OPA_TIMEOUT
+              value: "{{ .Values.security.opa.timeout | default "5s" }}"
+            {{- end }}
+            
+            # Feature flags
+            - name: RAG_ENABLED
+              value: "{{ .Values.rag.enabled }}"
+            - name: ML_ENABLED
+              value: "{{ .Values.ml.enabled }}"
+            
+            # OpenAI API credentials (from SOPS-encrypted secret)
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.apiKeys.name | default "nephoran-api-keys" }}
+                  key: openai-api-key
+            - name: OPENAI_API_BASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.apiKeys.name | default "nephoran-api-keys" }}
+                  key: openai-api-base
+            - name: OPENAI_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.apiKeys.name | default "nephoran-api-keys" }}
+                  key: openai-model
+            
+            # JWT signing key (from SOPS-encrypted secret)
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.auth.name | default "nephoran-auth-secrets" }}
+                  key: jwt-signing-key
+          
+          {{- if .Values.llmProcessor.healthCheck.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.llmProcessor.healthCheck.livenessProbe.httpGet.path }}
+              port: {{ .Values.llmProcessor.healthCheck.livenessProbe.httpGet.port }}
+            failureThreshold: {{ .Values.llmProcessor.healthCheck.livenessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.llmProcessor.healthCheck.livenessProbe.periodSeconds }}
+            initialDelaySeconds: {{ .Values.llmProcessor.healthCheck.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.llmProcessor.healthCheck.livenessProbe.timeoutSeconds }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.llmProcessor.healthCheck.readinessProbe.httpGet.path }}
+              port: {{ .Values.llmProcessor.healthCheck.readinessProbe.httpGet.port }}
+            failureThreshold: {{ .Values.llmProcessor.healthCheck.readinessProbe.failureThreshold }}
+            periodSeconds: {{ .Values.llmProcessor.healthCheck.readinessProbe.periodSeconds }}
+            initialDelaySeconds: {{ .Values.llmProcessor.healthCheck.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.llmProcessor.healthCheck.readinessProbe.timeoutSeconds }}
+          {{- end }}
+          
+          resources:
+            {{- toYaml .Values.llmProcessor.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            # Mount TLS certificates for mTLS
+            {{- if .Values.security.mtls.enabled }}
+            - name: mtls-certs
+              mountPath: /etc/tls/client
+              readOnly: true
+            - name: ca-cert
+              mountPath: /etc/tls/ca
+              readOnly: true
+            {{- end }}
+            # Mount service account token for Kubernetes API access
+            - name: service-account-token
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
+
+        # OPA Sidecar Container
+        {{- if .Values.security.opa.enabled }}
+        - name: opa-sidecar
+          image: {{ .Values.security.opa.image.registry }}/{{ .Values.security.opa.image.repository }}:{{ .Values.security.opa.image.tag }}
+          imagePullPolicy: {{ .Values.security.opa.image.pullPolicy }}
+          args:
+            - "run"
+            - "--server"
+            - "--config-file=/etc/opa/config/opa-config.yaml"
+            - "--addr=0.0.0.0:8181"
+            - "--diagnostic-addr=0.0.0.0:8282"
+            {{- if .Values.security.opa.envoy.enabled }}
+            - "--set=plugins.envoy_ext_authz_grpc.addr=:9191"
+            - "--set=plugins.envoy_ext_authz_grpc.enable_reflection=true"
+            {{- end }}
+            - "--set=decision_logs.console=true"
+            - "/etc/opa/policies/"
+          ports:
+            - name: opa-http
+              containerPort: 8181
+              protocol: TCP
+            {{- if .Values.security.opa.envoy.enabled }}
+            - name: opa-grpc
+              containerPort: 9191
+              protocol: TCP
+            {{- end }}
+            - name: opa-diag
+              containerPort: 8282
+              protocol: TCP
+          env:
+            - name: OPA_LOG_LEVEL
+              value: {{ .Values.security.opa.logLevel | default "info" }}
+            - name: OPA_LOG_FORMAT
+              value: "json"
+          resources:
+            requests:
+              memory: {{ .Values.security.opa.resources.requests.memory | default "64Mi" }}
+              cpu: {{ .Values.security.opa.resources.requests.cpu | default "50m" }}
+            limits:
+              memory: {{ .Values.security.opa.resources.limits.memory | default "128Mi" }}
+              cpu: {{ .Values.security.opa.resources.limits.cpu | default "100m" }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 3000
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: opa-policies
+              mountPath: /etc/opa/policies
+              readOnly: true
+            - name: opa-config
+              mountPath: /etc/opa/config
+              readOnly: true
+            - name: opa-tmp
+              mountPath: /tmp
+            - name: opa-cache
+              mountPath: /tmp/opa-cache
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8282
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health?bundle=true
+              port: 8282
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+        {{- end }}
+
+        # Optional Envoy Proxy Sidecar for advanced filtering
+        {{- if and .Values.security.opa.enabled .Values.security.opa.envoy.enabled }}
+        - name: envoy-proxy
+          image: {{ .Values.security.opa.envoy.image.registry }}/{{ .Values.security.opa.envoy.image.repository }}:{{ .Values.security.opa.envoy.image.tag }}
+          imagePullPolicy: {{ .Values.security.opa.envoy.image.pullPolicy }}
+          command:
+            - /usr/local/bin/envoy
+          args:
+            - --config-path
+            - /etc/envoy/envoy.yaml
+            - --service-cluster
+            - nephoran-llm-processor
+            - --service-node
+            - nephoran-llm-processor
+            - --log-level
+            - {{ .Values.security.opa.envoy.logLevel | default "info" }}
+          ports:
+            - name: envoy-admin
+              containerPort: 9901
+              protocol: TCP
+            - name: envoy-http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              memory: {{ .Values.security.opa.envoy.resources.requests.memory | default "64Mi" }}
+              cpu: {{ .Values.security.opa.envoy.resources.requests.cpu | default "50m" }}
+            limits:
+              memory: {{ .Values.security.opa.envoy.resources.limits.memory | default "128Mi" }}
+              cpu: {{ .Values.security.opa.envoy.resources.limits.cpu | default "100m" }}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 3000
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: envoy-config
+              mountPath: /etc/envoy
+              readOnly: true
+            - name: envoy-tmp
+              mountPath: /tmp
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 9901
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 9901
+            initialDelaySeconds: 5
+            periodSeconds: 5
+        {{- end }}
+
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        
+        {{- if .Values.security.mtls.enabled }}
+        - name: mtls-certs
+          secret:
+            secretName: {{ .Values.secrets.mtls.name | default "nephoran-mtls-certificates" }}
+            items:
+              - key: llm-processor-client.crt
+                path: client.crt
+              - key: llm-processor-client.key
+                path: client.key
+                mode: 0400
+        - name: ca-cert
+          secret:
+            secretName: {{ .Values.secrets.mtls.name | default "nephoran-mtls-certificates" }}
+            items:
+              - key: ca.crt
+                path: ca.crt
+        {{- end }}
+        
+        - name: service-account-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: token
+                  expirationSeconds: 3600
+                  audience: api
+        
+        {{- if .Values.security.opa.enabled }}
+        # OPA Volumes
+        - name: opa-policies
+          configMap:
+            name: opa-policies
+            items:
+              - key: request-validation.rego
+                path: request-validation.rego
+              - key: security-validation.rego
+                path: security-validation.rego
+              - key: oran-compliance.rego
+                path: oran-compliance.rego
+        - name: opa-config
+          configMap:
+            name: opa-policies
+            items:
+              - key: opa-config.yaml
+                path: opa-config.yaml
+        - name: opa-tmp
+          emptyDir:
+            sizeLimit: 50Mi
+        - name: opa-cache
+          emptyDir:
+            sizeLimit: 100Mi
+        {{- end }}
+        
+        {{- if and .Values.security.opa.enabled .Values.security.opa.envoy.enabled }}
+        # Envoy Volumes
+        - name: envoy-config
+          configMap:
+            name: envoy-config
+            items:
+              - key: envoy.yaml
+                path: envoy.yaml
+        - name: envoy-tmp
+          emptyDir:
+            sizeLimit: 50Mi
+        {{- end }}
+
+      {{- with .Values.llmProcessor.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.llmProcessor.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.llmProcessor.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

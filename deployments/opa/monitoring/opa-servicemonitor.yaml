@@ -1,0 +1,73 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: opa-sidecar
+  namespace: nephoran-operator
+  labels:
+    app: opa-sidecar
+    component: policy-engine
+    monitoring: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nephoran-operator
+      app.kubernetes.io/component: llm-processor
+      security.nephoran.com/opa-enabled: "true"
+  endpoints:
+    # OPA HTTP metrics endpoint
+    - port: opa-http
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod_name
+        - sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: node_name
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: 'opa_.*'
+          action: keep
+    
+    # OPA diagnostic metrics endpoint
+    - port: opa-diag
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod_name
+        - replacement: "opa-diagnostics"
+          targetLabel: job
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: 'opa_.*|http_.*'
+          action: keep
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opa-sidecar-metrics
+  namespace: nephoran-operator
+  labels:
+    app: opa-sidecar
+    component: policy-engine
+    monitoring: prometheus
+spec:
+  type: ClusterIP
+  ports:
+    - name: opa-http
+      port: 8181
+      targetPort: 8181
+      protocol: TCP
+    - name: opa-diag
+      port: 8282
+      targetPort: 8282
+      protocol: TCP
+  selector:
+    app.kubernetes.io/name: nephoran-operator
+    app.kubernetes.io/component: llm-processor
+    security.nephoran.com/opa-enabled: "true"
