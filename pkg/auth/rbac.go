@@ -135,8 +135,8 @@ type RBACCache struct {
 	mutex           sync.RWMutex
 }
 
-// RBACConfig represents RBAC configuration
-type RBACConfig struct {
+// RBACManagerConfig represents RBAC manager configuration
+type RBACManagerConfig struct {
 	CacheTTL           time.Duration `json:"cache_ttl"`
 	EnableHierarchy    bool          `json:"enable_hierarchy"`
 	DefaultDenyAll     bool          `json:"default_deny_all"`
@@ -265,9 +265,9 @@ var (
 )
 
 // NewRBACManager creates a new RBAC manager
-func NewRBACManager(config *RBACConfig, logger *slog.Logger) *RBACManager {
+func NewRBACManager(config *RBACManagerConfig, logger *slog.Logger) *RBACManager {
 	if config == nil {
-		config = &RBACConfig{
+		config = &RBACManagerConfig{
 			CacheTTL:           15 * time.Minute,
 			EnableHierarchy:    true,
 			DefaultDenyAll:     true,

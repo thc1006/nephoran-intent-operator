@@ -1,0 +1,1146 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "nephoran-availability",
+    "title": "Nephoran Intent Operator - Availability Dashboard",
+    "tags": ["nephoran", "availability", "uptime", "reliability", "incidents"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Multi-dimensional availability tracking with component breakdown",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "decimals": 3,
+            "mappings": [],
+            "max": 100,
+            "min": 99,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 99.9
+                },
+                {
+                  "color": "green",
+                  "value": 99.95
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "textMode": "auto"
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "100 * (1 - rate(nephoran_intent_failures_total[24h]) / rate(nephoran_intent_requests_total[24h]))",
+            "legendFormat": "Overall System (24h)",
+            "refId": "A"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_llm_failures_total[24h]) / rate(nephoran_llm_requests_total[24h]))",
+            "legendFormat": "LLM Service (24h)",
+            "refId": "B"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_rag_failures_total[24h]) / rate(nephoran_rag_requests_total[24h]))",
+            "legendFormat": "RAG Service (24h)",
+            "refId": "C"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_nephio_failures_total[24h]) / rate(nephoran_nephio_requests_total[24h]))",
+            "legendFormat": "Nephio Service (24h)",
+            "refId": "D"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_oran_failures_total[24h]) / rate(nephoran_oran_requests_total[24h]))",
+            "legendFormat": "O-RAN Service (24h)",
+            "refId": "E"
+          }
+        ],
+        "title": "System Availability - Multi-Dimensional View",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Availability trends over different time periods",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 99.8,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 99.95
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "id": 2,
+        "options": {
+          "legend": {
+            "calcs": [
+              "min",
+              "max",
+              "mean",
+              "last"
+            ],
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "100 * (1 - rate(nephoran_intent_failures_total[1h]) / rate(nephoran_intent_requests_total[1h]))",
+            "legendFormat": "1-hour Rolling",
+            "refId": "A"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_intent_failures_total[24h]) / rate(nephoran_intent_requests_total[24h]))",
+            "legendFormat": "24-hour Rolling",
+            "refId": "B"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_intent_failures_total[7d]) / rate(nephoran_intent_requests_total[7d]))",
+            "legendFormat": "7-day Rolling",
+            "refId": "C"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_intent_failures_total[30d]) / rate(nephoran_intent_requests_total[30d]))",
+            "legendFormat": "30-day Rolling",
+            "refId": "D"
+          }
+        ],
+        "title": "Availability Trends Over Time",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Root cause analysis for availability issues",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "displayMode": "color-background",
+              "inspect": false
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 1
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Root Cause"
+              },
+              "properties": [
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "options": {
+                        "api_limit": {
+                          "color": "orange",
+                          "index": 0,
+                          "text": "API Rate Limit"
+                        },
+                        "database": {
+                          "color": "red",
+                          "index": 1,
+                          "text": "Database Issue"
+                        },
+                        "network": {
+                          "color": "yellow",
+                          "index": 2,
+                          "text": "Network Issue"
+                        },
+                        "resource": {
+                          "color": "purple",
+                          "index": 3,
+                          "text": "Resource Exhaustion"
+                        },
+                        "timeout": {
+                          "color": "blue",
+                          "index": 4,
+                          "text": "Timeout"
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "id": 3,
+        "options": {
+          "showHeader": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "increase(nephoran_availability_incidents_total[24h])",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "",
+            "refId": "A"
+          }
+        ],
+        "title": "Root Cause Analysis (24h)",
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Uptime tracking with downtime events visualization",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "fillOpacity": 80,
+              "lineWidth": 0,
+              "spanNulls": false
+            },
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "index": 0,
+                    "text": "DOWN"
+                  },
+                  "1": {
+                    "color": "green",
+                    "index": 1,
+                    "text": "UP"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "green",
+                  "value": 1
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 24,
+          "x": 0,
+          "y": 16
+        },
+        "id": 4,
+        "options": {
+          "alignValue": "left",
+          "legend": {
+            "displayMode": "visible",
+            "placement": "bottom"
+          },
+          "mergeValues": true,
+          "rowHeight": 0.9,
+          "showValue": "never",
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "up{job=~\"nephoran.*\"}",
+            "legendFormat": "{{instance}}",
+            "refId": "A"
+          }
+        ],
+        "title": "Service Uptime Status",
+        "type": "state-timeline"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "MTTR and MTBF metrics for reliability assessment",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 15
+                },
+                {
+                  "color": "red",
+                  "value": 30
+                }
+              ]
+            },
+            "unit": "m"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "MTBF"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "h"
+                },
+                {
+                  "id": "thresholds",
+                  "value": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "red",
+                        "value": null
+                      },
+                      {
+                        "color": "yellow",
+                        "value": 100
+                      },
+                      {
+                        "color": "green",
+                        "value": 168
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 22
+        },
+        "id": 5,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "textMode": "auto"
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_mttr_minutes",
+            "legendFormat": "MTTR",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_mtbf_hours",
+            "legendFormat": "MTBF",
+            "refId": "B"
+          }
+        ],
+        "title": "Reliability Metrics - MTTR & MTBF",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Incident timeline and severity tracking",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "bars",
+              "fillOpacity": 80,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "normal"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 22
+        },
+        "id": 6,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "multi",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "increase(nephoran_incidents_total{severity=\"critical\"}[1h])",
+            "legendFormat": "Critical",
+            "refId": "A"
+          },
+          {
+            "expr": "increase(nephoran_incidents_total{severity=\"high\"}[1h])",
+            "legendFormat": "High",
+            "refId": "B"
+          },
+          {
+            "expr": "increase(nephoran_incidents_total{severity=\"medium\"}[1h])",
+            "legendFormat": "Medium",
+            "refId": "C"
+          },
+          {
+            "expr": "increase(nephoran_incidents_total{severity=\"low\"}[1h])",
+            "legendFormat": "Low",
+            "refId": "D"
+          }
+        ],
+        "title": "Incident Timeline by Severity",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Service dependency health and failure propagation analysis",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 95,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 99
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 30
+        },
+        "id": 7,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "100 * (1 - rate(nephoran_external_request_failures_total{service=\"openai\"}[5m]) / rate(nephoran_external_requests_total{service=\"openai\"}[5m]))",
+            "legendFormat": "OpenAI API Availability",
+            "refId": "A"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_external_request_failures_total{service=\"weaviate\"}[5m]) / rate(nephoran_external_requests_total{service=\"weaviate\"}[5m]))",
+            "legendFormat": "Weaviate Availability",
+            "refId": "B"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_external_request_failures_total{service=\"kubernetes\"}[5m]) / rate(nephoran_external_requests_total{service=\"kubernetes\"}[5m]))",
+            "legendFormat": "Kubernetes API Availability",
+            "refId": "C"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_database_failures_total[5m]) / rate(nephoran_database_requests_total[5m]))",
+            "legendFormat": "Database Availability",
+            "refId": "D"
+          }
+        ],
+        "title": "Service Dependency Health",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Availability SLA compliance scorecard",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "decimals": 4,
+            "mappings": [],
+            "max": 100,
+            "min": 99.9,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 99.95
+                },
+                {
+                  "color": "green",
+                  "value": 99.99
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 12,
+          "x": 0,
+          "y": 38
+        },
+        "id": 8,
+        "options": {
+          "displayMode": "lcd",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "showUnfilled": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "100 * (1 - rate(nephoran_intent_failures_total[7d]) / rate(nephoran_intent_requests_total[7d]))",
+            "legendFormat": "7-day SLA",
+            "refId": "A"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_intent_failures_total[30d]) / rate(nephoran_intent_requests_total[30d]))",
+            "legendFormat": "30-day SLA",
+            "refId": "B"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_intent_failures_total[90d]) / rate(nephoran_intent_requests_total[90d]))",
+            "legendFormat": "90-day SLA",
+            "refId": "C"
+          }
+        ],
+        "title": "SLA Compliance Scorecard",
+        "type": "bargauge"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Recovery patterns and automated healing metrics",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 20,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byRegexp",
+                "options": ".*Success Rate.*"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "percent"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 12,
+          "x": 12,
+          "y": 38
+        },
+        "id": 9,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "increase(nephoran_auto_recovery_attempts_total[1h])",
+            "legendFormat": "Auto Recovery Attempts",
+            "refId": "A"
+          },
+          {
+            "expr": "increase(nephoran_auto_recovery_success_total[1h])",
+            "legendFormat": "Auto Recovery Success",
+            "refId": "B"
+          },
+          {
+            "expr": "100 * rate(nephoran_auto_recovery_success_total[1h]) / rate(nephoran_auto_recovery_attempts_total[1h])",
+            "legendFormat": "Auto Recovery Success Rate",
+            "refId": "C"
+          },
+          {
+            "expr": "increase(nephoran_manual_interventions_total[1h])",
+            "legendFormat": "Manual Interventions",
+            "refId": "D"
+          }
+        ],
+        "title": "Recovery Patterns and Auto-Healing",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Downtime distribution and impact analysis",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              }
+            },
+            "mappings": []
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 44
+        },
+        "id": 10,
+        "options": {
+          "displayLabels": [
+            "percent"
+          ],
+          "legend": {
+            "displayMode": "visible",
+            "placement": "right"
+          },
+          "pieType": "pie",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "sum(increase(nephoran_downtime_seconds_total{cause=\"planned\"}[30d]))",
+            "legendFormat": "Planned Maintenance",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(increase(nephoran_downtime_seconds_total{cause=\"api_limit\"}[30d]))",
+            "legendFormat": "API Rate Limits",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(increase(nephoran_downtime_seconds_total{cause=\"database\"}[30d]))",
+            "legendFormat": "Database Issues",
+            "refId": "C"
+          },
+          {
+            "expr": "sum(increase(nephoran_downtime_seconds_total{cause=\"network\"}[30d]))",
+            "legendFormat": "Network Issues",
+            "refId": "D"
+          },
+          {
+            "expr": "sum(increase(nephoran_downtime_seconds_total{cause=\"resource\"}[30d]))",
+            "legendFormat": "Resource Exhaustion",
+            "refId": "E"
+          }
+        ],
+        "title": "Downtime Distribution (30d)",
+        "type": "piechart"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Historical availability comparison and trends",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "decimals": 3,
+            "mappings": [],
+            "max": 100,
+            "min": 99.8,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 99.95
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 44
+        },
+        "id": 11,
+        "options": {
+          "legend": {
+            "calcs": [
+              "min",
+              "max",
+              "mean"
+            ],
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "100 * (1 - rate(nephoran_intent_failures_total[30d]) / rate(nephoran_intent_requests_total[30d]))",
+            "legendFormat": "This Month",
+            "refId": "A"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_intent_failures_total[30d] offset 30d) / rate(nephoran_intent_requests_total[30d] offset 30d))",
+            "legendFormat": "Previous Month",
+            "refId": "B"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_intent_failures_total[30d] offset 60d) / rate(nephoran_intent_requests_total[30d] offset 60d))",
+            "legendFormat": "Two Months Ago",
+            "refId": "C"
+          }
+        ],
+        "title": "Historical Availability Comparison",
+        "type": "timeseries"
+      }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 36,
+    "style": "dark",
+    "tags": ["nephoran", "availability", "reliability"],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "definition": "label_values(up{job=~\"nephoran.*\"}, instance)",
+          "hide": 0,
+          "includeAll": true,
+          "label": "Instance",
+          "multi": true,
+          "name": "instance",
+          "options": [],
+          "query": {
+            "query": "label_values(up{job=~\"nephoran.*\"}, instance)",
+            "refId": "StandardVariableQuery"
+          },
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "type": "query"
+        },
+        {
+          "current": {
+            "selected": false,
+            "text": "24h",
+            "value": "24h"
+          },
+          "hide": 0,
+          "includeAll": false,
+          "label": "Time Window",
+          "multi": false,
+          "name": "timewindow",
+          "options": [
+            {
+              "selected": false,
+              "text": "1h",
+              "value": "1h"
+            },
+            {
+              "selected": false,
+              "text": "6h",
+              "value": "6h"
+            },
+            {
+              "selected": true,
+              "text": "24h",
+              "value": "24h"
+            },
+            {
+              "selected": false,
+              "text": "7d",
+              "value": "7d"
+            },
+            {
+              "selected": false,
+              "text": "30d",
+              "value": "30d"
+            }
+          ],
+          "query": "1h,6h,24h,7d,30d",
+          "queryValue": "",
+          "skipUrlSync": false,
+          "type": "custom"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-7d",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "Nephoran Intent Operator - Availability Dashboard",
+    "uid": "nephoran-availability",
+    "version": 1,
+    "weekStart": ""
+  }
+}

@@ -1,0 +1,650 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "nephoran-executive",
+    "title": "Nephoran Intent Operator - Executive Dashboard",
+    "tags": ["nephoran", "executive", "sla", "business"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Overall SLA compliance status with traffic light indicators",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "displayMode": "list",
+              "inspect": false,
+              "filterable": false
+            },
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "index": 0,
+                    "text": "Critical"
+                  },
+                  "1": {
+                    "color": "yellow",
+                    "index": 1,
+                    "text": "At Risk"
+                  },
+                  "2": {
+                    "color": "green",
+                    "index": 2,
+                    "text": "Compliant"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "displayMode": "table",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "showUnfilled": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_sla_availability_status",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "Availability",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_sla_latency_status",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "Latency",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_sla_throughput_status",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "Throughput",
+            "refId": "C"
+          }
+        ],
+        "title": "SLA Compliance Scorecard",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Current SLA scores as percentage",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 95
+                },
+                {
+                  "color": "green",
+                  "value": 99
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        },
+        "id": 2,
+        "options": {
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "showThresholdLabels": false,
+          "showThresholdMarkers": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_overall_sla_score",
+            "legendFormat": "Overall SLA Score",
+            "refId": "A"
+          }
+        ],
+        "title": "Overall SLA Score",
+        "type": "gauge"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Business impact metrics showing revenue and customer effects",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "currencyUSD"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Customers Affected"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "short"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 8
+        },
+        "id": 3,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "nephoran_revenue_impact_total",
+            "legendFormat": "Revenue Impact",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_customers_affected_total",
+            "legendFormat": "Customers Affected",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_revenue_at_risk_total",
+            "legendFormat": "Revenue at Risk",
+            "refId": "C"
+          }
+        ],
+        "title": "Business Impact Metrics",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Monthly SLA compliance trends across all targets",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 95,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 99.95
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 16
+        },
+        "id": 4,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "avg_over_time(nephoran_sla_availability_percentage[30d])",
+            "legendFormat": "Availability (30d avg)",
+            "refId": "A"
+          },
+          {
+            "expr": "avg_over_time(nephoran_sla_latency_compliance_percentage[30d])",
+            "legendFormat": "Latency (30d avg)",
+            "refId": "B"
+          },
+          {
+            "expr": "avg_over_time(nephoran_sla_throughput_compliance_percentage[30d])",
+            "legendFormat": "Throughput (30d avg)",
+            "refId": "C"
+          }
+        ],
+        "title": "Monthly SLA Trends",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Summary of incidents and their resolution status",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto",
+              "inspect": false
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 16
+        },
+        "id": 5,
+        "options": {
+          "showHeader": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "increase(nephoran_incidents_total[24h])",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "{{severity}}",
+            "refId": "A"
+          },
+          {
+            "expr": "increase(nephoran_incidents_resolved_total[24h])",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "Resolved",
+            "refId": "B"
+          }
+        ],
+        "title": "Incident Summary (24h)",
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Cost impact of SLA violations over time",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "bars",
+              "fillOpacity": 80,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "normal"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "currencyUSD"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 24
+        },
+        "id": 6,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "increase(nephoran_sla_violation_cost_total[1h])",
+            "legendFormat": "SLA Violation Cost",
+            "refId": "A"
+          },
+          {
+            "expr": "increase(nephoran_penalty_cost_total[1h])",
+            "legendFormat": "Penalty Cost",
+            "refId": "B"
+          },
+          {
+            "expr": "increase(nephoran_remediation_cost_total[1h])",
+            "legendFormat": "Remediation Cost",
+            "refId": "C"
+          }
+        ],
+        "title": "Cost Impact of SLA Violations",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Comparison with industry benchmarks",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 95
+                },
+                {
+                  "color": "green",
+                  "value": 99
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 24,
+          "x": 0,
+          "y": 32
+        },
+        "id": 7,
+        "options": {
+          "displayMode": "basic",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "showUnfilled": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_benchmark_availability",
+            "legendFormat": "Our Availability vs Industry ({{industry_avg}}%)",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_benchmark_latency",
+            "legendFormat": "Our Latency vs Industry ({{industry_avg}}ms)",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_benchmark_throughput",
+            "legendFormat": "Our Throughput vs Industry ({{industry_avg}}/min)",
+            "refId": "C"
+          }
+        ],
+        "title": "Competitive Benchmark Comparison",
+        "type": "bargauge"
+      }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 36,
+    "style": "dark",
+    "tags": ["nephoran", "executive", "sla"],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "definition": "label_values(nephoran_intent_requests_total, environment)",
+          "hide": 0,
+          "includeAll": true,
+          "label": "Environment",
+          "multi": false,
+          "name": "environment",
+          "options": [],
+          "query": {
+            "query": "label_values(nephoran_intent_requests_total, environment)",
+            "refId": "StandardVariableQuery"
+          },
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "type": "query"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-30d",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "Nephoran Intent Operator - Executive Dashboard",
+    "uid": "nephoran-executive",
+    "version": 1,
+    "weekStart": ""
+  }
+}

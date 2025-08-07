@@ -1,0 +1,271 @@
+# Security Testing Configuration for Nephoran Intent Operator mTLS System
+
+# Global test configuration
+global:
+  test_environment: "development"
+  namespace: "nephoran-security-tests"
+  timeout: "30m"
+  parallel_tests: 4
+  generate_reports: true
+  verbose_logging: false
+
+# Security test suite configuration
+security_testing:
+  # Certificate Authority configuration
+  ca_backend: "self-signed"  # Options: self-signed, cert-manager, vault, external
+  ca_config:
+    key_size: 2048
+    validity_days: 365
+    auto_rotation: true
+    rotation_threshold: "24h"
+  
+  # Service mesh integration
+  service_mesh: "none"  # Options: none, istio, linkerd, consul
+  mesh_config:
+    mtls_mode: "strict"
+    certificate_ttl: "24h"
+    policy_enforcement: true
+  
+  # Test scenarios to execute
+  test_scenarios:
+    handshake_testing: true
+    certificate_validation: true
+    attack_simulation: true
+    service_mesh_integration: false  # Requires service mesh deployment
+    
+  # Security test specific settings
+  security_config:
+    tls_min_version: "1.2"
+    cipher_suites:
+      - "TLS_AES_256_GCM_SHA384"
+      - "TLS_CHACHA20_POLY1305_SHA256"
+      - "TLS_AES_128_GCM_SHA256"
+    certificate_validation:
+      check_expiry: true
+      check_revocation: true
+      check_chain: true
+      check_hostname: true
+
+# Integration testing configuration
+integration_testing:
+  # Components to test
+  components:
+    - "llm-processor"
+    - "rag-api" 
+    - "nephio-bridge"
+    - "networkintent-controller"
+  
+  # Integration scenarios
+  scenarios:
+    controller_to_service: true
+    service_to_service: true
+    cross_cluster: false  # Requires multi-cluster setup
+    ca_backend_integration: true
+  
+  # Test data configuration
+  test_data:
+    create_test_certificates: true
+    certificate_count: 10
+    service_count: 5
+    request_volume: 100
+
+# Performance testing configuration  
+performance_testing:
+  # Load test parameters
+  load_testing:
+    duration: "60s"
+    concurrent_connections: 100
+    requests_per_second: 200
+    payload_size: 1024  # bytes
+    connection_reuse: true
+    keep_alive: true
+    timeout_duration: "10s"
+  
+  # Performance thresholds
+  thresholds:
+    handshake_p95_latency: "100ms"
+    validation_rate: 1000  # validations per second
+    sustained_throughput: 80  # requests per second
+    error_rate: 1.0  # percentage
+    memory_increase: 100  # MB under load
+  
+  # Benchmark configuration
+  benchmarks:
+    enable_profiling: true
+    profile_cpu: true
+    profile_memory: true
+    benchmark_iterations: 3
+
+# Compliance validation configuration
+compliance_testing:
+  # Standards to validate against
+  standards:
+    - "oran"
+    - "nist_csf" 
+    - "tls13"
+    - "3gpp"
+  
+  # O-RAN specific configuration
+  oran:
+    version: "7.0.0"
+    interfaces:
+      - "a1"
+      - "o1"
+      - "e2"
+    requirements:
+      mtls_mandatory: true
+      certificate_validation: true
+      tls_min_version: "1.2"
+  
+  # NIST Cybersecurity Framework
+  nist_csf:
+    version: "1.1"
+    functions:
+      - "identify"
+      - "protect"
+      - "detect"
+    categories:
+      - "asset_management"
+      - "access_control"
+      - "data_security"
+      - "security_monitoring"
+  
+  # TLS 1.3 compliance
+  tls13:
+    mandatory_ciphers: true
+    forward_secrecy: true
+    certificate_verification: true
+    deprecated_algorithms: false
+  
+  # Compliance reporting
+  reporting:
+    generate_html_report: true
+    generate_json_report: true
+    target_compliance_score: 90.0  # percentage
+
+# Chaos engineering configuration
+chaos_testing:
+  # Failure scenarios to test
+  failure_scenarios:
+    - "ca_failure"
+    - "network_partition"
+    - "cert_corruption"
+    - "service_mesh_failure"
+    - "mass_expiration"
+  
+  # Chaos test parameters
+  chaos_config:
+    scenario_duration: "30s"
+    recovery_timeout: "300s"  # 5 minutes
+    failure_rate: 50  # percentage for intermittent failures
+    monitoring_interval: "5s"
+  
+  # Recovery expectations
+  recovery_thresholds:
+    max_recovery_time: "5m"
+    min_availability_during_failure: 95.0  # percentage
+    data_integrity_required: true
+    automated_recovery_success_rate: 90.0  # percentage
+  
+  # Fault injection types
+  fault_injection:
+    ca_complete_failure: true
+    ca_intermittent_failure: true
+    certificate_corruption: true
+    network_partitions: true
+    service_failures: true
+    key_compromise_simulation: true
+
+# Reporting and output configuration
+reporting:
+  # Output formats
+  formats:
+    - "junit"
+    - "html"
+    - "json"
+  
+  # Report destinations
+  output_dir: "./reports"
+  log_dir: "./logs"
+  
+  # Report content
+  include_metrics: true
+  include_screenshots: false
+  include_traces: true
+  
+  # Archival settings
+  archive_reports: true
+  retention_days: 30
+
+# Environment-specific configurations
+environments:
+  development:
+    timeout_multiplier: 1.0
+    strict_validation: false
+    allow_self_signed: true
+    
+  staging:
+    timeout_multiplier: 1.5
+    strict_validation: true
+    allow_self_signed: false
+    
+  production:
+    timeout_multiplier: 2.0
+    strict_validation: true
+    allow_self_signed: false
+    additional_security_checks: true
+
+# Kubernetes-specific configuration
+kubernetes:
+  # Cluster access
+  use_current_context: true
+  create_test_namespace: true
+  cleanup_on_completion: true
+  
+  # Resource limits for test pods
+  resource_limits:
+    cpu: "500m"
+    memory: "1Gi"
+    
+  # Security context
+  security_context:
+    run_as_non_root: true
+    read_only_root_filesystem: true
+    allow_privilege_escalation: false
+
+# Logging configuration
+logging:
+  level: "info"  # debug, info, warn, error
+  format: "structured"  # structured, text
+  output: "both"  # stdout, file, both
+  
+  # Log retention
+  max_file_size: "100MB"
+  max_backup_files: 5
+  max_age_days: 7
+
+# Notification configuration
+notifications:
+  enabled: false
+  
+  # Notification channels
+  channels:
+    slack:
+      enabled: false
+      webhook_url: ""
+      channel: "#security-alerts"
+    
+    email:
+      enabled: false
+      smtp_server: ""
+      recipients: []
+    
+    webhook:
+      enabled: false
+      url: ""
+      
+  # Notification triggers
+  triggers:
+    test_failure: true
+    compliance_violation: true
+    security_threshold_breach: true

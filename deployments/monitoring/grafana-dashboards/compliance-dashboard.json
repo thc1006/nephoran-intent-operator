@@ -1,0 +1,1275 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "nephoran-compliance",
+    "title": "Nephoran Intent Operator - Compliance Dashboard",
+    "tags": ["nephoran", "compliance", "audit", "security", "regulatory"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Real-time compliance status across all regulatory frameworks",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "index": 0,
+                    "text": "NON-COMPLIANT"
+                  },
+                  "1": {
+                    "color": "yellow",
+                    "index": 1,
+                    "text": "PARTIAL"
+                  },
+                  "2": {
+                    "color": "green",
+                    "index": 2,
+                    "text": "COMPLIANT"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "textMode": "auto"
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_compliance_status{framework=\"sox\"}",
+            "legendFormat": "SOX",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_compliance_status{framework=\"pci-dss\"}",
+            "legendFormat": "PCI-DSS",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_compliance_status{framework=\"iso-27001\"}",
+            "legendFormat": "ISO 27001",
+            "refId": "C"
+          },
+          {
+            "expr": "nephoran_compliance_status{framework=\"hipaa\"}",
+            "legendFormat": "HIPAA",
+            "refId": "D"
+          },
+          {
+            "expr": "nephoran_compliance_status{framework=\"gdpr\"}",
+            "legendFormat": "GDPR",
+            "refId": "E"
+          }
+        ],
+        "title": "Regulatory Compliance Status",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Compliance scores across frameworks with trend indicators",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 70
+                },
+                {
+                  "color": "green",
+                  "value": 90
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 4
+        },
+        "id": 2,
+        "options": {
+          "displayMode": "lcd",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "showUnfilled": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_compliance_score{framework=\"sox\"}",
+            "legendFormat": "SOX Compliance",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_compliance_score{framework=\"pci-dss\"}",
+            "legendFormat": "PCI-DSS Compliance",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_compliance_score{framework=\"iso-27001\"}",
+            "legendFormat": "ISO 27001 Compliance",
+            "refId": "C"
+          },
+          {
+            "expr": "nephoran_compliance_score{framework=\"hipaa\"}",
+            "legendFormat": "HIPAA Compliance",
+            "refId": "D"
+          },
+          {
+            "expr": "nephoran_compliance_score{framework=\"gdpr\"}",
+            "legendFormat": "GDPR Compliance",
+            "refId": "E"
+          }
+        ],
+        "title": "Compliance Scores by Framework",
+        "type": "bargauge"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Audit trail activity and compliance validation events",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "displayMode": "color-background",
+              "inspect": false
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 10
+                },
+                {
+                  "color": "red",
+                  "value": 50
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Action"
+              },
+              "properties": [
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "options": {
+                        "create": {
+                          "color": "green",
+                          "index": 0
+                        },
+                        "update": {
+                          "color": "blue",
+                          "index": 1
+                        },
+                        "delete": {
+                          "color": "red",
+                          "index": 2
+                        },
+                        "access": {
+                          "color": "yellow",
+                          "index": 3
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 4
+        },
+        "id": 3,
+        "options": {
+          "showHeader": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "increase(nephoran_audit_events_total[1h])",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "",
+            "refId": "A"
+          }
+        ],
+        "title": "Recent Audit Events (1h)",
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Data retention compliance and policy enforcement",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 20,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "bytes"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byRegexp",
+                "options": ".*Count.*"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "short"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 12
+        },
+        "id": 4,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "nephoran_data_retention_bytes{type=\"audit_logs\"}",
+            "legendFormat": "Audit Log Storage",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_data_retention_bytes{type=\"metrics\"}",
+            "legendFormat": "Metrics Storage",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_data_retention_bytes{type=\"logs\"}",
+            "legendFormat": "Application Logs",
+            "refId": "C"
+          },
+          {
+            "expr": "nephoran_data_purged_count{type=\"audit_logs\"}",
+            "legendFormat": "Audit Records Purged",
+            "refId": "D"
+          },
+          {
+            "expr": "nephoran_data_archived_count{type=\"metrics\"}",
+            "legendFormat": "Metrics Archived",
+            "refId": "E"
+          }
+        ],
+        "title": "Data Retention and Lifecycle Management",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Security controls effectiveness and validation status",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto",
+              "inspect": false
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Status"
+              },
+              "properties": [
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "options": {
+                        "active": {
+                          "color": "green",
+                          "index": 0
+                        },
+                        "inactive": {
+                          "color": "red",
+                          "index": 1
+                        },
+                        "testing": {
+                          "color": "yellow",
+                          "index": 2
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Effectiveness"
+              },
+              "properties": [
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "options": {
+                        "effective": {
+                          "color": "green",
+                          "index": 0
+                        },
+                        "partially_effective": {
+                          "color": "yellow",
+                          "index": 1
+                        },
+                        "ineffective": {
+                          "color": "red",
+                          "index": 2
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 20
+        },
+        "id": 5,
+        "options": {
+          "showHeader": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_security_controls",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "",
+            "refId": "A"
+          }
+        ],
+        "title": "Security Controls Status",
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Compliance violations and remediation tracking",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "bars",
+              "fillOpacity": 80,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "normal"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 20
+        },
+        "id": 6,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "multi",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "increase(nephoran_compliance_violations_total{severity=\"critical\"}[24h])",
+            "legendFormat": "Critical Violations",
+            "refId": "A"
+          },
+          {
+            "expr": "increase(nephoran_compliance_violations_total{severity=\"high\"}[24h])",
+            "legendFormat": "High Violations",
+            "refId": "B"
+          },
+          {
+            "expr": "increase(nephoran_compliance_violations_total{severity=\"medium\"}[24h])",
+            "legendFormat": "Medium Violations",
+            "refId": "C"
+          },
+          {
+            "expr": "increase(nephoran_compliance_violations_resolved_total[24h])",
+            "legendFormat": "Resolved Violations",
+            "refId": "D"
+          }
+        ],
+        "title": "Compliance Violations and Remediation (24h)",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Evidence collection and attestation status",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 28
+        },
+        "id": 7,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "increase(nephoran_evidence_collected_total{type=\"document\"}[1h])",
+            "legendFormat": "Documents Collected",
+            "refId": "A"
+          },
+          {
+            "expr": "increase(nephoran_evidence_collected_total{type=\"log\"}[1h])",
+            "legendFormat": "Log Evidence",
+            "refId": "B"
+          },
+          {
+            "expr": "increase(nephoran_evidence_collected_total{type=\"metric\"}[1h])",
+            "legendFormat": "Metric Evidence",
+            "refId": "C"
+          },
+          {
+            "expr": "increase(nephoran_evidence_validated_total[1h])",
+            "legendFormat": "Evidence Validated",
+            "refId": "D"
+          },
+          {
+            "expr": "nephoran_attestations_active",
+            "legendFormat": "Active Attestations",
+            "refId": "E"
+          },
+          {
+            "expr": "nephoran_attestations_expiring_soon",
+            "legendFormat": "Expiring Soon",
+            "refId": "F"
+          }
+        ],
+        "title": "Evidence Collection and Attestation",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Access control and authentication compliance",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 5
+                },
+                {
+                  "color": "red",
+                  "value": 10
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 12,
+          "x": 0,
+          "y": 36
+        },
+        "id": 8,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "textMode": "auto"
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_failed_auth_attempts_total",
+            "legendFormat": "Failed Auth Attempts",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_privileged_access_violations_total",
+            "legendFormat": "Privilege Violations",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_session_timeout_violations_total",
+            "legendFormat": "Session Timeouts",
+            "refId": "C"
+          },
+          {
+            "expr": "nephoran_mfa_bypass_attempts_total",
+            "legendFormat": "MFA Bypass Attempts",
+            "refId": "D"
+          }
+        ],
+        "title": "Access Control Violations",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Encryption and data protection status",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "index": 0,
+                    "text": "DISABLED"
+                  },
+                  "1": {
+                    "color": "green",
+                    "index": 1,
+                    "text": "ENABLED"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 12,
+          "x": 12,
+          "y": 36
+        },
+        "id": 9,
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "textMode": "auto"
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_encryption_at_rest_enabled",
+            "legendFormat": "Encryption at Rest",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_encryption_in_transit_enabled",
+            "legendFormat": "Encryption in Transit",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_key_rotation_compliant",
+            "legendFormat": "Key Rotation",
+            "refId": "C"
+          },
+          {
+            "expr": "nephoran_backup_encryption_enabled",
+            "legendFormat": "Backup Encryption",
+            "refId": "D"
+          }
+        ],
+        "title": "Encryption and Data Protection",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Risk assessment and mitigation tracking",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              }
+            },
+            "mappings": []
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 42
+        },
+        "id": 10,
+        "options": {
+          "displayLabels": [
+            "percent"
+          ],
+          "legend": {
+            "displayMode": "visible",
+            "placement": "right"
+          },
+          "pieType": "pie",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "nephoran_risk_factors{level=\"low\"}",
+            "legendFormat": "Low Risk",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_risk_factors{level=\"medium\"}",
+            "legendFormat": "Medium Risk",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_risk_factors{level=\"high\"}",
+            "legendFormat": "High Risk",
+            "refId": "C"
+          },
+          {
+            "expr": "nephoran_risk_factors{level=\"critical\"}",
+            "legendFormat": "Critical Risk",
+            "refId": "D"
+          }
+        ],
+        "title": "Risk Assessment Distribution",
+        "type": "piechart"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Compliance assessment schedule and next due dates",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto",
+              "inspect": false
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 7
+                },
+                {
+                  "color": "red",
+                  "value": 1
+                }
+              ]
+            },
+            "unit": "d"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Framework"
+              },
+              "properties": [
+                {
+                  "id": "custom.width",
+                  "value": 120
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Status"
+              },
+              "properties": [
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "options": {
+                        "due": {
+                          "color": "red",
+                          "index": 0
+                        },
+                        "upcoming": {
+                          "color": "yellow",
+                          "index": 1
+                        },
+                        "scheduled": {
+                          "color": "green",
+                          "index": 2
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 42
+        },
+        "id": 11,
+        "options": {
+          "showHeader": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_next_assessment_days",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "",
+            "refId": "A"
+          }
+        ],
+        "title": "Upcoming Compliance Assessments",
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Historical compliance trends and improvement tracking",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 50
+        },
+        "id": 12,
+        "options": {
+          "legend": {
+            "calcs": [
+              "min",
+              "max",
+              "mean",
+              "last"
+            ],
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "nephoran_compliance_score{framework=\"sox\"}",
+            "legendFormat": "SOX",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_compliance_score{framework=\"pci-dss\"}",
+            "legendFormat": "PCI-DSS",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_compliance_score{framework=\"iso-27001\"}",
+            "legendFormat": "ISO 27001",
+            "refId": "C"
+          },
+          {
+            "expr": "nephoran_compliance_score{framework=\"hipaa\"}",
+            "legendFormat": "HIPAA",
+            "refId": "D"
+          },
+          {
+            "expr": "nephoran_compliance_score{framework=\"gdpr\"}",
+            "legendFormat": "GDPR",
+            "refId": "E"
+          }
+        ],
+        "title": "Historical Compliance Trends",
+        "type": "timeseries"
+      }
+    ],
+    "refresh": "5m",
+    "schemaVersion": 36,
+    "style": "dark",
+    "tags": ["nephoran", "compliance", "audit"],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "selected": true,
+            "text": [
+              "All"
+            ],
+            "value": [
+              "$__all"
+            ]
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "definition": "label_values(nephoran_compliance_score, framework)",
+          "hide": 0,
+          "includeAll": true,
+          "label": "Framework",
+          "multi": true,
+          "name": "framework",
+          "options": [],
+          "query": {
+            "query": "label_values(nephoran_compliance_score, framework)",
+            "refId": "StandardVariableQuery"
+          },
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "type": "query"
+        },
+        {
+          "current": {
+            "selected": false,
+            "text": "30d",
+            "value": "30d"
+          },
+          "hide": 0,
+          "includeAll": false,
+          "label": "Assessment Period",
+          "multi": false,
+          "name": "period",
+          "options": [
+            {
+              "selected": false,
+              "text": "7d",
+              "value": "7d"
+            },
+            {
+              "selected": true,
+              "text": "30d",
+              "value": "30d"
+            },
+            {
+              "selected": false,
+              "text": "90d",
+              "value": "90d"
+            },
+            {
+              "selected": false,
+              "text": "1y",
+              "value": "1y"
+            }
+          ],
+          "query": "7d,30d,90d,1y",
+          "queryValue": "",
+          "skipUrlSync": false,
+          "type": "custom"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-30d",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "Nephoran Intent Operator - Compliance Dashboard",
+    "uid": "nephoran-compliance",
+    "version": 1,
+    "weekStart": ""
+  }
+}

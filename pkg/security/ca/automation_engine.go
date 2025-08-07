@@ -33,6 +33,12 @@ type AutomationEngine struct {
 	renewalQueue      chan *RenewalRequest
 	validationCache   *ValidationCache
 	
+	// Enhanced features
+	rotationCoordinator *RotationCoordinator
+	serviceDiscovery    *ServiceDiscovery
+	performanceCache    *PerformanceCache
+	healthChecker      *HealthChecker
+	
 	// Control channels
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -156,8 +162,22 @@ type RenewalRequest struct {
 	Namespace         string            `json:"namespace"`
 	RenewalWindow     time.Duration     `json:"renewal_window"`
 	GracefulRenewal   bool              `json:"graceful_renewal"`
+	ZeroDowntime      bool              `json:"zero_downtime"`
+	CoordinatedRotation bool            `json:"coordinated_rotation"`
+	HealthCheckConfig *HealthCheckConfig `json:"health_check_config,omitempty"`
 	Metadata          map[string]string `json:"metadata"`
 	CreatedAt         time.Time         `json:"created_at"`
+}
+
+// HealthCheckConfig defines health check configuration for zero-downtime rotation
+type HealthCheckConfig struct {
+	Enabled           bool          `json:"enabled"`
+	HTTPEndpoint      string        `json:"http_endpoint"`
+	GRPCService       string        `json:"grpc_service"`
+	CheckInterval     time.Duration `json:"check_interval"`
+	TimeoutPerCheck   time.Duration `json:"timeout_per_check"`
+	HealthyThreshold  int           `json:"healthy_threshold"`
+	UnhealthyThreshold int          `json:"unhealthy_threshold"`
 }
 
 // ValidationCache caches certificate validation results
@@ -215,6 +235,58 @@ func NewAutomationEngine(
 		cancel:            cancel,
 	}
 
+	// Initialize rotation coordinator
+	engine.rotationCoordinator = NewRotationCoordinator(logger, kubeClient)
+
+	// Initialize service discovery
+	if config.KubernetesIntegration != nil && config.ServiceDiscoveryEnabled {
+		serviceDiscoveryConfig := &ServiceDiscoveryConfig{
+			Enabled:              true,
+			WatchNamespaces:      config.KubernetesIntegration.Namespaces,
+			ServiceAnnotationPrefix: config.KubernetesIntegration.AnnotationPrefix,
+			AutoProvisionEnabled: config.AutoInjectCertificates,
+			TemplateMatching: &TemplateMatchingConfig{
+				Enabled:         true,
+				DefaultTemplate: "default",
+				FallbackBehavior: "default",
+			},
+			PreProvisioningEnabled: config.ProvisioningEnabled,
+		}
+		engine.serviceDiscovery = NewServiceDiscovery(logger, kubeClient, serviceDiscoveryConfig, engine)
+	}
+
+	// Initialize performance cache
+	performanceCacheConfig := &PerformanceCacheConfig{
+		L1CacheSize:            1000,
+		L1CacheTTL:            5 * time.Minute,
+		L2CacheSize:           5000,
+		L2CacheTTL:            30 * time.Minute,
+		PreProvisioningEnabled: true,
+		PreProvisioningSize:   100,
+		PreProvisioningTTL:    24 * time.Hour,
+		BatchOperationsEnabled: config.BatchSize > 1,
+		BatchSize:             config.BatchSize,
+		BatchTimeout:          config.OperationTimeout,
+		MetricsEnabled:        config.MonitoringIntegration != nil && config.MonitoringIntegration.PrometheusEnabled,
+		CleanupInterval:       1 * time.Hour,
+	}
+	engine.performanceCache = NewPerformanceCache(logger, performanceCacheConfig)
+
+	// Initialize health checker
+	healthCheckerConfig := &HealthCheckerConfig{
+		Enabled:                   true,
+		DefaultTimeout:            30 * time.Second,
+		DefaultInterval:           10 * time.Second,
+		DefaultHealthyThreshold:   3,
+		DefaultUnhealthyThreshold: 3,
+		ConcurrentChecks:         10,
+		RetryAttempts:            3,
+		RetryDelay:               5 * time.Second,
+		TLSVerificationEnabled:   true,
+		MetricsEnabled:           config.MonitoringIntegration != nil && config.MonitoringIntegration.PrometheusEnabled,
+	}
+	engine.healthChecker = NewHealthChecker(logger, healthCheckerConfig)
+
 	// Initialize validation framework
 	if config.ValidationEnabled {
 		validator, err := NewValidationFramework(&ValidationConfig{
@@ -256,6 +328,39 @@ func NewAutomationEngine(
 // Start starts the automation engine
 func (e *AutomationEngine) Start(ctx context.Context) error {
 	e.logger.Info("starting certificate automation engine")
+
+	// Start performance cache
+	if e.performanceCache != nil {
+		e.wg.Add(1)
+		go func() {
+			defer e.wg.Done()
+			if err := e.performanceCache.Start(ctx); err != nil {
+				e.logger.Error("performance cache start failed", "error", err)
+			}
+		}()
+	}
+
+	// Start health checker
+	if e.healthChecker != nil {
+		e.wg.Add(1)
+		go func() {
+			defer e.wg.Done()
+			if err := e.healthChecker.Start(ctx); err != nil {
+				e.logger.Error("health checker start failed", "error", err)
+			}
+		}()
+	}
+
+	// Start service discovery
+	if e.serviceDiscovery != nil {
+		e.wg.Add(1)
+		go func() {
+			defer e.wg.Done()
+			if err := e.serviceDiscovery.Start(ctx); err != nil {
+				e.logger.Error("service discovery start failed", "error", err)
+			}
+		}()
+	}
 
 	// Start provisioning workers
 	if e.config.ProvisioningEnabled {
@@ -516,9 +621,17 @@ func (e *AutomationEngine) processRenewalRequest(workerID int, req *RenewalReque
 		"serial_number", req.SerialNumber,
 		"service", req.ServiceName,
 		"namespace", req.Namespace,
-		"current_expiry", req.CurrentExpiry)
+		"current_expiry", req.CurrentExpiry,
+		"zero_downtime", req.ZeroDowntime,
+		"coordinated_rotation", req.CoordinatedRotation)
 
-	// Renew certificate
+	// Check if coordinated rotation is requested
+	if req.CoordinatedRotation && e.rotationCoordinator != nil {
+		e.performCoordinatedRenewal(workerID, req)
+		return
+	}
+
+	// Standard renewal process
 	newCert, err := e.caManager.RenewCertificate(e.ctx, req.SerialNumber)
 	if err != nil {
 		duration := time.Since(start)
@@ -791,4 +904,177 @@ func (e *AutomationEngine) updateCertificateInKubernetes(req *RenewalRequest, ce
 	}
 
 	return nil
+}
+
+// performCoordinatedRenewal performs a coordinated renewal with zero-downtime rotation
+func (e *AutomationEngine) performCoordinatedRenewal(workerID int, req *RenewalRequest) {
+	e.logger.Info("starting coordinated renewal",
+		"worker_id", workerID,
+		"serial_number", req.SerialNumber,
+		"service", req.ServiceName,
+		"namespace", req.Namespace)
+
+	// Start coordinated rotation session
+	session, err := e.rotationCoordinator.StartCoordinatedRotation(e.ctx, req)
+	if err != nil {
+		e.logger.Error("failed to start coordinated rotation",
+			"worker_id", workerID,
+			"serial_number", req.SerialNumber,
+			"error", err)
+		
+		e.sendAlert("coordinated_renewal_failure", map[string]string{
+			"serial_number": req.SerialNumber,
+			"service":       req.ServiceName,
+			"namespace":     req.Namespace,
+			"error":         err.Error(),
+		})
+		return
+	}
+
+	// Define rotation function
+	rotationFunc := func(instance *ServiceInstance) error {
+		// Renew certificate for this instance
+		newCert, err := e.caManager.RenewCertificate(e.ctx, req.SerialNumber)
+		if err != nil {
+			return fmt.Errorf("certificate renewal failed: %w", err)
+		}
+
+		// Update certificate in Kubernetes
+		if e.config.KubernetesIntegration != nil && e.config.KubernetesIntegration.Enabled {
+			if err := e.updateCertificateInKubernetes(req, newCert); err != nil {
+				return fmt.Errorf("failed to update certificate in Kubernetes: %w", err)
+			}
+		}
+
+		// Wait for service to pick up new certificate
+		if req.HealthCheckConfig != nil && req.HealthCheckConfig.Enabled {
+			// Perform health check to ensure service is healthy with new certificate
+			target := &HealthCheckTarget{
+				Name:    instance.Name,
+				Address: strings.Split(instance.Endpoint, ":")[0],
+				Port:    e.parsePort(instance.Endpoint),
+			}
+			
+			healthSession, err := e.healthChecker.StartHealthCheck(target, req.HealthCheckConfig)
+			if err != nil {
+				return fmt.Errorf("failed to start health check: %w", err)
+			}
+
+			// Perform a few health checks to ensure stability
+			checkDuration := 30 * time.Second
+			if err := e.healthChecker.PerformContinuousHealthCheck(healthSession, checkDuration); err != nil {
+				return fmt.Errorf("health check failed after certificate update: %w", err)
+			}
+		}
+
+		return nil
+	}
+
+	// Execute coordinated rotation
+	if err := e.rotationCoordinator.ExecuteCoordinatedRotation(e.ctx, session, rotationFunc); err != nil {
+		e.logger.Error("coordinated rotation failed",
+			"worker_id", workerID,
+			"session_id", session.ID,
+			"error", err)
+		
+		e.sendAlert("coordinated_renewal_failure", map[string]string{
+			"session_id":    session.ID,
+			"serial_number": req.SerialNumber,
+			"service":       req.ServiceName,
+			"namespace":     req.Namespace,
+			"error":         err.Error(),
+		})
+		return
+	}
+
+	e.logger.Info("coordinated renewal completed successfully",
+		"worker_id", workerID,
+		"session_id", session.ID,
+		"serial_number", req.SerialNumber,
+		"service", req.ServiceName,
+		"namespace", req.Namespace)
+}
+
+// parsePort parses port from endpoint string
+func (e *AutomationEngine) parsePort(endpoint string) int {
+	parts := strings.Split(endpoint, ":")
+	if len(parts) != 2 {
+		return 443 // Default HTTPS port
+	}
+	
+	// Simple port parsing - could be enhanced
+	switch parts[1] {
+	case "80":
+		return 80
+	case "443":
+		return 443
+	case "8080":
+		return 8080
+	case "8443":
+		return 8443
+	default:
+		return 443
+	}
+}
+
+// RequestCoordinatedRenewal requests a coordinated certificate renewal
+func (e *AutomationEngine) RequestCoordinatedRenewal(req *RenewalRequest) error {
+	if !e.config.RenewalEnabled {
+		return fmt.Errorf("certificate renewal is disabled")
+	}
+
+	req.CoordinatedRotation = true
+	req.ZeroDowntime = true
+	req.CreatedAt = time.Now()
+
+	select {
+	case e.renewalQueue <- req:
+		e.logger.Info("coordinated renewal request queued",
+			"serial_number", req.SerialNumber,
+			"service", req.ServiceName,
+			"namespace", req.Namespace)
+		return nil
+	default:
+		return fmt.Errorf("renewal queue is full")
+	}
+}
+
+// GetPerformanceStatistics returns performance cache statistics
+func (e *AutomationEngine) GetPerformanceStatistics() *CacheStatistics {
+	if e.performanceCache != nil {
+		return e.performanceCache.GetStatistics()
+	}
+	return nil
+}
+
+// GetDiscoveredServices returns all discovered services
+func (e *AutomationEngine) GetDiscoveredServices() map[string]*DiscoveredService {
+	if e.serviceDiscovery != nil {
+		return e.serviceDiscovery.GetDiscoveredServices()
+	}
+	return nil
+}
+
+// GetActiveRotationSessions returns all active rotation sessions
+func (e *AutomationEngine) GetActiveRotationSessions() []*RotationSession {
+	if e.rotationCoordinator == nil {
+		return nil
+	}
+
+	var sessions []*RotationSession
+	// This would get all active sessions from the coordinator
+	return sessions
+}
+
+// GetActiveHealthCheckSessions returns all active health check sessions
+func (e *AutomationEngine) GetActiveHealthCheckSessions() []*HealthCheckSession {
+	if e.healthChecker != nil {
+		return e.healthChecker.GetActiveHealthCheckSessions()
+	}
+	return nil
+}
+
+// generateRequestID generates a unique request ID
+func generateRequestID() string {
+	return fmt.Sprintf("req-%d", time.Now().UnixNano())
 }

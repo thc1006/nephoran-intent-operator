@@ -1,0 +1,622 @@
+# Comprehensive Availability Monitoring Configuration for Nephoran Intent Operator
+# This configuration validates the 99.95% availability claim through multi-dimensional tracking
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: availability-monitoring-config
+  namespace: nephoran-system
+  labels:
+    component: availability-monitoring
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: monitoring
+data:
+  tracker-config.yaml: |
+    # Multi-Dimensional Availability Tracker Configuration
+    service_endpoints:
+      - name: "llm-processor-api"
+        url: "http://llm-processor:8080/health"
+        method: "GET"
+        expected_status: 200
+        timeout: "5s"
+        business_impact: 5  # Critical - Intent processing unavailable
+        layer: "processor"
+        sla_threshold: "500ms"
+      
+      - name: "rag-api"
+        url: "http://rag-service:8081/health"
+        method: "GET"
+        expected_status: 200
+        timeout: "3s"
+        business_impact: 4  # High - Reduced context quality
+        layer: "processor"
+        sla_threshold: "200ms"
+      
+      - name: "nephio-bridge"
+        url: "http://nephio-bridge:8082/health"
+        method: "GET"
+        expected_status: 200
+        timeout: "10s"
+        business_impact: 5  # Critical - No deployments possible
+        layer: "controller"
+        sla_threshold: "2s"
+      
+      - name: "intent-api"
+        url: "http://intent-api:8080/v1/intents"
+        method: "GET"
+        expected_status: 200
+        timeout: "2s"
+        business_impact: 5  # Critical - User interface unavailable
+        layer: "api"
+        sla_threshold: "1s"
+    
+    components:
+      - name: "llm-processor"
+        namespace: "nephoran-system"
+        resource_type: "deployment"
+        selector:
+          app: "llm-processor"
+        business_impact: 5
+        layer: "processor"
+      
+      - name: "rag-service"
+        namespace: "nephoran-system"
+        resource_type: "deployment"
+        selector:
+          app: "rag-service"
+        business_impact: 4
+        layer: "processor"
+      
+      - name: "nephio-controller"
+        namespace: "nephoran-system"
+        resource_type: "deployment"
+        selector:
+          app: "nephio-controller"
+        business_impact: 5
+        layer: "controller"
+      
+      - name: "intent-operator"
+        namespace: "nephoran-system"
+        resource_type: "deployment"
+        selector:
+          app: "intent-operator"
+        business_impact: 5
+        layer: "controller"
+      
+      - name: "vector-database"
+        namespace: "nephoran-system"
+        resource_type: "deployment"
+        selector:
+          app: "weaviate"
+        business_impact: 3
+        layer: "storage"
+      
+      - name: "prometheus"
+        namespace: "monitoring"
+        resource_type: "deployment"
+        selector:
+          app: "prometheus"
+        business_impact: 2
+        layer: "external"
+    
+    user_journeys:
+      - name: "intent-to-deployment"
+        business_impact: 5
+        sla_threshold: "30s"
+        metadata:
+          description: "Complete intent processing from submission to deployment"
+        steps:
+          - name: "submit-intent"
+            type: "api_call"
+            target: "intent-api"
+            timeout: "5s"
+            required: true
+            weight: 0.2
+          - name: "llm-processing"
+            type: "api_call"
+            target: "llm-processor"
+            timeout: "10s"
+            required: true
+            weight: 0.4
+          - name: "rag-context"
+            type: "api_call"
+            target: "rag-service"
+            timeout: "3s"
+            required: false
+            weight: 0.1
+          - name: "package-generation"
+            type: "api_call"
+            target: "nephio-bridge"
+            timeout: "15s"
+            required: true
+            weight: 0.3
+      
+      - name: "status-check"
+        business_impact: 3
+        sla_threshold: "2s"
+        metadata:
+          description: "Intent status checking workflow"
+        steps:
+          - name: "get-intent-status"
+            type: "api_call"
+            target: "intent-api"
+            timeout: "2s"
+            required: true
+            weight: 1.0
+      
+      - name: "health-monitoring"
+        business_impact: 2
+        sla_threshold: "1s"
+        metadata:
+          description: "System health check workflow"
+        steps:
+          - name: "check-all-health"
+            type: "api_call"
+            target: "intent-api"
+            timeout: "1s"
+            required: true
+            weight: 1.0
+    
+    # Thresholds and Settings
+    degraded_threshold: "1s"        # Response time threshold for degraded state
+    unhealthy_threshold: "5s"       # Response time threshold for unhealthy state
+    error_rate_threshold: 0.05      # 5% error rate threshold for degraded state
+    collection_interval: "30s"      # Collect metrics every 30 seconds
+    retention_period: "7d"          # Keep metrics for 7 days
+    
+    kubernetes_namespace: "nephoran-system"
+    prometheus_url: "http://prometheus:9090"
+
+  synthetic-monitor-config.yaml: |
+    # Synthetic Monitoring Configuration
+    max_concurrent_checks: 50
+    default_timeout: "30s"
+    default_retry_count: 3
+    default_retry_delay: "5s"
+    result_retention: "24h"
+    region_id: "us-east-1"
+    enable_chaos_tests: true
+    chaos_test_interval: "6h"
+    
+    # HTTP Client Configuration
+    http_timeout: "30s"
+    http_max_idle_conns: 100
+    http_max_conns_per_host: 10
+    http_skip_tls: false
+    
+    # Intent Flow Configuration
+    intent_api_endpoint: "http://intent-api:8080"
+    intent_api_token: "${INTENT_API_TOKEN}"
+    
+    # Alerting Configuration
+    alerting_enabled: true
+    alert_webhook_url: "${ALERT_WEBHOOK_URL}"
+    alert_retention: "7d"
+
+  dependency-tracker-config.yaml: |
+    # Dependency Chain Tracking Configuration
+    dependencies:
+      - name: "openai-api"
+        type: "external_api"
+        endpoint: "https://api.openai.com/v1/models"
+        business_impact: 5
+        failure_mode: "fail_open"  # Can function with cached responses
+        circuit_breaker:
+          failure_threshold: 5
+          reset_timeout: "60s"
+          half_open_max_calls: 3
+        health_check:
+          interval: "60s"
+          timeout: "10s"
+          path: "/v1/models"
+          expected_status: 200
+        
+      - name: "weaviate-vector-db"
+        type: "database"
+        endpoint: "http://weaviate:8080"
+        business_impact: 4
+        failure_mode: "degraded"  # Can work with reduced context
+        circuit_breaker:
+          failure_threshold: 3
+          reset_timeout: "30s"
+          half_open_max_calls: 2
+        health_check:
+          interval: "30s"
+          timeout: "5s"
+          path: "/v1/meta"
+          expected_status: 200
+      
+      - name: "prometheus-metrics"
+        type: "internal_service"
+        endpoint: "http://prometheus:9090"
+        business_impact: 2
+        failure_mode: "continue"  # Monitoring only
+        circuit_breaker:
+          failure_threshold: 5
+          reset_timeout: "120s"
+          half_open_max_calls: 1
+        health_check:
+          interval: "60s"
+          timeout: "5s"
+          path: "/-/healthy"
+          expected_status: 200
+      
+      - name: "kubernetes-api"
+        type: "k8s_api"
+        endpoint: "https://kubernetes.default.svc"
+        business_impact: 5
+        failure_mode: "fail_closed"  # Cannot function without K8s API
+        circuit_breaker:
+          failure_threshold: 2
+          reset_timeout: "30s"
+          half_open_max_calls: 1
+        health_check:
+          interval: "30s"
+          timeout: "5s"
+          path: "/healthz"
+          expected_status: 200
+    
+    # Service Mesh Integration
+    service_mesh:
+      enabled: true
+      provider: "istio"  # or "linkerd", "consul"
+      metrics_endpoint: "http://istio-proxy:15090/stats/prometheus"
+      tracing_enabled: true
+      
+    # Cascade Failure Detection
+    cascade_detection:
+      enabled: true
+      correlation_window: "5m"
+      impact_threshold: 0.3  # 30% impact correlation
+      min_events: 3
+
+  availability-calculator-config.yaml: |
+    # Sophisticated Availability Calculator Configuration
+    sla_targets:
+      - service: "intent-processing"
+        target: "99.95"  # 4.38 hours/year, 21.56 minutes/month
+        business_impact: 5
+        enabled: true
+      - service: "llm-processing"
+        target: "99.9"   # 8.77 hours/year, 43.83 minutes/month
+        business_impact: 4
+        enabled: true
+      - service: "rag-service"
+        target: "99.5"   # 43.83 hours/year, 3.65 hours/month
+        business_impact: 3
+        enabled: true
+    
+    # Error Budget Configuration
+    error_budget:
+      calculation_method: "weighted_business_impact"
+      time_windows:
+        - "1m"
+        - "5m"
+        - "1h"
+        - "1d"
+        - "30d"
+      burn_rate_thresholds:
+        - window: "1h"
+          threshold: 14.4    # Fast burn: 14.4x normal rate
+          severity: "critical"
+        - window: "6h"
+          threshold: 6.0     # Medium burn: 6x normal rate
+          severity: "warning"
+        - window: "3d"
+          threshold: 1.0     # Slow burn: normal rate over 3 days
+          severity: "info"
+    
+    # Business Hours Configuration
+    business_hours:
+      timezone: "UTC"
+      start_hour: 6    # 06:00 UTC
+      end_hour: 22     # 22:00 UTC
+      weekdays_only: true
+      holidays:
+        - "2024-12-25"  # Christmas
+        - "2024-01-01"  # New Year
+        - "2024-07-04"  # Independence Day
+    
+    # Planned Maintenance Windows
+    planned_maintenance:
+      - id: "weekly-maintenance"
+        name: "Weekly System Maintenance"
+        start_hour: 2   # 02:00 UTC Sunday
+        duration: "2h"
+        services: ["all"]
+        recurring: true
+        recurring_pattern: "weekly"
+
+  reporter-config.yaml: |
+    # Availability Reporter Configuration
+    default_time_window: "1h"
+    refresh_interval: "30s"
+    retention_period: "30d"
+    
+    # Dashboard Configuration
+    dashboard_url: "http://grafana:3000"
+    prometheus_url: "http://prometheus:9090"
+    grafana_url: "http://grafana:3000"
+    
+    # Alerting Configuration
+    alert_webhook_url: "${ALERT_WEBHOOK_URL}"
+    alert_thresholds:
+      availability_warning: 0.9990   # 99.90%
+      availability_critical: 0.9985  # 99.85%
+      error_budget_warning: 0.8      # 80% consumed
+      error_budget_critical: 0.95    # 95% consumed
+      response_time_warning: "2s"
+      response_time_critical: "5s"
+      error_rate_warning: 0.05       # 5%
+      error_rate_critical: 0.10      # 10%
+    
+    # Export Configuration
+    export_formats:
+      - "json"
+      - "csv"
+      - "html"
+      - "prometheus"
+    s3_bucket_name: "nephoran-availability-reports"
+    archive_enabled: true
+
+---
+apiVersion: monitoring.nephoran.io/v1
+kind: AvailabilityTracker
+metadata:
+  name: nephoran-availability-tracker
+  namespace: nephoran-system
+spec:
+  # Reference to the configuration
+  configRef:
+    name: availability-monitoring-config
+    key: tracker-config.yaml
+  
+  # SLA Targets for 99.95% availability validation
+  slaTargets:
+    overall: "99.95"     # 4.38 hours downtime per year
+    intent_processing: "99.95"
+    llm_processing: "99.9"
+    api_layer: "99.98"
+    controller_layer: "99.95"
+  
+  # Collection intervals for different metrics
+  collectionIntervals:
+    service_health: "30s"
+    component_health: "60s"
+    user_journeys: "120s"
+    dependencies: "60s"
+  
+  # Performance requirements
+  performance:
+    max_response_time: "50ms"    # Sub-50ms availability calculation latency
+    max_memory_usage: "100Mi"    # Memory efficient
+    max_health_checks_per_minute: 10000
+  
+  # Resilience configuration
+  resilience:
+    backup_data_sources: true
+    graceful_degradation: true
+    automatic_recovery: true
+    circuit_breaker_enabled: true
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: availability-tracker
+  namespace: nephoran-system
+  labels:
+    app: availability-tracker
+    component: monitoring
+spec:
+  selector:
+    app: availability-tracker
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: availability-tracker
+  namespace: nephoran-system
+  labels:
+    app: availability-tracker
+    component: monitoring
+spec:
+  replicas: 3  # High availability deployment
+  selector:
+    matchLabels:
+      app: availability-tracker
+  template:
+    metadata:
+      labels:
+        app: availability-tracker
+        component: monitoring
+    spec:
+      serviceAccountName: availability-tracker
+      containers:
+        - name: availability-tracker
+          image: nephoran/availability-tracker:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+            - containerPort: 9090
+              name: metrics
+          env:
+            - name: CONFIG_PATH
+              value: "/etc/config"
+            - name: PROMETHEUS_URL
+              value: "http://prometheus:9090"
+            - name: ALERT_WEBHOOK_URL
+              valueFrom:
+                secretKeyRef:
+                  name: availability-secrets
+                  key: alert-webhook-url
+          volumeMounts:
+            - name: config
+              mountPath: /etc/config
+              readOnly: true
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "100Mi"
+            limits:
+              cpu: "500m"
+              memory: "200Mi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: config
+          configMap:
+            name: availability-monitoring-config
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: availability-tracker
+  namespace: nephoran-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: availability-tracker
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["servicemonitors", "prometheusrules"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: availability-tracker
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: availability-tracker
+subjects:
+  - kind: ServiceAccount
+    name: availability-tracker
+    namespace: nephoran-system
+
+---
+# Prometheus ServiceMonitor for the availability tracker itself
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: availability-tracker
+  namespace: nephoran-system
+  labels:
+    app: availability-tracker
+spec:
+  selector:
+    matchLabels:
+      app: availability-tracker
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+
+---
+# Grafana Dashboard ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: availability-dashboard
+  namespace: nephoran-system
+  labels:
+    grafana_dashboard: "1"
+data:
+  availability-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Intent Operator - Availability Tracking",
+        "tags": ["nephoran", "availability", "sla"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Overall Availability (99.95% Target)",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "nephoran_availability_overall",
+                "legendFormat": "Overall"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "min": 0.995,
+                "max": 1.0,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0.995},
+                    {"color": "yellow", "value": 0.9995},
+                    {"color": "green", "value": 1.0}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Error Budget Consumption",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "nephoran_error_budget_utilization",
+                "legendFormat": "Budget Used"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percentunit",
+                "min": 0,
+                "max": 1,
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 0.8},
+                    {"color": "red", "value": 0.95}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+          }
+        ],
+        "time": {"from": "now-24h", "to": "now"},
+        "refresh": "30s"
+      }
+    }

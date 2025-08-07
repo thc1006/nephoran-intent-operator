@@ -1,0 +1,202 @@
+# Nephoran Intent Operator - LDAP Configuration Examples
+# This file contains various LDAP configuration examples for different deployment scenarios
+
+# Example 1: Basic OpenLDAP Configuration
+# Suitable for development environments or simple LDAP directories
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-auth-ldap-basic
+  namespace: nephoran-system
+data:
+  config.json: |
+    {
+      "enabled": true,
+      "jwt_secret_key": "${JWT_SECRET_KEY}",
+      "token_ttl": "24h",
+      "refresh_ttl": "168h",
+      "ldap_providers": {
+        "openldap": {
+          "enabled": true,
+          "host": "openldap.internal.company.com",
+          "port": 389,
+          "use_ssl": false,
+          "use_tls": true,
+          "skip_verify": false,
+          "bind_dn": "cn=readonly,dc=company,dc=com",
+          "bind_password": "${LDAP_BIND_PASSWORD}",
+          "base_dn": "dc=company,dc=com",
+          "user_filter": "(objectClass=inetOrgPerson)",
+          "group_filter": "(objectClass=groupOfNames)",
+          "user_search_base": "ou=people,dc=company,dc=com",
+          "group_search_base": "ou=groups,dc=company,dc=com",
+          "user_attributes": {
+            "username": "uid",
+            "email": "mail",
+            "first_name": "givenName",
+            "last_name": "sn",
+            "display_name": "displayName",
+            "title": "title",
+            "department": "departmentNumber",
+            "phone": "telephoneNumber"
+          },
+          "auth_method": "simple",
+          "timeout": "30s",
+          "connection_timeout": "10s",
+          "max_connections": 10,
+          "is_active_directory": false,
+          "group_member_attribute": "member",
+          "user_group_attribute": "memberOf",
+          "role_mappings": {
+            "cn=admins,ou=groups,dc=company,dc=com": ["admin", "system-admin"],
+            "cn=operators,ou=groups,dc=company,dc=com": ["network-operator", "operator"],
+            "cn=engineers,ou=groups,dc=company,dc=com": ["telecom-engineer", "operator"],
+            "cn=viewers,ou=groups,dc=company,dc=com": ["viewer", "readonly"]
+          },
+          "default_roles": ["user"]
+        }
+      }
+    }
+---
+
+# Example 2: Active Directory Configuration (Corporate Environment)
+# Suitable for enterprise environments with Active Directory
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-auth-ad-corporate
+  namespace: nephoran-system
+data:
+  config.json: |
+    {
+      "enabled": true,
+      "jwt_secret_key": "${JWT_SECRET_KEY}",
+      "token_ttl": "8h",
+      "refresh_ttl": "72h",
+      "ldap_providers": {
+        "active-directory": {
+          "enabled": true,
+          "host": "dc01.corp.example.com",
+          "port": 636,
+          "use_ssl": true,
+          "use_tls": false,
+          "skip_verify": false,
+          "bind_dn": "CN=LDAP Service Account,OU=Service Accounts,OU=IT,DC=corp,DC=example,DC=com",
+          "bind_password": "${AD_BIND_PASSWORD}",
+          "base_dn": "DC=corp,DC=example,DC=com",
+          "user_filter": "(&(objectClass=user)(objectCategory=person)(!userAccountControl:1.2.840.113556.1.4.803:=2))",
+          "group_filter": "(objectClass=group)",
+          "user_search_base": "OU=Users,DC=corp,DC=example,DC=com",
+          "group_search_base": "OU=Security Groups,DC=corp,DC=example,DC=com",
+          "user_attributes": {
+            "username": "sAMAccountName",
+            "email": "mail",
+            "first_name": "givenName",
+            "last_name": "sn",
+            "display_name": "displayName",
+            "title": "title",
+            "department": "department",
+            "phone": "telephoneNumber",
+            "manager": "manager"
+          },
+          "auth_method": "simple",
+          "timeout": "45s",
+          "connection_timeout": "15s",
+          "max_connections": 20,
+          "is_active_directory": true,
+          "domain": "corp.example.com",
+          "group_member_attribute": "member",
+          "user_group_attribute": "memberOf",
+          "role_mappings": {
+            "CN=Nephoran Admins,OU=Application Groups,OU=Security Groups,DC=corp,DC=example,DC=com": ["system-admin", "admin"],
+            "CN=Network Operations,OU=Operational Groups,OU=Security Groups,DC=corp,DC=example,DC=com": ["network-operator", "operator"],
+            "CN=Telecom Engineers,OU=Engineering Groups,OU=Security Groups,DC=corp,DC=example,DC=com": ["telecom-engineer", "operator"],
+            "CN=NOC Operators,OU=Operational Groups,OU=Security Groups,DC=corp,DC=example,DC=com": ["operator"],
+            "CN=Read Only Access,OU=Application Groups,OU=Security Groups,DC=corp,DC=example,DC=com": ["viewer", "readonly"]
+          },
+          "default_roles": ["user"]
+        }
+      },
+      "rbac": {
+        "enabled": true,
+        "default_role": "user",
+        "admin_roles": ["system-admin", "admin"],
+        "operator_roles": ["network-operator", "telecom-engineer", "operator"],
+        "readonly_roles": ["viewer", "readonly", "guest"]
+      }
+    }
+---
+
+# Example 3: Multi-Provider Configuration (Hybrid Environment)
+# Suitable for environments with multiple LDAP directories
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-auth-multi-ldap
+  namespace: nephoran-system
+data:
+  config.json: |
+    {
+      "enabled": true,
+      "jwt_secret_key": "${JWT_SECRET_KEY}",
+      "token_ttl": "12h",
+      "refresh_ttl": "168h",
+      "ldap_providers": {
+        "corporate-ad": {
+          "enabled": true,
+          "host": "ad.corp.company.com",
+          "port": 636,
+          "use_ssl": true,
+          "use_tls": false,
+          "skip_verify": false,
+          "bind_dn": "CN=svc-nephoran,OU=Service Accounts,DC=corp,DC=company,DC=com",
+          "bind_password": "${CORP_AD_BIND_PASSWORD}",
+          "base_dn": "DC=corp,DC=company,DC=com",
+          "user_search_base": "OU=Corporate Users,DC=corp,DC=company,DC=com",
+          "group_search_base": "OU=Corporate Groups,DC=corp,DC=company,DC=com",
+          "is_active_directory": true,
+          "domain": "corp.company.com",
+          "role_mappings": {
+            "CN=IT Admins,OU=Corporate Groups,DC=corp,DC=company,DC=com": ["system-admin"],
+            "CN=Network Engineers,OU=Corporate Groups,DC=corp,DC=company,DC=com": ["network-operator"]
+          },
+          "default_roles": ["user"]
+        },
+        "contractor-ldap": {
+          "enabled": true,
+          "host": "ldap.contractors.company.com",
+          "port": 389,
+          "use_ssl": false,
+          "use_tls": true,
+          "skip_verify": false,
+          "bind_dn": "cn=readonly,ou=services,dc=contractors,dc=company,dc=com",
+          "bind_password": "${CONTRACTOR_LDAP_BIND_PASSWORD}",
+          "base_dn": "dc=contractors,dc=company,dc=com",
+          "user_search_base": "ou=people,dc=contractors,dc=company,dc=com",
+          "group_search_base": "ou=groups,dc=contractors,dc=company,dc=com",
+          "is_active_directory": false,
+          "role_mappings": {
+            "cn=senior-contractors,ou=groups,dc=contractors,dc=company,dc=com": ["operator"],
+            "cn=contractors,ou=groups,dc=contractors,dc=company,dc=com": ["viewer"]
+          },
+          "default_roles": ["viewer"]
+        }
+      }
+    }
+---
+
+# Kubernetes Secret for LDAP bind passwords
+apiVersion: v1
+kind: Secret
+metadata:
+  name: nephoran-ldap-credentials
+  namespace: nephoran-system
+type: Opaque
+data:
+  # Base64 encoded bind passwords
+  ldap-bind-password: <base64-encoded-password>
+  ad-bind-password: <base64-encoded-password>
+  corp-ad-bind-password: <base64-encoded-password>
+  contractor-ldap-bind-password: <base64-encoded-password>
+  secure-ldap-bind-password: <base64-encoded-password>

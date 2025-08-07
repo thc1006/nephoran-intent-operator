@@ -1,0 +1,481 @@
+package auth
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"sync"
+	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/health"
+)
+
+// AuthManager provides unified authentication management for OAuth2 and LDAP
+type AuthManager struct {
+	// Core components
+	config         *AuthConfig
+	sessionManager *SessionManager
+	jwtManager     *JWTManager
+	rbacManager    *RBACManager
+	
+	// OAuth2 components
+	oauth2Providers map[string]*OAuth2Provider
+	oauth2Manager   *OAuth2Manager
+	
+	// LDAP components
+	ldapProviders  map[string]*providers.LDAPClient
+	ldapMiddleware *LDAPAuthMiddleware
+	
+	// Middleware
+	authMiddleware *AuthMiddleware
+	
+	// Health monitoring
+	healthChecker *health.HealthChecker
+	
+	// Configuration
+	logger *slog.Logger
+	mu     sync.RWMutex
+}
+
+// AuthManagerConfig holds configuration for AuthManager
+type AuthManagerConfig struct {
+	// OAuth2 configuration
+	OAuth2Config *OAuth2Config
+	
+	// LDAP configuration
+	LDAPConfig *LDAPMiddlewareConfig
+	
+	// Middleware configuration
+	MiddlewareConfig *MiddlewareConfig
+	
+	// Health check configuration
+	EnableHealthChecks bool
+	HealthCheckInterval time.Duration
+}
+
+// NewAuthManager creates a new unified authentication manager
+func NewAuthManager(config *AuthConfig, logger *slog.Logger) (*AuthManager, error) {
+	if logger == nil {
+		logger = slog.Default().With("component", "auth_manager")
+	}
+
+	am := &AuthManager{
+		config: config,
+		logger: logger,
+	}
+
+	// Initialize JWT manager
+	jwtManager, err := NewJWTManager(config.JWTSecretKey, config.TokenTTL, config.RefreshTTL, logger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create JWT manager: %w", err)
+	}
+	am.jwtManager = jwtManager
+
+	// Initialize session manager
+	sessionManager := NewSessionManager(config.TokenTTL, logger)
+	am.sessionManager = sessionManager
+
+	// Initialize RBAC manager
+	rbacManager := NewRBACManager(&config.RBAC, logger)
+	am.rbacManager = rbacManager
+
+	// Initialize OAuth2 providers and manager
+	if err := am.initializeOAuth2(); err != nil {
+		logger.Warn("Failed to initialize OAuth2 providers", "error", err)
+	}
+
+	// Initialize LDAP providers and middleware
+	if err := am.initializeLDAP(); err != nil {
+		logger.Warn("Failed to initialize LDAP providers", "error", err)
+	}
+
+	// Initialize main authentication middleware
+	am.authMiddleware = NewAuthMiddleware(sessionManager, jwtManager, rbacManager, nil)
+
+	// Initialize health checker if enabled
+	if err := am.initializeHealthChecker(); err != nil {
+		logger.Warn("Failed to initialize health checker", "error", err)
+	}
+
+	logger.Info("Authentication manager initialized successfully",
+		"oauth2_providers", len(am.oauth2Providers),
+		"ldap_providers", len(am.ldapProviders))
+
+	return am, nil
+}
+
+// initializeOAuth2 initializes OAuth2 providers and manager
+func (am *AuthManager) initializeOAuth2() error {
+	oauth2Providers, err := am.config.CreateOAuth2Providers()
+	if err != nil {
+		return fmt.Errorf("failed to create OAuth2 providers: %w", err)
+	}
+
+	am.oauth2Providers = oauth2Providers
+	
+	if len(oauth2Providers) > 0 {
+		oauth2Config, err := am.config.ToOAuth2Config()
+		if err != nil {
+			return fmt.Errorf("failed to create OAuth2 config: %w", err)
+		}
+
+		am.oauth2Manager = NewOAuth2Manager(oauth2Config, am.sessionManager, am.rbacManager, am.logger)
+		am.logger.Info("OAuth2 manager initialized", "providers", len(oauth2Providers))
+	}
+
+	return nil
+}
+
+// initializeLDAP initializes LDAP providers and middleware
+func (am *AuthManager) initializeLDAP() error {
+	ldapProviders, err := am.config.CreateLDAPProviders()
+	if err != nil {
+		return fmt.Errorf("failed to create LDAP providers: %w", err)
+	}
+
+	am.ldapProviders = ldapProviders
+
+	if len(ldapProviders) > 0 {
+		// Create LDAP middleware with default configuration
+		ldapConfig := &LDAPMiddlewareConfig{
+			Realm:             "Nephoran Intent Operator",
+			AllowBasicAuth:    true,
+			AllowFormAuth:     true,
+			AllowJSONAuth:     true,
+			SessionTimeout:    am.config.TokenTTL,
+			RequireHTTPS:      true,
+			MaxFailedAttempts: 5,
+			LockoutDuration:   15 * time.Minute,
+			EnableUserCache:   true,
+			CacheTTL:          5 * time.Minute,
+		}
+
+		am.ldapMiddleware = NewLDAPAuthMiddleware(
+			ldapProviders,
+			am.sessionManager,
+			am.jwtManager,
+			am.rbacManager,
+			ldapConfig,
+			am.logger,
+		)
+		am.logger.Info("LDAP middleware initialized", "providers", len(ldapProviders))
+	}
+
+	return nil
+}
+
+// initializeHealthChecker initializes health monitoring
+func (am *AuthManager) initializeHealthChecker() error {
+	healthChecker := health.NewChecker("auth-manager", am.logger)
+
+	// Add OAuth2 provider health checks
+	for name, provider := range am.oauth2Providers {
+		healthChecker.AddCheck(fmt.Sprintf("oauth2-%s", name), func() error {
+			// Perform basic validation of provider configuration
+			if provider.ClientID == "" {
+				return fmt.Errorf("client ID not configured")
+			}
+			return nil
+		})
+	}
+
+	// Add LDAP provider health checks
+	for name, provider := range am.ldapProviders {
+		healthChecker.AddCheck(fmt.Sprintf("ldap-%s", name), func() error {
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			return provider.TestConnection(ctx)
+		})
+	}
+
+	// Add JWT manager health check
+	healthChecker.AddCheck("jwt-manager", func() error {
+		if am.jwtManager == nil {
+			return fmt.Errorf("JWT manager not initialized")
+		}
+		// Test token creation and validation
+		testToken, err := am.jwtManager.CreateAccessToken("test-user", "test-session", "test", []string{"test"}, []string{}, map[string]interface{}{})
+		if err != nil {
+			return fmt.Errorf("failed to create test token: %w", err)
+		}
+		_, err = am.jwtManager.ValidateToken(context.Background(), testToken)
+		if err != nil {
+			return fmt.Errorf("failed to validate test token: %w", err)
+		}
+		return nil
+	})
+
+	am.healthChecker = healthChecker
+	return nil
+}
+
+// GetMiddleware returns the main authentication middleware
+func (am *AuthManager) GetMiddleware() *AuthMiddleware {
+	return am.authMiddleware
+}
+
+// GetOAuth2Manager returns the OAuth2 manager
+func (am *AuthManager) GetOAuth2Manager() *OAuth2Manager {
+	return am.oauth2Manager
+}
+
+// GetLDAPMiddleware returns the LDAP middleware
+func (am *AuthManager) GetLDAPMiddleware() *LDAPAuthMiddleware {
+	return am.ldapMiddleware
+}
+
+// GetSessionManager returns the session manager
+func (am *AuthManager) GetSessionManager() *SessionManager {
+	return am.sessionManager
+}
+
+// GetJWTManager returns the JWT manager
+func (am *AuthManager) GetJWTManager() *JWTManager {
+	return am.jwtManager
+}
+
+// GetRBACManager returns the RBAC manager
+func (am *AuthManager) GetRBACManager() *RBACManager {
+	return am.rbacManager
+}
+
+// GetHealthChecker returns the health checker
+func (am *AuthManager) GetHealthChecker() *health.HealthChecker {
+	return am.healthChecker
+}
+
+// ListProviders returns information about all available providers
+func (am *AuthManager) ListProviders() map[string]interface{} {
+	am.mu.RLock()
+	defer am.mu.RUnlock()
+
+	result := make(map[string]interface{})
+
+	// OAuth2 providers
+	oauth2Info := make(map[string]interface{})
+	for name, provider := range am.oauth2Providers {
+		oauth2Info[name] = map[string]interface{}{
+			"type":    "oauth2",
+			"enabled": true,
+			"scopes":  provider.Scopes,
+		}
+	}
+	if len(oauth2Info) > 0 {
+		result["oauth2"] = oauth2Info
+	}
+
+	// LDAP providers
+	ldapInfo := make(map[string]interface{})
+	for name, provider := range am.ldapProviders {
+		// Get basic info without exposing sensitive details
+		ldapInfo[name] = map[string]interface{}{
+			"type":               "ldap",
+			"enabled":            true,
+			"is_active_directory": am.isActiveDirectory(provider),
+			"supports_ssl":       am.supportsSSL(provider),
+		}
+	}
+	if len(ldapInfo) > 0 {
+		result["ldap"] = ldapInfo
+	}
+
+	return result
+}
+
+// AuthenticateUser attempts to authenticate a user using available providers
+func (am *AuthManager) AuthenticateUser(ctx context.Context, username, password, providerType string) (*providers.UserInfo, string, error) {
+	if providerType == "" || providerType == "ldap" {
+		// Try LDAP authentication
+		if am.ldapMiddleware != nil {
+			for name, provider := range am.ldapProviders {
+				userInfo, err := provider.Authenticate(ctx, username, password)
+				if err == nil {
+					return userInfo, fmt.Sprintf("ldap:%s", name), nil
+				}
+				am.logger.Debug("LDAP authentication failed", "provider", name, "username", username, "error", err)
+			}
+		}
+	}
+
+	return nil, "", fmt.Errorf("authentication failed with all available providers")
+}
+
+// CreateSession creates a new authenticated session
+func (am *AuthManager) CreateSession(ctx context.Context, userInfo *providers.UserInfo, provider string) (*SessionInfo, error) {
+	sessionData := &SessionData{
+		UserID:      userInfo.Username,
+		Username:    userInfo.Username,
+		Email:       userInfo.Email,
+		DisplayName: userInfo.Name,
+		Provider:    provider,
+		Groups:      userInfo.Groups,
+		Roles:       userInfo.Roles,
+		ExpiresAt:   time.Now().Add(am.config.TokenTTL),
+	}
+
+	return am.sessionManager.CreateSession(ctx, sessionData)
+}
+
+// ValidateSession validates an existing session
+func (am *AuthManager) ValidateSession(ctx context.Context, sessionID string) (*SessionInfo, error) {
+	return am.sessionManager.ValidateSession(ctx, sessionID)
+}
+
+// RefreshTokens refreshes JWT tokens using a refresh token
+func (am *AuthManager) RefreshTokens(ctx context.Context, refreshToken string) (string, string, error) {
+	return am.jwtManager.RefreshTokens(ctx, refreshToken)
+}
+
+// TestConnections tests connectivity to all configured providers
+func (am *AuthManager) TestConnections(ctx context.Context) map[string]error {
+	results := make(map[string]error)
+
+	// Test LDAP connections
+	if am.ldapMiddleware != nil {
+		ldapResults := am.ldapMiddleware.TestLDAPConnection(ctx)
+		for name, err := range ldapResults {
+			results[fmt.Sprintf("ldap:%s", name)] = err
+		}
+	}
+
+	// OAuth2 providers don't typically have connection tests,
+	// but we can validate basic configuration
+	for name, provider := range am.oauth2Providers {
+		if provider.ClientID == "" {
+			results[fmt.Sprintf("oauth2:%s", name)] = fmt.Errorf("client ID not configured")
+		} else {
+			results[fmt.Sprintf("oauth2:%s", name)] = nil
+		}
+	}
+
+	return results
+}
+
+// HandleHealthCheck provides a HTTP handler for health checks
+func (am *AuthManager) HandleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	if am.healthChecker == nil {
+		http.Error(w, "Health checker not initialized", http.StatusServiceUnavailable)
+		return
+	}
+
+	status := am.healthChecker.CheckHealth()
+	if status.Overall == health.StatusHealthy {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+	}
+
+	// Return health status as JSON
+	w.Write([]byte(status.String()))
+}
+
+// Shutdown gracefully shuts down the authentication manager
+func (am *AuthManager) Shutdown(ctx context.Context) error {
+	am.logger.Info("Shutting down authentication manager")
+
+	var errors []error
+
+	// Close LDAP connections
+	for name, provider := range am.ldapProviders {
+		if err := provider.Close(); err != nil {
+			errors = append(errors, fmt.Errorf("failed to close LDAP provider %s: %w", name, err))
+		}
+	}
+
+	// Stop health checker
+	if am.healthChecker != nil {
+		// Health checker doesn't have a shutdown method in our interface,
+		// but we can log that it's stopping
+		am.logger.Info("Stopping health checker")
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("errors during shutdown: %v", errors)
+	}
+
+	am.logger.Info("Authentication manager shutdown complete")
+	return nil
+}
+
+// Private helper methods
+
+func (am *AuthManager) isActiveDirectory(provider *providers.LDAPProvider) bool {
+	// This would need to access the provider's configuration
+	// For now, return false as we don't have direct access to the config
+	return false
+}
+
+func (am *AuthManager) supportsSSL(provider *providers.LDAPProvider) bool {
+	// This would need to access the provider's configuration
+	// For now, return true as most LDAP providers support SSL
+	return true
+}
+
+// Configuration update methods
+
+// UpdateOAuth2Providers updates OAuth2 provider configuration
+func (am *AuthManager) UpdateOAuth2Providers(providers map[string]*OAuth2Provider) error {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+
+	am.oauth2Providers = providers
+	
+	// Reinitialize OAuth2 manager if needed
+	if len(providers) > 0 && am.oauth2Manager == nil {
+		oauth2Config, err := am.config.ToOAuth2Config()
+		if err != nil {
+			return fmt.Errorf("failed to create OAuth2 config: %w", err)
+		}
+		am.oauth2Manager = NewOAuth2Manager(oauth2Config, am.sessionManager, am.rbacManager, am.logger)
+	}
+
+	am.logger.Info("OAuth2 providers updated", "count", len(providers))
+	return nil
+}
+
+// UpdateLDAPProviders updates LDAP provider configuration
+func (am *AuthManager) UpdateLDAPProviders(providers map[string]*providers.LDAPProvider) error {
+	am.mu.Lock()
+	defer am.mu.Unlock()
+
+	// Close existing providers
+	for _, provider := range am.ldapProviders {
+		provider.Close()
+	}
+
+	am.ldapProviders = providers
+
+	// Reinitialize LDAP middleware if needed
+	if len(providers) > 0 {
+		ldapConfig := &LDAPMiddlewareConfig{
+			Realm:             "Nephoran Intent Operator",
+			AllowBasicAuth:    true,
+			AllowFormAuth:     true,
+			AllowJSONAuth:     true,
+			SessionTimeout:    am.config.TokenTTL,
+			RequireHTTPS:      true,
+			MaxFailedAttempts: 5,
+			LockoutDuration:   15 * time.Minute,
+			EnableUserCache:   true,
+			CacheTTL:          5 * time.Minute,
+		}
+
+		am.ldapMiddleware = NewLDAPAuthMiddleware(
+			providers,
+			am.sessionManager,
+			am.jwtManager,
+			am.rbacManager,
+			ldapConfig,
+			am.logger,
+		)
+	} else {
+		am.ldapMiddleware = nil
+	}
+
+	am.logger.Info("LDAP providers updated", "count", len(providers))
+	return nil
+}

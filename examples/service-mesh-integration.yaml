@@ -1,0 +1,458 @@
+# Service Mesh mTLS Integration Example
+# This example demonstrates comprehensive service mesh integration with automatic mTLS
+
+---
+# ServiceMesh Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-mesh-config
+  namespace: nephoran-system
+data:
+  config.yaml: |
+    provider: auto  # Auto-detect installed service mesh
+    trustDomain: cluster.local
+    namespace: nephoran-system
+    
+    certificateConfig:
+      certLifetime: 2160h  # 90 days
+      rotationThreshold: 80  # Rotate at 80% of lifetime
+      spiffeEnabled: true
+      certStorage: secret
+    
+    policyDefaults:
+      mtlsMode: STRICT
+      defaultDenyAll: true
+      enableNetworkPolicies: true
+      enableRateLimiting: true
+      defaultTimeoutSeconds: 30
+      defaultRetryAttempts: 3
+    
+    observabilityConfig:
+      enableTracing: true
+      tracingBackend: jaeger
+      enableMetrics: true
+      metricsPort: 9090
+      enableAccessLogs: true
+      logLevel: info
+    
+    multiCluster:
+      clusterName: production
+      clusterId: cluster-1
+      network: network-1
+
+---
+# Zero-Trust Policy Set
+apiVersion: mesh.nephoran.io/v1alpha1
+kind: PolicySet
+metadata:
+  name: zero-trust-policies
+  namespace: nephoran-system
+spec:
+  description: "Zero-trust security policies for all services"
+  policies:
+    # Enforce strict mTLS everywhere
+    - name: global-mtls
+      type: mtls
+      namespace: "*"
+      spec:
+        mtlsMode: STRICT
+        portLevelMtls:
+          - port: 443
+            mode: STRICT
+          - port: 8443
+            mode: STRICT
+    
+    # Default deny-all authorization
+    - name: default-deny
+      type: authorization
+      namespace: "*"
+      spec:
+        action: DENY
+    
+    # Allow specific service communications
+    - name: allow-llm-to-rag
+      type: authorization
+      namespace: nephoran-system
+      selector:
+        matchLabels:
+          app: rag-service
+      spec:
+        action: ALLOW
+        rules:
+          - from:
+              - principals:
+                  - "cluster.local/ns/nephoran-system/sa/llm-processor"
+            to:
+              - methods: ["GET", "POST"]
+                paths: ["/api/v1/*"]
+    
+    - name: allow-controller-to-llm
+      type: authorization
+      namespace: nephoran-system
+      selector:
+        matchLabels:
+          app: llm-processor
+      spec:
+        action: ALLOW
+        rules:
+          - from:
+              - principals:
+                  - "cluster.local/ns/nephoran-system/sa/intent-controller"
+            to:
+              - methods: ["POST"]
+                paths: ["/api/v1/process"]
+
+---
+# Network Segmentation Policy
+apiVersion: mesh.nephoran.io/v1alpha1
+kind: NetworkSegmentationPolicy
+metadata:
+  name: network-segments
+  namespace: nephoran-system
+spec:
+  segments:
+    - name: control-plane
+      description: "Control plane services"
+      labels:
+        tier: control-plane
+      namespaces:
+        - nephoran-system
+        - kube-system
+    
+    - name: data-plane
+      description: "Data plane services"
+      labels:
+        tier: data-plane
+      namespaces:
+        - nephoran-workloads
+    
+    - name: management
+      description: "Management services"
+      labels:
+        tier: management
+      namespaces:
+        - monitoring
+        - logging
+  
+  rules:
+    # Control plane can communicate within itself
+    - source: control-plane
+      destination: control-plane
+      action: ALLOW
+    
+    # Data plane can communicate with control plane
+    - source: data-plane
+      destination: control-plane
+      action: ALLOW
+      ports: [443, 8443]
+    
+    # Management can observe all segments
+    - source: management
+      destination: "*"
+      action: ALLOW
+      ports: [9090, 8080]  # Metrics and logs
+
+---
+# Traffic Management Policy
+apiVersion: mesh.nephoran.io/v1alpha1
+kind: TrafficPolicy
+metadata:
+  name: resilience-policy
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      app: llm-processor
+  
+  circuitBreaker:
+    consecutiveErrors: 5
+    interval: 30s
+    baseEjectionTime: 30s
+    maxEjectionPercent: 50
+  
+  retry:
+    attempts: 3
+    perTryTimeout: 10s
+    retryOn:
+      - 5xx
+      - reset
+      - connect-failure
+      - refused-stream
+  
+  timeout:
+    requestTimeout: 30s
+  
+  loadBalancer:
+    algorithm: least-conn
+
+---
+# Service Registration for mTLS
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-processor
+  namespace: nephoran-system
+  annotations:
+    mesh.nephoran.io/mtls-mode: "STRICT"
+    mesh.nephoran.io/enable-tracing: "true"
+    mesh.nephoran.io/enable-metrics: "true"
+  labels:
+    app: llm-processor
+    tier: control-plane
+spec:
+  selector:
+    app: llm-processor
+  ports:
+    - name: https
+      port: 443
+      targetPort: 8443
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+
+---
+# Deployment with Service Mesh Integration
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-processor
+  namespace: nephoran-system
+  labels:
+    app: llm-processor
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: llm-processor
+  template:
+    metadata:
+      labels:
+        app: llm-processor
+        tier: control-plane
+      annotations:
+        # Istio annotations
+        sidecar.istio.io/inject: "true"
+        traffic.sidecar.istio.io/includeInboundPorts: "*"
+        traffic.sidecar.istio.io/excludeInboundPorts: "15090,15021"
+        # Linkerd annotations
+        linkerd.io/inject: enabled
+        config.linkerd.io/skip-outbound-ports: "4222"
+        # Consul annotations
+        consul.hashicorp.com/connect-inject: "true"
+        consul.hashicorp.com/connect-service: "llm-processor"
+    spec:
+      serviceAccountName: llm-processor
+      containers:
+        - name: llm-processor
+          image: nephoran/llm-processor:latest
+          ports:
+            - containerPort: 8443
+              name: https
+              protocol: TCP
+            - containerPort: 9090
+              name: metrics
+              protocol: TCP
+          env:
+            - name: MTLS_ENABLED
+              value: "true"
+            - name: CERT_PATH
+              value: "/etc/certs"
+            - name: TRUST_DOMAIN
+              value: "cluster.local"
+          volumeMounts:
+            - name: certs
+              mountPath: /etc/certs
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: certs
+          secret:
+            secretName: llm-processor-certs
+
+---
+# ServiceAccount with SPIFFE ID
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: llm-processor
+  namespace: nephoran-system
+  labels:
+    app: llm-processor
+
+---
+# Certificate Management
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: llm-processor-certs
+  namespace: nephoran-system
+spec:
+  secretName: llm-processor-certs
+  duration: 2160h  # 90 days
+  renewBefore: 720h  # 30 days
+  subject:
+    organizations:
+      - nephoran
+  commonName: llm-processor.nephoran-system.svc.cluster.local
+  dnsNames:
+    - llm-processor
+    - llm-processor.nephoran-system
+    - llm-processor.nephoran-system.svc
+    - llm-processor.nephoran-system.svc.cluster.local
+  uris:
+    - spiffe://cluster.local/ns/nephoran-system/sa/llm-processor
+  issuerRef:
+    name: mesh-ca-issuer
+    kind: ClusterIssuer
+    group: cert-manager.io
+
+---
+# Monitoring and Observability
+apiVersion: v1
+kind: ServiceMonitor
+metadata:
+  name: service-mesh-metrics
+  namespace: nephoran-system
+spec:
+  selector:
+    matchLabels:
+      mesh: enabled
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: false
+        ca:
+          secret:
+            name: mesh-ca
+            key: ca.crt
+
+---
+# Alert Rules for mTLS
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mtls-alerts
+  namespace: nephoran-system
+spec:
+  groups:
+    - name: mtls
+      interval: 30s
+      rules:
+        - alert: MTLSCoverageBelow100
+          expr: service_mesh_mtls_coverage < 100
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "mTLS coverage below 100%"
+            description: "mTLS coverage is {{ $value }}%, should be 100%"
+        
+        - alert: CertificateExpiringSoon
+          expr: service_mesh_certificate_days_until_expiry < 7
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Certificate expiring soon"
+            description: "Certificate for {{ $labels.service }} expires in {{ $value }} days"
+        
+        - alert: PolicyViolation
+          expr: service_mesh_policy_violations > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Service mesh policy violation detected"
+            description: "{{ $value }} policy violations detected"
+
+---
+# Grafana Dashboard Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: service-mesh-dashboard
+  namespace: monitoring
+data:
+  dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Service Mesh mTLS Dashboard",
+        "panels": [
+          {
+            "title": "mTLS Coverage",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "service_mesh_mtls_coverage"
+              }
+            ]
+          },
+          {
+            "title": "Certificate Status",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "service_mesh_certificate_days_until_expiry"
+              }
+            ]
+          },
+          {
+            "title": "Service Dependencies",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "service_mesh_dependency_latency"
+              }
+            ]
+          },
+          {
+            "title": "Policy Compliance",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "service_mesh_policy_compliance_score"
+              }
+            ]
+          }
+        ]
+      }
+    }
+
+---
+# Multi-Cluster Federation (if using Istio)
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: cross-cluster-gateway
+  namespace: istio-system
+spec:
+  selector:
+    istio: eastwestgateway
+  servers:
+    - port:
+        number: 15443
+        name: tls
+        protocol: TLS
+      tls:
+        mode: ISTIO_MUTUAL
+      hosts:
+        - "*.local"

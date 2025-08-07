@@ -3,6 +3,7 @@ package availability
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -558,4 +559,474 @@ func convertMetricsSlice(metrics []*AvailabilityMetric) []AvailabilityMetric {
 		result[i] = *m
 	}
 	return result
+}
+
+// ServiceLayerCollector collects metrics from service endpoints
+type ServiceLayerCollector struct {
+	endpoints  []ServiceEndpointConfig
+	promClient v1.API
+	httpClient *http.Client
+	tracer     trace.Tracer
+}
+
+// NewServiceLayerCollector creates a new service layer collector
+func NewServiceLayerCollector(endpoints []ServiceEndpointConfig, promClient v1.API) (*ServiceLayerCollector, error) {
+	return &ServiceLayerCollector{
+		endpoints:  endpoints,
+		promClient: promClient,
+		httpClient: &http.Client{
+			Timeout: time.Second * 30,
+			Transport: &http.Transport{
+				MaxIdleConns:        100,
+				MaxIdleConnsPerHost: 10,
+				IdleConnTimeout:     90 * time.Second,
+			},
+		},
+		tracer: otel.Tracer("service-layer-collector"),
+	}, nil
+}
+
+// Name returns the collector name
+func (slc *ServiceLayerCollector) Name() string {
+	return "service-layer-collector"
+}
+
+// Dimension returns the dimension this collector tracks
+func (slc *ServiceLayerCollector) Dimension() AvailabilityDimension {
+	return DimensionService
+}
+
+// Collect collects service layer metrics
+func (slc *ServiceLayerCollector) Collect(ctx context.Context) ([]*AvailabilityMetric, error) {
+	ctx, span := slc.tracer.Start(ctx, "collect-service-metrics")
+	defer span.End()
+
+	metrics := make([]*AvailabilityMetric, 0, len(slc.endpoints))
+
+	for _, endpoint := range slc.endpoints {
+		metric, err := slc.collectEndpointMetric(ctx, endpoint)
+		if err != nil {
+			span.RecordError(err)
+			continue
+		}
+		metrics = append(metrics, metric)
+	}
+
+	return metrics, nil
+}
+
+// collectEndpointMetric collects metric for a single endpoint
+func (slc *ServiceLayerCollector) collectEndpointMetric(ctx context.Context, endpoint ServiceEndpointConfig) (*AvailabilityMetric, error) {
+	start := time.Now()
+
+	// Create request with timeout
+	reqCtx, cancel := context.WithTimeout(ctx, endpoint.Timeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(reqCtx, endpoint.Method, endpoint.URL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Execute request
+	resp, err := slc.httpClient.Do(req)
+	responseTime := time.Since(start)
+
+	var status HealthStatus = HealthUnknown
+	var errorRate float64 = 0
+
+	if err != nil {
+		status = HealthUnhealthy
+		errorRate = 1.0
+	} else {
+		defer resp.Body.Close()
+
+		// Check status code
+		if resp.StatusCode == endpoint.ExpectedStatus {
+			if responseTime <= endpoint.SLAThreshold {
+				status = HealthHealthy
+			} else {
+				status = HealthDegraded
+			}
+		} else {
+			status = HealthUnhealthy
+			errorRate = 1.0
+		}
+	}
+
+	return &AvailabilityMetric{
+		Timestamp:      time.Now(),
+		Dimension:      DimensionService,
+		EntityID:       endpoint.Name,
+		EntityType:     "http_endpoint",
+		Status:         status,
+		ResponseTime:   responseTime,
+		ErrorRate:      errorRate,
+		BusinessImpact: endpoint.BusinessImpact,
+		Layer:          endpoint.Layer,
+		Metadata: map[string]interface{}{
+			"url":             endpoint.URL,
+			"method":          endpoint.Method,
+			"expected_status": endpoint.ExpectedStatus,
+			"actual_status": func() int {
+				if resp != nil {
+					return resp.StatusCode
+				}
+				return 0
+			}(),
+		},
+	}, nil
+}
+
+// ComponentHealthCollector collects metrics from Kubernetes components
+type ComponentHealthCollector struct {
+	components    []ComponentConfig
+	kubeClient    client.Client
+	kubeClientset kubernetes.Interface
+	tracer        trace.Tracer
+}
+
+// NewComponentHealthCollector creates a new component health collector
+func NewComponentHealthCollector(components []ComponentConfig, kubeClient client.Client, kubeClientset kubernetes.Interface) (*ComponentHealthCollector, error) {
+	return &ComponentHealthCollector{
+		components:    components,
+		kubeClient:    kubeClient,
+		kubeClientset: kubeClientset,
+		tracer:        otel.Tracer("component-health-collector"),
+	}, nil
+}
+
+// Name returns the collector name
+func (chc *ComponentHealthCollector) Name() string {
+	return "component-health-collector"
+}
+
+// Dimension returns the dimension this collector tracks
+func (chc *ComponentHealthCollector) Dimension() AvailabilityDimension {
+	return DimensionComponent
+}
+
+// Collect collects component health metrics
+func (chc *ComponentHealthCollector) Collect(ctx context.Context) ([]*AvailabilityMetric, error) {
+	ctx, span := chc.tracer.Start(ctx, "collect-component-metrics")
+	defer span.End()
+
+	metrics := make([]*AvailabilityMetric, 0, len(chc.components))
+
+	for _, component := range chc.components {
+		metric, err := chc.collectComponentMetric(ctx, component)
+		if err != nil {
+			span.RecordError(err)
+			continue
+		}
+		metrics = append(metrics, metric)
+	}
+
+	return metrics, nil
+}
+
+// collectComponentMetric collects metric for a single component
+func (chc *ComponentHealthCollector) collectComponentMetric(ctx context.Context, component ComponentConfig) (*AvailabilityMetric, error) {
+	var status HealthStatus = HealthUnknown
+	var metadata = make(map[string]interface{})
+
+	switch component.ResourceType {
+	case "pod":
+		podStatus, err := chc.collectPodMetrics(ctx, component)
+		if err != nil {
+			return nil, err
+		}
+		status = podStatus.Status
+		metadata = podStatus.Metadata
+	case "deployment":
+		deployStatus, err := chc.collectDeploymentMetrics(ctx, component)
+		if err != nil {
+			return nil, err
+		}
+		status = deployStatus.Status
+		metadata = deployStatus.Metadata
+	case "service":
+		svcStatus, err := chc.collectServiceMetrics(ctx, component)
+		if err != nil {
+			return nil, err
+		}
+		status = svcStatus.Status
+		metadata = svcStatus.Metadata
+	default:
+		return nil, fmt.Errorf("unsupported resource type: %s", component.ResourceType)
+	}
+
+	return &AvailabilityMetric{
+		Timestamp:      time.Now(),
+		Dimension:      DimensionComponent,
+		EntityID:       component.Name,
+		EntityType:     component.ResourceType,
+		Status:         status,
+		ResponseTime:   0, // Not applicable for components
+		ErrorRate:      0, // Calculated differently for components
+		BusinessImpact: component.BusinessImpact,
+		Layer:          component.Layer,
+		Metadata:       metadata,
+	}, nil
+}
+
+// ComponentStatus represents component status information
+type ComponentStatus struct {
+	Status   HealthStatus
+	Metadata map[string]interface{}
+}
+
+// collectPodMetrics collects metrics for pods
+func (chc *ComponentHealthCollector) collectPodMetrics(ctx context.Context, component ComponentConfig) (*ComponentStatus, error) {
+	pods := &corev1.PodList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(component.Namespace),
+	}
+
+	// Add label selectors if provided
+	if len(component.Selector) > 0 {
+		labels := client.MatchingLabels(component.Selector)
+		listOpts = append(listOpts, labels)
+	}
+
+	if err := chc.kubeClient.List(ctx, pods, listOpts...); err != nil {
+		return nil, fmt.Errorf("failed to list pods: %w", err)
+	}
+
+	if len(pods.Items) == 0 {
+		return &ComponentStatus{
+			Status: HealthUnhealthy,
+			Metadata: map[string]interface{}{
+				"reason":    "no_pods_found",
+				"pod_count": 0,
+			},
+		}, nil
+	}
+
+	healthyPods := 0
+	totalPods := len(pods.Items)
+	restartCount := 0
+
+	for _, pod := range pods.Items {
+		// Check pod phase
+		if pod.Status.Phase == corev1.PodRunning {
+			// Check container statuses
+			allReady := true
+			for _, containerStatus := range pod.Status.ContainerStatuses {
+				restartCount += int(containerStatus.RestartCount)
+				if !containerStatus.Ready {
+					allReady = false
+				}
+			}
+			if allReady {
+				healthyPods++
+			}
+		}
+	}
+
+	healthRatio := float64(healthyPods) / float64(totalPods)
+	var status HealthStatus
+	if healthRatio >= 0.9 {
+		status = HealthHealthy
+	} else if healthRatio >= 0.5 {
+		status = HealthDegraded
+	} else {
+		status = HealthUnhealthy
+	}
+
+	return &ComponentStatus{
+		Status: status,
+		Metadata: map[string]interface{}{
+			"total_pods":    totalPods,
+			"healthy_pods":  healthyPods,
+			"health_ratio":  healthRatio,
+			"restart_count": restartCount,
+		},
+	}, nil
+}
+
+// collectDeploymentMetrics collects metrics for deployments
+func (chc *ComponentHealthCollector) collectDeploymentMetrics(ctx context.Context, component ComponentConfig) (*ComponentStatus, error) {
+	deployments := &appsv1.DeploymentList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(component.Namespace),
+	}
+
+	if len(component.Selector) > 0 {
+		labels := client.MatchingLabels(component.Selector)
+		listOpts = append(listOpts, labels)
+	}
+
+	if err := chc.kubeClient.List(ctx, deployments, listOpts...); err != nil {
+		return nil, fmt.Errorf("failed to list deployments: %w", err)
+	}
+
+	if len(deployments.Items) == 0 {
+		return &ComponentStatus{
+			Status: HealthUnhealthy,
+			Metadata: map[string]interface{}{
+				"reason": "no_deployments_found",
+			},
+		}, nil
+	}
+
+	// For simplicity, take the first deployment (could be enhanced to handle multiple)
+	deployment := deployments.Items[0]
+
+	var status HealthStatus
+	desiredReplicas := *deployment.Spec.Replicas
+	availableReplicas := deployment.Status.AvailableReplicas
+
+	if availableReplicas == desiredReplicas && deployment.Status.ReadyReplicas == desiredReplicas {
+		status = HealthHealthy
+	} else if availableReplicas > 0 {
+		status = HealthDegraded
+	} else {
+		status = HealthUnhealthy
+	}
+
+	return &ComponentStatus{
+		Status: status,
+		Metadata: map[string]interface{}{
+			"desired_replicas":   desiredReplicas,
+			"available_replicas": availableReplicas,
+			"ready_replicas":     deployment.Status.ReadyReplicas,
+			"updated_replicas":   deployment.Status.UpdatedReplicas,
+		},
+	}, nil
+}
+
+// collectServiceMetrics collects metrics for services
+func (chc *ComponentHealthCollector) collectServiceMetrics(ctx context.Context, component ComponentConfig) (*ComponentStatus, error) {
+	services := &corev1.ServiceList{}
+	listOpts := []client.ListOption{
+		client.InNamespace(component.Namespace),
+	}
+
+	if len(component.Selector) > 0 {
+		labels := client.MatchingLabels(component.Selector)
+		listOpts = append(listOpts, labels)
+	}
+
+	if err := chc.kubeClient.List(ctx, services, listOpts...); err != nil {
+		return nil, fmt.Errorf("failed to list services: %w", err)
+	}
+
+	if len(services.Items) == 0 {
+		return &ComponentStatus{
+			Status: HealthUnhealthy,
+			Metadata: map[string]interface{}{
+				"reason": "no_services_found",
+			},
+		}, nil
+	}
+
+	// For services, we assume they're healthy if they exist
+	// More sophisticated checks could verify endpoints
+	service := services.Items[0]
+
+	return &ComponentStatus{
+		Status: HealthHealthy,
+		Metadata: map[string]interface{}{
+			"service_type": string(service.Spec.Type),
+			"port_count":   len(service.Spec.Ports),
+		},
+	}, nil
+}
+
+// UserJourneyCollector collects user journey metrics
+type UserJourneyCollector struct {
+	journeys   []UserJourneyConfig
+	promClient v1.API
+	tracer     trace.Tracer
+}
+
+// NewUserJourneyCollector creates a new user journey collector
+func NewUserJourneyCollector(journeys []UserJourneyConfig, promClient v1.API) (*UserJourneyCollector, error) {
+	return &UserJourneyCollector{
+		journeys:   journeys,
+		promClient: promClient,
+		tracer:     otel.Tracer("user-journey-collector"),
+	}, nil
+}
+
+// Name returns the collector name
+func (ujc *UserJourneyCollector) Name() string {
+	return "user-journey-collector"
+}
+
+// Dimension returns the dimension this collector tracks
+func (ujc *UserJourneyCollector) Dimension() AvailabilityDimension {
+	return DimensionUserJourney
+}
+
+// Collect collects user journey metrics
+func (ujc *UserJourneyCollector) Collect(ctx context.Context) ([]*AvailabilityMetric, error) {
+	ctx, span := ujc.tracer.Start(ctx, "collect-user-journey-metrics")
+	defer span.End()
+
+	metrics := make([]*AvailabilityMetric, 0, len(ujc.journeys))
+
+	for _, journey := range ujc.journeys {
+		metric, err := ujc.collectJourneyMetric(ctx, journey)
+		if err != nil {
+			span.RecordError(err)
+			continue
+		}
+		metrics = append(metrics, metric)
+	}
+
+	return metrics, nil
+}
+
+// collectJourneyMetric collects metric for a single user journey
+func (ujc *UserJourneyCollector) collectJourneyMetric(ctx context.Context, journey UserJourneyConfig) (*AvailabilityMetric, error) {
+	// This is a simplified implementation
+	// In a real implementation, you would:
+	// 1. Execute the journey steps
+	// 2. Measure success/failure rates
+	// 3. Calculate response times
+	// 4. Determine overall health
+
+	// For now, we'll simulate success rate based on prometheus metrics
+	var successRate float64 = 0.95 // Default assumption
+	var avgResponseTime time.Duration = time.Millisecond * 200
+
+	// Query Prometheus for journey-specific metrics if available
+	if ujc.promClient != nil {
+		// Example query for journey success rate
+		query := fmt.Sprintf(`rate(user_journey_success_total{journey="%s"}[5m]) / rate(user_journey_total{journey="%s"}[5m])`, journey.Name, journey.Name)
+		result, _, err := ujc.promClient.Query(ctx, query, time.Now())
+		if err == nil && result != nil {
+			// Parse result and update success rate
+			// This is a simplified version
+		}
+	}
+
+	errorRate := 1.0 - successRate
+	var status HealthStatus
+	if successRate >= 0.99 && avgResponseTime <= journey.SLAThreshold {
+		status = HealthHealthy
+	} else if successRate >= 0.95 {
+		status = HealthDegraded
+	} else {
+		status = HealthUnhealthy
+	}
+
+	return &AvailabilityMetric{
+		Timestamp:      time.Now(),
+		Dimension:      DimensionUserJourney,
+		EntityID:       journey.Name,
+		EntityType:     "user_journey",
+		Status:         status,
+		ResponseTime:   avgResponseTime,
+		ErrorRate:      errorRate,
+		BusinessImpact: journey.BusinessImpact,
+		Layer:          LayerAPI, // Most user journeys are API-driven
+		Metadata: map[string]interface{}{
+			"success_rate":   successRate,
+			"step_count":     len(journey.Steps),
+			"sla_threshold":  journey.SLAThreshold.String(),
+		},
+	}, nil
 }

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/security"
 )
@@ -20,6 +21,7 @@ type AuthConfig struct {
 	TokenTTL      time.Duration            `json:"token_ttl"`
 	RefreshTTL    time.Duration            `json:"refresh_ttl"`
 	Providers     map[string]ProviderConfig `json:"providers"`
+	LDAPProviders map[string]LDAPProviderConfig `json:"ldap_providers"`
 	RBAC          RBACConfig               `json:"rbac"`
 	AdminUsers    []string                 `json:"admin_users"`
 	OperatorUsers []string                 `json:"operator_users"`
@@ -28,7 +30,7 @@ type AuthConfig struct {
 // ProviderConfig holds OAuth2 provider configuration
 type ProviderConfig struct {
 	Enabled      bool     `json:"enabled"`
-	Type         string   `json:"type"` // azure-ad, okta, keycloak, google
+	Type         string   `json:"type"` // azure-ad, okta, keycloak, google, ldap
 	ClientID     string   `json:"client_id"`
 	ClientSecret string   `json:"client_secret"`
 	TenantID     string   `json:"tenant_id,omitempty"`     // Azure AD
@@ -39,6 +41,49 @@ type ProviderConfig struct {
 	AuthURL      string   `json:"auth_url,omitempty"`      // Custom
 	TokenURL     string   `json:"token_url,omitempty"`     // Custom
 	UserInfoURL  string   `json:"user_info_url,omitempty"` // Custom
+}
+
+// LDAPProviderConfig holds LDAP provider configuration
+type LDAPProviderConfig struct {
+	Enabled               bool                        `json:"enabled"`
+	Host                  string                      `json:"host"`
+	Port                  int                         `json:"port"`
+	UseSSL                bool                        `json:"use_ssl"`
+	UseTLS                bool                        `json:"use_tls"`
+	SkipVerify            bool                        `json:"skip_verify"`
+	BindDN                string                      `json:"bind_dn"`
+	BindPassword          string                      `json:"bind_password"`
+	BaseDN                string                      `json:"base_dn"`
+	UserFilter            string                      `json:"user_filter"`
+	GroupFilter           string                      `json:"group_filter"`
+	UserSearchBase        string                      `json:"user_search_base"`
+	GroupSearchBase       string                      `json:"group_search_base"`
+	UserAttributes        LDAPAttributeMapping        `json:"user_attributes"`
+	GroupAttributes       LDAPAttributeMapping        `json:"group_attributes"`
+	AuthMethod            string                      `json:"auth_method"`
+	Timeout               time.Duration               `json:"timeout"`
+	ConnectionTimeout     time.Duration               `json:"connection_timeout"`
+	MaxConnections        int                         `json:"max_connections"`
+	IsActiveDirectory     bool                        `json:"is_active_directory"`
+	Domain                string                      `json:"domain"`
+	GroupMemberAttribute  string                      `json:"group_member_attribute"`
+	UserGroupAttribute    string                      `json:"user_group_attribute"`
+	RoleMappings          map[string][]string         `json:"role_mappings"`
+	DefaultRoles          []string                    `json:"default_roles"`
+}
+
+// LDAPAttributeMapping maps LDAP attributes to standard fields
+type LDAPAttributeMapping struct {
+	Username    string `json:"username"`
+	Email       string `json:"email"`
+	FirstName   string `json:"first_name"`
+	LastName    string `json:"last_name"`
+	DisplayName string `json:"display_name"`
+	Groups      string `json:"groups"`
+	Title       string `json:"title"`
+	Department  string `json:"department"`
+	Phone       string `json:"phone"`
+	Manager     string `json:"manager"`
 }
 
 // RBACConfig holds role-based access control configuration
@@ -94,6 +139,7 @@ func LoadAuthConfig(configPath string) (*AuthConfig, error) {
 		TokenTTL:     config.GetDurationEnv("TOKEN_TTL", 24*time.Hour),
 		RefreshTTL:   config.GetDurationEnv("REFRESH_TTL", 7*24*time.Hour),
 		Providers:    make(map[string]ProviderConfig),
+		LDAPProviders: make(map[string]LDAPProviderConfig),
 		RBAC: RBACConfig{
 			Enabled:       config.GetBoolEnv("RBAC_ENABLED", true),
 			DefaultRole:   config.GetEnvOrDefault("DEFAULT_ROLE", "viewer"),
@@ -111,6 +157,11 @@ func LoadAuthConfig(configPath string) (*AuthConfig, error) {
 	// Load provider configurations
 	if err := authConfig.loadProviders(); err != nil {
 		return nil, fmt.Errorf("failed to load providers: %w", err)
+	}
+
+	// Load LDAP provider configurations
+	if err := authConfig.loadLDAPProviders(); err != nil {
+		return nil, fmt.Errorf("failed to load LDAP providers: %w", err)
 	}
 
 	// Determine config file path: use provided path or fall back to environment variable
@@ -247,6 +298,162 @@ func (c *AuthConfig) loadProviders() error {
 	return nil
 }
 
+// loadLDAPProviders loads LDAP provider configurations from environment with secure error handling
+func (c *AuthConfig) loadLDAPProviders() error {
+	var errors []error
+
+	// LDAP provider (primary)
+	if ldapHost := config.GetEnvOrDefault("LDAP_HOST", ""); ldapHost != "" {
+		bindPassword := config.GetEnvOrDefault("LDAP_BIND_PASSWORD", "")
+		if bindPassword == "" {
+			// Try to load from file
+			if passwordFile := config.GetEnvOrDefault("LDAP_BIND_PASSWORD_FILE", ""); passwordFile != "" {
+				if password, err := readSecretFile(passwordFile); err == nil {
+					bindPassword = password
+				} else {
+					errors = append(errors, fmt.Errorf("ldap: failed to read bind password file: %w", err))
+				}
+			}
+		}
+
+		c.LDAPProviders["ldap"] = LDAPProviderConfig{
+			Enabled:               config.GetBoolEnv("LDAP_ENABLED", true),
+			Host:                  ldapHost,
+			Port:                  config.GetIntEnv("LDAP_PORT", 389),
+			UseSSL:                config.GetBoolEnv("LDAP_USE_SSL", false),
+			UseTLS:                config.GetBoolEnv("LDAP_USE_TLS", true),
+			SkipVerify:            config.GetBoolEnv("LDAP_SKIP_VERIFY", false),
+			BindDN:                config.GetEnvOrDefault("LDAP_BIND_DN", ""),
+			BindPassword:          bindPassword,
+			BaseDN:                config.GetEnvOrDefault("LDAP_BASE_DN", ""),
+			UserFilter:            config.GetEnvOrDefault("LDAP_USER_FILTER", ""),
+			GroupFilter:           config.GetEnvOrDefault("LDAP_GROUP_FILTER", ""),
+			UserSearchBase:        config.GetEnvOrDefault("LDAP_USER_SEARCH_BASE", ""),
+			GroupSearchBase:       config.GetEnvOrDefault("LDAP_GROUP_SEARCH_BASE", ""),
+			UserAttributes: LDAPAttributeMapping{
+				Username:    config.GetEnvOrDefault("LDAP_USER_ATTR_USERNAME", ""),
+				Email:       config.GetEnvOrDefault("LDAP_USER_ATTR_EMAIL", ""),
+				FirstName:   config.GetEnvOrDefault("LDAP_USER_ATTR_FIRST_NAME", ""),
+				LastName:    config.GetEnvOrDefault("LDAP_USER_ATTR_LAST_NAME", ""),
+				DisplayName: config.GetEnvOrDefault("LDAP_USER_ATTR_DISPLAY_NAME", ""),
+				Title:       config.GetEnvOrDefault("LDAP_USER_ATTR_TITLE", ""),
+				Department:  config.GetEnvOrDefault("LDAP_USER_ATTR_DEPARTMENT", ""),
+				Phone:       config.GetEnvOrDefault("LDAP_USER_ATTR_PHONE", ""),
+				Manager:     config.GetEnvOrDefault("LDAP_USER_ATTR_MANAGER", ""),
+			},
+			AuthMethod:            config.GetEnvOrDefault("LDAP_AUTH_METHOD", "simple"),
+			Timeout:               config.GetDurationEnv("LDAP_TIMEOUT", 30*time.Second),
+			ConnectionTimeout:     config.GetDurationEnv("LDAP_CONNECTION_TIMEOUT", 10*time.Second),
+			MaxConnections:        config.GetIntEnv("LDAP_MAX_CONNECTIONS", 10),
+			IsActiveDirectory:     config.GetBoolEnv("LDAP_IS_ACTIVE_DIRECTORY", false),
+			Domain:                config.GetEnvOrDefault("LDAP_DOMAIN", ""),
+			GroupMemberAttribute:  config.GetEnvOrDefault("LDAP_GROUP_MEMBER_ATTR", ""),
+			UserGroupAttribute:    config.GetEnvOrDefault("LDAP_USER_GROUP_ATTR", ""),
+			RoleMappings:          parseRoleMappings(config.GetEnvOrDefault("LDAP_ROLE_MAPPINGS", "")),
+			DefaultRoles:          config.GetStringSliceEnv("LDAP_DEFAULT_ROLES", []string{"user"}),
+		}
+	}
+
+	// Active Directory provider (alternative configuration)
+	if adHost := config.GetEnvOrDefault("AD_HOST", ""); adHost != "" {
+		bindPassword := config.GetEnvOrDefault("AD_BIND_PASSWORD", "")
+		if bindPassword == "" {
+			// Try to load from file
+			if passwordFile := config.GetEnvOrDefault("AD_BIND_PASSWORD_FILE", ""); passwordFile != "" {
+				if password, err := readSecretFile(passwordFile); err == nil {
+					bindPassword = password
+				} else {
+					errors = append(errors, fmt.Errorf("active-directory: failed to read bind password file: %w", err))
+				}
+			}
+		}
+
+		c.LDAPProviders["active-directory"] = LDAPProviderConfig{
+			Enabled:               config.GetBoolEnv("AD_ENABLED", true),
+			Host:                  adHost,
+			Port:                  config.GetIntEnv("AD_PORT", 389),
+			UseSSL:                config.GetBoolEnv("AD_USE_SSL", false),
+			UseTLS:                config.GetBoolEnv("AD_USE_TLS", true),
+			SkipVerify:            config.GetBoolEnv("AD_SKIP_VERIFY", false),
+			BindDN:                config.GetEnvOrDefault("AD_BIND_DN", ""),
+			BindPassword:          bindPassword,
+			BaseDN:                config.GetEnvOrDefault("AD_BASE_DN", ""),
+			UserFilter:            config.GetEnvOrDefault("AD_USER_FILTER", ""),
+			GroupFilter:           config.GetEnvOrDefault("AD_GROUP_FILTER", ""),
+			UserSearchBase:        config.GetEnvOrDefault("AD_USER_SEARCH_BASE", ""),
+			GroupSearchBase:       config.GetEnvOrDefault("AD_GROUP_SEARCH_BASE", ""),
+			UserAttributes: LDAPAttributeMapping{
+				Username:    config.GetEnvOrDefault("AD_USER_ATTR_USERNAME", ""),
+				Email:       config.GetEnvOrDefault("AD_USER_ATTR_EMAIL", ""),
+				FirstName:   config.GetEnvOrDefault("AD_USER_ATTR_FIRST_NAME", ""),
+				LastName:    config.GetEnvOrDefault("AD_USER_ATTR_LAST_NAME", ""),
+				DisplayName: config.GetEnvOrDefault("AD_USER_ATTR_DISPLAY_NAME", ""),
+				Title:       config.GetEnvOrDefault("AD_USER_ATTR_TITLE", ""),
+				Department:  config.GetEnvOrDefault("AD_USER_ATTR_DEPARTMENT", ""),
+				Phone:       config.GetEnvOrDefault("AD_USER_ATTR_PHONE", ""),
+				Manager:     config.GetEnvOrDefault("AD_USER_ATTR_MANAGER", ""),
+			},
+			AuthMethod:            config.GetEnvOrDefault("AD_AUTH_METHOD", "simple"),
+			Timeout:               config.GetDurationEnv("AD_TIMEOUT", 30*time.Second),
+			ConnectionTimeout:     config.GetDurationEnv("AD_CONNECTION_TIMEOUT", 10*time.Second),
+			MaxConnections:        config.GetIntEnv("AD_MAX_CONNECTIONS", 10),
+			IsActiveDirectory:     true, // Always true for AD provider
+			Domain:                config.GetEnvOrDefault("AD_DOMAIN", ""),
+			GroupMemberAttribute:  config.GetEnvOrDefault("AD_GROUP_MEMBER_ATTR", ""),
+			UserGroupAttribute:    config.GetEnvOrDefault("AD_USER_GROUP_ATTR", ""),
+			RoleMappings:          parseRoleMappings(config.GetEnvOrDefault("AD_ROLE_MAPPINGS", "")),
+			DefaultRoles:          config.GetStringSliceEnv("AD_DEFAULT_ROLES", []string{"user"}),
+		}
+	}
+
+	// Log warnings for any configuration errors but don't fail
+	if len(errors) > 0 {
+		for _, err := range errors {
+			slog.Warn("LDAP provider configuration warning", "error", err)
+		}
+	}
+
+	return nil
+}
+
+// parseRoleMappings parses role mappings from environment string format
+// Expected format: "group1:role1,role2;group2:role3,role4"
+func parseRoleMappings(mappingStr string) map[string][]string {
+	mappings := make(map[string][]string)
+	if mappingStr == "" {
+		return mappings
+	}
+
+	// Split by semicolon for different groups
+	groupMappings := strings.Split(mappingStr, ";")
+	for _, groupMapping := range groupMappings {
+		groupMapping = strings.TrimSpace(groupMapping)
+		if groupMapping == "" {
+			continue
+		}
+
+		// Split by colon to separate group and roles
+		parts := strings.SplitN(groupMapping, ":", 2)
+		if len(parts) != 2 {
+			continue
+		}
+
+		group := strings.TrimSpace(parts[0])
+		rolesStr := strings.TrimSpace(parts[1])
+
+		if group != "" && rolesStr != "" {
+			// Split roles by comma
+			roles := strings.Split(rolesStr, ",")
+			for i, role := range roles {
+				roles[i] = strings.TrimSpace(role)
+			}
+			mappings[group] = roles
+		}
+	}
+
+	return mappings
+}
+
 // loadFromFile loads configuration from JSON file
 func (c *AuthConfig) loadFromFile(filename string) error {
 	data, err := os.ReadFile(filename)
@@ -280,6 +487,8 @@ func (c *AuthConfig) validate() error {
 	// Validate at least one provider is configured
 	hasEnabledProvider := false
 	providerErrors := make(map[string][]string)
+
+	// Check OAuth2 providers
 	
 	for name, provider := range c.Providers {
 		if !provider.Enabled {
@@ -339,11 +548,36 @@ func (c *AuthConfig) validate() error {
 		}
 
 		if len(errs) > 0 {
-			providerErrors[name] = errs
+			providerErrors["oauth2:"+name] = errs
 		}
 	}
 
-	// Report validation errors
+	// Check LDAP providers
+	for name, provider := range c.LDAPProviders {
+		if !provider.Enabled {
+			continue
+		}
+
+		hasEnabledProvider = true
+		var errs []string
+
+		// Basic LDAP validation
+		if provider.Host == "" {
+			errs = append(errs, "host is required")
+		}
+		if provider.BaseDN == "" {
+			errs = append(errs, "base_dn is required")
+		}
+		if provider.IsActiveDirectory && provider.Domain == "" {
+			errs = append(errs, "domain is required for Active Directory")
+		}
+
+		if len(errs) > 0 {
+			providerErrors["ldap:"+name] = errs
+		}
+	}
+
+	// Report validation errors for all providers
 	if len(providerErrors) > 0 {
 		var errorMsgs []string
 		for provider, errs := range providerErrors {
@@ -353,7 +587,7 @@ func (c *AuthConfig) validate() error {
 	}
 
 	if !hasEnabledProvider {
-		return fmt.Errorf("at least one OAuth2 provider must be enabled")
+		return fmt.Errorf("at least one provider (OAuth2 or LDAP) must be enabled")
 	}
 
 	return nil
@@ -492,6 +726,84 @@ func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error)
 	}
 
 	return providers, nil
+}
+
+// CreateLDAPProviders creates LDAP provider instances from configuration with validation
+func (c *AuthConfig) CreateLDAPProviders() (map[string]*providers.LDAPProvider, error) {
+	ldapProviders := make(map[string]*providers.LDAPProvider)
+	var errors []error
+
+	// Create logger for LDAP providers
+	logger := slog.Default()
+
+	for name, ldapConfig := range c.LDAPProviders {
+		if !ldapConfig.Enabled {
+			continue
+		}
+
+		// Convert config format
+		providerConfig := &providers.LDAPConfig{
+			Host:                 ldapConfig.Host,
+			Port:                 ldapConfig.Port,
+			UseSSL:               ldapConfig.UseSSL,
+			UseTLS:               ldapConfig.UseTLS,
+			SkipVerify:           ldapConfig.SkipVerify,
+			BindDN:               ldapConfig.BindDN,
+			BindPassword:         ldapConfig.BindPassword,
+			BaseDN:               ldapConfig.BaseDN,
+			UserFilter:           ldapConfig.UserFilter,
+			GroupFilter:          ldapConfig.GroupFilter,
+			UserSearchBase:       ldapConfig.UserSearchBase,
+			GroupSearchBase:      ldapConfig.GroupSearchBase,
+			AuthMethod:           ldapConfig.AuthMethod,
+			Timeout:              ldapConfig.Timeout,
+			ConnectionTimeout:    ldapConfig.ConnectionTimeout,
+			MaxConnections:       ldapConfig.MaxConnections,
+			IsActiveDirectory:    ldapConfig.IsActiveDirectory,
+			Domain:               ldapConfig.Domain,
+			GroupMemberAttribute: ldapConfig.GroupMemberAttribute,
+			UserGroupAttribute:   ldapConfig.UserGroupAttribute,
+			RoleMappings:         ldapConfig.RoleMappings,
+			DefaultRoles:         ldapConfig.DefaultRoles,
+			UserAttributes: providers.LDAPAttributeMap{
+				Username:    ldapConfig.UserAttributes.Username,
+				Email:       ldapConfig.UserAttributes.Email,
+				FirstName:   ldapConfig.UserAttributes.FirstName,
+				LastName:    ldapConfig.UserAttributes.LastName,
+				DisplayName: ldapConfig.UserAttributes.DisplayName,
+				Title:       ldapConfig.UserAttributes.Title,
+				Department:  ldapConfig.UserAttributes.Department,
+				Phone:       ldapConfig.UserAttributes.Phone,
+				Manager:     ldapConfig.UserAttributes.Manager,
+			},
+		}
+
+		// Create LDAP provider instance
+		provider := providers.NewLDAPClient(providerConfig, logger.With("ldap_provider", name))
+		ldapProviders[name] = provider
+
+		// Log successful provider creation
+		slog.Info("LDAP provider created successfully",
+			"provider", name,
+			"host", ldapConfig.Host,
+			"is_ad", ldapConfig.IsActiveDirectory,
+			"use_ssl", ldapConfig.UseSSL,
+			"use_tls", ldapConfig.UseTLS)
+	}
+
+	// If no providers were successfully created and there were errors, return error
+	if len(ldapProviders) == 0 && len(errors) > 0 {
+		return nil, fmt.Errorf("failed to create any LDAP providers: %v", errors)
+	}
+
+	// Log warnings for failed providers but continue if at least one succeeded
+	if len(errors) > 0 {
+		for _, err := range errors {
+			slog.Warn("Failed to create LDAP provider", "error", err)
+		}
+	}
+
+	return ldapProviders, nil
 }
 
 // getDefaultPermissions returns default role-permission mapping

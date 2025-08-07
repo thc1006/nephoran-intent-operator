@@ -1,0 +1,1056 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "nephoran-sla-monitoring",
+    "title": "Nephoran Intent Operator - SLA Monitoring Dashboard",
+    "tags": ["nephoran", "sla", "monitoring", "compliance"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Real-time SLA compliance status for all targets (99.95% availability, <2s latency, 45+ intents/min)",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "red",
+                    "index": 0,
+                    "text": "VIOLATION"
+                  },
+                  "1": {
+                    "color": "yellow",
+                    "index": 1,
+                    "text": "AT RISK"
+                  },
+                  "2": {
+                    "color": "green",
+                    "index": 2,
+                    "text": "COMPLIANT"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 4,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "center",
+          "orientation": "horizontal",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "textMode": "auto"
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_sla_availability_status",
+            "legendFormat": "Availability (99.95%)",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_sla_latency_status",
+            "legendFormat": "Latency (<2s)",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_sla_throughput_status",
+            "legendFormat": "Throughput (45+/min)",
+            "refId": "C"
+          }
+        ],
+        "title": "SLA Compliance Status",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Error budget usage and burn rate visualization",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 20,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 50
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Burn Rate"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "percentunit"
+                },
+                {
+                  "id": "custom.axisPlacement",
+                  "value": "right"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 4
+        },
+        "id": 2,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "nephoran_sla_error_budget_used_percentage{sla=\"availability\"}",
+            "legendFormat": "Availability Error Budget Used",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_sla_error_budget_used_percentage{sla=\"latency\"}",
+            "legendFormat": "Latency Error Budget Used",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_sla_error_budget_used_percentage{sla=\"throughput\"}",
+            "legendFormat": "Throughput Error Budget Used",
+            "refId": "C"
+          },
+          {
+            "expr": "nephoran_sla_burn_rate{sla=\"availability\"}",
+            "legendFormat": "Availability Burn Rate",
+            "refId": "D"
+          },
+          {
+            "expr": "nephoran_sla_burn_rate{sla=\"latency\"}",
+            "legendFormat": "Latency Burn Rate",
+            "refId": "E"
+          },
+          {
+            "expr": "nephoran_sla_burn_rate{sla=\"throughput\"}",
+            "legendFormat": "Throughput Burn Rate",
+            "refId": "F"
+          }
+        ],
+        "title": "Error Budget and Burn Rate",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Time remaining until error budget exhaustion",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 86400
+                },
+                {
+                  "color": "green",
+                  "value": 604800
+                }
+              ]
+            },
+            "unit": "s"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 4
+        },
+        "id": 3,
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "textMode": "auto"
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_sla_time_to_exhaustion_seconds{sla=\"availability\"}",
+            "legendFormat": "Availability",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_sla_time_to_exhaustion_seconds{sla=\"latency\"}",
+            "legendFormat": "Latency",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_sla_time_to_exhaustion_seconds{sla=\"throughput\"}",
+            "legendFormat": "Throughput",
+            "refId": "C"
+          }
+        ],
+        "title": "Time to Error Budget Exhaustion",
+        "type": "stat"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "System availability tracking against 99.95% SLA target",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 99.9,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 99.95
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 12
+        },
+        "id": 4,
+        "options": {
+          "legend": {
+            "calcs": [
+              "min",
+              "max",
+              "mean",
+              "last"
+            ],
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "100 * (1 - rate(nephoran_intent_failures_total[5m]) / rate(nephoran_intent_requests_total[5m]))",
+            "legendFormat": "Current Availability",
+            "refId": "A"
+          },
+          {
+            "expr": "avg_over_time((100 * (1 - rate(nephoran_intent_failures_total[5m]) / rate(nephoran_intent_requests_total[5m])))[1h:])",
+            "legendFormat": "1h Rolling Average",
+            "refId": "B"
+          },
+          {
+            "expr": "avg_over_time((100 * (1 - rate(nephoran_intent_failures_total[5m]) / rate(nephoran_intent_requests_total[5m])))[24h:])",
+            "legendFormat": "24h Rolling Average",
+            "refId": "C"
+          }
+        ],
+        "title": "Availability Tracking (Target: 99.95%)",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Latency tracking against <2s SLA target with percentile breakdown",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 2
+                }
+              ]
+            },
+            "unit": "s"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 20
+        },
+        "id": 5,
+        "options": {
+          "legend": {
+            "calcs": [
+              "min",
+              "max",
+              "mean",
+              "last"
+            ],
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(nephoran_intent_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50 Latency",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.90, rate(nephoran_intent_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "P90 Latency",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(nephoran_intent_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 Latency",
+            "refId": "C"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(nephoran_intent_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "P99 Latency",
+            "refId": "D"
+          }
+        ],
+        "title": "Latency Tracking (Target: <2s)",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Throughput tracking against 45 intents/min SLA target",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 45
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 20
+        },
+        "id": 6,
+        "options": {
+          "legend": {
+            "calcs": [
+              "min",
+              "max",
+              "mean",
+              "last"
+            ],
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(nephoran_intent_processed_total[1m]) * 60",
+            "legendFormat": "Current Throughput (intents/min)",
+            "refId": "A"
+          },
+          {
+            "expr": "avg_over_time((rate(nephoran_intent_processed_total[1m]) * 60)[5m:])",
+            "legendFormat": "5min Rolling Average",
+            "refId": "B"
+          },
+          {
+            "expr": "avg_over_time((rate(nephoran_intent_processed_total[1m]) * 60)[1h:])",
+            "legendFormat": "1h Rolling Average",
+            "refId": "C"
+          }
+        ],
+        "title": "Throughput Tracking (Target: 45+ intents/min)",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "SLA violations timeline with root cause analysis",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "displayMode": "color-background",
+              "inspect": false
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 1
+                },
+                {
+                  "color": "red",
+                  "value": 5
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Severity"
+              },
+              "properties": [
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "options": {
+                        "critical": {
+                          "color": "red",
+                          "index": 0
+                        },
+                        "high": {
+                          "color": "orange",
+                          "index": 1
+                        },
+                        "medium": {
+                          "color": "yellow",
+                          "index": 2
+                        },
+                        "low": {
+                          "color": "green",
+                          "index": 3
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 28
+        },
+        "id": 7,
+        "options": {
+          "showHeader": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "increase(nephoran_sla_violations_total[1h])",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "",
+            "refId": "A"
+          }
+        ],
+        "title": "SLA Violations Timeline",
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Component-level SLA contribution analysis",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 36
+        },
+        "id": 8,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "100 * (1 - rate(nephoran_llm_failures_total[5m]) / rate(nephoran_llm_requests_total[5m]))",
+            "legendFormat": "LLM Service",
+            "refId": "A"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_rag_failures_total[5m]) / rate(nephoran_rag_requests_total[5m]))",
+            "legendFormat": "RAG Service",
+            "refId": "B"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_nephio_failures_total[5m]) / rate(nephoran_nephio_requests_total[5m]))",
+            "legendFormat": "Nephio Service",
+            "refId": "C"
+          },
+          {
+            "expr": "100 * (1 - rate(nephoran_oran_failures_total[5m]) / rate(nephoran_oran_requests_total[5m]))",
+            "legendFormat": "O-RAN Service",
+            "refId": "D"
+          }
+        ],
+        "title": "Component-Level SLA Contribution",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Historical SLA compliance trends and patterns",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 20,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "always",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 95,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 36
+        },
+        "id": 9,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "avg_over_time((100 * (1 - rate(nephoran_intent_failures_total[5m]) / rate(nephoran_intent_requests_total[5m])))[7d:])",
+            "legendFormat": "7-day SLA Score",
+            "refId": "A"
+          },
+          {
+            "expr": "avg_over_time((100 * (1 - rate(nephoran_intent_failures_total[5m]) / rate(nephoran_intent_requests_total[5m])))[30d:])",
+            "legendFormat": "30-day SLA Score",
+            "refId": "B"
+          },
+          {
+            "expr": "avg_over_time((100 * (1 - rate(nephoran_intent_failures_total[5m]) / rate(nephoran_intent_requests_total[5m])))[90d:])",
+            "legendFormat": "90-day SLA Score",
+            "refId": "C"
+          }
+        ],
+        "title": "Historical SLA Trends",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Predictive SLA violation warnings based on current trends",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "mappings": [
+              {
+                "options": {
+                  "0": {
+                    "color": "green",
+                    "index": 0,
+                    "text": "LOW"
+                  },
+                  "1": {
+                    "color": "yellow",
+                    "index": 1,
+                    "text": "MEDIUM"
+                  },
+                  "2": {
+                    "color": "red",
+                    "index": 2,
+                    "text": "HIGH"
+                  }
+                },
+                "type": "value"
+              }
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 24,
+          "x": 0,
+          "y": 44
+        },
+        "id": 10,
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "justifyMode": "auto",
+          "orientation": "auto",
+          "reduceOptions": {
+            "values": false,
+            "calcs": [
+              "lastNotNull"
+            ],
+            "fields": ""
+          },
+          "textMode": "auto"
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_sla_violation_risk_score{sla=\"availability\"}",
+            "legendFormat": "Availability Risk",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_sla_violation_risk_score{sla=\"latency\"}",
+            "legendFormat": "Latency Risk",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_sla_violation_risk_score{sla=\"throughput\"}",
+            "legendFormat": "Throughput Risk",
+            "refId": "C"
+          }
+        ],
+        "title": "Predictive SLA Violation Warnings",
+        "type": "stat"
+      }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 36,
+    "style": "dark",
+    "tags": ["nephoran", "sla", "monitoring"],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "selected": false,
+            "text": "7d",
+            "value": "7d"
+          },
+          "hide": 0,
+          "includeAll": false,
+          "label": "Time Window",
+          "multi": false,
+          "name": "timewindow",
+          "options": [
+            {
+              "selected": false,
+              "text": "1h",
+              "value": "1h"
+            },
+            {
+              "selected": false,
+              "text": "6h",
+              "value": "6h"
+            },
+            {
+              "selected": false,
+              "text": "24h",
+              "value": "24h"
+            },
+            {
+              "selected": true,
+              "text": "7d",
+              "value": "7d"
+            },
+            {
+              "selected": false,
+              "text": "30d",
+              "value": "30d"
+            }
+          ],
+          "query": "1h,6h,24h,7d,30d",
+          "queryValue": "",
+          "skipUrlSync": false,
+          "type": "custom"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "Nephoran Intent Operator - SLA Monitoring Dashboard",
+    "uid": "nephoran-sla-monitoring",
+    "version": 1,
+    "weekStart": ""
+  }
+}

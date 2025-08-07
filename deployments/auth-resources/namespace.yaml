@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-system
+  labels:
+    name: nephoran-system
+    nephoran.com/managed-by: nephoran-operator
+    nephoran.com/component: core
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nephoran-auth
+  labels:
+    name: nephoran-auth
+    nephoran.com/managed-by: nephoran-operator
+    nephoran.com/component: authentication
+EOF < /dev/null

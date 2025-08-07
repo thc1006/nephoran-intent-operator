@@ -1,0 +1,340 @@
+# Certificate Validation and Revocation Configuration
+# This configuration file defines comprehensive settings for real-time certificate validation,
+# revocation checking, and security policy enforcement for the Nephoran Intent Operator
+
+# Real-time Validation Engine Configuration
+realtime_validation:
+  enabled: true
+  validation_timeout: 10s
+  max_concurrent_validations: 100
+  
+  # Chain validation settings
+  chain_validation_enabled: true
+  intermediate_ca_validation: true
+  max_chain_depth: 5
+  trusted_root_store: "/etc/ssl/certs/ca-certificates.crt"
+  
+  # Certificate Transparency
+  ct_log_validation_enabled: true
+  ct_log_endpoints:
+    - "https://ct.googleapis.com/logs/argon2024/"
+    - "https://ct.googleapis.com/logs/xenon2024/"
+    - "https://ct.cloudflare.com/logs/nimbus2024/"
+  ct_log_timeout: 5s
+  require_sct_validation: true
+  
+  # Revocation checking
+  crl_validation_enabled: true
+  ocsp_validation_enabled: true
+  ocsp_stapling_enabled: true
+  revocation_cache_size: 10000
+  revocation_cache_ttl: 1h
+  soft_fail_revocation: false
+  hard_fail_revocation: true
+  
+  # Performance optimization
+  async_validation_enabled: true
+  batch_validation_enabled: true
+  batch_size: 50
+  batch_timeout: 2s
+  connection_pool_size: 20
+  circuit_breaker_enabled: true
+  
+  # Security policies
+  policy_validation_enabled: true
+  certificate_pinning_enabled: true
+  algorithm_strength_check: true
+  minimum_rsa_key_size: 2048
+  allowed_ec_curves:
+    - "P-256"
+    - "P-384"
+    - "P-521"
+  require_extended_validation: false
+  
+  # O-RAN compliance
+  oran_compliance_enabled: true
+  oran_policy_rules:
+    - name: "oran_component_identification"
+      type: "extension"
+      pattern: "1.3.6.1.4.1.53148.1.1"
+      required: true
+      severity: "error"
+      description: "O-RAN component identifier extension required"
+    
+    - name: "oran_role_extension"
+      type: "extension"
+      pattern: "1.3.6.1.4.1.53148.1.2"
+      required: true
+      severity: "error"
+      description: "O-RAN role identifier extension required"
+    
+    - name: "oran_naming_convention"
+      type: "subject"
+      pattern: "^CN=.*\\.o-ran\\.org$"
+      required: false
+      severity: "warning"
+      description: "O-RAN domain naming convention"
+  
+  telecom_specific_validation: true
+  
+  # Monitoring and alerting
+  metrics_enabled: true
+  detailed_metrics: true
+  webhook_notifications: true
+  webhook_endpoints:
+    - "https://monitoring.example.com/webhooks/cert-validation"
+    - "https://siem.example.com/api/events"
+  
+  alert_thresholds:
+    validation_failure_rate: 0.05  # 5% failure rate
+    revocation_check_failure_rate: 0.10  # 10% failure rate
+    response_time_p95: 5s
+    cache_hit_rate_min: 0.70  # 70% minimum cache hit rate
+  
+  # Emergency procedures
+  emergency_bypass_enabled: true
+  bypass_authorization_keys:
+    - "emergency-key-001"
+    - "emergency-key-002"
+  bypass_duration: 1h
+  bypass_audit_enabled: true
+
+# Enhanced Revocation System Configuration
+enhanced_revocation:
+  # CRL Configuration
+  crl_enabled: true
+  crl_distribution_points:
+    - "http://crl.example.com/root.crl"
+    - "http://crl.example.com/intermediate.crl"
+  crl_update_interval: 4h
+  crl_cache_size: 1000
+  crl_max_size: 52428800  # 50MB
+  crl_delta_enabled: true
+  
+  # OCSP Configuration
+  ocsp_enabled: true
+  ocsp_responders:
+    - "http://ocsp.example.com"
+    - "http://ocsp-backup.example.com"
+  ocsp_timeout: 10s
+  ocsp_stapling_enabled: true
+  ocsp_nonce_enabled: true
+  ocsp_cache_size: 5000
+  ocsp_cache_ttl: 30m
+  
+  # Performance Settings
+  batch_processing_enabled: true
+  batch_size: 100
+  batch_timeout: 5s
+  async_validation: true
+  max_concurrent_checks: 50
+  connection_pool_size: 20
+  
+  # Cache Configuration
+  cache_enabled: true
+  l1_cache_size: 10000
+  l1_cache_ttl: 15m
+  l2_cache_enabled: true
+  l2_cache_size: 50000
+  l2_cache_ttl: 1h
+  preload_cache: true
+  
+  # Fail Policy
+  soft_fail_enabled: true
+  hard_fail_enabled: false
+  failure_threshold: 3
+  circuit_breaker_enabled: true
+  
+  # Automatic Replacement
+  auto_replace_revoked: true
+  replacement_timeout: 30s
+  replacement_retries: 3
+
+# Security Policy Engine Configuration
+policy_engine:
+  enabled: true
+  enforcement_mode: "strict"  # strict, permissive, audit
+  
+  # Algorithm strength requirements
+  algorithm_strength_check: true
+  minimum_rsa_key_size: 2048
+  allowed_ec_curves:
+    - "P-256"
+    - "P-384"
+    - "P-521"
+  
+  # Certificate pinning
+  certificate_pinning: true
+  
+  # Extended validation
+  require_extended_validation: false
+  
+  # General policy rules
+  rules:
+    - name: "minimum_key_size"
+      type: "key_size"
+      pattern: "2048"
+      required: true
+      severity: "error"
+      description: "Minimum 2048-bit keys required"
+    
+    - name: "signature_algorithm"
+      type: "signature_algorithm"
+      pattern: "SHA256|SHA384|SHA512"
+      required: true
+      severity: "critical"
+      description: "Strong signature algorithms required"
+    
+    - name: "validity_period"
+      type: "validity_period"
+      pattern: "365"
+      required: false
+      severity: "warning"
+      description: "Maximum validity period of 365 days"
+    
+    - name: "subject_alternative_names"
+      type: "san"
+      pattern: ".+"
+      required: true
+      severity: "error"
+      description: "Subject Alternative Names required"
+  
+  # Service-specific policies
+  service_policies:
+    "default/amf-service":
+      service_name: "amf-service"
+      namespace: "default"
+      pinned_certificates:
+        - "sha256:1234567890abcdef..."
+      required_key_usage:
+        - 1  # DigitalSignature
+        - 4  # KeyEncipherment
+      required_ext_key_usage:
+        - 1  # ServerAuth
+        - 2  # ClientAuth
+      allowed_dns_names:
+        - "*.amf.5gc.example.com"
+        - "amf-*.example.com"
+      allowed_ip_addresses:
+        - "10.0.0.0/8"
+        - "172.16.0.0/12"
+      minimum_validity_days: 30
+      maximum_validity_days: 365
+    
+    "default/smf-service":
+      service_name: "smf-service"
+      namespace: "default"
+      required_key_usage:
+        - 1  # DigitalSignature
+      minimum_validity_days: 30
+      maximum_validity_days: 365
+  
+  # Custom validators
+  custom_validators:
+    - "telecom_compliance_validator"
+    - "network_function_validator"
+  
+  # O-RAN compliance configuration
+  oran_compliance:
+    enabled: true
+    required_extensions:
+      - "1.3.6.1.4.1.53148.1.1"  # O-RAN component identifier
+      - "1.3.6.1.4.1.53148.1.2"  # O-RAN role identifier
+    component_validation: true
+    naming_convention: "oran_standard"
+    minimum_security_level: 2
+    forbidden_algorithms:
+      - "MD5"
+      - "SHA1"
+      - "DES"
+    require_hsm_protection: false
+
+# Certificate Automation Integration
+automation_integration:
+  # Link with existing automation engine
+  provisioning_validation: true
+  renewal_validation: true
+  
+  # Validation triggers
+  validate_on_provision: true
+  validate_on_renewal: true
+  validate_on_rotation: true
+  periodic_validation_interval: 24h
+  
+  # Integration with monitoring
+  export_metrics: true
+  metrics_endpoint: "/metrics"
+  
+  # Alerting integration
+  alert_manager_enabled: true
+  alert_manager_url: "http://alertmanager:9093"
+  
+  # Audit logging
+  audit_enabled: true
+  audit_log_path: "/var/log/nephoran/cert-validation-audit.log"
+  audit_retention_days: 90
+
+# Performance tuning
+performance:
+  # Worker pools
+  validation_workers: 20
+  revocation_workers: 10
+  policy_workers: 10
+  
+  # Queue sizes
+  validation_queue_size: 1000
+  revocation_queue_size: 500
+  
+  # Timeouts
+  global_timeout: 30s
+  validation_timeout: 10s
+  revocation_timeout: 15s
+  policy_timeout: 5s
+  
+  # Rate limiting
+  rate_limit_enabled: true
+  validations_per_second: 100
+  revocations_per_second: 50
+
+# Emergency procedures
+emergency:
+  # Bypass procedures
+  bypass_enabled: true
+  bypass_auth_required: true
+  bypass_audit_required: true
+  bypass_max_duration: 24h
+  
+  # Fallback mechanisms
+  fallback_validation_enabled: true
+  fallback_to_cached_results: true
+  fallback_cache_ttl: 6h
+  
+  # Incident response
+  incident_webhook: "https://incident.example.com/api/create"
+  auto_create_incident: true
+  incident_severity_threshold: "critical"
+
+# Compliance and reporting
+compliance:
+  # Compliance standards
+  standards:
+    - "NIST"
+    - "PCI-DSS"
+    - "O-RAN"
+    - "3GPP"
+  
+  # Reporting
+  report_generation_enabled: true
+  report_schedule: "0 0 * * 0"  # Weekly on Sunday
+  report_formats:
+    - "json"
+    - "pdf"
+    - "html"
+  report_recipients:
+    - "security-team@example.com"
+    - "compliance@example.com"
+  
+  # Audit trail
+  audit_retention_days: 365
+  audit_compression_enabled: true
+  audit_encryption_enabled: true

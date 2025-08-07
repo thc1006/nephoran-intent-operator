@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -57,6 +58,7 @@ type GoogleIDToken struct {
 	Locale           string `json:"locale"`
 	HostedDomain     string `json:"hd,omitempty"`
 	AtHash           string `json:"at_hash,omitempty"`
+	jwt.RegisteredClaims
 }
 
 // JWKSCache represents a cached JWKS with expiration
@@ -460,10 +462,8 @@ func (p *GoogleProvider) ValidateIDToken(ctx context.Context, idToken string) (*
 	// Parse token without verification first to get header
 	token, err := jwt.Parse(idToken, nil)
 	if err != nil {
-		ve, ok := err.(*jwt.ValidationError)
-		if !ok || ve.Errors&jwt.ValidationErrorMalformed != 0 {
-			return nil, fmt.Errorf("malformed token: %w", err)
-		}
+		// In jwt v5, we just check for parsing errors without detailed error types
+		return nil, fmt.Errorf("error parsing token: %w", err)
 	}
 
 	// Get key ID from token header
@@ -699,5 +699,3 @@ func (p *GoogleProvider) ValidateUserAccess(ctx context.Context, accessToken str
 	
 	return nil
 }
-
-import "sync"

@@ -6,12 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/microsoft"
 )
 
 // AzureADProvider implements OAuth2/OIDC authentication for Microsoft Azure AD

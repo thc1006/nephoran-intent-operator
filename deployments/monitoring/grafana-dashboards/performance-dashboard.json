@@ -1,0 +1,1151 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "nephoran-performance",
+    "title": "Nephoran Intent Operator - Performance Dashboard",
+    "tags": ["nephoran", "performance", "latency", "throughput", "optimization"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "End-to-end latency breakdown by component with detailed timing",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "normal"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 2
+                }
+              ]
+            },
+            "unit": "s"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "legend": {
+            "calcs": [
+              "mean",
+              "max",
+              "last"
+            ],
+            "displayMode": "table",
+            "placement": "right"
+          },
+          "tooltip": {
+            "mode": "multi",
+            "sort": "desc"
+          }
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(nephoran_llm_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "LLM Processing",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(nephoran_rag_query_duration_seconds_bucket[5m]))",
+            "legendFormat": "RAG Query",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(nephoran_nephio_deployment_duration_seconds_bucket[5m]))",
+            "legendFormat": "Nephio Deployment",
+            "refId": "C"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(nephoran_oran_interface_duration_seconds_bucket[5m]))",
+            "legendFormat": "O-RAN Interface",
+            "refId": "D"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(nephoran_validation_duration_seconds_bucket[5m]))",
+            "legendFormat": "Validation",
+            "refId": "E"
+          }
+        ],
+        "title": "End-to-End Latency Breakdown (P95)",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Throughput analysis with capacity utilization metrics",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 20,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 40
+                },
+                {
+                  "color": "red",
+                  "value": 45
+                }
+              ]
+            },
+            "unit": "reqps"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Capacity Utilization"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "percent"
+                },
+                {
+                  "id": "custom.axisPlacement",
+                  "value": "right"
+                },
+                {
+                  "id": "max",
+                  "value": 100
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 8
+        },
+        "id": 2,
+        "options": {
+          "legend": {
+            "calcs": [
+              "mean",
+              "max",
+              "last"
+            ],
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "rate(nephoran_intent_processed_total[1m])",
+            "legendFormat": "Current Throughput",
+            "refId": "A"
+          },
+          {
+            "expr": "avg_over_time(rate(nephoran_intent_processed_total[1m])[5m:])",
+            "legendFormat": "5min Average",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_max_throughput_capacity",
+            "legendFormat": "Max Capacity",
+            "refId": "C"
+          },
+          {
+            "expr": "100 * (rate(nephoran_intent_processed_total[1m]) / nephoran_max_throughput_capacity)",
+            "legendFormat": "Capacity Utilization",
+            "refId": "D"
+          }
+        ],
+        "title": "Throughput Analysis and Capacity",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Queue depth and processing time metrics for bottleneck identification",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 50
+                },
+                {
+                  "color": "red",
+                  "value": 100
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byRegexp",
+                "options": ".*Time.*"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "ms"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 8
+        },
+        "id": 3,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "nephoran_llm_queue_depth",
+            "legendFormat": "LLM Queue Depth",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_rag_queue_depth",
+            "legendFormat": "RAG Queue Depth",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_nephio_queue_depth",
+            "legendFormat": "Nephio Queue Depth",
+            "refId": "C"
+          },
+          {
+            "expr": "nephoran_llm_avg_processing_time_ms",
+            "legendFormat": "LLM Avg Processing Time",
+            "refId": "D"
+          },
+          {
+            "expr": "nephoran_rag_avg_processing_time_ms",
+            "legendFormat": "RAG Avg Processing Time",
+            "refId": "E"
+          }
+        ],
+        "title": "Queue Depth and Processing Time",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Database performance metrics including query response times and connection pool usage",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byRegexp",
+                "options": ".*Duration.*"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "ms"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byRegexp",
+                "options": ".*Connections.*"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "short"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 16
+        },
+        "id": 4,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(nephoran_db_query_duration_seconds_bucket[5m])) * 1000",
+            "legendFormat": "DB Query Duration P95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(nephoran_db_query_duration_seconds_bucket[5m])) * 1000",
+            "legendFormat": "DB Query Duration P50",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_db_connections_active",
+            "legendFormat": "Active DB Connections",
+            "refId": "C"
+          },
+          {
+            "expr": "nephoran_db_connections_idle",
+            "legendFormat": "Idle DB Connections",
+            "refId": "D"
+          },
+          {
+            "expr": "rate(nephoran_db_queries_total[5m])",
+            "legendFormat": "DB Queries/sec",
+            "refId": "E"
+          }
+        ],
+        "title": "Database Performance Metrics",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Network latency and error rates for external service dependencies",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byRegexp",
+                "options": ".*Latency.*"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "ms"
+                }
+              ]
+            },
+            {
+              "matcher": {
+                "id": "byRegexp",
+                "options": ".*Error Rate.*"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "percent"
+                },
+                {
+                  "id": "custom.axisPlacement",
+                  "value": "right"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 24
+        },
+        "id": 5,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(nephoran_external_request_duration_seconds_bucket{service=\"openai\"}[5m])) * 1000",
+            "legendFormat": "OpenAI API Latency P95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(nephoran_external_request_duration_seconds_bucket{service=\"weaviate\"}[5m])) * 1000",
+            "legendFormat": "Weaviate Latency P95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(nephoran_external_request_duration_seconds_bucket{service=\"nephio\"}[5m])) * 1000",
+            "legendFormat": "Nephio API Latency P95",
+            "refId": "C"
+          },
+          {
+            "expr": "100 * rate(nephoran_external_request_failures_total{service=\"openai\"}[5m]) / rate(nephoran_external_requests_total{service=\"openai\"}[5m])",
+            "legendFormat": "OpenAI Error Rate",
+            "refId": "D"
+          },
+          {
+            "expr": "100 * rate(nephoran_external_request_failures_total{service=\"weaviate\"}[5m]) / rate(nephoran_external_requests_total{service=\"weaviate\"}[5m])",
+            "legendFormat": "Weaviate Error Rate",
+            "refId": "E"
+          }
+        ],
+        "title": "Network Latency and Error Rates",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Performance optimization recommendations based on current bottlenecks",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "custom": {
+              "align": "auto",
+              "displayMode": "auto",
+              "inspect": false
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byName",
+                "options": "Priority"
+              },
+              "properties": [
+                {
+                  "id": "mappings",
+                  "value": [
+                    {
+                      "options": {
+                        "critical": {
+                          "color": "red",
+                          "index": 0
+                        },
+                        "high": {
+                          "color": "orange",
+                          "index": 1
+                        },
+                        "medium": {
+                          "color": "yellow",
+                          "index": 2
+                        },
+                        "low": {
+                          "color": "green",
+                          "index": 3
+                        }
+                      },
+                      "type": "value"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 24
+        },
+        "id": 6,
+        "options": {
+          "showHeader": true
+        },
+        "pluginVersion": "9.0.0",
+        "targets": [
+          {
+            "expr": "nephoran_performance_recommendations",
+            "format": "table",
+            "instant": true,
+            "legendFormat": "",
+            "refId": "A"
+          }
+        ],
+        "title": "Performance Optimization Recommendations",
+        "type": "table"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Resource consumption patterns and optimization opportunities",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 20,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 70
+                },
+                {
+                  "color": "red",
+                  "value": 85
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": [
+            {
+              "matcher": {
+                "id": "byRegexp",
+                "options": ".*Memory.*"
+              },
+              "properties": [
+                {
+                  "id": "unit",
+                  "value": "bytes"
+                },
+                {
+                  "id": "custom.axisPlacement",
+                  "value": "right"
+                }
+              ]
+            }
+          ]
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 32
+        },
+        "id": 7,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "100 * (1 - avg(irate(node_cpu_seconds_total{mode=\"idle\", instance=~\"nephoran.*\"}[5m])))",
+            "legendFormat": "CPU Utilization",
+            "refId": "A"
+          },
+          {
+            "expr": "100 * (1 - (node_memory_MemAvailable_bytes{instance=~\"nephoran.*\"} / node_memory_MemTotal_bytes{instance=~\"nephoran.*\"}))",
+            "legendFormat": "Memory Utilization",
+            "refId": "B"
+          },
+          {
+            "expr": "avg(container_memory_working_set_bytes{pod=~\"nephoran.*\"})",
+            "legendFormat": "Container Memory Usage",
+            "refId": "C"
+          },
+          {
+            "expr": "100 * (node_filesystem_size_bytes{mountpoint=\"/\", instance=~\"nephoran.*\"} - node_filesystem_free_bytes{mountpoint=\"/\", instance=~\"nephoran.*\"}) / node_filesystem_size_bytes{mountpoint=\"/\", instance=~\"nephoran.*\"}",
+            "legendFormat": "Disk Utilization",
+            "refId": "D"
+          },
+          {
+            "expr": "rate(container_network_receive_bytes_total{pod=~\"nephoran.*\"}[5m]) + rate(container_network_transmit_bytes_total{pod=~\"nephoran.*\"}[5m])",
+            "legendFormat": "Network I/O",
+            "refId": "E"
+          }
+        ],
+        "title": "Resource Consumption Patterns",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Cache hit rates and memory efficiency across system components",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 2,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "max": 100,
+            "min": 0,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "red",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 70
+                },
+                {
+                  "color": "green",
+                  "value": 85
+                }
+              ]
+            },
+            "unit": "percent"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 40
+        },
+        "id": 8,
+        "options": {
+          "legend": {
+            "calcs": [
+              "mean",
+              "last"
+            ],
+            "displayMode": "table",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "100 * rate(nephoran_cache_hits_total{cache=\"llm\"}[5m]) / rate(nephoran_cache_requests_total{cache=\"llm\"}[5m])",
+            "legendFormat": "LLM Cache Hit Rate",
+            "refId": "A"
+          },
+          {
+            "expr": "100 * rate(nephoran_cache_hits_total{cache=\"rag\"}[5m]) / rate(nephoran_cache_requests_total{cache=\"rag\"}[5m])",
+            "legendFormat": "RAG Cache Hit Rate",
+            "refId": "B"
+          },
+          {
+            "expr": "100 * rate(nephoran_cache_hits_total{cache=\"embeddings\"}[5m]) / rate(nephoran_cache_requests_total{cache=\"embeddings\"}[5m])",
+            "legendFormat": "Embeddings Cache Hit Rate",
+            "refId": "C"
+          },
+          {
+            "expr": "100 * rate(nephoran_cache_hits_total{cache=\"api\"}[5m]) / rate(nephoran_cache_requests_total{cache=\"api\"}[5m])",
+            "legendFormat": "API Cache Hit Rate",
+            "refId": "D"
+          }
+        ],
+        "title": "Cache Performance and Hit Rates",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "description": "Concurrent processing metrics and scalability indicators",
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "vis": false
+              },
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "line"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green",
+                  "value": null
+                },
+                {
+                  "color": "yellow",
+                  "value": 150
+                },
+                {
+                  "color": "red",
+                  "value": 200
+                }
+              ]
+            },
+            "unit": "short"
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 40
+        },
+        "id": 9,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom"
+          },
+          "tooltip": {
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "expr": "nephoran_concurrent_intents_active",
+            "legendFormat": "Active Concurrent Intents",
+            "refId": "A"
+          },
+          {
+            "expr": "nephoran_max_concurrent_intents",
+            "legendFormat": "Max Concurrent Limit",
+            "refId": "B"
+          },
+          {
+            "expr": "nephoran_goroutines_active",
+            "legendFormat": "Active Goroutines",
+            "refId": "C"
+          },
+          {
+            "expr": "nephoran_worker_pool_size",
+            "legendFormat": "Worker Pool Size",
+            "refId": "D"
+          },
+          {
+            "expr": "nephoran_worker_pool_utilization",
+            "legendFormat": "Worker Pool Utilization",
+            "refId": "E"
+          }
+        ],
+        "title": "Concurrency and Scalability Metrics",
+        "type": "timeseries"
+      }
+    ],
+    "refresh": "30s",
+    "schemaVersion": 36,
+    "style": "dark",
+    "tags": ["nephoran", "performance", "optimization"],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "selected": false,
+            "text": "All",
+            "value": "$__all"
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "definition": "label_values(nephoran_intent_requests_total, instance)",
+          "hide": 0,
+          "includeAll": true,
+          "label": "Instance",
+          "multi": true,
+          "name": "instance",
+          "options": [],
+          "query": {
+            "query": "label_values(nephoran_intent_requests_total, instance)",
+            "refId": "StandardVariableQuery"
+          },
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "type": "query"
+        },
+        {
+          "current": {
+            "selected": false,
+            "text": "95",
+            "value": "95"
+          },
+          "hide": 0,
+          "includeAll": false,
+          "label": "Percentile",
+          "multi": false,
+          "name": "percentile",
+          "options": [
+            {
+              "selected": false,
+              "text": "50",
+              "value": "50"
+            },
+            {
+              "selected": false,
+              "text": "90",
+              "value": "90"
+            },
+            {
+              "selected": true,
+              "text": "95",
+              "value": "95"
+            },
+            {
+              "selected": false,
+              "text": "99",
+              "value": "99"
+            }
+          ],
+          "query": "50,90,95,99",
+          "queryValue": "",
+          "skipUrlSync": false,
+          "type": "custom"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "",
+    "title": "Nephoran Intent Operator - Performance Dashboard",
+    "uid": "nephoran-performance",
+    "version": 1,
+    "weekStart": ""
+  }
+}

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-auth-config
+  namespace: nephoran-auth
+data:
+  NEPHORAN_AUTH_ENABLED: "true"
+  NEPHORAN_REQUIRE_AUTH: "true"
+  NEPHORAN_OAUTH2_ENABLED: "true"
+  NEPHORAN_RBAC_ENABLED: "true"

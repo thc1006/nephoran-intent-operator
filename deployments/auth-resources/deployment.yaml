@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephoran-auth-service
+  namespace: nephoran-auth
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nephoran-auth
+  template:
+    metadata:
+      labels:
+        app: nephoran-auth
+    spec:
+      serviceAccountName: nephoran-auth-service
+      containers:
+      - name: auth-service
+        image: thc1006/nephoran-auth:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: NEPHORAN_AUTH_ENABLED
+          valueFrom:
+            configMapKeyRef:
+              name: nephoran-auth-config
+              key: NEPHORAN_AUTH_ENABLED
+        - name: JWT_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: nephoran-auth-secrets
+              key: jwt-secret-key
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"

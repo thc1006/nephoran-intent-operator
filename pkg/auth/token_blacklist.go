@@ -14,8 +14,8 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// TokenBlacklist manages revoked tokens and prevents their reuse
-type TokenBlacklist struct {
+// TokenBlacklistManager manages revoked tokens and prevents their reuse
+type TokenBlacklistManager struct {
 	redisClient      *redis.Client
 	localCache       map[string]time.Time
 	cacheMutex       sync.RWMutex
@@ -63,8 +63,8 @@ type BlacklistEntry struct {
 	UserAgent    string    `json:"user_agent"`
 }
 
-// NewTokenBlacklist creates a new token blacklist instance
-func NewTokenBlacklist(config *BlacklistConfig) (*TokenBlacklist, error) {
+// NewTokenBlacklistManager creates a new token blacklist instance
+func NewTokenBlacklistManager(config *BlacklistConfig) (*TokenBlacklistManager, error) {
 	if config == nil {
 		config = getDefaultBlacklistConfig()
 	}
@@ -84,7 +84,7 @@ func NewTokenBlacklist(config *BlacklistConfig) (*TokenBlacklist, error) {
 		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
 	}
 
-	blacklist := &TokenBlacklist{
+	blacklist := &TokenBlacklistManager{
 		redisClient: rdb,
 		localCache:  make(map[string]time.Time),
 		config:      config,
@@ -115,7 +115,7 @@ func getDefaultBlacklistConfig() *BlacklistConfig {
 }
 
 // IsBlacklisted checks if a token is blacklisted
-func (tb *TokenBlacklist) IsBlacklisted(ctx context.Context, token string) (bool, error) {
+func (tb *TokenBlacklistManager) IsBlacklisted(ctx context.Context, token string) (bool, error) {
 	startTime := time.Now()
 	defer func() {
 		tb.updateMetrics(func(m *BlacklistMetrics) {
@@ -198,7 +198,7 @@ func (tb *TokenBlacklist) IsBlacklisted(ctx context.Context, token string) (bool
 }
 
 // BlacklistToken adds a token to the blacklist
-func (tb *TokenBlacklist) BlacklistToken(ctx context.Context, token, userID, reason, ipAddress, userAgent string, expiresAt time.Time) error {
+func (tb *TokenBlacklistManager) BlacklistToken(ctx context.Context, token, userID, reason, ipAddress, userAgent string, expiresAt time.Time) error {
 	tokenHash := tb.hashToken(token)
 
 	entry := BlacklistEntry{
@@ -246,7 +246,7 @@ func (tb *TokenBlacklist) BlacklistToken(ctx context.Context, token, userID, rea
 }
 
 // BlacklistAllUserTokens blacklists all tokens for a specific user
-func (tb *TokenBlacklist) BlacklistAllUserTokens(ctx context.Context, userID, reason string) error {
+func (tb *TokenBlacklistManager) BlacklistAllUserTokens(ctx context.Context, userID, reason string) error {
 	// In a production system, you'd maintain a user -> tokens mapping
 	// For now, we'll use a pattern-based approach with user ID in the key
 	
@@ -286,7 +286,7 @@ func (tb *TokenBlacklist) BlacklistAllUserTokens(ctx context.Context, userID, re
 }
 
 // GetBlacklistEntry retrieves a blacklist entry for a token
-func (tb *TokenBlacklist) GetBlacklistEntry(ctx context.Context, token string) (*BlacklistEntry, error) {
+func (tb *TokenBlacklistManager) GetBlacklistEntry(ctx context.Context, token string) (*BlacklistEntry, error) {
 	tokenHash := tb.hashToken(token)
 	key := tb.config.RedisKeyPrefix + tokenHash
 
@@ -307,7 +307,7 @@ func (tb *TokenBlacklist) GetBlacklistEntry(ctx context.Context, token string) (
 }
 
 // GetBlacklistStats returns current blacklist statistics
-func (tb *TokenBlacklist) GetBlacklistStats(ctx context.Context) (*BlacklistMetrics, error) {
+func (tb *TokenBlacklistManager) GetBlacklistStats(ctx context.Context) (*BlacklistMetrics, error) {
 	tb.metrics.mutex.RLock()
 	defer tb.metrics.mutex.RUnlock()
 
@@ -325,7 +325,7 @@ func (tb *TokenBlacklist) GetBlacklistStats(ctx context.Context) (*BlacklistMetr
 }
 
 // CleanupExpiredTokens removes expired tokens from the blacklist
-func (tb *TokenBlacklist) CleanupExpiredTokens(ctx context.Context) error {
+func (tb *TokenBlacklistManager) CleanupExpiredTokens(ctx context.Context) error {
 	tb.logger.Info("Starting blacklist cleanup")
 	startTime := time.Now()
 
@@ -374,7 +374,7 @@ func (tb *TokenBlacklist) CleanupExpiredTokens(ctx context.Context) error {
 }
 
 // Close shuts down the token blacklist
-func (tb *TokenBlacklist) Close() error {
+func (tb *TokenBlacklistManager) Close() error {
 	close(tb.stopChan)
 	
 	if tb.cleanupTicker != nil {
@@ -386,12 +386,12 @@ func (tb *TokenBlacklist) Close() error {
 
 // Helper methods
 
-func (tb *TokenBlacklist) hashToken(token string) string {
+func (tb *TokenBlacklistManager) hashToken(token string) string {
 	hash := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(hash[:])
 }
 
-func (tb *TokenBlacklist) marshalEntry(entry *BlacklistEntry) (string, error) {
+func (tb *TokenBlacklistManager) marshalEntry(entry *BlacklistEntry) (string, error) {
 	if tb.config.EnableCompression {
 		// In production, implement compression
 		// For now, just use JSON
@@ -409,7 +409,7 @@ func (tb *TokenBlacklist) marshalEntry(entry *BlacklistEntry) (string, error) {
 	return data, nil
 }
 
-func (tb *TokenBlacklist) unmarshalEntry(data string, entry *BlacklistEntry) error {
+func (tb *TokenBlacklistManager) unmarshalEntry(data string, entry *BlacklistEntry) error {
 	// Simple parsing for the format we used in marshalEntry
 	// In production, use proper serialization
 	parts := strings.Split(data, "|")
@@ -436,7 +436,7 @@ func (tb *TokenBlacklist) unmarshalEntry(data string, entry *BlacklistEntry) err
 	return nil
 }
 
-func (tb *TokenBlacklist) evictOldestCacheEntry() {
+func (tb *TokenBlacklistManager) evictOldestCacheEntry() {
 	var oldestHash string
 	var oldestTime time.Time
 	
@@ -452,7 +452,7 @@ func (tb *TokenBlacklist) evictOldestCacheEntry() {
 	}
 }
 
-func (tb *TokenBlacklist) removeExpiredToken(tokenHash string) {
+func (tb *TokenBlacklistManager) removeExpiredToken(tokenHash string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	
@@ -462,7 +462,7 @@ func (tb *TokenBlacklist) removeExpiredToken(tokenHash string) {
 	}
 }
 
-func (tb *TokenBlacklist) startCleanupRoutine() {
+func (tb *TokenBlacklistManager) startCleanupRoutine() {
 	tb.cleanupTicker = time.NewTicker(tb.config.CleanupInterval)
 	
 	go func() {
@@ -481,7 +481,7 @@ func (tb *TokenBlacklist) startCleanupRoutine() {
 	}()
 }
 
-func (tb *TokenBlacklist) updateMetrics(updater func(*BlacklistMetrics)) {
+func (tb *TokenBlacklistManager) updateMetrics(updater func(*BlacklistMetrics)) {
 	tb.metrics.mutex.Lock()
 	defer tb.metrics.mutex.Unlock()
 	updater(tb.metrics)
