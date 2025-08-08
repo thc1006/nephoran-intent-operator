@@ -15,66 +15,10 @@ import (
 
 // This file contains type aliases and imports for backward compatibility
 
-// ErrorType represents different types of errors for classification
-// type ErrorType (duplicate - see errors.go) string
+// ErrorType represents different types of errors for classification - using types from errors.go
+// Additional constants for extended error types not in errors.go
 
-const (
-	// Validation errors
-// 	ErrorTypeValidation ErrorType = "validation"
-	ErrorTypeRequired   ErrorType = "required"
-	ErrorTypeInvalid    ErrorType = "invalid"
-	ErrorTypeFormat     ErrorType = "format"
-	ErrorTypeRange      ErrorType = "range"
-
-	// Infrastructure errors  
-	ErrorTypeNetwork    ErrorType = "network"
-	ErrorTypeDatabase   ErrorType = "database"
-	ErrorTypeExternal   ErrorType = "external"
-	ErrorTypeTimeout    ErrorType = "timeout"
-	ErrorTypeRateLimit  ErrorType = "rate_limit"
-	ErrorTypeQuota      ErrorType = "quota"
-
-	// Authentication/Authorization errors
-	ErrorTypeAuth         ErrorType = "authentication"
-	ErrorTypeUnauthorized ErrorType = "unauthorized"
-	ErrorTypeForbidden    ErrorType = "forbidden"
-	ErrorTypeExpired      ErrorType = "expired"
-
-	// Business logic errors
-	ErrorTypeBusiness    ErrorType = "business"
-	ErrorTypeConflict    ErrorType = "conflict"
-	ErrorTypeNotFound    ErrorType = "not_found"
-	ErrorTypeDuplicate   ErrorType = "duplicate"
-	ErrorTypePrecondition ErrorType = "precondition"
-
-	// System errors
-	ErrorTypeInternal ErrorType = "internal"
-	ErrorTypeConfig   ErrorType = "configuration"
-	ErrorTypeResource ErrorType = "resource"
-	ErrorTypeDisk     ErrorType = "disk"
-	ErrorTypeMemory   ErrorType = "memory"
-	ErrorTypeCPU      ErrorType = "cpu"
-
-	// O-RAN specific errors
-	ErrorTypeORANA1     ErrorType = "oran_a1"
-	ErrorTypeORANO1     ErrorType = "oran_o1"
-	ErrorTypeORANO2     ErrorType = "oran_o2"
-	ErrorTypeORANE2     ErrorType = "oran_e2"
-	ErrorTypeRIC        ErrorType = "ric"
-	ErrorTypeNetworkSlice ErrorType = "network_slice"
-
-	// Kubernetes specific errors
-	ErrorTypeK8sResource   ErrorType = "k8s_resource"
-	ErrorTypeK8sAPI        ErrorType = "k8s_api"
-	ErrorTypeK8sOperator   ErrorType = "k8s_operator"
-	ErrorTypeK8sController ErrorType = "k8s_controller"
-
-	// LLM/AI specific errors
-	ErrorTypeLLM       ErrorType = "llm"
-	ErrorTypeRAG       ErrorType = "rag"
-	ErrorTypeEmbedding ErrorType = "embedding"
-	ErrorTypeVector    ErrorType = "vector"
-)
+// Note: Basic ErrorType constants are defined in errors.go to avoid conflicts
 
 // ErrorImpact represents the impact level of an error
 type ErrorImpact string

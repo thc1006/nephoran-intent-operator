@@ -22,7 +22,6 @@ import (
 
     metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
     ctrl "sigs.k8s.io/controller-runtime"
-    "sigs.k8s.io/controller-runtime/pkg/client"
 
     nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
