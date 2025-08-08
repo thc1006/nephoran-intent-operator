@@ -1,35 +1,28 @@
-# Documentation build requirements for Nephoran Intent Operator
+# === DOCUMENTATION BUILD REQUIREMENTS ===
+# Minimal set for documentation generation
 
-# Core MkDocs
-mkdocs>=1.5.3,<2.0.0
-mkdocs-material>=9.5.3
+# Core documentation engine
+mkdocs==1.6.1  # Pinned version for reproducibility
+mkdocs-material==9.6.0  # Material theme with all essentials
 
-# Plugins
-mkdocs-mermaid2-plugin>=1.1.1
-mkdocs-swagger-ui-tag>=0.6.8
-mkdocs-open-in-new-tab>=1.0.3
-mkdocs-git-revision-date-localized-plugin>=1.2.1
-mkdocs-minify-plugin>=0.7.1
-mkdocs-redirects>=1.2.1
-mkdocs-awesome-pages-plugin>=2.9.2
-mkdocs-macros-plugin>=1.0.5
-mkdocs-git-authors-plugin>=0.7.2
-mkdocs-glightbox>=0.3.5
+# Essential plugins only (reduced from 10 to 3)
+mkdocs-mermaid2-plugin==1.1.1  # Diagram support
+mkdocs-git-revision-date-localized-plugin==1.3.0  # Git integration
+mkdocs-minify-plugin==0.8.0  # HTML optimization
 
-# Extensions
-pymdown-extensions>=10.7.1
-markdown-callouts>=0.3.0
+# Core extensions (bundled with mkdocs-material)
+# pymdown-extensions is included with mkdocs-material
+# No need for separate installation
 
-# Additional dependencies
-jinja2>=3.1.2
-markdown>=3.4.4
-python-dateutil>=2.8.2
-requests>=2.31.0
+# Minimal additional dependencies
+PyYAML==6.0.2  # Config parsing (shares with main requirements)
+jinja2==3.1.5  # Templating (security updates)
 
-# Development dependencies
-mkdocs-serve>=1.2.0
-livereload>=2.6.3
-
-# Optional performance improvements
-lxml>=4.9.3
-beautifulsoup4>=4.12.2
+# Note: Removed unnecessary plugins:
+# - mkdocs-swagger-ui-tag (use built-in API docs)
+# - mkdocs-awesome-pages-plugin (use nav configuration)
+# - mkdocs-macros-plugin (use jinja2 directly)
+# - mkdocs-git-authors-plugin (unnecessary)
+# - mkdocs-glightbox (use material's lightbox)
+# - mkdocs-redirects (handle at web server level)
+# - beautifulsoup4, lxml (not needed for basic docs)

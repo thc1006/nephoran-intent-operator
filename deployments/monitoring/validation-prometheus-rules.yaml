@@ -1,0 +1,344 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nephoran-validation-rules
+  namespace: nephoran-system
+  labels:
+    app: prometheus
+    component: validation-rules
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: nephoran.validation.recording
+    interval: 15s
+    rules:
+    # Overall validation score recording rules
+    - record: nephoran:validation:overall_score
+      expr: |
+        (
+          nephoran_validation_functional_score +
+          nephoran_validation_performance_score +
+          nephoran_validation_security_score +
+          nephoran_validation_production_score
+        )
+      labels:
+        component: "validation-suite"
+        
+    # Quality gate status
+    - record: nephoran:validation:quality_gate_status
+      expr: nephoran:validation:overall_score >= 90
+      labels:
+        component: "validation-suite"
+        
+    # Category completion percentages
+    - record: nephoran:validation:functional_completion_pct
+      expr: (nephoran_validation_functional_score / 50) * 100
+      labels:
+        category: "functional"
+        
+    - record: nephoran:validation:performance_completion_pct
+      expr: (nephoran_validation_performance_score / 25) * 100
+      labels:
+        category: "performance"
+        
+    - record: nephoran:validation:security_completion_pct
+      expr: (nephoran_validation_security_score / 15) * 100
+      labels:
+        category: "security"
+        
+    - record: nephoran:validation:production_completion_pct
+      expr: (nephoran_validation_production_score / 10) * 100
+      labels:
+        category: "production"
+        
+    # Performance metrics
+    - record: nephoran:validation:test_execution_rate
+      expr: rate(nephoran_validation_tests_completed_total[5m])
+      labels:
+        component: "validation-runner"
+        
+    - record: nephoran:validation:test_failure_rate
+      expr: |
+        rate(nephoran_validation_tests_failed_total[5m]) / 
+        rate(nephoran_validation_tests_completed_total[5m])
+      labels:
+        component: "validation-runner"
+        
+    # Latency percentiles
+    - record: nephoran:validation:latency_p50
+      expr: histogram_quantile(0.50, rate(nephoran_validation_duration_seconds_bucket[5m]))
+      labels:
+        component: "validation-runner"
+        percentile: "p50"
+        
+    - record: nephoran:validation:latency_p75
+      expr: histogram_quantile(0.75, rate(nephoran_validation_duration_seconds_bucket[5m]))
+      labels:
+        component: "validation-runner"
+        percentile: "p75"
+        
+    - record: nephoran:validation:latency_p90
+      expr: histogram_quantile(0.90, rate(nephoran_validation_duration_seconds_bucket[5m]))
+      labels:
+        component: "validation-runner"
+        percentile: "p90"
+        
+    - record: nephoran:validation:latency_p95
+      expr: histogram_quantile(0.95, rate(nephoran_validation_duration_seconds_bucket[5m]))
+      labels:
+        component: "validation-runner"
+        percentile: "p95"
+        
+    - record: nephoran:validation:latency_p99
+      expr: histogram_quantile(0.99, rate(nephoran_validation_duration_seconds_bucket[5m]))
+      labels:
+        component: "validation-runner"
+        percentile: "p99"
+        
+    # O-RAN interface scores
+    - record: nephoran:validation:oran_total_score
+      expr: |
+        nephoran_oran_a1_interface_score +
+        nephoran_oran_e2_interface_score +
+        nephoran_oran_o1_interface_score +
+        nephoran_oran_o2_interface_score
+      labels:
+        component: "oran-interfaces"
+        
+    # Regression detection metrics
+    - record: nephoran:validation:score_24h_change_pct
+      expr: |
+        (
+          (nephoran:validation:overall_score - (nephoran:validation:overall_score offset 24h)) /
+          (nephoran:validation:overall_score offset 24h)
+        ) * 100
+      labels:
+        timeframe: "24h"
+        
+    - record: nephoran:validation:score_7d_avg
+      expr: avg_over_time(nephoran:validation:overall_score[7d])
+      labels:
+        timeframe: "7d"
+        
+    # Resource utilization during validation
+    - record: nephoran:validation:cpu_usage_pct
+      expr: |
+        avg(rate(container_cpu_usage_seconds_total{namespace="nephoran-validation"}[5m])) * 100
+      labels:
+        resource: "cpu"
+        
+    - record: nephoran:validation:memory_usage_pct
+      expr: |
+        (
+          avg(container_memory_usage_bytes{namespace="nephoran-validation"}) /
+          avg(container_spec_memory_limit_bytes{namespace="nephoran-validation"})
+        ) * 100
+      labels:
+        resource: "memory"
+
+  - name: nephoran.validation.alerting
+    rules:
+    # CRITICAL: Quality gate failure
+    - alert: ValidationQualityGateFailure
+      expr: nephoran:validation:quality_gate_status == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: validation-suite
+        impact: business
+        priority: p1
+      annotations:
+        summary: "Validation quality gate failure - Score below 90/100"
+        description: |
+          Current validation score is {{ $value }}/100, which is below the required 
+          90/100 threshold for quality gate passage.
+          
+          Immediate actions required:
+          - Review failing test categories
+          - Address critical issues blocking deployment
+          - Escalate to development team lead
+        runbook_url: "https://runbooks.nephoran.com/validation-quality-gate-failure"
+        dashboard_url: "https://grafana.nephoran.com/d/nephoran-validation-executive"
+        
+    # CRITICAL: Major regression detected
+    - alert: ValidationMajorRegression
+      expr: nephoran:validation:score_24h_change_pct < -10
+      for: 5m
+      labels:
+        severity: critical
+        component: validation-suite
+        impact: quality
+        priority: p1
+      annotations:
+        summary: "Major validation regression detected"
+        description: |
+          Validation score has decreased by {{ $value }}% in the last 24 hours, 
+          indicating a significant quality regression.
+          
+          Current score: {{ query "nephoran:validation:overall_score" | first | value }}/100
+          24h ago: {{ query "nephoran:validation:overall_score offset 24h" | first | value }}/100
+        runbook_url: "https://runbooks.nephoran.com/validation-regression"
+        
+    # HIGH: Functional completeness below target
+    - alert: ValidationFunctionalBelowTarget
+      expr: nephoran:validation:functional_completion_pct < 90
+      for: 10m
+      labels:
+        severity: high
+        component: validation-functional
+        category: functional
+        priority: p2
+      annotations:
+        summary: "Functional validation below 90% target"
+        description: |
+          Functional validation completion is {{ $value }}%, below the 90% target 
+          ({{ query "nephoran_validation_functional_score" | first | value }}/50 points).
+          
+          This affects overall quality gate status and deployment readiness.
+        runbook_url: "https://runbooks.nephoran.com/functional-validation-low"
+        
+    # HIGH: Performance validation issues
+    - alert: ValidationPerformanceBelowTarget
+      expr: nephoran:validation:performance_completion_pct < 92
+      for: 10m
+      labels:
+        severity: high
+        component: validation-performance
+        category: performance
+        priority: p2
+      annotations:
+        summary: "Performance validation below 92% target"
+        description: |
+          Performance validation completion is {{ $value }}%, below the 92% target 
+          ({{ query "nephoran_validation_performance_score" | first | value }}/25 points).
+          
+          Current performance score: {{ query "nephoran_validation_performance_score" | first | value }}/25
+        runbook_url: "https://runbooks.nephoran.com/performance-validation-low"
+        
+    # HIGH: Security compliance issues
+    - alert: ValidationSecurityBelowTarget
+      expr: nephoran:validation:security_completion_pct < 93
+      for: 5m
+      labels:
+        severity: high
+        component: validation-security
+        category: security
+        priority: p1
+      annotations:
+        summary: "Security validation below 93% target"
+        description: |
+          Security validation completion is {{ $value }}%, below the 93% target 
+          ({{ query "nephoran_validation_security_score" | first | value }}/15 points).
+          
+          This indicates potential security vulnerabilities or compliance issues.
+        runbook_url: "https://runbooks.nephoran.com/security-validation-low"
+        
+    # MEDIUM: Production readiness concerns
+    - alert: ValidationProductionBelowTarget
+      expr: nephoran:validation:production_completion_pct < 80
+      for: 15m
+      labels:
+        severity: medium
+        component: validation-production
+        category: production
+        priority: p3
+      annotations:
+        summary: "Production validation below 80% target"
+        description: |
+          Production validation completion is {{ $value }}%, below the 80% target 
+          ({{ query "nephoran_validation_production_score" | first | value }}/10 points).
+        runbook_url: "https://runbooks.nephoran.com/production-validation-low"
+        
+    # HIGH: O-RAN interface compliance issues
+    - alert: ValidationORANInterfaceLow
+      expr: nephoran:validation:oran_total_score < 35
+      for: 10m
+      labels:
+        severity: high
+        component: validation-oran
+        category: functional
+        priority: p2
+      annotations:
+        summary: "O-RAN interface validation below target"
+        description: |
+          O-RAN interface total score is {{ $value }}/50, indicating compliance issues.
+          
+          Interface scores:
+          - A1: {{ query "nephoran_oran_a1_interface_score" | first | value }}/12.5
+          - E2: {{ query "nephoran_oran_e2_interface_score" | first | value }}/12.5
+          - O1: {{ query "nephoran_oran_o1_interface_score" | first | value }}/12.5
+          - O2: {{ query "nephoran_oran_o2_interface_score" | first | value }}/12.5
+        runbook_url: "https://runbooks.nephoran.com/oran-interface-validation"
+        
+    # MEDIUM: High test failure rate
+    - alert: ValidationHighFailureRate
+      expr: nephoran:validation:test_failure_rate > 0.05
+      for: 10m
+      labels:
+        severity: medium
+        component: validation-runner
+        type: reliability
+        priority: p3
+      annotations:
+        summary: "High validation test failure rate"
+        description: |
+          Test failure rate is {{ $value | humanizePercentage }}, above the 5% threshold.
+          
+          This indicates test instability or environmental issues.
+        runbook_url: "https://runbooks.nephoran.com/test-failure-rate-high"
+        
+    # MEDIUM: Validation performance degradation
+    - alert: ValidationPerformanceDegradation
+      expr: nephoran:validation:latency_p95 > 300
+      for: 15m
+      labels:
+        severity: medium
+        component: validation-runner
+        type: performance
+        priority: p3
+      annotations:
+        summary: "Validation execution performance degradation"
+        description: |
+          Validation P95 latency is {{ $value }}s, above the 300s threshold.
+          
+          This may indicate resource constraints or performance regressions in the validation suite.
+        runbook_url: "https://runbooks.nephoran.com/validation-performance-slow"
+        
+    # LOW: Validation resource usage high
+    - alert: ValidationHighResourceUsage
+      expr: |
+        nephoran:validation:cpu_usage_pct > 80 or
+        nephoran:validation:memory_usage_pct > 85
+      for: 20m
+      labels:
+        severity: low
+        component: validation-infrastructure
+        type: resource
+        priority: p4
+      annotations:
+        summary: "High resource usage during validation"
+        description: |
+          Validation resource usage is high:
+          - CPU: {{ query "nephoran:validation:cpu_usage_pct" | first | value }}%
+          - Memory: {{ query "nephoran:validation:memory_usage_pct" | first | value }}%
+          
+          Consider scaling validation infrastructure or optimizing test execution.
+        runbook_url: "https://runbooks.nephoran.com/validation-resource-usage"
+        
+    # INFO: Validation suite completion
+    - alert: ValidationSuiteCompleted
+      expr: increase(nephoran_validation_suite_completed_total[5m]) > 0
+      for: 0s
+      labels:
+        severity: info
+        component: validation-suite
+        type: completion
+        priority: p5
+      annotations:
+        summary: "Validation suite execution completed"
+        description: |
+          Validation suite has completed with score: {{ query "nephoran:validation:overall_score" | first | value }}/100
+          
+          Quality gate status: {{ if eq (query "nephoran:validation:quality_gate_status" | first | value) 1.0 }}PASS{{ else }}FAIL{{ end }}
+        dashboard_url: "https://grafana.nephoran.com/d/nephoran-validation-executive"

@@ -1,176 +1,231 @@
-# Multi-service Dockerfile for Nephoran Intent Operator
-# This Dockerfile can build all services with security optimizations and production readiness
-# Supports multi-architecture builds (amd64 + arm64) with cross-compilation
+# =============================================================================
+# Consolidated Production Dockerfile for Nephoran Intent Operator
+# =============================================================================
+# Supports all services with single build command using build arguments
+# Security-hardened, multi-architecture ready, optimized for production
+# 
+# Build examples:
+#   docker build --build-arg SERVICE=llm-processor -t nephoran/llm-processor:latest .
+#   docker build --build-arg SERVICE=nephio-bridge -t nephoran/nephio-bridge:latest .
+#   docker build --build-arg SERVICE=oran-adaptor -t nephoran/oran-adaptor:latest .
+#   docker build --build-arg SERVICE=rag-api -t nephoran/rag-api:latest .
+#   docker build --build-arg SERVICE=manager -t nephoran/manager:latest .
+#
+# Multi-arch build:
+#   docker buildx build --platform linux/amd64,linux/arm64 \
+#     --build-arg SERVICE=llm-processor -t nephoran/llm-processor:latest .
+# =============================================================================
 
-# Build stage with security hardening and multi-arch support
-FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS builder
+ARG GO_VERSION=1.24
+ARG PYTHON_VERSION=3.11
+ARG ALPINE_VERSION=3.22
+ARG DISTROLESS_VERSION=nonroot
 
-# Build arguments for multi-arch and traceability
-ARG BUILDPLATFORM
-ARG TARGETPLATFORM
-ARG TARGETOS
-ARG TARGETARCH
-ARG BUILD_DATE
-ARG VCS_REF
-ARG VERSION=v2.0.0
-ARG SERVICE
+# =============================================================================
+# STAGE: GO Dependencies
+# =============================================================================
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go-deps
 
-# Display build information for debugging
-RUN printf "* Building on: %s\n* Building for: %s\n* Target OS: %s\n* Target Arch: %s\n" \
-    "$BUILDPLATFORM" "$TARGETPLATFORM" "$TARGETOS" "$TARGETARCH"
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata && \
+    apk upgrade --no-cache && \
+    rm -rf /var/cache/apk/*
 
-# Install essential build dependencies with platform-specific optimizations
-RUN apk add --no-cache \
-    git \
-    ca-certificates \
-    tzdata \
-    make \
-    binutils \
-    && rm -rf /var/cache/apk/* \
-    && apk update && apk upgrade
-
-# Create dedicated build user for security
-RUN addgroup -g 10001 -S builduser && \
-    adduser -u 10001 -S builduser -G builduser
+# Create non-root build user
+RUN addgroup -g 65532 -S nonroot && \
+    adduser -u 65532 -S nonroot -G nonroot
 
 WORKDIR /workspace
+COPY --chown=nonroot:nonroot go.mod go.sum ./
 
-# Set secure permissions
-RUN chown -R builduser:builduser /workspace
-USER builduser:builduser
+USER nonroot
+RUN go mod download && go mod verify
 
-# Copy and verify dependencies
-COPY --chown=builduser:builduser go.mod go.sum ./
-RUN go mod download && \
-    go mod verify && \
-    go mod tidy
+# =============================================================================
+# STAGE: GO Builder
+# =============================================================================
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go-builder
 
-# Copy source code with proper ownership
-COPY --chown=builduser:builduser . .
-
-# Build service based on SERVICE argument with cross-compilation support
-RUN case "$SERVICE" in \
-    "llm-processor") \
-        CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
-        go build -buildmode=exe \
-        -ldflags="-w -s -extldflags '-static' -X main.version=${VERSION} -X main.buildDate=${BUILD_DATE} -X main.gitCommit=${VCS_REF}" \
-        -a -installsuffix cgo -trimpath -mod=readonly \
-        -o service-binary cmd/llm-processor/main.go \
-        ;; \
-    "nephio-bridge") \
-        CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
-        go build -buildmode=exe \
-        -ldflags="-w -s -extldflags '-static' -X main.version=${VERSION} -X main.buildDate=${BUILD_DATE} -X main.gitCommit=${VCS_REF}" \
-        -a -installsuffix cgo -trimpath -mod=readonly \
-        -o service-binary cmd/nephio-bridge/main.go \
-        ;; \
-    "oran-adaptor") \
-        CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} \
-        go build -buildmode=exe \
-        -ldflags="-w -s -extldflags '-static' -X main.version=${VERSION} -X main.buildDate=${BUILD_DATE} -X main.gitCommit=${VCS_REF}" \
-        -a -installsuffix cgo -trimpath -mod=readonly \
-        -o service-binary cmd/oran-adaptor/main.go \
-        ;; \
-    *) \
-        echo "Unknown service: $SERVICE" && exit 1 \
-        ;; \
-    esac
-
-# Verify binary integrity
-RUN file service-binary && \
-    ls -la service-binary && \
-    # Ensure static linking
-    ldd service-binary 2>&1 | grep -q "not a dynamic executable" || \
-    (echo "Binary is not statically linked!" && exit 1)
-
-# Binary optimization stage with multi-arch support
-FROM --platform=$TARGETPLATFORM alpine:3.22 AS optimizer
-ARG TARGETARCH
-# Install platform-specific optimization tools
-RUN apk add --no-cache binutils && \
-    if [ "$TARGETARCH" = "amd64" ]; then \
-        apk add --no-cache upx; \
-    fi
-COPY --from=builder /workspace/service-binary /tmp/service-binary
-# Apply optimizations based on target architecture
-RUN strip --strip-unneeded /tmp/service-binary && \
-    if [ "$TARGETARCH" = "amd64" ] && command -v upx >/dev/null 2>&1; then \
-        upx --best --lzma /tmp/service-binary; \
-    fi
-
-# Production runtime stage using distroless with platform selection
-FROM gcr.io/distroless/static:nonroot AS runtime-base
-
-# Build arguments for labels and platform info
 ARG TARGETPLATFORM
-ARG TARGETARCH
+ARG TARGETOS=linux
+ARG TARGETARCH=amd64
+ARG SERVICE
+ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
-ARG VERSION=v2.0.0
-ARG SERVICE
 
-# Enhanced OCI-compliant labels
-LABEL maintainer="Nephoran Intent Operator Team <team@nephoran.com>" \
-      version="${VERSION}" \
-      service="${SERVICE}" \
-      description="Production-ready ${SERVICE} for Nephoran Intent Operator" \
-      org.opencontainers.image.created="${BUILD_DATE}" \
+# Install minimal build tools
+RUN apk add --no-cache git ca-certificates tzdata binutils && \
+    apk upgrade --no-cache
+
+# Create non-root build user
+RUN addgroup -g 65532 -S nonroot && \
+    adduser -u 65532 -S nonroot -G nonroot
+
+WORKDIR /build
+
+# Copy dependencies from previous stage
+COPY --from=go-deps /go/pkg /go/pkg
+COPY --from=go-deps /workspace/go.mod /workspace/go.sum ./
+
+# Copy source code
+COPY --chown=nonroot:nonroot . .
+
+USER nonroot
+
+# Build service based on SERVICE argument
+RUN set -ex; \
+    case "$SERVICE" in \
+        "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
+        "nephio-bridge") CMD_PATH="./cmd/nephio-bridge/main.go" ;; \
+        "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;; \
+        "manager"|"controller") CMD_PATH="./main.go" ;; \
+        *) echo "Unknown service: $SERVICE" && exit 1 ;; \
+    esac; \
+    CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
+        -buildmode=pie \
+        -trimpath \
+        -mod=readonly \
+        -ldflags="-w -s -extldflags '-static' \
+                 -X main.version=${VERSION} \
+                 -X main.buildDate=${BUILD_DATE} \
+                 -X main.gitCommit=${VCS_REF} \
+                 -buildid=" \
+        -tags="netgo osusergo static_build" \
+        -o /build/service \
+        $CMD_PATH && \
+    file /build/service && \
+    strip --strip-unneeded /build/service 2>/dev/null || true
+
+# =============================================================================
+# STAGE: Python Dependencies
+# =============================================================================
+FROM python:${PYTHON_VERSION}-slim AS python-deps
+
+# Create non-root user
+RUN groupadd -g 65532 nonroot && \
+    useradd -u 65532 -g nonroot -s /bin/false -m nonroot
+
+WORKDIR /deps
+COPY requirements-rag.txt ./
+
+USER nonroot
+RUN pip install --user --no-cache-dir --no-compile -r requirements-rag.txt
+
+# =============================================================================
+# STAGE: Python Builder
+# =============================================================================
+FROM python:${PYTHON_VERSION}-slim AS python-builder
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc python3-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -g 65532 nonroot && \
+    useradd -u 65532 -g nonroot -s /bin/false -m nonroot
+
+COPY --from=python-deps --chown=nonroot:nonroot /home/nonroot/.local /home/nonroot/.local
+COPY --chown=nonroot:nonroot rag-python/ /app/
+
+WORKDIR /app
+USER nonroot
+
+# Pre-compile Python bytecode
+RUN python -m compileall -b . && \
+    find . -name "*.py" -delete && \
+    find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# =============================================================================
+# STAGE: GO Runtime (Distroless)
+# =============================================================================
+FROM gcr.io/distroless/static:${DISTROLESS_VERSION} AS go-runtime
+
+ARG SERVICE
+ARG VERSION=v2.0.0
+ARG BUILD_DATE
+ARG VCS_REF
+ARG TARGETARCH
+
+# Copy certificates and timezone data
+COPY --from=go-builder /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=go-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+
+# Copy binary with restricted permissions
+COPY --from=go-builder --chmod=555 /build/service /service
+
+# Labels
+LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.version="${VERSION}" \
-      org.opencontainers.image.source="https://github.com/thc1006/nephoran-intent-operator" \
       org.opencontainers.image.title="Nephoran ${SERVICE}" \
-      org.opencontainers.image.description="${SERVICE} service for cloud-native 5G/O-RAN network intent processing" \
+      org.opencontainers.image.description="Production ${SERVICE} service" \
       org.opencontainers.image.vendor="Nephoran" \
-      org.opencontainers.image.licenses="Apache-2.0" \
-      org.opencontainers.image.documentation="https://github.com/thc1006/nephoran-intent-operator/docs" \
-      org.opencontainers.image.url="https://github.com/thc1006/nephoran-intent-operator" \
-      security.scan="enabled" \
-      security.policy="minimal-attack-surface" \
-      build.architecture="${TARGETARCH:-amd64}" \
-      build.platform="${TARGETPLATFORM}" \
-      build.multi-arch="true"
+      org.opencontainers.image.source="https://github.com/thc1006/nephoran-intent-operator" \
+      service.name="${SERVICE}" \
+      security.scan="required" \
+      build.architecture="${TARGETARCH}"
 
-# Copy essential system files for TLS and timezone support
-COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+# Non-root user (65532:65532 from distroless)
+USER 65532:65532
 
-# Copy optimized binary
-COPY --from=optimizer /tmp/service-binary /service
-
-# Set secure runtime environment
+# Environment
 ENV GOGC=100 \
     GOMEMLIMIT=512MiB \
     TZ=UTC
 
-# Use non-root user for security
-USER nonroot:nonroot
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD ["/service", "--health-check"]
 
-# Service-specific configuration based on SERVICE argument
-RUN case "$SERVICE" in \
-    "llm-processor") \
-        export PORT=8080 LOG_LEVEL=info METRICS_ENABLED=true \
-        ;; \
-    "nephio-bridge") \
-        export PORT=8081 LOG_LEVEL=info \
-        ;; \
-    "oran-adaptor") \
-        export PORT=8082 LOG_LEVEL=info \
-        ;; \
-    esac
+# Service ports: 8080 (llm-processor), 8081 (nephio-bridge), 8082 (oran-adaptor)
+EXPOSE 8080 8081 8082
 
-# Health check configuration (service-specific)
-HEALTHCHECK --interval=30s \
-            --timeout=5s \
-            --start-period=15s \
-            --retries=3 \
-            CMD ["/service", "--health-check"] || exit 1
-
-# Expose service-specific ports
-# LLM Processor: 8080, Nephio Bridge: 8081, ORAN Adaptor: 8082
-EXPOSE 8080/tcp 8081/tcp 8082/tcp
-
-# Entry point with signal handling
 ENTRYPOINT ["/service"]
 
-# Default command
-CMD ["--help"]
+# =============================================================================
+# STAGE: Python Runtime (Distroless)
+# =============================================================================
+FROM gcr.io/distroless/python3-debian12:${DISTROLESS_VERSION} AS python-runtime
+
+ARG VERSION=v2.0.0
+ARG BUILD_DATE
+ARG VCS_REF
+
+# Copy Python packages and application
+COPY --from=python-builder --chown=nonroot:nonroot /home/nonroot/.local/lib/python3.11/site-packages /home/nonroot/.local/lib/python3.11/site-packages
+COPY --from=python-builder --chown=nonroot:nonroot /app /app
+
+# Labels
+LABEL org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.title="Nephoran RAG API" \
+      org.opencontainers.image.description="Production RAG service" \
+      service.name="rag-api" \
+      security.scan="required"
+
+# Environment
+ENV PYTHONPATH=/home/nonroot/.local/lib/python3.11/site-packages:/app \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=5001
+
+USER nonroot
+WORKDIR /app
+
+EXPOSE 5001
+
+ENTRYPOINT ["python", "-O"]
+CMD ["api.pyc"]
+
+# =============================================================================
+# STAGE: Final Runtime Selection
+# =============================================================================
+# Select the appropriate runtime based on SERVICE argument
+ARG SERVICE
+FROM go-runtime AS final-go
+FROM python-runtime AS final-python
+
+# This is a clever Docker trick: the last FROM wins based on build-arg conditions
+FROM final-${SERVICE_TYPE:-go} AS final

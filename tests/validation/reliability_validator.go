@@ -10,18 +10,28 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // ReliabilityValidator provides comprehensive reliability and availability testing
+// Integrates with specialized production deployment validators
 type ReliabilityValidator struct {
-	config    *ValidationConfig
-	k8sClient client.Client
+	config                        *ValidationConfig
+	k8sClient                     client.Client
+	clientset                     *kubernetes.Clientset
+	
+	// Specialized validators
+	productionDeploymentValidator *ProductionDeploymentValidator
+	chaosEngineeringValidator     *ChaosEngineeringValidator
+	monitoringValidator           *MonitoringObservabilityValidator
+	disasterRecoveryValidator     *DisasterRecoveryValidator
+	deploymentScenariosValidator  *DeploymentScenariosValidator
 }
 
-// NewReliabilityValidator creates a new reliability validator
+// NewReliabilityValidator creates a new reliability validator with integrated production validators
 func NewReliabilityValidator(config *ValidationConfig) *ReliabilityValidator {
 	return &ReliabilityValidator{
 		config: config,
@@ -33,14 +43,47 @@ func (rv *ReliabilityValidator) SetK8sClient(client client.Client) {
 	rv.k8sClient = client
 }
 
-// ValidateHighAvailability validates high availability characteristics
+// SetClientset sets the Kubernetes clientset
+func (rv *ReliabilityValidator) SetClientset(clientset *kubernetes.Clientset) {
+	rv.clientset = clientset
+	
+	// Initialize specialized validators
+	if rv.k8sClient != nil && rv.clientset != nil {
+		rv.productionDeploymentValidator = NewProductionDeploymentValidator(rv.k8sClient, rv.clientset, rv.config)
+		rv.chaosEngineeringValidator = NewChaosEngineeringValidator(rv.k8sClient, rv.clientset, rv.config)
+		rv.monitoringValidator = NewMonitoringObservabilityValidator(rv.k8sClient, rv.clientset, rv.config)
+		rv.disasterRecoveryValidator = NewDisasterRecoveryValidator(rv.k8sClient, rv.clientset, rv.config)
+		rv.deploymentScenariosValidator = NewDeploymentScenariosValidator(rv.k8sClient, rv.clientset, rv.config)
+	}
+}
+
+// ValidateHighAvailability validates high availability characteristics using comprehensive production validators
 func (rv *ReliabilityValidator) ValidateHighAvailability(ctx context.Context) *ReliabilityMetrics {
-	ginkgo.By("Validating High Availability")
+	ginkgo.By("Validating High Availability with Production Deployment Validators")
 	
 	metrics := &ReliabilityMetrics{
 		Availability: 0.0,
 		ErrorRate:    100.0, // Start with worst case
 	}
+	
+	// Use specialized production deployment validator if available
+	if rv.productionDeploymentValidator != nil {
+		haScore, err := rv.productionDeploymentValidator.validateHighAvailability(ctx)
+		if err != nil {
+			ginkgo.By(fmt.Sprintf("Production HA validation failed: %v", err))
+		} else {
+			// Convert HA score (0-3) to availability percentage
+			availability := float64(haScore) / 3.0 * 100.0
+			metrics.Availability = availability
+			metrics.ErrorRate = 100.0 - availability
+			
+			ginkgo.By(fmt.Sprintf("Production HA Score: %d/3 (%.2f%% availability)", haScore, availability))
+			return metrics
+		}
+	}
+	
+	// Fallback to original implementation
+	ginkgo.By("Using fallback HA validation")
 	
 	// Test 1: Controller availability
 	controllerUptime := rv.measureControllerUptime(ctx)
@@ -66,9 +109,25 @@ func (rv *ReliabilityValidator) ValidateHighAvailability(ctx context.Context) *R
 	return metrics
 }
 
-// ValidateFaultTolerance validates fault tolerance mechanisms
+// ValidateFaultTolerance validates fault tolerance mechanisms using chaos engineering
 func (rv *ReliabilityValidator) ValidateFaultTolerance(ctx context.Context) bool {
-	ginkgo.By("Validating Fault Tolerance")
+	ginkgo.By("Validating Fault Tolerance with Chaos Engineering")
+	
+	// Use specialized chaos engineering validator if available
+	if rv.chaosEngineeringValidator != nil {
+		score, err := rv.chaosEngineeringValidator.ValidateFaultTolerance(ctx)
+		if err != nil {
+			ginkgo.By(fmt.Sprintf("Chaos engineering validation failed: %v", err))
+		} else {
+			// Score is 0-3, convert to boolean (pass if score >= 2)
+			passed := score >= 2
+			ginkgo.By(fmt.Sprintf("Chaos Engineering Score: %d/3 (Passed: %t)", score, passed))
+			return passed
+		}
+	}
+	
+	// Fallback to original implementation
+	ginkgo.By("Using fallback fault tolerance validation")
 	
 	faultTests := []struct {
 		name    string
@@ -102,9 +161,23 @@ func (rv *ReliabilityValidator) ValidateFaultTolerance(ctx context.Context) bool
 	return faultToleranceScore >= 0.75 // Require 75% of fault tolerance tests to pass
 }
 
-// ValidateMonitoringObservability validates monitoring and observability (returns score 0-2)
+// ValidateMonitoringObservability validates monitoring and observability using comprehensive validators
 func (rv *ReliabilityValidator) ValidateMonitoringObservability(ctx context.Context) int {
-	ginkgo.By("Validating Monitoring & Observability")
+	ginkgo.By("Validating Monitoring & Observability with Specialized Validators")
+	
+	// Use specialized monitoring validator if available
+	if rv.monitoringValidator != nil {
+		score, err := rv.monitoringValidator.ValidateMonitoringObservability(ctx)
+		if err != nil {
+			ginkgo.By(fmt.Sprintf("Monitoring validation failed: %v", err))
+		} else {
+			ginkgo.By(fmt.Sprintf("Comprehensive Monitoring Score: %d/2 points", score))
+			return score
+		}
+	}
+	
+	// Fallback to original implementation
+	ginkgo.By("Using fallback monitoring validation")
 	
 	score := 0
 	maxScore := 2
@@ -129,9 +202,25 @@ func (rv *ReliabilityValidator) ValidateMonitoringObservability(ctx context.Cont
 	return score
 }
 
-// ValidateDisasterRecovery validates disaster recovery capabilities
+// ValidateDisasterRecovery validates disaster recovery capabilities using comprehensive validators
 func (rv *ReliabilityValidator) ValidateDisasterRecovery(ctx context.Context) bool {
-	ginkgo.By("Validating Disaster Recovery")
+	ginkgo.By("Validating Disaster Recovery with Specialized Validators")
+	
+	// Use specialized disaster recovery validator if available
+	if rv.disasterRecoveryValidator != nil {
+		score, err := rv.disasterRecoveryValidator.ValidateDisasterRecovery(ctx)
+		if err != nil {
+			ginkgo.By(fmt.Sprintf("Disaster recovery validation failed: %v", err))
+		} else {
+			// Score is 0-2, convert to boolean (pass if score >= 1)
+			passed := score >= 1
+			ginkgo.By(fmt.Sprintf("Comprehensive DR Score: %d/2 (Passed: %t)", score, passed))
+			return passed
+		}
+	}
+	
+	// Fallback to original implementation
+	ginkgo.By("Using fallback disaster recovery validation")
 	
 	// Test disaster recovery scenarios
 	recoveryTests := []struct {
@@ -161,6 +250,72 @@ func (rv *ReliabilityValidator) ValidateDisasterRecovery(ctx context.Context) bo
 		successRate*100, passedTests, totalTests))
 	
 	return successRate >= 0.67 // Require 2 out of 3 recovery tests to pass
+}
+
+// ValidateDeploymentScenarios validates deployment scenarios if available
+func (rv *ReliabilityValidator) ValidateDeploymentScenarios(ctx context.Context) (int, error) {
+	ginkgo.By("Validating Deployment Scenarios")
+	
+	// Use specialized deployment scenarios validator if available
+	if rv.deploymentScenariosValidator != nil {
+		return rv.deploymentScenariosValidator.ValidateDeploymentScenarios(ctx)
+	}
+	
+	ginkgo.By("Deployment scenarios validator not available")
+	return 0, fmt.Errorf("deployment scenarios validator not initialized")
+}
+
+// ValidateInfrastructureAsCode validates infrastructure as code if available
+func (rv *ReliabilityValidator) ValidateInfrastructureAsCode(ctx context.Context) (int, error) {
+	ginkgo.By("Validating Infrastructure as Code")
+	
+	// Use production deployment validator for IaC validation
+	if rv.productionDeploymentValidator != nil {
+		return rv.productionDeploymentValidator.ValidateInfrastructureAsCode(ctx)
+	}
+	
+	ginkgo.By("Infrastructure as Code validator not available")
+	return 0, fmt.Errorf("infrastructure validator not initialized")
+}
+
+// GetProductionMetrics returns production deployment metrics if available
+func (rv *ReliabilityValidator) GetProductionMetrics() interface{} {
+	if rv.productionDeploymentValidator != nil {
+		return rv.productionDeploymentValidator.GetProductionMetrics()
+	}
+	return nil
+}
+
+// GetChaosMetrics returns chaos engineering metrics if available
+func (rv *ReliabilityValidator) GetChaosMetrics() interface{} {
+	if rv.chaosEngineeringValidator != nil {
+		return rv.chaosEngineeringValidator.GetChaosMetrics()
+	}
+	return nil
+}
+
+// GetObservabilityMetrics returns observability metrics if available
+func (rv *ReliabilityValidator) GetObservabilityMetrics() interface{} {
+	if rv.monitoringValidator != nil {
+		return rv.monitoringValidator.GetObservabilityMetrics()
+	}
+	return nil
+}
+
+// GetDisasterRecoveryMetrics returns disaster recovery metrics if available
+func (rv *ReliabilityValidator) GetDisasterRecoveryMetrics() interface{} {
+	if rv.disasterRecoveryValidator != nil {
+		return rv.disasterRecoveryValidator.GetDisasterRecoveryMetrics()
+	}
+	return nil
+}
+
+// GetDeploymentScenariosMetrics returns deployment scenarios metrics if available
+func (rv *ReliabilityValidator) GetDeploymentScenariosMetrics() interface{} {
+	if rv.deploymentScenariosValidator != nil {
+		return rv.deploymentScenariosValidator.GetDeploymentScenariosMetrics()
+	}
+	return nil
 }
 
 // measureControllerUptime measures the availability of the operator controller

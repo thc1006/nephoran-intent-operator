@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nephoran-operator/pkg/servicemesh/abstraction"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 )
 
 // PolicyType represents the type of policy

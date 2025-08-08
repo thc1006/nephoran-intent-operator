@@ -1,0 +1,206 @@
+# GoSec configuration for static code analysis
+# Global settings
+global:
+  # Audit mode - fails the scan on any finding
+  audit: false
+  
+  # Confidence level threshold
+  confidence: medium
+  
+  # Severity level threshold
+  severity: medium
+  
+  # Output format
+  fmt: json
+  
+  # Verbose output
+  verbose: true
+  
+  # No secure imports
+  nosec: false
+  
+  # Track suppressions
+  track-suppressions: true
+
+# Rules configuration
+rules:
+  # SQL injection
+  G201:
+    severity: HIGH
+    confidence: HIGH
+  
+  # SQL injection via string concatenation
+  G202:
+    severity: HIGH
+    confidence: MEDIUM
+  
+  # Unhandled errors
+  G104:
+    severity: MEDIUM
+    confidence: HIGH
+    # Exclude specific functions
+    exclude:
+      - io.Copy
+      - os.Remove
+  
+  # Hardcoded credentials
+  G101:
+    severity: CRITICAL
+    confidence: HIGH
+    # Pattern for additional credential detection
+    pattern: '''(?i)(api|key|token|secret|password)'''
+  
+  # File permissions
+  G301:
+    severity: MEDIUM
+    confidence: HIGH
+  
+  # Poor file permissions
+  G302:
+    severity: HIGH
+    confidence: HIGH
+  
+  # Creating tempfile using predictable path
+  G303:
+    severity: MEDIUM
+    confidence: HIGH
+  
+  # File traversal
+  G304:
+    severity: HIGH
+    confidence: HIGH
+  
+  # File traversal when extracting zip archives
+  G305:
+    severity: HIGH
+    confidence: HIGH
+  
+  # Poor file permissions on creation
+  G306:
+    severity: MEDIUM
+    confidence: HIGH
+  
+  # Unsafe defer of os.Close
+  G307:
+    severity: MEDIUM
+    confidence: MEDIUM
+  
+  # Use of weak random number generator
+  G401:
+    severity: HIGH
+    confidence: HIGH
+  
+  # Use of weak TLS version
+  G402:
+    severity: HIGH
+    confidence: HIGH
+  
+  # Use of weak cipher
+  G403:
+    severity: HIGH
+    confidence: HIGH
+  
+  # Use of weak random number generator for security
+  G404:
+    severity: CRITICAL
+    confidence: HIGH
+  
+  # Use of weak cryptographic primitive
+  G501:
+    severity: CRITICAL
+    confidence: HIGH
+  
+  # Import blocklist for crypto/md5
+  G502:
+    severity: HIGH
+    confidence: HIGH
+  
+  # Import blocklist for crypto/des
+  G503:
+    severity: HIGH
+    confidence: HIGH
+  
+  # Import blocklist for crypto/rc4
+  G504:
+    severity: HIGH
+    confidence: HIGH
+  
+  # Import blocklist for crypto/sha1
+  G505:
+    severity: MEDIUM
+    confidence: HIGH
+  
+  # Use of unsafe Yaml loading
+  G601:
+    severity: HIGH
+    confidence: HIGH
+  
+  # Slice bounds checking
+  G602:
+    severity: MEDIUM
+    confidence: MEDIUM
+
+# Exclude paths and files
+excludes:
+  # Exclude test files
+  - "*_test.go"
+  - "*/testdata/*"
+  - "*/vendor/*"
+  - "*/pb/*.go"
+  - "*/mock*.go"
+  - "*/.git/*"
+
+# Include rules - if specified, only these rules are enabled
+# includes:
+#   - G101
+#   - G201
+#   - G202
+#   - G401
+
+# Exclude specific rules globally
+exclude-rules:
+  # Example: Exclude G104 (unhandled errors) in test files
+  - path: "_test\\.go"
+    linters:
+      - G104
+
+# Analyzer settings
+analyzer:
+  # SSA mode
+  ssa: true
+  
+  # Build tags
+  build-tags:
+    - integration
+    - unit
+  
+  # Tests - include test files in analysis
+  tests: false
+  
+  # Exclude generated files
+  exclude-generated: true
+
+# Issue reporting
+issues:
+  # Maximum issues to report (0 = unlimited)
+  max: 0
+  
+  # Maximum issues per rule
+  max-per-linter: 0
+  
+  # Include issue text in report
+  include-text: true
+  
+  # Confidence threshold for reporting
+  confidence-threshold: 0.8
+
+# Baseline configuration
+baseline:
+  # Path to baseline file
+  path: "./security/baselines/gosec-baseline.json"
+  
+  # Update baseline with new findings
+  update: false
+  
+  # Strict mode - fail if baseline doesn't match
+  strict: false

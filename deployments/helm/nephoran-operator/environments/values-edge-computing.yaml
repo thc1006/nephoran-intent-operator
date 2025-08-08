@@ -1,0 +1,1017 @@
+# Edge Computing deployment values for Nephoran Intent Operator
+# Distributed edge deployment with resource optimization and local processing
+
+# Global configuration for edge computing deployment
+global:
+  # Edge-optimized container registry
+  imageRegistry: "edge-registry.local"
+  imagePullSecrets:
+    - name: edge-registry-secret
+  
+  # Edge-optimized storage classes
+  storageClass:
+    database: "edge-fast-ssd"
+    vectordb: "edge-high-iops"
+    monitoring: "edge-standard"
+    backup: "edge-backup"
+    cache: "edge-nvme"
+  
+  # Multi-edge configuration
+  edge:
+    enabled: true
+    regions:
+      - name: "edge-west-1"
+        primary: true
+        zones: ["edge-w1a", "edge-w1b"]
+        type: "far-edge"
+        latency_requirement: "1ms"
+      - name: "edge-east-1"
+        primary: false
+        zones: ["edge-e1a", "edge-e1b"]
+        type: "far-edge"
+        latency_requirement: "1ms"
+      - name: "edge-central-1"
+        primary: false
+        zones: ["edge-c1a", "edge-c1b", "edge-c1c"]
+        type: "near-edge"
+        latency_requirement: "5ms"
+      - name: "edge-mobile-1"
+        primary: false
+        zones: ["edge-m1a"]
+        type: "mobile-edge"
+        latency_requirement: "500μs"
+  
+  # Edge security with resource constraints
+  security:
+    enforceNetworkPolicies: true
+    podSecurityStandard: "restricted"
+    enableMTLS: true
+    enableImageSigning: true
+    enableRuntimeSecurity: false  # Disabled for resource optimization
+    enableComplianceScanning: false  # Disabled for edge
+  
+  # Edge compliance requirements
+  compliance:
+    edge_computing: true
+    low_latency: true
+    resource_constrained: true
+    offline_capable: true
+  
+  # Edge Service Level Objectives
+  slo:
+    availability: "99.9"     # Three 9s for edge
+    latency_p99: "10ms"      # Ultra-low latency for edge
+    throughput: "1000rps"    # Moderate throughput for edge
+    resource_efficiency: "high"
+
+# Edge-optimized feature flags
+features:
+  rag:
+    enabled: true
+    lightweight: true      # Lightweight RAG for edge
+  ml:
+    enabled: true
+    edge_optimized: true   # Edge-optimized ML models
+  monitoring:
+    enabled: true
+    lightweight: true      # Lightweight monitoring
+  security:
+    enabled: true
+    lightweight: true      # Lightweight security
+  multiCluster:
+    enabled: true
+  disasterRecovery:
+    enabled: false         # Limited DR for edge
+  chatops:
+    enabled: false         # Disabled for edge
+  audit:
+    enabled: true
+    local_only: true       # Local audit only
+  edge_caching:
+    enabled: true
+  offline_mode:
+    enabled: true
+
+# Nephoran Operator Controller - Edge-Optimized Configuration
+nephoranOperator:
+  enabled: true
+  replicaCount: 2  # Minimal redundancy for edge
+  
+  image:
+    repository: "nephoran-operator"
+    tag: "v2.1.0-edge"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 9443
+    targetPort: 9443
+    webhookPort: 9443
+  
+  # Edge-optimized leader election
+  leaderElection:
+    enabled: true
+    leaseDuration: "30s"   # Longer for edge stability
+    renewDeadline: "20s"
+    retryPeriod: "5s"
+    resourceLock: "leases"
+    resourceName: "nephoran-operator-leader"
+    resourceNamespace: "nephoran-system"
+  
+  # Edge-optimized health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 60   # Longer for edge initialization
+      periodSeconds: 30        # Less frequent for resource optimization
+      timeoutSeconds: 10
+      failureThreshold: 3
+      successThreshold: 1
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 15        # Less frequent checks
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 60     # 10 minutes for edge startup
+  
+  # Edge-optimized resource allocation
+  resources:
+    requests:
+      cpu: "500m"           # Lower CPU for edge constraints
+      memory: "1Gi"         # Lower memory for edge
+      ephemeral-storage: "2Gi"
+    limits:
+      cpu: "2000m"          # Conservative limits for edge
+      memory: "4Gi"
+      ephemeral-storage: "8Gi"
+  
+  # Standard security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Edge-optimized affinity (prefer different nodes)
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [nephoran-operator]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [controller]
+            topologyKey: kubernetes.io/hostname
+  
+  # Edge node selection
+  nodeSelector:
+    nephoran.com/node-type: "edge-control"
+    nephoran.com/edge-tier: "near-edge"
+    kubernetes.io/arch: "amd64"
+  
+  tolerations:
+    - key: "nephoran.com/edge-node"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+    - key: "edge-computing.io/resource-constrained"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Edge pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1         # Minimal availability for edge
+    maxUnavailable: null
+  
+  # Edge-specific environment variables
+  env:
+    - name: ENABLE_LEADER_ELECTION
+      value: "true"
+    - name: METRICS_BIND_ADDR
+      value: ":8080"
+    - name: HEALTH_PROBE_BIND_ADDR
+      value: ":8081"
+    - name: MAX_CONCURRENT_RECONCILES
+      value: "5"            # Lower concurrency for edge
+    - name: SYNC_PERIOD
+      value: "30m"          # Longer sync for edge efficiency
+    - name: LEASE_DURATION
+      value: "30s"
+    - name: RENEW_DEADLINE
+      value: "20s"
+    - name: RETRY_PERIOD
+      value: "5s"
+    - name: LOG_LEVEL
+      value: "warn"         # Less verbose for edge
+    - name: LOG_FORMAT
+      value: "json"
+    - name: ENABLE_PROFILING
+      value: "false"
+    - name: EDGE_MODE
+      value: "true"
+    - name: OFFLINE_CAPABLE
+      value: "true"
+
+# LLM Processor - Edge-Optimized Lightweight Configuration
+llmProcessor:
+  enabled: true
+  replicaCount: 2  # Minimal replicas for edge
+  
+  image:
+    repository: "llm-processor"
+    tag: "v2.1.0-edge-lite"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8080"
+      prometheus.io/path: "/metrics"
+  
+  # Conservative autoscaling for edge
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8          # Limited scaling for edge
+    targetCPUUtilizationPercentage: 80  # Higher threshold for edge
+    targetMemoryUtilizationPercentage: 85
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 600  # Conservative scale-down
+        policies:
+          - type: Percent
+            value: 25
+            periodSeconds: 60
+          - type: Pods
+            value: 1
+            periodSeconds: 60
+        selectPolicy: Min
+      scaleUp:
+        stabilizationWindowSeconds: 60   # Moderate scale-up
+        policies:
+          - type: Percent
+            value: 50
+            periodSeconds: 60
+          - type: Pods
+            value: 2
+            periodSeconds: 60
+        selectPolicy: Max
+  
+  # Edge-optimized health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 45
+      periodSeconds: 30      # Less frequent for edge
+      timeoutSeconds: 10
+      failureThreshold: 3
+      successThreshold: 1
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 20
+      periodSeconds: 15      # Less frequent checks
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 60
+  
+  # Edge-constrained resource allocation
+  resources:
+    requests:
+      cpu: "1000m"          # Moderate CPU for edge
+      memory: "2Gi"         # Moderate memory for edge
+      ephemeral-storage: "4Gi"
+    limits:
+      cpu: "4000m"          # Conservative limits
+      memory: "8Gi"
+      ephemeral-storage: "16Gi"
+  
+  # Standard security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Edge-optimized distribution
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [nephoran-operator]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [llm-processor]
+            topologyKey: kubernetes.io/hostname
+  
+  nodeSelector:
+    nephoran.com/node-type: "edge-compute"
+    nephoran.com/edge-tier: "near-edge"
+    kubernetes.io/arch: "amd64"
+  
+  tolerations:
+    - key: "nephoran.com/edge-node"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+    - key: "edge-computing.io/resource-constrained"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Edge pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+    maxUnavailable: null
+  
+  # Edge-optimized environment configuration
+  env:
+    - name: MAX_CONCURRENT_REQUESTS
+      value: "50"           # Lower concurrency for edge
+    - name: REQUEST_TIMEOUT
+      value: "30s"          # Longer timeout for edge processing
+    - name: CIRCUIT_BREAKER_THRESHOLD
+      value: "10"
+    - name: CIRCUIT_BREAKER_TIMEOUT
+      value: "60s"
+    - name: RATE_LIMIT_REQUESTS_PER_MINUTE
+      value: "500"          # Lower rate limit for edge
+    - name: ENABLE_CACHING
+      value: "true"
+    - name: CACHE_TTL_SECONDS
+      value: "600"          # Longer cache for edge efficiency
+    - name: LOG_LEVEL
+      value: "warn"         # Less verbose for edge
+    - name: METRICS_ENABLED
+      value: "true"
+    - name: TRACING_ENABLED
+      value: "false"        # Disabled for edge efficiency
+    - name: EDGE_MODE
+      value: "true"
+    - name: LIGHTWEIGHT_MODE
+      value: "true"
+    - name: MODEL_SIZE
+      value: "small"        # Use smaller models for edge
+
+# Weaviate Vector Database - Edge-Optimized Configuration
+weaviate:
+  enabled: true
+  replicaCount: 3  # Minimal cluster for edge
+  
+  image:
+    repository: "semitechnologies/weaviate"
+    tag: "1.22.5-slim"      # Slim image for edge
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    grpcPort: 50051
+    grpcTargetPort: 50051
+  
+  # Edge-optimized storage
+  persistence:
+    enabled: true
+    storageClass: "edge-high-iops"
+    size: "200Gi"          # Smaller storage for edge
+    accessMode: ReadWriteOnce
+    volumeBindingMode: WaitForFirstConsumer
+  
+  # Edge backup configuration
+  backup:
+    enabled: true
+    schedule: "0 4 * * *"   # Daily backup
+    retention: "7d"
+    local_only: true        # Edge backups stay local
+    storage:
+      type: "local-path"
+      path: "/backup/weaviate"
+  
+  # Edge health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /v1/.well-known/live
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 120
+      periodSeconds: 30     # Less frequent for edge
+      timeoutSeconds: 15
+      failureThreshold: 3
+      successThreshold: 1
+    readinessProbe:
+      httpGet:
+        path: /v1/.well-known/ready
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 60
+      periodSeconds: 15     # Less frequent checks
+      timeoutSeconds: 10
+      failureThreshold: 3
+      successThreshold: 1
+    startupProbe:
+      httpGet:
+        path: /v1/.well-known/live
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 60
+      periodSeconds: 15
+      timeoutSeconds: 10
+      failureThreshold: 240  # 1 hour for edge initialization
+  
+  # Edge-constrained resources
+  resources:
+    requests:
+      cpu: "2000m"          # Moderate CPU for edge
+      memory: "8Gi"         # Moderate memory for edge
+      ephemeral-storage: "8Gi"
+    limits:
+      cpu: "8000m"          # Conservative limits
+      memory: "32Gi"        # Limited memory for edge
+      ephemeral-storage: "32Gi"
+  
+  # Standard security
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Edge anti-affinity
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [nephoran-operator]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [weaviate]
+          topologyKey: kubernetes.io/hostname
+  
+  nodeSelector:
+    nephoran.com/node-type: "edge-database"
+    nephoran.com/edge-tier: "near-edge"
+    kubernetes.io/arch: "amd64"
+  
+  tolerations:
+    - key: "nephoran.com/edge-node"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+    - key: "edge-computing.io/resource-constrained"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Edge pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2         # Keep majority available
+    maxUnavailable: null
+  
+  # Edge-optimized Weaviate configuration
+  config:
+    persistence_data_path: "/var/lib/weaviate"
+    query_defaults_limit: 50    # Smaller queries for edge
+    authentication_anonymous_access_enabled: false
+    authentication_oidc_enabled: false  # Simplified auth for edge
+    authorization_admin_list_enabled: true
+    cluster_hostname: "weaviate"
+    cluster_gossip_bind_port: 7100
+    cluster_data_bind_port: 7101
+    enable_cuda: false          # No GPU for edge
+    go_gc: 200                  # Conservative GC for edge
+    track_vector_dimensions: true
+    replication_factor: 2       # Lower replication for edge
+    # Edge performance tuning
+    max_import_goroutine_factor: 0.5
+    query_maximum_results: 1000
+    query_nested_cross_reference_limit: 100
+
+# RAG API - Edge-Optimized Lightweight Configuration
+ragApi:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    repository: "rag-api"
+    tag: "v2.1.0-edge-lite"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 5001
+    targetPort: 5001
+  
+  # Conservative autoscaling for edge
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 85
+  
+  # Edge health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 5001
+        scheme: HTTP
+      initialDelaySeconds: 45
+      periodSeconds: 30
+      timeoutSeconds: 10
+      failureThreshold: 3
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 5001
+        scheme: HTTP
+      initialDelaySeconds: 20
+      periodSeconds: 15
+      timeoutSeconds: 5
+      failureThreshold: 3
+    startupProbe:
+      httpGet:
+        path: /health
+        port: 5001
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 60
+  
+  # Edge resource allocation
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+      ephemeral-storage: "2Gi"
+    limits:
+      cpu: "2000m"
+      memory: "4Gi"
+      ephemeral-storage: "8Gi"
+  
+  # Standard security
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Edge distribution
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [nephoran-operator]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [rag-api]
+            topologyKey: kubernetes.io/hostname
+  
+  nodeSelector:
+    nephoran.com/node-type: "edge-compute"
+    nephoran.com/edge-tier: "near-edge"
+    kubernetes.io/arch: "amd64"
+  
+  tolerations:
+    - key: "nephoran.com/edge-node"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+    - key: "edge-computing.io/resource-constrained"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Edge pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+
+# Edge-Optimized Monitoring Configuration
+monitoring:
+  enabled: true
+  lightweight: true
+  
+  # Lightweight Prometheus for edge
+  prometheus:
+    enabled: true
+    retention: "7d"         # Shorter retention for edge
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "1Gi"
+      limits:
+        cpu: "1000m"
+        memory: "4Gi"
+    serviceMonitor:
+      enabled: true
+      interval: "30s"       # Less frequent scraping for edge
+      scrapeTimeout: "10s"
+      labels:
+        prometheus: edge-prometheus
+        app: nephoran-operator
+        tier: edge
+      endpoints:
+        - port: http-metrics
+          path: /metrics
+          interval: 30s
+          scrapeTimeout: 10s
+  
+  # Lightweight Grafana for edge
+  grafana:
+    enabled: true
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "1Gi"
+    persistence:
+      enabled: true
+      size: "5Gi"           # Smaller storage for edge
+    dashboards:
+      enabled: true
+      namespace: monitoring
+      labels:
+        grafana_dashboard: "1"
+        tier: "edge"
+      annotations:
+        grafana-folder: "Nephoran-Edge"
+  
+  # Edge alerting rules
+  prometheusRule:
+    enabled: true
+    namespace: monitoring
+    labels:
+      prometheus: edge-prometheus
+      role: alert-rules
+      tier: edge
+    rules:
+      # Edge-specific alerts
+      - alert: EdgeResourceConstraint
+        expr: |
+          (
+            sum(rate(container_cpu_usage_seconds_total[5m])) by (node) /
+            sum(machine_cpu_cores) by (node)
+          ) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: edge-node
+          service: nephoran-operator
+          tier: edge
+        annotations:
+          summary: "Edge node CPU usage high"
+          description: "Edge node CPU usage above 90% for 5 minutes"
+      
+      - alert: EdgeConnectivityLoss
+        expr: up{job="nephoran-operator", tier="edge"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: controller
+          service: nephoran-operator
+          tier: edge
+        annotations:
+          summary: "Edge Nephoran Operator connectivity lost"
+          description: "Edge Nephoran Operator has lost connectivity for 2 minutes"
+
+# Edge Network Policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  # Default deny for edge security
+  denyAll: true
+  
+  # Edge-specific ingress rules
+  ingress:
+    # Allow from edge load balancers only
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: edge-ingress
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 5001
+        - protocol: TCP
+          port: 9443
+    
+    # Allow edge monitoring
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+              tier: edge
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9443
+  
+  # Edge egress rules
+  egress:
+    # Allow DNS
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    
+    # Allow HTTPS to central services (limited)
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: central-services
+      ports:
+        - protocol: TCP
+          port: 443
+    
+    # Allow inter-component communication
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: nephoran-operator
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8082
+        - protocol: TCP
+          port: 8083
+        - protocol: TCP
+          port: 5001
+        - protocol: TCP
+          port: 8080  # Weaviate HTTP
+        - protocol: TCP
+          port: 50051  # Weaviate gRPC
+
+# Edge Service Account
+serviceAccount:
+  create: true
+  annotations:
+    # Edge-specific service account annotations
+    edge.nephoran.com/region: "edge-region"
+    edge.nephoran.com/tier: "near-edge"
+  name: "nephoran-operator"
+
+# Edge RBAC (limited permissions)
+rbac:
+  create: true
+  clusterRole: false      # Namespace-scoped for edge
+  
+  # Limited rules for edge deployment
+  rules:
+    - apiGroups: [""]
+      resources: ["pods", "services", "configmaps", "secrets"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["apps"]
+      resources: ["deployments", "replicasets", "statefulsets"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["nephoran.com"]
+      resources: ["*"]
+      verbs: ["*"]
+
+# Edge Ingress (simplified)
+ingress:
+  enabled: true
+  className: "edge-nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+  hosts:
+    - host: nephoran-edge.local
+      paths:
+        - path: /api/v1/llm
+          pathType: Prefix
+          service:
+            name: nephoran-operator-llm-processor
+            port: 8080
+        - path: /api/v1/rag
+          pathType: Prefix
+          service:
+            name: nephoran-operator-rag-api
+            port: 5001
+  tls:
+    - secretName: nephoran-edge-tls
+      hosts:
+        - nephoran-edge.local
+
+# Edge Resource Quotas (constrained)
+resourceQuota:
+  enabled: true
+  hard:
+    # Conservative resource limits for edge
+    requests.cpu: "20"
+    requests.memory: "50Gi"
+    limits.cpu: "40"
+    limits.memory: "100Gi"
+    
+    # Limited storage for edge
+    requests.storage: "2Ti"
+    persistentvolumeclaims: "20"
+    
+    # Limited pods for edge
+    pods: "100"
+    services: "20"
+    secrets: "50"
+    configmaps: "20"
+    
+    # Network limits
+    services.nodeports: "5"
+    services.loadbalancers: "2"
+
+# Edge Backup (local only)
+backup:
+  enabled: true
+  local_only: true
+  
+  # Local backup configuration
+  local:
+    enabled: true
+    schedule: "0 6 * * *"   # Daily at 6 AM local time
+    retention: "3d"         # Short retention for edge
+    path: "/backup/local"
+    
+    # What to backup at edge
+    includedResources:
+      - persistentvolumes
+      - persistentvolumeclaims
+      - secrets
+      - configmaps
+    
+    # Exclude large resources
+    excludedResources:
+      - pods
+      - replicasets
+      - jobs
+
+# Edge Caching Configuration
+edgeCache:
+  enabled: true
+  
+  # Redis for edge caching
+  redis:
+    enabled: true
+    resources:
+      requests:
+        cpu: "200m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+    persistence:
+      enabled: true
+      size: "10Gi"
+    config:
+      maxmemory: "1gb"
+      maxmemory-policy: "allkeys-lru"
+      save: "900 1"         # Save every 15 minutes if at least 1 key changed
+
+# Edge Offline Mode Configuration
+offlineMode:
+  enabled: true
+  
+  # Offline capabilities
+  features:
+    local_processing: true
+    cached_models: true
+    local_storage: true
+    sync_on_reconnect: true
+  
+  # Sync configuration
+  sync:
+    interval: "1h"          # Sync every hour when connected
+    batch_size: 100
+    priority_queue: true
+    
+  # Local model cache
+  modelCache:
+    enabled: true
+    size: "50Gi"
+    models:
+      - "gpt-4o-mini-edge"
+      - "embedding-small"
+      - "classification-lite"

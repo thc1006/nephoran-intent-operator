@@ -1,0 +1,1031 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Analytics and Reporting Dashboard for Nephoran Intent Operator - Business Intelligence and Predictive Analytics",
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": ["nephoran"],
+      "title": "Capacity Planning",
+      "tooltip": "Access capacity planning tools",
+      "type": "link",
+      "url": "/d/nephoran-capacity/capacity-planning"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
+      "includeVars": false,
+      "keepTime": false,
+      "tags": ["nephoran"],
+      "title": "Cost Analysis",
+      "tooltip": "Detailed cost analysis dashboard",
+      "type": "link",
+      "url": "/d/nephoran-cost/cost-analysis"
+    }
+  ],
+  "panels": [
+    {
+      "datasource": "Prometheus",
+      "description": "Intent processing volume trends with seasonal analysis",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Intents per Day",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 3,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Predicted"
+            },
+            "properties": [
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "dash": [10, 10],
+                  "fill": "dash"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Upper Bound"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 1
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "lastNotNull", "max"],
+          "displayMode": "table",
+          "placement": "right"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "increase(nephoran_intent_processing_total[1d])",
+          "legendFormat": "Actual Volume",
+          "refId": "A"
+        },
+        {
+          "expr": "predict_linear(increase(nephoran_intent_processing_total[1d])[7d:1d], 86400)",
+          "legendFormat": "Predicted (Next Day)",
+          "refId": "B"
+        },
+        {
+          "expr": "predict_linear(increase(nephoran_intent_processing_total[1d])[7d:1d], 86400) * 1.2",
+          "legendFormat": "Upper Bound (20% buffer)",
+          "refId": "C"
+        },
+        {
+          "expr": "avg_over_time(increase(nephoran_intent_processing_total[1d])[30d:1d])",
+          "legendFormat": "30-day Average",
+          "refId": "D"
+        }
+      ],
+      "title": "Intent Volume Trend Analysis & Forecasting",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Business metrics showing operational efficiency and cost per intent",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Cost per Intent ($)",
+            "axisPlacement": "left",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 0.15
+              }
+            ]
+          },
+          "unit": "currencyUSD"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Efficiency Score"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 9
+      },
+      "id": 2,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "rate(nephoran_intent_processing_cost_usd_total[1h]) / rate(nephoran_intent_processing_total[1h])",
+          "legendFormat": "Cost per Intent",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(nephoran_llm_token_costs_usd_total[1h]) / rate(nephoran_intent_processing_total[1h])",
+          "legendFormat": "LLM Cost per Intent",
+          "refId": "B"
+        },
+        {
+          "expr": "rate(nephoran_infrastructure_cost_usd_total[1h]) / rate(nephoran_intent_processing_total[1h])",
+          "legendFormat": "Infrastructure Cost per Intent",
+          "refId": "C"
+        },
+        {
+          "expr": "nephoran_operational_efficiency_score",
+          "legendFormat": "Efficiency Score",
+          "refId": "D"
+        }
+      ],
+      "title": "Cost Efficiency Analytics",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Customer experience metrics including satisfaction scores and performance indicators",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            }
+          },
+          "mappings": [],
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 9
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "values": ["value", "percent"]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": ""
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "nephoran_customer_satisfaction_score{score_range=\"excellent\"}",
+          "legendFormat": "Excellent (9-10)",
+          "refId": "A"
+        },
+        {
+          "expr": "nephoran_customer_satisfaction_score{score_range=\"good\"}",
+          "legendFormat": "Good (7-8)",
+          "refId": "B"
+        },
+        {
+          "expr": "nephoran_customer_satisfaction_score{score_range=\"fair\"}",
+          "legendFormat": "Fair (5-6)",
+          "refId": "C"
+        },
+        {
+          "expr": "nephoran_customer_satisfaction_score{score_range=\"poor\"}",
+          "legendFormat": "Poor (1-4)",
+          "refId": "D"
+        }
+      ],
+      "title": "Customer Satisfaction Distribution",
+      "type": "piechart"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Capacity utilization trends with predictive scaling recommendations",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Capacity %",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "area"
+            }
+          },
+          "mappings": [],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 85
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Scaling Threshold"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "points"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 0
+              },
+              {
+                "id": "custom.pointSize",
+                "value": 10
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": ["mean", "max", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "((rate(nephoran_intent_processing_total[1h]) * 24) / nephoran_system_capacity_intents_per_day) * 100",
+          "legendFormat": "Current Utilization",
+          "refId": "A"
+        },
+        {
+          "expr": "((predict_linear(nephoran_intent_processing_total[24h], 3600*24*7)) / nephoran_system_capacity_intents_per_day) * 100",
+          "legendFormat": "7-day Projection",
+          "refId": "B"
+        },
+        {
+          "expr": "((predict_linear(nephoran_intent_processing_total[24h], 3600*24*30)) / nephoran_system_capacity_intents_per_day) * 100",
+          "legendFormat": "30-day Projection",
+          "refId": "C"
+        },
+        {
+          "expr": "70 + (nephoran_capacity_utilization_percent > 70) * 15",
+          "legendFormat": "Scaling Threshold",
+          "refId": "D"
+        }
+      ],
+      "title": "Capacity Utilization & Growth Projections",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Performance benchmarking against industry standards and SLA targets",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "pattern": "^Exceeds$",
+                      "result": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "✓ Exceeds"
+                      }
+                    },
+                    "type": "regex"
+                  },
+                  {
+                    "options": {
+                      "pattern": "^Meets$",
+                      "result": {
+                        "color": "yellow",
+                        "index": 1,
+                        "text": "✓ Meets"
+                      }
+                    },
+                    "type": "regex"
+                  },
+                  {
+                    "options": {
+                      "pattern": "^Below$",
+                      "result": {
+                        "color": "red",
+                        "index": 2,
+                        "text": "✗ Below"
+                      }
+                    },
+                    "type": "regex"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
+      "id": 5,
+      "options": {
+        "showHeader": true
+      },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        {
+          "expr": "label_replace(vector(99.95), \"KPI\", \"System Availability\", \"\", \"\")",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        },
+        {
+          "expr": "label_replace(nephoran:system_availability_24h, \"KPI\", \"Actual Availability\", \"\", \"\")",
+          "format": "table",
+          "instant": true,
+          "refId": "B"
+        }
+      ],
+      "title": "SLA Performance Benchmarks",
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "instance": true,
+              "job": true
+            },
+            "indexByName": {},
+            "renameByName": {
+              "Value": "Current Value"
+            }
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Anomaly detection and predictive maintenance indicators",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Anomaly Score",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "stepAfter",
+            "lineWidth": 2,
+            "pointSize": 8,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "always",
+            "spanNulls": false,
+            "thresholdsStyle": {
+              "mode": "line"
+            }
+          },
+          "mappings": [],
+          "max": 1,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.7
+              },
+              {
+                "color": "red",
+                "value": 0.9
+              }
+            ]
+          },
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "calcs": ["max", "mean", "lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "expr": "nephoran_anomaly_detection_score{component=\"intent_processing\"}",
+          "legendFormat": "Intent Processing",
+          "refId": "A"
+        },
+        {
+          "expr": "nephoran_anomaly_detection_score{component=\"llm_service\"}",
+          "legendFormat": "LLM Service",
+          "refId": "B"
+        },
+        {
+          "expr": "nephoran_anomaly_detection_score{component=\"rag_system\"}",
+          "legendFormat": "RAG System",
+          "refId": "C"
+        },
+        {
+          "expr": "nephoran_anomaly_detection_score{component=\"oran_interfaces\"}",
+          "legendFormat": "O-RAN Interfaces",
+          "refId": "D"
+        }
+      ],
+      "title": "Anomaly Detection & Predictive Maintenance",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Network function performance and optimization recommendations",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisLabel": "Performance Score",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "bars",
+            "fillOpacity": 100,
+            "gradientMode": "hue",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "mappings": [],
+          "max": 10,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 6
+              },
+              {
+                "color": "green",
+                "value": 8
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "expr": "nf_performance_score{nf_type=\"AMF\"}",
+          "legendFormat": "AMF",
+          "refId": "A"
+        },
+        {
+          "expr": "nf_performance_score{nf_type=\"SMF\"}",
+          "legendFormat": "SMF",
+          "refId": "B"
+        },
+        {
+          "expr": "nf_performance_score{nf_type=\"UPF\"}",
+          "legendFormat": "UPF",
+          "refId": "C"
+        },
+        {
+          "expr": "nf_performance_score{nf_type=\"NSSF\"}",
+          "legendFormat": "NSSF",
+          "refId": "D"
+        },
+        {
+          "expr": "nf_performance_score{nf_type=\"AUSF\"}",
+          "legendFormat": "AUSF",
+          "refId": "E"
+        },
+        {
+          "expr": "nf_performance_score{nf_type=\"UDM\"}",
+          "legendFormat": "UDM",
+          "refId": "F"
+        }
+      ],
+      "title": "Network Function Performance Scores",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "description": "Comprehensive analytics summary with business intelligence insights",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "displayMode": "auto"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Trend"
+            },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "pattern": "^Increasing$",
+                      "result": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "↗ Increasing"
+                      }
+                    },
+                    "type": "regex"
+                  },
+                  {
+                    "options": {
+                      "pattern": "^Stable$",
+                      "result": {
+                        "color": "blue",
+                        "index": 1,
+                        "text": "→ Stable"
+                      }
+                    },
+                    "type": "regex"
+                  },
+                  {
+                    "options": {
+                      "pattern": "^Decreasing$",
+                      "result": {
+                        "color": "red",
+                        "index": 2,
+                        "text": "↘ Decreasing"
+                      }
+                    },
+                    "type": "regex"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Recommendation"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 33
+      },
+      "id": 8,
+      "options": {
+        "showHeader": true
+      },
+      "pluginVersion": "8.0.0",
+      "targets": [
+        {
+          "expr": "label_replace(vector(1), \"Metric\", \"Intent Volume\", \"\", \"\")",
+          "format": "table",
+          "instant": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Business Intelligence Summary & Recommendations",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "Value": true
+            },
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    }
+  ],
+  "refresh": "5m",
+  "schemaVersion": 30,
+  "style": "dark",
+  "tags": ["nephoran", "analytics", "reporting", "business-intelligence"],
+  "templating": {
+    "list": [
+      {
+        "allValue": null,
+        "current": {
+          "selected": false,
+          "text": "7d",
+          "value": "7d"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Time Range",
+        "multi": false,
+        "name": "timerange",
+        "options": [
+          {
+            "selected": false,
+            "text": "24h",
+            "value": "1d"
+          },
+          {
+            "selected": true,
+            "text": "7d",
+            "value": "7d"
+          },
+          {
+            "selected": false,
+            "text": "30d",
+            "value": "30d"
+          },
+          {
+            "selected": false,
+            "text": "90d",
+            "value": "90d"
+          }
+        ],
+        "query": "1d,7d,30d,90d",
+        "queryValue": "",
+        "skipUrlSync": false,
+        "type": "custom"
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(nephoran_intent_processing_total, intent_type)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Intent Type",
+        "multi": true,
+        "name": "intent_type",
+        "options": [],
+        "query": {
+          "query": "label_values(nephoran_intent_processing_total, intent_type)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {
+    "refresh_intervals": ["5m", "15m", "30m", "1h", "2h", "4h", "12h", "1d"]
+  },
+  "timezone": "",
+  "title": "Nephoran Analytics & Reporting Dashboard - Business Intelligence",
+  "uid": "nephoran-analytics",
+  "version": 1
+}

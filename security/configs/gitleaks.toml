@@ -1,0 +1,118 @@
+# Gitleaks configuration for Nephoran Intent Operator
+title = "Nephoran Intent Operator Secret Detection"
+
+[extend]
+# Extend the base configuration
+useDefault = true
+
+# Custom rules for telecom/O-RAN specific secrets
+[[rules]]
+id = "telecom-api-key"
+description = "Telecommunication API Key"
+regex = '''(?i)(telecom|oran|5g|lte)[-_]?(api|key|token|secret)['"]?\s*[:=]\s*['"]?[a-zA-Z0-9+/]{32,}['"]?'''
+tags = ["telecom", "api", "key"]
+
+[[rules]]
+id = "oran-certificate"
+description = "O-RAN Certificate or Private Key"
+regex = '''(?i)(oran|ric|smo|duc|cuc|ru)[-_]?(cert|certificate|key|private)['"]?\s*[:=]\s*['"]?[a-zA-Z0-9+/]{40,}['"]?'''
+tags = ["oran", "certificate", "security"]
+
+[[rules]]
+id = "nephio-secret"
+description = "Nephio Configuration Secret"
+regex = '''(?i)(nephio|porch|kpt)[-_]?(secret|token|password|key)['"]?\s*[:=]\s*['"]?[a-zA-Z0-9+/]{20,}['"]?'''
+tags = ["nephio", "kubernetes", "secret"]
+
+[[rules]]
+id = "llm-api-key"
+description = "LLM API Key (OpenAI, Anthropic, etc.)"
+regex = '''(?i)(openai|anthropic|claude|gpt|mistral|llm)[-_]?(api|key|token|secret)['"]?\s*[:=]\s*['"]?(sk-[a-zA-Z0-9]{48}|[a-zA-Z0-9]{32,})['"]?'''
+tags = ["llm", "ai", "api"]
+
+[[rules]]
+id = "vector-db-credentials"
+description = "Vector Database Credentials"
+regex = '''(?i)(weaviate|pinecone|qdrant|chroma|milvus)[-_]?(api|key|token|password)['"]?\s*[:=]\s*['"]?[a-zA-Z0-9+/]{20,}['"]?'''
+tags = ["vectordb", "database", "credentials"]
+
+[[rules]]
+id = "kubernetes-secret"
+description = "Kubernetes Secret or ServiceAccount Token"
+regex = '''(?i)(k8s|kubernetes|kubeconfig)[-_]?(token|secret|key)['"]?\s*[:=]\s*['"]?[a-zA-Z0-9+/._-]{40,}['"]?'''
+tags = ["kubernetes", "secret", "token"]
+
+[[rules]]
+id = "oauth2-secret"
+description = "OAuth2 Client Secret"
+regex = '''(?i)(oauth|oidc|client)[-_]?secret['"]?\s*[:=]\s*['"]?[a-zA-Z0-9+/._-]{32,}['"]?'''
+tags = ["oauth", "authentication", "secret"]
+
+[[rules]]
+id = "jwt-secret"
+description = "JWT Secret Key"
+regex = '''(?i)jwt[-_]?secret['"]?\s*[:=]\s*['"]?[a-zA-Z0-9+/._-]{32,}['"]?'''
+tags = ["jwt", "authentication", "secret"]
+
+[[rules]]
+id = "database-connection-string"
+description = "Database Connection String with Credentials"
+regex = '''(?i)(postgresql|postgres|mysql|mongodb|redis|clickhouse|influxdb):\/\/[^:]+:[^@]+@[^/]+'''
+tags = ["database", "credentials", "connection"]
+
+[[rules]]
+id = "cloud-credentials"
+description = "Cloud Provider Credentials"
+regex = '''(?i)(aws|azure|gcp|alibaba)[-_]?(access|secret|key|token)['"]?\s*[:=]\s*['"]?[a-zA-Z0-9+/]{20,}['"]?'''
+tags = ["cloud", "credentials", "infrastructure"]
+
+# Allowlist patterns - these are safe to commit
+[[allowlist]]
+description = "Allow example/test files"
+paths = [
+    '''.*test.*''',
+    '''.*example.*''',
+    '''.*mock.*''',
+    '''testdata/.*'''
+]
+
+[[allowlist]]
+description = "Allow documentation"
+paths = [
+    '''.*\.md$''',
+    '''docs/.*''',
+    '''README.*'''
+]
+
+[[allowlist]]
+description = "Allow configuration templates"
+regexes = [
+    '''REPLACE_ME''',
+    '''CHANGE_ME''',
+    '''YOUR_.*_HERE''',
+    '''<.*>''',
+    '''\$\{.*\}'''
+]
+
+[[allowlist]]
+description = "Allow localhost and local development"
+regexes = [
+    '''localhost''',
+    '''127\.0\.0\.1''',
+    '''0\.0\.0\.0''',
+    '''::1''',
+    '''host\.docker\.internal'''
+]
+
+# Entropy configuration
+[entropy]
+# Lower entropy threshold for shorter strings
+[[entropy]]
+Min = 3.5
+Max = 10
+Group = 1
+
+[[entropy]]
+Min = 4.5
+Max = 50
+Group = 2

@@ -205,12 +205,20 @@ func NewValidationSuite(config *ValidationConfig) *ValidationSuite {
 		},
 	}
 	
-	// Set up K8s client for all validators
+	// Set up K8s client and clientset for all validators
 	k8sClient := vs.TestSuite.GetK8sClient()
 	vs.validator.SetK8sClient(k8sClient)
 	vs.benchmarker.SetK8sClient(k8sClient)
 	vs.securityTester.SetK8sClient(k8sClient)
 	vs.reliabilityTest.SetK8sClient(k8sClient)
+	
+	// Set up Kubernetes clientset if available
+	if vs.TestSuite.GetConfig() != nil {
+		clientset, err := kubernetes.NewForConfig(vs.TestSuite.GetConfig())
+		if err == nil {
+			vs.reliabilityTest.SetClientset(clientset)
+		}
+	}
 	
 	return vs
 }

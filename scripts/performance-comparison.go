@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/nephio-experimental/nephoran-intent-operator/pkg/performance"
-	"github.com/nephio-experimental/nephoran-intent-operator/pkg/security"
-	"github.com/nephio-experimental/nephoran-intent-operator/pkg/testing"
+	"github.com/thc1006/nephoran-intent-operator/pkg/performance"
+	"github.com/thc1006/nephoran-intent-operator/pkg/security"
+	"github.com/thc1006/nephoran-intent-operator/pkg/testing"
 )
 
 // PerformanceMetrics represents performance measurement results

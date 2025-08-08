@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nephoran-operator/pkg/servicemesh/abstraction"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/expfmt"
 	"go.opentelemetry.io/otel"

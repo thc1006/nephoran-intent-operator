@@ -1,0 +1,137 @@
+# Dependency Management and Security Makefile
+# Include this in main Makefile with: include Makefile.deps
+
+.PHONY: deps-audit deps-update deps-clean deps-graph deps-sbom deps-optimize
+
+# Colors for output
+RED := \033[0;31m
+GREEN := \033[0;32m
+YELLOW := \033[1;33m
+NC := \033[0m # No Color
+
+## Dependency Commands
+deps-help: ## Show dependency management help
+	@echo "$(GREEN)Dependency Management Commands:$(NC)"
+	@echo "  make deps-audit     - Run security audit on all dependencies"
+	@echo "  make deps-update    - Update all dependencies to latest secure versions"
+	@echo "  make deps-clean     - Clean and optimize dependency tree"
+	@echo "  make deps-graph     - Generate dependency graph visualization"
+	@echo "  make deps-sbom      - Generate Software Bill of Materials"
+	@echo "  make deps-optimize  - Full dependency optimization pipeline"
+
+deps-audit: ## Run comprehensive dependency security audit
+	@echo "$(YELLOW)Running Go dependency audit...$(NC)"
+	@go list -json -deps ./... | docker run --rm -i sonatypecorp/nancy:latest sleuth --skip-update-check || true
+	@go install golang.org/x/vuln/cmd/govulncheck@latest
+	@govulncheck ./...
+	
+	@echo "$(YELLOW)Running Python dependency audit...$(NC)"
+	@pip-audit -r requirements-rag.txt || true
+	@safety check -r requirements-rag.txt || true
+	
+	@echo "$(YELLOW)Checking for deprecated dependencies...$(NC)"
+	@go mod graph | grep -E "deprecated|archived" || echo "No deprecated dependencies found"
+
+deps-update: ## Update dependencies to latest secure versions
+	@echo "$(YELLOW)Updating Go dependencies...$(NC)"
+	@go get -u ./...
+	@go mod tidy
+	@go mod verify
+	
+	@echo "$(YELLOW)Updating Python dependencies...$(NC)"
+	@pip install --upgrade pip
+	@pip install pip-review
+	@pip-review --auto --file requirements-rag.txt
+	
+	@echo "$(GREEN)Dependencies updated. Run 'make test' to verify compatibility.$(NC)"
+
+deps-clean: ## Clean and optimize dependency tree
+	@echo "$(YELLOW)Cleaning Go modules...$(NC)"
+	@go mod tidy
+	@go clean -modcache
+	@go mod download
+	@go mod verify
+	
+	@echo "$(YELLOW)Removing unused Python packages...$(NC)"
+	@pip install pip-autoremove
+	@pip-autoremove -y
+	
+	@echo "$(YELLOW)Analyzing dependency usage...$(NC)"
+	@go mod why -m all | head -50
+
+deps-graph: ## Generate dependency graph visualization
+	@echo "$(YELLOW)Generating Go dependency graph...$(NC)"
+	@go mod graph > go-deps.dot
+	@echo "digraph G {" > go-deps-visual.dot
+	@go mod graph | sed 's/@.*//g' | sort -u | sed 's/\(.*\) \(.*\)/"\1" -> "\2";/' >> go-deps-visual.dot
+	@echo "}" >> go-deps-visual.dot
+	@echo "$(GREEN)Dependency graph saved to go-deps-visual.dot$(NC)"
+	@echo "$(GREEN)Convert to image: dot -Tpng go-deps-visual.dot -o deps-graph.png$(NC)"
+
+deps-sbom: ## Generate Software Bill of Materials
+	@echo "$(YELLOW)Generating Go SBOM...$(NC)"
+	@go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+	@cyclonedx-gomod mod -json -output go-sbom.json
+	@cyclonedx-gomod mod -xml -output go-sbom.xml
+	
+	@echo "$(YELLOW)Generating Python SBOM...$(NC)"
+	@pip install cyclonedx-bom
+	@cyclonedx-py requirements requirements-rag.txt --format json --output python-sbom.json
+	
+	@echo "$(GREEN)SBOMs generated: go-sbom.json, python-sbom.json$(NC)"
+
+deps-optimize: deps-clean deps-audit deps-update deps-sbom ## Full dependency optimization pipeline
+	@echo "$(GREEN)=== Dependency Optimization Complete ===$(NC)"
+	@echo "$(YELLOW)Summary:$(NC)"
+	@echo "  Go modules: $$(go list -m all | wc -l) total dependencies"
+	@echo "  Direct deps: $$(grep -c '^\t' go.mod)"
+	@echo "  Python packages: $$(pip list | wc -l) installed"
+	@echo ""
+	@echo "$(YELLOW)Security Status:$(NC)"
+	@govulncheck -json ./... 2>/dev/null | jq -r '.Vulns | length' | xargs -I {} echo "  Vulnerabilities found: {}"
+	@echo ""
+	@echo "$(YELLOW)Next Steps:$(NC)"
+	@echo "  1. Review dependency changes in go.mod and requirements files"
+	@echo "  2. Run 'make test' to verify all functionality"
+	@echo "  3. Commit changes with: git commit -m 'deps: optimize and secure dependencies'"
+
+# Dependency metrics and reporting
+deps-metrics: ## Generate dependency metrics report
+	@echo "$(YELLOW)Dependency Metrics Report$(NC)"
+	@echo "=========================="
+	@echo ""
+	@echo "Go Dependencies:"
+	@echo "  Total modules: $$(go list -m all | wc -l)"
+	@echo "  Direct dependencies: $$(grep -c '^\t' go.mod)"
+	@echo "  Indirect dependencies: $$(go mod graph | wc -l)"
+	@echo "  Average dependency depth: $$(go mod graph | awk -F' ' '{print NF}' | awk '{sum+=$$1} END {print sum/NR}')"
+	@echo ""
+	@echo "Python Dependencies:"
+	@echo "  Production packages: $$(grep -v '^#' requirements-rag.txt | grep -v '^$$' | wc -l)"
+	@echo "  Dev packages: $$(grep -v '^#' requirements-dev.txt | grep -v '^$$' | wc -l 2>/dev/null || echo 0)"
+	@echo "  Doc packages: $$(grep -v '^#' requirements-docs.txt | grep -v '^$$' | wc -l)"
+	@echo ""
+	@echo "Security Metrics:"
+	@echo "  Known vulnerabilities: $$(govulncheck -json ./... 2>/dev/null | jq -r '.Vulns | length' || echo 0)"
+	@echo "  Outdated packages: $$(go list -u -m all 2>/dev/null | grep '\[' | wc -l || echo 0)"
+	@echo ""
+	@echo "Size Metrics:"
+	@echo "  go.mod size: $$(wc -c < go.mod) bytes"
+	@echo "  go.sum entries: $$(wc -l < go.sum)"
+	@echo "  Module cache size: $$(du -sh $$(go env GOMODCACHE) 2>/dev/null | cut -f1 || echo 'N/A')"
+
+# Automated dependency updates with safety checks
+deps-auto-update: ## Automatically update dependencies with safety checks
+	@echo "$(YELLOW)Starting automated dependency update...$(NC)"
+	@git checkout -b deps/auto-update-$$(date +%Y%m%d)
+	@$(MAKE) deps-optimize
+	@$(MAKE) test
+	@if [ $$? -eq 0 ]; then \
+		git add -A; \
+		git commit -m "deps: automated dependency update $$(date +%Y-%m-%d)"; \
+		echo "$(GREEN)Dependencies updated successfully. Branch: deps/auto-update-$$(date +%Y%m%d)$(NC)"; \
+	else \
+		echo "$(RED)Tests failed after dependency update. Rolling back...$(NC)"; \
+		git checkout - ; \
+		git branch -D deps/auto-update-$$(date +%Y%m%d); \
+	fi

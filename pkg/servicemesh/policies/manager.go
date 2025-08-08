@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nephoran-operator/pkg/servicemesh/abstraction"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"gopkg.in/yaml.v3"

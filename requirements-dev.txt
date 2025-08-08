@@ -1,0 +1,24 @@
+# === DEVELOPMENT DEPENDENCIES ===
+# Testing framework
+pytest==8.3.4
+pytest-asyncio==0.25.2
+pytest-cov==6.0.0
+pytest-mock==3.15.0
+httpx==0.28.1  # For testing FastAPI
+
+# Code quality and linting  
+ruff==0.9.2  # Replaces black, flake8, isort - all in one, much faster
+mypy==1.14.2  # Type checking
+pre-commit==4.0.2  # Git hooks for code quality
+
+# Security scanning
+bandit[toml]==1.8.0  # Security linter
+safety==3.3.0  # Dependency vulnerability scanner
+pip-audit==2.8.2  # Audit Python packages for CVEs
+
+# Documentation (if needed locally)
+mkdocs-material==9.6.0  # Only if building docs locally
+
+# Performance profiling
+py-spy==0.4.0  # Sampling profiler
+memory-profiler==0.61.0  # Memory usage analysis

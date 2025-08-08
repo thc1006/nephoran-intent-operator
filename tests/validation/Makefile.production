@@ -1,0 +1,257 @@
+# Production Deployment Validation Makefile
+# Comprehensive production readiness testing for Nephoran Intent Operator
+
+# Production validation configuration
+PRODUCTION_VALIDATION_DIR = tests/validation
+PRODUCTION_REPORTS_DIR = test-results/production-validation
+PRODUCTION_TIMEOUT = 60m
+PRODUCTION_CONCURRENCY = 25
+PRODUCTION_TARGET_SCORE = 8
+
+# Environment setup for production validation
+KUBEBUILDER_ASSETS ?= $(shell setup-envtest use -p path)
+KUBERNETES_NAMESPACE ?= nephoran-system
+ENABLE_CHAOS_TESTING ?= true
+ENABLE_LOAD_TESTING ?= true
+VERBOSE_LOGGING ?= false
+
+# Ensure test environment is ready for production validation
+.PHONY: validate-production-prerequisites
+validate-production-prerequisites:
+	@echo "Validating production validation prerequisites..."
+	@which kubectl > /dev/null || (echo "kubectl not found in PATH" && exit 1)
+	@which ginkgo > /dev/null || (echo "Installing ginkgo..." && go install github.com/onsi/ginkgo/v2/ginkgo@latest)
+	@which setup-envtest > /dev/null || (echo "Installing setup-envtest..." && go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest)
+	@kubectl cluster-info > /dev/null || (echo "Kubernetes cluster not accessible" && exit 1)
+	@echo "Production validation prerequisites satisfied"
+
+# Run comprehensive production deployment validation (TARGET: 8/10 points)
+.PHONY: validate-production-comprehensive
+validate-production-comprehensive: validate-production-prerequisites
+	@echo "Running Comprehensive Production Deployment Validation..."
+	@mkdir -p $(PRODUCTION_REPORTS_DIR)
+	@export KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)"; \
+	export KUBERNETES_NAMESPACE="$(KUBERNETES_NAMESPACE)"; \
+	export ENABLE_CHAOS_TESTING="$(ENABLE_CHAOS_TESTING)"; \
+	export ENABLE_LOAD_TESTING="$(ENABLE_LOAD_TESTING)"; \
+	export PRODUCTION_TARGET_SCORE="$(PRODUCTION_TARGET_SCORE)"; \
+	ginkgo run \
+		--timeout=$(PRODUCTION_TIMEOUT) \
+		--output-dir=$(PRODUCTION_REPORTS_DIR) \
+		--junit-report=production-validation-junit.xml \
+		--json-report=production-validation-report.json \
+		$(if $(VERBOSE_LOGGING),--vv,-v) \
+		--focus="Production Deployment Validation Suite" \
+		$(PRODUCTION_VALIDATION_DIR)
+	@echo "Production validation complete. Results in $(PRODUCTION_REPORTS_DIR)/"
+
+# Run individual production validation categories
+.PHONY: validate-production-high-availability
+validate-production-high-availability: validate-production-prerequisites
+	@echo "Running High Availability Validation (3 points)..."
+	@export KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)"; \
+	ginkgo run --timeout=20m -v \
+		--focus="should validate high availability requirements" \
+		$(PRODUCTION_VALIDATION_DIR)
+
+.PHONY: validate-production-fault-tolerance
+validate-production-fault-tolerance: validate-production-prerequisites
+	@echo "Running Fault Tolerance Validation with Chaos Engineering (3 points)..."
+	@export KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)"; \
+	export ENABLE_CHAOS_TESTING="true"; \
+	ginkgo run --timeout=30m -v \
+		--focus="should validate fault tolerance through chaos engineering" \
+		$(PRODUCTION_VALIDATION_DIR)
+
+.PHONY: validate-production-monitoring
+validate-production-monitoring: validate-production-prerequisites
+	@echo "Running Monitoring & Observability Validation (2 points)..."
+	@export KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)"; \
+	ginkgo run --timeout=15m -v \
+		--focus="should validate monitoring and observability" \
+		$(PRODUCTION_VALIDATION_DIR)
+
+.PHONY: validate-production-disaster-recovery
+validate-production-disaster-recovery: validate-production-prerequisites
+	@echo "Running Disaster Recovery Validation (2 points)..."
+	@export KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)"; \
+	ginkgo run --timeout=20m -v \
+		--focus="should validate disaster recovery capabilities" \
+		$(PRODUCTION_VALIDATION_DIR)
+
+# Run additional production validation categories
+.PHONY: validate-production-deployment-scenarios
+validate-production-deployment-scenarios: validate-production-prerequisites
+	@echo "Running Deployment Scenarios Validation (Blue-Green, Canary, Rolling)..."
+	@export KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)"; \
+	ginkgo run --timeout=25m -v \
+		--focus="should validate deployment scenarios" \
+		$(PRODUCTION_VALIDATION_DIR)
+
+.PHONY: validate-production-infrastructure
+validate-production-infrastructure: validate-production-prerequisites
+	@echo "Running Infrastructure as Code Validation (RBAC, NetworkPolicies, etc.)..."
+	@export KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)"; \
+	ginkgo run --timeout=15m -v \
+		--focus="should validate infrastructure as code" \
+		$(PRODUCTION_VALIDATION_DIR)
+
+# Production validation with specific environments
+.PHONY: validate-production-staging
+validate-production-staging:
+	@echo "Running production validation in staging environment..."
+	@$(MAKE) validate-production-comprehensive KUBERNETES_NAMESPACE=nephoran-staging ENABLE_CHAOS_TESTING=false
+
+.PHONY: validate-production-production
+validate-production-production:
+	@echo "Running production validation in production environment..."
+	@$(MAKE) validate-production-comprehensive KUBERNETES_NAMESPACE=nephoran-system ENABLE_CHAOS_TESTING=false ENABLE_LOAD_TESTING=false
+
+# Chaos engineering specific targets
+.PHONY: validate-production-chaos-engineering
+validate-production-chaos-engineering: validate-production-prerequisites
+	@echo "Running Dedicated Chaos Engineering Tests..."
+	@export KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)"; \
+	export ENABLE_CHAOS_TESTING="true"; \
+	export CHAOS_FAILURE_RATE="0.2"; \
+	ginkgo run --timeout=40m -v \
+		--focus="Chaos Engineering" \
+		$(PRODUCTION_VALIDATION_DIR)
+
+# Performance and load testing specific targets
+.PHONY: validate-production-load-testing
+validate-production-load-testing: validate-production-prerequisites
+	@echo "Running Production Load Testing..."
+	@export KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)"; \
+	export ENABLE_LOAD_TESTING="true"; \
+	export LOAD_TEST_DURATION="15m"; \
+	export LOAD_TEST_CONCURRENCY="100"; \
+	ginkgo run --timeout=25m -v \
+		--focus="Load Testing" \
+		$(PRODUCTION_VALIDATION_DIR)
+
+# Generate production validation reports
+.PHONY: production-validation-report
+production-validation-report:
+	@echo "Generating production validation report..."
+	@if [ -f "$(PRODUCTION_REPORTS_DIR)/production-validation-report.json" ]; then \
+		echo "=== PRODUCTION VALIDATION SUMMARY ==="; \
+		cat $(PRODUCTION_REPORTS_DIR)/production-validation-summary.txt 2>/dev/null || echo "Summary report not found"; \
+		echo ""; \
+		echo "=== PRODUCTION READINESS CHECKLIST ==="; \
+		cat $(PRODUCTION_REPORTS_DIR)/production-readiness-checklist.txt 2>/dev/null || echo "Checklist report not found"; \
+		echo ""; \
+		echo "Detailed reports available in: $(PRODUCTION_REPORTS_DIR)/"; \
+		ls -la $(PRODUCTION_REPORTS_DIR)/ 2>/dev/null || echo "Reports directory not found"; \
+	else \
+		echo "No production validation reports found. Run 'make validate-production-comprehensive' first."; \
+	fi
+
+# Validate production readiness gate (for CI/CD)
+.PHONY: production-validation-gate
+production-validation-gate: validate-production-comprehensive
+	@echo "Checking production validation gate..."
+	@if [ -f "$(PRODUCTION_REPORTS_DIR)/production-validation-report.json" ]; then \
+		SCORE=$$(grep -o '"TotalScore":[0-9]*' $(PRODUCTION_REPORTS_DIR)/production-validation-report.json | cut -d: -f2); \
+		if [ "$$SCORE" -ge "$(PRODUCTION_TARGET_SCORE)" ]; then \
+			echo "✅ Production validation PASSED: $$SCORE/10 points (target: $(PRODUCTION_TARGET_SCORE))"; \
+			exit 0; \
+		else \
+			echo "❌ Production validation FAILED: $$SCORE/10 points (target: $(PRODUCTION_TARGET_SCORE))"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "❌ Production validation results not found"; \
+		exit 1; \
+	fi
+
+# Clean up production validation artifacts
+.PHONY: production-validation-clean
+production-validation-clean:
+	@echo "Cleaning up production validation artifacts..."
+	@rm -rf $(PRODUCTION_REPORTS_DIR)
+	@kubectl delete networkintents,pods,services -l chaos-engineering=true --ignore-not-found=true
+	@echo "Production validation cleanup complete"
+
+# Setup production validation environment
+.PHONY: production-validation-setup
+production-validation-setup: validate-production-prerequisites
+	@echo "Setting up production validation environment..."
+	@kubectl create namespace $(KUBERNETES_NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	@kubectl apply -f deployments/crds/ --namespace=$(KUBERNETES_NAMESPACE) || true
+	@mkdir -p $(PRODUCTION_REPORTS_DIR)
+	@echo "Production validation environment ready"
+
+# Run pre-deployment production validation
+.PHONY: validate-pre-deployment
+validate-pre-deployment: production-validation-setup
+	@echo "Running pre-deployment production validation..."
+	@$(MAKE) validate-production-comprehensive ENABLE_CHAOS_TESTING=false
+	@echo "Pre-deployment validation complete"
+
+# Run post-deployment production validation  
+.PHONY: validate-post-deployment
+validate-post-deployment: production-validation-setup
+	@echo "Running post-deployment production validation..."
+	@$(MAKE) validate-production-comprehensive ENABLE_CHAOS_TESTING=true ENABLE_LOAD_TESTING=true
+	@echo "Post-deployment validation complete"
+
+# Continuous production validation (for monitoring)
+.PHONY: validate-production-continuous
+validate-production-continuous: validate-production-prerequisites
+	@echo "Running continuous production validation..."
+	@while true; do \
+		echo "Starting production validation cycle at $$(date)"; \
+		$(MAKE) validate-production-comprehensive ENABLE_CHAOS_TESTING=false PRODUCTION_TIMEOUT=30m || true; \
+		echo "Validation cycle complete. Sleeping for 1 hour..."; \
+		sleep 3600; \
+	done
+
+# Help target for production validation
+.PHONY: help-production-validation
+help-production-validation:
+	@echo "Production Deployment Validation Targets:"
+	@echo ""
+	@echo "Primary Targets (8/10 points total):"
+	@echo "  validate-production-comprehensive      - Run complete production validation suite"
+	@echo "  validate-production-high-availability  - Test high availability (3 points)"
+	@echo "  validate-production-fault-tolerance    - Test fault tolerance with chaos (3 points)"
+	@echo "  validate-production-monitoring         - Test monitoring & observability (2 points)"
+	@echo "  validate-production-disaster-recovery  - Test disaster recovery (2 points)"
+	@echo ""
+	@echo "Additional Validation Targets:"
+	@echo "  validate-production-deployment-scenarios - Test deployment strategies"
+	@echo "  validate-production-infrastructure       - Test infrastructure as code"
+	@echo "  validate-production-chaos-engineering    - Dedicated chaos engineering tests"
+	@echo "  validate-production-load-testing         - Performance and load testing"
+	@echo ""
+	@echo "Environment-Specific Targets:"
+	@echo "  validate-production-staging             - Validate in staging environment"
+	@echo "  validate-production-production          - Validate in production environment"
+	@echo "  validate-pre-deployment                 - Pre-deployment validation"
+	@echo "  validate-post-deployment                - Post-deployment validation"
+	@echo ""
+	@echo "Utility Targets:"
+	@echo "  production-validation-report            - Generate validation reports"
+	@echo "  production-validation-gate              - Check validation gate (CI/CD)"
+	@echo "  production-validation-setup             - Setup validation environment"
+	@echo "  production-validation-clean             - Clean validation artifacts"
+	@echo ""
+	@echo "Configuration:"
+	@echo "  PRODUCTION_TARGET_SCORE=$(PRODUCTION_TARGET_SCORE) - Minimum score to pass (default: 8/10)"
+	@echo "  ENABLE_CHAOS_TESTING=$(ENABLE_CHAOS_TESTING)       - Enable chaos engineering tests"
+	@echo "  ENABLE_LOAD_TESTING=$(ENABLE_LOAD_TESTING)         - Enable load testing"
+	@echo "  KUBERNETES_NAMESPACE=$(KUBERNETES_NAMESPACE)       - Target namespace"
+	@echo ""
+
+# Default production validation target
+.PHONY: validate-production
+validate-production: validate-production-comprehensive
+
+# Production validation summary
+production-validation-summary: production-validation-report
+	@echo "Production Deployment Validation Suite Summary:"
+	@echo "Target: $(PRODUCTION_TARGET_SCORE)/10 points for production readiness"
+	@echo "Categories: High Availability (3), Fault Tolerance (3), Monitoring (2), Disaster Recovery (2)"
+	@echo "Run 'make validate-production' to execute comprehensive validation"
+	@echo "Run 'make help-production-validation' for detailed usage information"

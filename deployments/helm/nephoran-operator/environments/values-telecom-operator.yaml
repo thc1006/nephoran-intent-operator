@@ -1,0 +1,1152 @@
+# Telecom Operator (Carrier-Grade) deployment values for Nephoran Intent Operator
+# Ultra-high availability, carrier-grade reliability, 5G-ready configuration
+
+# Global configuration for telecom operator deployment
+global:
+  # Container registry with telecom-grade security
+  imageRegistry: "telecom-registry.operator.local"
+  imagePullSecrets:
+    - name: telecom-registry-secret
+    - name: carrier-grade-secret
+  
+  # Carrier-grade storage classes
+  storageClass:
+    database: "carrier-grade-ssd-ha"
+    vectordb: "ultra-high-iops-ssd"
+    monitoring: "telco-standard-ssd"
+    backup: "telco-backup-storage"
+    logs: "telco-logs-storage"
+  
+  # Multi-region telecom configuration
+  multiRegion:
+    enabled: true
+    regions:
+      - name: "core-region-1"
+        primary: true
+        zones: ["core-1a", "core-1b", "core-1c"]
+        type: "core"
+      - name: "core-region-2"
+        primary: false
+        zones: ["core-2a", "core-2b", "core-2c"]
+        type: "core"
+      - name: "edge-region-1"
+        primary: false
+        zones: ["edge-1a", "edge-1b"]
+        type: "edge"
+      - name: "edge-region-2"
+        primary: false
+        zones: ["edge-2a", "edge-2b"]
+        type: "edge"
+  
+  # Carrier-grade security and compliance
+  security:
+    enforceNetworkPolicies: true
+    podSecurityStandard: "restricted"
+    enableMTLS: true
+    enableOSFV: true
+    enableImageSigning: true
+    enableRuntimeSecurity: true
+    enableComplianceScanning: true
+    enableSecurityScanning: true
+    enableNetworkSegmentation: true
+  
+  # Telecom compliance requirements
+  compliance:
+    etsi: true          # ETSI compliance
+    oran: true          # O-RAN compliance
+    tsa: true           # Telecom Security Assurance
+    gsma: true          # GSMA compliance
+    gdpr: true          # GDPR compliance
+    carriers:
+      - name: "tier1"
+        standard: "carrier-grade"
+      - name: "tier2" 
+        standard: "enterprise-plus"
+  
+  # Service Level Objectives (carrier-grade)
+  slo:
+    availability: "99.999"  # Five 9s availability
+    latency_p99: "100ms"    # P99 latency under 100ms
+    throughput: "10000rps"  # 10K requests per second
+    mttr: "5m"              # Mean Time To Recovery under 5 minutes
+    mttd: "1m"              # Mean Time To Detection under 1 minute
+
+# Carrier-grade feature flags
+features:
+  rag:
+    enabled: true
+  ml:
+    enabled: true
+  monitoring:
+    enabled: true
+  security:
+    enabled: true
+  multiCluster:
+    enabled: true
+  disasterRecovery:
+    enabled: true
+  chatops:
+    enabled: true
+  audit:
+    enabled: true
+  o1Interface:
+    enabled: true
+  a1Interface:
+    enabled: true
+  e2Interface:
+    enabled: true
+  o2Interface:
+    enabled: true
+  networkSlicing:
+    enabled: true
+  carrierGradeTelemetry:
+    enabled: true
+
+# Nephoran Operator Controller - Carrier-Grade Configuration
+nephoranOperator:
+  enabled: true
+  replicaCount: 5  # Carrier-grade redundancy (odd number for consensus)
+  
+  image:
+    repository: "nephoran-operator"
+    tag: "v2.1.0-carrier-grade"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 9443
+    targetPort: 9443
+    webhookPort: 9443
+    # Carrier-grade service annotations
+    annotations:
+      service.beta.kubernetes.io/load-balancer-source-ranges: "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+      service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  
+  # Ultra-robust leader election
+  leaderElection:
+    enabled: true
+    leaseDuration: "10s"    # Faster failover for carrier-grade
+    renewDeadline: "7s"
+    retryPeriod: "1s"
+    resourceLock: "leases"
+    resourceName: "nephoran-operator-leader"
+    resourceNamespace: "nephoran-system"
+  
+  # Carrier-grade health checks with strict SLAs
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 15
+      periodSeconds: 5      # More frequent checks for carrier-grade
+      timeoutSeconds: 3
+      failureThreshold: 2   # Faster failure detection
+      successThreshold: 1
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 5
+      periodSeconds: 2      # Very frequent readiness checks
+      timeoutSeconds: 1
+      failureThreshold: 1   # Immediate failure detection
+      successThreshold: 1
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 5
+      periodSeconds: 1
+      timeoutSeconds: 1
+      failureThreshold: 30  # 30 seconds max startup time
+  
+  # Carrier-grade resource allocation
+  resources:
+    requests:
+      cpu: "2000m"
+      memory: "4Gi"
+      ephemeral-storage: "8Gi"
+    limits:
+      cpu: "8000m"
+      memory: "16Gi"
+      ephemeral-storage: "32Gi"
+  
+  # Ultra-secure security context for carrier-grade
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+    seLinuxOptions:
+      level: "s0:c123,c456"
+  
+  # Carrier-grade anti-affinity with zone and node distribution
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [nephoran-operator]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [controller]
+          topologyKey: kubernetes.io/hostname
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [nephoran-operator]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [controller]
+          topologyKey: topology.kubernetes.io/zone
+  
+  # Carrier-grade topology spread constraints
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-operator
+          app.kubernetes.io/component: controller
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-operator
+          app.kubernetes.io/component: controller
+  
+  # Carrier-grade node selection
+  nodeSelector:
+    nephoran.com/node-type: "control-plane"
+    nephoran.com/instance-type: "carrier-grade"
+    nephoran.com/sla-tier: "tier1"
+    kubernetes.io/arch: "amd64"
+  
+  tolerations:
+    - key: "nephoran.com/control-plane"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+    - key: "nephoran.com/carrier-grade"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Carrier-grade pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 4  # Always maintain 4 out of 5 replicas
+    maxUnavailable: null
+  
+  # Carrier-grade environment variables
+  env:
+    - name: ENABLE_LEADER_ELECTION
+      value: "true"
+    - name: METRICS_BIND_ADDR
+      value: ":8080"
+    - name: HEALTH_PROBE_BIND_ADDR
+      value: ":8081"
+    - name: MAX_CONCURRENT_RECONCILES
+      value: "20"  # Higher concurrency for carrier-grade
+    - name: SYNC_PERIOD
+      value: "5m"   # Faster sync for carrier-grade
+    - name: LEASE_DURATION
+      value: "10s"
+    - name: RENEW_DEADLINE
+      value: "7s"
+    - name: RETRY_PERIOD
+      value: "1s"
+    - name: LOG_LEVEL
+      value: "info"
+    - name: LOG_FORMAT
+      value: "json"
+    - name: ENABLE_PROFILING
+      value: "false"
+    - name: ENABLE_DEVELOPMENT_LOGS
+      value: "false"
+    - name: CARRIER_GRADE_MODE
+      value: "true"
+    - name: SLA_TIER
+      value: "tier1"
+
+# LLM Processor - Carrier-Grade Ultra-Scalable Configuration
+llmProcessor:
+  enabled: true
+  replicaCount: 10  # High replica count for carrier-grade throughput
+  
+  image:
+    repository: "llm-processor"
+    tag: "v2.1.0-carrier-grade"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8080"
+      prometheus.io/path: "/metrics"
+      service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  
+  # Carrier-grade autoscaling with predictive capabilities
+  autoscaling:
+    enabled: true
+    minReplicas: 10
+    maxReplicas: 100  # Massive scale for carrier-grade
+    targetCPUUtilizationPercentage: 50    # Lower threshold for better response
+    targetMemoryUtilizationPercentage: 60
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 600   # Conservative scale-down
+        policies:
+          - type: Percent
+            value: 5    # Very conservative scale-down
+            periodSeconds: 60
+          - type: Pods
+            value: 1
+            periodSeconds: 60
+        selectPolicy: Min
+      scaleUp:
+        stabilizationWindowSeconds: 15    # Aggressive scale-up
+        policies:
+          - type: Percent
+            value: 200  # Aggressive scale-up for traffic spikes
+            periodSeconds: 15
+          - type: Pods
+            value: 10   # Add many pods quickly
+            periodSeconds: 15
+        selectPolicy: Max
+    # Advanced carrier-grade metrics
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 50
+      - type: Resource
+        resource:
+          name: memory
+          target:
+            type: Utilization
+            averageUtilization: 60
+      - type: Pods
+        pods:
+          metric:
+            name: http_requests_per_second
+          target:
+            type: AverageValue
+            averageValue: "200"  # Higher throughput per pod
+      - type: External
+        external:
+          metric:
+            name: pubsub.googleapis.com|subscription|num_undelivered_messages
+          target:
+            type: AverageValue
+            averageValue: "10"
+  
+  # Carrier-grade health checks with sub-second response
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 2    # Very frequent health checks
+      timeoutSeconds: 1   # Sub-second timeout
+      failureThreshold: 2
+      successThreshold: 1
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 5
+      periodSeconds: 1    # Ultra-frequent readiness checks
+      timeoutSeconds: 1
+      failureThreshold: 1
+      successThreshold: 1
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 5
+      periodSeconds: 1
+      timeoutSeconds: 1
+      failureThreshold: 20
+  
+  # Carrier-grade resource allocation with GPU support
+  resources:
+    requests:
+      cpu: "4000m"
+      memory: "8Gi"
+      ephemeral-storage: "8Gi"
+      nvidia.com/gpu: "0"
+    limits:
+      cpu: "16000m"
+      memory: "32Gi"
+      ephemeral-storage: "32Gi"
+      nvidia.com/gpu: "2"  # Enhanced GPU support for AI processing
+  
+  # Ultra-secure carrier-grade security
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Carrier-grade distribution with zone/region awareness
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [nephoran-operator]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [llm-processor]
+            topologyKey: kubernetes.io/hostname
+        - weight: 75
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [nephoran-operator]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [llm-processor]
+            topologyKey: topology.kubernetes.io/zone
+  
+  topologySpreadConstraints:
+    - maxSkew: 3
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-operator
+          app.kubernetes.io/component: llm-processor
+    - maxSkew: 2
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-operator
+          app.kubernetes.io/component: llm-processor
+  
+  nodeSelector:
+    nephoran.com/node-type: "ai-processing"
+    nephoran.com/instance-type: "gpu-accelerated"
+    nephoran.com/sla-tier: "tier1"
+    kubernetes.io/arch: "amd64"
+  
+  tolerations:
+    - key: "nephoran.com/ai-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+    - key: "nvidia.com/gpu"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+    - key: "nephoran.com/carrier-grade"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Carrier-grade pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 8  # Maintain 80% availability during updates
+    maxUnavailable: null
+  
+  # Carrier-grade environment configuration
+  env:
+    - name: MAX_CONCURRENT_REQUESTS
+      value: "500"  # Higher throughput for carrier-grade
+    - name: REQUEST_TIMEOUT
+      value: "10s"  # Shorter timeout for carrier-grade responsiveness
+    - name: CIRCUIT_BREAKER_THRESHOLD
+      value: "5"    # Lower threshold for faster failure detection
+    - name: CIRCUIT_BREAKER_TIMEOUT
+      value: "30s"  # Faster recovery attempts
+    - name: RATE_LIMIT_REQUESTS_PER_MINUTE
+      value: "10000"  # High rate limits for carrier-grade
+    - name: ENABLE_CACHING
+      value: "true"
+    - name: CACHE_TTL_SECONDS
+      value: "60"   # Shorter cache TTL for fresher data
+    - name: LOG_LEVEL
+      value: "warn" # Less verbose logging for carrier-grade performance
+    - name: METRICS_ENABLED
+      value: "true"
+    - name: TRACING_ENABLED
+      value: "true"
+    - name: CARRIER_GRADE_MODE
+      value: "true"
+    - name: SLA_TIER
+      value: "tier1"
+    - name: ENABLE_GPU_ACCELERATION
+      value: "true"
+
+# Weaviate Vector Database - Carrier-Grade Cluster Configuration
+weaviate:
+  enabled: true
+  replicaCount: 7  # Larger odd number for carrier-grade consensus
+  
+  image:
+    repository: "semitechnologies/weaviate"
+    tag: "1.22.5"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    grpcPort: 50051
+    grpcTargetPort: 50051
+    annotations:
+      service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+  
+  # Carrier-grade persistent storage with ultra-high performance
+  persistence:
+    enabled: true
+    storageClass: "ultra-high-iops-ssd"
+    size: "5Ti"  # Massive storage for carrier-grade data
+    accessMode: ReadWriteOnce
+    volumeBindingMode: WaitForFirstConsumer
+  
+  # Carrier-grade backup with multiple strategies
+  backup:
+    enabled: true
+    schedule: "0 */2 * * *"  # Every 2 hours for carrier-grade
+    retention: "7d"
+    crossRegionReplication: true
+    storage:
+      primary:
+        type: "gcs"
+        bucket: "nephoran-telecom-backups-primary"
+        region: "core-region-1"
+        encryption: "google-managed"
+      secondary:
+        type: "s3"
+        bucket: "nephoran-telecom-backups-secondary"
+        region: "core-region-2"
+        encryption: "AES256"
+  
+  # Carrier-grade health checks with millisecond precision
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /v1/.well-known/live
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 60
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 2
+      successThreshold: 1
+    readinessProbe:
+      httpGet:
+        path: /v1/.well-known/ready
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 2
+      timeoutSeconds: 2
+      failureThreshold: 1
+      successThreshold: 1
+    startupProbe:
+      httpGet:
+        path: /v1/.well-known/live
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 240  # 20 minutes for carrier-grade initialization
+  
+  # Carrier-grade resource requirements with massive scale
+  resources:
+    requests:
+      cpu: "8000m"
+      memory: "32Gi"
+      ephemeral-storage: "16Gi"
+    limits:
+      cpu: "32000m"
+      memory: "128Gi"
+      ephemeral-storage: "64Gi"
+  
+  # Ultra-secure carrier-grade security
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Carrier-grade anti-affinity with strict distribution
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [nephoran-operator]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [weaviate]
+          topologyKey: kubernetes.io/hostname
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [nephoran-operator]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [weaviate]
+          topologyKey: topology.kubernetes.io/zone
+  
+  nodeSelector:
+    nephoran.com/node-type: "database"
+    nephoran.com/instance-type: "memory-optimized"
+    nephoran.com/sla-tier: "tier1"
+    kubernetes.io/arch: "amd64"
+  
+  tolerations:
+    - key: "nephoran.com/database-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+    - key: "nephoran.com/carrier-grade"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Carrier-grade pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 5  # Always maintain majority (5 out of 7)
+    maxUnavailable: null
+  
+  # Carrier-grade Weaviate configuration
+  config:
+    persistence_data_path: "/var/lib/weaviate"
+    query_defaults_limit: 100
+    authentication_anonymous_access_enabled: false
+    authentication_oidc_enabled: true
+    authorization_admin_list_enabled: true
+    cluster_hostname: "weaviate"
+    cluster_gossip_bind_port: 7100
+    cluster_data_bind_port: 7101
+    enable_cuda: true     # GPU acceleration for carrier-grade
+    go_gc: 50            # Aggressive GC for carrier-grade performance
+    track_vector_dimensions: true
+    replication_factor: 3
+    # Carrier-grade performance tuning
+    max_import_goroutine_factor: 1.5
+    query_maximum_results: 10000
+    query_nested_cross_reference_limit: 1000
+
+# O-RAN Interface Implementations for Carrier-Grade
+oranAdaptor:
+  enabled: true
+  replicaCount: 3  # High availability for O-RAN interfaces
+  
+  image:
+    repository: "oran-adaptor"
+    tag: "v2.1.0-carrier-grade"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8083
+    targetPort: 8083
+  
+  # O-RAN interface-specific configuration
+  interfaces:
+    a1:
+      enabled: true
+      port: 8084
+      version: "v2.1"
+      policyTypes:
+        - "traffic_steering"
+        - "qos_management" 
+        - "admission_control"
+        - "energy_savings"
+    
+    o1:
+      enabled: true
+      port: 8085
+      protocol: "netconf"
+      yangModels:
+        - "ietf-interfaces"
+        - "o-ran-interfaces"
+        - "o-ran-operations"
+    
+    e2:
+      enabled: true
+      port: 8086
+      serviceModels:
+        - "KPM"
+        - "RC"
+        - "NI"
+        - "CCC"
+    
+    o2:
+      enabled: true
+      port: 8087
+      cloudProviders:
+        - "aws"
+        - "azure"
+        - "gcp"
+        - "openstack"
+  
+  # Carrier-grade health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8083
+        scheme: HTTP
+      initialDelaySeconds: 20
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 2
+      successThreshold: 1
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8083
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 3
+      timeoutSeconds: 2
+      failureThreshold: 1
+      successThreshold: 1
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8083
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 30
+  
+  # Carrier-grade resource allocation
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+      ephemeral-storage: "2Gi"
+    limits:
+      cpu: "4000m"
+      memory: "8Gi"
+      ephemeral-storage: "8Gi"
+  
+  # Standard security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Anti-affinity for O-RAN adaptors
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [nephoran-operator]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [oran-adaptor]
+            topologyKey: kubernetes.io/hostname
+  
+  nodeSelector:
+    nephoran.com/node-type: "orchestration"
+    nephoran.com/sla-tier: "tier1"
+  
+  tolerations:
+    - key: "nephoran.com/orchestration-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+    - key: "nephoran.com/carrier-grade"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Pod disruption budget for O-RAN interfaces
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+    maxUnavailable: null
+
+# Carrier-Grade Monitoring Configuration
+monitoring:
+  enabled: true
+  
+  # Ultra-comprehensive Prometheus configuration
+  prometheus:
+    enabled: true
+    retention: "30d"  # Longer retention for carrier-grade
+    serviceMonitor:
+      enabled: true
+      interval: "5s"   # High-frequency scraping for carrier-grade
+      scrapeTimeout: "3s"
+      labels:
+        prometheus: kube-prometheus
+        app: nephoran-operator
+        tier: carrier-grade
+      endpoints:
+        - port: http-metrics
+          path: /metrics
+          interval: 5s
+          scrapeTimeout: 3s
+        - port: http-metrics
+          path: /metrics/controller-runtime
+          interval: 5s
+          scrapeTimeout: 3s
+  
+  # Carrier-grade Grafana dashboards
+  grafana:
+    enabled: true
+    persistence:
+      enabled: true
+      size: "50Gi"
+    dashboards:
+      enabled: true
+      namespace: monitoring
+      labels:
+        grafana_dashboard: "1"
+        tier: "carrier-grade"
+      annotations:
+        grafana-folder: "Nephoran-Carrier-Grade"
+  
+  # Carrier-grade alerting with strict SLAs
+  prometheusRule:
+    enabled: true
+    namespace: monitoring
+    labels:
+      prometheus: kube-prometheus
+      role: alert-rules
+      tier: carrier-grade
+    rules:
+      # Ultra-strict availability alerts
+      - alert: NephoranOperatorDownCarrierGrade
+        expr: up{job="nephoran-operator"} == 0
+        for: 30s  # Very fast detection for carrier-grade
+        labels:
+          severity: critical
+          component: controller
+          service: nephoran-operator
+          tier: carrier-grade
+          sla: "99.999"
+        annotations:
+          summary: "CRITICAL: Nephoran Operator controller is down"
+          description: "Nephoran Operator controller has been down for more than 30 seconds - SLA breach imminent"
+          runbook_url: "https://runbooks.telecom.com/operator-down-emergency"
+          escalation: "immediate"
+      
+      # Ultra-strict latency alerts
+      - alert: NephoranLatencyCarrierGradeBreach
+        expr: |
+          histogram_quantile(0.99, 
+            rate(nephoran_llm_processor_request_duration_seconds_bucket[1m])
+          ) > 0.1  # 100ms P99 threshold
+        for: 1m
+        labels:
+          severity: critical
+          component: llm-processor
+          service: nephoran-operator
+          tier: carrier-grade
+          sla_metric: "latency"
+        annotations:
+          summary: "CRITICAL: Carrier-grade latency SLA breach"
+          description: "99th percentile latency exceeded 100ms for 1 minute - carrier-grade SLA breach"
+          runbook_url: "https://runbooks.telecom.com/latency-sla-breach"
+      
+      # Throughput monitoring for carrier-grade
+      - alert: NephoranThroughputCarrierGradeLow
+        expr: |
+          rate(nephoran_llm_processor_requests_total[5m]) < 1000
+        for: 2m
+        labels:
+          severity: warning
+          component: llm-processor
+          service: nephoran-operator
+          tier: carrier-grade
+          sla_metric: "throughput"
+        annotations:
+          summary: "WARNING: Carrier-grade throughput below threshold"
+          description: "Request rate below 1000 RPS for 2 minutes"
+          runbook_url: "https://runbooks.telecom.com/low-throughput"
+
+# Carrier-Grade Network Policies with Micro-segmentation
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  # Strict default deny for carrier-grade security
+  denyAll: true
+  
+  # Micro-segmentation for carrier-grade security
+  ingress:
+    # Allow only from approved load balancers
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+              tier: carrier-grade
+        - namespaceSelector:
+            matchLabels:
+              name: istio-system
+              tier: carrier-grade
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 5001
+        - protocol: TCP
+          port: 9443
+        - protocol: TCP
+          port: 8083  # O-RAN adaptor
+        - protocol: TCP
+          port: 8084  # A1 interface
+        - protocol: TCP
+          port: 8085  # O1 interface
+        - protocol: TCP
+          port: 8086  # E2 interface
+        - protocol: TCP
+          port: 8087  # O2 interface
+    
+    # Allow carrier-grade monitoring access
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+              tier: carrier-grade
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9443
+  
+  # Strict egress rules for carrier-grade security
+  egress:
+    # Allow DNS resolution (critical for carrier-grade)
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    
+    # Allow HTTPS to approved external APIs only
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: external-apis
+              tier: approved
+      ports:
+        - protocol: TCP
+          port: 443
+    
+    # Allow inter-component communication (carrier-grade mesh)
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: nephoran-operator
+              tier: carrier-grade
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8082
+        - protocol: TCP
+          port: 8083
+        - protocol: TCP
+          port: 5001
+        - protocol: TCP
+          port: 8080  # Weaviate HTTP
+        - protocol: TCP
+          port: 50051  # Weaviate gRPC
+
+# Carrier-Grade Service Account
+serviceAccount:
+  create: true
+  annotations:
+    # Multi-cloud carrier-grade identities
+    eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/nephoran-operator-carrier-grade-role"
+    azure.workload.identity/client-id: "12345678-1234-1234-1234-123456789012"
+    iam.gke.io/gcp-service-account: "nephoran-operator@telecom-carrier.iam.gserviceaccount.com"
+  name: "nephoran-operator"
+
+# Carrier-Grade RBAC
+rbac:
+  create: true
+  clusterRole: true
+  
+  # Enhanced permissions for carrier-grade operations
+  additionalRules:
+    - apiGroups: ["networking.istio.io"]
+      resources: ["*"]
+      verbs: ["*"]
+    - apiGroups: ["security.istio.io"]
+      resources: ["*"]
+      verbs: ["*"]
+    - apiGroups: ["cert-manager.io"]
+      resources: ["*"]
+      verbs: ["*"]
+    - apiGroups: ["external-secrets.io"]
+      resources: ["*"]
+      verbs: ["*"]
+    - apiGroups: ["oran.io"]
+      resources: ["*"]
+      verbs: ["*"]
+    - apiGroups: ["nephoran.com"]
+      resources: ["*"]
+      verbs: ["*"]
+
+# Carrier-Grade Backup and Disaster Recovery
+backup:
+  enabled: true
+  
+  # Ultra-frequent backups for carrier-grade
+  velero:
+    enabled: true
+    schedule: "0 */2 * * *"  # Every 2 hours
+    retention: "168h"  # 7 days for carrier-grade
+    
+    # Cross-region replication for carrier-grade DR
+    backupLocations:
+      - name: "primary"
+        provider: "gcp"
+        bucket: "nephoran-carrier-backups-primary"
+        config:
+          region: "core-region-1"
+      - name: "secondary"
+        provider: "aws"
+        bucket: "nephoran-carrier-backups-secondary"
+        config:
+          region: "core-region-2"
+      - name: "tertiary"
+        provider: "azure"
+        bucket: "nephoran-carrier-backups-tertiary"
+        config:
+          region: "core-region-3"
+    
+    # Volume snapshot locations
+    volumeSnapshotLocations:
+      - name: "primary-snapshots"
+        provider: "gcp"
+        config:
+          region: "core-region-1"
+      - name: "secondary-snapshots"
+        provider: "aws"
+        config:
+          region: "core-region-2"
+
+# Carrier-Grade Resource Quotas
+resourceQuota:
+  enabled: true
+  hard:
+    # Massive resource allocations for carrier-grade
+    requests.cpu: "200"
+    requests.memory: "500Gi"
+    limits.cpu: "400"
+    limits.memory: "1000Gi"
+    
+    # Large storage quotas
+    requests.storage: "50Ti"
+    persistentvolumeclaims: "200"
+    
+    # High pod limits for carrier-grade scale
+    pods: "1000"
+    services: "200"
+    secrets: "500"
+    configmaps: "200"
+    
+    # Network resource quotas
+    services.nodeports: "50"
+    services.loadbalancers: "20"

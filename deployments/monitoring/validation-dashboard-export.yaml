@@ -1,0 +1,329 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-validation-dashboard-export
+  namespace: nephoran-system
+  labels:
+    app: grafana
+    component: dashboard-export
+data:
+  dashboard-export-config.yaml: |
+    # Nephoran Validation Dashboard Export Configuration
+    # This configures automated dashboard export capabilities for validation dashboards
+    
+    export:
+      enabled: true
+      schedule: "0 8 * * 1"  # Every Monday at 8 AM UTC
+      formats:
+        - pdf
+        - html
+        - json
+        - csv
+      
+      # Output destinations
+      destinations:
+        s3:
+          enabled: true
+          bucket: "nephoran-dashboard-exports"
+          prefix: "validation-reports"
+          region: "us-west-2"
+        
+        email:
+          enabled: true
+          recipients:
+            - "validation-team@nephoran.com"
+            - "engineering-leads@nephoran.com" 
+            - "product-team@nephoran.com"
+          subject_template: "Weekly Validation Dashboard Report - Week {{ .WeekNumber }}"
+        
+        webhook:
+          enabled: true
+          url: "https://webhooks.nephoran.com/dashboard-reports"
+          headers:
+            Authorization: "Bearer {{ .WebhookToken }}"
+    
+    # Dashboard export specifications
+    dashboards:
+      - name: "validation-realtime"
+        title: "Real-Time Validation Monitoring"
+        uid: "nephoran-validation-realtime" 
+        export_formats: ["pdf", "html"]
+        time_range: "now-1h/now"
+        variables: {}
+        
+      - name: "validation-historical" 
+        title: "Historical Validation Analysis"
+        uid: "nephoran-validation-historical"
+        export_formats: ["pdf", "html", "csv"]
+        time_range: "now-30d/now"
+        variables:
+          timerange: "30d"
+        
+      - name: "validation-executive"
+        title: "Executive Validation Summary" 
+        uid: "nephoran-validation-executive"
+        export_formats: ["pdf", "html"]
+        time_range: "now-7d/now"
+        variables: {}
+        
+      # Custom reports combining multiple dashboards
+      - name: "validation-complete-report"
+        title: "Complete Validation Report"
+        type: "combined"
+        export_formats: ["pdf"]
+        dashboards:
+          - "nephoran-validation-executive"
+          - "nephoran-validation-realtime" 
+          - "nephoran-validation-historical"
+        time_range: "now-7d/now"
+        
+    # Report templates
+    templates:
+      pdf:
+        orientation: "landscape"
+        format: "A4"
+        margins:
+          top: 20
+          bottom: 20
+          left: 15
+          right: 15
+        header:
+          enabled: true
+          content: |
+            <div style="text-align: center; font-family: Arial, sans-serif;">
+              <h2>Nephoran Intent Operator - Validation Report</h2>
+              <p>Generated: {{ .Timestamp }} | Period: {{ .TimeRange }}</p>
+            </div>
+        footer:
+          enabled: true
+          content: |
+            <div style="text-align: center; font-size: 12px; color: #666;">
+              Page {{ .PageNumber }} of {{ .TotalPages }} | 
+              Confidential - Nephoran Technologies
+            </div>
+            
+      html:
+        template: |
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>{{ .Title }} - {{ .Timestamp }}</title>
+              <style>
+                  body { font-family: Arial, sans-serif; margin: 20px; }
+                  .header { background: #2c3e50; color: white; padding: 20px; text-align: center; }
+                  .content { margin: 20px 0; }
+                  .dashboard { margin-bottom: 40px; border: 1px solid #ddd; }
+                  .dashboard-title { background: #ecf0f1; padding: 10px; font-weight: bold; }
+                  .dashboard-content { padding: 20px; }
+                  .summary { background: #e8f5e8; padding: 15px; border-radius: 5px; margin: 20px 0; }
+                  .alert { background: #ffeaa7; padding: 15px; border-radius: 5px; margin: 10px 0; }
+                  .critical { background: #fab1a0; }
+                  .metrics-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+                  .metrics-table th, .metrics-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                  .metrics-table th { background-color: #f2f2f2; }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>{{ .Title }}</h1>
+                  <p>Generated: {{ .Timestamp }} | Coverage Period: {{ .TimeRange }}</p>
+              </div>
+              
+              <div class="content">
+                  <div class="summary">
+                      <h2>📊 Executive Summary</h2>
+                      <p><strong>Overall Validation Score:</strong> {{ .OverallScore }}/100</p>
+                      <p><strong>Quality Gate Status:</strong> 
+                          <span style="color: {{ if ge .OverallScore 90.0 }}green{{ else }}red{{ end }};">
+                              {{ if ge .OverallScore 90.0 }}PASS✅{{ else }}FAIL❌{{ end }}
+                          </span>
+                      </p>
+                      <p><strong>Last Updated:</strong> {{ .LastUpdate }}</p>
+                  </div>
+                  
+                  {{ range .Dashboards }}
+                  <div class="dashboard">
+                      <div class="dashboard-title">{{ .Title }}</div>
+                      <div class="dashboard-content">
+                          {{ .Content }}
+                      </div>
+                  </div>
+                  {{ end }}
+                  
+                  <div class="summary">
+                      <h2>🎯 Key Findings</h2>
+                      <ul>
+                          {{ range .KeyFindings }}
+                          <li>{{ . }}</li>
+                          {{ end }}
+                      </ul>
+                  </div>
+                  
+                  <div class="summary">
+                      <h2>📈 Recommendations</h2>
+                      <ul>
+                          {{ range .Recommendations }}
+                          <li>{{ . }}</li>
+                          {{ end }}
+                      </ul>
+                  </div>
+              </div>
+          </body>
+          </html>
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: nephoran-dashboard-export
+  namespace: nephoran-system
+  labels:
+    app: dashboard-export
+    component: validation-reporting
+spec:
+  schedule: "0 8 * * 1"  # Every Monday at 8 AM UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: dashboard-export
+            component: validation-reporting
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: dashboard-exporter
+            image: nephoran/dashboard-exporter:v1.0.0
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: GRAFANA_URL
+              value: "http://grafana:3000"
+            - name: GRAFANA_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: grafana-dashboard-export-secret
+                  key: token
+            - name: S3_BUCKET
+              value: "nephoran-dashboard-exports"
+            - name: S3_PREFIX
+              value: "validation-reports"
+            - name: WEBHOOK_URL
+              value: "https://webhooks.nephoran.com/dashboard-reports"
+            - name: WEBHOOK_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: dashboard-export-webhook-secret
+                  key: token
+            - name: SMTP_SERVER
+              value: "smtp.nephoran.com"
+            - name: SMTP_USERNAME
+              value: "reports@nephoran.com"
+            - name: SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: smtp-secret
+                  key: password
+            volumeMounts:
+            - name: export-config
+              mountPath: /etc/dashboard-export
+              readOnly: true
+            - name: export-output
+              mountPath: /tmp/exports
+            resources:
+              limits:
+                cpu: "1"
+                memory: "2Gi"
+              requests:
+                cpu: "500m"
+                memory: "1Gi"
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Starting dashboard export process..."
+              
+              # Export validation dashboards
+              python3 /app/export_dashboards.py \
+                --config /etc/dashboard-export/dashboard-export-config.yaml \
+                --output /tmp/exports \
+                --grafana-url $GRAFANA_URL \
+                --grafana-token $GRAFANA_TOKEN
+              
+              # Upload to S3
+              aws s3 sync /tmp/exports s3://$S3_BUCKET/$S3_PREFIX/$(date +%Y-%m-%d) \
+                --delete --exclude "*.tmp"
+              
+              # Send email notifications
+              python3 /app/send_reports.py \
+                --reports-dir /tmp/exports \
+                --smtp-server $SMTP_SERVER \
+                --smtp-username $SMTP_USERNAME \
+                --smtp-password $SMTP_PASSWORD
+              
+              # Send webhook notification
+              curl -X POST $WEBHOOK_URL \
+                -H "Authorization: Bearer $WEBHOOK_TOKEN" \
+                -H "Content-Type: application/json" \
+                -d "{
+                  \"event\": \"dashboard_export_completed\",
+                  \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+                  \"reports_location\": \"s3://$S3_BUCKET/$S3_PREFIX/$(date +%Y-%m-%d)\",
+                  \"dashboard_count\": $(find /tmp/exports -name "*.pdf" | wc -l),
+                  \"status\": \"success\"
+                }"
+              
+              echo "Dashboard export completed successfully!"
+          volumes:
+          - name: export-config
+            configMap:
+              name: nephoran-validation-dashboard-export
+          - name: export-output
+            emptyDir:
+              sizeLimit: 5Gi
+
+---
+# Service for dashboard export metrics
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-dashboard-export-metrics
+  namespace: nephoran-system
+  labels:
+    app: dashboard-export
+    component: metrics
+spec:
+  selector:
+    app: dashboard-export
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+
+---
+# ServiceMonitor for dashboard export metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nephoran-dashboard-export
+  namespace: nephoran-system
+  labels:
+    app: prometheus
+    component: dashboard-export-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: dashboard-export
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 15s
+  namespaceSelector:
+    matchNames:
+    - nephoran-system

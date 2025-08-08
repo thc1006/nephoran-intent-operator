@@ -1,0 +1,470 @@
+# Nephoran Intent Operator - Comprehensive Monitoring Stack
+# TRL 9 Production-Ready Monitoring Infrastructure
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-production-config
+  namespace: nephoran-monitoring
+data:
+  prometheus.yml: |
+    # Production Prometheus Configuration - TRL 9 Ready
+    global:
+      scrape_interval: 10s
+      evaluation_interval: 10s
+      retention: 180d
+      external_labels:
+        cluster: 'nephoran-prod'
+        environment: 'production'
+        region: '{{ .Region }}'
+        availability_zone: '{{ .AvailabilityZone }}'
+
+    # Alertmanager Configuration
+    alerting:
+      alertmanagers:
+        - kubernetes_sd_configs:
+            - role: pod
+              namespaces:
+                names:
+                  - nephoran-monitoring
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_label_app]
+              action: keep
+              regex: alertmanager
+
+    # Rule files for comprehensive alerting
+    rule_files:
+      - "/etc/prometheus/rules/nephoran-core.yaml"
+      - "/etc/prometheus/rules/telecom-kpis.yaml"
+      - "/etc/prometheus/rules/business-metrics.yaml"
+      - "/etc/prometheus/rules/security-alerts.yaml"
+      - "/etc/prometheus/rules/sla-compliance.yaml"
+      - "/etc/prometheus/rules/nwdaf-integration.yaml"
+      - "/etc/prometheus/rules/capacity-planning.yaml"
+
+    scrape_configs:
+      # Core Nephoran Intent Operator Components
+      - job_name: 'nephoran-intent-controller'
+        scrape_interval: 5s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: nephoran-intent-controller
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: instance
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_label_version]
+            target_label: version
+          - source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+
+      # LLM Processor Service - High-frequency monitoring
+      - job_name: 'llm-processor'
+        scrape_interval: 5s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: llm-processor
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+
+      # RAG System Components
+      - job_name: 'rag-api'
+        scrape_interval: 10s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: rag-api
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'rag_(.*)'
+            action: keep
+
+      # Weaviate Vector Database
+      - job_name: 'weaviate'
+        scrape_interval: 15s
+        static_configs:
+          - targets: ['weaviate:2112']
+        metrics_path: /metrics
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'weaviate_(.*)'
+            action: keep
+
+      # O-RAN Interface Components
+      - job_name: 'oran-a1-interface'
+        scrape_interval: 10s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_component]
+            action: keep
+            regex: a1-interface
+
+      - job_name: 'oran-o1-interface'
+        scrape_interval: 15s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_component]
+            action: keep
+            regex: o1-interface
+
+      - job_name: 'oran-e2-interface'
+        scrape_interval: 5s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_component]
+            action: keep
+            regex: e2-interface
+
+      # Nephio Integration Components
+      - job_name: 'nephio-porch-bridge'
+        scrape_interval: 10s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: nephio-bridge
+
+      # Network Function Orchestration
+      - job_name: 'nf-orchestrator'
+        scrape_interval: 15s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nephoran-system
+                - 5g-core
+                - ran-functions
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_component]
+            action: keep
+            regex: '(amf|smf|upf|nssf|ausf|udm|udr|pcf)'
+
+      # NWDAF Integration - Network Data Analytics Function
+      - job_name: 'nwdaf-collector'
+        scrape_interval: 30s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - nwdaf-system
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            action: keep
+            regex: nwdaf-collector
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'nwdaf_(.*)'
+            action: keep
+
+      # Infrastructure Monitoring
+      - job_name: 'node-exporter'
+        scrape_interval: 30s
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - source_labels: [__address__]
+            regex: '(.*):10250'
+            replacement: '${1}:9100'
+            target_label: __address__
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: node
+
+      - job_name: 'kube-state-metrics'
+        scrape_interval: 30s
+        static_configs:
+          - targets: ['kube-state-metrics:8080']
+
+      # Application Load Balancer Metrics
+      - job_name: 'ingress-nginx'
+        scrape_interval: 15s
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - ingress-nginx
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            action: keep
+            regex: ingress-nginx
+
+      # Service Mesh Metrics (Istio)
+      - job_name: 'istio-proxy'
+        scrape_interval: 15s
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names:
+                - nephoran-system
+                - 5g-core
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: .*-metrics;http-monitoring
+
+      # Database Monitoring
+      - job_name: 'postgresql-exporter'
+        scrape_interval: 30s
+        static_configs:
+          - targets: ['postgresql-exporter:9187']
+
+      - job_name: 'redis-exporter'
+        scrape_interval: 30s
+        static_configs:
+          - targets: ['redis-exporter:9121']
+
+      # Message Queue Monitoring
+      - job_name: 'rabbitmq-exporter'
+        scrape_interval: 30s
+        static_configs:
+          - targets: ['rabbitmq-exporter:9419']
+
+    # Remote write configuration for long-term storage
+    remote_write:
+      - url: "http://cortex-gateway/api/v1/push"
+        queue_config:
+          max_samples_per_send: 10000
+          batch_send_deadline: 5s
+          min_backoff: 100ms
+          max_backoff: 10s
+        write_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'up|nephoran_.*|llm_.*|rag_.*|oran_.*|nwdaf_.*'
+            action: keep
+
+    # Federation configuration for multi-cluster monitoring
+    scrape_configs:
+      - job_name: 'federated-clusters'
+        scrape_interval: 30s
+        honor_labels: true
+        metrics_path: '/federate'
+        params:
+          'match[]':
+            - '{__name__=~"nephoran_.*"}'
+            - '{__name__=~"oran_.*"}'
+            - '{__name__=~"nwdaf_.*"}'
+            - 'up'
+        static_configs:
+          - targets:
+            - 'prometheus-region-east:9090'
+            - 'prometheus-region-west:9090'
+            - 'prometheus-edge-cluster:9090'
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: nephoran-monitoring
+data:
+  alertmanager.yml: |
+    # AlertManager Configuration - TRL 9 Enterprise Ready
+    global:
+      smtp_smarthost: 'smtp.company.com:587'
+      smtp_from: 'nephoran-alerts@company.com'
+      smtp_auth_username: 'nephoran-alerts@company.com'
+      smtp_auth_password_file: '/etc/alertmanager/secrets/smtp_password'
+      slack_api_url_file: '/etc/alertmanager/secrets/slack_webhook'
+
+    # Inhibit rules to reduce noise
+    inhibit_rules:
+      - source_matchers:
+          - alertname = "NodeDown"
+        target_matchers:
+          - alertname =~ ".*"
+        equal: ['node']
+
+      - source_matchers:
+          - alertname = "KubePodCrashLooping"
+        target_matchers:
+          - alertname = "KubePodNotReady"
+        equal: ['namespace', 'pod']
+
+      - source_matchers:
+          - severity = "critical"
+        target_matchers:
+          - severity = "warning"
+        equal: ['alertname', 'instance']
+
+    # Routing configuration
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      receiver: 'default-receiver'
+      routes:
+        # Critical alerts - immediate escalation
+        - matchers:
+            - severity = "critical"
+          receiver: 'critical-alerts'
+          group_wait: 10s
+          group_interval: 2m
+          repeat_interval: 30m
+
+        # Business impact alerts
+        - matchers:
+            - team = "business"
+          receiver: 'business-team'
+          group_interval: 15m
+          repeat_interval: 2h
+
+        # Security alerts
+        - matchers:
+            - component = "security"
+          receiver: 'security-team'
+          group_wait: 15s
+          group_interval: 5m
+          repeat_interval: 1h
+
+        # LLM and cost-related alerts
+        - matchers:
+            - component = "llm"
+            - team = "finance"
+          receiver: 'finance-team'
+          group_interval: 30m
+          repeat_interval: 6h
+
+        # O-RAN interface alerts
+        - matchers:
+            - component =~ "oran-.*"
+          receiver: 'telecom-team'
+          group_interval: 10m
+          repeat_interval: 2h
+
+        # NWDAF analytics alerts
+        - matchers:
+            - component = "nwdaf"
+          receiver: 'analytics-team'
+          group_interval: 15m
+          repeat_interval: 4h
+
+    receivers:
+      - name: 'default-receiver'
+        email_configs:
+          - to: 'nephoran-ops@company.com'
+            subject: '[Nephoran] {{ .GroupLabels.alertname }} - {{ .Status | toUpper }}'
+            html: |
+              <h2>Alert: {{ .GroupLabels.alertname }}</h2>
+              <h3>Status: {{ .Status | toUpper }}</h3>
+              <ul>
+              {{ range .Alerts }}
+                <li>
+                  <strong>{{ .Annotations.summary }}</strong><br>
+                  {{ .Annotations.description }}<br>
+                  <a href="{{ .Annotations.runbook_url }}">Runbook</a>
+                </li>
+              {{ end }}
+              </ul>
+
+      - name: 'critical-alerts'
+        pagerduty_configs:
+          - service_key: '{{ .ExternalData.pagerduty_service_key }}'
+            description: 'Critical Alert: {{ .GroupLabels.alertname }}'
+        slack_configs:
+          - channel: '#nephoran-critical'
+            title: 'CRITICAL: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              *{{ .Annotations.summary }}*
+              {{ .Annotations.description }}
+              Runbook: {{ .Annotations.runbook_url }}
+              {{ end }}
+        email_configs:
+          - to: 'nephoran-critical@company.com'
+            subject: 'CRITICAL: {{ .GroupLabels.alertname }}'
+
+      - name: 'business-team'
+        slack_configs:
+          - channel: '#nephoran-business'
+            title: 'Business Impact: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              {{ .Annotations.summary }}
+              Impact: {{ .Annotations.business_impact }}
+              {{ end }}
+        teams_configs:
+          - webhook_url: '{{ .ExternalData.teams_webhook }}'
+            title: 'Nephoran Business Alert'
+            summary: '{{ .GroupLabels.alertname }}'
+
+      - name: 'security-team'
+        email_configs:
+          - to: 'security@company.com'
+            subject: 'SECURITY: {{ .GroupLabels.alertname }}'
+            html: |
+              <h2 style="color: red;">Security Alert: {{ .GroupLabels.alertname }}</h2>
+              {{ range .Alerts }}
+              <p><strong>{{ .Annotations.summary }}</strong></p>
+              <p>{{ .Annotations.description }}</p>
+              <p>Severity: {{ .Labels.severity }}</p>
+              <p><a href="{{ .Annotations.runbook_url }}">Security Runbook</a></p>
+              {{ end }}
+        slack_configs:
+          - channel: '#security-alerts'
+            title: 'Security Alert: {{ .GroupLabels.alertname }}'
+
+      - name: 'finance-team'
+        email_configs:
+          - to: 'finance-ops@company.com'
+            subject: 'Cost Alert: {{ .GroupLabels.alertname }}'
+            html: |
+              <h2>Cost/Budget Alert: {{ .GroupLabels.alertname }}</h2>
+              {{ range .Alerts }}
+              <p>{{ .Annotations.summary }}</p>
+              <p>Current Cost: {{ .Annotations.current_cost }}</p>
+              <p>Budget Threshold: {{ .Annotations.budget_threshold }}</p>
+              {{ end }}
+
+      - name: 'telecom-team'
+        slack_configs:
+          - channel: '#nephoran-telecom'
+            title: 'O-RAN Interface Alert: {{ .GroupLabels.alertname }}'
+        email_configs:
+          - to: 'telecom-ops@company.com'
+            subject: 'O-RAN Alert: {{ .GroupLabels.alertname }}'
+
+      - name: 'analytics-team'
+        slack_configs:
+          - channel: '#nephoran-analytics'
+            title: 'NWDAF Analytics Alert: {{ .GroupLabels.alertname }}'
+        email_configs:
+          - to: 'analytics-team@company.com'
+            subject: 'NWDAF Alert: {{ .GroupLabels.alertname }}'

@@ -1,15 +1,25 @@
-# Development Dockerfile for Nephoran Intent Operator
+# =============================================================================
+# Consolidated Development Dockerfile for Nephoran Intent Operator
+# =============================================================================
 # Includes debugging tools, hot-reload, and development utilities
 # NOT for production use - contains development and debugging tools
+#
+# Build examples:
+#   docker build -f Dockerfile.dev --build-arg SERVICE=llm-processor -t nephoran/llm-processor:dev .
+#   docker build -f Dockerfile.dev --build-arg SERVICE=rag-api -t nephoran/rag-api:dev .
+#
+# Run with hot-reload:
+#   docker run -v $(pwd):/workspace -p 8080:8080 nephoran/llm-processor:dev
+# =============================================================================
 
-ARG SERVICE_TYPE=go
-ARG SERVICE_NAME
 ARG GO_VERSION=1.24
+ARG PYTHON_VERSION=3.11
+ARG ALPINE_VERSION=3.22
 
-# ============================================================================
-# STAGE 1: GOLANG DEVELOPMENT BASE
-# ============================================================================
-FROM golang:${GO_VERSION}-alpine AS go-dev-base
+# =============================================================================
+# STAGE: GO Development Environment
+# =============================================================================
+FROM golang:${GO_VERSION}-alpine AS go-dev
 
 # Install development and debugging tools
 RUN apk add --no-cache \
@@ -23,51 +33,27 @@ RUN apk add --no-cache \
     gcc \
     musl-dev \
     delve \
+    jq \
+    vim \
     && rm -rf /var/cache/apk/*
 
 # Install Go development tools
 RUN go install github.com/cosmtrek/air@latest && \
     go install github.com/go-delve/delve/cmd/dlv@latest && \
     go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
-    go install github.com/onsi/ginkgo/v2/ginkgo@latest
+    go install github.com/onsi/ginkgo/v2/ginkgo@latest && \
+    go install golang.org/x/tools/gopls@latest && \
+    go install github.com/ramya-rao-a/go-outline@latest && \
+    go install github.com/uudashr/gopkgs/v2/cmd/gopkgs@latest
 
-# Create development user (can use root for development convenience)
 WORKDIR /workspace
 
 # Copy dependency files
 COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 
-# ============================================================================
-# STAGE 2: GOLANG DEVELOPMENT RUNTIME
-# ============================================================================
-FROM go-dev-base AS go-dev-runtime
-
-ARG BUILD_DATE
-ARG VCS_REF
-ARG VERSION=dev
-ARG SERVICE_NAME
-
 # Copy source code
 COPY . .
-
-# Development environment variables
-ENV GO_ENV=development \
-    CGO_ENABLED=0 \
-    GOOS=linux \
-    LOG_LEVEL=debug \
-    METRICS_ENABLED=true \
-    DEBUG_ENABLED=true \
-    HOT_RELOAD=true
-
-# Development labels
-LABEL environment="development" \
-      debug.enabled="true" \
-      hot-reload="supported" \
-      org.opencontainers.image.title="Nephoran ${SERVICE_NAME} (Development)" \
-      org.opencontainers.image.description="Development build with debugging tools" \
-      org.opencontainers.image.version="${VERSION}" \
-      build.type="development"
 
 # Create air configuration for hot reload
 RUN cat > .air.toml << 'EOF'
@@ -75,21 +61,19 @@ root = "."
 tmp_dir = "tmp"
 
 [build]
-  bin = "./tmp/main"
-  cmd = "go build -o ./tmp/main ./cmd/${SERVICE_NAME}/main.go || go build -o ./tmp/main ./main.go"
+  cmd = "go build -gcflags='all=-N -l' -o ./tmp/main {{.BuildArgs}}"
+  bin = "tmp/main"
+  full_bin = "dlv exec ./tmp/main --listen=:40000 --headless=true --api-version=2 --accept-multiclient"
   delay = 1000
-  exclude_dir = ["tmp", "vendor", ".git"]
-  exclude_file = []
-  exclude_regex = []
+  exclude_dir = ["tmp", "vendor", ".git", "scripts", "deployments"]
+  exclude_regex = ["_test.go"]
   exclude_unchanged = false
   follow_symlink = false
-  full_bin = ""
-  include_dir = []
-  include_ext = ["go", "tpl", "tmpl", "html", "yaml", "yml"]
+  include_ext = ["go", "yaml", "yml", "toml"]
   kill_delay = "0s"
   log = "build-errors.log"
   send_interrupt = false
-  stop_on_root = false
+  stop_on_error = true
 
 [color]
   app = ""
@@ -99,27 +83,85 @@ tmp_dir = "tmp"
   watcher = "cyan"
 
 [log]
-  time = false
+  time = true
 
 [misc]
-  clean_on_exit = false
+  clean_on_exit = true
 EOF
 
-# Set proper permissions
-RUN chmod +x .air.toml
+# Development environment variables
+ENV GO_ENV=development \
+    CGO_ENABLED=1 \
+    GOOS=linux \
+    LOG_LEVEL=debug \
+    METRICS_ENABLED=true \
+    DEBUG_ENABLED=true \
+    HOT_RELOAD=true \
+    DELVE_PORT=40000
 
-# Expose common development ports
-EXPOSE 8080 8081 8082 5001 40000
+# Create development script
+RUN cat > /usr/local/bin/dev-entrypoint.sh << 'EOF'
+#!/bin/bash
+set -e
 
-# Default command uses air for hot reload
-CMD ["air", "-c", ".air.toml"]
+SERVICE=${SERVICE:-"llm-processor"}
+echo "Starting development environment for: $SERVICE"
 
-# ============================================================================
-# STAGE 3: PYTHON DEVELOPMENT BASE
-# ============================================================================
-FROM python:3.11-slim AS python-dev-base
+# Set build args based on service
+case "$SERVICE" in
+    "llm-processor")
+        export BUILD_ARGS="./cmd/llm-processor/main.go"
+        export PORT=8080
+        ;;
+    "nephio-bridge")
+        export BUILD_ARGS="./cmd/nephio-bridge/main.go"
+        export PORT=8081
+        ;;
+    "oran-adaptor")
+        export BUILD_ARGS="./cmd/oran-adaptor/main.go"
+        export PORT=8082
+        ;;
+    "manager"|"controller")
+        export BUILD_ARGS="./main.go"
+        export PORT=8080
+        ;;
+    *)
+        echo "Unknown service: $SERVICE"
+        exit 1
+        ;;
+esac
 
-# Install development tools
+# Update air config with correct build args
+sed -i "s|{{.BuildArgs}}|$BUILD_ARGS|g" .air.toml
+
+echo "Port: $PORT"
+echo "Debug port: $DELVE_PORT"
+echo "Hot reload: enabled"
+echo ""
+
+# Start with air for hot reload or dlv for debugging
+if [ "$DEBUG_MODE" = "true" ]; then
+    echo "Starting in debug mode..."
+    dlv debug $BUILD_ARGS --listen=:$DELVE_PORT --headless=true --api-version=2 --accept-multiclient
+else
+    echo "Starting with hot reload..."
+    air -c .air.toml
+fi
+EOF
+
+RUN chmod +x /usr/local/bin/dev-entrypoint.sh
+
+# Expose service and debug ports
+EXPOSE 8080 8081 8082 40000 5678
+
+ENTRYPOINT ["/usr/local/bin/dev-entrypoint.sh"]
+
+# =============================================================================
+# STAGE: Python Development Environment
+# =============================================================================
+FROM python:${PYTHON_VERSION}-slim AS python-dev
+
+# Install system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     curl \
@@ -128,6 +170,8 @@ RUN apt-get update && \
     gcc \
     python3-dev \
     build-essential \
+    vim \
+    jq \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -136,22 +180,16 @@ RUN pip install --no-cache-dir \
     debugpy \
     pytest \
     pytest-cov \
+    pytest-asyncio \
     black \
     flake8 \
     mypy \
     watchdog \
-    flask-cors
+    flask-cors \
+    ipython \
+    ipdb
 
 WORKDIR /app
-
-# ============================================================================
-# STAGE 4: PYTHON DEVELOPMENT RUNTIME
-# ============================================================================
-FROM python-dev-base AS python-dev-runtime
-
-ARG BUILD_DATE
-ARG VCS_REF
-ARG VERSION=dev
 
 # Copy requirements and install
 COPY requirements-rag.txt ./
@@ -167,50 +205,48 @@ ENV FLASK_ENV=development \
     LOG_LEVEL=debug \
     DEBUG_ENABLED=true \
     HOT_RELOAD=true \
-    PORT=5001
-
-# Development labels
-LABEL environment="development" \
-      debug.enabled="true" \
-      hot-reload="supported" \
-      org.opencontainers.image.title="Nephoran RAG API (Development)" \
-      org.opencontainers.image.description="Development build with debugging tools" \
-      build.type="development"
+    PORT=5001 \
+    DEBUGPY_PORT=5678
 
 # Create development startup script
-RUN cat > start-dev.sh << 'EOF'
+RUN cat > /usr/local/bin/dev-entrypoint.sh << 'EOF'
 #!/bin/bash
 set -e
 
-echo "Starting development server with hot reload..."
-echo "Python path: $PYTHONPATH"
+echo "Starting Python development environment"
+echo "Port: $PORT"
+echo "Debug port: $DEBUGPY_PORT"
 echo "Flask environment: $FLASK_ENV"
-echo "Debug enabled: $FLASK_DEBUG"
 echo ""
 
-# Start Flask with hot reload
-if [ "$DEBUG_ENABLED" = "true" ]; then
-    echo "Starting with debugpy support on port 5678"
-    python -m debugpy --listen 0.0.0.0:5678 --wait-for-client api.py
+# Install any new requirements
+if [ -f "/app/requirements-rag.txt" ]; then
+    pip install -q -r /app/requirements-rag.txt
+fi
+
+# Start with debugpy or watchdog based on mode
+if [ "$DEBUG_MODE" = "true" ]; then
+    echo "Starting with debugpy..."
+    python -m debugpy --listen 0.0.0.0:$DEBUGPY_PORT --wait-for-client api.py
 else
-    echo "Starting without debugger"
-    python api.py
+    echo "Starting with hot reload..."
+    watchmedo auto-restart --recursive --patterns="*.py" --ignore-patterns="*test*.py" python api.py
 fi
 EOF
 
-RUN chmod +x start-dev.sh
+RUN chmod +x /usr/local/bin/dev-entrypoint.sh
 
 # Expose application and debug ports
 EXPOSE 5001 5678
 
-CMD ["./start-dev.sh"]
+ENTRYPOINT ["/usr/local/bin/dev-entrypoint.sh"]
 
-# ============================================================================
-# STAGE 5: DEVELOPMENT UTILITIES
-# ============================================================================
-FROM alpine:3.20 AS dev-utilities
+# =============================================================================
+# STAGE: Development Tools Container
+# =============================================================================
+FROM alpine:${ALPINE_VERSION} AS dev-tools
 
-# Install development and testing utilities
+# Install comprehensive development utilities
 RUN apk add --no-cache \
     bash \
     curl \
@@ -218,52 +254,54 @@ RUN apk add --no-cache \
     git \
     jq \
     yq \
-    docker \
+    docker-cli \
     kubectl \
     helm \
+    make \
+    vim \
+    tmux \
+    htop \
+    tcpdump \
+    netcat-openbsd \
     && rm -rf /var/cache/apk/*
 
-# Install testing tools
-RUN curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
-    -o /usr/local/bin/kubectl && \
-    chmod +x /usr/local/bin/kubectl
+# Install k9s for Kubernetes management
+RUN wget -q https://github.com/derailed/k9s/releases/latest/download/k9s_Linux_amd64.tar.gz && \
+    tar -xzf k9s_Linux_amd64.tar.gz && \
+    mv k9s /usr/local/bin/ && \
+    rm k9s_Linux_amd64.tar.gz
 
-RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-
-# Development scripts
-COPY --chmod=755 <<'DEV_SCRIPT' /usr/local/bin/dev-tools.sh
+# Create utility script
+RUN cat > /usr/local/bin/dev-utils << 'EOF'
 #!/bin/bash
-set -e
+echo "Nephoran Development Tools Container"
+echo "====================================="
+echo "Available tools:"
+echo "  kubectl, helm, docker   - Container orchestration"
+echo "  k9s                     - Kubernetes TUI"
+echo "  curl, wget, jq, yq      - Data manipulation"
+echo "  vim, tmux               - Editors and terminal"
+echo "  htop, tcpdump, netcat   - System monitoring"
+echo ""
+echo "Run 'bash' to start interactive shell"
+EOF
 
-echo "Nephoran Intent Operator - Development Tools"
-echo "============================================"
-echo ""
-echo "Available commands:"
-echo "  kubectl     - Kubernetes CLI"
-echo "  helm        - Helm package manager"
-echo "  curl        - HTTP client"
-echo "  jq          - JSON processor"
-echo "  yq          - YAML processor"
-echo ""
-echo "Development environment ready!"
-DEV_SCRIPT
+RUN chmod +x /usr/local/bin/dev-utils
 
 WORKDIR /workspace
-ENTRYPOINT ["/usr/local/bin/dev-tools.sh"]
+
+ENTRYPOINT ["/usr/local/bin/dev-utils"]
 CMD ["bash"]
 
-# ============================================================================
-# FINAL STAGE SELECTION FOR DEVELOPMENT
-# ============================================================================
-FROM ${SERVICE_TYPE}-dev-runtime AS final
+# =============================================================================
+# STAGE: Final Stage Selection
+# =============================================================================
+ARG SERVICE_TYPE=go
+FROM ${SERVICE_TYPE}-dev AS final
 
-# Development-specific health check (more lenient)
-HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=5 \
-    CMD curl -f http://localhost:8080/health || curl -f http://localhost:5001/health || exit 1
-
-# Development ports (all exposed for convenience)
-EXPOSE 8080 8081 8082 5001 5678 40000
-
-# Development entry point allows for different startup modes
-ENTRYPOINT ["/bin/sh", "-c"]
-CMD ["exec \"$@\"", "bash"]
+# Common development labels
+LABEL environment="development" \
+      debug.enabled="true" \
+      hot-reload="supported" \
+      org.opencontainers.image.title="Nephoran Development Container" \
+      org.opencontainers.image.description="Development build with debugging tools"

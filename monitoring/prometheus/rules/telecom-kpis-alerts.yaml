@@ -1,0 +1,426 @@
+# Nephoran Intent Operator - Telecom KPIs and O-RAN Compliance Alerts
+# NWDAF Integration and Network Function Performance Monitoring
+
+groups:
+  - name: oran_interface_monitoring
+    interval: 30s
+    rules:
+      # A1 Interface - Policy Management and Near-RT RIC Integration
+      - alert: A1InterfacePolicyViolation
+        expr: oran_a1_policy_violations_total > 0
+        labels:
+          severity: critical
+          component: oran-a1
+          team: telecom
+          o_ran_interface: "A1"
+        annotations:
+          summary: "O-RAN A1 interface policy violation"
+          description: "{{ $value }} policy violations detected in A1 interface"
+          runbook_url: "https://runbooks.nephoran.io/a1-policy-violation"
+          o_ran_specification: "O-RAN.WG2.A1AP-v03.00"
+          business_impact: "Policy enforcement failure may affect QoS and network optimization"
+          escalation_policy: "immediate"
+
+      - alert: A1InterfaceHighLatency
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(oran_a1_request_duration_seconds_bucket[5m])) by (le, operation)
+          ) > 0.5
+        for: 3m
+        labels:
+          severity: warning
+          component: oran-a1
+          team: telecom
+          o_ran_interface: "A1"
+        annotations:
+          summary: "High A1 interface latency"
+          description: "P95 latency for {{ $labels.operation }} is {{ $value }}s (threshold: 0.5s)"
+          runbook_url: "https://runbooks.nephoran.io/a1-latency"
+          o_ran_specification: "O-RAN.WG2.A1AP-v03.00"
+          sla_target: "P95 < 500ms"
+
+      - alert: A1InterfaceConnectionFailure
+        expr: oran_a1_connection_failures_total > 0
+        labels:
+          severity: critical
+          component: oran-a1
+          team: telecom
+          o_ran_interface: "A1"
+        annotations:
+          summary: "A1 interface connection failure"
+          description: "{{ $value }} connection failures to Near-RT RIC"
+          runbook_url: "https://runbooks.nephoran.io/a1-connection-failure"
+          business_impact: "Loss of connection to Near-RT RIC disrupts intelligent network control"
+          escalation_policy: "immediate"
+
+      # O1 Interface - FCAPS Management
+      - alert: O1InterfaceFaultAlarmHigh
+        expr: oran_o1_fault_alarms_active > 50
+        for: 5m
+        labels:
+          severity: warning
+          component: oran-o1
+          team: telecom
+          o_ran_interface: "O1"
+        annotations:
+          summary: "High number of active fault alarms"
+          description: "{{ $value }} active fault alarms (threshold: 50)"
+          runbook_url: "https://runbooks.nephoran.io/o1-fault-alarms"
+          o_ran_specification: "O-RAN.WG10.O1-Interface.0-v07.00"
+          business_impact: "High fault count indicates network instability"
+
+      - alert: O1InterfacePerformanceThresholdExceeded
+        expr: oran_o1_performance_threshold_violations_total > 0
+        labels:
+          severity: warning
+          component: oran-o1
+          team: telecom
+          o_ran_interface: "O1"
+        annotations:
+          summary: "O1 performance threshold exceeded"
+          description: "{{ $value }} performance thresholds exceeded"
+          runbook_url: "https://runbooks.nephoran.io/o1-performance"
+          o_ran_specification: "O-RAN.WG10.O1-Interface.0-v07.00"
+          business_impact: "Performance degradation in network functions"
+
+      - alert: O1InterfaceConfigurationDrift
+        expr: oran_o1_configuration_drift_detected > 0
+        labels:
+          severity: critical
+          component: oran-o1
+          team: telecom
+          o_ran_interface: "O1"
+        annotations:
+          summary: "O1 configuration drift detected"
+          description: "Configuration drift detected in {{ $value }} network functions"
+          runbook_url: "https://runbooks.nephoran.io/o1-config-drift"
+          business_impact: "Configuration inconsistency may cause service disruption"
+          escalation_policy: "immediate"
+
+      # E2 Interface - Real-time RAN Intelligence
+      - alert: E2InterfaceSubscriptionFailure
+        expr: oran_e2_subscription_failures_total > 0
+        labels:
+          severity: critical
+          component: oran-e2
+          team: telecom
+          o_ran_interface: "E2"
+        annotations:
+          summary: "E2 interface subscription failure"
+          description: "{{ $value }} E2 subscription failures detected"
+          runbook_url: "https://runbooks.nephoran.io/e2-subscription-failure"
+          o_ran_specification: "O-RAN.WG3.E2AP-v03.00"
+          business_impact: "Loss of real-time RAN intelligence and control capabilities"
+          escalation_policy: "immediate"
+
+      - alert: E2InterfaceIndicationLoss
+        expr: |
+          rate(oran_e2_indications_received_total[5m]) == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: oran-e2
+          team: telecom
+          o_ran_interface: "E2"
+        annotations:
+          summary: "Loss of E2 indications from E2 Node"
+          description: "No E2 indications received for 2 minutes"
+          runbook_url: "https://runbooks.nephoran.io/e2-indication-loss"
+          business_impact: "Loss of real-time network monitoring and analytics"
+          escalation_policy: "immediate"
+
+      - alert: E2InterfaceControlMessageFailure
+        expr: oran_e2_control_message_failures_total > 0
+        labels:
+          severity: warning
+          component: oran-e2
+          team: telecom
+          o_ran_interface: "E2"
+        annotations:
+          summary: "E2 control message failures"
+          description: "{{ $value }} E2 control message failures"
+          runbook_url: "https://runbooks.nephoran.io/e2-control-failure"
+          o_ran_specification: "O-RAN.WG3.E2AP-v03.00"
+          business_impact: "RAN control operations may be impacted"
+
+  - name: nwdaf_analytics_monitoring
+    interval: 60s
+    rules:
+      # NWDAF Network Data Analytics Function Monitoring
+      - alert: NWDAFDataIngestionFailure
+        expr: nwdaf_data_ingestion_failures_total > 0
+        labels:
+          severity: critical
+          component: nwdaf
+          team: analytics
+          nf_type: "NWDAF"
+        annotations:
+          summary: "NWDAF data ingestion failure"
+          description: "{{ $value }} data ingestion failures in NWDAF"
+          runbook_url: "https://runbooks.nephoran.io/nwdaf-ingestion-failure"
+          business_impact: "Analytics accuracy compromised - ML models may degrade"
+          escalation_policy: "immediate"
+          specification: "3GPP TS 23.288"
+
+      - alert: NWDAFAnalyticsLatencyHigh
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(nwdaf_analytics_processing_duration_seconds_bucket[5m])) by (le, analytics_type)
+          ) > 60
+        for: 5m
+        labels:
+          severity: warning
+          component: nwdaf
+          team: analytics
+          nf_type: "NWDAF"
+        annotations:
+          summary: "High NWDAF analytics processing latency"
+          description: "P95 latency for {{ $labels.analytics_type }} is {{ $value }}s (threshold: 60s)"
+          runbook_url: "https://runbooks.nephoran.io/nwdaf-latency"
+          business_impact: "Delayed analytics may impact real-time network optimization"
+          specification: "3GPP TS 23.288"
+
+      - alert: NWDAFMLModelAccuracyLow
+        expr: nwdaf_ml_model_accuracy_ratio < 0.85
+        for: 30m
+        labels:
+          severity: warning
+          component: nwdaf
+          team: analytics
+          nf_type: "NWDAF"
+        annotations:
+          summary: "NWDAF ML model accuracy below threshold"
+          description: "Model accuracy is {{ $value }} (threshold: 0.85)"
+          runbook_url: "https://runbooks.nephoran.io/nwdaf-model-accuracy"
+          business_impact: "Reduced prediction accuracy may affect network optimization"
+          specification: "3GPP TS 23.288"
+
+      - alert: NWDAFPredictionServiceUnavailable
+        expr: up{job="nwdaf-prediction-service"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: nwdaf
+          team: analytics
+          nf_type: "NWDAF"
+        annotations:
+          summary: "NWDAF prediction service unavailable"
+          description: "NWDAF prediction service has been down for {{ $value }} minutes"
+          runbook_url: "https://runbooks.nephoran.io/nwdaf-service-down"
+          business_impact: "No predictive analytics available for network optimization"
+          escalation_policy: "immediate"
+
+  - name: network_function_kpis
+    interval: 30s
+    rules:
+      # 5G Core Network Function Monitoring
+      - alert: AMFRegistrationFailureHigh
+        expr: |
+          rate(nf_amf_registration_failures_total[5m]) / 
+          rate(nf_amf_registration_attempts_total[5m]) > 0.02
+        for: 3m
+        labels:
+          severity: warning
+          component: 5g-core
+          team: telecom
+          nf_type: "AMF"
+        annotations:
+          summary: "High AMF registration failure rate"
+          description: "Registration failure rate is {{ $value | humanizePercentage }} (threshold: 2%)"
+          runbook_url: "https://runbooks.nephoran.io/amf-registration-failure"
+          business_impact: "UE registration issues affecting service availability"
+          specification: "3GPP TS 23.501"
+
+      - alert: SMFPDUSessionFailureHigh
+        expr: |
+          rate(nf_smf_pdu_session_failures_total[5m]) / 
+          rate(nf_smf_pdu_session_requests_total[5m]) > 0.01
+        for: 3m
+        labels:
+          severity: warning
+          component: 5g-core
+          team: telecom
+          nf_type: "SMF"
+        annotations:
+          summary: "High SMF PDU session failure rate"
+          description: "PDU session failure rate is {{ $value | humanizePercentage }} (threshold: 1%)"
+          runbook_url: "https://runbooks.nephoran.io/smf-pdu-failure"
+          business_impact: "Data connectivity issues for end users"
+          specification: "3GPP TS 23.501"
+
+      - alert: UPFThroughputLow
+        expr: |
+          rate(nf_upf_downlink_bytes_total[5m]) < 10000000
+        for: 10m
+        labels:
+          severity: warning
+          component: 5g-core
+          team: telecom
+          nf_type: "UPF"
+        annotations:
+          summary: "Low UPF downlink throughput"
+          description: "Downlink throughput is {{ $value | humanizeBytes }}/s (threshold: 10MB/s)"
+          runbook_url: "https://runbooks.nephoran.io/upf-throughput"
+          business_impact: "Reduced data speeds affecting user experience"
+          specification: "3GPP TS 23.501"
+
+      - alert: NSSSFSliceSelectionFailure
+        expr: nf_nssf_slice_selection_failures_total > 0
+        labels:
+          severity: critical
+          component: 5g-core
+          team: telecom
+          nf_type: "NSSF"
+        annotations:
+          summary: "NSSF slice selection failure"
+          description: "{{ $value }} network slice selection failures"
+          runbook_url: "https://runbooks.nephoran.io/nssf-slice-failure"
+          business_impact: "Service differentiation compromised - network slicing not working"
+          escalation_policy: "immediate"
+          specification: "3GPP TS 23.501"
+
+  - name: ran_performance_monitoring
+    interval: 30s
+    rules:
+      # RAN Performance Indicators
+      - alert: RANPRBUtilizationHigh
+        expr: ran_prb_utilization_percent > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: ran
+          team: telecom
+        annotations:
+          summary: "High RAN PRB utilization"
+          description: "PRB utilization is {{ $value }}% on cell {{ $labels.cell_id }} (threshold: 90%)"
+          runbook_url: "https://runbooks.nephoran.io/ran-prb-utilization"
+          business_impact: "Radio resource congestion may cause call drops and reduced throughput"
+
+      - alert: RANHandoverFailureHigh
+        expr: |
+          rate(ran_handover_failures_total[5m]) / 
+          rate(ran_handover_attempts_total[5m]) > 0.02
+        for: 5m
+        labels:
+          severity: warning
+          component: ran
+          team: telecom
+        annotations:
+          summary: "High RAN handover failure rate"
+          description: "Handover failure rate is {{ $value | humanizePercentage }} (threshold: 2%)"
+          runbook_url: "https://runbooks.nephoran.io/ran-handover-failure"
+          business_impact: "Call drops and service interruption during mobility"
+
+      - alert: RANLatencyHigh
+        expr: ran_user_plane_latency_ms > 20
+        for: 5m
+        labels:
+          severity: warning
+          component: ran
+          team: telecom
+        annotations:
+          summary: "High RAN user plane latency"
+          description: "User plane latency is {{ $value }}ms (threshold: 20ms)"
+          runbook_url: "https://runbooks.nephoran.io/ran-latency"
+          business_impact: "Degraded user experience for low-latency applications"
+
+  - name: network_slice_monitoring
+    interval: 60s
+    rules:
+      # Network Slicing KPIs
+      - alert: NetworkSliceSLAViolation
+        expr: |
+          (network_slice_throughput_mbps / network_slice_sla_throughput_mbps) < 0.95
+        for: 5m
+        labels:
+          severity: critical
+          component: network-slicing
+          team: telecom
+          sla_violation: "true"
+        annotations:
+          summary: "Network slice SLA violation"
+          description: "Slice {{ $labels.slice_id }} throughput is {{ $value | humanizePercentage }} of SLA"
+          runbook_url: "https://runbooks.nephoran.io/slice-sla-violation"
+          business_impact: "Customer SLA breach - potential penalties and churn risk"
+          escalation_policy: "immediate"
+
+      - alert: NetworkSliceIsolationViolation
+        expr: network_slice_isolation_violations_total > 0
+        labels:
+          severity: critical
+          component: network-slicing
+          team: security
+          security_incident: "true"
+        annotations:
+          summary: "Network slice isolation violation"
+          description: "{{ $value }} isolation violations detected between slices"
+          runbook_url: "https://runbooks.nephoran.io/slice-isolation-violation"
+          business_impact: "Security breach - tenant data may be compromised"
+          escalation_policy: "immediate"
+
+      - alert: NetworkSliceResourceExhaustion
+        expr: |
+          (network_slice_resource_usage / network_slice_resource_limit) > 0.95
+        for: 10m
+        labels:
+          severity: warning
+          component: network-slicing
+          team: telecom
+        annotations:
+          summary: "Network slice resource exhaustion"
+          description: "Slice {{ $labels.slice_id }} using {{ $value | humanizePercentage }} of allocated resources"
+          runbook_url: "https://runbooks.nephoran.io/slice-resource-exhaustion"
+          business_impact: "Performance degradation and potential SLA violations"
+
+  - name: telecom_recording_rules
+    interval: 30s
+    rules:
+      # Recording rules for telecom KPIs
+      - record: oran:a1_policy_success_rate_5m
+        expr: |
+          rate(oran_a1_policy_requests_total{status="success"}[5m]) /
+          rate(oran_a1_policy_requests_total[5m])
+
+      - record: oran:o1_fault_alarm_rate_1h
+        expr: |
+          rate(oran_o1_fault_alarms_total[1h])
+
+      - record: oran:e2_indication_rate_5m
+        expr: |
+          rate(oran_e2_indications_received_total[5m])
+
+      - record: nwdaf:analytics_processing_rate_5m
+        expr: |
+          rate(nwdaf_analytics_requests_total[5m])
+
+      - record: nf:amf_registration_success_rate_5m
+        expr: |
+          rate(nf_amf_registrations_total{status="success"}[5m]) /
+          rate(nf_amf_registrations_total[5m])
+
+      - record: nf:smf_pdu_session_success_rate_5m
+        expr: |
+          rate(nf_smf_pdu_sessions_total{status="success"}[5m]) /
+          rate(nf_smf_pdu_sessions_total[5m])
+
+      - record: ran:handover_success_rate_5m
+        expr: |
+          rate(ran_handovers_total{status="success"}[5m]) /
+          rate(ran_handovers_total[5m])
+
+      - record: slice:sla_compliance_ratio
+        expr: |
+          (network_slice_throughput_mbps / network_slice_sla_throughput_mbps)
+
+      # Availability calculations
+      - record: nephoran:system_availability_7d
+        expr: |
+          avg_over_time(up{job="nephoran-intent-controller"}[7d]) * 100
+
+      - record: oran:interface_availability_24h
+        expr: |
+          avg_over_time(up{job=~"oran-.*"}[24h]) * 100
+
+      - record: nwdaf:service_availability_24h
+        expr: |
+          avg_over_time(up{job="nwdaf-prediction-service"}[24h]) * 100

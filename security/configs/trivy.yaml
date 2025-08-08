@@ -1,0 +1,174 @@
+# Trivy configuration for container and dependency scanning
+scan:
+  # Security check levels
+  security-checks:
+    - vuln
+    - config
+    - secret
+    - license
+
+# Vulnerability settings
+vulnerability:
+  # Severity levels to detect
+  severity:
+    - CRITICAL
+    - HIGH
+    - MEDIUM
+  
+  # Vulnerability types
+  type:
+    - os
+    - library
+  
+  # Ignore unfixed vulnerabilities
+  ignore-unfixed: false
+
+# Secret scanning configuration
+secret:
+  # Enable secret scanning
+  enabled: true
+  
+  # Custom secret rules path
+  config: ./security/configs/trivy-secret-rules.yaml
+
+# License scanning configuration
+license:
+  # Enable license scanning
+  enabled: true
+  
+  # Full license scan
+  full: true
+  
+  # Prohibited licenses
+  prohibited:
+    - GPL-2.0
+    - GPL-3.0
+    - AGPL-3.0
+    - LGPL-2.1
+    - LGPL-3.0
+    - MPL-2.0
+    - OSL-3.0
+    - CDDL-1.0
+    - EPL-1.0
+    - EPL-2.0
+  
+  # Notice required licenses
+  notice:
+    - Apache-2.0
+    - BSD-2-Clause
+    - BSD-3-Clause
+    - MIT
+    - ISC
+
+# Misconfiguration scanning
+misconfiguration:
+  # Enable misconfiguration scanning
+  enabled: true
+  
+  # Scan embedded policies
+  scan-embedded-policies: true
+  
+  # Policy namespaces
+  policy-namespaces:
+    - kubernetes
+    - docker
+    - rbac
+
+# Kubernetes specific settings
+kubernetes:
+  # Cluster context
+  cluster-context: ""
+  
+  # Namespaces to scan
+  namespaces:
+    - nephoran-system
+    - default
+  
+  # Include all namespaces
+  all-namespaces: false
+
+# Container image settings
+image:
+  # Remove image after scanning
+  removed-after-scan: true
+  
+  # Input file for image tar
+  input: ""
+  
+  # Platform for multi-arch images
+  platform: ""
+
+# Cache settings
+cache:
+  # Cache backend
+  backend: fs
+  
+  # Cache TTL
+  ttl: 24h
+  
+  # Clear cache on start
+  clear: false
+
+# Database settings
+db:
+  # Skip database update
+  skip-update: false
+  
+  # Download database only
+  download-only: false
+  
+  # Light database
+  light: false
+  
+  # Database repository
+  repository: ghcr.io/aquasecurity/trivy-db
+
+# Report settings
+report:
+  # Output format
+  format: json
+  
+  # Report template
+  template: ""
+  
+  # Dependency tree
+  dependency-tree: true
+  
+  # List all packages
+  list-all-pkgs: false
+  
+  # Exit code
+  exit-code: 1
+  
+  # Exit on EOL
+  exit-on-eol: true
+
+# Ignore policies
+ignore:
+  # Ignore file path
+  file: .trivyignore
+  
+  # Policy file
+  policy: ""
+
+# Timeout settings
+timeout: 10m
+
+# Registry settings
+registry:
+  # Insecure registry
+  insecure: false
+  
+  # Username (use environment variable)
+  username: ""
+  
+  # Password (use environment variable)
+  password: ""
+
+# SBOM settings
+sbom:
+  # SBOM format
+  format: cyclonedx
+  
+  # SBOM schema version
+  schema-version: 1.5

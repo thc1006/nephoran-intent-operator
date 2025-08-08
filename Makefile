@@ -36,6 +36,19 @@ VALIDATION_REPORTS_DIR = test-results
 VALIDATION_TARGET_SCORE = 90
 VALIDATION_CONCURRENCY = 50
 
+# Code Quality Gate configuration
+QUALITY_REPORTS_DIR = .quality-reports
+COVERAGE_THRESHOLD = 90
+QUALITY_THRESHOLD = 8.0
+PERFORMANCE_THRESHOLD = 15.0
+DEBT_THRESHOLD = 0.3
+
+# Regression Testing configuration
+REGRESSION_REPORTS_DIR = regression-artifacts
+REGRESSION_BASELINE_ID ?= 
+REGRESSION_FAIL_ON_DETECTION ?= true
+REGRESSION_ALERT_WEBHOOK ?=
+
 # Build flags
 LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -s -w"
 
@@ -158,9 +171,11 @@ vet: ## Run go vet
 lint: ## Run golangci-lint
 	@echo "Running golangci-lint..."
 	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run; \
+		golangci-lint run --config .golangci.yml; \
 	else \
-		echo "golangci-lint not found, skipping..."; \
+		echo "Installing golangci-lint..."; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
+		golangci-lint run --config .golangci.yml; \
 	fi
 
 ##@ Testing
@@ -189,8 +204,17 @@ test-excellence: ## Run excellence validation test suite
 	mkdir -p $(REPORTS_DIR)
 	go test ./tests/excellence/... -v -timeout=30m --ginkgo.v
 
+.PHONY: test-regression
+test-regression: ## Run regression testing suite
+	@echo "Running regression testing suite..."
+	mkdir -p $(REGRESSION_REPORTS_DIR)
+	REGRESSION_BASELINE_ID=$(REGRESSION_BASELINE_ID) \
+	REGRESSION_FAIL_ON_DETECTION=$(REGRESSION_FAIL_ON_DETECTION) \
+	REGRESSION_ALERT_WEBHOOK=$(REGRESSION_ALERT_WEBHOOK) \
+	go test ./tests/ -run TestRegressionSuite -v -timeout=60m
+
 .PHONY: test-all
-test-all: test test-integration test-e2e test-excellence ## Run all test suites
+test-all: test test-integration test-e2e test-excellence test-regression ## Run all test suites
 
 .PHONY: coverage
 coverage: test ## Generate and view test coverage report
@@ -659,22 +683,202 @@ metrics: ## Show metrics (if available)
 		echo "Metrics service not available"; \
 	fi
 
+##@ Regression Testing
+
+.PHONY: regression-setup
+regression-setup: ## Setup regression testing environment
+	@echo "Setting up regression testing environment..."
+	mkdir -p $(REGRESSION_REPORTS_DIR)
+	mkdir -p $(REGRESSION_REPORTS_DIR)/baselines
+	mkdir -p $(REGRESSION_REPORTS_DIR)/reports
+	go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+.PHONY: regression-baseline
+regression-baseline: ## Establish new regression baseline
+	@echo "Establishing new regression baseline..."
+	mkdir -p $(REGRESSION_REPORTS_DIR)/baselines
+	REGRESSION_MODE=baseline \
+	go test ./tests/ -run TestRegressionSuite -v -timeout=60m
+	@echo "New baseline created in $(REGRESSION_REPORTS_DIR)/baselines/"
+
+.PHONY: regression-test
+regression-test: ## Run comprehensive regression testing
+	@echo "Running comprehensive regression testing..."
+	@echo "Baseline ID: $(REGRESSION_BASELINE_ID)"
+	@echo "Fail on detection: $(REGRESSION_FAIL_ON_DETECTION)"
+	mkdir -p $(REGRESSION_REPORTS_DIR)
+	REGRESSION_BASELINE_ID=$(REGRESSION_BASELINE_ID) \
+	REGRESSION_FAIL_ON_DETECTION=$(REGRESSION_FAIL_ON_DETECTION) \
+	REGRESSION_ALERT_WEBHOOK=$(REGRESSION_ALERT_WEBHOOK) \
+	TEST_ARTIFACTS_PATH=$(REGRESSION_REPORTS_DIR) \
+	go test ./tests/ -run TestRegressionSuite -v -timeout=60m
+
+.PHONY: regression-dashboard
+regression-dashboard: ## Generate regression dashboard and reports
+	@echo "Generating regression dashboard..."
+	mkdir -p $(REGRESSION_REPORTS_DIR)/dashboard
+	go run ./tests/scripts/generate-regression-dashboard.go \
+		--baselines-path=$(REGRESSION_REPORTS_DIR)/baselines \
+		--output-path=$(REGRESSION_REPORTS_DIR)/dashboard
+	@echo "Dashboard generated: $(REGRESSION_REPORTS_DIR)/dashboard/regression-dashboard.html"
+
+.PHONY: regression-trends
+regression-trends: ## Generate regression trend analysis
+	@echo "Generating regression trend analysis..."
+	mkdir -p $(REGRESSION_REPORTS_DIR)/trends
+	go run ./tests/scripts/analyze-regression-trends.go \
+		--baselines-path=$(REGRESSION_REPORTS_DIR)/baselines \
+		--output-path=$(REGRESSION_REPORTS_DIR)/trends \
+		--days=30
+	@echo "Trend analysis completed: $(REGRESSION_REPORTS_DIR)/trends/"
+
+.PHONY: regression-alert-test
+regression-alert-test: ## Test regression alert system
+	@echo "Testing regression alert system..."
+	go run ./tests/scripts/test-alert-system.go \
+		--webhook-url=$(REGRESSION_ALERT_WEBHOOK) \
+		--test-mode=true
+
+.PHONY: regression-cleanup
+regression-cleanup: ## Clean up regression test artifacts
+	@echo "Cleaning up regression test artifacts..."
+	rm -rf $(REGRESSION_REPORTS_DIR)/
+	@echo "Regression artifacts cleaned up"
+
+.PHONY: regression-status
+regression-status: ## Show regression testing status
+	@echo "Regression Testing Status"
+	@echo "========================="
+	@echo "Reports directory: $(REGRESSION_REPORTS_DIR)"
+	@if [ -d "$(REGRESSION_REPORTS_DIR)/baselines" ]; then \
+		echo "Baseline count: $$(ls -1 $(REGRESSION_REPORTS_DIR)/baselines/baseline-*.json 2>/dev/null | wc -l)"; \
+		if [ -n "$$(ls -1 $(REGRESSION_REPORTS_DIR)/baselines/baseline-*.json 2>/dev/null | head -1)" ]; then \
+			latest=$$(ls -1t $(REGRESSION_REPORTS_DIR)/baselines/baseline-*.json 2>/dev/null | head -1); \
+			echo "Latest baseline: $$(basename $$latest)"; \
+			echo "Baseline date: $$(stat -c %y $$latest 2>/dev/null || stat -f %Sm $$latest 2>/dev/null || echo 'Unknown')"; \
+		fi; \
+	else \
+		echo "No baselines found. Run 'make regression-baseline' first."; \
+	fi
+	@if [ -d "$(REGRESSION_REPORTS_DIR)/reports" ]; then \
+		echo "Report count: $$(ls -1 $(REGRESSION_REPORTS_DIR)/reports/regression-report-*.json 2>/dev/null | wc -l)"; \
+		if [ -n "$$(ls -1 $(REGRESSION_REPORTS_DIR)/reports/regression-report-*.json 2>/dev/null | head -1)" ]; then \
+			latest=$$(ls -1t $(REGRESSION_REPORTS_DIR)/reports/regression-report-*.json 2>/dev/null | head -1); \
+			echo "Latest report: $$(basename $$latest)"; \
+		fi; \
+	fi
+	@echo "Configuration:"
+	@echo "  Baseline ID: $(REGRESSION_BASELINE_ID)"
+	@echo "  Fail on detection: $(REGRESSION_FAIL_ON_DETECTION)"
+	@echo "  Alert webhook: $(REGRESSION_ALERT_WEBHOOK)"
+
+.PHONY: regression-ci
+regression-ci: ## Run regression testing in CI mode (fail-fast)
+	@echo "Running regression testing in CI mode..."
+	mkdir -p $(REGRESSION_REPORTS_DIR)
+	CI=true \
+	REGRESSION_BASELINE_ID=$(REGRESSION_BASELINE_ID) \
+	REGRESSION_FAIL_ON_DETECTION=true \
+	TEST_ARTIFACTS_PATH=$(REGRESSION_REPORTS_DIR) \
+	go test ./tests/ -run TestRegressionSuite -v -timeout=60m -failfast
+
+.PHONY: regression-full
+regression-full: regression-setup regression-test regression-dashboard regression-trends ## Run complete regression testing workflow
+	@echo "Complete regression testing workflow completed"
+	@echo "View dashboard: file://$(PWD)/$(REGRESSION_REPORTS_DIR)/dashboard/regression-dashboard.html"
+
+##@ Code Quality Gates
+
+.PHONY: quality-gate
+quality-gate: ## Run comprehensive code quality gate
+	@echo "Running comprehensive code quality gate..."
+	@echo "Coverage threshold: $(COVERAGE_THRESHOLD)%"
+	@echo "Quality threshold: $(QUALITY_THRESHOLD)/10.0"
+	@chmod +x scripts/quality-gate.sh
+	./scripts/quality-gate.sh --coverage-threshold=$(COVERAGE_THRESHOLD) --quality-threshold=$(QUALITY_THRESHOLD) --reports-dir=$(QUALITY_REPORTS_DIR)
+
+.PHONY: quality-gate-ci
+quality-gate-ci: ## Run quality gate in CI mode (fail fast)
+	@echo "Running quality gate in CI mode..."
+	@chmod +x scripts/quality-gate.sh
+	./scripts/quality-gate.sh --ci --coverage-threshold=$(COVERAGE_THRESHOLD) --quality-threshold=$(QUALITY_THRESHOLD) --reports-dir=$(QUALITY_REPORTS_DIR)
+
+.PHONY: quality-metrics
+quality-metrics: ## Calculate comprehensive quality metrics
+	@echo "Calculating comprehensive quality metrics..."
+	mkdir -p $(QUALITY_REPORTS_DIR)
+	go run scripts/quality-metrics.go . $(QUALITY_REPORTS_DIR)/quality-metrics.json
+
+.PHONY: performance-regression
+performance-regression: ## Run performance regression tests
+	@echo "Running performance regression tests..."
+	mkdir -p $(QUALITY_REPORTS_DIR)
+	go run scripts/performance-regression-test.go . $(QUALITY_REPORTS_DIR)/baseline.json $(QUALITY_REPORTS_DIR)/performance-results.json
+
+.PHONY: technical-debt
+technical-debt: ## Analyze technical debt
+	@echo "Analyzing technical debt..."
+	mkdir -p $(QUALITY_REPORTS_DIR)
+	go run scripts/technical-debt-monitor.go . "" $(QUALITY_REPORTS_DIR)/technical-debt-report.json
+
+.PHONY: quality-dashboard
+quality-dashboard: quality-gate ## Generate comprehensive quality dashboard
+	@echo "Quality dashboard generated: $(QUALITY_REPORTS_DIR)/quality-dashboard.html"
+	@if [ -f "$(QUALITY_REPORTS_DIR)/quality-dashboard.html" ]; then \
+		echo "🔍 View dashboard: file://$(PWD)/$(QUALITY_REPORTS_DIR)/quality-dashboard.html"; \
+	fi
+
+.PHONY: quality-check
+quality-check: quality-gate ## Quick quality check (alias for quality-gate)
+
+.PHONY: quality-fix
+quality-fix: ## Attempt to automatically fix quality issues
+	@echo "Attempting to fix quality issues..."
+	@chmod +x scripts/quality-gate.sh
+	./scripts/quality-gate.sh --fix --reports-dir=$(QUALITY_REPORTS_DIR)
+
+.PHONY: quality-baseline
+quality-baseline: ## Set performance baseline for regression testing
+	@echo "Setting performance baseline..."
+	mkdir -p $(QUALITY_REPORTS_DIR)
+	go run scripts/performance-regression-test.go . "" $(QUALITY_REPORTS_DIR)/baseline.json
+	@echo "Baseline saved to $(QUALITY_REPORTS_DIR)/baseline.json"
+
+.PHONY: quality-clean
+quality-clean: ## Clean quality reports
+	@echo "Cleaning quality reports..."
+	rm -rf $(QUALITY_REPORTS_DIR)/
+
+.PHONY: quality-summary
+quality-summary: ## Show quality summary
+	@echo "Quality Summary for $(PROJECT_NAME)"
+	@echo "=================================="
+	@if [ -f "$(QUALITY_REPORTS_DIR)/quality-dashboard.json" ]; then \
+		echo "Overall Score: $$(jq -r '.summary.quality_score' $(QUALITY_REPORTS_DIR)/quality-dashboard.json 2>/dev/null || echo 'N/A')/10.0"; \
+		echo "Test Coverage: $$(jq -r '.summary.coverage_percent' $(QUALITY_REPORTS_DIR)/quality-dashboard.json 2>/dev/null || echo 'N/A')%"; \
+		echo "Lint Issues: $$(jq -r '.summary.lint_issues' $(QUALITY_REPORTS_DIR)/quality-dashboard.json 2>/dev/null || echo 'N/A')"; \
+		echo "Security Issues: $$(jq -r '.summary.vulnerabilities' $(QUALITY_REPORTS_DIR)/quality-dashboard.json 2>/dev/null || echo 'N/A')"; \
+		echo "Status: $$(jq -r '.summary.overall_status' $(QUALITY_REPORTS_DIR)/quality-dashboard.json 2>/dev/null || echo 'UNKNOWN')"; \
+	else \
+		echo "No quality data available. Run 'make quality-gate' first."; \
+	fi
+
 ##@ Shortcuts and Aliases
 
 .PHONY: dev
 dev: deps generate manifests fmt test ## Quick development workflow
 
 .PHONY: ci
-ci: deps generate manifests fmt vet test lint ## CI workflow
+ci: deps generate manifests fmt vet test lint quality-gate-ci ## CI workflow with quality gates
 
 .PHONY: validate
 validate: excellence-score ## Alias for excellence-score
 
 .PHONY: dashboard  
-dashboard: excellence-dashboard ## Alias for excellence-dashboard
+dashboard: quality-dashboard ## Alias for quality-dashboard
 
 .PHONY: gate
-gate: excellence-gate ## Alias for excellence-gate
+gate: quality-gate ## Alias for quality-gate
 
 # Default target
 .DEFAULT_GOAL := help

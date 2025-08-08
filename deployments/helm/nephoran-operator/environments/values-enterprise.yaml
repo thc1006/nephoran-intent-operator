@@ -1,0 +1,1082 @@
+# Enterprise deployment values for Nephoran Intent Operator
+# Large-scale enterprise deployment with multi-region support, advanced security, and comprehensive monitoring
+
+# Global configuration for enterprise deployment
+global:
+  # Container registry configuration
+  imageRegistry: "ghcr.io/thc1006/nephoran-intent-operator"
+  imagePullSecrets:
+    - name: ghcr-secret
+    - name: enterprise-registry-secret
+  
+  # Storage classes for different workloads
+  storageClass:
+    database: "enterprise-ssd-ha"
+    vectordb: "high-iops-ssd"
+    monitoring: "standard-ssd"
+    backup: "backup-storage"
+  
+  # Multi-region configuration
+  multiRegion:
+    enabled: true
+    regions:
+      - name: "us-central1"
+        primary: true
+        zones: ["us-central1-a", "us-central1-b", "us-central1-c"]
+      - name: "europe-west1"
+        primary: false
+        zones: ["europe-west1-b", "europe-west1-c", "europe-west1-d"]
+      - name: "asia-southeast1"
+        primary: false
+        zones: ["asia-southeast1-a", "asia-southeast1-b", "asia-southeast1-c"]
+  
+  # Enterprise security configuration
+  security:
+    enforceNetworkPolicies: true
+    podSecurityStandard: "restricted"
+    enableMTLS: true
+    enableOSFV: true  # Open Source Vulnerability scanning
+    enableImageSigning: true
+    enableRuntimeSecurity: true
+    enableComplianceScanning: true
+  
+  # Compliance and governance
+  compliance:
+    soc2: true
+    hipaa: false
+    pci: false
+    iso27001: true
+    gdpr: true
+
+# Enterprise feature flags
+features:
+  rag:
+    enabled: true
+  ml:
+    enabled: true
+  monitoring:
+    enabled: true
+  security:
+    enabled: true
+  multiCluster:
+    enabled: true
+  disasterRecovery:
+    enabled: true
+  chatops:
+    enabled: true
+  audit:
+    enabled: true
+
+# Nephoran Operator Controller - Enterprise Configuration
+nephoranOperator:
+  enabled: true
+  replicaCount: 3  # Higher availability for enterprise
+  
+  image:
+    repository: "nephoran-operator"
+    tag: "v2.1.0-enterprise"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 9443
+    targetPort: 9443
+    webhookPort: 9443
+    # Enterprise load balancer annotations
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+      service.beta.kubernetes.io/aws-load-balancer-backend-protocol: "tcp"
+      service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+  
+  # Advanced leader election for enterprise scale
+  leaderElection:
+    enabled: true
+    leaseDuration: "15s"
+    renewDeadline: "10s"
+    retryPeriod: "2s"
+    resourceLock: "leases"
+    resourceName: "nephoran-operator-leader"
+    resourceNamespace: "nephoran-system"
+  
+  # Enterprise health checks with advanced configuration
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 20
+      timeoutSeconds: 10
+      failureThreshold: 3
+      successThreshold: 1
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8081
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 60  # 10 minutes startup time
+  
+  # Enterprise-grade resource requirements
+  resources:
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+      ephemeral-storage: "4Gi"
+    limits:
+      cpu: "4000m"
+      memory: "8Gi"
+      ephemeral-storage: "16Gi"
+  
+  # Advanced pod security for enterprise
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+    seLinuxOptions:
+      level: "s0:c123,c456"
+  
+  # Enterprise anti-affinity and topology spread
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [nephoran-operator]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [controller]
+          topologyKey: kubernetes.io/hostname
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [nephoran-operator]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [controller]
+          topologyKey: topology.kubernetes.io/zone
+  
+  # Enterprise topology spread constraints
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-operator
+          app.kubernetes.io/component: controller
+    - maxSkew: 2
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: ScheduleAnyway
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-operator
+          app.kubernetes.io/component: controller
+  
+  # Enterprise node selection and taints
+  nodeSelector:
+    nephoran.com/node-type: "control-plane"
+    nephoran.com/instance-type: "compute-optimized"
+    kubernetes.io/arch: "amd64"
+  
+  tolerations:
+    - key: "nephoran.com/control-plane"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+    - key: "nephoran.com/dedicated"
+      operator: "Equal"
+      value: "nephoran-control"
+      effect: "NoSchedule"
+  
+  # Enterprise pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 2
+    maxUnavailable: null
+  
+  # Enterprise environment variables
+  env:
+    - name: ENABLE_LEADER_ELECTION
+      value: "true"
+    - name: METRICS_BIND_ADDR
+      value: ":8080"
+    - name: HEALTH_PROBE_BIND_ADDR
+      value: ":8081"
+    - name: MAX_CONCURRENT_RECONCILES
+      value: "10"
+    - name: SYNC_PERIOD
+      value: "10m"
+    - name: LEASE_DURATION
+      value: "15s"
+    - name: RENEW_DEADLINE
+      value: "10s"
+    - name: RETRY_PERIOD
+      value: "2s"
+    - name: LOG_LEVEL
+      value: "info"
+    - name: LOG_FORMAT
+      value: "json"
+    - name: ENABLE_PROFILING
+      value: "false"
+    - name: ENABLE_DEVELOPMENT_LOGS
+      value: "false"
+
+# LLM Processor - Enterprise Scale Configuration
+llmProcessor:
+  enabled: true
+  replicaCount: 5  # Higher replica count for enterprise load
+  
+  image:
+    repository: "llm-processor"
+    tag: "v2.1.0-enterprise"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "8080"
+      prometheus.io/path: "/metrics"
+  
+  # Enterprise autoscaling with predictive scaling
+  autoscaling:
+    enabled: true
+    minReplicas: 5
+    maxReplicas: 50
+    targetCPUUtilizationPercentage: 60
+    targetMemoryUtilizationPercentage: 70
+    behavior:
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+          - type: Percent
+            value: 10
+            periodSeconds: 60
+          - type: Pods
+            value: 2
+            periodSeconds: 60
+        selectPolicy: Min
+      scaleUp:
+        stabilizationWindowSeconds: 30
+        policies:
+          - type: Percent
+            value: 100
+            periodSeconds: 15
+          - type: Pods
+            value: 4
+            periodSeconds: 15
+        selectPolicy: Max
+    # Advanced metrics for predictive scaling
+    metrics:
+      - type: Resource
+        resource:
+          name: cpu
+          target:
+            type: Utilization
+            averageUtilization: 60
+      - type: Resource
+        resource:
+          name: memory
+          target:
+            type: Utilization
+            averageUtilization: 70
+      - type: Pods
+        pods:
+          metric:
+            name: http_requests_per_second
+          target:
+            type: AverageValue
+            averageValue: "100"
+  
+  # Enterprise health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 10
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 2
+      successThreshold: 1
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 15
+      periodSeconds: 5
+      timeoutSeconds: 3
+      failureThreshold: 30
+  
+  # Enterprise resource allocation
+  resources:
+    requests:
+      cpu: "2000m"
+      memory: "4Gi"
+      ephemeral-storage: "4Gi"
+      nvidia.com/gpu: "0"  # GPU support for enhanced AI processing
+    limits:
+      cpu: "8000m"
+      memory: "16Gi"
+      ephemeral-storage: "16Gi"
+      nvidia.com/gpu: "1"  # Optional GPU acceleration
+  
+  # Enterprise security context
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Enterprise affinity and distribution
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [nephoran-operator]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [llm-processor]
+            topologyKey: kubernetes.io/hostname
+        - weight: 50
+          podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values: [nephoran-operator]
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values: [llm-processor]
+            topologyKey: topology.kubernetes.io/zone
+  
+  topologySpreadConstraints:
+    - maxSkew: 2
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: DoNotSchedule
+      labelSelector:
+        matchLabels:
+          app.kubernetes.io/name: nephoran-operator
+          app.kubernetes.io/component: llm-processor
+  
+  nodeSelector:
+    nephoran.com/node-type: "ai-processing"
+    nephoran.com/instance-type: "compute-optimized"
+    kubernetes.io/arch: "amd64"
+  
+  tolerations:
+    - key: "nephoran.com/ai-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+    - key: "nvidia.com/gpu"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Enterprise pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 3
+    maxUnavailable: null
+  
+  # Enterprise environment configuration
+  env:
+    - name: MAX_CONCURRENT_REQUESTS
+      value: "100"
+    - name: REQUEST_TIMEOUT
+      value: "30s"
+    - name: CIRCUIT_BREAKER_THRESHOLD
+      value: "10"
+    - name: CIRCUIT_BREAKER_TIMEOUT
+      value: "60s"
+    - name: RATE_LIMIT_REQUESTS_PER_MINUTE
+      value: "1000"
+    - name: ENABLE_CACHING
+      value: "true"
+    - name: CACHE_TTL_SECONDS
+      value: "300"
+    - name: LOG_LEVEL
+      value: "info"
+    - name: METRICS_ENABLED
+      value: "true"
+    - name: TRACING_ENABLED
+      value: "true"
+
+# Weaviate Vector Database - Enterprise HA Configuration
+weaviate:
+  enabled: true
+  replicaCount: 5  # Odd number for consensus
+  
+  image:
+    repository: "semitechnologies/weaviate"
+    tag: "1.22.5"
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    grpcPort: 50051
+    grpcTargetPort: 50051
+  
+  # Enterprise persistent storage
+  persistence:
+    enabled: true
+    storageClass: "high-iops-ssd"
+    size: "1Ti"
+    accessMode: ReadWriteOnce
+    # Multi-zone storage configuration
+    volumeBindingMode: WaitForFirstConsumer
+  
+  # Enterprise backup configuration
+  backup:
+    enabled: true
+    schedule: "0 */6 * * *"  # Every 6 hours
+    retention: "30d"
+    storage:
+      type: "s3"
+      bucket: "nephoran-enterprise-backups"
+      region: "us-central1"
+      encryption: "AES256"
+  
+  # Enterprise health checks
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /v1/.well-known/live
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 120
+      periodSeconds: 10
+      timeoutSeconds: 10
+      failureThreshold: 3
+      successThreshold: 1
+    readinessProbe:
+      httpGet:
+        path: /v1/.well-known/ready
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 5
+      timeoutSeconds: 5
+      failureThreshold: 2
+      successThreshold: 1
+    startupProbe:
+      httpGet:
+        path: /v1/.well-known/live
+        port: 8080
+        scheme: HTTP
+      initialDelaySeconds: 30
+      periodSeconds: 10
+      timeoutSeconds: 10
+      failureThreshold: 120  # 20 minutes for startup
+  
+  # Enterprise resource requirements
+  resources:
+    requests:
+      cpu: "4000m"
+      memory: "16Gi"
+      ephemeral-storage: "8Gi"
+    limits:
+      cpu: "16000m"
+      memory: "64Gi"
+      ephemeral-storage: "32Gi"
+  
+  # Enterprise security
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    fsGroup: 65534
+    seccompProfile:
+      type: RuntimeDefault
+  
+  # Enterprise anti-affinity for data distribution
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [nephoran-operator]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [weaviate]
+          topologyKey: kubernetes.io/hostname
+        - labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: [nephoran-operator]
+              - key: app.kubernetes.io/component
+                operator: In
+                values: [weaviate]
+          topologyKey: topology.kubernetes.io/zone
+  
+  nodeSelector:
+    nephoran.com/node-type: "database"
+    nephoran.com/instance-type: "memory-optimized"
+    kubernetes.io/arch: "amd64"
+  
+  tolerations:
+    - key: "nephoran.com/database-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+  
+  # Enterprise pod disruption budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 3
+    maxUnavailable: null
+  
+  # Enterprise Weaviate configuration
+  config:
+    persistence_data_path: "/var/lib/weaviate"
+    query_defaults_limit: 100
+    authentication_anonymous_access_enabled: false
+    authentication_oidc_enabled: true
+    authorization_admin_list_enabled: true
+    cluster_hostname: "weaviate"
+    cluster_gossip_bind_port: 7100
+    cluster_data_bind_port: 7101
+    enable_cuda: false
+    go_gc: 100
+    track_vector_dimensions: true
+    replication_factor: 3
+
+# Enterprise Monitoring Configuration
+monitoring:
+  enabled: true
+  
+  # Prometheus configuration
+  prometheus:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      interval: 15s
+      scrapeTimeout: 10s
+      labels:
+        prometheus: kube-prometheus
+        app: nephoran-operator
+      endpoints:
+        - port: http-metrics
+          path: /metrics
+          interval: 15s
+          scrapeTimeout: 10s
+        - port: http-metrics
+          path: /metrics/controller-runtime
+          interval: 15s
+          scrapeTimeout: 10s
+  
+  # Grafana dashboards
+  grafana:
+    enabled: true
+    dashboards:
+      enabled: true
+      namespace: monitoring
+      labels:
+        grafana_dashboard: "1"
+      annotations:
+        grafana-folder: "Nephoran"
+  
+  # Enterprise alerting rules
+  prometheusRule:
+    enabled: true
+    namespace: monitoring
+    labels:
+      prometheus: kube-prometheus
+      role: alert-rules
+    rules:
+      # High-level service availability alerts
+      - alert: NephoranOperatorDown
+        expr: up{job="nephoran-operator"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: controller
+          service: nephoran-operator
+        annotations:
+          summary: "Nephoran Operator controller is down"
+          description: "Nephoran Operator controller has been down for more than 2 minutes"
+          runbook_url: "https://runbooks.nephoran.com/operator-down"
+      
+      - alert: NephoranHighErrorRate
+        expr: |
+          (
+            rate(nephoran_controller_reconcile_errors_total[5m]) /
+            rate(nephoran_controller_reconcile_total[5m])
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: controller
+          service: nephoran-operator
+        annotations:
+          summary: "High error rate in Nephoran Operator"
+          description: "Nephoran Operator error rate is above 10% for the last 5 minutes"
+          runbook_url: "https://runbooks.nephoran.com/high-error-rate"
+      
+      - alert: NephoranLLMProcessorLatencyHigh
+        expr: |
+          histogram_quantile(0.95, 
+            rate(nephoran_llm_processor_request_duration_seconds_bucket[5m])
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: llm-processor
+          service: nephoran-operator
+        annotations:
+          summary: "High latency in LLM Processor"
+          description: "95th percentile latency is above 5 seconds for 10 minutes"
+          runbook_url: "https://runbooks.nephoran.com/llm-latency"
+      
+      - alert: WeaviateClusterDegraded
+        expr: |
+          (
+            count(up{job="weaviate"} == 1) /
+            count(up{job="weaviate"})
+          ) < 0.8
+        for: 5m
+        labels:
+          severity: critical
+          component: weaviate
+          service: nephoran-operator
+        annotations:
+          summary: "Weaviate cluster is degraded"
+          description: "Less than 80% of Weaviate nodes are available"
+          runbook_url: "https://runbooks.nephoran.com/weaviate-degraded"
+
+# Enterprise Network Policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+  
+  # Default deny all traffic
+  denyAll: true
+  
+  # Specific enterprise ingress rules
+  ingress:
+    # Allow ingress from enterprise load balancers
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: ingress-nginx
+        - namespaceSelector:
+            matchLabels:
+              name: istio-system
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 5001
+        - protocol: TCP
+          port: 9443
+    
+    # Allow monitoring access
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 9443
+  
+  # Enterprise egress rules
+  egress:
+    # Allow DNS resolution
+    - to: []
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    
+    # Allow HTTPS to external APIs (OpenAI, etc.)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+    
+    # Allow inter-component communication
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: nephoran-operator
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8082
+        - protocol: TCP
+          port: 8083
+        - protocol: TCP
+          port: 5001
+        - protocol: TCP
+          port: 8080  # Weaviate HTTP
+        - protocol: TCP
+          port: 50051  # Weaviate gRPC
+    
+    # Allow connection to enterprise databases
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 5432  # PostgreSQL
+        - protocol: TCP
+          port: 6379  # Redis
+        - protocol: TCP
+          port: 3306  # MySQL (if needed)
+
+# Enterprise Service Account with advanced permissions
+serviceAccount:
+  create: true
+  annotations:
+    # AWS IAM role for service accounts
+    eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/nephoran-operator-enterprise-role"
+    # Azure workload identity
+    azure.workload.identity/client-id: "12345678-1234-1234-1234-123456789012"
+    # GCP workload identity
+    iam.gke.io/gcp-service-account: "nephoran-operator@enterprise-project.iam.gserviceaccount.com"
+  name: "nephoran-operator"
+
+# Enterprise RBAC configuration
+rbac:
+  create: true
+  # Cluster-wide permissions for enterprise features
+  clusterRole: true
+  
+  # Additional rules for enterprise deployment
+  additionalRules:
+    - apiGroups: ["networking.istio.io"]
+      resources: ["virtualservices", "destinationrules", "gateways"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["security.istio.io"]
+      resources: ["peerauthentications", "authorizationpolicies"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["cert-manager.io"]
+      resources: ["certificates", "issuers", "clusterissuers"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["external-secrets.io"]
+      resources: ["externalsecrets", "secretstores", "clustersecretstores"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+# Enterprise Ingress Configuration
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    # Enterprise SSL/TLS configuration
+    cert-manager.io/cluster-issuer: "enterprise-ca-issuer"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    
+    # Enterprise rate limiting
+    nginx.ingress.kubernetes.io/rate-limit: "1000"
+    nginx.ingress.kubernetes.io/rate-limit-window: "1m"
+    nginx.ingress.kubernetes.io/rate-limit-burst: "2000"
+    
+    # Enterprise security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Strict-Transport-Security: max-age=31536000; includeSubDomains";
+      more_set_headers "Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';";
+    
+    # Enterprise authentication
+    nginx.ingress.kubernetes.io/auth-type: oauth2
+    nginx.ingress.kubernetes.io/auth-signin: "https://auth.enterprise.com/oauth2/start"
+    nginx.ingress.kubernetes.io/auth-url: "https://auth.enterprise.com/oauth2/auth"
+  
+  hosts:
+    - host: nephoran-api.enterprise.com
+      paths:
+        - path: /api/v1/llm
+          pathType: Prefix
+          service:
+            name: nephoran-operator-llm-processor
+            port: 8080
+        - path: /api/v1/rag
+          pathType: Prefix
+          service:
+            name: nephoran-operator-rag-api
+            port: 5001
+        - path: /api/v1/metrics
+          pathType: Prefix
+          service:
+            name: nephoran-operator
+            port: 8080
+        - path: /webhook
+          pathType: Prefix
+          service:
+            name: nephoran-operator-webhook-service
+            port: 9443
+  
+  tls:
+    - secretName: nephoran-api-enterprise-tls
+      hosts:
+        - nephoran-api.enterprise.com
+
+# Enterprise External Secrets Configuration
+externalSecrets:
+  enabled: true
+  secretStore:
+    type: "vault"
+    name: "vault-backend"
+    config:
+      server: "https://vault.enterprise.com"
+      path: "secret"
+      version: "v2"
+      auth:
+        kubernetes:
+          mountPath: "kubernetes"
+          role: "nephoran-operator"
+          serviceAccountRef:
+            name: "nephoran-operator"
+  
+  secrets:
+    - name: "llm-api-keys"
+      keys:
+        - openai_api_key
+        - anthropic_api_key
+        - google_api_key
+        - azure_openai_api_key
+    
+    - name: "oauth2-credentials"
+      keys:
+        - client_id
+        - client_secret
+        - jwt_secret
+    
+    - name: "database-credentials"
+      keys:
+        - postgres_password
+        - redis_password
+        - weaviate_api_key
+    
+    - name: "tls-certificates"
+      keys:
+        - tls.crt
+        - tls.key
+        - ca.crt
+
+# Enterprise Resource Quotas
+resourceQuota:
+  enabled: true
+  hard:
+    # CPU and Memory quotas
+    requests.cpu: "50"
+    requests.memory: "100Gi"
+    limits.cpu: "100"
+    limits.memory: "200Gi"
+    
+    # Storage quotas
+    requests.storage: "10Ti"
+    persistentvolumeclaims: "50"
+    
+    # Pod quotas
+    pods: "200"
+    services: "50"
+    secrets: "100"
+    configmaps: "50"
+    
+    # Network quotas
+    services.nodeports: "10"
+    services.loadbalancers: "5"
+
+# Enterprise Backup and Disaster Recovery
+backup:
+  enabled: true
+  
+  # Velero backup configuration
+  velero:
+    enabled: true
+    schedule: "0 1 * * *"  # Daily at 1 AM
+    retention: "30d"
+    includedNamespaces:
+      - nephoran-system
+      - monitoring
+    includedResources:
+      - persistentvolumes
+      - persistentvolumeclaims
+      - secrets
+      - configmaps
+      - customresourcedefinitions
+    
+    # Cross-region backup storage
+    backupLocation:
+      provider: "aws"
+      bucket: "nephoran-enterprise-backups"
+      config:
+        region: "us-west-2"
+        s3ForcePathStyle: "false"
+    
+    # Volume snapshot location
+    volumeSnapshotLocation:
+      provider: "aws"
+      config:
+        region: "us-west-2"
+  
+  # Database backup configuration
+  database:
+    enabled: true
+    schedule: "0 */6 * * *"  # Every 6 hours
+    retention: "7d"
+    encryption: true
+    compression: true
+    destinations:
+      - type: "s3"
+        bucket: "nephoran-db-backups-enterprise"
+        region: "us-central1"
+      - type: "gcs"
+        bucket: "nephoran-db-backups-europe"
+        region: "europe-west1"
+
+# Enterprise Compliance and Auditing
+compliance:
+  enabled: true
+  
+  # Audit logging
+  auditLogging:
+    enabled: true
+    level: "RequestResponse"
+    namespaces:
+      - nephoran-system
+    resources:
+      - group: ""
+        resources: ["secrets", "configmaps"]
+      - group: "nephoran.com"
+        resources: ["*"]
+  
+  # OPA Gatekeeper policies
+  gatekeeper:
+    enabled: true
+    policies:
+      - name: "required-labels"
+        enabled: true
+      - name: "security-context"
+        enabled: true
+      - name: "resource-limits"
+        enabled: true
+      - name: "image-scanning"
+        enabled: true
+  
+  # Falco runtime security
+  falco:
+    enabled: true
+    rules:
+      - "Detect crypto mining"
+      - "Detect outbound connections"
+      - "Detect privilege escalation"
+      - "Detect sensitive file access"
+
+# Enterprise ChatOps Integration
+chatops:
+  enabled: true
+  
+  slack:
+    enabled: true
+    webhookUrl: "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
+    channel: "#nephoran-alerts"
+    
+  teams:
+    enabled: false
+    webhookUrl: ""
+    
+  pagerduty:
+    enabled: true
+    integrationKey: "R1234567890123456789012345678901"
+    
+  email:
+    enabled: true
+    smtpServer: "smtp.enterprise.com"
+    smtpPort: 587
+    from: "nephoran-alerts@enterprise.com"
+    recipients:
+      - "ops-team@enterprise.com"
+      - "dev-team@enterprise.com"

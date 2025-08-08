@@ -1,0 +1,389 @@
+# Nephoran Intent Operator - Core Alerting Rules
+# TRL 9 Production-Ready Monitoring with Enterprise-Grade SLAs
+
+groups:
+  - name: nephoran_system_health
+    interval: 30s
+    rules:
+      # System Availability - 99.95% SLA target
+      - alert: NephoranSystemDown
+        expr: up{job="nephoran-intent-controller"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: core
+          team: platform
+          impact: service_unavailable
+          sla_violation: "true"
+        annotations:
+          summary: "Nephoran Intent Controller is down"
+          description: "Intent Controller has been unavailable for {{ $value }} minutes. All intent processing stopped."
+          runbook_url: "https://runbooks.nephoran.io/system-down"
+          business_impact: "Complete service outage - no new intents can be processed"
+          escalation_policy: "immediate"
+          sla_target: "99.95%"
+
+      - alert: NephoranHighMemoryUsage
+        expr: |
+          (container_memory_working_set_bytes{pod=~"nephoran-intent-controller-.*"} / 
+           container_spec_memory_limit_bytes{pod=~"nephoran-intent-controller-.*"}) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: core
+          team: platform
+        annotations:
+          summary: "High memory usage in Nephoran Controller"
+          description: "Memory usage is {{ $value }}% (threshold: 85%)"
+          runbook_url: "https://runbooks.nephoran.io/memory-usage"
+
+      - alert: NephoranCriticalMemoryUsage
+        expr: |
+          (container_memory_working_set_bytes{pod=~"nephoran-intent-controller-.*"} / 
+           container_spec_memory_limit_bytes{pod=~"nephoran-intent-controller-.*"}) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          component: core
+          team: platform
+          sla_violation: "true"
+        annotations:
+          summary: "Critical memory usage in Nephoran Controller"
+          description: "Memory usage is {{ $value }}% (threshold: 95%) - OOMKill imminent"
+          runbook_url: "https://runbooks.nephoran.io/memory-critical"
+          escalation_policy: "immediate"
+
+      - alert: NephoranHighCPUUsage
+        expr: |
+          rate(container_cpu_usage_seconds_total{pod=~"nephoran-intent-controller-.*"}[5m]) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: core
+          team: platform
+        annotations:
+          summary: "High CPU usage in Nephoran Controller"
+          description: "CPU usage is {{ $value }}% (threshold: 80%)"
+          runbook_url: "https://runbooks.nephoran.io/cpu-usage"
+
+  - name: nephoran_intent_processing
+    interval: 30s
+    rules:
+      # Intent Processing Performance - Sub-2s P95 latency target
+      - alert: IntentProcessingHighLatency
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(nephoran_intent_processing_duration_seconds_bucket[5m])) by (le, intent_type)
+          ) > 2
+        for: 3m
+        labels:
+          severity: warning
+          component: intent-processing
+          team: platform
+          sla_violation: "true"
+        annotations:
+          summary: "High intent processing latency"
+          description: "P95 latency for {{ $labels.intent_type }} is {{ $value }}s (SLA target: 2s)"
+          runbook_url: "https://runbooks.nephoran.io/intent-latency"
+          sla_target: "P95 < 2s"
+          business_impact: "Degraded user experience - slow intent processing"
+
+      - alert: IntentProcessingCriticalLatency
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(nephoran_intent_processing_duration_seconds_bucket[5m])) by (le, intent_type)
+          ) > 5
+        for: 1m
+        labels:
+          severity: critical
+          component: intent-processing
+          team: platform
+          sla_violation: "true"
+        annotations:
+          summary: "Critical intent processing latency"
+          description: "P95 latency for {{ $labels.intent_type }} is {{ $value }}s (critical threshold: 5s)"
+          runbook_url: "https://runbooks.nephoran.io/intent-latency-critical"
+          escalation_policy: "immediate"
+          business_impact: "Severe performance degradation affecting customer SLAs"
+
+      # Intent Success Rate - 99.5% target
+      - alert: IntentProcessingLowSuccessRate
+        expr: |
+          (sum(rate(nephoran_intent_processing_total{status="success"}[10m])) / 
+           sum(rate(nephoran_intent_processing_total[10m]))) * 100 < 99.5
+        for: 5m
+        labels:
+          severity: warning
+          component: intent-processing
+          team: platform
+          sla_violation: "true"
+        annotations:
+          summary: "Intent processing success rate below target"
+          description: "Success rate is {{ $value }}% (target: 99.5%)"
+          runbook_url: "https://runbooks.nephoran.io/intent-success-rate"
+          sla_target: "99.5%"
+          business_impact: "Increased failure rate affecting customer satisfaction"
+
+      - alert: IntentProcessingCriticalFailureRate
+        expr: |
+          (sum(rate(nephoran_intent_processing_total{status="success"}[5m])) / 
+           sum(rate(nephoran_intent_processing_total[5m]))) * 100 < 95
+        for: 2m
+        labels:
+          severity: critical
+          component: intent-processing
+          team: platform
+          sla_violation: "true"
+        annotations:
+          summary: "Critical intent processing failure rate"
+          description: "Success rate is {{ $value }}% (critical threshold: 95%)"
+          runbook_url: "https://runbooks.nephoran.io/intent-failure-critical"
+          escalation_policy: "immediate"
+          business_impact: "High failure rate causing customer impact and revenue loss"
+
+      # Intent Queue Depth - Capacity planning
+      - alert: IntentQueueDepthHigh
+        expr: nephoran_intent_queue_depth > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: intent-processing
+          team: platform
+        annotations:
+          summary: "High intent queue depth"
+          description: "Queue depth is {{ $value }} intents (threshold: 1000)"
+          runbook_url: "https://runbooks.nephoran.io/queue-depth"
+          business_impact: "Processing delays may impact customer experience"
+
+      - alert: IntentQueueDepthCritical
+        expr: nephoran_intent_queue_depth > 5000
+        for: 2m
+        labels:
+          severity: critical
+          component: intent-processing
+          team: platform
+          sla_violation: "true"
+        annotations:
+          summary: "Critical intent queue depth"
+          description: "Queue depth is {{ $value }} intents (critical threshold: 5000)"
+          runbook_url: "https://runbooks.nephoran.io/queue-depth-critical"
+          escalation_policy: "immediate"
+          business_impact: "Severe processing delays causing customer SLA violations"
+
+      # Intent Processing Rate - Throughput monitoring
+      - alert: IntentProcessingRateLow
+        expr: |
+          rate(nephoran_intent_processing_total[5m]) * 60 < 10
+        for: 10m
+        labels:
+          severity: warning
+          component: intent-processing
+          team: platform
+        annotations:
+          summary: "Low intent processing rate"
+          description: "Processing rate is {{ $value }} intents/minute (threshold: 10/min)"
+          runbook_url: "https://runbooks.nephoran.io/processing-rate"
+          business_impact: "Reduced throughput may cause processing backlogs"
+
+  - name: nephoran_business_kpis
+    interval: 60s
+    rules:
+      # Business KPI Tracking - Revenue and cost optimization
+      - alert: IntentProcessingCostSpike
+        expr: |
+          rate(nephoran_intent_processing_cost_usd_total[1h]) * 24 > 1000
+        for: 15m
+        labels:
+          severity: warning
+          component: business
+          team: finance
+        annotations:
+          summary: "High intent processing costs"
+          description: "Daily cost projection is ${{ $value }} (threshold: $1000/day)"
+          runbook_url: "https://runbooks.nephoran.io/cost-optimization"
+          business_impact: "Higher than expected operational costs"
+          current_cost: "${{ $value }}/day"
+          budget_threshold: "$1000/day"
+
+      - alert: IntentProcessingBudgetExceeded
+        expr: |
+          nephoran_intent_processing_cost_usd_total > 25000
+        labels:
+          severity: critical
+          component: business
+          team: finance
+        annotations:
+          summary: "Monthly intent processing budget exceeded"
+          description: "Total monthly costs: ${{ $value }} (budget: $25000)"
+          runbook_url: "https://runbooks.nephoran.io/budget-exceeded"
+          escalation_policy: "immediate"
+          current_cost: "${{ $value }}"
+          budget_threshold: "$25000"
+          business_impact: "Budget overage requires immediate cost reduction measures"
+
+      # Customer Experience Metrics
+      - alert: CustomerSatisfactionLow
+        expr: nephoran_customer_satisfaction_score < 8.5
+        for: 30m
+        labels:
+          severity: warning
+          component: business
+          team: product
+        annotations:
+          summary: "Customer satisfaction score below target"
+          description: "Current NPS score is {{ $value }} (target: 8.5+)"
+          runbook_url: "https://runbooks.nephoran.io/customer-satisfaction"
+          business_impact: "Declining customer satisfaction may affect retention"
+
+  - name: nephoran_capacity_planning
+    interval: 300s
+    rules:
+      # Predictive Capacity Alerts
+      - alert: CapacityUtilizationHigh
+        expr: |
+          (
+            (rate(nephoran_intent_processing_total[1h]) * 24 * 7) / 
+            nephoran_system_capacity_intents_per_week
+          ) * 100 > 70
+        for: 1h
+        labels:
+          severity: warning
+          component: capacity
+          team: platform
+        annotations:
+          summary: "High system capacity utilization"
+          description: "Weekly capacity utilization is {{ $value }}% (threshold: 70%)"
+          runbook_url: "https://runbooks.nephoran.io/capacity-planning"
+          business_impact: "Approaching capacity limits - scaling needed within 30 days"
+
+      - alert: CapacityUtilizationCritical
+        expr: |
+          (
+            (rate(nephoran_intent_processing_total[1h]) * 24 * 7) / 
+            nephoran_system_capacity_intents_per_week
+          ) * 100 > 85
+        for: 30m
+        labels:
+          severity: critical
+          component: capacity
+          team: platform
+        annotations:
+          summary: "Critical system capacity utilization"
+          description: "Weekly capacity utilization is {{ $value }}% (critical threshold: 85%)"
+          runbook_url: "https://runbooks.nephoran.io/capacity-critical"
+          escalation_policy: "immediate"
+          business_impact: "Immediate capacity expansion required to avoid service degradation"
+
+  - name: nephoran_security_monitoring
+    interval: 60s
+    rules:
+      # Security and compliance monitoring
+      - alert: UnauthorizedAPIAccess
+        expr: |
+          rate(nephoran_api_requests_total{status_code=~"401|403"}[5m]) * 300 > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: security
+          team: security
+        annotations:
+          summary: "High rate of unauthorized API access attempts"
+          description: "{{ $value }} unauthorized attempts in 5 minutes (threshold: 10)"
+          runbook_url: "https://runbooks.nephoran.io/security-unauthorized-access"
+          business_impact: "Potential security threat - investigate immediately"
+
+      - alert: SecurityPolicyViolation
+        expr: nephoran_security_policy_violations_total > 0
+        labels:
+          severity: critical
+          component: security
+          team: security
+        annotations:
+          summary: "Security policy violation detected"
+          description: "{{ $value }} security policy violations detected"
+          runbook_url: "https://runbooks.nephoran.io/security-policy-violation"
+          escalation_policy: "immediate"
+          business_impact: "Security compliance violation requires immediate investigation"
+
+      - alert: AuditLogIngestionFailure
+        expr: |
+          rate(nephoran_audit_log_ingestion_failures_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          component: security
+          team: security
+        annotations:
+          summary: "Audit log ingestion failures detected"
+          description: "{{ $value }} audit log ingestion failures in 15 minutes"
+          runbook_url: "https://runbooks.nephoran.io/audit-log-failure"
+          business_impact: "Compliance risk - audit trail integrity compromised"
+
+  - name: nephoran_dependency_monitoring
+    interval: 30s
+    rules:
+      # External dependency monitoring
+      - alert: KubernetesAPIServerDown
+        expr: up{job="kubernetes-apiservers"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: infrastructure
+          team: platform
+        annotations:
+          summary: "Kubernetes API Server is unreachable"
+          description: "Cannot connect to Kubernetes API Server for {{ $value }} minutes"
+          runbook_url: "https://runbooks.nephoran.io/k8s-apiserver-down"
+          escalation_policy: "immediate"
+          business_impact: "Complete system failure - cannot deploy or manage workloads"
+
+      - alert: NephioPorchUnavailable
+        expr: up{job="nephio-porch"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: nephio
+          team: platform
+        annotations:
+          summary: "Nephio Porch is unavailable"
+          description: "Cannot connect to Nephio Porch for {{ $value }} minutes"
+          runbook_url: "https://runbooks.nephoran.io/nephio-porch-down"
+          escalation_policy: "immediate"
+          business_impact: "Cannot deploy network functions - deployment pipeline broken"
+
+  - name: nephoran_recording_rules
+    interval: 30s
+    rules:
+      # Recording rules for performance optimization
+      - record: nephoran:intent_processing_rate_5m
+        expr: |
+          rate(nephoran_intent_processing_total[5m])
+
+      - record: nephoran:intent_success_rate_5m
+        expr: |
+          rate(nephoran_intent_processing_total{status="success"}[5m]) /
+          rate(nephoran_intent_processing_total[5m])
+
+      - record: nephoran:intent_latency_p95_5m
+        expr: |
+          histogram_quantile(0.95, 
+            sum(rate(nephoran_intent_processing_duration_seconds_bucket[5m])) by (le, intent_type)
+          )
+
+      - record: nephoran:intent_latency_p99_5m
+        expr: |
+          histogram_quantile(0.99, 
+            sum(rate(nephoran_intent_processing_duration_seconds_bucket[5m])) by (le, intent_type)
+          )
+
+      - record: nephoran:system_availability_24h
+        expr: |
+          avg_over_time(up{job="nephoran-intent-controller"}[24h]) * 100
+
+      - record: nephoran:weekly_intent_volume
+        expr: |
+          increase(nephoran_intent_processing_total[7d])
+
+      - record: nephoran:monthly_cost_projection
+        expr: |
+          rate(nephoran_intent_processing_cost_usd_total[24h]) * 30

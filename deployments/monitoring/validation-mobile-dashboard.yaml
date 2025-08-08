@@ -1,0 +1,446 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-validation-mobile-dashboard
+  namespace: nephoran-system
+  labels:
+    app: grafana
+    component: mobile-dashboards
+    grafana_dashboard: "1"
+data:
+  # Mobile-Optimized Executive Dashboard
+  validation-mobile-executive.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "nephoran-validation-mobile",
+        "title": "Nephoran Validation - Mobile Executive",
+        "tags": ["nephoran", "validation", "mobile", "executive"],
+        "timezone": "browser",
+        "refresh": "30s",
+        "time": {
+          "from": "now-2h",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "Quality Gate",
+            "description": "Current validation status",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "nephoran:validation:quality_gate_status",
+                "legendFormat": "Status",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "mappings": [
+                  {
+                    "options": {
+                      "0": {"text": "FAIL", "color": "red"},
+                      "1": {"text": "PASS", "color": "green"}
+                    }
+                  }
+                ],
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "options": {
+              "textMode": "value_and_name",
+              "graphMode": "none"
+            },
+            "gridPos": {"h": 6, "w": 12, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Score",
+            "description": "Current validation score",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "nephoran:validation:overall_score",
+                "legendFormat": "Score",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "orange", "value": 70},
+                    {"color": "yellow", "value": 85},
+                    {"color": "green", "value": 90}
+                  ]
+                },
+                "max": 100,
+                "min": 0,
+                "unit": "short"
+              }
+            },
+            "options": {
+              "showThresholdLabels": false,
+              "showThresholdMarkers": true
+            },
+            "gridPos": {"h": 6, "w": 12, "x": 12, "y": 0}
+          },
+          {
+            "id": 3,
+            "title": "Category Scores",
+            "description": "Validation scores by category",
+            "type": "bargauge",
+            "targets": [
+              {
+                "expr": "nephoran_validation_functional_score",
+                "legendFormat": "Functional",
+                "refId": "A"
+              },
+              {
+                "expr": "nephoran_validation_performance_score", 
+                "legendFormat": "Performance",
+                "refId": "B"
+              },
+              {
+                "expr": "nephoran_validation_security_score",
+                "legendFormat": "Security",
+                "refId": "C"
+              },
+              {
+                "expr": "nephoran_validation_production_score",
+                "legendFormat": "Production",
+                "refId": "D"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short",
+                "min": 0
+              },
+              "overrides": [
+                {
+                  "matcher": {"id": "byName", "options": "Functional"},
+                  "properties": [{"id": "max", "value": 50}]
+                },
+                {
+                  "matcher": {"id": "byName", "options": "Performance"},
+                  "properties": [{"id": "max", "value": 25}]
+                },
+                {
+                  "matcher": {"id": "byName", "options": "Security"},
+                  "properties": [{"id": "max", "value": 15}]
+                },
+                {
+                  "matcher": {"id": "byName", "options": "Production"},
+                  "properties": [{"id": "max", "value": 10}]
+                }
+              ]
+            },
+            "options": {
+              "displayMode": "gradient",
+              "orientation": "vertical",
+              "showUnfilled": true
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 6}
+          },
+          {
+            "id": 4,
+            "title": "Alerts",
+            "description": "Active validation alerts",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "count(ALERTS{alertname=~\"Validation.*\"})",
+                "legendFormat": "Active Alerts",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 3}
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "options": {
+              "textMode": "value_and_name"
+            },
+            "gridPos": {"h": 4, "w": 8, "x": 0, "y": 14}
+          },
+          {
+            "id": 5,
+            "title": "Trend",
+            "description": "24h score change",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "nephoran:validation:score_24h_change_pct",
+                "legendFormat": "24h Change %",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": -10},
+                    {"color": "yellow", "value": -5},
+                    {"color": "green", "value": 0},
+                    {"color": "light-green", "value": 5}
+                  ]
+                },
+                "unit": "percent"
+              }
+            },
+            "options": {
+              "textMode": "value_and_name"
+            },
+            "gridPos": {"h": 4, "w": 8, "x": 8, "y": 14}
+          },
+          {
+            "id": 6,
+            "title": "Tests",
+            "description": "Test execution status", 
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "nephoran_validation_tests_completed / nephoran_validation_tests_total * 100",
+                "legendFormat": "Completed %",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "continuous-GrYlRd"},
+                "max": 100,
+                "min": 0,
+                "unit": "percent"
+              }
+            },
+            "options": {
+              "textMode": "value_and_name"
+            },
+            "gridPos": {"h": 4, "w": 8, "x": 16, "y": 14}
+          },
+          {
+            "id": 7,
+            "title": "Performance Trend",
+            "description": "Latency over time",
+            "type": "timeseries",
+            "targets": [
+              {
+                "expr": "nephoran:validation:latency_p95",
+                "legendFormat": "P95 Latency",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "s"
+              }
+            },
+            "options": {
+              "tooltip": {"mode": "single", "sort": "none"},
+              "legend": {"displayMode": "hidden"}
+            },
+            "gridPos": {"h": 6, "w": 24, "x": 0, "y": 18}
+          }
+        ],
+        "refresh": "30s",
+        "schemaVersion": 36,
+        "style": "dark",
+        "templating": {
+          "list": []
+        },
+        "time": {
+          "from": "now-2h",
+          "to": "now"
+        },
+        "timepicker": {
+          "refresh_intervals": ["10s", "30s", "1m", "5m"],
+          "time_options": ["30m", "1h", "2h", "6h", "12h", "1d"]
+        },
+        "timezone": "browser"
+      }
+    }
+
+  # Mobile-Optimized Quick Status Dashboard  
+  validation-mobile-status.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "nephoran-validation-mobile-status",
+        "title": "Nephoran Validation - Quick Status",
+        "tags": ["nephoran", "validation", "mobile", "status"],
+        "timezone": "browser",
+        "refresh": "15s",
+        "time": {
+          "from": "now-30m",
+          "to": "now"
+        },
+        "panels": [
+          {
+            "id": 1,
+            "title": "System Health",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "up{job=~\"nephoran-validation.*\"}",
+                "legendFormat": "{{instance}}",
+                "refId": "A"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "mappings": [
+                  {"options": {"0": {"text": "DOWN", "color": "red"}}},
+                  {"options": {"1": {"text": "UP", "color": "green"}}}
+                ],
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "green", "value": 1}
+                  ]
+                }
+              }
+            },
+            "options": {
+              "textMode": "value",
+              "orientation": "horizontal"
+            },
+            "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "Critical Alerts",
+            "type": "logs",
+            "targets": [
+              {
+                "expr": "{job=\"alertmanager\"} |= \"ValidationQualityGateFailure\" or \"ValidationMajorRegression\"",
+                "refId": "A"
+              }
+            ],
+            "options": {
+              "showTime": true,
+              "showLabels": false,
+              "showCommonLabels": false,
+              "wrapLogMessage": false,
+              "prettifyLogMessage": false,
+              "enableLogDetails": true,
+              "dedupStrategy": "none",
+              "sortOrder": "Descending"
+            },
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 4}
+          },
+          {
+            "id": 3,
+            "title": "Test Progress",
+            "type": "piechart",
+            "targets": [
+              {
+                "expr": "nephoran_validation_tests_completed",
+                "legendFormat": "Completed",
+                "refId": "A"
+              },
+              {
+                "expr": "nephoran_validation_tests_running",
+                "legendFormat": "Running",
+                "refId": "B"
+              },
+              {
+                "expr": "nephoran_validation_tests_pending",
+                "legendFormat": "Pending",
+                "refId": "C"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "palette-classic"},
+                "unit": "short"
+              }
+            },
+            "options": {
+              "reduceOptions": {
+                "calcs": ["lastNotNull"]
+              },
+              "pieType": "donut",
+              "tooltip": {"mode": "single"},
+              "legend": {
+                "displayMode": "list",
+                "placement": "bottom"
+              }
+            },
+            "gridPos": {"h": 6, "w": 12, "x": 0, "y": 12}
+          },
+          {
+            "id": 4,
+            "title": "Recent Failures",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "increase(nephoran_validation_tests_failed_total[1h])",
+                "legendFormat": "Last Hour",
+                "refId": "A"
+              },
+              {
+                "expr": "increase(nephoran_validation_tests_failed_total[24h])",
+                "legendFormat": "Last 24h",
+                "refId": "B"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "color": {"mode": "thresholds"},
+                "thresholds": {
+                  "steps": [
+                    {"color": "green", "value": 0},
+                    {"color": "yellow", "value": 1},
+                    {"color": "red", "value": 5}
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "options": {
+              "textMode": "value_and_name",
+              "orientation": "vertical"
+            },
+            "gridPos": {"h": 6, "w": 12, "x": 12, "y": 12}
+          }
+        ],
+        "refresh": "15s",
+        "schemaVersion": 36,
+        "style": "dark",
+        "templating": {
+          "list": []
+        },
+        "time": {
+          "from": "now-30m",
+          "to": "now"
+        },
+        "timepicker": {
+          "refresh_intervals": ["5s", "10s", "30s", "1m"],
+          "time_options": ["15m", "30m", "1h", "2h"]
+        },
+        "timezone": "browser"
+      }
+    }

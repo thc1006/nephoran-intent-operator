@@ -48,6 +48,47 @@ To report a security vulnerability, please follow these steps:
   4. Patch released with security advisory
   5. Public disclosure after 90 days or when patch is available
 
+## Dependency Security Management
+
+### Principles
+
+1. **Minimal Dependencies**: We maintain the smallest possible dependency footprint
+2. **Regular Updates**: Dependencies are reviewed and updated monthly
+3. **Security First**: Security vulnerabilities take priority over features
+4. **Supply Chain Security**: All dependencies are verified and scanned
+
+### Dependency Guidelines
+
+#### Acceptable Dependencies
+- Actively maintained (commits within last 6 months)
+- Clear security policy and vulnerability disclosure
+- Compatible open-source license (MIT, Apache 2.0, BSD)
+- Passes security scanning without high/critical vulnerabilities
+- Provides clear value that cannot be easily implemented
+
+#### Prohibited Dependencies
+- GPL/AGPL licensed packages (incompatible with project license)
+- Deprecated or archived projects
+- Dependencies with known unpatched vulnerabilities
+- Packages without clear maintainership
+- Heavy dependencies that can be replaced with lighter alternatives
+
+### Security Scanning
+
+All dependencies are automatically scanned using:
+- **Go**: govulncheck, nancy (Sonatype OSS Index)
+- **Python**: pip-audit, safety, bandit
+- **Containers**: Trivy, Snyk
+- **SBOM**: CycloneDX format for supply chain transparency
+
+### Update Process
+
+1. **Monthly Review**: First Tuesday of each month
+2. **Automated PR**: Dependabot creates update PRs
+3. **Security Updates**: Applied within 48 hours for critical vulnerabilities
+4. **Testing**: All updates must pass full test suite
+5. **Rollback Plan**: Previous versions maintained for quick rollback
+
 ## Security Measures
 
 ### Architecture Security

@@ -5,9 +5,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nephoran-operator/pkg/servicemesh/consul"
-	"github.com/nephoran-operator/pkg/servicemesh/istio"
-	"github.com/nephoran-operator/pkg/servicemesh/linkerd"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/consul"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/istio"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/linkerd"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"

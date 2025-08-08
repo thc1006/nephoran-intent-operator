@@ -1,0 +1,386 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephoran-validation-dashboard-provisioner
+  namespace: nephoran-system
+  labels:
+    app: validation-dashboard-provisioner
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: validation-dashboard-provisioner
+  template:
+    metadata:
+      labels:
+        app: validation-dashboard-provisioner
+        component: monitoring
+    spec:
+      serviceAccountName: validation-dashboard-provisioner
+      containers:
+      - name: dashboard-provisioner
+        image: nephoran/dashboard-provisioner:v1.0.0
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: GRAFANA_URL
+          value: "http://grafana:3000"
+        - name: GRAFANA_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: grafana-dashboard-token
+              key: token
+        - name: DASHBOARD_PATH
+          value: "/etc/dashboards"
+        - name: PROMETHEUS_URL
+          value: "http://prometheus-server:9090"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: SYNC_INTERVAL
+          value: "300" # 5 minutes
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        - containerPort: 8090
+          name: health
+          protocol: TCP
+        volumeMounts:
+        - name: validation-dashboards
+          mountPath: /etc/dashboards/validation
+          readOnly: true
+        - name: mobile-dashboards
+          mountPath: /etc/dashboards/mobile
+          readOnly: true
+        - name: export-config
+          mountPath: /etc/dashboards/export
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8090
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8090
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          echo "Starting Nephoran Validation Dashboard Provisioner..."
+          
+          # Function to provision dashboard
+          provision_dashboard() {
+            local dashboard_file=$1
+            local dashboard_name=$(basename "$dashboard_file" .json)
+            
+            echo "Provisioning dashboard: $dashboard_name"
+            
+            # Extract dashboard JSON and add metadata
+            local dashboard_json=$(cat "$dashboard_file")
+            
+            # Create dashboard payload
+            local payload=$(cat <<EOF
+          {
+            "dashboard": $dashboard_json,
+            "folderId": 0,
+            "overwrite": true,
+            "message": "Provisioned by Nephoran Validation Dashboard Provisioner"
+          }
+          EOF
+          )
+            
+            # Post to Grafana API
+            local response=$(curl -s -w "%{http_code}" \
+              -X POST \
+              -H "Authorization: Bearer $GRAFANA_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$payload" \
+              "$GRAFANA_URL/api/dashboards/db")
+            
+            local http_code=${response: -3}
+            
+            if [[ $http_code == "200" ]]; then
+              echo "Successfully provisioned dashboard: $dashboard_name"
+              echo "dashboard_provisioned_total{dashboard=\"$dashboard_name\",status=\"success\"} 1" >> /tmp/metrics
+            else
+              echo "Failed to provision dashboard: $dashboard_name (HTTP $http_code)"
+              echo "dashboard_provisioned_total{dashboard=\"$dashboard_name\",status=\"failed\"} 1" >> /tmp/metrics
+            fi
+          }
+          
+          # Function to setup folder structure
+          setup_folders() {
+            echo "Setting up Grafana folder structure..."
+            
+            # Create Nephoran Validation folder
+            local folder_payload='{"title":"Nephoran Validation","uid":"nephoran-validation"}'
+            curl -s -X POST \
+              -H "Authorization: Bearer $GRAFANA_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$folder_payload" \
+              "$GRAFANA_URL/api/folders"
+            
+            # Create Mobile Dashboards folder
+            local mobile_folder_payload='{"title":"Mobile Dashboards","uid":"mobile-dashboards"}'
+            curl -s -X POST \
+              -H "Authorization: Bearer $GRAFANA_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$mobile_folder_payload" \
+              "$GRAFANA_URL/api/folders"
+          }
+          
+          # Function to validate Prometheus connection
+          validate_prometheus() {
+            echo "Validating Prometheus connection..."
+            local prometheus_status=$(curl -s "$PROMETHEUS_URL/api/v1/status/config" | jq -r '.status')
+            
+            if [[ "$prometheus_status" == "success" ]]; then
+              echo "Prometheus connection validated"
+              echo "prometheus_connection_status 1" >> /tmp/metrics
+            else
+              echo "WARNING: Prometheus connection failed"
+              echo "prometheus_connection_status 0" >> /tmp/metrics
+            fi
+          }
+          
+          # Function to setup data sources
+          setup_datasources() {
+            echo "Setting up Grafana data sources..."
+            
+            local prometheus_datasource=$(cat <<EOF
+          {
+            "name": "Prometheus-Validation",
+            "type": "prometheus", 
+            "url": "$PROMETHEUS_URL",
+            "access": "proxy",
+            "isDefault": false,
+            "jsonData": {
+              "timeInterval": "15s",
+              "queryTimeout": "60s",
+              "httpMethod": "POST"
+            }
+          }
+          EOF
+          )
+            
+            curl -s -X POST \
+              -H "Authorization: Bearer $GRAFANA_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$prometheus_datasource" \
+              "$GRAFANA_URL/api/datasources"
+          }
+          
+          # Function to start metrics server
+          start_metrics_server() {
+            echo "Starting metrics server on port 8080..."
+            (
+              while true; do
+                {
+                  echo "HTTP/1.1 200 OK"
+                  echo "Content-Type: text/plain"
+                  echo ""
+                  echo "# HELP dashboard_provisioner_status Status of dashboard provisioner"
+                  echo "# TYPE dashboard_provisioner_status gauge"
+                  echo "dashboard_provisioner_status 1"
+                  echo ""
+                  if [[ -f /tmp/metrics ]]; then
+                    cat /tmp/metrics
+                  fi
+                } | nc -l -p 8080 -q 1
+              done
+            ) &
+          }
+          
+          # Function to start health server
+          start_health_server() {
+            echo "Starting health server on port 8090..."
+            (
+              while true; do
+                {
+                  echo "HTTP/1.1 200 OK"
+                  echo "Content-Type: application/json"
+                  echo ""
+                  echo '{"status":"healthy","timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"}'
+                } | nc -l -p 8090 -q 1
+              done
+            ) &
+          }
+          
+          # Main execution
+          echo "Starting initialization..."
+          
+          # Start health and metrics servers
+          start_metrics_server
+          start_health_server
+          
+          # Wait for Grafana to be ready
+          echo "Waiting for Grafana to be ready..."
+          until curl -s -f "$GRAFANA_URL/api/health" > /dev/null; do
+            echo "Waiting for Grafana..."
+            sleep 10
+          done
+          
+          echo "Grafana is ready, starting provisioning..."
+          
+          # Validate Prometheus connection
+          validate_prometheus
+          
+          # Setup folders and data sources
+          setup_folders
+          setup_datasources
+          
+          # Initial provisioning
+          echo "Starting initial dashboard provisioning..."
+          
+          # Provision validation dashboards
+          for dashboard in /etc/dashboards/validation/*.json; do
+            if [[ -f "$dashboard" ]]; then
+              provision_dashboard "$dashboard"
+            fi
+          done
+          
+          # Provision mobile dashboards
+          for dashboard in /etc/dashboards/mobile/*.json; do
+            if [[ -f "$dashboard" ]]; then
+              provision_dashboard "$dashboard"
+            fi
+          done
+          
+          echo "Initial provisioning completed"
+          
+          # Continuous sync loop
+          while true; do
+            echo "Starting sync cycle..."
+            
+            # Re-provision all dashboards
+            for dashboard in /etc/dashboards/*/*.json; do
+              if [[ -f "$dashboard" ]]; then
+                provision_dashboard "$dashboard"
+              fi
+            done
+            
+            echo "Sync cycle completed, sleeping for $SYNC_INTERVAL seconds..."
+            sleep "$SYNC_INTERVAL"
+          done
+      volumes:
+      - name: validation-dashboards
+        configMap:
+          name: nephoran-validation-dashboards
+      - name: mobile-dashboards
+        configMap:
+          name: nephoran-validation-mobile-dashboard
+      - name: export-config
+        configMap:
+          name: nephoran-validation-dashboard-export
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: validation-dashboard-provisioner
+  namespace: nephoran-system
+  labels:
+    app: validation-dashboard-provisioner
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: validation-dashboard-provisioner
+  namespace: nephoran-system
+  labels:
+    app: validation-dashboard-provisioner
+    component: metrics
+spec:
+  selector:
+    app: validation-dashboard-provisioner
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: health
+    port: 8090
+    targetPort: 8090
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: validation-dashboard-provisioner
+  namespace: nephoran-system
+  labels:
+    app: prometheus
+    component: dashboard-provisioner-monitoring
+spec:
+  selector:
+    matchLabels:
+      app: validation-dashboard-provisioner
+  endpoints:
+  - port: metrics
+    path: /
+    interval: 30s
+    scrapeTimeout: 15s
+  namespaceSelector:
+    matchNames:
+    - nephoran-system
+
+---
+# Secret templates for configuration (to be created manually)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: grafana-dashboard-token
+  namespace: nephoran-system
+  labels:
+    app: validation-dashboard-provisioner
+type: Opaque
+data:
+  # Base64 encoded Grafana service account token
+  # Create this manually: echo -n "your-grafana-token" | base64
+  token: ""
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dashboard-export-webhook-secret
+  namespace: nephoran-system
+  labels:
+    app: dashboard-export
+type: Opaque
+data:
+  # Base64 encoded webhook token
+  # Create this manually: echo -n "your-webhook-token" | base64
+  token: ""
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: smtp-secret
+  namespace: nephoran-system
+  labels:
+    app: dashboard-export
+type: Opaque
+data:
+  # Base64 encoded SMTP password
+  # Create this manually: echo -n "your-smtp-password" | base64
+  password: ""

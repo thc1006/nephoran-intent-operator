@@ -8,7 +8,9 @@ toolchain go1.24.5
 //go:build go1.24
 
 require (
-	// AWS SDK for cloud integrations - pinned for supply chain security
+	// === CORE DEPENDENCIES (Production Critical) ===
+	
+	// AWS SDK v2 - consolidated to reduce indirect deps
 	github.com/aws/aws-sdk-go-v2 v1.37.2
 	github.com/aws/aws-sdk-go-v2/config v1.29.14
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.86.0
@@ -16,87 +18,92 @@ require (
 	// Git operations for GitOps workflows
 	github.com/go-git/go-git/v5 v5.16.2
 
-	// Core dependencies - pinned versions for security
+	// Core logging and utilities
 	github.com/go-logr/logr v1.4.3
-	github.com/go-redis/redis/v8 v8.11.5
-	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/uuid v1.6.0
+	go.uber.org/zap v1.27.0
+
+	// Security and authentication
+	github.com/golang-jwt/jwt/v5 v5.3.0
+	golang.org/x/crypto v0.40.0
+	golang.org/x/oauth2 v0.30.0
+
+	// HTTP routing and API
 	github.com/gorilla/mux v1.8.1
-	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
 
-	// Testing framework - pinned for consistent CI/CD
-	github.com/onsi/ginkgo/v2 v2.23.4
-	github.com/onsi/gomega v1.38.0
-	github.com/pquerna/otp v1.5.0
+	// Redis client for caching
+	github.com/redis/go-redis/v9 v9.8.0 // Updated from v8 to v9 for better performance
 
-	// Observability stack - pinned for consistent metrics/tracing
-	github.com/prometheus/client_golang v1.22.0
-	github.com/prometheus/common v0.65.0
-	github.com/stretchr/testify v1.10.0
+	// Configuration management - single YAML library
+	sigs.k8s.io/yaml v1.6.0 // Replaces gopkg.in/yaml.v2
 
-	// Performance testing - pinned version for reproducible benchmarks
-	github.com/tsenart/vegeta/v12 v12.12.0
-
-	// RAG/Vector database - pinned for ML pipeline stability
-	github.com/weaviate/weaviate v1.32.2
-	github.com/weaviate/weaviate-go-client/v4 v4.16.1
+	// === OBSERVABILITY STACK ===
+	
+	// OpenTelemetry - consolidated exports
 	go.opentelemetry.io/otel v1.37.0
-	go.opentelemetry.io/otel/exporters/jaeger v1.17.0
-	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.37.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.37.0
-	go.opentelemetry.io/otel/exporters/prometheus v0.59.1
 	go.opentelemetry.io/otel/metric v1.37.0
 	go.opentelemetry.io/otel/sdk v1.37.0
 	go.opentelemetry.io/otel/trace v1.37.0
-	go.uber.org/zap v1.27.0
 
-	// Security and crypto libraries - critical for supply chain security
-	golang.org/x/crypto v0.40.0
-	golang.org/x/mod v0.26.0
-	golang.org/x/oauth2 v0.30.0
+	// Prometheus for metrics
+	github.com/prometheus/client_golang v1.22.0
 
-	// Configuration management
-	gopkg.in/yaml.v2 v2.4.0
+	// === AI/ML DEPENDENCIES ===
+	
+	// Weaviate vector database client only
+	github.com/weaviate/weaviate-go-client/v4 v4.16.1
 
-	// Kubernetes ecosystem - pinned to k8s v1.32.0 for compatibility
+	// === KUBERNETES ECOSYSTEM ===
+	
+	// Kubernetes core APIs - aligned to v0.33.3
 	k8s.io/api v0.33.3
 	k8s.io/apiextensions-apiserver v0.33.3
 	k8s.io/apimachinery v0.33.3
 	k8s.io/client-go v0.33.3
 	k8s.io/klog/v2 v2.130.1
 	sigs.k8s.io/controller-runtime v0.21.0
-	sigs.k8s.io/yaml v1.6.0
-)
 
-require (
-	github.com/CycloneDX/cyclonedx-gomod v1.9.0
-	github.com/aws/aws-sdk-go-v2/service/route53 v1.55.0
-	github.com/bytedance/sonic v1.14.0
-	github.com/fsnotify/fsnotify v1.9.0
-	github.com/git-chglog/git-chglog v0.15.4
-	github.com/golang/mock v1.6.0
-	github.com/golangci/golangci-lint v1.64.8
-	github.com/google/ko v0.18.0
-	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6
-	github.com/lib/pq v1.10.9
-	github.com/pkg/profile v1.7.0
+	// === CIRCUIT BREAKER ===
 	github.com/sony/gobreaker v1.0.0
-	github.com/swaggo/swag v1.16.6
-	github.com/testcontainers/testcontainers-go v0.35.0
-	github.com/valyala/fasthttp v1.64.0
-	github.com/valyala/fastjson v1.6.4
-	github.com/vektra/mockery/v2 v2.53.4
-	github.com/xeipuuv/gojsonschema v1.2.0
+
+	// === ESSENTIAL UTILITIES ===
 	golang.org/x/sync v0.16.0
 	golang.org/x/time v0.12.0
+)
+
+// === DEVELOPMENT DEPENDENCIES ===
+// These are only used for development and testing - not included in production builds
+require (
+	// Testing essentials only
+	github.com/stretchr/testify v1.10.0
+	github.com/onsi/ginkgo/v2 v2.23.4
+	github.com/onsi/gomega v1.38.0
+
+	// Code generation tools (build-time only)
+	k8s.io/code-generator v0.33.3
+	sigs.k8s.io/controller-tools v0.18.0
+
+	// Security scanning and SBOM generation
+	github.com/CycloneDX/cyclonedx-gomod v1.9.0
 	golang.org/x/vuln v1.1.4
+
+	// API documentation
+	github.com/swaggo/swag v1.16.6
+	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff
+
+	// Helm integration for package management
+	helm.sh/helm/v3 v3.18.4
+
+	// gRPC for internal services
 	google.golang.org/grpc v1.73.0
 	google.golang.org/protobuf v1.36.6
-	gotest.tools/gotestsum v1.12.3
-	helm.sh/helm/v3 v3.18.4
-	k8s.io/code-generator v0.33.3
-	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff
-	sigs.k8s.io/controller-tools v0.18.0
+
+	// JSON schema validation
+	github.com/xeipuuv/gojsonschema v1.2.0
+
+	// File system notifications
+	github.com/fsnotify/fsnotify v1.9.0
 )
 
 require (

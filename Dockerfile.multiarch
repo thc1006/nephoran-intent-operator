@@ -1,35 +1,60 @@
+# =============================================================================
 # Multi-Architecture Dockerfile for Nephoran Intent Operator
+# =============================================================================
 # Optimized for cross-platform builds: linux/amd64, linux/arm64, linux/arm/v7
-# Supports all services with platform-specific optimizations
-# Production-ready with security hardening
+# Uses Docker Buildx for efficient multi-platform image creation
+#
+# Build for multiple architectures:
+#   docker buildx create --use --name multiarch-builder
+#   docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 \
+#     --build-arg SERVICE=llm-processor \
+#     -t nephoran/llm-processor:latest \
+#     --push .
+#
+# Build for specific architecture:
+#   docker buildx build --platform linux/arm64 \
+#     --build-arg SERVICE=nephio-bridge \
+#     -t nephoran/nephio-bridge:arm64 \
+#     --load .
+# =============================================================================
 
-# Multi-arch build arguments
-ARG BUILDPLATFORM
-ARG TARGETPLATFORM  
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
-ARG TARGETVARIANT
+ARG GO_VERSION=1.24
+ARG PYTHON_VERSION=3.11
+ARG ALPINE_VERSION=3.22
+ARG DISTROLESS_VERSION=nonroot
 
-# Service selection
-ARG SERVICE_TYPE=go
-ARG SERVICE_NAME
-ARG BUILD_DATE
-ARG VCS_REF
-ARG VERSION=v2.0.0
-
-# Display build information
-FROM --platform=$BUILDPLATFORM alpine:3.20 AS build-info
+# Global build arguments for cross-compilation
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
-RUN printf "Building on: %s\nBuilding for: %s\nTarget OS: %s\nTarget Arch: %s\n" \
-    "$BUILDPLATFORM" "$TARGETPLATFORM" "$TARGETOS" "$TARGETARCH"
+ARG TARGETVARIANT
 
-# ============================================================================
-# STAGE 1: CROSS-COMPILATION DEPENDENCIES
-# ============================================================================
-FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS go-cross-deps
+# =============================================================================
+# STAGE: Build Information
+# =============================================================================
+FROM --platform=$BUILDPLATFORM alpine:${ALPINE_VERSION} AS build-info
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+RUN printf "Build Information:\n" > /build-info.txt && \
+    printf "  Build Platform: %s\n" "$BUILDPLATFORM" >> /build-info.txt && \
+    printf "  Target Platform: %s\n" "$TARGETPLATFORM" >> /build-info.txt && \
+    printf "  Target OS: %s\n" "$TARGETOS" >> /build-info.txt && \
+    printf "  Target Arch: %s\n" "$TARGETARCH" >> /build-info.txt && \
+    printf "  Target Variant: %s\n" "$TARGETVARIANT" >> /build-info.txt && \
+    cat /build-info.txt
+
+# =============================================================================
+# STAGE: Cross-Compilation Dependencies for Go
+# =============================================================================
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go-cross-deps
+
+ARG TARGETARCH
+ARG TARGETVARIANT
 
 # Install cross-compilation tools
 RUN apk add --no-cache \
@@ -38,63 +63,59 @@ RUN apk add --no-cache \
     tzdata \
     gcc \
     musl-dev \
+    binutils \
     && rm -rf /var/cache/apk/*
 
-# Install platform-specific build tools
-ARG TARGETARCH
+# Install architecture-specific cross-compilers
 RUN case "$TARGETARCH" in \
     "amd64") \
-        apk add --no-cache gcc-x86_64-linux-musl \
+        echo "Native amd64 compilation" \
         ;; \
     "arm64") \
-        apk add --no-cache gcc-aarch64-linux-musl \
+        apk add --no-cache gcc-aarch64 \
         ;; \
     "arm") \
-        apk add --no-cache gcc-arm-linux-musleabihf \
+        case "$TARGETVARIANT" in \
+            "v7") apk add --no-cache gcc-arm-none-eabi ;; \
+            "v6") apk add --no-cache gcc-arm-none-eabi ;; \
+        esac \
         ;; \
     esac
 
-# Create build user
+# Create non-root build user
 RUN addgroup -g 65532 -S nonroot && \
     adduser -u 65532 -S nonroot -G nonroot
 
-WORKDIR /deps
+WORKDIR /workspace
 COPY --chown=nonroot:nonroot go.mod go.sum ./
 
-USER nonroot:nonroot
+USER nonroot
 RUN go mod download && go mod verify
 
-# ============================================================================
-# STAGE 2: MULTI-ARCH GOLANG BUILD
-# ============================================================================
-FROM --platform=$BUILDPLATFORM golang:1.24-alpine AS go-cross-builder
+# =============================================================================
+# STAGE: Cross-Platform Go Builder
+# =============================================================================
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go-cross-builder
 
 ARG BUILDPLATFORM
 ARG TARGETPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
+ARG SERVICE
+ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
-ARG VERSION
-ARG SERVICE_NAME
 
-# Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata gcc musl-dev
+# Copy build info
+COPY --from=build-info /build-info.txt /build-info.txt
+RUN cat /build-info.txt
 
-# Platform-specific optimizations
-RUN case "$TARGETARCH" in \
-    "amd64") \
-        apk add --no-cache upx || true \
-        ;; \
-    "arm64") \
-        echo "ARM64 build optimizations" \
-        ;; \
-    "arm") \
-        echo "ARM32 build optimizations" \
-        ;; \
-    esac
+# Install build tools
+RUN apk add --no-cache git ca-certificates tzdata binutils file && \
+    apk upgrade --no-cache
 
+# Create non-root build user
 RUN addgroup -g 65532 -S nonroot && \
     adduser -u 65532 -S nonroot -G nonroot
 
@@ -102,219 +123,238 @@ WORKDIR /build
 
 # Copy dependencies
 COPY --from=go-cross-deps /go/pkg /go/pkg
+COPY --from=go-cross-deps /workspace/go.mod /workspace/go.sum ./
 
 # Copy source code
-COPY --chown=nonroot:nonroot cmd/ cmd/
-COPY --chown=nonroot:nonroot pkg/ pkg/
-COPY --chown=nonroot:nonroot api/ api/
-COPY --chown=nonroot:nonroot go.mod go.sum ./
-COPY --chown=nonroot:nonroot main.go .
+COPY --chown=nonroot:nonroot . .
 
-USER nonroot:nonroot
+USER nonroot
 
-# Cross-compilation with platform-specific optimizations
-RUN set -ex; \
-    # Determine command path
-    case "$SERVICE_NAME" in \
+# Configure Go build environment for target architecture
+ENV CGO_ENABLED=0
+ENV GOOS=${TARGETOS}
+ENV GOARCH=${TARGETARCH}
+
+# Set GOARM for ARM variants
+RUN case "$TARGETARCH" in \
+    "arm") \
+        case "$TARGETVARIANT" in \
+            "v7") export GOARM=7 ;; \
+            "v6") export GOARM=6 ;; \
+            "v5") export GOARM=5 ;; \
+        esac \
+        ;; \
+    esac
+
+# Build service with architecture-specific optimizations
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    set -ex; \
+    case "$SERVICE" in \
         "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
         "nephio-bridge") CMD_PATH="./cmd/nephio-bridge/main.go" ;; \
         "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;; \
-        "manager") CMD_PATH="./main.go" ;; \
-        *) echo "Unknown service: $SERVICE_NAME" && exit 1 ;; \
+        "manager"|"controller") CMD_PATH="./main.go" ;; \
+        *) echo "Unknown service: $SERVICE" && exit 1 ;; \
     esac; \
-    # Set cross-compilation environment
-    export CGO_ENABLED=0; \
-    export GOOS=${TARGETOS}; \
-    export GOARCH=${TARGETARCH}; \
-    # Add variant-specific flags for ARM
-    if [ "$TARGETARCH" = "arm" ]; then \
-        export GOARM=${TARGETVARIANT#v}; \
-    fi; \
-    # Platform-specific build flags
-    BUILD_FLAGS=""; \
-    case "$TARGETARCH" in \
-        "amd64") \
-            BUILD_FLAGS="-ldflags=-linkmode=external -extldflags '-static -fno-PIC'" \
-            ;; \
-        "arm64"|"arm") \
-            BUILD_FLAGS="-ldflags=-linkmode=external -extldflags '-static'" \
-            ;; \
-    esac; \
-    # Build the binary
+    echo "Building $SERVICE for $TARGETOS/$TARGETARCH${TARGETVARIANT:+/$TARGETVARIANT}"; \
     go build \
         -buildmode=pie \
         -trimpath \
         -mod=readonly \
-        -ldflags="-w -s $BUILD_FLAGS \
+        -ldflags="-w -s -extldflags '-static' \
                  -X main.version=${VERSION} \
                  -X main.buildDate=${BUILD_DATE} \
                  -X main.gitCommit=${VCS_REF} \
-                 -X main.targetArch=${TARGETARCH} \
+                 -X main.platform=${TARGETPLATFORM} \
                  -buildid=" \
         -tags="netgo osusergo static_build" \
         -o /build/service \
-        $CMD_PATH
+        $CMD_PATH && \
+    echo "Build complete: $(file /build/service)" && \
+    echo "Binary size: $(du -h /build/service | cut -f1)"
 
-# Verify and optimize binary
-RUN file /build/service && \
-    # Platform-specific optimizations
+# Verify binary is statically linked
+RUN file /build/service | grep -E "(statically linked|static)" || \
+    (echo "Warning: Binary may not be fully static" && exit 0)
+
+# =============================================================================
+# STAGE: Binary Optimizer (Platform-Specific)
+# =============================================================================
+FROM --platform=$TARGETPLATFORM alpine:${ALPINE_VERSION} AS optimizer
+
+ARG TARGETARCH
+ARG TARGETVARIANT
+
+# Install optimization tools
+RUN apk add --no-cache binutils file && \
     case "$TARGETARCH" in \
         "amd64") \
-            if command -v upx >/dev/null 2>&1; then \
-                upx --best --lzma /build/service || true; \
-            fi \
+            apk add --no-cache upx && echo "UPX available for amd64" \
             ;; \
-        "arm64"|"arm") \
-            strip --strip-unneeded /build/service || true \
+        "arm64") \
+            echo "UPX not recommended for arm64" \
+            ;; \
+        "arm") \
+            echo "UPX not recommended for arm" \
             ;; \
     esac
 
-# ============================================================================
-# STAGE 3: PYTHON MULTI-ARCH BUILD (for RAG API)
-# ============================================================================
-FROM --platform=$BUILDPLATFORM python:3.11-slim AS python-cross-builder
+COPY --from=go-cross-builder /build/service /tmp/service
 
-ARG TARGETARCH
-ARG BUILD_DATE
-ARG VCS_REF
-ARG VERSION
-
-# Platform-specific Python optimizations
-RUN apt-get update && \
+# Optimize binary based on architecture
+RUN strip --strip-unneeded /tmp/service 2>/dev/null || true && \
     case "$TARGETARCH" in \
         "amd64") \
-            apt-get install -y gcc python3-dev \
-            ;; \
-        "arm64") \
-            apt-get install -y gcc-aarch64-linux-gnu python3-dev \
-            ;; \
-        "arm") \
-            apt-get install -y gcc-arm-linux-gnueabihf python3-dev \
+            if command -v upx >/dev/null 2>&1; then \
+                upx --best --lzma /tmp/service || true; \
+            fi \
             ;; \
     esac && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    echo "Optimized binary size: $(du -h /tmp/service | cut -f1)"
 
-RUN groupadd -g 65532 nonroot && \
-    useradd -u 65532 -g nonroot -s /bin/false -m nonroot
+# =============================================================================
+# STAGE: Python Cross-Platform Builder
+# =============================================================================
+FROM --platform=$BUILDPLATFORM python:${PYTHON_VERSION}-slim AS python-cross-builder
 
-# Install dependencies with platform-specific optimizations
-WORKDIR /app
-COPY requirements-rag.txt ./
-
-RUN pip install --no-cache-dir --user -r requirements-rag.txt
-
-# Copy and compile application
-COPY --chown=nonroot:nonroot rag-python/ ./
-USER nonroot
-RUN python -m compileall -b . && \
-    find . -name "*.py" -delete
-
-# ============================================================================
-# STAGE 4: MULTI-ARCH BASE IMAGE SELECTION
-# ============================================================================
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:nonroot AS distroless-base
-
-# ============================================================================
-# STAGE 5: GO SERVICE RUNTIME
-# ============================================================================
-FROM distroless-base AS go-runtime
-
-ARG BUILD_DATE
-ARG VCS_REF
-ARG VERSION
-ARG SERVICE_NAME
 ARG TARGETPLATFORM
 ARG TARGETARCH
 
-# Import certificates and timezone
+# Install build dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends gcc python3-dev && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create non-root user
+RUN groupadd -g 65532 nonroot && \
+    useradd -u 65532 -g nonroot -s /bin/false -m nonroot
+
+WORKDIR /app
+
+# Copy and install requirements
+COPY requirements-rag.txt ./
+RUN pip install --user --no-cache-dir --no-compile \
+    --platform ${TARGETPLATFORM} \
+    -r requirements-rag.txt 2>/dev/null || \
+    pip install --user --no-cache-dir --no-compile -r requirements-rag.txt
+
+# Copy application
+COPY --chown=nonroot:nonroot rag-python/ ./
+
+USER nonroot
+
+# Pre-compile Python bytecode
+RUN python -m compileall -b . && \
+    find . -name "*.py" -delete && \
+    find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# =============================================================================
+# STAGE: Go Runtime (Multi-Arch Distroless)
+# =============================================================================
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/static:${DISTROLESS_VERSION} AS go-runtime
+
+ARG TARGETPLATFORM
+ARG TARGETARCH
+ARG TARGETVARIANT
+ARG SERVICE
+ARG VERSION=v2.0.0
+ARG BUILD_DATE
+ARG VCS_REF
+
+# Copy certificates and timezone data
 COPY --from=go-cross-builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=go-cross-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 # Copy optimized binary
-COPY --from=go-cross-builder --chmod=555 /build/service /service
+COPY --from=optimizer --chmod=555 /tmp/service /service
 
-# Multi-arch labels
-LABEL security.scan="required" \
-      security.user="65532:65532" \
-      org.opencontainers.image.created="${BUILD_DATE}" \
+# Multi-architecture labels
+LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.version="${VERSION}" \
-      org.opencontainers.image.title="Nephoran ${SERVICE_NAME}" \
-      org.opencontainers.image.description="Multi-arch ${SERVICE_NAME} service" \
+      org.opencontainers.image.title="Nephoran ${SERVICE}" \
+      org.opencontainers.image.description="Multi-arch ${SERVICE} service" \
+      org.opencontainers.image.vendor="Nephoran" \
+      org.opencontainers.image.source="https://github.com/thc1006/nephoran-intent-operator" \
+      service.name="${SERVICE}" \
       build.platform="${TARGETPLATFORM}" \
       build.architecture="${TARGETARCH}" \
-      build.multi-arch="true"
+      build.variant="${TARGETVARIANT}" \
+      multi-arch="true"
 
-# Platform-specific environment optimizations
-ARG TARGETARCH
-ENV GOGC=100 \
-    GOMEMLIMIT=512MiB
-
-# Set GOMAXPROCS based on architecture
-RUN case "$TARGETARCH" in \
-    "amd64") export GOMAXPROCS=4 ;; \
-    "arm64") export GOMAXPROCS=4 ;; \
-    "arm") export GOMAXPROCS=2 ;; \
-    *) export GOMAXPROCS=2 ;; \
-    esac
-
+# Non-root user
 USER 65532:65532
 
+# Environment with architecture-specific tuning
+ENV GOGC=100 \
+    TZ=UTC
+
+# Set GOMEMLIMIT based on architecture
+ENV GOMEMLIMIT=$( \
+    case "$TARGETARCH" in \
+        "amd64") echo "1GiB" ;; \
+        "arm64") echo "768MiB" ;; \
+        "arm") echo "512MiB" ;; \
+        *) echo "512MiB" ;; \
+    esac \
+)
+
+# Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD ["/service", "--health-check"]
 
+# Service ports
+EXPOSE 8080 8081 8082
+
 ENTRYPOINT ["/service"]
 
-# ============================================================================
-# STAGE 6: PYTHON SERVICE RUNTIME
-# ============================================================================
-FROM --platform=$TARGETPLATFORM gcr.io/distroless/python3-debian12:nonroot AS python-runtime
+# =============================================================================
+# STAGE: Python Runtime (Multi-Arch Distroless)
+# =============================================================================
+FROM --platform=$TARGETPLATFORM gcr.io/distroless/python3-debian12:${DISTROLESS_VERSION} AS python-runtime
 
+ARG TARGETPLATFORM
+ARG TARGETARCH
+ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
-ARG VERSION
-ARG TARGETARCH
 
-# Copy Python dependencies and application
+# Copy Python packages and application
 COPY --from=python-cross-builder --chown=nonroot:nonroot /home/nonroot/.local /home/nonroot/.local
 COPY --from=python-cross-builder --chown=nonroot:nonroot /app /app
 
-# Multi-arch Python labels
-LABEL security.scan="required" \
-      security.user="65532:65532" \
-      org.opencontainers.image.created="${BUILD_DATE}" \
+# Multi-architecture labels
+LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.title="Nephoran RAG API" \
+      org.opencontainers.image.description="Multi-arch RAG service" \
+      service.name="rag-api" \
+      build.platform="${TARGETPLATFORM}" \
       build.architecture="${TARGETARCH}" \
-      build.multi-arch="true"
+      multi-arch="true"
 
-# Platform-optimized Python environment
+# Environment
 ENV PYTHONPATH=/home/nonroot/.local/lib/python3.11/site-packages:/app \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONOPTIMIZE=2 \
     PORT=5001
 
 USER nonroot
 WORKDIR /app
 
+EXPOSE 5001
+
 ENTRYPOINT ["python", "-O"]
 CMD ["api.pyc"]
 
-# ============================================================================
-# FINAL STAGE SELECTION
-# ============================================================================
-FROM ${SERVICE_TYPE}-runtime AS final
+# =============================================================================
+# STAGE: Final Runtime Selection
+# =============================================================================
+ARG SERVICE_TYPE=go
+FROM go-runtime AS final-go
+FROM python-runtime AS final-python
 
-# Multi-arch compatible port exposure
-EXPOSE 8080 8081 8082 5001
-
-# Platform information in environment
-ARG TARGETPLATFORM
-ARG TARGETARCH
-ENV BUILD_PLATFORM=${TARGETPLATFORM} \
-    BUILD_ARCH=${TARGETARCH}
-
-CMD ["--help"]
+FROM final-${SERVICE_TYPE} AS final

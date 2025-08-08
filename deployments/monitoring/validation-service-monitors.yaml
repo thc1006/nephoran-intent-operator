@@ -1,0 +1,190 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nephoran-validation-suite
+  namespace: nephoran-system
+  labels:
+    app: prometheus
+    component: validation-monitoring
+    monitoring: validation-suite
+spec:
+  selector:
+    matchLabels:
+      app: nephoran-validation-runner
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 15s
+    scrapeTimeout: 10s
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: nephoran_validation_.*
+      targetLabel: service
+      replacement: validation-suite
+  namespaceSelector:
+    matchNames:
+    - nephoran-system
+    - nephoran-validation
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nephoran-regression-detector
+  namespace: nephoran-system
+  labels:
+    app: prometheus
+    component: regression-monitoring
+    monitoring: regression-detection
+spec:
+  selector:
+    matchLabels:
+      app: nephoran-regression-detector
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 15s
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: nephoran_regression_.*
+      targetLabel: service
+      replacement: regression-detector
+  namespaceSelector:
+    matchNames:
+    - nephoran-system
+    - nephoran-validation
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nephoran-oran-validator
+  namespace: nephoran-system
+  labels:
+    app: prometheus
+    component: oran-monitoring
+    monitoring: oran-validation
+spec:
+  selector:
+    matchLabels:
+      app: nephoran-oran-validator
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 30s
+    scrapeTimeout: 15s
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: nephoran_oran_.*
+      targetLabel: service
+      replacement: oran-validator
+  namespaceSelector:
+    matchNames:
+    - nephoran-system
+    - nephoran-validation
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nephoran-security-validator
+  namespace: nephoran-system
+  labels:
+    app: prometheus
+    component: security-monitoring
+    monitoring: security-validation
+spec:
+  selector:
+    matchLabels:
+      app: nephoran-security-validator
+  endpoints:
+  - port: metrics
+    path: /metrics
+    interval: 60s
+    scrapeTimeout: 30s
+    metricRelabelings:
+    - sourceLabels: [__name__]
+      regex: nephoran_security_.*
+      targetLabel: service
+      replacement: security-validator
+  namespaceSelector:
+    matchNames:
+    - nephoran-system
+    - nephoran-validation
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-validation-runner
+  namespace: nephoran-system
+  labels:
+    app: nephoran-validation-runner
+    component: validation-metrics
+spec:
+  selector:
+    app: nephoran-validation-runner
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-regression-detector
+  namespace: nephoran-system
+  labels:
+    app: nephoran-regression-detector
+    component: regression-metrics
+spec:
+  selector:
+    app: nephoran-regression-detector
+  ports:
+  - name: metrics
+    port: 8081
+    targetPort: 8081
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-oran-validator
+  namespace: nephoran-system
+  labels:
+    app: nephoran-oran-validator
+    component: oran-metrics
+spec:
+  selector:
+    app: nephoran-oran-validator
+  ports:
+  - name: metrics
+    port: 8082
+    targetPort: 8082
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-security-validator
+  namespace: nephoran-system
+  labels:
+    app: nephoran-security-validator
+    component: security-metrics
+spec:
+  selector:
+    app: nephoran-security-validator
+  ports:
+  - name: metrics
+    port: 8083
+    targetPort: 8083
+    protocol: TCP
+  type: ClusterIP

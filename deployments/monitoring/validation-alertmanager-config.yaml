@@ -1,0 +1,363 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephoran-validation-alertmanager-config
+  namespace: nephoran-system
+  labels:
+    app: alertmanager
+    component: validation-alerts
+data:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'smtp.nephoran.com:587'
+      smtp_from: 'validation-alerts@nephoran.com'
+      smtp_auth_username: 'validation-alerts@nephoran.com'
+      smtp_auth_password_file: '/etc/alertmanager/secrets/smtp-password'
+      slack_api_url_file: '/etc/alertmanager/secrets/slack-webhook'
+      
+    # Route configuration for validation alerts
+    route:
+      group_by: ['alertname', 'cluster', 'component', 'severity']
+      group_wait: 5s
+      group_interval: 10s
+      repeat_interval: 2h
+      receiver: 'validation-team'
+      routes:
+        # Critical validation issues - immediate escalation
+        - match:
+            severity: critical
+            component: validation-suite
+          receiver: 'critical-validation-alerts'
+          group_wait: 0s
+          group_interval: 0s
+          repeat_interval: 30m
+          continue: true
+          
+        # Quality gate failures - business impact
+        - match:
+            alertname: ValidationQualityGateFailure
+          receiver: 'quality-gate-alerts'
+          group_wait: 0s
+          group_interval: 0s
+          repeat_interval: 15m
+          
+        # Regression detection - development team
+        - match_re:
+            alertname: "ValidationMajorRegression|ValidationPerformanceDegradation"
+          receiver: 'regression-alerts'
+          group_wait: 30s
+          group_interval: 1m
+          repeat_interval: 1h
+          
+        # Security validation issues - security team
+        - match:
+            category: security
+          receiver: 'security-validation-alerts'
+          group_wait: 0s
+          group_interval: 30s
+          repeat_interval: 1h
+          
+        # O-RAN compliance issues - standards team
+        - match:
+            component: validation-oran
+          receiver: 'oran-compliance-alerts'
+          group_wait: 1m
+          group_interval: 2m
+          repeat_interval: 4h
+          
+        # Performance issues - performance engineering team
+        - match:
+            category: performance
+          receiver: 'performance-alerts'
+          group_wait: 2m
+          group_interval: 5m
+          repeat_interval: 2h
+
+    # Receiver configurations
+    receivers:
+      # Default validation team receiver
+      - name: 'validation-team'
+        email_configs:
+          - to: 'validation-team@nephoran.com'
+            subject: '[VALIDATION] {{ .GroupLabels.alertname }} - {{ .GroupLabels.severity | toUpper }}'
+            body: |
+              🔍 **Validation Alert Summary**
+              
+              **Alert Group:** {{ .GroupLabels.alertname }}
+              **Severity:** {{ .GroupLabels.severity | toUpper }}
+              **Component:** {{ .GroupLabels.component }}
+              
+              **Active Alerts:**
+              {{ range .Alerts }}
+              ---
+              **Alert:** {{ .Annotations.summary }}
+              **Description:** {{ .Annotations.description }}
+              **Started:** {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+              **Labels:** {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}
+              {{ if .Annotations.runbook_url }}**Runbook:** {{ .Annotations.runbook_url }}{{ end }}
+              {{ if .Annotations.dashboard_url }}**Dashboard:** {{ .Annotations.dashboard_url }}{{ end }}
+              {{ end }}
+              
+              **Actions Required:**
+              1. Review validation dashboard: https://grafana.nephoran.com/d/nephoran-validation-realtime
+              2. Check test execution logs for detailed error information
+              3. Follow appropriate runbook procedures
+              4. Update incident status in tracking system
+              
+        slack_configs:
+          - api_url_file: '/etc/alertmanager/secrets/slack-webhook'
+            channel: '#validation-alerts'
+            title: '🔍 Validation Alert: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              **Severity:** {{ .Labels.severity | toUpper }}
+              **Component:** {{ .Labels.component }}
+              **Summary:** {{ .Annotations.summary }}
+              {{ if .Annotations.dashboard_url }}
+              <{{ .Annotations.dashboard_url }}|📊 View Dashboard>
+              {{ end }}
+              {{ end }}
+
+      # Critical validation alerts - immediate response required
+      - name: 'critical-validation-alerts'
+        email_configs:
+          - to: 'critical-alerts@nephoran.com,validation-lead@nephoran.com,cto@nephoran.com'
+            subject: '[CRITICAL-VALIDATION] {{ .GroupLabels.alertname }} - IMMEDIATE ACTION REQUIRED'
+            body: |
+              🚨🚨🚨 **CRITICAL VALIDATION ALERT** 🚨🚨🚨
+              
+              **IMMEDIATE ACTION REQUIRED**
+              
+              {{ range .Alerts }}
+              **Alert:** {{ .Annotations.summary }}
+              **Impact:** {{ .Labels.impact | default "System-wide validation failure" }}
+              **Component:** {{ .Labels.component }}
+              **Priority:** {{ .Labels.priority | default "P1" }}
+              
+              **Description:** {{ .Annotations.description }}
+              
+              **Started:** {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+              
+              {{ if .Annotations.runbook_url }}
+              **Immediate Actions:** {{ .Annotations.runbook_url }}
+              {{ end }}
+              
+              {{ if .Annotations.dashboard_url }}
+              **Live Dashboard:** {{ .Annotations.dashboard_url }}
+              {{ end }}
+              {{ end }}
+              
+              **Escalation Chain:**
+              1. Validation Team Lead (15 min)
+              2. Engineering Manager (30 min)
+              3. CTO (45 min)
+              
+        pagerduty_configs:
+          - routing_key_file: '/etc/alertmanager/secrets/pagerduty-validation-key'
+            description: 'Critical validation failure in Nephoran Intent Operator'
+            severity: 'critical'
+            details:
+              component: '{{ .GroupLabels.component }}'
+              alert_count: '{{ len .Alerts }}'
+              
+        slack_configs:
+          - api_url_file: '/etc/alertmanager/secrets/slack-webhook-critical'
+            channel: '#critical-alerts'
+            title: '🚨 CRITICAL VALIDATION ALERT'
+            text: |
+              @channel **IMMEDIATE ATTENTION REQUIRED**
+              
+              {{ range .Alerts }}
+              **Component:** {{ .Labels.component }}
+              **Alert:** {{ .Annotations.summary }}
+              **Impact:** System validation failure - deployment pipeline blocked
+              **Priority:** {{ .Labels.priority | default "P1" }}
+              {{ end }}
+              
+              📊 <{{ .Alerts.0.Annotations.dashboard_url }}|View Live Dashboard>
+              📖 <{{ .Alerts.0.Annotations.runbook_url }}|Emergency Response Runbook>
+
+      # Quality gate failure alerts - business stakeholder notification
+      - name: 'quality-gate-alerts'
+        email_configs:
+          - to: 'product-team@nephoran.com,engineering-leads@nephoran.com,qa-team@nephoran.com'
+            subject: '[QUALITY-GATE] Deployment Quality Gate Failure - Score Below 90/100'
+            body: |
+              ⚠️ **Quality Gate Failure Notification**
+              
+              The Nephoran Intent Operator validation suite has failed to meet the 
+              required 90/100 quality gate threshold for production deployment.
+              
+              {{ range .Alerts }}
+              **Current Score:** {{ query "nephoran:validation:overall_score" | first | value }}/100
+              **Required Score:** 90/100
+              **Gap:** {{ sub 90 (query "nephoran:validation:overall_score" | first | value) }} points
+              
+              **Category Breakdown:**
+              - Functional: {{ query "nephoran_validation_functional_score" | first | value }}/50
+              - Performance: {{ query "nephoran_validation_performance_score" | first | value }}/25  
+              - Security: {{ query "nephoran_validation_security_score" | first | value }}/15
+              - Production: {{ query "nephoran_validation_production_score" | first | value }}/10
+              {{ end }}
+              
+              **Impact:**
+              - Production deployment pipeline is blocked
+              - Release timeline may be affected
+              - Customer deliverables may be delayed
+              
+              **Next Steps:**
+              1. Review detailed validation results: https://grafana.nephoran.com/d/nephoran-validation-executive
+              2. Prioritize failing test categories for remediation
+              3. Schedule emergency standup for resolution planning
+              4. Update stakeholders on revised timeline
+              
+        webhook_configs:
+          - url: 'https://webhooks.nephoran.com/quality-gate-failure'
+            send_resolved: true
+            http_config:
+              bearer_token_file: '/etc/alertmanager/secrets/webhook-token'
+
+      # Regression detection alerts - development team focus
+      - name: 'regression-alerts'
+        email_configs:
+          - to: 'dev-team@nephoran.com,performance-engineering@nephoran.com'
+            subject: '[REGRESSION] {{ .GroupLabels.alertname }} - Quality Degradation Detected'
+            body: |
+              📉 **Quality Regression Detected**
+              
+              {{ range .Alerts }}
+              **Regression Type:** {{ .Annotations.summary }}
+              **Component:** {{ .Labels.component }}
+              **Detection Time:** {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+              
+              **Details:** {{ .Annotations.description }}
+              
+              **Comparison:**
+              - Current Score: {{ query "nephoran:validation:overall_score" | first | value }}/100
+              - 24h Change: {{ query "nephoran:validation:score_24h_change_pct" | first | value }}%
+              - 7d Average: {{ query "nephoran:validation:score_7d_avg" | first | value }}/100
+              {{ end }}
+              
+              **Recommended Actions:**
+              1. Review recent code changes for potential impact
+              2. Check test environment stability
+              3. Run focused regression analysis
+              4. Consider rollback if regression is severe
+              
+        slack_configs:
+          - api_url_file: '/etc/alertmanager/secrets/slack-webhook'
+            channel: '#dev-alerts'
+            title: '📉 Quality Regression: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              **Component:** {{ .Labels.component }}
+              **Change:** {{ query "nephoran:validation:score_24h_change_pct" | first | value }}% over 24h
+              **Current Score:** {{ query "nephoran:validation:overall_score" | first | value }}/100
+              
+              <{{ .Annotations.dashboard_url }}|📊 View Trends> | <{{ .Annotations.runbook_url }}|📖 Regression Response>
+              {{ end }}
+
+      # Security validation alerts - security team
+      - name: 'security-validation-alerts'
+        email_configs:
+          - to: 'security-team@nephoran.com,compliance-team@nephoran.com'
+            subject: '[SECURITY-VALIDATION] {{ .GroupLabels.alertname }} - Security Compliance Issue'
+            body: |
+              🔒 **Security Validation Alert**
+              
+              {{ range .Alerts }}
+              **Alert:** {{ .Annotations.summary }}
+              **Component:** {{ .Labels.component }}
+              **Severity:** {{ .Labels.severity | toUpper }}
+              
+              **Security Impact:** {{ .Annotations.description }}
+              
+              **Current Security Score:** {{ query "nephoran_validation_security_score" | first | value }}/15
+              **Target Score:** 14/15 (93%)
+              {{ end }}
+              
+              **Required Actions:**
+              1. Conduct immediate security assessment
+              2. Review and remediate identified vulnerabilities
+              3. Update security compliance documentation
+              4. Schedule security review meeting if needed
+              
+        pagerduty_configs:
+          - routing_key_file: '/etc/alertmanager/secrets/pagerduty-security-key'
+            description: 'Security validation failure in Nephoran system'
+            severity: 'high'
+
+      # O-RAN compliance alerts - standards compliance team  
+      - name: 'oran-compliance-alerts'
+        email_configs:
+          - to: 'standards-team@nephoran.com,architecture-team@nephoran.com'
+            subject: '[ORAN-COMPLIANCE] {{ .GroupLabels.alertname }} - O-RAN Standards Issue'
+            body: |
+              📡 **O-RAN Compliance Alert**
+              
+              {{ range .Alerts }}
+              **Alert:** {{ .Annotations.summary }}
+              **Interface Impact:** {{ .Annotations.description }}
+              
+              **Interface Scores:**
+              - A1 Interface: {{ query "nephoran_oran_a1_interface_score" | first | value }}/12.5
+              - E2 Interface: {{ query "nephoran_oran_e2_interface_score" | first | value }}/12.5
+              - O1 Interface: {{ query "nephoran_oran_o1_interface_score" | first | value }}/12.5
+              - O2 Interface: {{ query "nephoran_oran_o2_interface_score" | first | value }}/12.5
+              
+              **Total O-RAN Score:** {{ query "nephoran:validation:oran_total_score" | first | value }}/50
+              {{ end }}
+              
+              **Required Actions:**
+              1. Review O-RAN Alliance specification compliance
+              2. Validate interface implementations against standards
+              3. Update interface adapters if needed
+              4. Schedule standards review meeting
+
+      # Performance engineering alerts
+      - name: 'performance-alerts'
+        email_configs:
+          - to: 'performance-team@nephoran.com,sre-team@nephoran.com'
+            subject: '[PERFORMANCE-VALIDATION] {{ .GroupLabels.alertname }} - Performance Issue'
+            body: |
+              ⚡ **Performance Validation Alert**
+              
+              {{ range .Alerts }}
+              **Alert:** {{ .Annotations.summary }}
+              **Component:** {{ .Labels.component }}
+              
+              **Performance Metrics:**
+              - P95 Latency: {{ query "nephoran:validation:latency_p95" | first | value }}s
+              - P75 Latency: {{ query "nephoran:validation:latency_p75" | first | value }}s
+              - Test Failure Rate: {{ query "nephoran:validation:test_failure_rate" | first | value | humanizePercentage }}
+              
+              **Performance Score:** {{ query "nephoran_validation_performance_score" | first | value }}/25
+              {{ end }}
+              
+              **Recommended Actions:**
+              1. Analyze performance bottlenecks
+              2. Review resource utilization patterns  
+              3. Optimize critical performance paths
+              4. Consider infrastructure scaling if needed
+
+    # Inhibit rules to prevent alert spam
+    inhibit_rules:
+      # Inhibit non-critical alerts when critical ones are firing
+      - source_match:
+          severity: 'critical'
+        target_match:
+          severity: 'medium'
+        equal: ['alertname', 'component']
+        
+      - source_match:
+          severity: 'critical'  
+        target_match:
+          severity: 'low'
+        equal: ['alertname', 'component']
+        
+      # Inhibit individual category alerts when overall quality gate fails
+      - source_match:
+          alertname: 'ValidationQualityGateFailure'
+        target_match_re:
+          alertname: 'Validation.*BelowTarget'
+        equal: ['cluster']
