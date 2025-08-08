@@ -1,0 +1,397 @@
+{{ template "chart.header" . }}
+
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+{{ template "chart.homepageLine" . }}
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+  - [Add Helm Repository](#add-helm-repository)
+  - [Basic Installation](#basic-installation)
+  - [Production Installation](#production-installation)
+  - [Custom Values](#custom-values)
+- [Configuration](#configuration)
+  - [Core Components](#core-components)
+  - [Feature Flags](#feature-flags)
+  - [Security Configuration](#security-configuration)
+  - [Monitoring and Observability](#monitoring-and-observability)
+- [Upgrading](#upgrading)
+- [Uninstallation](#uninstallation)
+- [Architecture](#architecture)
+- [Troubleshooting](#troubleshooting)
+
+## Overview
+
+The Nephoran Intent Operator is an intelligent telecom network intent management system that transforms natural language intents into deployed network functions. It leverages:
+
+- **LLM/RAG Processing**: Natural language intent interpretation with telecommunications domain knowledge
+- **O-RAN Compliance**: Full support for A1, O1, O2, and E2 interfaces
+- **Nephio Integration**: GitOps-based package orchestration with R5 compatibility
+- **Production-Ready**: Enterprise-grade security, monitoring, and high availability
+- **Cloud-Native**: Kubernetes-native with support for multi-cloud deployments
+
+### Key Features
+
+- 🎯 **Intent-Driven Orchestration**: Deploy network functions using natural language
+- 🤖 **AI-Powered Processing**: GPT-4o-mini with RAG for domain-specific knowledge
+- 📊 **Complete Observability**: Prometheus, Grafana, and Jaeger integration
+- 🔒 **Enterprise Security**: OAuth2, mTLS, RBAC, and network policies
+- 🚀 **High Performance**: Sub-2s intent processing with 99.95% availability
+- 🌐 **Multi-Cloud Support**: AWS, Azure, GCP, and edge deployments
+
+## Prerequisites
+
+- Kubernetes 1.26+ cluster
+- Helm 3.8+
+- kubectl configured to access your cluster
+- (Optional) Prometheus Operator for monitoring
+- (Optional) cert-manager for TLS certificate management
+- (Optional) External Secrets Operator for secret management
+
+### Required Resources
+
+Minimum cluster resources for basic deployment:
+- Nodes: 3 (for HA)
+- CPU: 4 cores total
+- Memory: 8GB total
+- Storage: 20GB (if Weaviate is enabled)
+
+Production deployment recommendations:
+- Nodes: 5+ across multiple availability zones
+- CPU: 16+ cores total
+- Memory: 32GB+ total
+- Storage: 100GB+ SSD for vector database
+
+## Installation
+
+### Add Helm Repository
+
+```bash
+# Add the Nephoran repository
+helm repo add nephoran https://charts.nephoran.io
+helm repo update
+```
+
+### Basic Installation
+
+For a basic installation with default values:
+
+```bash
+# Create namespace
+kubectl create namespace nephoran-system
+
+# Install the chart
+helm install nephoran-operator nephoran/nephoran-operator \
+  --namespace nephoran-system
+```
+
+### Production Installation
+
+For production deployments with high availability and full features:
+
+```bash
+# Create namespace with labels
+kubectl create namespace nephoran-system
+kubectl label namespace nephoran-system \
+  environment=production \
+  nephoran.io/managed=true
+
+# Create secrets (example)
+kubectl create secret generic openai-credentials \
+  --from-literal=apiKey=<your-openai-api-key> \
+  -n nephoran-system
+
+kubectl create secret generic git-credentials \
+  --from-literal=token=<your-git-token> \
+  -n nephoran-system
+
+# Install with production values
+helm install nephoran-operator nephoran/nephoran-operator \
+  --namespace nephoran-system \
+  --values https://raw.githubusercontent.com/thc1006/nephoran-intent-operator/main/deployments/helm/nephoran-operator/values-production.yaml
+```
+
+### Custom Values
+
+Create a custom values file for your specific requirements:
+
+```yaml
+# custom-values.yaml
+global:
+  imageRegistry: "my-registry.example.com/"
+  
+rag:
+  enabled: true
+  
+ml:
+  enabled: true
+
+llmProcessor:
+  replicaCount: 3
+  providers:
+    openai:
+      enabled: true
+      model: "gpt-4"
+      
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    
+security:
+  mtls:
+    enabled: true
+  networkPolicies:
+    enabled: true
+```
+
+Then install with:
+
+```bash
+helm install nephoran-operator nephoran/nephoran-operator \
+  --namespace nephoran-system \
+  --values custom-values.yaml
+```
+
+## Configuration
+
+### Core Components
+
+The chart deploys several core components:
+
+1. **Nephoran Operator Controller**: Main Kubernetes controller managing NetworkIntent CRDs
+2. **LLM Processor**: Service for natural language processing with LLM integration
+3. **RAG API** (optional): Retrieval-Augmented Generation service for domain knowledge
+4. **Weaviate** (optional): Vector database for semantic search
+5. **Nephio Bridge**: Integration with Nephio package orchestration
+6. **O-RAN Adaptor**: Interface implementations for O-RAN compliance
+
+### Feature Flags
+
+Control which features are enabled:
+
+```yaml
+# Enable/disable major features
+rag:
+  enabled: true  # Enable RAG for enhanced intent processing
+  
+ml:
+  enabled: true  # Enable ML optimization features
+
+monitoring:
+  enabled: true  # Enable Prometheus monitoring
+  
+security:
+  mtls:
+    enabled: true  # Enable mutual TLS
+```
+
+### Security Configuration
+
+Configure security features:
+
+```yaml
+security:
+  # mTLS configuration
+  mtls:
+    enabled: true
+    
+  # Pod Security Standards
+  podSecurityStandards:
+    enforce: "restricted"
+    
+  # Network Policies
+  networkPolicies:
+    enabled: true
+    allowNamespaces:
+      - prometheus-system
+      - nephio-system
+      
+  # Security scanning
+  scanning:
+    enabled: true
+    trivy:
+      enabled: true
+```
+
+### Monitoring and Observability
+
+Configure monitoring integration:
+
+```yaml
+monitoring:
+  enabled: true
+  
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+    
+  prometheusRule:
+    enabled: true
+    
+  # Grafana dashboards
+  dashboards:
+    enabled: true
+    
+  # Distributed tracing
+  tracing:
+    enabled: true
+    jaeger:
+      endpoint: "http://jaeger-collector:14268/api/traces"
+```
+
+### Environment-Specific Configurations
+
+The chart includes pre-configured values for different environments:
+
+- **Enterprise**: `values-enterprise.yaml` - Optimized for enterprise deployments
+- **Telecom Operator**: `values-telecom-operator.yaml` - Carrier-grade configuration
+- **Edge Computing**: `values-edge-computing.yaml` - Optimized for edge deployments
+
+Example usage:
+
+```bash
+# Deploy for telecom operator environment
+helm install nephoran-operator nephoran/nephoran-operator \
+  --namespace nephoran-system \
+  --values environments/values-telecom-operator.yaml
+```
+
+## Upgrading
+
+### Standard Upgrade
+
+```bash
+# Update repository
+helm repo update nephoran
+
+# Upgrade the release
+helm upgrade nephoran-operator nephoran/nephoran-operator \
+  --namespace nephoran-system \
+  --values custom-values.yaml
+```
+
+### Rolling Back
+
+If an upgrade fails:
+
+```bash
+# View history
+helm history nephoran-operator -n nephoran-system
+
+# Rollback to previous version
+helm rollback nephoran-operator -n nephoran-system
+
+# Or rollback to specific revision
+helm rollback nephoran-operator 3 -n nephoran-system
+```
+
+## Uninstallation
+
+```bash
+# Uninstall the release
+helm uninstall nephoran-operator -n nephoran-system
+
+# Clean up CRDs (optional - this will delete all NetworkIntent resources)
+kubectl delete crd networkintents.nephoran.io
+kubectl delete crd e2nodesets.nephoran.io
+
+# Delete namespace
+kubectl delete namespace nephoran-system
+```
+
+## Architecture
+
+The Nephoran Intent Operator follows a microservices architecture:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      User Interface Layer                    │
+│         (kubectl, REST API, Web UI, Automation Tools)        │
+└─────────────────────────────────────────────────────────────┘
+                               │
+┌─────────────────────────────────────────────────────────────┐
+│                    LLM/RAG Processing Layer                  │
+│      (GPT-4o-mini, Haystack RAG, Weaviate Vector DB)        │
+└─────────────────────────────────────────────────────────────┘
+                               │
+┌─────────────────────────────────────────────────────────────┐
+│                   Nephio R5 Control Plane                    │
+│        (Porch, KRM Functions, ConfigSync, ArgoCD)           │
+└─────────────────────────────────────────────────────────────┘
+                               │
+┌─────────────────────────────────────────────────────────────┐
+│                  O-RAN Interface Bridge Layer                │
+│              (A1, O1-FCAPS, O2-Cloud, E2-RIC)               │
+└─────────────────────────────────────────────────────────────┘
+                               │
+┌─────────────────────────────────────────────────────────────┐
+│                Network Function Orchestration                │
+│        (5G Core NFs, O-RAN NFs, Network Slicing)            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. LLM Processor Not Starting
+
+Check if the OpenAI API key is configured:
+
+```bash
+kubectl get secret openai-credentials -n nephoran-system
+kubectl logs -l app.kubernetes.io/component=llm-processor -n nephoran-system
+```
+
+#### 2. RAG Service Connection Issues
+
+Verify Weaviate is running:
+
+```bash
+kubectl get pods -l app.kubernetes.io/name=weaviate -n nephoran-system
+kubectl logs -l app.kubernetes.io/name=weaviate -n nephoran-system
+```
+
+#### 3. NetworkIntent Not Processing
+
+Check operator logs:
+
+```bash
+kubectl logs -l app.kubernetes.io/component=controller -n nephoran-system
+kubectl describe networkintent <intent-name> -n nephoran-system
+```
+
+### Debug Mode
+
+Enable debug logging:
+
+```yaml
+llmProcessor:
+  logLevel: "debug"
+  
+nephoranOperator:
+  logLevel: "debug"
+```
+
+### Support
+
+- Documentation: [GitHub Repository](https://github.com/thc1006/nephoran-intent-operator)
+- Issues: [GitHub Issues](https://github.com/thc1006/nephoran-intent-operator/issues)
+- Slack: [#nephoran-operator](https://kubernetes.slack.com/channels/nephoran-operator)
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}

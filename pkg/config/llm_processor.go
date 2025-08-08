@@ -61,6 +61,8 @@ type LLMProcessorConfig struct {
 	RateLimitEnabled        bool
 	RateLimitRequestsPerMin int
 	RateLimitBurst          int
+	RateLimitQPS            int // Queries per second for IP-based rate limiting
+	RateLimitBurstTokens    int // Burst tokens for IP-based rate limiting
 
 	// Retry Configuration
 	MaxRetries   int
@@ -130,6 +132,8 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 		RateLimitEnabled:        true,
 		RateLimitRequestsPerMin: 60,
 		RateLimitBurst:          10,
+		RateLimitQPS:            20, // Default 20 queries per second
+		RateLimitBurstTokens:    40, // Default 40 burst tokens
 
 		MaxRetries:   3,
 		RetryDelay:   1 * time.Second,
@@ -234,6 +238,8 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg.RateLimitEnabled = parseBoolWithDefault("RATE_LIMIT_ENABLED", cfg.RateLimitEnabled)
 	cfg.RateLimitRequestsPerMin = parseIntWithValidation("RATE_LIMIT_REQUESTS_PER_MINUTE", cfg.RateLimitRequestsPerMin, validatePositiveInt, &validationErrors)
 	cfg.RateLimitBurst = parseIntWithValidation("RATE_LIMIT_BURST", cfg.RateLimitBurst, validatePositiveInt, &validationErrors)
+	cfg.RateLimitQPS = parseIntWithValidation("RATE_LIMIT_QPS", cfg.RateLimitQPS, validatePositiveInt, &validationErrors)
+	cfg.RateLimitBurstTokens = parseIntWithValidation("RATE_LIMIT_BURST_TOKENS", cfg.RateLimitBurstTokens, validatePositiveInt, &validationErrors)
 
 	// Retry Configuration
 	cfg.MaxRetries = parseIntWithValidation("MAX_RETRIES", cfg.MaxRetries, validateNonNegativeInt, &validationErrors)

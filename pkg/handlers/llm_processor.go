@@ -6,26 +6,29 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
 // LLMProcessorHandler handles HTTP requests for the LLM processor service
 type LLMProcessorHandler struct {
-	config            *config.LLMProcessorConfig
-	processor         *IntentProcessor
+	config             *config.LLMProcessorConfig
+	processor          *IntentProcessor
 	streamingProcessor *llm.StreamingProcessor
-	circuitBreakerMgr *llm.CircuitBreakerManager
-	tokenManager      *llm.TokenManager
-	contextBuilder    *llm.ContextBuilder
-	relevanceScorer   *llm.RelevanceScorer
-	promptBuilder     *llm.RAGAwarePromptBuilder
-	logger            *slog.Logger
-	healthChecker     *health.HealthChecker
-	startTime         time.Time
+	circuitBreakerMgr  *llm.CircuitBreakerManager
+	tokenManager       *llm.TokenManager
+	contextBuilder     *llm.ContextBuilder
+	relevanceScorer    *llm.RelevanceScorer
+	promptBuilder      *llm.RAGAwarePromptBuilder
+	logger             *slog.Logger
+	healthChecker      *health.HealthChecker
+	startTime          time.Time
+	metricsCollector   *monitoring.MetricsCollector
 }
 
 // Request/Response structures
@@ -73,6 +76,37 @@ func NewLLMProcessorHandler(
 	healthChecker *health.HealthChecker,
 	startTime time.Time,
 ) *LLMProcessorHandler {
+	return NewLLMProcessorHandlerWithMetrics(
+		config,
+		processor,
+		streamingProcessor,
+		circuitBreakerMgr,
+		tokenManager,
+		contextBuilder,
+		relevanceScorer,
+		promptBuilder,
+		logger,
+		healthChecker,
+		startTime,
+		monitoring.NewMetricsCollector(),
+	)
+}
+
+// NewLLMProcessorHandlerWithMetrics creates a new handler instance with a provided metrics collector
+func NewLLMProcessorHandlerWithMetrics(
+	config *config.LLMProcessorConfig,
+	processor *IntentProcessor,
+	streamingProcessor *llm.StreamingProcessor,
+	circuitBreakerMgr *llm.CircuitBreakerManager,
+	tokenManager *llm.TokenManager,
+	contextBuilder *llm.ContextBuilder,
+	relevanceScorer *llm.RelevanceScorer,
+	promptBuilder *llm.RAGAwarePromptBuilder,
+	logger *slog.Logger,
+	healthChecker *health.HealthChecker,
+	startTime time.Time,
+	metricsCollector *monitoring.MetricsCollector,
+) *LLMProcessorHandler {
 	return &LLMProcessorHandler{
 		config:             config,
 		processor:          processor,
@@ -85,13 +119,30 @@ func NewLLMProcessorHandler(
 		logger:             logger,
 		healthChecker:      healthChecker,
 		startTime:          startTime,
+		metricsCollector:   metricsCollector,
 	}
 }
 
 // ProcessIntentHandler handles intent processing requests
 func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *http.Request) {
+	// Start timing for metrics
+	handlerStartTime := time.Now()
+	var statusCode int = http.StatusOK // Default to OK, will be overridden on error
+	
+	// Ensure metrics are recorded when handler exits
+	defer func() {
+		duration := time.Since(handlerStartTime)
+		h.metricsCollector.RecordHTTPRequest(
+			r.Method,
+			"/api/v1/process-intent",
+			strconv.Itoa(statusCode),
+			duration,
+		)
+	}()
+	
 	if r.Method != http.MethodPost {
-		h.writeErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed, "")
+		statusCode = http.StatusMethodNotAllowed
+		h.writeErrorResponse(w, "Method not allowed", statusCode, "")
 		return
 	}
 
@@ -103,13 +154,15 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 	var req ProcessIntentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error("Failed to decode request", slog.String("error", err.Error()))
-		h.writeErrorResponse(w, "Invalid request body", http.StatusBadRequest, reqID)
+		statusCode = http.StatusBadRequest
+		h.writeErrorResponse(w, "Invalid request body", statusCode, reqID)
 		return
 	}
 
 	if req.Intent == "" {
 		h.logger.Error("Empty intent provided")
-		h.writeErrorResponse(w, "Intent is required", http.StatusBadRequest, reqID)
+		statusCode = http.StatusBadRequest
+		h.writeErrorResponse(w, "Intent is required", statusCode, reqID)
 		return
 	}
 
@@ -123,6 +176,7 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 			slog.String("error", err.Error()),
 			slog.String("intent", req.Intent),
 		)
+		statusCode = http.StatusInternalServerError
 		response := ProcessIntentResponse{
 			Status:         "error",
 			Error:          err.Error(),
@@ -130,7 +184,7 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 			ServiceVersion: h.config.ServiceVersion,
 			ProcessingTime: time.Since(startTime).String(),
 		}
-		h.writeJSONResponse(w, response, http.StatusInternalServerError)
+		h.writeJSONResponse(w, response, statusCode)
 		return
 	}
 
@@ -152,6 +206,21 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 
 // StatusHandler returns service status information
 func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Request) {
+	// Start timing for metrics
+	handlerStartTime := time.Now()
+	statusCode := http.StatusOK
+	
+	// Ensure metrics are recorded when handler exits
+	defer func() {
+		duration := time.Since(handlerStartTime)
+		h.metricsCollector.RecordHTTPRequest(
+			r.Method,
+			"/api/v1/status",
+			strconv.Itoa(statusCode),
+			duration,
+		)
+	}()
+	
 	status := map[string]interface{}{
 		"service":         "llm-processor",
 		"version":         h.config.ServiceVersion,
@@ -169,25 +238,55 @@ func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Reque
 
 // StreamingHandler handles Server-Sent Events streaming requests
 func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Request) {
+	// Start timing for HTTP request metrics
+	handlerStartTime := time.Now()
+	var statusCode int = http.StatusOK
+	
+	// Start timing for SSE stream duration
+	streamStartTime := time.Now()
+	streamRoute := "/api/v1/stream"
+	
+	// Ensure HTTP metrics are recorded when handler exits
+	defer func() {
+		// Record HTTP request metrics
+		duration := time.Since(handlerStartTime)
+		h.metricsCollector.RecordHTTPRequest(
+			r.Method,
+			streamRoute,
+			strconv.Itoa(statusCode),
+			duration,
+		)
+		
+		// Record SSE stream duration only if streaming actually occurred
+		if statusCode == http.StatusOK {
+			streamDuration := time.Since(streamStartTime)
+			h.metricsCollector.RecordSSEStream(streamRoute, streamDuration)
+		}
+	}()
+	
 	if r.Method != http.MethodPost {
-		h.writeErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed, "")
+		statusCode = http.StatusMethodNotAllowed
+		h.writeErrorResponse(w, "Method not allowed", statusCode, "")
 		return
 	}
 
 	if h.streamingProcessor == nil {
-		h.writeErrorResponse(w, "Streaming not enabled", http.StatusServiceUnavailable, "")
+		statusCode = http.StatusServiceUnavailable
+		h.writeErrorResponse(w, "Streaming not enabled", statusCode, "")
 		return
 	}
 
 	var req llm.StreamingRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error("Failed to decode streaming request", slog.String("error", err.Error()))
-		h.writeErrorResponse(w, "Invalid request body", http.StatusBadRequest, "")
+		statusCode = http.StatusBadRequest
+		h.writeErrorResponse(w, "Invalid request body", statusCode, "")
 		return
 	}
 
 	if req.Query == "" {
-		h.writeErrorResponse(w, "Query is required", http.StatusBadRequest, "")
+		statusCode = http.StatusBadRequest
+		h.writeErrorResponse(w, "Query is required", statusCode, "")
 		return
 	}
 
@@ -216,11 +315,28 @@ func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Re
 	if err != nil {
 		h.logger.Error("Streaming request failed", slog.String("error", err.Error()))
 		// Error handling is done within HandleStreamingRequest
+		// Set status code to indicate error for metrics
+		statusCode = http.StatusInternalServerError
 	}
 }
 
 // MetricsHandler provides comprehensive metrics
 func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Request) {
+	// Start timing for metrics
+	handlerStartTime := time.Now()
+	statusCode := http.StatusOK
+	
+	// Ensure metrics are recorded when handler exits
+	defer func() {
+		duration := time.Since(handlerStartTime)
+		h.metricsCollector.RecordHTTPRequest(
+			r.Method,
+			"/api/v1/metrics",
+			strconv.Itoa(statusCode),
+			duration,
+		)
+	}()
+	
 	metrics := map[string]interface{}{
 		"service": "llm-processor",
 		"version": h.config.ServiceVersion,
@@ -262,8 +378,24 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 
 // CircuitBreakerStatusHandler provides circuit breaker status and control
 func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter, r *http.Request) {
+	// Start timing for metrics
+	handlerStartTime := time.Now()
+	var statusCode int = http.StatusOK
+	
+	// Ensure metrics are recorded when handler exits
+	defer func() {
+		duration := time.Since(handlerStartTime)
+		h.metricsCollector.RecordHTTPRequest(
+			r.Method,
+			"/api/v1/circuit-breaker",
+			strconv.Itoa(statusCode),
+			duration,
+		)
+	}()
+	
 	if h.circuitBreakerMgr == nil {
-		h.writeErrorResponse(w, "Circuit breaker manager not available", http.StatusServiceUnavailable, "")
+		statusCode = http.StatusServiceUnavailable
+		h.writeErrorResponse(w, "Circuit breaker manager not available", statusCode, "")
 		return
 	}
 
@@ -275,13 +407,15 @@ func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter,
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			h.writeErrorResponse(w, "Invalid request body", http.StatusBadRequest, "")
+			statusCode = http.StatusBadRequest
+			h.writeErrorResponse(w, "Invalid request body", statusCode, "")
 			return
 		}
 
 		cb, exists := h.circuitBreakerMgr.Get(req.Name)
 		if !exists {
-			h.writeErrorResponse(w, "Circuit breaker not found", http.StatusNotFound, "")
+			statusCode = http.StatusNotFound
+			h.writeErrorResponse(w, "Circuit breaker not found", statusCode, "")
 			return
 		}
 
@@ -293,7 +427,8 @@ func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter,
 			cb.ForceOpen()
 			h.logger.Info("Circuit breaker forced open", "name", req.Name)
 		default:
-			h.writeErrorResponse(w, "Invalid action", http.StatusBadRequest, "")
+			statusCode = http.StatusBadRequest
+			h.writeErrorResponse(w, "Invalid action", statusCode, "")
 			return
 		}
 

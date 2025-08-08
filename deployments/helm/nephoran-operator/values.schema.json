@@ -1,0 +1,116 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Nephoran Intent Operator Helm Chart Values",
+    "description": "Configuration schema for Nephoran Intent Operator Helm Chart deployment",
+    "type": "object",
+    "properties": {
+        "global": {
+            "type": "object",
+            "properties": {
+                "imageRegistry": {
+                    "type": "string",
+                    "description": "Global Docker image registry"
+                },
+                "imagePullSecrets": {
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    },
+                    "description": "Global image pull secrets"
+                }
+            }
+        },
+        "rag": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean",
+                    "description": "Enable Retrieval-Augmented Generation (RAG) service",
+                    "default": false
+                },
+                "compat": {
+                    "type": "object",
+                    "properties": {
+                        "enableLegacyProcessIntent": {
+                            "type": "boolean",
+                            "description": "Use legacy /process_intent endpoint if true, otherwise use new /process endpoint",
+                            "default": true
+                        }
+                    }
+                }
+            }
+        },
+        "ml": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean", 
+                    "description": "Enable Machine Learning features",
+                    "default": false
+                }
+            }
+        },
+        "git": {
+            "type": "object",
+            "properties": {
+                "tokenSecret": {
+                    "type": ["string", "null"],
+                    "description": "Secret containing Git access token",
+                    "default": ""
+                }
+            }
+        },
+        "llmProcessor": {
+            "type": "object",
+            "properties": {
+                "healthCheck": {
+                    "type": "object",
+                    "properties": {
+                        "livenessProbe": {
+                            "type": "object",
+                            "properties": {
+                                "httpGet": {
+                                    "type": "object",
+                                    "properties": {
+                                        "path": {
+                                            "type": "string",
+                                            "enum": ["/healthz", "/readyz"],
+                                            "description": "Health check endpoint for liveness probe"
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        "readinessProbe": {
+                            "type": "object", 
+                            "properties": {
+                                "httpGet": {
+                                    "type": "object",
+                                    "properties": {
+                                        "path": {
+                                            "type": "string",
+                                            "enum": ["/healthz", "/readyz"],
+                                            "description": "Health check endpoint for readiness probe"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "ragService": {
+                    "type": "object", 
+                    "properties": {
+                        "url": {
+                            "type": "string", 
+                            "format": "uri",
+                            "description": "Base URL for RAG API service",
+                            "default": "http://rag-api:5001"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "required": ["rag", "ml", "git"]
+}

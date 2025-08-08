@@ -59,6 +59,9 @@ func main() {
 		slog.Bool("auth_enabled", cfg.AuthEnabled),
 		slog.Bool("require_auth", cfg.RequireAuth),
 		slog.Bool("tls_enabled", cfg.TLSEnabled),
+		slog.Bool("rate_limit_enabled", cfg.RateLimitEnabled),
+		slog.Int("rate_limit_qps", cfg.RateLimitQPS),
+		slog.Int("rate_limit_burst", cfg.RateLimitBurstTokens),
 	)
 
 	// Initialize service components
@@ -119,6 +122,12 @@ func main() {
 	// Graceful shutdown
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.GracefulShutdown)
 	defer cancel()
+
+	// Shutdown rate limiter
+	if postRateLimiter != nil {
+		logger.Info("Stopping rate limiter...")
+		postRateLimiter.Stop()
+	}
 
 	// Shutdown service components
 	if err := service.Shutdown(shutdownCtx); err != nil {
@@ -277,6 +286,62 @@ func setupHTTPServer() *http.Server {
 			slog.Bool("credentials_allowed", corsConfig.AllowCredentials))
 	}
 
+	// Initialize rate limiter middleware for POST endpoints only
+	var postRateLimiter *middleware.PostOnlyRateLimiter
+	if cfg.RateLimitEnabled {
+		rateLimiterConfig := middleware.RateLimiterConfig{
+			QPS:             cfg.RateLimitQPS,
+			Burst:           cfg.RateLimitBurstTokens,
+			CleanupInterval: 10 * time.Minute,
+			IPTimeout:       1 * time.Hour,
+		}
+		postRateLimiter = middleware.NewPostOnlyRateLimiter(rateLimiterConfig, logger)
+		logger.Info("Rate limiter enabled for POST endpoints",
+			slog.Int("qps", cfg.RateLimitQPS),
+			slog.Int("burst", cfg.RateLimitBurstTokens))
+	}
+
+	// Initialize redact logger middleware
+	redactLoggerConfig := middleware.DefaultRedactLoggerConfig()
+	// Customize configuration based on log level and environment
+	redactLoggerConfig.LogLevel = func() slog.Level {
+		switch cfg.LogLevel {
+		case "debug":
+			return slog.LevelDebug
+		case "info":
+			return slog.LevelInfo
+		case "warn":
+			return slog.LevelWarn
+		case "error":
+			return slog.LevelError
+		default:
+			return slog.LevelInfo
+		}
+	}()
+	redactLoggerConfig.LogRequestBody = cfg.LogLevel == "debug"
+	redactLoggerConfig.LogResponseBody = cfg.LogLevel == "debug"
+
+	redactLogger, err := middleware.NewRedactLogger(redactLoggerConfig, logger)
+	if err != nil {
+		logger.Error("Failed to create redact logger middleware", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+
+	// Initialize security headers middleware
+	securityHeadersConfig := middleware.DefaultSecurityHeadersConfig()
+	// Enable HSTS only if TLS is enabled
+	securityHeadersConfig.EnableHSTS = cfg.TLSEnabled
+	// Use appropriate CSP for API service
+	securityHeadersConfig.ContentSecurityPolicy = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+
+	securityHeaders := middleware.NewSecurityHeaders(securityHeadersConfig, logger)
+
+	logger.Info("Middlewares configured",
+		slog.Bool("redact_logger_enabled", redactLoggerConfig.Enabled),
+		slog.Bool("security_headers_enabled", true),
+		slog.Bool("hsts_enabled", securityHeadersConfig.EnableHSTS),
+		slog.String("log_level", redactLoggerConfig.LogLevel.String()))
+
 	// Initialize OAuth2Manager
 	oauth2Config := &auth.OAuth2ManagerConfig{
 		Enabled:          cfg.AuthEnabled,
@@ -293,9 +358,21 @@ func setupHTTPServer() *http.Server {
 		os.Exit(1)
 	}
 
-	// Apply CORS middleware to all routes if enabled
+	// Apply middlewares in the correct order:
+	// 1. Redact Logger (first, to log all requests)
+	router.Use(redactLogger.Middleware)
+	
+	// 2. Security Headers (early, to set headers on all responses)
+	router.Use(securityHeaders.Middleware)
+	
+	// 3. CORS (existing, after security headers)
 	if corsMiddleware != nil {
 		router.Use(corsMiddleware.Middleware)
+	}
+
+	// 4. Rate Limiter (for POST endpoints only, before authentication)
+	if postRateLimiter != nil {
+		router.Use(postRateLimiter.Middleware)
 	}
 
 	// Setup OAuth2 routes if enabled

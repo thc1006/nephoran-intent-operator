@@ -20,3 +20,58 @@ maintainers:
     email: thc1006@example.com
 annotations:
   category: Networking
+  # ArtifactHub annotations
+  artifacthub.io/schema: |
+    https://raw.githubusercontent.com/thc1006/nephoran-intent-operator/main/deployments/helm/nephoran-operator/values.schema.json
+  artifacthub.io/changes: |
+    - kind: added
+      description: Initial release of Nephoran Intent Operator with LLM integration
+    - kind: added
+      description: Complete O-RAN compliance with A1, O1, O2, and E2 interface support
+    - kind: added
+      description: RAG-based intent processing with telecommunications domain knowledge
+    - kind: added
+      description: Production-ready observability with Prometheus, Grafana, and Jaeger
+    - kind: added
+      description: Multi-cloud deployment support with Kubernetes operators
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/recommendations: |
+    - url: https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
+    - url: https://artifacthub.io/packages/helm/grafana/grafana
+    - url: https://artifacthub.io/packages/helm/jaegertracing/jaeger
+    - url: https://artifacthub.io/packages/helm/weaviate/weaviate
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://github.com/thc1006/nephoran-intent-operator/blob/main/README.md
+    - name: Repository
+      url: https://github.com/thc1006/nephoran-intent-operator
+    - name: Architecture Guide
+      url: https://github.com/thc1006/nephoran-intent-operator/blob/main/docs/architecture.md
+    - name: O-RAN Compliance
+      url: https://github.com/thc1006/nephoran-intent-operator/blob/main/docs/oran-compliance.md
+    - name: API Reference
+      url: https://github.com/thc1006/nephoran-intent-operator/blob/main/docs/api-reference.md
+  artifacthub.io/containsSecurityUpdates: "false"
+  artifacthub.io/prerelease: "false"
+  artifacthub.io/operator: "true"
+  artifacthub.io/operatorCapabilities: Full Lifecycle
+  artifacthub.io/crds: |
+    - kind: NetworkIntent
+      version: v1
+      name: networkintents.nephoran.io
+      displayName: Network Intent
+      description: Defines natural language network intents for automated deployment
+    - kind: E2NodeSet
+      version: v1
+      name: e2nodesets.nephoran.io
+      displayName: E2 Node Set
+      description: Manages E2 node configurations for O-RAN RIC testing
+  artifacthub.io/crdsExamples: |
+    - apiVersion: nephoran.io/v1
+      kind: NetworkIntent
+      metadata:
+        name: high-availability-amf
+      spec:
+        intent: "Deploy a high-availability AMF instance for production with auto-scaling"
+        priority: high
+        environment: production

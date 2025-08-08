@@ -16,7 +16,7 @@ spec:
       app.kubernetes.io/component: controller
 {{- end }}
 
-{{- if .Values.llmProcessor.enabled and .Values.llmProcessor.podDisruptionBudget.enabled }}
+{{- if and .Values.llmProcessor.enabled .Values.llmProcessor.podDisruptionBudget.enabled }}
 ---
 # PodDisruptionBudget for LLM Processor
 apiVersion: policy/v1
@@ -40,7 +40,7 @@ spec:
       app.kubernetes.io/component: llm-processor
 {{- end }}
 
-{{- if .Values.nephioBridge.enabled and .Values.nephioBridge.podDisruptionBudget.enabled }}
+{{- if and .Values.nephioBridge.enabled .Values.nephioBridge.podDisruptionBudget.enabled }}
 ---
 # PodDisruptionBudget for Nephio Bridge
 apiVersion: policy/v1
@@ -64,7 +64,7 @@ spec:
       app.kubernetes.io/component: nephio-bridge
 {{- end }}
 
-{{- if .Values.ragApi.enabled and .Values.ragApi.podDisruptionBudget.enabled }}
+{{- if and .Values.ragApi.enabled .Values.ragApi.podDisruptionBudget.enabled }}
 ---
 # PodDisruptionBudget for RAG API
 apiVersion: policy/v1
@@ -88,7 +88,7 @@ spec:
       app.kubernetes.io/component: rag-api
 {{- end }}
 
-{{- if .Values.weaviate.enabled and .Values.weaviate.podDisruptionBudget.enabled }}
+{{- if and .Values.weaviate.enabled .Values.weaviate.podDisruptionBudget.enabled }}
 ---
 # PodDisruptionBudget for Weaviate
 apiVersion: policy/v1
@@ -112,7 +112,7 @@ spec:
       app.kubernetes.io/component: weaviate
 {{- end }}
 
-{{- if .Values.oranAdaptor.enabled and .Values.oranAdaptor.podDisruptionBudget.enabled }}
+{{- if and .Values.oranAdaptor.enabled .Values.oranAdaptor.podDisruptionBudget.enabled }}
 ---
 # PodDisruptionBudget for O-RAN Adaptor
 apiVersion: policy/v1

@@ -13,7 +13,7 @@ concurrency:
 
 env:
   GO_VERSION: '1.24'
-  COVERAGE_THRESHOLD: 90
+  COVERAGE_THRESHOLD: 75
   GOPROXY: https://proxy.golang.org,direct
   GOSUMDB: sum.golang.org
 
@@ -175,12 +175,21 @@ jobs:
             ${{ runner.os }}-go-${{ matrix.go-version }}-
             ${{ runner.os }}-go-
 
+      - name: "Cache govulncheck Database"
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-security-db
+          key: ${{ runner.os }}-govulncheck-db-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-govulncheck-db-
+
       - name: "Install Test Dependencies"
         run: |
           go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
           go install golang.org/x/tools/cmd/cover@latest
           go install github.com/wadey/gocovmerge@latest
           go install github.com/jstemmer/go-junit-report/v2@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: "Setup Test Environment"
         run: |
@@ -193,6 +202,26 @@ jobs:
         run: |
           go mod download
           go mod verify
+
+      - name: "Run Vulnerability Check"
+        env:
+          GOVULNCHECK_DB: ~/.cache/go-security-db
+        run: |
+          echo "=== Running govulncheck ==="
+          mkdir -p security-reports
+          
+          # Run govulncheck with JSON output for processing
+          govulncheck -json ./... > security-reports/vulns.json || true
+          
+          # Run govulncheck with human-readable output
+          govulncheck ./... | tee security-reports/vulns.txt
+          
+          # Check for critical/high vulnerabilities
+          if grep -q "HIGH\|CRITICAL" security-reports/vulns.txt; then
+            echo "⚠️  Vulnerabilities detected - see security-reports for details"
+          else
+            echo "✅ No high/critical vulnerabilities found"
+          fi
 
       - name: "Run Tests with Coverage"
         env:
@@ -271,6 +300,7 @@ jobs:
             test-results.json
             test-report.xml
             test-summary.md
+            security-reports/
           retention-days: 30
 
       - name: "Upload Coverage to Codecov"

@@ -1,0 +1,291 @@
+// Package middleware provides HTTP middleware components for the Nephoran Intent Operator
+package middleware
+
+import (
+	"log/slog"
+	"net/http"
+	"os"
+)
+
+// Example configurations for different deployment scenarios
+
+// ProductionSecurityConfig returns security headers configuration for production
+// This configuration provides maximum security with strict policies
+func ProductionSecurityConfig() *SecurityHeadersConfig {
+	return &SecurityHeadersConfig{
+		// HSTS enabled for production with TLS
+		EnableHSTS:            true,
+		HSTSMaxAge:            63072000, // 2 years
+		HSTSIncludeSubDomains: true,
+		HSTSPreload:           false, // Enable only after careful consideration
+		
+		// Strict frame options to prevent clickjacking
+		FrameOptions: "DENY",
+		
+		// Prevent MIME type sniffing
+		ContentTypeOptions: true,
+		
+		// Strict referrer policy for privacy
+		ReferrerPolicy: "strict-origin-when-cross-origin",
+		
+		// Strict CSP for production
+		ContentSecurityPolicy: `
+			default-src 'self';
+			script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+			style-src 'self' 'unsafe-inline';
+			img-src 'self' data: https:;
+			font-src 'self' data:;
+			connect-src 'self' https://api.nephoran.io wss://api.nephoran.io;
+			frame-ancestors 'none';
+			base-uri 'self';
+			form-action 'self';
+			upgrade-insecure-requests;
+		`,
+		
+		// Restrictive permissions policy
+		PermissionsPolicy: `
+			accelerometer=(),
+			camera=(),
+			geolocation=(),
+			gyroscope=(),
+			magnetometer=(),
+			microphone=(),
+			payment=(),
+			usb=()
+		`,
+		
+		// XSS protection for older browsers
+		XSSProtection: "1; mode=block",
+		
+		// Additional production headers
+		CustomHeaders: map[string]string{
+			"X-Permitted-Cross-Domain-Policies": "none",
+			"X-Download-Options":                "noopen",
+		},
+	}
+}
+
+// DevelopmentSecurityConfig returns relaxed security headers for development
+// This configuration allows for easier debugging while maintaining basic security
+func DevelopmentSecurityConfig() *SecurityHeadersConfig {
+	return &SecurityHeadersConfig{
+		// HSTS disabled for development
+		EnableHSTS: false,
+		
+		// Allow same origin framing for development tools
+		FrameOptions: "SAMEORIGIN",
+		
+		// Still prevent MIME type sniffing
+		ContentTypeOptions: true,
+		
+		// Relaxed referrer policy
+		ReferrerPolicy: "strict-origin-when-cross-origin",
+		
+		// Relaxed CSP for development
+		ContentSecurityPolicy: `
+			default-src 'self' 'unsafe-inline' 'unsafe-eval';
+			img-src * data:;
+			connect-src *;
+			frame-ancestors 'self' localhost:*;
+		`,
+		
+		// Basic permissions policy
+		PermissionsPolicy: "geolocation=(), microphone=(), camera=()",
+		
+		// XSS protection enabled
+		XSSProtection: "1; mode=block",
+		
+		CustomHeaders: map[string]string{},
+	}
+}
+
+// APISecurityConfig returns security headers optimized for API endpoints
+// This configuration focuses on API-specific security concerns
+func APISecurityConfig() *SecurityHeadersConfig {
+	return &SecurityHeadersConfig{
+		EnableHSTS:            true,
+		HSTSMaxAge:            31536000,
+		HSTSIncludeSubDomains: false, // API might have different subdomains
+		
+		// APIs don't render in frames
+		FrameOptions: "DENY",
+		
+		// Critical for APIs
+		ContentTypeOptions: true,
+		
+		// No referrer for API calls
+		ReferrerPolicy: "no-referrer",
+		
+		// Strict CSP for APIs (no rendering)
+		ContentSecurityPolicy: "default-src 'none'; frame-ancestors 'none'",
+		
+		// APIs don't need browser features
+		PermissionsPolicy: "",
+		
+		// XSS protection (though less relevant for APIs)
+		XSSProtection: "1; mode=block",
+		
+		// API-specific headers
+		CustomHeaders: map[string]string{
+			"Cache-Control":                     "no-store, no-cache, must-revalidate, private",
+			"Pragma":                            "no-cache",
+			"X-Permitted-Cross-Domain-Policies": "none",
+		},
+	}
+}
+
+// ExampleSecurityHeadersIntegration demonstrates how to integrate security headers
+// with other middleware in a production application
+func ExampleSecurityHeadersIntegration() http.Handler {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	}))
+	
+	// Create security headers middleware with production config
+	securityConfig := ProductionSecurityConfig()
+	securityHeaders := NewSecurityHeaders(securityConfig, logger)
+	
+	// Create CORS middleware
+	corsConfig := &CORSConfig{
+		AllowedOrigins:   []string{"https://app.nephoran.io", "https://api.nephoran.io"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-Request-ID"},
+		ExposedHeaders:   []string{"X-Total-Count", "X-Page-Count"},
+		AllowCredentials: true,
+		MaxAge:           86400,
+	}
+	// CORS and request size middlewares would be created here
+	// For this example, we'll focus on security headers
+	
+	// Create the main application handler
+	mainHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"operational","version":"1.0.0"}`))
+	})
+	
+	// Chain middleware in the correct order:
+	// 1. Security headers (should be first to ensure headers are always set)
+	// 2. CORS (needs to run before request processing)
+	// 3. Request size limiting (protect against large payloads)
+	// 4. Main handler
+	handler := securityHeaders.Middleware(
+		cors.Middleware(
+			sizeLimiter.Middleware(mainHandler),
+		),
+	)
+	
+	return handler
+}
+
+// ExampleConditionalSecurity demonstrates environment-based security configuration
+func ExampleConditionalSecurity() http.Handler {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	
+	// Determine environment
+	env := os.Getenv("ENVIRONMENT")
+	if env == "" {
+		env = "development"
+	}
+	
+	// Select appropriate configuration
+	var config *SecurityHeadersConfig
+	switch env {
+	case "production":
+		config = ProductionSecurityConfig()
+		logger.Info("Using production security configuration")
+	case "staging":
+		config = ProductionSecurityConfig()
+		// Slightly relax for staging
+		config.HSTSPreload = false
+		config.ContentSecurityPolicy += "; script-src 'self' 'unsafe-inline'"
+		logger.Info("Using staging security configuration")
+	case "development":
+		config = DevelopmentSecurityConfig()
+		logger.Info("Using development security configuration")
+	default:
+		config = APISecurityConfig()
+		logger.Info("Using API security configuration")
+	}
+	
+	// Validate configuration
+	securityHeaders := NewSecurityHeaders(config, logger)
+	if err := securityHeaders.ValidateConfig(); err != nil {
+		logger.Error("Invalid security configuration", slog.String("error", err.Error()))
+		// Use safe defaults
+		securityHeaders = NewSecurityHeaders(DefaultSecurityHeadersConfig(), logger)
+	}
+	
+	// Create main handler
+	mainHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+	
+	return securityHeaders.Middleware(mainHandler)
+}
+
+// ExampleCSPReportHandler demonstrates a CSP violation report handler
+func ExampleCSPReportHandler() http.HandlerFunc {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		
+		// Log CSP violation report
+		logger.Warn("CSP violation reported",
+			slog.String("user_agent", r.UserAgent()),
+			slog.String("remote_addr", r.RemoteAddr),
+			slog.String("referrer", r.Referer()),
+		)
+		
+		// Return 204 No Content
+		w.WriteHeader(http.StatusNoContent)
+	})
+}
+
+// ExampleProgressiveCSP demonstrates progressive CSP implementation
+func ExampleProgressiveCSP() http.Handler {
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	
+	// Start with report-only mode
+	reportOnlyConfig := &SecurityHeadersConfig{
+		EnableHSTS:         true,
+		HSTSMaxAge:         31536000,
+		FrameOptions:       "DENY",
+		ContentTypeOptions: true,
+		ReferrerPolicy:     "strict-origin-when-cross-origin",
+		// Empty CSP - will use report-only
+		ContentSecurityPolicy: "",
+	}
+	
+	securityHeaders := NewSecurityHeaders(reportOnlyConfig, logger)
+	
+	// CSP to test in report-only mode
+	testCSP := `
+		default-src 'self';
+		script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+		style-src 'self' 'unsafe-inline';
+		img-src 'self' data: https:;
+		connect-src 'self';
+		frame-ancestors 'none';
+		report-uri /api/csp-report
+	`
+	
+	// Main application handler
+	mainHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("<html><body>Test Page</body></html>"))
+	})
+	
+	// Chain middleware with report-only CSP
+	handler := securityHeaders.Middleware(
+		securityHeaders.ReportOnlyCSP(testCSP, "/api/csp-report"),
+	)
+	
+	return handler(mainHandler)
+}

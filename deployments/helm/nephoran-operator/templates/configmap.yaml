@@ -313,7 +313,7 @@ data:
               severity: critical
             annotations:
               summary: "Nephoran Operator component is down"
-              description: "{{ $labels.job }} has been down for more than 5 minutes"
+              description: "{{ "{{ $labels.job }}" }} has been down for more than 5 minutes"
           
           - alert: NephoranOperatorHighMemoryUsage
             expr: container_memory_working_set_bytes{pod=~"nephoran-operator-.*"} / container_spec_memory_limit_bytes > 0.9
@@ -322,7 +322,7 @@ data:
               severity: warning
             annotations:
               summary: "High memory usage in Nephoran Operator"
-              description: "{{ $labels.pod }} is using more than 90% of its memory limit"
+              description: "{{ "{{ $labels.pod }}" }} is using more than 90% of its memory limit"
           
           - alert: NephoranOperatorHighCPUUsage
             expr: rate(container_cpu_usage_seconds_total{pod=~"nephoran-operator-.*"}[5m]) / container_spec_cpu_quota * 100 > 80
@@ -331,7 +331,7 @@ data:
               severity: warning
             annotations:
               summary: "High CPU usage in Nephoran Operator"
-              description: "{{ $labels.pod }} is using more than 80% of its CPU limit"
+              description: "{{ "{{ $labels.pod }}" }} is using more than 80% of its CPU limit"
           
           - alert: WeaviateDatabaseDown
             expr: up{job="nephoran-operator-weaviate"} == 0

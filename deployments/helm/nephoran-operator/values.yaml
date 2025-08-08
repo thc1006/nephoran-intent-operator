@@ -22,6 +22,83 @@ git:
   tokenSecret: ""
   concurrentPushLimit: 4  # Maximum concurrent git push operations
 
+# Nephoran Operator Controller (Main Controller)
+nephoranOperator:
+  enabled: true
+  replicaCount: 1
+  
+  image:
+    repository: "thc1006/nephoran-operator"
+    tag: "latest"
+    pullPolicy: IfNotPresent
+    
+  service:
+    type: ClusterIP
+    port: 9443
+    targetPort: 9443
+    
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      
+  podSecurityContext:
+    fsGroup: 65534
+    
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+      
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  # Leader election configuration
+  leaderElection:
+    enabled: false
+    leaseDuration: "15s"
+    renewDeadline: "10s"
+    retryPeriod: "2s"
+  
+  # TLS checksum (for automatic pod restarts on certificate rotation)
+  tlsChecksum: ""
+  
+  # Health check configuration
+  healthCheck:
+    enabled: true
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 8081
+      failureThreshold: 3
+      periodSeconds: 10
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    readinessProbe:
+      httpGet:
+        path: /readyz
+        port: 8081
+      failureThreshold: 3
+      periodSeconds: 10
+      initialDelaySeconds: 5
+      timeoutSeconds: 5
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 8081
+      failureThreshold: 30
+      periodSeconds: 10
+      initialDelaySeconds: 10
+      timeoutSeconds: 3
+
 # Note: LLM Processor configuration moved below to avoid duplication
 
 # RAG API configuration (conditional deployment)
@@ -56,6 +133,17 @@ ragApi:
     requests:
       cpu: 100m
       memory: 256Mi
+  
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+  
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
 
 # Service Account
 serviceAccount:
@@ -86,6 +174,24 @@ monitoring:
     enabled: false
     interval: 30s
     scrapeTimeout: 10s
+    labels: {}
+  prometheusRule:
+    enabled: false
+    rules: []
+
+# Service Mesh configuration
+serviceMesh:
+  enabled: false
+
+# Network Policy configuration
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+  denyAll: false
+  ingress: []
+  egress: []
 
 # Security Configuration
 security:
@@ -253,6 +359,105 @@ llmProcessor:
   ragService:
     # Base URL for RAG API service (endpoint path determined by rag.compat.enableLegacyProcessIntent)
     url: "http://rag-api:5001"
+  
+  # Pod disruption budget
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+  
+  # Horizontal pod autoscaling
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+
+# Nephio Bridge configuration
+nephioBridge:
+  enabled: false
+  replicaCount: 1
+  
+  image:
+    repository: "thc1006/nephio-bridge"
+    tag: "latest"
+    pullPolicy: IfNotPresent
+    
+  service:
+    type: ClusterIP
+    port: 8082
+    targetPort: 8082
+    
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      
+  podSecurityContext:
+    fsGroup: 65534
+    
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+      
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
+
+# O-RAN Adaptor configuration
+oranAdaptor:
+  enabled: false
+  replicaCount: 1
+  
+  image:
+    repository: "thc1006/oran-adaptor"
+    tag: "latest"
+    pullPolicy: IfNotPresent
+    
+  service:
+    type: ClusterIP
+    port: 8083
+    targetPort: 8083
+    
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      
+  podSecurityContext:
+    fsGroup: 65534
+    
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+      
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1
 
 # Weaviate Vector Database
 weaviate:
@@ -260,3 +465,7 @@ weaviate:
   service:
     port: 8080
     grpcPort: 50051
+  
+  podDisruptionBudget:
+    enabled: false
+    minAvailable: 1

@@ -4,6 +4,21 @@
 
 The Nephoran Intent Operator is a cloud-native orchestration system that bridges natural language network operations with O-RAN compliant deployments. The system combines Large Language Model (LLM) processing, Retrieval-Augmented Generation (RAG) capabilities, Machine Learning optimization, and GitOps principles to provide autonomous network function management.
 
+## Prerequisites
+
+### System Requirements
+
+**Software Dependencies**:
+- **Go**: Version 1.24 or higher for building from source
+- **Kubernetes**: Version 1.30 or higher for cluster deployment
+- **Docker**: Version 20.10 or higher for container operations
+- **Helm**: Version 3.8 or higher for chart-based deployments (optional)
+
+**Hardware Requirements**:
+- Minimum 8GB RAM, 4 CPU cores for development
+- Recommended 32GB RAM, 8 CPU cores for production
+- Persistent storage with backup capabilities for vector database
+
 ## High-Level Architecture
 
 ```mermaid
@@ -514,7 +529,8 @@ go build -tags disable_rag ./cmd/llm-processor
 
 **Endpoints**:
 - `POST /api/v1/intents` - Process natural language intents
-- `GET /healthz` - Health check endpoint
+- `GET /healthz` - Liveness probe endpoint
+- `GET /readyz` - Readiness probe endpoint
 - `GET /metrics` - Prometheus metrics
 - `GET /ml/metrics` - ML model performance metrics (if ml build tag enabled)
 
@@ -536,6 +552,11 @@ go build ./cmd/rag-api
 # Explicit RAG enable
 go build -tags !disable_rag ./cmd/rag-api
 ```
+
+**API Endpoints**:
+- `POST /process` - Primary intent processing endpoint (preferred)
+- `POST /stream` - Streaming intent processing with Server-Sent Events (preferred)  
+- `POST /process_intent` - Legacy endpoint (supported when enabled via configuration)
 
 **Key Features**:
 - Streaming document ingestion with up to 1000+ documents/hour
@@ -1145,6 +1166,19 @@ sequenceDiagram
 - JWT token-based authentication
 - Environment-based security policies
 - Production security enforcement
+
+**Metrics Security Configuration**:
+- **Metrics Exposure Control**: Configure metrics endpoint availability via `METRICS_ENABLED` environment variable
+- **IP Allowlist**: Restrict metrics endpoint access using `METRICS_ALLOWED_IPS` configuration
+- **Endpoint Security**: Metrics endpoints protected with authentication in production environments
+
+**HTTP Security Headers**:
+The system automatically applies comprehensive security headers:
+- `Strict-Transport-Security` (HSTS): Enforces HTTPS connections and prevents protocol downgrade attacks
+- `Content-Security-Policy` (CSP): Prevents cross-site scripting (XSS) attacks by controlling resource loading
+- `X-Frame-Options`: Protects against clickjacking attacks by controlling iframe embedding
+- `X-Content-Type-Options`: Prevents MIME type sniffing attacks by enforcing declared content types
+- `Referrer-Policy`: Controls referrer information sent with requests for privacy protection
 
 **Service Communication**:
 - mTLS for inter-service communication

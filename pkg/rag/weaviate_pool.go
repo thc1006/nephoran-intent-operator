@@ -11,6 +11,26 @@ import (
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/auth"
 )
 
+// WeaviatePoolMetricsRecorder defines an interface for recording Weaviate pool metrics
+type WeaviatePoolMetricsRecorder interface {
+	RecordWeaviatePoolConnectionCreated()
+	RecordWeaviatePoolConnectionDestroyed()
+	UpdateWeaviatePoolActiveConnections(count int)
+	UpdateWeaviatePoolSize(size int)
+	RecordWeaviatePoolHealthCheckPassed()
+	RecordWeaviatePoolHealthCheckFailed()
+}
+
+// NoOpMetricsRecorder is a no-op implementation for testing or when metrics are disabled
+type NoOpMetricsRecorder struct{}
+
+func (n *NoOpMetricsRecorder) RecordWeaviatePoolConnectionCreated()               {}
+func (n *NoOpMetricsRecorder) RecordWeaviatePoolConnectionDestroyed()            {}
+func (n *NoOpMetricsRecorder) UpdateWeaviatePoolActiveConnections(count int)     {}
+func (n *NoOpMetricsRecorder) UpdateWeaviatePoolSize(size int)                   {}
+func (n *NoOpMetricsRecorder) RecordWeaviatePoolHealthCheckPassed()              {}
+func (n *NoOpMetricsRecorder) RecordWeaviatePoolHealthCheckFailed()              {}
+
 // WeaviateConnectionPool manages a pool of Weaviate client connections
 type WeaviateConnectionPool struct {
 	config       *PoolConfig
@@ -22,6 +42,9 @@ type WeaviateConnectionPool struct {
 	ctx          context.Context
 	cancel       context.CancelFunc
 	cleanupTicker *time.Ticker
+	
+	// Metrics recorder interface
+	metricsRecorder WeaviatePoolMetricsRecorder
 }
 
 // PooledConnection represents a connection in the pool
@@ -113,6 +136,45 @@ func NewWeaviateConnectionPool(config *PoolConfig) *WeaviateConnectionPool {
 	return pool
 }
 
+// NewWeaviateConnectionPoolWithMetrics creates a new connection pool with metrics recorder
+func NewWeaviateConnectionPoolWithMetrics(config *PoolConfig, metricsRecorder WeaviatePoolMetricsRecorder) *WeaviateConnectionPool {
+	ctx, cancel := context.WithCancel(context.Background())
+	
+	pool := &WeaviateConnectionPool{
+		config:          config,
+		connections:     make(chan *PooledConnection, config.MaxConnections),
+		activeConns:     make(map[string]*PooledConnection),
+		metrics:         &PoolMetrics{},
+		ctx:             ctx,
+		cancel:          cancel,
+		metricsRecorder: metricsRecorder,
+	}
+	
+	return pool
+}
+
+// SetMetricsRecorder sets the metrics recorder after pool creation
+func (p *WeaviateConnectionPool) SetMetricsRecorder(recorder WeaviatePoolMetricsRecorder) {
+	p.metricsRecorder = recorder
+}
+
+// updatePoolSizeMetrics updates the pool size metrics through the metrics recorder
+func (p *WeaviateConnectionPool) updatePoolSizeMetrics() {
+	if p.metricsRecorder == nil {
+		return // Metrics recorder not available
+	}
+	
+	p.mu.RLock()
+	activeCount := len(p.activeConns)
+	idleCount := len(p.connections)
+	p.mu.RUnlock()
+	
+	totalConnections := activeCount + idleCount
+	
+	p.metricsRecorder.UpdateWeaviatePoolActiveConnections(activeCount)
+	p.metricsRecorder.UpdateWeaviatePoolSize(totalConnections)
+}
+
 // Start initializes the connection pool
 func (p *WeaviateConnectionPool) Start() error {
 	p.mu.Lock()
@@ -132,6 +194,9 @@ func (p *WeaviateConnectionPool) Start() error {
 		p.connections <- conn
 		p.activeConns[conn.id] = conn
 	}
+	
+	// Update initial metrics
+	p.updatePoolSizeMetrics()
 	
 	// Start background tasks
 	if p.config.EnableHealthCheck {
@@ -221,6 +286,9 @@ func (p *WeaviateConnectionPool) GetConnection(ctx context.Context) (*PooledConn
 		p.activeConns[conn.id] = conn
 		p.mu.Unlock()
 		
+		// Update pool size metrics after adding connection
+		p.updatePoolSizeMetrics()
+		
 		conn.mu.Lock()
 		conn.inUse = true
 		conn.mu.Unlock()
@@ -270,6 +338,7 @@ func (p *WeaviateConnectionPool) ReturnConnection(conn *PooledConnection) error 
 		delete(p.activeConns, conn.id)
 		p.mu.Unlock()
 		p.destroyConnection(conn)
+		p.updatePoolSizeMetrics()
 		return nil
 	}
 	
@@ -283,6 +352,7 @@ func (p *WeaviateConnectionPool) ReturnConnection(conn *PooledConnection) error 
 		delete(p.activeConns, conn.id)
 		p.mu.Unlock()
 		p.destroyConnection(conn)
+		p.updatePoolSizeMetrics()
 		return nil
 	}
 }
@@ -435,6 +505,12 @@ func (p *WeaviateConnectionPool) createConnection() (*PooledConnection, error) {
 	}
 	
 	atomic.AddInt64(&p.metrics.ConnectionsCreated, 1)
+	
+	// Update Prometheus metrics through recorder
+	if p.metricsRecorder != nil {
+		p.metricsRecorder.RecordWeaviatePoolConnectionCreated()
+	}
+	
 	return conn, nil
 }
 
@@ -447,6 +523,11 @@ func (p *WeaviateConnectionPool) destroyConnection(conn *PooledConnection) {
 	// Connection will be closed by garbage collector
 	
 	atomic.AddInt64(&p.metrics.ConnectionsDestroyed, 1)
+	
+	// Update Prometheus metrics through recorder
+	if p.metricsRecorder != nil {
+		p.metricsRecorder.RecordWeaviatePoolConnectionDestroyed()
+	}
 }
 
 func (p *WeaviateConnectionPool) isConnectionHealthy(conn *PooledConnection) bool {
@@ -523,6 +604,10 @@ func (p *WeaviateConnectionPool) performHealthCheck() {
 		
 		if err != nil {
 			atomic.AddInt64(&p.metrics.HealthCheckFailed, 1)
+			// Update Prometheus metrics through recorder
+			if p.metricsRecorder != nil {
+				p.metricsRecorder.RecordWeaviatePoolHealthCheckFailed()
+			}
 			// Remove unhealthy connection
 			p.mu.Lock()
 			delete(p.activeConns, conn.id)
@@ -530,6 +615,10 @@ func (p *WeaviateConnectionPool) performHealthCheck() {
 			p.destroyConnection(conn)
 		} else {
 			atomic.AddInt64(&p.metrics.HealthCheckPassed, 1)
+			// Update Prometheus metrics through recorder
+			if p.metricsRecorder != nil {
+				p.metricsRecorder.RecordWeaviatePoolHealthCheckPassed()
+			}
 		}
 		
 		// Check if connection should be destroyed due to age/idle time
@@ -543,6 +632,9 @@ func (p *WeaviateConnectionPool) performHealthCheck() {
 	
 	// Ensure minimum connections
 	p.ensureMinimumConnections()
+	
+	// Update pool metrics after all health check operations
+	p.updatePoolSizeMetrics()
 }
 
 func (p *WeaviateConnectionPool) ensureMinimumConnections() {

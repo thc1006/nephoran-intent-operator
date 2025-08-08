@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"math/rand"
 	"sort"
 	"strconv"
 	"strings"
@@ -45,6 +47,13 @@ const (
 	DefaultHeartbeatInterval = 10 * time.Second
 	DefaultMetricsInterval   = "30s"
 	DefaultE2InterfaceVersion = "v3.0"
+	
+	// Retry and backoff configuration
+	DefaultMaxRetries    = 3
+	BaseBackoffDelay     = 1 * time.Second
+	MaxBackoffDelay      = 5 * time.Minute
+	JitterFactor         = 0.1 // 10% jitter
+	BackoffMultiplier    = 2.0
 )
 
 // E2NodeConfigData represents the configuration data stored in ConfigMap
@@ -210,13 +219,47 @@ func (r *E2NodeSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		result = "error"
 		r.reconcileErrors.WithLabelValues(req.Namespace, req.Name, "reconcile_nodes_error").Inc()
 		
-		// Record event for reconciliation failure
-		r.Recorder.Eventf(&e2nodeSet, corev1.EventTypeWarning, "ReconciliationFailed", 
-			"Failed to reconcile E2 nodes: %v", err)
-		
-		return ctrl.Result{RequeueAfter: time.Minute}, err
+		// Get retry count and calculate backoff
+		retryCount := getRetryCount(&e2nodeSet, "e2-provisioning")
+		if retryCount < DefaultMaxRetries {
+			setRetryCount(&e2nodeSet, "e2-provisioning", retryCount+1)
+			r.Update(ctx, &e2nodeSet)
+			
+			// Set Ready condition to False
+			r.setReadyCondition(ctx, &e2nodeSet, metav1.ConditionFalse, "E2NodesReconciliationFailed", 
+				fmt.Sprintf("Failed to reconcile E2 nodes (attempt %d/%d): %v", retryCount+1, DefaultMaxRetries, err))
+			
+			// Record event for reconciliation failure
+			r.Recorder.Eventf(&e2nodeSet, corev1.EventTypeWarning, "ReconciliationRetrying", 
+				"Failed to reconcile E2 nodes, retrying (attempt %d/%d): %v", retryCount+1, DefaultMaxRetries, err)
+			
+			backoffDelay := calculateExponentialBackoffForOperation(retryCount, "e2-provisioning")
+			logger.V(1).Info("Scheduling E2 nodes reconciliation retry with exponential backoff", 
+				"delay", backoffDelay, 
+				"attempt", retryCount+1, 
+				"max_retries", DefaultMaxRetries)
+			
+			return ctrl.Result{RequeueAfter: backoffDelay}, nil
+		} else {
+			// Max retries exceeded
+			r.setReadyCondition(ctx, &e2nodeSet, metav1.ConditionFalse, "E2NodesReconciliationFailedMaxRetries", 
+				fmt.Sprintf("Failed to reconcile E2 nodes after %d retries: %v", DefaultMaxRetries, err))
+			
+			r.Recorder.Eventf(&e2nodeSet, corev1.EventTypeWarning, "ReconciliationFailedMaxRetries", 
+				"Failed to reconcile E2 nodes after %d retries: %v", DefaultMaxRetries, err)
+			
+			return ctrl.Result{RequeueAfter: time.Hour}, err // Long delay before retry
+		}
 	}
 
+	// Clear retry counts on successful reconciliation
+	clearRetryCount(&e2nodeSet, "e2-provisioning")
+	clearRetryCount(&e2nodeSet, "configmap-operations")
+	r.Update(ctx, &e2nodeSet)
+	
+	// Set Ready condition to True
+	r.setReadyCondition(ctx, &e2nodeSet, metav1.ConditionTrue, "E2NodesReady", "All E2 nodes are successfully reconciled")
+	
 	// Update metrics
 	r.updateMetrics(&e2nodeSet)
 	
@@ -338,6 +381,7 @@ func (r *E2NodeSetReconciler) scaleUpE2Nodes(ctx context.Context, e2nodeSet *nep
 		
 		configMap, err := r.createE2NodeConfigMap(ctx, e2nodeSet, nextIndex)
 		if err != nil {
+			// Error handling is done inside createE2NodeConfigMap
 			return fmt.Errorf("failed to create E2 node ConfigMap at index %d: %w", nextIndex, err)
 		}
 		
@@ -382,6 +426,16 @@ func (r *E2NodeSetReconciler) scaleDownE2Nodes(ctx context.Context, e2nodeSet *n
 		
 		if err := r.Delete(ctx, configMap); err != nil {
 			if !errors.IsNotFound(err) {
+				// Get retry count for deletion operations
+				retryCount := getRetryCount(e2nodeSet, "configmap-operations")
+				if retryCount < DefaultMaxRetries {
+					setRetryCount(e2nodeSet, "configmap-operations", retryCount+1)
+					r.Client.Update(ctx, e2nodeSet)
+					
+					// Set Ready condition to False
+					r.setReadyCondition(ctx, e2nodeSet, metav1.ConditionFalse, "ConfigMapDeletionFailed", 
+						fmt.Sprintf("Failed to delete ConfigMap %s (attempt %d/%d): %v", configMap.Name, retryCount+1, DefaultMaxRetries, err))
+				}
 				return fmt.Errorf("failed to delete E2 node ConfigMap %s: %w", configMap.Name, err)
 			}
 		}
@@ -417,9 +471,27 @@ func (r *E2NodeSetReconciler) updateE2Nodes(ctx context.Context, e2nodeSet *neph
 				updatedConfigMap.Data[E2NodeStatusKey] = statusData
 			}
 			
+			// Check retry count before attempting update
+			retryCount := getRetryCount(e2nodeSet, "configmap-operations")
+			if retryCount >= DefaultMaxRetries {
+				return fmt.Errorf("max retries (%d) exceeded for ConfigMap update", DefaultMaxRetries)
+			}
+			
 			if err := r.Update(ctx, updatedConfigMap); err != nil {
+				// Increment retry count on failure
+				setRetryCount(e2nodeSet, "configmap-operations", retryCount+1)
+				r.Client.Update(ctx, e2nodeSet)
+				
+				// Set Ready condition to False
+				r.setReadyCondition(ctx, e2nodeSet, metav1.ConditionFalse, "ConfigMapUpdateFailed", 
+					fmt.Sprintf("Failed to update ConfigMap %s (attempt %d/%d): %v", configMap.Name, retryCount+1, DefaultMaxRetries, err))
+				
 				return fmt.Errorf("failed to update E2 node ConfigMap %s: %w", configMap.Name, err)
 			}
+			
+			// Clear retry count on successful update
+			clearRetryCount(e2nodeSet, "configmap-operations")
+			r.Client.Update(ctx, e2nodeSet)
 			
 			// Record event for node update
 			r.Recorder.Eventf(e2nodeSet, corev1.EventTypeNormal, "E2NodeUpdated", 
@@ -437,7 +509,7 @@ func (r *E2NodeSetReconciler) generateNodeID(e2nodeSet *nephoranv1.E2NodeSet, in
 	return fmt.Sprintf("%s-%s-node-%d", e2nodeSet.Namespace, e2nodeSet.Name, index)
 }
 
-// createE2NodeConfigMap creates a new ConfigMap representing an E2 node
+// createE2NodeConfigMap creates a new ConfigMap representing an E2 node with retry logic
 func (r *E2NodeSetReconciler) createE2NodeConfigMap(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet, index int32) (*corev1.ConfigMap, error) {
 	configMap := r.buildE2NodeConfigMap(e2nodeSet, index)
 	
@@ -445,11 +517,142 @@ func (r *E2NodeSetReconciler) createE2NodeConfigMap(ctx context.Context, e2nodeS
 		return nil, fmt.Errorf("failed to set controller reference: %w", err)
 	}
 	
+	// Check retry count before attempting create
+	retryCount := getRetryCount(e2nodeSet, "configmap-operations")
+	if retryCount >= DefaultMaxRetries {
+		return nil, fmt.Errorf("max retries (%d) exceeded for ConfigMap creation", DefaultMaxRetries)
+	}
+	
 	if err := r.Create(ctx, configMap); err != nil {
+		// Increment retry count on failure
+		setRetryCount(e2nodeSet, "configmap-operations", retryCount+1)
+		r.Client.Update(ctx, e2nodeSet)
+		
+		// Set Ready condition to False
+		r.setReadyCondition(ctx, e2nodeSet, metav1.ConditionFalse, "ConfigMapCreationFailed", 
+			fmt.Sprintf("Failed to create ConfigMap %s (attempt %d/%d): %v", configMap.Name, retryCount+1, DefaultMaxRetries, err))
+		
 		return nil, fmt.Errorf("failed to create ConfigMap: %w", err)
 	}
 	
+	// Clear retry count on successful creation
+	clearRetryCount(e2nodeSet, "configmap-operations")
+	r.Client.Update(ctx, e2nodeSet)
+	
 	return configMap, nil
+}
+
+// Exponential backoff helper functions
+
+// calculateExponentialBackoff calculates the exponential backoff delay with jitter
+// retryCount: current retry attempt (0-based)
+// baseDelay: base delay duration (defaults to BaseBackoffDelay if zero)
+// maxDelay: maximum delay duration (defaults to MaxBackoffDelay if zero)
+func calculateExponentialBackoff(retryCount int, baseDelay, maxDelay time.Duration) time.Duration {
+	if baseDelay <= 0 {
+		baseDelay = BaseBackoffDelay
+	}
+	if maxDelay <= 0 {
+		maxDelay = MaxBackoffDelay
+	}
+	
+	// Calculate exponential backoff: baseDelay * multiplier^retryCount
+	backoffSeconds := float64(baseDelay.Seconds()) * math.Pow(BackoffMultiplier, float64(retryCount))
+	backoffDuration := time.Duration(backoffSeconds * float64(time.Second))
+	
+	// Cap at max delay
+	if backoffDuration > maxDelay {
+		backoffDuration = maxDelay
+	}
+	
+	// Add jitter to prevent thundering herd
+	jitterRange := float64(backoffDuration) * JitterFactor
+	jitter := (rand.Float64() * 2 - 1) * jitterRange // Random value between -jitterRange and +jitterRange
+	finalDelay := time.Duration(float64(backoffDuration) + jitter)
+	
+	// Ensure final delay is positive and doesn't exceed max
+	if finalDelay < 0 {
+		finalDelay = baseDelay
+	}
+	if finalDelay > maxDelay {
+		finalDelay = maxDelay
+	}
+	
+	return finalDelay
+}
+
+// calculateExponentialBackoffForOperation calculates backoff with operation-specific configurations
+func calculateExponentialBackoffForOperation(retryCount int, operation string) time.Duration {
+	switch operation {
+	case "configmap-operations":
+		// ConfigMap operations: moderate backoff for Kubernetes API
+		return calculateExponentialBackoff(retryCount, 2*time.Second, 2*time.Minute)
+	case "e2-provisioning":
+		// E2 node provisioning: longer backoff for complex operations
+		return calculateExponentialBackoff(retryCount, 5*time.Second, 5*time.Minute)
+	case "cleanup":
+		// Cleanup operations: existing configuration
+		return calculateExponentialBackoff(retryCount, 10*time.Second, 5*time.Minute)
+	default:
+		// Default configuration
+		return calculateExponentialBackoff(retryCount, BaseBackoffDelay, MaxBackoffDelay)
+	}
+}
+
+// Retry count management functions
+
+// getRetryCount retrieves the retry count for a specific operation from annotations
+func getRetryCount(e2nodeSet *nephoranv1.E2NodeSet, operation string) int {
+	if e2nodeSet.Annotations == nil {
+		return 0
+	}
+
+	key := fmt.Sprintf("nephoran.com/%s-retry-count", operation)
+	if countStr, exists := e2nodeSet.Annotations[key]; exists {
+		if count, err := fmt.Sscanf(countStr, "%d", new(int)); err == nil && count == 1 {
+			var result int
+			fmt.Sscanf(countStr, "%d", &result)
+			return result
+		}
+	}
+	return 0
+}
+
+// setRetryCount sets the retry count for a specific operation in annotations
+func setRetryCount(e2nodeSet *nephoranv1.E2NodeSet, operation string, count int) {
+	if e2nodeSet.Annotations == nil {
+		e2nodeSet.Annotations = make(map[string]string)
+	}
+
+	key := fmt.Sprintf("nephoran.com/%s-retry-count", operation)
+	e2nodeSet.Annotations[key] = fmt.Sprintf("%d", count)
+}
+
+// clearRetryCount removes the retry count for a specific operation from annotations
+func clearRetryCount(e2nodeSet *nephoranv1.E2NodeSet, operation string) {
+	if e2nodeSet.Annotations == nil {
+		return
+	}
+
+	key := fmt.Sprintf("nephoran.com/%s-retry-count", operation)
+	delete(e2nodeSet.Annotations, key)
+}
+
+// setReadyCondition sets the Ready condition with proper reason and message
+func (r *E2NodeSetReconciler) setReadyCondition(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet, status metav1.ConditionStatus, reason, message string) error {
+	condition := nephoranv1.E2NodeSetCondition{
+		Type:               "Ready",
+		Status:             status,
+		Reason:             reason,
+		Message:            message,
+		LastTransitionTime: metav1.Now(),
+	}
+	
+	// Update the condition
+	r.setE2NodeSetCondition(e2nodeSet, condition)
+	
+	// Update the status
+	return r.Status().Update(ctx, e2nodeSet)
 }
 
 // buildE2NodeConfigMap builds a ConfigMap for an E2 node
@@ -746,7 +949,9 @@ func (r *E2NodeSetReconciler) updateNodeHeartbeat(ctx context.Context, configMap
 	updatedConfigMap.Data[E2NodeStatusKey] = string(statusJSON)
 	
 	if err := r.Update(ctx, updatedConfigMap); err != nil {
-		return fmt.Errorf("failed to update ConfigMap: %w", err)
+		// For heartbeat updates, we'll log the error but continue operation
+		// since heartbeat failures shouldn't block the main reconciliation
+		return fmt.Errorf("failed to update ConfigMap heartbeat: %w", err)
 	}
 	
 	// Update heartbeat metrics
@@ -902,10 +1107,14 @@ func (r *E2NodeSetReconciler) setE2NodeSetCondition(e2nodeSet *nephoranv1.E2Node
 	e2nodeSet.Status.Conditions = append(e2nodeSet.Status.Conditions, condition)
 }
 
-// handleDeletion handles the deletion of an E2NodeSet and cleanup of all associated ConfigMaps
+// handleDeletion handles the deletion of an E2NodeSet and cleanup of all associated ConfigMaps with exponential backoff
 func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nephoranv1.E2NodeSet) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Handling E2NodeSet deletion", "name", e2nodeSet.Name, "namespace", e2nodeSet.Namespace)
+
+	// Get retry count for cleanup operations
+	retryCount := getRetryCount(e2nodeSet, "cleanup")
+	logger.V(1).Info("Cleanup retry count", "count", retryCount, "max", DefaultMaxRetries)
 
 	// Get all ConfigMaps that belong to this E2NodeSet
 	currentConfigMaps, err := r.getCurrentE2NodeConfigMaps(ctx, e2nodeSet)
@@ -933,14 +1142,52 @@ func (r *E2NodeSetReconciler) handleDeletion(ctx context.Context, e2nodeSet *nep
 		}
 	}
 
-	// If there were cleanup errors, requeue for retry
+	// If there were cleanup errors, handle retry logic
 	if len(cleanupErrors) > 0 {
-		logger.Error(fmt.Errorf("cleanup errors occurred"), "Some ConfigMaps failed to cleanup", "errorCount", len(cleanupErrors))
-		// Return error to requeue, but don't wait too long to avoid blocking deletion
-		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("cleanup errors occurred for %d ConfigMaps", len(cleanupErrors))
+		if retryCount >= DefaultMaxRetries {
+			// Max retries exceeded, remove finalizer to prevent stuck resources
+			logger.Error(fmt.Errorf("max cleanup retries exceeded"), 
+				"Removing finalizer to prevent stuck resource after max retries", 
+				"errorCount", len(cleanupErrors), "maxRetries", DefaultMaxRetries)
+			
+			// Set Ready condition to indicate cleanup failure
+			r.setReadyCondition(ctx, e2nodeSet, metav1.ConditionFalse, "CleanupFailedMaxRetries", 
+				fmt.Sprintf("Cleanup failed after %d retries, removing finalizer to prevent stuck resource", DefaultMaxRetries))
+			
+			// Remove finalizer even if cleanup failed to prevent stuck resources
+			controllerutil.RemoveFinalizer(e2nodeSet, E2NodeSetFinalizer)
+			if err := r.Update(ctx, e2nodeSet); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to remove finalizer after cleanup failure: %w", err)
+			}
+			
+			r.Recorder.Eventf(e2nodeSet, corev1.EventTypeWarning, "CleanupFailedMaxRetries", 
+				"Cleanup failed after %d retries, finalizer removed to prevent stuck resource", DefaultMaxRetries)
+			
+			return ctrl.Result{}, nil
+		}
+		
+		// Increment retry count and requeue with exponential backoff
+		setRetryCount(e2nodeSet, "cleanup", retryCount+1)
+		r.Update(ctx, e2nodeSet)
+		
+		// Set Ready condition to indicate cleanup retry
+		r.setReadyCondition(ctx, e2nodeSet, metav1.ConditionFalse, "CleanupRetrying", 
+			fmt.Sprintf("Cleanup failed, retrying (attempt %d/%d): %d errors occurred", retryCount+1, DefaultMaxRetries, len(cleanupErrors)))
+		
+		r.Recorder.Eventf(e2nodeSet, corev1.EventTypeWarning, "CleanupRetry", 
+			"Cleanup failed, retrying (attempt %d/%d): %d ConfigMaps failed to delete", retryCount+1, DefaultMaxRetries, len(cleanupErrors))
+		
+		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "cleanup")
+		logger.V(1).Info("Scheduling cleanup retry with exponential backoff", 
+			"delay", backoffDelay, 
+			"attempt", retryCount+1, 
+			"max_retries", DefaultMaxRetries)
+		
+		return ctrl.Result{RequeueAfter: backoffDelay}, fmt.Errorf("cleanup errors occurred for %d ConfigMaps, retrying", len(cleanupErrors))
 	}
 
-	// All cleanup successful, remove finalizer
+	// All cleanup successful, clear retry count and remove finalizer
+	clearRetryCount(e2nodeSet, "cleanup")
 	controllerutil.RemoveFinalizer(e2nodeSet, E2NodeSetFinalizer)
 	if err := r.Update(ctx, e2nodeSet); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to remove finalizer: %w", err)

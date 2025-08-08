@@ -12,7 +12,7 @@
 [![License](https://img.shields.io/github/license/thc1006/nephoran-intent-operator?style=flat-square)](LICENSE)
 [![Code Coverage](https://img.shields.io/codecov/c/github/thc1006/nephoran-intent-operator?style=flat-square&logo=codecov)](https://codecov.io/gh/thc1006/nephoran-intent-operator)
 [![Docker Pulls](https://img.shields.io/docker/pulls/nephoran/intent-operator?style=flat-square&logo=docker)](https://hub.docker.com/r/nephoran/intent-operator)
-[![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.27+-blue?style=flat-square&logo=kubernetes)](https://kubernetes.io/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.30+-blue?style=flat-square&logo=kubernetes)](https://kubernetes.io/)
 [![O-RAN Compliant](https://img.shields.io/badge/O--RAN-Compliant-green?style=flat-square&logo=verified)](https://www.o-ran.org/)
 [![Security Scan](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/security-scan.yml?branch=main&style=flat-square&logo=security&label=security)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/security-scan.yml)
 [![Release](https://img.shields.io/github/v/release/thc1006/nephoran-intent-operator?style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/releases)
@@ -84,8 +84,9 @@ Ensure you have these tools installed:
 ```bash
 # Check required tools
 docker --version      # Docker 20.10+
-kubectl version --client  # Kubernetes v1.27+
+kubectl version --client  # Kubernetes v1.30+
 git --version         # Git 2.30+
+go version            # Go 1.24+
 ```
 
 Quick install if needed:
@@ -211,6 +212,30 @@ graph TB
 5. **O-RAN Integration**: Standards-compliant network function deployment
 6. **Monitoring & Feedback**: Comprehensive observability with status propagation
 
+### 🔄 GitOps + RAG + Controllers Flow
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
+│  Natural Lang   │    │   LLM/RAG        │    │   NetworkIntent     │
+│  Intent Input   │───▶│   Processor      │───▶│   Controller        │
+│                 │    │                  │    │                     │
+└─────────────────┘    └──────────────────┘    └─────────────────────┘
+                                ▲                         │
+                                │                         ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
+│   Weaviate      │    │   Knowledge      │    │   KRM Package       │
+│   Vector DB     │◀───│   Base + RAG     │    │   Generation        │
+│                 │    │                  │    │                     │
+└─────────────────┘    └──────────────────┘    └─────────────────────┘
+                                                         │
+                                                         ▼
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────────┐
+│   Monitoring    │    │   O-RAN Network  │    │   GitOps Repository │
+│   & Feedback    │◀───│   Functions      │◀───│   (ConfigSync)      │
+│                 │    │                  │    │                     │
+└─────────────────┘    └──────────────────┘    └─────────────────────┘
+```
+
 ### 📈 Performance Characteristics
 
 | Metric | Production Value | Benchmark |
@@ -271,6 +296,31 @@ spec:
 - **[Developer Guide](docs/DEVELOPER_GUIDE.md)**: Architecture deep-dive and contribution guidelines  
 - **[Operator Manual](docs/OPERATOR-MANUAL.md)**: Production deployment and operations
 - **[API Reference](docs/API_REFERENCE.md)**: Complete REST and gRPC API documentation
+
+### 🔍 Technical Reference
+
+#### Health and Probes
+The system provides standardized health endpoints for Kubernetes liveness and readiness probes:
+- **Liveness Endpoint**: `/healthz` - Basic service availability check
+- **Readiness Endpoint**: `/readyz` - Ready to accept traffic indicator
+
+#### RAG System Endpoints
+The RAG (Retrieval-Augmented Generation) system supports multiple API endpoints:
+- **Preferred Endpoints**: 
+  - `POST /process` - Primary intent processing endpoint
+  - `POST /stream` - Streaming intent processing with Server-Sent Events
+- **Legacy Support**: 
+  - `POST /process_intent` - Legacy endpoint (supported when enabled via configuration)
+
+#### Security Configuration
+Enhanced security features include:
+- **Metrics Exposure Control**: Configure metrics endpoint exposure via `METRICS_ENABLED` flag
+- **IP Allowlist**: Restrict metrics endpoint access using `METRICS_ALLOWED_IPS` configuration
+- **HTTP Security Headers**: Automatically applied security headers including:
+  - `Strict-Transport-Security` (HSTS) for HTTPS enforcement
+  - `Content-Security-Policy` (CSP) for XSS protection
+  - `X-Frame-Options` for clickjacking prevention
+  - `X-Content-Type-Options` for MIME type sniffing protection
 
 ### 📁 Archive Directory
 The **[archive/](archive/)** directory contains example YAML configurations and reference files that support the quickstart guides and documentation. These files serve multiple purposes:

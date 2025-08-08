@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"math/rand"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -43,6 +45,12 @@ const (
 	// Validation limits
 	MaxAllowedRetries    = 10
 	MaxAllowedRetryDelay = time.Hour
+	
+	// Exponential backoff configuration
+	BaseBackoffDelay     = 1 * time.Second
+	MaxBackoffDelay      = 5 * time.Minute
+	JitterFactor         = 0.1 // 10% jitter
+	BackoffMultiplier    = 2.0
 )
 
 // Dependencies interface defines the external dependencies for the controller
@@ -210,8 +218,79 @@ type NetworkIntentReconciler struct {
 	config *Config
 }
 
+// Exponential backoff helper functions
+
+// calculateExponentialBackoff calculates the exponential backoff delay with jitter
+// retryCount: current retry attempt (0-based)
+// baseDelay: base delay duration (defaults to BaseBackoffDelay if zero)
+// maxDelay: maximum delay duration (defaults to MaxBackoffDelay if zero)
+func calculateExponentialBackoff(retryCount int, baseDelay, maxDelay time.Duration) time.Duration {
+	if baseDelay <= 0 {
+		baseDelay = BaseBackoffDelay
+	}
+	if maxDelay <= 0 {
+		maxDelay = MaxBackoffDelay
+	}
+	
+	// Calculate exponential backoff: baseDelay * multiplier^retryCount
+	backoffSeconds := float64(baseDelay.Seconds()) * math.Pow(BackoffMultiplier, float64(retryCount))
+	backoffDuration := time.Duration(backoffSeconds * float64(time.Second))
+	
+	// Apply jitter: ±10% random variation to prevent thundering herd
+	jitterRange := float64(backoffDuration) * JitterFactor
+	jitter := (rand.Float64()*2-1) * jitterRange // Random between -jitterRange and +jitterRange
+	finalDelay := time.Duration(float64(backoffDuration) + jitter)
+	
+	// Cap at maximum delay
+	if finalDelay > maxDelay {
+		finalDelay = maxDelay
+	}
+	
+	// Ensure minimum delay
+	if finalDelay < baseDelay {
+		finalDelay = baseDelay
+	}
+	
+	return finalDelay
+}
+
+// calculateExponentialBackoffForOperation calculates backoff with operation-specific configurations
+func calculateExponentialBackoffForOperation(retryCount int, operation string) time.Duration {
+	switch operation {
+	case "llm-processing":
+		// LLM operations: faster initial retry, longer max delay for rate limiting
+		return calculateExponentialBackoff(retryCount, 2*time.Second, 10*time.Minute)
+	case "git-operations":
+		// Git operations: moderate backoff with network-friendly delays
+		return calculateExponentialBackoff(retryCount, 5*time.Second, 5*time.Minute)
+	case "cleanup":
+		// Cleanup operations: existing configuration
+		return calculateExponentialBackoff(retryCount, DefaultRetryDelay, 5*time.Minute)
+	default:
+		// Default configuration
+		return calculateExponentialBackoff(retryCount, BaseBackoffDelay, MaxBackoffDelay)
+	}
+}
+
+// setReadyCondition sets the Ready condition with proper reason and message
+func (r *NetworkIntentReconciler) setReadyCondition(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, status metav1.ConditionStatus, reason, message string) error {
+	condition := metav1.Condition{
+		Type:               "Ready",
+		Status:             status,
+		Reason:             reason,
+		Message:            message,
+		LastTransitionTime: metav1.Now(),
+	}
+	updateCondition(&networkIntent.Status.Conditions, condition)
+	
+	return r.safeStatusUpdate(ctx, networkIntent)
+}
+
 // NewNetworkIntentReconciler creates a new NetworkIntentReconciler with dependency injection
 func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, deps Dependencies, config *Config) (*NetworkIntentReconciler, error) {
+	// Initialize random number generator for jitter in exponential backoff
+	rand.Seed(time.Now().UnixNano())
+	
 	if client == nil {
 		return nil, fmt.Errorf("client cannot be nil")
 	}
@@ -369,6 +448,12 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		logger.Error(err, "failed to update completion phase")
 		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update completion phase: %w", err)
 	}
+	
+	// Set Ready condition to True indicating successful completion of entire pipeline
+	if err := r.setReadyCondition(ctx, &networkIntent, metav1.ConditionTrue, "AllPhasesCompleted", "All processing phases completed successfully and NetworkIntent is ready"); err != nil {
+		logger.Error(err, "failed to set ready condition on completion")
+		// Don't fail the reconciliation for this
+	}
 
 	// Record success metrics
 	if metricsCollector != nil {
@@ -475,6 +560,7 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 	retryCount := getRetryCount(networkIntent, "llm-processing")
 	if retryCount >= r.config.MaxRetries {
 		err := fmt.Errorf("max retries (%d) exceeded for LLM processing", r.config.MaxRetries)
+		// Set both Processed and Ready conditions to False
 		condition := metav1.Condition{
 			Type:               "Processed",
 			Status:             metav1.ConditionFalse,
@@ -483,7 +569,9 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		r.safeStatusUpdate(ctx, networkIntent)
+		
+		// Set Ready condition to indicate failure
+		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMProcessingFailed", fmt.Sprintf("LLM processing failed after %d retries: %v", r.config.MaxRetries, err))
 		return ctrl.Result{}, err
 	}
 
@@ -500,7 +588,9 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		r.safeStatusUpdate(ctx, networkIntent)
+		
+		// Set Ready condition to indicate configuration issue
+		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMClientNotConfigured", "LLM client is not properly configured")
 		return ctrl.Result{}, err
 	}
 
@@ -529,13 +619,19 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		r.safeStatusUpdate(ctx, networkIntent)
+		
+		// Set Ready condition to False while retrying
+		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMProcessingRetrying", fmt.Sprintf("LLM processing failed, retrying (attempt %d/%d): %v", retryCount+1, r.config.MaxRetries, err))
 		
 		r.recordFailureEvent(networkIntent, "LLMProcessingRetry", fmt.Sprintf("attempt %d/%d failed: %v", retryCount+1, r.config.MaxRetries, err))
-		backoffDelay := time.Duration(retryCount+1) * r.config.RetryDelay
-		if backoffDelay > time.Minute*10 {
-			backoffDelay = time.Minute * 10
-		}
+		
+		// Use exponential backoff with jitter for LLM operations
+		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "llm-processing")
+		logger.V(1).Info("Scheduling LLM processing retry with exponential backoff", 
+			"delay", backoffDelay, 
+			"attempt", retryCount+1, 
+			"max_retries", r.config.MaxRetries)
+		
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 
@@ -553,9 +649,13 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		r.safeStatusUpdate(ctx, networkIntent)
 		
-		return ctrl.Result{RequeueAfter: r.config.RetryDelay}, nil
+		// Set Ready condition to False due to parsing error
+		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMResponseParsingFailed", fmt.Sprintf("Failed to parse LLM response as JSON: %v", err))
+		
+		// Use exponential backoff for parsing failures too
+		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "llm-processing")
+		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 
 	// Extract structured entities from LLM response
@@ -587,6 +687,8 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 	}
 	updateCondition(&networkIntent.Status.Conditions, condition)
 	
+	// Set Ready condition to True for LLM processing success (this phase only)
+	// Note: Overall Ready status will be managed by the full pipeline
 	if err := r.safeStatusUpdate(ctx, networkIntent); err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update status: %w", err)
 	}
@@ -818,7 +920,10 @@ func (r *NetworkIntentReconciler) planResources(ctx context.Context, networkInte
 	// Get telecom knowledge base
 	kb := r.deps.GetTelecomKnowledgeBase()
 	if kb == nil {
-		return ctrl.Result{}, fmt.Errorf("telecom knowledge base not available")
+		err := fmt.Errorf("telecom knowledge base not available")
+		// Set Ready condition to indicate configuration issue
+		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "TelecomKnowledgeBaseNotAvailable", "Telecom knowledge base is not properly configured")
+		return ctrl.Result{}, err
 	}
 
 	// Parse extracted parameters from LLM phase
@@ -826,6 +931,8 @@ func (r *NetworkIntentReconciler) planResources(ctx context.Context, networkInte
 	if len(networkIntent.Spec.Parameters.Raw) > 0 {
 		if err := json.Unmarshal(networkIntent.Spec.Parameters.Raw, &llmParams); err != nil {
 			logger.Error(err, "failed to parse LLM parameters")
+			// Set Ready condition to indicate parameter parsing issue
+			r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMParametersParsingFailed", fmt.Sprintf("Failed to parse LLM parameters: %v", err))
 			return ctrl.Result{RequeueAfter: r.config.RetryDelay}, err
 		}
 	}
@@ -1102,7 +1209,10 @@ func (r *NetworkIntentReconciler) generateManifests(ctx context.Context, network
 	processingCtx.CurrentPhase = PhaseManifestGeneration
 
 	if processingCtx.ResourcePlan == nil {
-		return ctrl.Result{}, fmt.Errorf("resource plan not available for manifest generation")
+		err := fmt.Errorf("resource plan not available for manifest generation")
+		// Set Ready condition to indicate missing resource plan
+		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "ResourcePlanNotAvailable", "Resource plan is not available for manifest generation")
+		return ctrl.Result{}, err
 	}
 
 	manifests := make(map[string]string)
@@ -1113,6 +1223,8 @@ func (r *NetworkIntentReconciler) generateManifests(ctx context.Context, network
 		deployment := r.generateDeploymentManifest(networkIntent, &nf)
 		deploymentYAML, err := yaml.Marshal(deployment)
 		if err != nil {
+			// Set Ready condition to indicate manifest generation failure
+			r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "DeploymentManifestMarshalFailed", fmt.Sprintf("Failed to marshal deployment manifest: %v", err))
 			return ctrl.Result{RequeueAfter: r.config.RetryDelay}, fmt.Errorf("failed to marshal deployment: %w", err)
 		}
 		manifests[fmt.Sprintf("%s-deployment.yaml", nf.Name)] = string(deploymentYAML)
@@ -1121,6 +1233,8 @@ func (r *NetworkIntentReconciler) generateManifests(ctx context.Context, network
 		service := r.generateServiceManifest(networkIntent, &nf)
 		serviceYAML, err := yaml.Marshal(service)
 		if err != nil {
+			// Set Ready condition to indicate service manifest generation failure
+			r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "ServiceManifestMarshalFailed", fmt.Sprintf("Failed to marshal service manifest: %v", err))
 			return ctrl.Result{RequeueAfter: r.config.RetryDelay}, fmt.Errorf("failed to marshal service: %w", err)
 		}
 		manifests[fmt.Sprintf("%s-service.yaml", nf.Name)] = string(serviceYAML)
@@ -1130,6 +1244,8 @@ func (r *NetworkIntentReconciler) generateManifests(ctx context.Context, network
 			configMap := r.generateConfigMapManifest(networkIntent, &nf)
 			configMapYAML, err := yaml.Marshal(configMap)
 			if err != nil {
+				// Set Ready condition to indicate configmap manifest generation failure
+				r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "ConfigMapManifestMarshalFailed", fmt.Sprintf("Failed to marshal configmap manifest: %v", err))
 				return ctrl.Result{RequeueAfter: r.config.RetryDelay}, fmt.Errorf("failed to marshal configmap: %w", err)
 			}
 			manifests[fmt.Sprintf("%s-configmap.yaml", nf.Name)] = string(configMapYAML)
@@ -1140,6 +1256,8 @@ func (r *NetworkIntentReconciler) generateManifests(ctx context.Context, network
 			netpol := r.generateNetworkPolicyManifest(networkIntent, &nf)
 			netpolYAML, err := yaml.Marshal(netpol)
 			if err != nil {
+				// Set Ready condition to indicate network policy manifest generation failure
+				r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "NetworkPolicyManifestMarshalFailed", fmt.Sprintf("Failed to marshal network policy manifest: %v", err))
 				return ctrl.Result{RequeueAfter: r.config.RetryDelay}, fmt.Errorf("failed to marshal network policy: %w", err)
 			}
 			manifests[fmt.Sprintf("%s-networkpolicy.yaml", nf.Name)] = string(netpolYAML)
@@ -1151,6 +1269,8 @@ func (r *NetworkIntentReconciler) generateManifests(ctx context.Context, network
 		sliceConfigMap := r.generateSliceConfigMap(networkIntent, processingCtx.ResourcePlan.SliceConfiguration)
 		sliceConfigYAML, err := yaml.Marshal(sliceConfigMap)
 		if err != nil {
+			// Set Ready condition to indicate slice configuration manifest generation failure
+			r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "SliceConfigManifestMarshalFailed", fmt.Sprintf("Failed to marshal slice configuration manifest: %v", err))
 			return ctrl.Result{RequeueAfter: r.config.RetryDelay}, fmt.Errorf("failed to marshal slice config: %w", err)
 		}
 		manifests["slice-configuration.yaml"] = string(sliceConfigYAML)
@@ -1503,7 +1623,9 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		r.safeStatusUpdate(ctx, networkIntent)
+		
+		// Set Ready condition to indicate Git operation failure
+		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "GitOperationsFailed", fmt.Sprintf("Git operations failed after %d retries", r.config.MaxRetries))
 		return ctrl.Result{}, fmt.Errorf("max retries exceeded for GitOps commit")
 	}
 
@@ -1520,9 +1642,18 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		r.safeStatusUpdate(ctx, networkIntent)
 		
-		return ctrl.Result{RequeueAfter: r.config.RetryDelay}, nil
+		// Set Ready condition to False during Git initialization failures
+		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "GitRepoInitializationFailed", fmt.Sprintf("Git repository initialization failed: %v", err))
+		
+		// Use exponential backoff for Git operations
+		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "git-operations")
+		logger.V(1).Info("Scheduling git initialization retry with exponential backoff", 
+			"delay", backoffDelay, 
+			"attempt", retryCount+1, 
+			"max_retries", r.config.MaxRetries)
+		
+		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 
 	// Organize manifests by deployment path
@@ -1560,9 +1691,18 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		r.safeStatusUpdate(ctx, networkIntent)
 		
-		return ctrl.Result{RequeueAfter: r.config.RetryDelay}, nil
+		// Set Ready condition to False during Git commit/push failures
+		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "GitCommitPushFailed", fmt.Sprintf("Git commit and push failed: %v", err))
+		
+		// Use exponential backoff for Git commit/push operations
+		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "git-operations")
+		logger.V(1).Info("Scheduling git commit/push retry with exponential backoff", 
+			"delay", backoffDelay, 
+			"attempt", retryCount+1, 
+			"max_retries", r.config.MaxRetries)
+		
+		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 
 	// Store commit hash
@@ -1582,6 +1722,8 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 		LastTransitionTime: now,
 	}
 	updateCondition(&networkIntent.Status.Conditions, condition)
+	
+	// Note: Don't set Ready=True here yet, wait for full pipeline completion
 
 	if err := r.safeStatusUpdate(ctx, networkIntent); err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update status: %w", err)
@@ -2162,25 +2304,13 @@ func (r *NetworkIntentReconciler) reconcileDelete(ctx context.Context, networkIn
 
 		r.recordFailureEvent(networkIntent, reason, fmt.Sprintf("attempt %d/%d failed: %v", retryCount+1, r.config.MaxRetries, err))
 
-		// Calculate exponential backoff delay
-		baseDelay := r.config.RetryDelay
-		if baseDelay == 0 {
-			baseDelay = DefaultRetryDelay
-		}
-		
-		// Exponential backoff: delay = base * 2^retryCount
-		backoffDelay := baseDelay * time.Duration(1<<uint(retryCount))
-		
-		// Cap at 5 minutes for cleanup operations
-		maxDelay := time.Minute * 5
-		if backoffDelay > maxDelay {
-			backoffDelay = maxDelay
-		}
+		// Use exponential backoff with jitter for cleanup operations
+		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "cleanup")
 
 		logger.V(1).Info("Scheduling cleanup retry with exponential backoff", 
 			"delay", backoffDelay, 
 			"attempt", retryCount+1,
-			"base_delay", baseDelay)
+			"max_retries", r.config.MaxRetries)
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 

@@ -52,12 +52,24 @@ type MetricsCollector struct {
 	GitOpsSyncStatus          *prometheus.GaugeVec
 	GitPushInFlight           prometheus.Gauge
 	
+	// HTTP and SSE metrics
+	HTTPRequestDuration       *prometheus.HistogramVec
+	SSEStreamDuration         *prometheus.HistogramVec
+	
 	// System health metrics
 	ControllerHealthStatus    *prometheus.GaugeVec
 	KubernetesAPILatency      prometheus.Histogram
 	ResourceUtilization       *prometheus.GaugeVec
 	WorkerQueueDepth          *prometheus.GaugeVec
 	WorkerQueueLatency        *prometheus.HistogramVec
+	
+	// Weaviate Connection Pool metrics
+	WeaviatePoolConnectionsCreated    prometheus.Counter
+	WeaviatePoolConnectionsDestroyed  prometheus.Counter
+	WeaviatePoolActiveConnections     prometheus.Gauge
+	WeaviatePoolSize                  prometheus.Gauge
+	WeaviatePoolHealthChecksPassed    prometheus.Counter
+	WeaviatePoolHealthChecksFailed    prometheus.Counter
 }
 
 // NewMetricsCollector creates a new metrics collector with all Prometheus metrics
@@ -205,6 +217,19 @@ func NewMetricsCollector() *MetricsCollector {
 			Help: "Number of git push operations currently in flight",
 		}),
 		
+		// HTTP and SSE metrics
+		HTTPRequestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "nephoran_http_request_duration_seconds",
+			Help:    "Duration of HTTP requests",
+			Buckets: []float64{0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10},
+		}, []string{"method", "path", "code"}),
+		
+		SSEStreamDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "nephoran_sse_stream_duration_seconds",
+			Help:    "Duration of SSE streaming connections",
+			Buckets: []float64{0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10},
+		}, []string{"route"}),
+		
 		// System health metrics
 		ControllerHealthStatus: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_controller_health_status",
@@ -232,6 +257,37 @@ func NewMetricsCollector() *MetricsCollector {
 			Help:    "Latency of items in worker queues",
 			Buckets: prometheus.DefBuckets,
 		}, []string{"queue_name"}),
+		
+		// Weaviate Connection Pool metrics
+		WeaviatePoolConnectionsCreated: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "nephoran_weaviate_pool_connections_created_total",
+			Help: "Total number of Weaviate connections created in the pool",
+		}),
+		
+		WeaviatePoolConnectionsDestroyed: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "nephoran_weaviate_pool_connections_destroyed_total",
+			Help: "Total number of Weaviate connections destroyed in the pool",
+		}),
+		
+		WeaviatePoolActiveConnections: promauto.NewGauge(prometheus.GaugeOpts{
+			Name: "nephoran_weaviate_pool_active_connections",
+			Help: "Current number of active Weaviate connections in the pool",
+		}),
+		
+		WeaviatePoolSize: promauto.NewGauge(prometheus.GaugeOpts{
+			Name: "nephoran_weaviate_pool_size",
+			Help: "Current size of the Weaviate connection pool (total connections)",
+		}),
+		
+		WeaviatePoolHealthChecksPassed: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "nephoran_weaviate_pool_health_checks_passed_total",
+			Help: "Total number of successful Weaviate connection health checks",
+		}),
+		
+		WeaviatePoolHealthChecksFailed: promauto.NewCounter(prometheus.CounterOpts{
+			Name: "nephoran_weaviate_pool_health_checks_failed_total",
+			Help: "Total number of failed Weaviate connection health checks",
+		}),
 	}
 	
 	// Register all metrics with controller-runtime metrics registry
@@ -264,11 +320,19 @@ func NewMetricsCollector() *MetricsCollector {
 			mc.GitOpsErrors,
 			mc.GitOpsSyncStatus,
 			mc.GitPushInFlight,
+			mc.HTTPRequestDuration,
+			mc.SSEStreamDuration,
 			mc.ControllerHealthStatus,
 			mc.KubernetesAPILatency,
 			mc.ResourceUtilization,
 			mc.WorkerQueueDepth,
 			mc.WorkerQueueLatency,
+			mc.WeaviatePoolConnectionsCreated,
+			mc.WeaviatePoolConnectionsDestroyed,
+			mc.WeaviatePoolActiveConnections,
+			mc.WeaviatePoolSize,
+			mc.WeaviatePoolHealthChecksPassed,
+			mc.WeaviatePoolHealthChecksFailed,
 		)
 	})
 	
@@ -390,6 +454,16 @@ func (mc *MetricsCollector) UpdateGitOpsSyncStatus(repository, branch string, in
 	mc.GitOpsSyncStatus.WithLabelValues(repository, branch).Set(status)
 }
 
+// RecordHTTPRequest records HTTP request metrics
+func (mc *MetricsCollector) RecordHTTPRequest(method, path, statusCode string, duration time.Duration) {
+	mc.HTTPRequestDuration.WithLabelValues(method, path, statusCode).Observe(duration.Seconds())
+}
+
+// RecordSSEStream records SSE stream connection metrics
+func (mc *MetricsCollector) RecordSSEStream(route string, duration time.Duration) {
+	mc.SSEStreamDuration.WithLabelValues(route).Observe(duration.Seconds())
+}
+
 // UpdateControllerHealth updates controller health status
 func (mc *MetricsCollector) UpdateControllerHealth(controller, component string, healthy bool) {
 	var status float64
@@ -413,6 +487,44 @@ func (mc *MetricsCollector) UpdateResourceUtilization(resourceType, unit string,
 func (mc *MetricsCollector) UpdateWorkerQueueMetrics(queueName string, depth int, latency time.Duration) {
 	mc.WorkerQueueDepth.WithLabelValues(queueName).Set(float64(depth))
 	mc.WorkerQueueLatency.WithLabelValues(queueName).Observe(latency.Seconds())
+}
+
+// Weaviate Connection Pool metrics methods
+
+// RecordWeaviatePoolConnectionCreated records a created connection
+func (mc *MetricsCollector) RecordWeaviatePoolConnectionCreated() {
+	mc.WeaviatePoolConnectionsCreated.Inc()
+}
+
+// RecordWeaviatePoolConnectionDestroyed records a destroyed connection
+func (mc *MetricsCollector) RecordWeaviatePoolConnectionDestroyed() {
+	mc.WeaviatePoolConnectionsDestroyed.Inc()
+}
+
+// UpdateWeaviatePoolActiveConnections updates the active connections count
+func (mc *MetricsCollector) UpdateWeaviatePoolActiveConnections(count int) {
+	mc.WeaviatePoolActiveConnections.Set(float64(count))
+}
+
+// UpdateWeaviatePoolSize updates the total pool size
+func (mc *MetricsCollector) UpdateWeaviatePoolSize(size int) {
+	mc.WeaviatePoolSize.Set(float64(size))
+}
+
+// RecordWeaviatePoolHealthCheckPassed records a successful health check
+func (mc *MetricsCollector) RecordWeaviatePoolHealthCheckPassed() {
+	mc.WeaviatePoolHealthChecksPassed.Inc()
+}
+
+// RecordWeaviatePoolHealthCheckFailed records a failed health check
+func (mc *MetricsCollector) RecordWeaviatePoolHealthCheckFailed() {
+	mc.WeaviatePoolHealthChecksFailed.Inc()
+}
+
+// UpdateWeaviatePoolMetrics updates all pool metrics from pool metrics struct
+func (mc *MetricsCollector) UpdateWeaviatePoolMetrics(activeCount, totalCount int) {
+	mc.UpdateWeaviatePoolActiveConnections(activeCount)
+	mc.UpdateWeaviatePoolSize(totalCount)
 }
 
 // HealthChecker functionality moved to health_checks.go to avoid duplication

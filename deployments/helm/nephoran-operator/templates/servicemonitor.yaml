@@ -1,4 +1,4 @@
-{{- if .Values.monitoring.enabled and .Values.monitoring.serviceMonitor.enabled }}
+{{- if and .Values.monitoring.enabled .Values.monitoring.serviceMonitor.enabled }}
 ---
 # ServiceMonitor for Nephoran Operator Controller
 apiVersion: monitoring.coreos.com/v1
