@@ -4,6 +4,13 @@
 
 name: 🔍 Code Quality Gate
 
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  actions: read
+  security-events: write
+
 on:
   push:
     branches: [ main, develop, release/** ]
@@ -125,6 +132,7 @@ jobs:
           key: ${{ needs.pre-checks.outputs.go-cache-key }}
           restore-keys: |
             go-${{ env.GO_VERSION }}-
+          save-always: true
       
       - name: 🔧 Install Dependencies
         run: |
@@ -256,7 +264,7 @@ jobs:
         with:
           version: latest
           install-mode: "goinstall"
-          args: --version
+          only-new-issues: false
       
       - name: 🔍 Run Comprehensive Linting
         run: |
@@ -349,7 +357,7 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@latest
           
           # Install gosec
-          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
       
       - name: 🔍 Vulnerability Scanning
         run: |
@@ -433,6 +441,7 @@ jobs:
       
       - name: 📥 Download Artifacts
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           pattern: "*-reports"
           path: ${{ env.REPORTS_DIR }}/
@@ -513,6 +522,7 @@ jobs:
     steps:
       - name: 📥 Download Quality Reports
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: quality-dashboard
           path: ${{ env.REPORTS_DIR }}/
@@ -669,6 +679,7 @@ jobs:
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const gateStatus = "${{ needs.quality-gate.outputs.gate-status }}";
             const coverage = process.env.COVERAGE_PERCENT || 'N/A';

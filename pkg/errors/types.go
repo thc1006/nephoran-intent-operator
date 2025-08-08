@@ -11,53 +11,16 @@ import (
 	"time"
 )
 
-// ErrorSeverity represents the severity level of an error
-type ErrorSeverity int
+// Removed duplicate ErrorSeverity - using the one from comprehensive_errors.go
 
-const (
-	SeverityLow ErrorSeverity = iota
-	SeverityMedium
-	SeverityHigh
-	SeverityCritical
-)
-
-func (s ErrorSeverity) String() string {
-	switch s {
-	case SeverityLow:
-		return "low"
-	case SeverityMedium:
-		return "medium"
-	case SeverityHigh:
-		return "high"
-	case SeverityCritical:
-		return "critical"
-	default:
-		return "unknown"
-	}
-}
-
-// ErrorCategory represents the category of an error
-type ErrorCategory string
-
-const (
-	CategoryUser        ErrorCategory = "user"
-	CategorySystem      ErrorCategory = "system"
-	CategoryInternal    ErrorCategory = "internal"
-	CategoryExternal    ErrorCategory = "external"
-	CategoryValidation  ErrorCategory = "validation"
-	CategoryPermission  ErrorCategory = "permission"
-	CategoryResource    ErrorCategory = "resource"
-	CategoryNetwork     ErrorCategory = "network"
-	CategoryTimeout     ErrorCategory = "timeout"
-	CategoryConfig      ErrorCategory = "config"
-)
+// This file contains type aliases and imports for backward compatibility
 
 // ErrorType represents different types of errors for classification
-type ErrorType string
+// type ErrorType (duplicate - see errors.go) string
 
 const (
 	// Validation errors
-	ErrorTypeValidation ErrorType = "validation"
+// 	ErrorTypeValidation ErrorType = "validation"
 	ErrorTypeRequired   ErrorType = "required"
 	ErrorTypeInvalid    ErrorType = "invalid"
 	ErrorTypeFormat     ErrorType = "format"

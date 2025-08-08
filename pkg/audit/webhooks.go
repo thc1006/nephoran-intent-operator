@@ -1,19 +1,21 @@
 package audit
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	admissionv1 "k8s.io/api/admission/v1"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -226,7 +228,7 @@ func (w *AdmissionAuditWebhook) handleAdmissionRequest(rw http.ResponseWriter, r
 	
 	// Check if this request should be excluded
 	if w.shouldExcludeRequest(admissionRequest) {
-		w.sendAllowedResponse(rw, admissionRequest.UID)
+		w.sendAllowedResponse(rw, string(admissionRequest.UID))
 		return
 	}
 	
@@ -547,7 +549,7 @@ func (w *AdmissionAuditWebhook) generateSecurityPatches(req *admissionv1.Admissi
 
 func (w *AdmissionAuditWebhook) createAdmissionEventInfo(req *admissionv1.AdmissionRequest, webhookType string) *AdmissionEventInfo {
 	return &AdmissionEventInfo{
-		UID:           req.UID,
+		UID:           string(req.UID),
 		Kind:          req.Kind,
 		Resource:      req.Resource,
 		SubResource:   req.SubResource,
@@ -558,12 +560,12 @@ func (w *AdmissionAuditWebhook) createAdmissionEventInfo(req *admissionv1.Admiss
 			Username: req.UserInfo.Username,
 			UID:      req.UserInfo.UID,
 			Groups:   req.UserInfo.Groups,
-			Extra:    req.UserInfo.Extra,
+			Extra:    convertExtraValues(req.UserInfo.Extra),
 		},
 		Object:        req.Object,
 		OldObject:     req.OldObject,
-		Patch:         req.Patch,
-		PatchType:     req.PatchType,
+		Patch:         nil, // Patch field doesn't exist in AdmissionRequest
+		PatchType:     nil, // PatchType field doesn't exist in AdmissionRequest
 		Options:       req.Options,
 		DryRun:        req.DryRun != nil && *req.DryRun,
 		AdmissionTime: time.Now().UTC(),
@@ -572,7 +574,7 @@ func (w *AdmissionAuditWebhook) createAdmissionEventInfo(req *admissionv1.Admiss
 
 func (w *AdmissionAuditWebhook) createAdmissionResponseInfo(resp *admissionv1.AdmissionResponse, processingTime time.Duration) *AdmissionResponseInfo {
 	return &AdmissionResponseInfo{
-		UID:            resp.UID,
+		UID:            string(resp.UID),
 		Allowed:        resp.Allowed,
 		Result:         resp.Result,
 		Patch:          resp.Patch,
@@ -699,7 +701,7 @@ func (w *AdmissionAuditWebhook) sendAllowedResponse(rw http.ResponseWriter, uid 
 			Kind:       "AdmissionReview",
 		},
 		Response: &admissionv1.AdmissionResponse{
-			UID:     uid,
+			UID:     types.UID(uid),
 			Allowed: true,
 		},
 	}
@@ -755,4 +757,13 @@ func (w *AdmissionAuditWebhook) isHighRiskOperation(operation admissionv1.Operat
 		}
 	}
 	return false
+}
+
+// convertExtraValues converts authentication v1 ExtraValue to []string
+func convertExtraValues(extra map[string]authenticationv1.ExtraValue) map[string][]string {
+	result := make(map[string][]string)
+	for k, v := range extra {
+		result[k] = []string(v)
+	}
+	return result
 }

@@ -172,7 +172,7 @@ func TestResult_Filter(t *testing.T) {
 		},
 		{
 			name:         "filter failing predicate",
-			input:        Ok[int, error>(10),
+			input:        Ok[int, error](10),
 			predicate:    func(i int) bool { return i > 30 },
 			errorOnFalse: fmt.Errorf("value too small"),
 			isOk:         false,
@@ -376,7 +376,7 @@ func TestAny(t *testing.T) {
 	}{
 		{
 			name: "first successful",
-			results: []Result[int, error>{
+			results: []Result[int, error]{
 				Ok[int, error](1),
 				Err[int, error](fmt.Errorf("test error")),
 				Ok[int, error](3),
@@ -483,7 +483,7 @@ func TestTry(t *testing.T) {
 }
 
 func TestPartition(t *testing.T) {
-	results := []Result[int, string>{
+	results := []Result[int, string]{
 		Ok[int, string](1),
 		Err[int, string]("error1"),
 		Ok[int, string](2),

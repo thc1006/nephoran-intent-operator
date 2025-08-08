@@ -211,7 +211,7 @@ func AuthorizationMiddleware[TRequest, TResponse any](authorizer Authorizer[TReq
 			authResult := authorizer.Authorize(ctx, user, request)
 			if authResult.IsErr() {
 				var zero TResponse
-				return Err[TResponse, error>(fmt.Errorf("authorization failed: %w", authResult.Error()))
+				return Err[TResponse, error](fmt.Errorf("authorization failed: %w", authResult.Error()))
 			}
 			
 			if !authResult.Value() {
@@ -273,7 +273,7 @@ func RateLimitingMiddleware[TRequest, TResponse any](limiter RateLimiter[TReques
 			limitResult := limiter.Allow(ctx, request)
 			if limitResult.IsErr() {
 				var zero TResponse
-				return Err[TResponse, error>(limitResult.Error())
+				return Err[TResponse, error](limitResult.Error())
 			}
 			
 			if !limitResult.Value() {
@@ -514,7 +514,7 @@ func CircuitBreakerMiddleware[TRequest, TResponse any](breaker CircuitBreaker[TR
 			// Check if circuit breaker allows the request
 			if !breaker.Allow(ctx, request) {
 				var zero TResponse
-				return Err[TResponse, error>(fmt.Errorf("circuit breaker is open"))
+				return Err[TResponse, error](fmt.Errorf("circuit breaker is open"))
 			}
 			
 			// Process request

@@ -200,12 +200,15 @@ func (vb *ValidationBuilder[T]) Range(fieldName string, min, max int64, extracto
 }
 
 // OneOf adds a validator that checks if value is one of the allowed values.
-func (vb *ValidationBuilder[T]) OneOf[V Comparable](fieldName string, allowedValues []V, extractor func(T) V) *ValidationBuilder[T] {
-	allowedSet := NewSet(allowedValues...)
+func (vb *ValidationBuilder[T]) OneOf(fieldName string, allowedValues []interface{}, extractor func(T) interface{}) *ValidationBuilder[T] {
+	allowedSet := make(map[interface{}]bool)
+	for _, v := range allowedValues {
+		allowedSet[v] = true
+	}
 	validator := func(obj T) ValidationResult {
 		value := extractor(obj)
 		result := NewValidationResult()
-		if !allowedSet.Contains(value) {
+		if !allowedSet[value] {
 			result.AddError(fieldName, fmt.Sprintf("value must be one of: %v", allowedValues), "one_of", value)
 		}
 		return result

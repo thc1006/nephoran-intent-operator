@@ -1,4 +1,4 @@
-package audit
+package integration
 
 import (
 	"context"
@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	nephv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 )
@@ -196,7 +197,7 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 			{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
-				EventType: EventTypeAuthentication,
+				EventType: audit.EventTypeAuthentication,
 				Component: "e2e-test",
 				Action:    "login",
 				Severity:  SeverityInfo,
@@ -209,7 +210,7 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 			{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
-				EventType: EventTypeDataAccess,
+				EventType: audit.EventTypeDataAccess,
 				Component: "e2e-test",
 				Action:    "read_data",
 				Severity:  SeverityInfo,
@@ -227,7 +228,7 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 			{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
-				EventType: EventTypeSecurityViolation,
+				EventType: audit.EventTypeSecurityViolation,
 				Component: "e2e-test",
 				Action:    "suspicious_activity",
 				Severity:  SeverityCritical,
@@ -342,7 +343,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 		reconcileEvent := &AuditEvent{
 			ID:        uuid.New().String(),
 			Timestamp: time.Now(),
-			EventType: EventTypeSystemChange,
+			EventType: audit.EventTypeSystemChange,
 			Component: "networkintent-controller",
 			Action:    "reconcile",
 			Severity:  SeverityInfo,
@@ -380,7 +381,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 		admissionEvent := &AuditEvent{
 			ID:        uuid.New().String(),
 			Timestamp: time.Now(),
-			EventType: EventTypeAuthorization,
+			EventType: audit.EventTypeAuthorization,
 			Component: "admission-webhook",
 			Action:    "validate",
 			Severity:  SeverityInfo,
@@ -504,7 +505,7 @@ func (suite *E2EAuditTestSuite) TestHighLoadAuditing() {
 					event := &AuditEvent{
 						ID:        uuid.New().String(),
 						Timestamp: time.Now(),
-						EventType: EventTypeAPICall,
+						EventType: audit.EventTypeAPICall,
 						Component: "high-load-test",
 						Action:    fmt.Sprintf("api-call-%d-%d", goroutineID, i),
 						Severity:  SeverityInfo,
@@ -602,7 +603,7 @@ func (suite *E2EAuditTestSuite) TestErrorRecovery() {
 			event := &AuditEvent{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
-				EventType: EventTypeSystemChange,
+				EventType: audit.EventTypeSystemChange,
 				Component: "error-recovery-test",
 				Action:    fmt.Sprintf("test-action-%d", i),
 				Severity:  SeverityInfo,
@@ -715,7 +716,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 			{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
-				EventType: EventTypeSecurityViolation,
+				EventType: audit.EventTypeSecurityViolation,
 				Component: "security-monitor",
 				Action:    "pii_access_violation",
 				Severity:  SeverityCritical,
@@ -770,7 +771,7 @@ func (suite *E2EAuditTestSuite) TestMonitoringAndHealth() {
 			event := &AuditEvent{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
-				EventType: EventTypeHealthCheck,
+				EventType: audit.EventTypeHealthCheck,
 				Component: "monitoring-test",
 				Action:    fmt.Sprintf("health-check-%d", i),
 				Severity:  SeverityInfo,
@@ -863,7 +864,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 			{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
-				EventType: EventTypeAPICall,
+				EventType: audit.EventTypeAPICall,
 				Component: "kube-apiserver",
 				Action:    "create",
 				Severity:  SeverityInfo,
@@ -894,7 +895,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 			{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
-				EventType: EventTypeAPICall,
+				EventType: audit.EventTypeAPICall,
 				Component: "kube-apiserver",
 				Action:    "get",
 				Severity:  SeverityInfo,
@@ -953,7 +954,7 @@ func (suite *E2EAuditTestSuite) TestScalabilityMetrics() {
 			event := &AuditEvent{
 				ID:        uuid.New().String(),
 				Timestamp: time.Now(),
-				EventType: EventTypeAPICall,
+				EventType: audit.EventTypeAPICall,
 				Component: "latency-test",
 				Action:    fmt.Sprintf("action-%d", i),
 				Severity:  SeverityInfo,

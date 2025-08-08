@@ -5,6 +5,8 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
+	"encoding/base32"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -1038,8 +1040,3 @@ func (s *AuthTestSuite) generateRefreshToken() string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
-// Missing imports
-import (
-	"crypto/sha256"
-	"encoding/base32"
-)

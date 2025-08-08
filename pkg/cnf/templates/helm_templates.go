@@ -18,7 +18,6 @@ package templates
 
 import (
 	"fmt"
-	"strings"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )

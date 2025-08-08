@@ -27,23 +27,7 @@ var (
 	ErrKeyNotFound = errors.New("key not found")
 )
 
-// KeyManager interface for key management operations
-type KeyManager interface {
-	// GenerateKey generates a new key pair
-	GenerateKey(keyType string, bits int) (*StoredKey, error)
-
-	// StoreKey stores a key securely
-	StoreKey(key *StoredKey) error
-
-	// RetrieveKey retrieves a key by ID
-	RetrieveKey(keyID string) (*StoredKey, error)
-
-	// RotateKey rotates an existing key
-	RotateKey(keyID string) (*StoredKey, error)
-
-	// DeleteKey securely deletes a key
-	DeleteKey(keyID string) error
-}
+// KeyManager interface removed - using AdvancedKeyManager instead
 
 // StoredKey represents a stored cryptographic key
 type StoredKey struct {
@@ -69,12 +53,7 @@ type DefaultKeyManager struct {
 	keys map[string]*StoredKey
 }
 
-// NewDefaultKeyManager creates a new default key manager
-func NewDefaultKeyManager() KeyManager {
-	return &DefaultKeyManager{
-		keys: make(map[string]*StoredKey),
-	}
-}
+// NewDefaultKeyManager removed - use NewKeyManager from key_manager.go instead
 
 // GenerateKey generates a new key pair
 func (dkm *DefaultKeyManager) GenerateKey(keyType string, bits int) (*StoredKey, error) {
@@ -136,3 +115,6 @@ func generateKeyID() string {
 	// Placeholder implementation - in production, use proper UUID generation
 	return "key-" + time.Now().Format("20060102150405")
 }
+
+// Simple type aliases for backward compatibility
+type KeyManager = AdvancedKeyManager

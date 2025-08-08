@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -1386,5 +1387,3 @@ func (c *mockNetworkClient) Close() error {
 	return nil
 }
 
-// Required import for string operations
-import "strings"

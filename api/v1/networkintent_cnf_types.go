@@ -19,6 +19,7 @@ package v1
 import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // CNFDeploymentIntent defines CNF deployment specifications derived from NetworkIntent
@@ -368,6 +369,21 @@ type CNFIntentProcessingResult struct {
 	// Additional context from LLM processing
 	// +kubebuilder:pruning:PreserveUnknownFields
 	LLMContext runtime.RawExtension `json:"llmContext,omitempty"`
+}
+
+// GetObjectKind implements runtime.Object interface
+func (c *CNFIntentProcessingResult) GetObjectKind() schema.ObjectKind {
+	return c
+}
+
+// GetObjectKind implements schema.ObjectKind interface
+func (c *CNFIntentProcessingResult) SetGroupVersionKind(gvk schema.GroupVersionKind) {
+	// This is a data structure, not a Kubernetes resource, so no-op is appropriate
+}
+
+// GroupVersionKind implements schema.ObjectKind interface
+func (c *CNFIntentProcessingResult) GroupVersionKind() schema.GroupVersionKind {
+	return schema.GroupVersionKind{}
 }
 
 // CNFTopologyIntent defines network topology and connectivity requirements

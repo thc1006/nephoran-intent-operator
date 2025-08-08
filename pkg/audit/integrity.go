@@ -12,7 +12,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
