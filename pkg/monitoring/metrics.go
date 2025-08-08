@@ -50,6 +50,7 @@ type MetricsCollector struct {
 	GitOpsCommitDuration      prometheus.Histogram
 	GitOpsErrors              *prometheus.CounterVec
 	GitOpsSyncStatus          *prometheus.GaugeVec
+	GitPushInFlight           prometheus.Gauge
 	
 	// System health metrics
 	ControllerHealthStatus    *prometheus.GaugeVec
@@ -199,6 +200,11 @@ func NewMetricsCollector() *MetricsCollector {
 			Help: "GitOps synchronization status (0=out-of-sync, 1=in-sync)",
 		}, []string{"repository", "branch"}),
 		
+		GitPushInFlight: promauto.NewGauge(prometheus.GaugeOpts{
+			Name: "nephoran_git_push_in_flight",
+			Help: "Number of git push operations currently in flight",
+		}),
+		
 		// System health metrics
 		ControllerHealthStatus: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_controller_health_status",
@@ -257,6 +263,7 @@ func NewMetricsCollector() *MetricsCollector {
 			mc.GitOpsCommitDuration,
 			mc.GitOpsErrors,
 			mc.GitOpsSyncStatus,
+			mc.GitPushInFlight,
 			mc.ControllerHealthStatus,
 			mc.KubernetesAPILatency,
 			mc.ResourceUtilization,

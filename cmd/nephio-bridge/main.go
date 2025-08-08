@@ -178,6 +178,10 @@ func main() {
 			setupLog.Error(err, "unable to create git client config")
 			os.Exit(1)
 		}
+		// Apply concurrent push limit from config if set
+		if cfg.GitConcurrentPushLimit > 0 {
+			gitConfig.ConcurrentPushLimit = cfg.GitConcurrentPushLimit
+		}
 		gitClient = git.NewClientFromConfig(gitConfig)
 	} else {
 		// Fallback to default constructor for backward compatibility

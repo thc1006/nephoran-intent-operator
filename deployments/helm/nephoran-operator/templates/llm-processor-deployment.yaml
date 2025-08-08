@@ -105,6 +105,8 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.secrets.apiKeys.name | default "nephoran-api-keys" }}
                   key: github-token
+            - name: GIT_CONCURRENT_PUSH_LIMIT
+              value: "{{ .Values.git.concurrentPushLimit }}"
             {{- end }}
             
             # JWT signing key (from SOPS-encrypted secret)

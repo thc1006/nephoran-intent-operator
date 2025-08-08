@@ -385,6 +385,32 @@ kubectl apply -f deployments/kubernetes/ --recursive
 kubectl apply -k deployments/kustomize/overlays/gitops/
 ```
 
+### GitOps Configuration
+
+The operator includes optimized GitOps settings for concurrent operations:
+
+- **`GIT_CONCURRENT_PUSH_LIMIT`** (Environment Variable)
+  - **Default**: 4 concurrent operations per process
+  - **Behavior**: Limits the number of simultaneous `CommitAndPush` operations to prevent git repository lock contention and improve overall system stability
+  - **Tuning**: Increase for high-throughput environments with robust git infrastructure; decrease for environments with limited git server resources
+  
+Example configuration:
+```bash
+# Set via environment variable
+export GIT_CONCURRENT_PUSH_LIMIT=8
+
+# Or in Kubernetes deployment
+env:
+  - name: GIT_CONCURRENT_PUSH_LIMIT
+    value: "8"
+
+# Or in Helm values
+git:
+  concurrentPushLimit: 8
+```
+
+This setting helps prevent git operation bottlenecks in high-load scenarios while maintaining data consistency.
+
 ## 📈 Roadmap & Innovation
 
 ### 🎯 Current Release (v1.0)

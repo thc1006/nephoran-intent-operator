@@ -20,6 +20,7 @@ ml:
 
 git:
   tokenSecret: ""
+  concurrentPushLimit: 4  # Maximum concurrent git push operations
 
 # Note: LLM Processor configuration moved below to avoid duplication
 

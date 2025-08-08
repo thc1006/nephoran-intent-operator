@@ -110,6 +110,8 @@ spec:
               value: "main"
             - name: GIT_SYNC_INTERVAL
               value: "30s"
+            - name: GIT_CONCURRENT_PUSH_LIMIT
+              value: "{{ .Values.git.concurrentPushLimit }}"
             
             {{- if .Values.git.tokenSecret }}
             - name: GIT_TOKEN
