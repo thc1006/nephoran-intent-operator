@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1"
+// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
 )
 
 // HealthMonitor manages multi-cluster health monitoring

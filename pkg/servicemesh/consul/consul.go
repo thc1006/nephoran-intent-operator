@@ -6,13 +6,41 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/nephoran-operator/pkg/servicemesh/abstraction"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+func init() {
+	abstraction.RegisterProvider(abstraction.ProviderConsul, func(kubeClient kubernetes.Interface, dynamicClient client.Client, config *rest.Config, meshConfig *abstraction.ServiceMeshConfig) (abstraction.ServiceMeshInterface, error) {
+		// Create Consul-specific configuration
+		consulConfig := &Config{
+			Namespace:           meshConfig.Namespace,
+			TrustDomain:        meshConfig.TrustDomain,
+			CertificateConfig:  meshConfig.CertificateConfig,
+			PolicyDefaults:     meshConfig.PolicyDefaults,
+			ObservabilityConfig: meshConfig.ObservabilityConfig,
+		}
+
+		// Extract Consul-specific settings from custom config
+		if meshConfig.CustomConfig != nil {
+			if datacenter, ok := meshConfig.CustomConfig["datacenter"].(string); ok {
+				consulConfig.Datacenter = datacenter
+			}
+			if gossipKey, ok := meshConfig.CustomConfig["gossipKey"].(string); ok {
+				consulConfig.GossipKey = gossipKey
+			}
+			if aclEnabled, ok := meshConfig.CustomConfig["aclEnabled"].(bool); ok {
+				consulConfig.ACLEnabled = aclEnabled
+			}
+		}
+
+		return NewConsulMesh(kubeClient, dynamicClient, config, consulConfig)
+	})
+}
 
 // Config contains Consul-specific configuration
 type Config struct {

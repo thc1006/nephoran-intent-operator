@@ -6,7 +6,6 @@ import (
 	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/constant"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"

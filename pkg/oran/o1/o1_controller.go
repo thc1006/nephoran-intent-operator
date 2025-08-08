@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	oranv1alpha1 "github.com/nephio-project/nephoran-intent-operator/api/v1alpha1"
+	oranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 const (
@@ -287,7 +287,7 @@ func (r *O1InterfaceController) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&oranv1alpha1.O1Interface{}).
+		For(&oranv1.O1Interface{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.ConfigMap{}).
 		Owns(&corev1.Secret{}).
@@ -302,7 +302,7 @@ func (r *O1InterfaceController) Reconcile(ctx context.Context, req ctrl.Request)
 	startTime := time.Now()
 
 	// Get O1Interface instance
-	o1Interface := &oranv1alpha1.O1Interface{}
+	o1Interface := &oranv1.O1Interface{}
 	err := r.Get(ctx, req.NamespacedName, o1Interface)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -348,7 +348,7 @@ func (r *O1InterfaceController) Reconcile(ctx context.Context, req ctrl.Request)
 }
 
 // reconcileO1Interface reconciles the O1Interface resource
-func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Interface *oranv1alpha1.O1Interface) (ctrl.Result, error) {
+func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Interface *oranv1.O1Interface) (ctrl.Result, error) {
 	log := r.Log.WithValues("o1interface", o1Interface.Name, "namespace", o1Interface.Namespace)
 
 	// Validate configuration
@@ -416,7 +416,7 @@ func (r *O1InterfaceController) reconcileO1Interface(ctx context.Context, o1Inte
 }
 
 // reconcileDeletion handles deletion of O1Interface resources
-func (r *O1InterfaceController) reconcileDeletion(ctx context.Context, o1Interface *oranv1alpha1.O1Interface) (ctrl.Result, error) {
+func (r *O1InterfaceController) reconcileDeletion(ctx context.Context, o1Interface *oranv1.O1Interface) (ctrl.Result, error) {
 	log := r.Log.WithValues("o1interface", o1Interface.Name, "namespace", o1Interface.Namespace)
 
 	log.Info("Handling O1Interface deletion")
@@ -458,7 +458,7 @@ func (r *O1InterfaceController) reconcileDeletion(ctx context.Context, o1Interfa
 }
 
 // validateO1InterfaceSpec validates the O1Interface specification
-func (r *O1InterfaceController) validateO1InterfaceSpec(o1Interface *oranv1alpha1.O1Interface) error {
+func (r *O1InterfaceController) validateO1InterfaceSpec(o1Interface *oranv1.O1Interface) error {
 	// Validate network function reference
 	if o1Interface.Spec.NetworkFunction == "" {
 		return fmt.Errorf("networkFunction is required")
@@ -482,7 +482,7 @@ func (r *O1InterfaceController) validateO1InterfaceSpec(o1Interface *oranv1alpha
 }
 
 // getOrCreateAdapterInstance gets or creates an O1 adapter instance
-func (r *O1InterfaceController) getOrCreateAdapterInstance(ctx context.Context, o1Interface *oranv1alpha1.O1Interface) (*O1AdaptorInstance, error) {
+func (r *O1InterfaceController) getOrCreateAdapterInstance(ctx context.Context, o1Interface *oranv1.O1Interface) (*O1AdaptorInstance, error) {
 	instanceKey := fmt.Sprintf("%s/%s", o1Interface.Namespace, o1Interface.Name)
 
 	r.o1AdapterManager.mutex.Lock()
@@ -536,7 +536,7 @@ func (r *O1InterfaceController) getOrCreateAdapterInstance(ctx context.Context, 
 }
 
 // reconcileNetconfServer creates or updates the NETCONF server
-func (r *O1InterfaceController) reconcileNetconfServer(ctx context.Context, o1Interface *oranv1alpha1.O1Interface, instance *O1AdaptorInstance) error {
+func (r *O1InterfaceController) reconcileNetconfServer(ctx context.Context, o1Interface *oranv1.O1Interface, instance *O1AdaptorInstance) error {
 	serverKey := fmt.Sprintf("%s/%s", o1Interface.Namespace, o1Interface.Name)
 
 	r.netconfServerManager.mutex.Lock()
@@ -567,7 +567,7 @@ func (r *O1InterfaceController) reconcileNetconfServer(ctx context.Context, o1In
 }
 
 // reconcileStreamingService configures the streaming service for the O1 interface
-func (r *O1InterfaceController) reconcileStreamingService(ctx context.Context, o1Interface *oranv1alpha1.O1Interface, instance *O1AdaptorInstance) error {
+func (r *O1InterfaceController) reconcileStreamingService(ctx context.Context, o1Interface *oranv1.O1Interface, instance *O1AdaptorInstance) error {
 	// Configure streaming service for this instance
 	instance.StreamingHandler = r.streamingService
 
@@ -580,7 +580,7 @@ func (r *O1InterfaceController) reconcileStreamingService(ctx context.Context, o
 }
 
 // initializeFCAPSManagers initializes FCAPS management components
-func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1Interface *oranv1alpha1.O1Interface, instance *O1AdaptorInstance) error {
+func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1Interface *oranv1.O1Interface, instance *O1AdaptorInstance) error {
 	// Initialize fault manager
 	if o1Interface.Spec.O1Config.FaultManagement.Enabled {
 		faultConfig := &EnhancedFaultManagerConfig{
@@ -680,7 +680,7 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 }
 
 // reconcileKubernetesResources creates or updates Kubernetes resources
-func (r *O1InterfaceController) reconcileKubernetesResources(ctx context.Context, o1Interface *oranv1alpha1.O1Interface) error {
+func (r *O1InterfaceController) reconcileKubernetesResources(ctx context.Context, o1Interface *oranv1.O1Interface) error {
 	// Create Service for NETCONF
 	service := r.buildNetconfService(o1Interface)
 	if err := r.createOrUpdateService(ctx, service); err != nil {
@@ -703,7 +703,7 @@ func (r *O1InterfaceController) reconcileKubernetesResources(ctx context.Context
 }
 
 // updateStatus updates the O1Interface status
-func (r *O1InterfaceController) updateStatus(ctx context.Context, o1Interface *oranv1alpha1.O1Interface, phase O1InstancePhase, message string) {
+func (r *O1InterfaceController) updateStatus(ctx context.Context, o1Interface *oranv1.O1Interface, phase O1InstancePhase, message string) {
 	o1Interface.Status.Phase = string(phase)
 	o1Interface.Status.Message = message
 	o1Interface.Status.LastTransitionTime = metav1.Now()
@@ -757,7 +757,7 @@ func (r *O1InterfaceController) performHealthCheck(instance *O1AdaptorInstance) 
 
 // Helper methods for building configurations and resources
 
-func (r *O1InterfaceController) buildNetconfServerConfig(o1Interface *oranv1alpha1.O1Interface) *NetconfServerConfig {
+func (r *O1InterfaceController) buildNetconfServerConfig(o1Interface *oranv1.O1Interface) *NetconfServerConfig {
 	return &NetconfServerConfig{
 		Port:           o1Interface.Spec.O1Config.NetconfPort,
 		EnableTLS:      o1Interface.Spec.O1Config.EnableTLS,
@@ -771,19 +771,19 @@ func (r *O1InterfaceController) buildNetconfServerConfig(o1Interface *oranv1alph
 	}
 }
 
-func (r *O1InterfaceController) buildPerformanceConfig(o1Interface *oranv1alpha1.O1Interface) interface{} {
+func (r *O1InterfaceController) buildPerformanceConfig(o1Interface *oranv1.O1Interface) interface{} {
 	return o1Interface.Spec.O1Config.PerformanceCollection
 }
 
-func (r *O1InterfaceController) buildFaultConfig(o1Interface *oranv1alpha1.O1Interface) interface{} {
+func (r *O1InterfaceController) buildFaultConfig(o1Interface *oranv1.O1Interface) interface{} {
 	return o1Interface.Spec.O1Config.FaultManagement
 }
 
-func (r *O1InterfaceController) buildSecurityConfig(o1Interface *oranv1alpha1.O1Interface) interface{} {
+func (r *O1InterfaceController) buildSecurityConfig(o1Interface *oranv1.O1Interface) interface{} {
 	return o1Interface.Spec.O1Config.SecurityPolicies
 }
 
-func (r *O1InterfaceController) buildStreamingConfig(o1Interface *oranv1alpha1.O1Interface) interface{} {
+func (r *O1InterfaceController) buildStreamingConfig(o1Interface *oranv1.O1Interface) interface{} {
 	return &StreamingConfig{
 		MaxConnections:          o1Interface.Spec.O1Config.MaxConnections,
 		ConnectionTimeout:       o1Interface.Spec.O1Config.SessionTimeout,
@@ -796,7 +796,7 @@ func (r *O1InterfaceController) buildStreamingConfig(o1Interface *oranv1alpha1.O
 	}
 }
 
-func (r *O1InterfaceController) buildNetconfService(o1Interface *oranv1alpha1.O1Interface) *corev1.Service {
+func (r *O1InterfaceController) buildNetconfService(o1Interface *oranv1.O1Interface) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-netconf", o1Interface.Name),
@@ -830,7 +830,7 @@ func (r *O1InterfaceController) buildNetconfService(o1Interface *oranv1alpha1.O1
 	}
 }
 
-func (r *O1InterfaceController) buildStreamingService(o1Interface *oranv1alpha1.O1Interface) *corev1.Service {
+func (r *O1InterfaceController) buildStreamingService(o1Interface *oranv1.O1Interface) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-streaming", o1Interface.Name),
@@ -859,7 +859,7 @@ func (r *O1InterfaceController) buildStreamingService(o1Interface *oranv1alpha1.
 	}
 }
 
-func (r *O1InterfaceController) buildYANGModelsConfigMap(o1Interface *oranv1alpha1.O1Interface) *corev1.ConfigMap {
+func (r *O1InterfaceController) buildYANGModelsConfigMap(o1Interface *oranv1.O1Interface) *corev1.ConfigMap {
 	// Build YANG models data
 	yangModelsData := make(map[string]string)
 	// Add standard O-RAN YANG models
@@ -945,7 +945,7 @@ func (r *O1InterfaceController) cleanupNetconfServer(ctx context.Context, instan
 	return nil
 }
 
-func (r *O1InterfaceController) updateNetconfServerConfig(server *NetconfServer, o1Interface *oranv1alpha1.O1Interface) error {
+func (r *O1InterfaceController) updateNetconfServerConfig(server *NetconfServer, o1Interface *oranv1.O1Interface) error {
 	// Update server configuration if needed
 	return server.UpdateConfig(r.buildNetconfServerConfig(o1Interface))
 }
