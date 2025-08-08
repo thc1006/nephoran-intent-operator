@@ -1,0 +1,911 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: performance-benchmarking-grafana-config
+  namespace: nephoran-monitoring
+  labels:
+    app: performance-benchmarking-grafana
+    component: monitoring
+data:
+  grafana.ini: |
+    [analytics]
+    check_for_updates = true
+
+    [grafana_net]
+    url = https://grafana.net
+
+    [log]
+    mode = console
+    level = info
+
+    [paths]
+    data = /var/lib/grafana/data
+    logs = /var/log/grafana
+    plugins = /var/lib/grafana/plugins
+    provisioning = /etc/grafana/provisioning
+
+    [server]
+    http_addr = 0.0.0.0
+    http_port = 3000
+    domain = localhost
+
+    [auth.anonymous]
+    enabled = true
+    org_name = Nephoran Performance Benchmarking
+    org_role = Viewer
+
+    [security]
+    admin_user = admin
+    admin_password = nephoran-benchmarking-2024
+
+    [users]
+    allow_sign_up = false
+    allow_org_create = false
+    auto_assign_org = true
+    auto_assign_org_role = Viewer
+
+    [dashboards]
+    default_home_dashboard_path = /var/lib/grafana/dashboards/performance-benchmarking-dashboard.json
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: performance-benchmarking-grafana-datasources
+  namespace: nephoran-monitoring
+  labels:
+    app: performance-benchmarking-grafana
+    component: monitoring
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus-Benchmarking
+      type: prometheus
+      access: proxy
+      url: http://performance-benchmarking-prometheus:9090
+      isDefault: true
+      editable: true
+      jsonData:
+        httpMethod: POST
+        queryTimeout: 300s
+        timeInterval: 1s
+      version: 1
+    - name: Prometheus-Main
+      type: prometheus  
+      access: proxy
+      url: http://prometheus:9090
+      isDefault: false
+      editable: true
+      jsonData:
+        httpMethod: POST
+        queryTimeout: 60s
+        timeInterval: 15s
+      version: 1
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: performance-benchmarking-grafana-dashboards-config
+  namespace: nephoran-monitoring
+  labels:
+    app: performance-benchmarking-grafana
+    component: monitoring
+data:
+  dashboard-providers.yaml: |
+    apiVersion: 1
+    providers:
+    - name: 'performance-benchmarking'
+      orgId: 1
+      folder: 'Performance Benchmarking'
+      type: file
+      disableDeletion: false
+      updateIntervalSeconds: 10
+      allowUiUpdates: true
+      options:
+        path: /var/lib/grafana/dashboards/benchmarking
+    - name: 'statistical-validation'
+      orgId: 1
+      folder: 'Statistical Validation'
+      type: file
+      disableDeletion: false
+      updateIntervalSeconds: 10
+      allowUiUpdates: true
+      options:
+        path: /var/lib/grafana/dashboards/validation
+    - name: 'regression-analysis'
+      orgId: 1
+      folder: 'Regression Analysis'
+      type: file
+      disableDeletion: false
+      updateIntervalSeconds: 10
+      allowUiUpdates: true
+      options:
+        path: /var/lib/grafana/dashboards/regression
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: statistical-validation-dashboard
+  namespace: nephoran-monitoring
+  labels:
+    app: performance-benchmarking-grafana
+    component: monitoring
+data:
+  statistical-validation.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "nephoran-statistical-validation",
+        "title": "Nephoran Statistical Validation Dashboard",
+        "tags": ["nephoran", "statistics", "validation", "confidence"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "Prometheus-Benchmarking"
+            },
+            "description": "Statistical confidence levels for all performance claims",
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "mappings": [],
+                "max": 100,
+                "min": 90,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 95
+                    },
+                    {
+                      "color": "green",
+                      "value": 99
+                    }
+                  ]
+                },
+                "unit": "percent"
+              }
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 0,
+              "y": 0
+            },
+            "id": 1,
+            "options": {
+              "orientation": "auto",
+              "reduceOptions": {
+                "values": false,
+                "calcs": ["lastNotNull"],
+                "fields": ""
+              },
+              "showThresholdLabels": false,
+              "showThresholdMarkers": true
+            },
+            "pluginVersion": "9.0.0",
+            "targets": [
+              {
+                "expr": "benchmark_statistical_confidence",
+                "legendFormat": "Confidence Level",
+                "refId": "A"
+              }
+            ],
+            "title": "Statistical Confidence Level",
+            "type": "gauge"
+          },
+          {
+            "datasource": {
+              "type": "prometheus", 
+              "uid": "Prometheus-Benchmarking"
+            },
+            "description": "P-values for statistical significance testing",
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "vis": false
+                  },
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "line"
+                  }
+                },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.05
+                    }
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 12,
+              "x": 12,
+              "y": 0
+            },
+            "id": 2,
+            "options": {
+              "legend": {
+                "calcs": ["lastNotNull"],
+                "displayMode": "table",
+                "placement": "bottom"
+              },
+              "tooltip": {
+                "mode": "multi",
+                "sort": "none"
+              }
+            },
+            "targets": [
+              {
+                "expr": "benchmark_p_values{metric=\"intent_latency\"}",
+                "legendFormat": "Intent Latency P-value",
+                "refId": "A"
+              },
+              {
+                "expr": "benchmark_p_values{metric=\"throughput\"}",
+                "legendFormat": "Throughput P-value", 
+                "refId": "B"
+              },
+              {
+                "expr": "benchmark_p_values{metric=\"availability\"}",
+                "legendFormat": "Availability P-value",
+                "refId": "C"
+              }
+            ],
+            "title": "Statistical Significance (P-values)",
+            "type": "timeseries"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "Prometheus-Benchmarking"
+            },
+            "description": "Effect sizes (Cohen's d) for performance improvements",
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "drawStyle": "bars",
+                  "fillOpacity": 80,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "vis": false
+                  },
+                  "lineInterpolation": "linear",
+                  "lineWidth": 1,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "never",
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "off"
+                  }
+                },
+                "mappings": [
+                  {
+                    "options": {
+                      "0.2": {
+                        "text": "Small Effect"
+                      },
+                      "0.5": {
+                        "text": "Medium Effect"
+                      },
+                      "0.8": {
+                        "text": "Large Effect"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 0.2
+                    },
+                    {
+                      "color": "orange",
+                      "value": 0.5
+                    },
+                    {
+                      "color": "red",
+                      "value": 0.8
+                    }
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 24,
+              "x": 0,
+              "y": 8
+            },
+            "id": 3,
+            "options": {
+              "legend": {
+                "calcs": ["lastNotNull"],
+                "displayMode": "table",
+                "placement": "bottom"
+              },
+              "tooltip": {
+                "mode": "multi",
+                "sort": "desc"
+              }
+            },
+            "targets": [
+              {
+                "expr": "benchmark_effect_sizes",
+                "legendFormat": "{{ metric }} Effect Size",
+                "refId": "A"
+              }
+            ],
+            "title": "Effect Sizes (Cohen's d)",
+            "type": "timeseries"
+          }
+        ],
+        "refresh": "5s",
+        "schemaVersion": 36,
+        "style": "dark",
+        "tags": ["statistics", "validation"],
+        "time": {
+          "from": "now-30m",
+          "to": "now"
+        },
+        "title": "Statistical Validation Dashboard",
+        "uid": "nephoran-statistical-validation",
+        "version": 1
+      }
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: regression-analysis-dashboard
+  namespace: nephoran-monitoring
+  labels:
+    app: performance-benchmarking-grafana
+    component: monitoring
+data:
+  regression-analysis.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "nephoran-regression-analysis",
+        "title": "Nephoran Performance Regression Analysis",
+        "tags": ["nephoran", "regression", "trend", "analysis"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "Prometheus-Benchmarking"
+            },
+            "description": "Performance stability score over time",
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "mappings": [],
+                "max": 100,
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 80
+                    },
+                    {
+                      "color": "green",
+                      "value": 95
+                    }
+                  ]
+                },
+                "unit": "percent"
+              }
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 8,
+              "x": 0,
+              "y": 0
+            },
+            "id": 1,
+            "options": {
+              "orientation": "auto",
+              "reduceOptions": {
+                "values": false,
+                "calcs": ["lastNotNull"],
+                "fields": ""
+              },
+              "showThresholdLabels": false,
+              "showThresholdMarkers": true
+            },
+            "pluginVersion": "9.0.0",
+            "targets": [
+              {
+                "expr": "benchmark:performance_stability_score",
+                "legendFormat": "Stability Score",
+                "refId": "A"
+              }
+            ],
+            "title": "Performance Stability Score",
+            "type": "gauge"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "Prometheus-Benchmarking"
+            },
+            "description": "Regression detection status",
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "mappings": [
+                  {
+                    "options": {
+                      "0": {
+                        "color": "green",
+                        "index": 0,
+                        "text": "No Regression"
+                      },
+                      "1": {
+                        "color": "red",
+                        "index": 1,
+                        "text": "Regression Detected"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ],
+                "max": 1,
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "red",
+                      "value": 1
+                    }
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 8,
+              "x": 8,
+              "y": 0
+            },
+            "id": 2,
+            "options": {
+              "colorMode": "background",
+              "graphMode": "none",
+              "justifyMode": "center",
+              "orientation": "horizontal",
+              "reduceOptions": {
+                "values": false,
+                "calcs": ["lastNotNull"],
+                "fields": ""
+              },
+              "text": {
+                "titleSize": 16,
+                "valueSize": 24
+              },
+              "textMode": "auto"
+            },
+            "pluginVersion": "9.0.0",
+            "targets": [
+              {
+                "expr": "benchmark_regression_detected",
+                "legendFormat": "Regression Status",
+                "refId": "A"
+              }
+            ],
+            "title": "Regression Detection Status",
+            "type": "stat"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "Prometheus-Benchmarking"
+            },
+            "description": "Baseline deviation score",
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "thresholds"
+                },
+                "mappings": [],
+                "max": 5,
+                "min": 0,
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 2
+                    },
+                    {
+                      "color": "red",
+                      "value": 3
+                    }
+                  ]
+                },
+                "unit": "short"
+              }
+            },
+            "gridPos": {
+              "h": 8,
+              "w": 8,
+              "x": 16,
+              "y": 0
+            },
+            "id": 3,
+            "options": {
+              "orientation": "auto",
+              "reduceOptions": {
+                "values": false,
+                "calcs": ["lastNotNull"],
+                "fields": ""
+              },
+              "showThresholdLabels": false,
+              "showThresholdMarkers": true
+            },
+            "pluginVersion": "9.0.0",
+            "targets": [
+              {
+                "expr": "benchmark:baseline_deviation_score",
+                "legendFormat": "Baseline Deviation",
+                "refId": "A"
+              }
+            ],
+            "title": "Baseline Deviation Score",
+            "type": "gauge"
+          },
+          {
+            "datasource": {
+              "type": "prometheus",
+              "uid": "Prometheus-Benchmarking"
+            },
+            "description": "24-hour performance change percentages",
+            "fieldConfig": {
+              "defaults": {
+                "color": {
+                  "mode": "palette-classic"
+                },
+                "custom": {
+                  "axisLabel": "",
+                  "axisPlacement": "auto",
+                  "barAlignment": 0,
+                  "drawStyle": "line",
+                  "fillOpacity": 10,
+                  "gradientMode": "none",
+                  "hideFrom": {
+                    "legend": false,
+                    "tooltip": false,
+                    "vis": false
+                  },
+                  "lineInterpolation": "linear",
+                  "lineWidth": 2,
+                  "pointSize": 5,
+                  "scaleDistribution": {
+                    "type": "linear"
+                  },
+                  "showPoints": "auto",
+                  "spanNulls": false,
+                  "stacking": {
+                    "group": "A",
+                    "mode": "none"
+                  },
+                  "thresholdsStyle": {
+                    "mode": "line"
+                  }
+                },
+                "mappings": [],
+                "thresholds": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 5
+                    },
+                    {
+                      "color": "red",
+                      "value": 10
+                    }
+                  ]
+                },
+                "unit": "percent"
+              }
+            },
+            "gridPos": {
+              "h": 10,
+              "w": 24,
+              "x": 0,
+              "y": 8
+            },
+            "id": 4,
+            "options": {
+              "legend": {
+                "calcs": ["mean", "lastNotNull"],
+                "displayMode": "table",
+                "placement": "bottom"
+              },
+              "tooltip": {
+                "mode": "multi",
+                "sort": "desc"
+              }
+            },
+            "targets": [
+              {
+                "expr": "benchmark:intent_latency_24h_change_percent",
+                "legendFormat": "Intent Latency 24h Change %",
+                "refId": "A"
+              },
+              {
+                "expr": "100 * (benchmark:rag_latency_p95 - benchmark:rag_latency_p95 offset 24h) / (benchmark:rag_latency_p95 offset 24h)",
+                "legendFormat": "RAG Latency 24h Change %",
+                "refId": "B"
+              },
+              {
+                "expr": "100 * (benchmark:intent_processing_rate_1m - benchmark:intent_processing_rate_1m offset 24h) / (benchmark:intent_processing_rate_1m offset 24h)",
+                "legendFormat": "Throughput 24h Change %",
+                "refId": "C"
+              },
+              {
+                "expr": "100 * (benchmark:cache_hit_rate_5m - benchmark:cache_hit_rate_5m offset 24h) / (benchmark:cache_hit_rate_5m offset 24h)",
+                "legendFormat": "Cache Hit Rate 24h Change %",
+                "refId": "D"
+              }
+            ],
+            "title": "24-Hour Performance Change Analysis",
+            "type": "timeseries"
+          }
+        ],
+        "refresh": "10s",
+        "schemaVersion": 36,
+        "style": "dark",
+        "tags": ["regression", "trend"],
+        "time": {
+          "from": "now-6h",
+          "to": "now"
+        },
+        "title": "Performance Regression Analysis",
+        "uid": "nephoran-regression-analysis",
+        "version": 1
+      }
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: performance-benchmarking-grafana
+  namespace: nephoran-monitoring
+  labels:
+    app: performance-benchmarking-grafana
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: performance-benchmarking-grafana
+  template:
+    metadata:
+      labels:
+        app: performance-benchmarking-grafana
+    spec:
+      securityContext:
+        fsGroup: 472
+        runAsUser: 472
+        runAsNonRoot: true
+      containers:
+      - name: grafana
+        image: grafana/grafana:10.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3000
+          name: http-grafana
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /robots.txt
+            port: 3000
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 30
+          successThreshold: 1
+          timeoutSeconds: 2
+        livenessProbe:
+          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          successThreshold: 1
+          tcpSocket:
+            port: 3000
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+          requests:
+            cpu: 250m
+            memory: 512Mi
+        volumeMounts:
+        - mountPath: /etc/grafana/grafana.ini
+          name: grafana-config
+          subPath: grafana.ini
+        - mountPath: /etc/grafana/provisioning/datasources
+          name: grafana-datasources
+        - mountPath: /etc/grafana/provisioning/dashboards
+          name: grafana-dashboard-providers
+        - mountPath: /var/lib/grafana/dashboards/benchmarking
+          name: benchmarking-dashboards
+        - mountPath: /var/lib/grafana/dashboards/validation
+          name: validation-dashboards  
+        - mountPath: /var/lib/grafana/dashboards/regression
+          name: regression-dashboards
+        - mountPath: /var/lib/grafana
+          name: grafana-storage
+      volumes:
+      - name: grafana-config
+        configMap:
+          defaultMode: 420
+          name: performance-benchmarking-grafana-config
+      - name: grafana-datasources
+        configMap:
+          defaultMode: 420
+          name: performance-benchmarking-grafana-datasources
+      - name: grafana-dashboard-providers
+        configMap:
+          defaultMode: 420
+          name: performance-benchmarking-grafana-dashboards-config
+      - name: benchmarking-dashboards
+        configMap:
+          defaultMode: 420
+          name: performance-benchmarking-dashboard
+      - name: validation-dashboards
+        configMap:
+          defaultMode: 420
+          name: statistical-validation-dashboard
+      - name: regression-dashboards
+        configMap:
+          defaultMode: 420
+          name: regression-analysis-dashboard
+      - name: grafana-storage
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: performance-benchmarking-grafana
+  namespace: nephoran-monitoring
+  labels:
+    app: performance-benchmarking-grafana
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3000
+    targetPort: http-grafana
+    protocol: TCP
+    name: http-grafana
+  selector:
+    app: performance-benchmarking-grafana
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: performance-benchmarking-dashboard
+  namespace: nephoran-monitoring
+  labels:
+    app: performance-benchmarking-grafana
+    component: monitoring
+data:
+  performance-benchmarking-dashboard.json: |-
+    {
+      "dashboard": {
+        "id": null,
+        "uid": "nephoran-performance-benchmarking",
+        "title": "Nephoran Performance Benchmarking - Real-time Validation",
+        "tags": ["nephoran", "benchmarking", "validation", "sla", "performance-claims"],
+        "timezone": "browser",
+        "refresh": "5s",
+        "schemaVersion": 36,
+        "style": "dark",
+        "time": {
+          "from": "now-30m",
+          "to": "now"
+        },
+        "panels": []
+      }
+    }

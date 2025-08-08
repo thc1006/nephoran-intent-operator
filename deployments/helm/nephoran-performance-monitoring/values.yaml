@@ -1,0 +1,630 @@
+# Nephoran Performance Monitoring Stack - Production Values
+# This Helm chart deploys a complete performance monitoring solution with:
+# - Prometheus for metrics collection and storage
+# - Grafana for visualization with pre-built dashboards
+# - AlertManager for intelligent alerting
+# - Service monitors for automatic target discovery
+# - Performance-specific recording rules and alerts
+
+global:
+  # Global configuration
+  namespace: nephoran-monitoring
+  environment: production
+  
+  # Storage configuration
+  storageClass: fast-ssd
+  retention: 30d
+  
+  # Security settings
+  security:
+    enabled: true
+    runAsNonRoot: true
+    runAsUser: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    
+  # Resource quotas
+  resources:
+    limits:
+      cpu: "4"
+      memory: "8Gi"
+    requests:
+      cpu: "2"
+      memory: "4Gi"
+
+# Prometheus configuration
+prometheus:
+  enabled: true
+  
+  # Prometheus server configuration
+  server:
+    image:
+      tag: v2.48.0
+    
+    # Performance-optimized configuration
+    configMapReload:
+      enabled: true
+      
+    persistentVolume:
+      enabled: true
+      size: 100Gi
+      storageClass: fast-ssd
+      accessModes:
+        - ReadWriteOnce
+      
+    retention: 30d
+    retentionSize: 80GB
+    
+    # Resource configuration
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+        
+    # High-performance scraping configuration
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      scrape_timeout: 10s
+      
+    # Performance monitoring specific configuration
+    extraArgs:
+      web.enable-lifecycle: ""
+      web.enable-admin-api: ""
+      storage.tsdb.min-block-duration: "2h"
+      storage.tsdb.max-block-duration: "2h"
+      storage.tsdb.retention.size: "80GB"
+      query.max-concurrency: "20"
+      query.timeout: "2m"
+      
+    # Service configuration
+    service:
+      type: ClusterIP
+      port: 9090
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        
+  # Prometheus additional scrape configurations
+  extraScrapeConfigs: |
+    # Nephoran Intent Operator components
+    - job_name: 'nephoran-llm-processor'
+      static_configs:
+        - targets: ['llm-processor:8080']
+      metrics_path: '/metrics'
+      scrape_interval: 5s
+      scrape_timeout: 5s
+      
+    - job_name: 'nephoran-rag-api'
+      static_configs:
+        - targets: ['rag-api:8080']
+      metrics_path: '/metrics'
+      scrape_interval: 5s
+      scrape_timeout: 5s
+      
+    - job_name: 'nephoran-oran-adaptor'
+      static_configs:
+        - targets: ['oran-adaptor:8080']
+      metrics_path: '/metrics'
+      scrape_interval: 15s
+      
+    - job_name: 'nephoran-nephio-bridge'
+      static_configs:
+        - targets: ['nephio-bridge:8080']
+      metrics_path: '/metrics'
+      scrape_interval: 15s
+      
+    # Performance benchmarking components
+    - job_name: 'performance-benchmarking'
+      static_configs:
+        - targets: ['performance-test-runner:8090']
+      metrics_path: '/metrics'
+      scrape_interval: 1s  # High frequency for benchmarks
+      scrape_timeout: 1s
+      
+    - job_name: 'statistical-validator'
+      static_configs:
+        - targets: ['statistical-validator:8092']
+      metrics_path: '/metrics'
+      scrape_interval: 5s
+      
+    - job_name: 'regression-detector'
+      static_configs:
+        - targets: ['regression-detector:8094']
+      metrics_path: '/metrics'
+      scrape_interval: 10s
+
+# Grafana configuration
+grafana:
+  enabled: true
+  
+  image:
+    tag: 10.2.2
+    
+  # Admin configuration
+  admin:
+    existingSecret: grafana-admin-secret
+    userKey: admin-user
+    passwordKey: admin-password
+    
+  # Persistence
+  persistence:
+    enabled: true
+    type: pvc
+    size: 10Gi
+    storageClassName: fast-ssd
+    accessModes:
+      - ReadWriteOnce
+      
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 3000
+    
+  # Resource configuration
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+      
+  # Data sources
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://{{ .Release.Name }}-prometheus-server:9090
+          access: proxy
+          isDefault: true
+          jsonData:
+            timeInterval: 5s
+            queryTimeout: 60s
+            httpMethod: POST
+            
+  # Dashboard providers
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: 'nephoran-performance'
+          orgId: 1
+          folder: 'Nephoran Performance'
+          type: file
+          disableDeletion: false
+          editable: true
+          allowUiUpdates: true
+          options:
+            path: /var/lib/grafana/dashboards/nephoran-performance
+            
+        - name: 'nephoran-executive'
+          orgId: 1
+          folder: 'Executive Dashboards'
+          type: file
+          disableDeletion: false
+          editable: true
+          allowUiUpdates: true
+          options:
+            path: /var/lib/grafana/dashboards/nephoran-executive
+            
+  # Pre-configured dashboards
+  dashboards:
+    nephoran-performance:
+      executive-overview:
+        file: dashboards/executive-performance-overview.json
+      detailed-components:
+        file: dashboards/detailed-component-performance.json
+      performance-trends:
+        file: dashboards/performance-trend-analysis.json
+      load-testing:
+        file: dashboards/load-testing-results.json
+      regression-analysis:
+        file: dashboards/regression-detection.json
+        
+    nephoran-executive:
+      sla-compliance:
+        file: dashboards/sla-compliance-dashboard.json
+      capacity-planning:
+        file: dashboards/capacity-planning-dashboard.json
+      cost-optimization:
+        file: dashboards/cost-optimization-dashboard.json
+
+# AlertManager configuration
+alertmanager:
+  enabled: true
+  
+  image:
+    tag: v0.26.0
+    
+  # Persistence
+  persistence:
+    enabled: true
+    size: 5Gi
+    storageClass: fast-ssd
+    
+  # Resource configuration
+  resources:
+    limits:
+      cpu: 100m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 128Mi
+      
+  # Service configuration
+  service:
+    type: ClusterIP
+    port: 9093
+    
+  # Configuration
+  config:
+    global:
+      smtp_smarthost: 'smtp.company.com:587'
+      smtp_from: 'alerts@nephoran.com'
+      smtp_auth_username: 'alerts@nephoran.com'
+      smtp_auth_password_file: '/etc/alertmanager/secrets/smtp-password'
+      
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 12h
+      receiver: 'performance-team'
+      routes:
+        - match:
+            severity: critical
+          receiver: 'critical-alerts'
+          group_wait: 5s
+          group_interval: 5s
+          repeat_interval: 1h
+          
+        - match:
+            alertname: 'PerformanceClaimViolation'
+          receiver: 'performance-alerts'
+          group_wait: 30s
+          
+        - match:
+            alertname: 'RegressionDetected'
+          receiver: 'regression-alerts'
+          group_wait: 5s
+          
+    receivers:
+      - name: 'performance-team'
+        email_configs:
+          - to: 'performance-team@nephoran.com'
+            subject: 'Nephoran Performance Alert - {{ .GroupLabels.alertname }}'
+            body: |
+              {{ range .Alerts }}
+              Alert: {{ .Annotations.summary }}
+              Description: {{ .Annotations.description }}
+              Labels: {{ range .Labels.SortedPairs }}{{ .Name }}={{ .Value }}{{ end }}
+              {{ end }}
+              
+        slack_configs:
+          - api_url_file: '/etc/alertmanager/secrets/slack-webhook'
+            channel: '#performance-alerts'
+            title: 'Nephoran Performance Alert'
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              *Severity:* {{ .Labels.severity }}
+              {{ end }}
+              
+      - name: 'critical-alerts'
+        email_configs:
+          - to: 'critical-alerts@nephoran.com'
+            subject: 'CRITICAL: Nephoran Performance Issue'
+            
+        pagerduty_configs:
+          - routing_key_file: '/etc/alertmanager/secrets/pagerduty-key'
+            description: 'Critical performance issue in Nephoran Intent Operator'
+            
+      - name: 'performance-alerts'
+        webhook_configs:
+          - url: 'http://performance-webhook-handler:8080/alerts'
+            send_resolved: true
+            
+      - name: 'regression-alerts'
+        email_configs:
+          - to: 'regression-team@nephoran.com'
+            subject: 'Performance Regression Detected in Nephoran'
+
+# Service Monitors for automatic target discovery
+serviceMonitors:
+  enabled: true
+  
+  # LLM Processor service monitor
+  llmProcessor:
+    enabled: true
+    namespace: nephoran-system
+    selector:
+      matchLabels:
+        app: llm-processor
+    endpoints:
+      - port: metrics
+        path: /metrics
+        interval: 5s
+        scrapeTimeout: 5s
+        
+  # RAG API service monitor
+  ragApi:
+    enabled: true
+    namespace: nephoran-system
+    selector:
+      matchLabels:
+        app: rag-api
+    endpoints:
+      - port: metrics
+        path: /metrics
+        interval: 5s
+        scrapeTimeout: 5s
+        
+  # Performance test runner service monitor
+  performanceRunner:
+    enabled: true
+    namespace: nephoran-monitoring
+    selector:
+      matchLabels:
+        app: performance-test-runner
+    endpoints:
+      - port: metrics
+        path: /metrics
+        interval: 1s  # High frequency for benchmarks
+        scrapeTimeout: 1s
+
+# Prometheus Rules for performance monitoring
+prometheusRules:
+  enabled: true
+  
+  # Recording rules for performance metrics
+  recordingRules:
+    - name: nephoran-performance-claims
+      interval: 15s
+      rules:
+        # Intent processing latency P95
+        - record: benchmark:intent_processing_latency_p95
+          expr: histogram_quantile(0.95, rate(nephoran_intent_processing_duration_seconds_bucket{service="llm-processor"}[5m]))
+          
+        # Intent processing latency P50
+        - record: benchmark:intent_processing_latency_p50
+          expr: histogram_quantile(0.50, rate(nephoran_intent_processing_duration_seconds_bucket{service="llm-processor"}[5m]))
+          
+        # Throughput (intents per minute)
+        - record: benchmark:intent_processing_rate_1m
+          expr: rate(nephoran_intent_processing_total{service="llm-processor"}[1m]) * 60
+          
+        # Throughput (5-minute average)
+        - record: benchmark:intent_processing_rate_5m
+          expr: rate(nephoran_intent_processing_total{service="llm-processor"}[5m]) * 60
+          
+        # Service availability
+        - record: benchmark:availability_5m
+          expr: (1 - (sum(rate(nephoran_intent_processing_errors_total{service="llm-processor"}[5m])) / sum(rate(nephoran_intent_processing_total{service="llm-processor"}[5m])))) * 100
+          
+        # RAG latency P95
+        - record: benchmark:rag_latency_p95
+          expr: histogram_quantile(0.95, rate(nephoran_rag_retrieval_duration_seconds_bucket{service="rag-api"}[5m]))
+          
+        # Cache hit rate
+        - record: benchmark:cache_hit_rate_5m
+          expr: (sum(rate(nephoran_cache_hits_total{service="rag-api"}[5m])) / (sum(rate(nephoran_cache_hits_total{service="rag-api"}[5m])) + sum(rate(nephoran_cache_misses_total{service="rag-api"}[5m])))) * 100
+          
+    # Statistical validation rules
+    - name: nephoran-statistical-validation
+      interval: 30s
+      rules:
+        # Statistical confidence level
+        - record: benchmark:statistical_confidence_level
+          expr: avg(statistical_confidence_level) * 100
+          
+        # Sample size adequacy
+        - record: benchmark:sample_adequacy_score
+          expr: avg(sample_size_adequate) * 100
+          
+        # Performance stability score
+        - record: benchmark:performance_stability_score
+          expr: avg(performance_stability_rating) * 100
+          
+    # Regression detection rules
+    - name: nephoran-regression-detection
+      interval: 60s
+      rules:
+        # 24-hour latency change percentage
+        - record: benchmark:intent_latency_24h_change_percent
+          expr: ((benchmark:intent_processing_latency_p95 - benchmark:intent_processing_latency_p95 offset 24h) / benchmark:intent_processing_latency_p95 offset 24h) * 100
+          
+        # 1-hour performance trend
+        - record: benchmark:performance_trend_1h_change_percent
+          expr: ((benchmark:intent_processing_latency_p95 - benchmark:intent_processing_latency_p95 offset 1h) / benchmark:intent_processing_latency_p95 offset 1h) * 100
+          
+  # Alerting rules for performance violations
+  alertingRules:
+    - name: nephoran-performance-claims-violations
+      rules:
+        # CRITICAL: Intent processing latency SLA violation
+        - alert: IntentProcessingLatencySLAViolation
+          expr: benchmark:intent_processing_latency_p95 > 2.0
+          for: 30s
+          labels:
+            severity: critical
+            component: llm-processor
+            claim: "intent-processing-latency"
+          annotations:
+            summary: "Intent processing P95 latency exceeds 2 second SLA"
+            description: "P95 latency is {{ $value }}s, which exceeds the 2.0s SLA requirement"
+            
+        # CRITICAL: Service availability SLA violation
+        - alert: AvailabilitySLAViolation
+          expr: benchmark:availability_5m < 99.95
+          for: 1m
+          labels:
+            severity: critical
+            component: llm-processor
+            claim: "service-availability"
+          annotations:
+            summary: "Service availability below 99.95% SLA"
+            description: "Current availability is {{ $value }}%, below the 99.95% SLA requirement"
+            
+        # WARNING: Concurrent user capacity exceeded
+        - alert: ConcurrentUserCapacityExceeded
+          expr: benchmark_concurrent_users_current > 200
+          for: 5m
+          labels:
+            severity: warning
+            component: load-balancer
+            claim: "concurrent-user-capacity"
+          annotations:
+            summary: "Concurrent user count exceeds capacity claim"
+            description: "Current concurrent users: {{ $value }}, which exceeds the 200 user capacity claim"
+            
+        # WARNING: Throughput below claimed target
+        - alert: ThroughputBelowClaimedTarget
+          expr: benchmark:intent_processing_rate_1m < 45
+          for: 2m
+          labels:
+            severity: warning
+            component: llm-processor
+            claim: "throughput-capacity"
+          annotations:
+            summary: "Throughput below 45 intents/minute claim"
+            description: "Current throughput: {{ $value }}/min, below the 45/min capacity claim"
+            
+        # WARNING: RAG latency claim violation
+        - alert: RAGLatencyClaimViolation
+          expr: benchmark:rag_latency_p95 > 0.2
+          for: 1m
+          labels:
+            severity: warning
+            component: rag-api
+            claim: "rag-retrieval-latency"
+          annotations:
+            summary: "RAG P95 latency exceeds 200ms claim"
+            description: "RAG P95 latency is {{ $value }}s, which exceeds the 200ms claim"
+            
+        # WARNING: Cache hit rate claim violation
+        - alert: CacheHitRateClaimViolation
+          expr: benchmark:cache_hit_rate_5m < 87
+          for: 3m
+          labels:
+            severity: warning
+            component: rag-api
+            claim: "cache-hit-rate"
+          annotations:
+            summary: "Cache hit rate below 87% claim"
+            description: "Cache hit rate is {{ $value }}%, below the 87% claim"
+            
+        # CRITICAL: Overall performance claims failure
+        - alert: OverallPerformanceClaimsFailure
+          expr: |
+            (
+              (benchmark:intent_processing_latency_p95 <= 2.0) * 100/6 +
+              (benchmark_concurrent_users_current >= 200) * 100/6 +
+              (benchmark:intent_processing_rate_1m >= 45) * 100/6 +
+              (benchmark:availability_5m >= 99.95) * 100/6 +
+              (benchmark:rag_latency_p95 <= 0.2) * 100/6 +
+              (benchmark:cache_hit_rate_5m >= 87) * 100/6
+            ) < 90
+          for: 2m
+          labels:
+            severity: critical
+            component: system-wide
+            claim: "overall-performance"
+          annotations:
+            summary: "Overall performance score below 90%"
+            description: "Performance score is {{ $value }}%, indicating multiple claim violations"
+            
+    # Regression detection alerts
+    - name: nephoran-regression-detection
+      rules:
+        # CRITICAL: Performance regression detected
+        - alert: PerformanceRegressionDetected
+          expr: benchmark_regression_detected == 1
+          for: 1m
+          labels:
+            severity: critical
+            component: regression-detector
+            type: "performance-regression"
+          annotations:
+            summary: "Significant performance regression detected"
+            description: "Automated regression detection has identified a performance degradation"
+            
+        # WARNING: Statistical validation low confidence
+        - alert: StatisticalValidationLowConfidence
+          expr: benchmark:statistical_confidence_level < 95
+          for: 5m
+          labels:
+            severity: warning
+            component: statistical-validator
+            type: "statistical-quality"
+          annotations:
+            summary: "Statistical validation confidence below 95%"
+            description: "Current confidence level: {{ $value }}%, indicating insufficient statistical power"
+            
+        # WARNING: Performance instability detected
+        - alert: PerformanceInstabilityDetected
+          expr: benchmark:performance_stability_score < 80
+          for: 10m
+          labels:
+            severity: warning
+            component: stability-monitor
+            type: "performance-stability"
+          annotations:
+            summary: "Performance instability detected"
+            description: "Stability score: {{ $value }}%, indicating performance variability"
+
+# Network policies for security
+networkPolicies:
+  enabled: true
+  
+  # Allow monitoring traffic
+  monitoring:
+    enabled: true
+    policyTypes:
+      - Ingress
+      - Egress
+    ingress:
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                name: nephoran-system
+        ports:
+          - protocol: TCP
+            port: 9090  # Prometheus
+          - protocol: TCP
+            port: 3000  # Grafana
+    egress:
+      - to: []  # Allow all egress for monitoring
+
+# Additional configurations
+extraConfig:
+  # Performance optimization settings
+  performance:
+    enableCaching: true
+    cacheSize: "1Gi"
+    queryParallelism: 10
+    
+  # Security settings
+  security:
+    enableTLS: true
+    tlsSecretName: monitoring-tls
+    
+  # High availability
+  highAvailability:
+    enabled: true
+    replicaCount: 2
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app
+                  operator: In
+                  values: ["prometheus", "grafana"]
+            topologyKey: kubernetes.io/hostname

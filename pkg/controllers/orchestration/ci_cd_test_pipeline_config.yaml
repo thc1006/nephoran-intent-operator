@@ -1,0 +1,786 @@
+# CI/CD Pipeline Configuration for Comprehensive Testing
+# This configuration supports GitHub Actions, GitLab CI, and Jenkins
+
+---
+# GitHub Actions Workflow Configuration
+github_actions:
+  workflow_name: "Comprehensive Controller Testing"
+  
+  triggers:
+    - push:
+        branches: [ main, develop, feature/* ]
+    - pull_request:
+        branches: [ main ]
+    - schedule:
+        - cron: '0 2 * * *'  # Daily at 2 AM
+  
+  environment_variables:
+    GO_VERSION: "1.21"
+    KUBERNETES_VERSION: "1.28"
+    GOLANGCI_LINT_VERSION: "v1.54"
+    TEST_TIMEOUT: "30m"
+    BENCHMARK_ITERATIONS: "5"
+    
+  jobs:
+    # Unit Tests for Individual Controllers
+    unit_tests:
+      name: "Unit Tests - Specialized Controllers"
+      strategy:
+        matrix:
+          controller: 
+            - "specialized_intent_processing"
+            - "specialized_resource_planning" 
+            - "specialized_manifest_generation"
+          go_version: ["1.20", "1.21"]
+          os: [ubuntu-latest, windows-latest]
+      
+      steps:
+        - name: "Checkout Code"
+          uses: actions/checkout@v4
+          
+        - name: "Setup Go"
+          uses: actions/setup-go@v4
+          with:
+            go-version: ${{ matrix.go_version }}
+            
+        - name: "Cache Go Modules"
+          uses: actions/cache@v3
+          with:
+            path: ~/go/pkg/mod
+            key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+            
+        - name: "Install Dependencies"
+          run: |
+            go mod download
+            go install github.com/onsi/ginkgo/v2/ginkgo@latest
+            go install github.com/onsi/gomega/...@latest
+            
+        - name: "Run Unit Tests"
+          run: |
+            make test-unit-${{ matrix.controller }}
+            
+        - name: "Generate Coverage Report"
+          run: |
+            make coverage-${{ matrix.controller }}
+            
+        - name: "Upload Coverage"
+          uses: codecov/codecov-action@v3
+          with:
+            file: ./coverage-${{ matrix.controller }}.out
+            flags: unit-tests,${{ matrix.controller }}
+    
+    # Integration Tests
+    integration_tests:
+      name: "Integration Tests - Controller Coordination"
+      needs: [unit_tests]
+      
+      services:
+        postgres:
+          image: postgres:13
+          env:
+            POSTGRES_PASSWORD: postgres
+          options: >-
+            --health-cmd pg_isready
+            --health-interval 10s
+            --health-timeout 5s
+            --health-retries 5
+            
+      steps:
+        - name: "Checkout Code"
+          uses: actions/checkout@v4
+          
+        - name: "Setup Go"
+          uses: actions/setup-go@v4
+          with:
+            go-version: "1.21"
+            
+        - name: "Setup Kubernetes (Kind)"
+          uses: helm/kind-action@v1.8.0
+          with:
+            kubernetes-version: v1.28.0
+            
+        - name: "Install Testing Tools"
+          run: |
+            go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+            go install github.com/onsi/ginkgo/v2/ginkgo@latest
+            
+        - name: "Run Integration Tests"
+          env:
+            USE_EXISTING_CLUSTER: true
+          run: |
+            make test-integration
+            
+        - name: "Upload Integration Test Results"
+          uses: actions/upload-artifact@v3
+          if: always()
+          with:
+            name: integration-test-results
+            path: ./test-results/integration/
+    
+    # Performance Benchmarks
+    performance_tests:
+      name: "Performance Benchmarks"
+      needs: [integration_tests]
+      
+      steps:
+        - name: "Checkout Code"
+          uses: actions/checkout@v4
+          
+        - name: "Setup Go"
+          uses: actions/setup-go@v4
+          with:
+            go-version: "1.21"
+            
+        - name: "Run Performance Benchmarks"
+          run: |
+            make benchmark-all
+            
+        - name: "Store Benchmark Results"
+          uses: benchmark-action/github-action-benchmark@v1
+          with:
+            name: Go Benchmark
+            tool: 'go'
+            output-file-path: benchmark-results.txt
+            github-token: ${{ secrets.GITHUB_TOKEN }}
+            auto-push: true
+    
+    # Regression Tests
+    regression_tests:
+      name: "Regression Tests - Backward Compatibility"
+      needs: [integration_tests]
+      
+      steps:
+        - name: "Checkout Code"
+          uses: actions/checkout@v4
+          
+        - name: "Setup Go"
+          uses: actions/setup-go@v4
+          with:
+            go-version: "1.21"
+            
+        - name: "Run Regression Tests"
+          env:
+            REGRESSION_MODE: "strict"
+            TOLERANCE_THRESHOLD: "0.05"
+          run: |
+            make test-regression
+            
+        - name: "Generate Compatibility Report"
+          run: |
+            make compatibility-report
+            
+        - name: "Upload Compatibility Report"
+          uses: actions/upload-artifact@v3
+          with:
+            name: compatibility-report
+            path: ./reports/compatibility/
+    
+    # Chaos Engineering Tests
+    chaos_tests:
+      name: "Chaos Engineering Tests"
+      if: github.ref == 'refs/heads/main'
+      
+      steps:
+        - name: "Checkout Code"
+          uses: actions/checkout@v4
+          
+        - name: "Setup Go"
+          uses: actions/setup-go@v4
+          with:
+            go-version: "1.21"
+            
+        - name: "Setup Kubernetes (Kind)"
+          uses: helm/kind-action@v1.8.0
+          with:
+            kubernetes-version: v1.28.0
+            
+        - name: "Install Chaos Engineering Tools"
+          run: |
+            kubectl apply -f https://github.com/chaos-mesh/chaos-mesh/releases/download/v2.5.0/install.sh
+            
+        - name: "Run Chaos Tests"
+          run: |
+            make test-chaos
+            
+        - name: "Collect Chaos Test Results"
+          if: always()
+          run: |
+            kubectl logs -n chaos-testing -l app=nephoran-intent-operator > chaos-logs.txt
+            
+        - name: "Upload Chaos Test Results"
+          uses: actions/upload-artifact@v3
+          if: always()
+          with:
+            name: chaos-test-results
+            path: ./chaos-logs.txt
+    
+    # Security and Quality Gates
+    security_quality:
+      name: "Security and Quality Analysis"
+      
+      steps:
+        - name: "Checkout Code"
+          uses: actions/checkout@v4
+          
+        - name: "Setup Go"
+          uses: actions/setup-go@v4
+          with:
+            go-version: "1.21"
+            
+        - name: "Run Linting"
+          uses: golangci/golangci-lint-action@v3
+          with:
+            version: ${{ env.GOLANGCI_LINT_VERSION }}
+            args: --config=.golangci.yml --verbose
+            
+        - name: "Run Security Scan"
+          uses: securecodewarrior/github-action-gosec@master
+          with:
+            args: './...'
+            
+        - name: "Run Vulnerability Check"
+          run: |
+            go install golang.org/x/vuln/cmd/govulncheck@latest
+            govulncheck ./...
+            
+        - name: "Check Code Complexity"
+          run: |
+            go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+            gocyclo -over 15 .
+            
+        - name: "Generate Quality Report"
+          run: |
+            make quality-report
+            
+        - name: "Upload Quality Report"
+          uses: actions/upload-artifact@v3
+          with:
+            name: quality-report
+            path: ./reports/quality/
+
+---
+# Makefile targets for test execution
+makefile_targets: |
+  # Test execution targets
+  .PHONY: test-unit-specialized_intent_processing
+  test-unit-specialized_intent_processing:
+  	@echo "Running unit tests for Specialized Intent Processing Controller"
+  	ginkgo -r --cover --coverprofile=coverage-intent.out ./pkg/controllers/orchestration/specialized_intent_processing_controller_test.go
+  	go tool cover -html=coverage-intent.out -o coverage-intent.html
+  
+  .PHONY: test-unit-specialized_resource_planning
+  test-unit-specialized_resource_planning:
+  	@echo "Running unit tests for Specialized Resource Planning Controller"
+  	ginkgo -r --cover --coverprofile=coverage-resource.out ./pkg/controllers/orchestration/specialized_resource_planning_controller_test.go
+  	go tool cover -html=coverage-resource.out -o coverage-resource.html
+  
+  .PHONY: test-unit-specialized_manifest_generation
+  test-unit-specialized_manifest_generation:
+  	@echo "Running unit tests for Specialized Manifest Generation Controller"
+  	ginkgo -r --cover --coverprofile=coverage-manifest.out ./pkg/controllers/orchestration/specialized_manifest_generation_controller_test.go
+  	go tool cover -html=coverage-manifest.out -o coverage-manifest.html
+  
+  .PHONY: test-integration
+  test-integration:
+  	@echo "Running integration tests"
+  	mkdir -p ./test-results/integration
+  	ginkgo -r --output-dir=./test-results/integration --junit-report=integration-results.xml ./pkg/controllers/orchestration/integration_controller_coordination_test.go
+  
+  .PHONY: benchmark-all
+  benchmark-all:
+  	@echo "Running performance benchmarks"
+  	go test -bench=. -benchmem -cpuprofile=cpu.prof -memprofile=mem.prof ./pkg/controllers/orchestration/performance_benchmarks_test.go > benchmark-results.txt
+  	go tool pprof -text cpu.prof > cpu-profile.txt
+  	go tool pprof -text mem.prof > memory-profile.txt
+  
+  .PHONY: test-regression
+  test-regression:
+  	@echo "Running regression tests"
+  	REGRESSION_MODE=strict ginkgo -r ./pkg/controllers/orchestration/regression_backward_compatibility_test.go
+  
+  .PHONY: test-chaos
+  test-chaos:
+  	@echo "Running chaos engineering tests"
+  	kubectl create namespace chaos-testing || true
+  	ginkgo -r ./pkg/controllers/parallel/chaos_test.go
+  
+  .PHONY: compatibility-report
+  compatibility-report:
+  	@echo "Generating compatibility report"
+  	mkdir -p ./reports/compatibility
+  	go run ./scripts/generate-compatibility-report.go > ./reports/compatibility/compatibility-report.html
+  
+  .PHONY: quality-report
+  quality-report:
+  	@echo "Generating quality report"
+  	mkdir -p ./reports/quality
+  	gocyclo -over 10 . > ./reports/quality/complexity-report.txt
+  	go test -coverprofile=./reports/quality/coverage.out ./...
+  	go tool cover -html=./reports/quality/coverage.out -o ./reports/quality/coverage.html
+  
+  # Combined test targets
+  .PHONY: test-all
+  test-all: test-unit-all test-integration benchmark-all test-regression
+  	@echo "All tests completed"
+  
+  .PHONY: test-unit-all
+  test-unit-all: test-unit-specialized_intent_processing test-unit-specialized_resource_planning test-unit-specialized_manifest_generation
+  	@echo "All unit tests completed"
+  
+  # Pre-commit hooks
+  .PHONY: pre-commit
+  pre-commit:
+  	@echo "Running pre-commit checks"
+  	golangci-lint run --config=.golangci.yml
+  	go test -short ./...
+  	go mod tidy
+  	go fmt ./...
+  
+  # CI/CD helper targets
+  .PHONY: ci-setup
+  ci-setup:
+  	@echo "Setting up CI environment"
+  	go mod download
+  	go install github.com/onsi/ginkgo/v2/ginkgo@latest
+  	go install github.com/onsi/gomega/...@latest
+  	go install github.com/golangci/golangci-lint/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+  
+  .PHONY: ci-test
+  ci-test: ci-setup test-all
+  	@echo "CI testing completed"
+
+---
+# GitLab CI Configuration
+gitlab_ci: |
+  stages:
+    - validate
+    - test-unit
+    - test-integration
+    - test-performance
+    - test-regression
+    - security-scan
+    - deploy-staging
+    - test-e2e
+    - deploy-production
+  
+  variables:
+    GO_VERSION: "1.21"
+    KUBERNETES_VERSION: "1.28"
+    
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq git curl
+    - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.54.0
+    - export PATH=$PATH:$(go env GOPATH)/bin
+  
+  validate:
+    stage: validate
+    script:
+      - golangci-lint run --config=.golangci.yml
+      - go mod verify
+      - go vet ./...
+  
+  unit-tests:
+    stage: test-unit
+    parallel:
+      matrix:
+        - CONTROLLER: ["intent", "resource", "manifest"]
+    script:
+      - make test-unit-specialized_${CONTROLLER}_processing
+    artifacts:
+      reports:
+        coverage_report:
+          coverage_format: cobertura
+          path: coverage-${CONTROLLER}.xml
+  
+  integration-tests:
+    stage: test-integration
+    services:
+      - name: registry.k8s.io/pause:3.9
+        alias: kubernetes
+    script:
+      - make test-integration
+    artifacts:
+      reports:
+        junit: test-results/integration/integration-results.xml
+      paths:
+        - test-results/
+  
+  performance-tests:
+    stage: test-performance
+    script:
+      - make benchmark-all
+    artifacts:
+      paths:
+        - benchmark-results.txt
+        - cpu-profile.txt
+        - memory-profile.txt
+      reports:
+        performance: benchmark-results.txt
+  
+  regression-tests:
+    stage: test-regression
+    script:
+      - REGRESSION_MODE=strict make test-regression
+    artifacts:
+      paths:
+        - reports/compatibility/
+      when: always
+
+---
+# Jenkins Pipeline Configuration
+jenkins_pipeline: |
+  pipeline {
+      agent any
+      
+      tools {
+          go '1.21'
+      }
+      
+      environment {
+          GO111MODULE = 'on'
+          KUBECONFIG = credentials('kubeconfig')
+          GOLANGCI_LINT_VERSION = 'v1.54.0'
+      }
+      
+      stages {
+          stage('Checkout') {
+              steps {
+                  checkout scm
+              }
+          }
+          
+          stage('Setup') {
+              parallel {
+                  stage('Go Dependencies') {
+                      steps {
+                          sh 'go mod download'
+                          sh 'go install github.com/onsi/ginkgo/v2/ginkgo@latest'
+                      }
+                  }
+                  stage('Linting Setup') {
+                      steps {
+                          sh 'curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin ${GOLANGCI_LINT_VERSION}'
+                      }
+                  }
+              }
+          }
+          
+          stage('Quality Gates') {
+              parallel {
+                  stage('Linting') {
+                      steps {
+                          sh '$(go env GOPATH)/bin/golangci-lint run --config=.golangci.yml'
+                      }
+                  }
+                  stage('Security Scan') {
+                      steps {
+                          sh 'go install github.com/securecodewarrior/gosec/cmd/gosec@latest'
+                          sh '$(go env GOPATH)/bin/gosec ./...'
+                      }
+                  }
+                  stage('Vulnerability Check') {
+                      steps {
+                          sh 'go install golang.org/x/vuln/cmd/govulncheck@latest'
+                          sh '$(go env GOPATH)/bin/govulncheck ./...'
+                      }
+                  }
+              }
+          }
+          
+          stage('Unit Tests') {
+              parallel {
+                  stage('Intent Processing Controller') {
+                      steps {
+                          sh 'make test-unit-specialized_intent_processing'
+                      }
+                      post {
+                          always {
+                              publishHTML([
+                                  allowMissing: false,
+                                  alwaysLinkToLastBuild: true,
+                                  keepAll: true,
+                                  reportDir: '.',
+                                  reportFiles: 'coverage-intent.html',
+                                  reportName: 'Intent Controller Coverage Report'
+                              ])
+                          }
+                      }
+                  }
+                  stage('Resource Planning Controller') {
+                      steps {
+                          sh 'make test-unit-specialized_resource_planning'
+                      }
+                      post {
+                          always {
+                              publishHTML([
+                                  allowMissing: false,
+                                  alwaysLinkToLastBuild: true,
+                                  keepAll: true,
+                                  reportDir: '.',
+                                  reportFiles: 'coverage-resource.html',
+                                  reportName: 'Resource Controller Coverage Report'
+                              ])
+                          }
+                      }
+                  }
+                  stage('Manifest Generation Controller') {
+                      steps {
+                          sh 'make test-unit-specialized_manifest_generation'
+                      }
+                      post {
+                          always {
+                              publishHTML([
+                                  allowMissing: false,
+                                  alwaysLinkToLastBuild: true,
+                                  keepAll: true,
+                                  reportDir: '.',
+                                  reportFiles: 'coverage-manifest.html',
+                                  reportName: 'Manifest Controller Coverage Report'
+                              ])
+                          }
+                      }
+                  }
+              }
+          }
+          
+          stage('Integration Tests') {
+              when {
+                  anyOf {
+                      branch 'main'
+                      branch 'develop'
+                      changeRequest target: 'main'
+                  }
+              }
+              steps {
+                  sh 'make test-integration'
+              }
+              post {
+                  always {
+                      publishTestResults testResultsPattern: 'test-results/integration/integration-results.xml'
+                      archiveArtifacts artifacts: 'test-results/**/*', allowEmptyArchive: true
+                  }
+              }
+          }
+          
+          stage('Performance Tests') {
+              when {
+                  anyOf {
+                      branch 'main'
+                      branch 'develop'
+                  }
+              }
+              steps {
+                  sh 'make benchmark-all'
+              }
+              post {
+                  always {
+                      archiveArtifacts artifacts: 'benchmark-results.txt,cpu-profile.txt,memory-profile.txt'
+                  }
+              }
+          }
+          
+          stage('Regression Tests') {
+              when {
+                  branch 'main'
+              }
+              steps {
+                  sh 'REGRESSION_MODE=strict make test-regression'
+              }
+              post {
+                  always {
+                      publishHTML([
+                          allowMissing: false,
+                          alwaysLinkToLastBuild: true,
+                          keepAll: true,
+                          reportDir: 'reports/compatibility',
+                          reportFiles: 'compatibility-report.html',
+                          reportName: 'Backward Compatibility Report'
+                      ])
+                  }
+              }
+          }
+          
+          stage('Generate Reports') {
+              parallel {
+                  stage('Quality Report') {
+                      steps {
+                          sh 'make quality-report'
+                      }
+                      post {
+                          always {
+                              publishHTML([
+                                  allowMissing: false,
+                                  alwaysLinkToLastBuild: true,
+                                  keepAll: true,
+                                  reportDir: 'reports/quality',
+                                  reportFiles: 'coverage.html',
+                                  reportName: 'Quality Report'
+                              ])
+                          }
+                      }
+                  }
+                  stage('Compatibility Report') {
+                      steps {
+                          sh 'make compatibility-report'
+                      }
+                  }
+              }
+          }
+      }
+      
+      post {
+          always {
+              cleanWs()
+          }
+          success {
+              echo 'Pipeline succeeded!'
+          }
+          failure {
+              emailext (
+                  subject: "Build Failed: ${env.JOB_NAME} - ${env.BUILD_NUMBER}",
+                  body: "Build failed. Check console output at ${env.BUILD_URL}",
+                  to: "${env.CHANGE_AUTHOR_EMAIL}"
+              )
+          }
+      }
+  }
+
+---
+# Test Configuration Files
+test_configs:
+  ginkgo_config: |
+    # Ginkgo configuration
+    [ginkgo]
+    # Test execution settings
+    randomize-all = true
+    randomize-suites = true
+    fail-on-pending = true
+    keep-going = false
+    trace = false
+    dry-run = false
+    
+    # Output settings
+    verbose = true
+    succinct = false
+    full-trace = false
+    show-node-events = false
+    
+    # Coverage settings
+    cover = true
+    covermode = "atomic"
+    output-dir = "./test-results"
+    json-report = "test-results.json"
+    junit-report = "junit-results.xml"
+    
+    # Parallel execution
+    parallel-node = 1
+    parallel-total = 1
+    
+    # Timeouts
+    timeout = "30m"
+    grace-period = "10s"
+    poll-progress-after = "10s"
+    poll-progress-interval = "10s"
+  
+  golangci_lint_config: |
+    # .golangci.yml
+    run:
+      timeout: 5m
+      issues-exit-code: 1
+      tests: true
+      modules-download-mode: readonly
+      
+    output:
+      format: colored-line-number
+      print-issued-lines: true
+      print-linter-name: true
+      
+    linters:
+      enable:
+        - gofmt
+        - goimports
+        - govet
+        - errcheck
+        - staticcheck
+        - unused
+        - gosimple
+        - structcheck
+        - varcheck
+        - ineffassign
+        - deadcode
+        - typecheck
+        - goconst
+        - gocyclo
+        - dupl
+        - misspell
+        - lll
+        - unconvert
+        - nakedret
+        - prealloc
+        - scopelint
+        - gocritic
+        - gochecknoinits
+        - gochecknoglobals
+        - godox
+        - funlen
+        - whitespace
+        - goprintffuncname
+        - gomnd
+        - goerr113
+        - gomodguard
+        - godot
+        - testpackage
+        - nestif
+        - exportloopref
+        - exhaustive
+        - sqlclosecheck
+        - rowserrcheck
+        - noctx
+        - gosec
+    
+    linters-settings:
+      gocyclo:
+        min-complexity: 15
+      dupl:
+        threshold: 100
+      funlen:
+        lines: 100
+        statements: 50
+      lll:
+        line-length: 120
+      nakedret:
+        max-func-lines: 30
+      prealloc:
+        simple: true
+        range-loops: true
+        for-loops: false
+      goconst:
+        min-len: 3
+        min-occurrences: 3
+      misspell:
+        locale: US
+        
+    issues:
+      exclude-use-default: false
+      exclude:
+        # Exclude some linters from running on tests files.
+        - path: _test\.go
+          linters:
+            - gomnd
+            - funlen
+            - goconst
+            - gocyclo
+        # Exclude known linter issues
+        - text: "weak cryptographic primitive"
+          linters:
+            - gosec
+        # Ignore magic numbers in test files
+        - path: _test\.go
+          text: "mnd: Magic number"
+          
+    severity:
+      default-severity: error
+      rules:
+        - linters:
+          - dupl
+          severity: info

@@ -1,0 +1,420 @@
+# Development Configuration for Nephoran Performance Monitoring Stack
+# Lightweight configuration optimized for local development and testing
+# with minimal resource usage while maintaining core functionality
+
+global:
+  namespace: nephoran-monitoring
+  environment: development
+  
+  # Basic storage for development
+  storageClass: standard
+  retention: 7d  # Short retention for development
+  
+  # Minimal security for ease of development
+  security:
+    enabled: false  # Disabled for local development
+    runAsNonRoot: false
+    runAsUser: 0
+    readOnlyRootFilesystem: false
+    allowPrivilegeEscalation: true
+    
+  # Minimal resource allocation for development
+  resources:
+    limits:
+      cpu: "2"
+      memory: "4Gi"
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+
+# Development Prometheus configuration
+prometheus:
+  enabled: true
+  
+  server:
+    image:
+      tag: v2.48.0
+    
+    # Single replica for development
+    replicaCount: 1
+    
+    # Minimal storage for development
+    persistentVolume:
+      enabled: true
+      size: 50Gi
+      storageClass: standard
+      accessModes:
+        - ReadWriteOnce
+      
+    retention: 7d
+    retentionSize: 40GB
+    
+    # Minimal resource allocation
+    resources:
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+      requests:
+        cpu: 200m
+        memory: 500Mi
+        
+    # Development scraping configuration
+    global:
+      scrape_interval: 30s    # Lower frequency to reduce load
+      evaluation_interval: 30s
+      scrape_timeout: 15s
+      external_labels:
+        cluster: 'nephoran-dev'
+        environment: 'development'
+        
+    # Basic arguments for development
+    extraArgs:
+      web.enable-lifecycle: ""
+      web.enable-admin-api: ""
+      storage.tsdb.retention.size: "40GB"
+      query.max-concurrency: "5"   # Lower concurrency
+      query.timeout: "30s"
+      log.level: "debug"            # Debug logging for development
+      
+    # Simple service configuration
+    service:
+      type: NodePort
+      port: 9090
+      nodePort: 30090           # Fixed NodePort for easy access
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        
+    # No ingress for development (use NodePort/port-forward)
+    ingress:
+      enabled: false
+            
+    # No special node selection for development
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+
+# Development Grafana configuration
+grafana:
+  enabled: true
+  
+  image:
+    tag: 10.2.2
+    
+  # Single replica for development
+  replicas: 1
+  
+  # Simple admin configuration
+  adminUser: admin
+  adminPassword: admin    # Simple password for development
+  
+  # Minimal persistence
+  persistence:
+    enabled: true
+    type: pvc
+    size: 5Gi
+    storageClassName: standard
+    accessModes:
+      - ReadWriteOnce
+      
+  # Simple service configuration
+  service:
+    type: NodePort
+    port: 3000
+    nodePort: 30030         # Fixed NodePort for easy access
+      
+  # No ingress for development
+  ingress:
+    enabled: false
+      
+  # Minimal resource allocation
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+      
+  # Simple Grafana configuration
+  grafana.ini:
+    server:
+      root_url: http://localhost:3000
+    security:
+      admin_password: admin
+      allow_embedding: true
+    auth:
+      disable_login_form: false
+    auth.anonymous:
+      enabled: true          # Allow anonymous access for development
+      org_role: Viewer
+    database:
+      type: sqlite3
+      path: grafana.db
+    session:
+      provider: file
+    log:
+      mode: console
+      level: debug           # Debug logging for development
+    metrics:
+      enabled: true
+      
+  # Minimal plugins for development
+  env:
+    GF_INSTALL_PLUGINS: "grafana-piechart-panel"
+    GF_SECURITY_ALLOW_EMBEDDING: "true"
+    GF_USERS_ALLOW_SIGN_UP: "true"
+    GF_AUTH_ANONYMOUS_ENABLED: "true"
+
+# Development AlertManager configuration
+alertmanager:
+  enabled: true
+  
+  image:
+    tag: v0.26.0
+    
+  # Single replica for development
+  replicaCount: 1
+  
+  # Minimal persistence
+  persistence:
+    enabled: false    # Disabled for development
+    
+  # Minimal resource allocation
+  resources:
+    limits:
+      cpu: 100m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+      
+  # Simple service configuration
+  service:
+    type: NodePort
+    port: 9093
+    nodePort: 30093
+    
+  # Simple AlertManager configuration for development
+  config:
+    global:
+      smtp_smarthost: 'localhost:1025'  # MailHog for local testing
+      smtp_from: 'alerts-dev@localhost'
+      
+    route:
+      group_by: ['alertname']
+      group_wait: 5s
+      group_interval: 5s
+      repeat_interval: 5m     # Frequent repeats for testing
+      receiver: 'dev-team'
+      
+    receivers:
+      - name: 'dev-team'
+        # Log alerts to console for development
+        webhook_configs:
+          - url: 'http://localhost:8080/webhook'
+            send_resolved: true
+        
+    # No inhibit rules for development
+    inhibit_rules: []
+
+# Service Monitors with development settings
+serviceMonitors:
+  enabled: true
+  
+  llmProcessor:
+    enabled: true
+    namespace: nephoran-system
+    selector:
+      matchLabels:
+        app: llm-processor
+    endpoints:
+      - port: metrics
+        path: /metrics
+        interval: 30s     # Lower frequency for development
+        scrapeTimeout: 10s
+        
+  ragApi:
+    enabled: true
+    namespace: nephoran-system
+    selector:
+      matchLabels:
+        app: rag-api
+    endpoints:
+      - port: metrics
+        path: /metrics
+        interval: 30s
+        scrapeTimeout: 10s
+        
+  performanceRunner:
+    enabled: true
+    namespace: nephoran-monitoring
+    selector:
+      matchLabels:
+        app: performance-test-runner
+    endpoints:
+      - port: metrics
+        path: /metrics
+        interval: 15s     # Moderate frequency for testing
+        scrapeTimeout: 5s
+
+# Development Prometheus Rules
+prometheusRules:
+  enabled: true
+  
+  recordingRules:
+    - name: nephoran-performance-claims-dev
+      interval: 30s    # Lower frequency
+      rules:
+        - record: benchmark:intent_processing_latency_p95
+          expr: histogram_quantile(0.95, rate(nephoran_intent_processing_duration_seconds_bucket{service="llm-processor"}[5m]))
+          
+        - record: benchmark:intent_processing_latency_p50
+          expr: histogram_quantile(0.50, rate(nephoran_intent_processing_duration_seconds_bucket{service="llm-processor"}[5m]))
+          
+        - record: benchmark:intent_processing_rate_1m
+          expr: rate(nephoran_intent_processing_total{service="llm-processor"}[1m]) * 60
+          
+        - record: benchmark:availability_5m
+          expr: (1 - (sum(rate(nephoran_intent_processing_errors_total{service="llm-processor"}[5m])) / sum(rate(nephoran_intent_processing_total{service="llm-processor"}[5m])))) * 100
+          
+        - record: benchmark:rag_latency_p95
+          expr: histogram_quantile(0.95, rate(nephoran_rag_retrieval_duration_seconds_bucket{service="rag-api"}[5m]))
+          
+        - record: benchmark:cache_hit_rate_5m
+          expr: (sum(rate(nephoran_cache_hits_total{service="rag-api"}[5m])) / (sum(rate(nephoran_cache_hits_total{service="rag-api"}[5m])) + sum(rate(nephoran_cache_misses_total{service="rag-api"}[5m])))) * 100
+
+  alertingRules:
+    - name: nephoran-dev-alerts
+      rules:
+        # Relaxed thresholds for development
+        - alert: DevIntentProcessingLatency
+          expr: benchmark:intent_processing_latency_p95 > 3.0  # Relaxed threshold
+          for: 2m          # Longer wait time
+          labels:
+            severity: info   # Info level for development
+            environment: development
+            component: llm-processor
+          annotations:
+            summary: "Development: Intent processing latency high"
+            description: "P95 latency is {{ $value }}s (threshold: 3.0s)"
+            
+        - alert: DevAvailability
+          expr: benchmark:availability_5m < 99.0  # Much more relaxed
+          for: 5m
+          labels:
+            severity: info
+            environment: development
+          annotations:
+            summary: "Development: Availability below 99%"
+            description: "Current availability is {{ $value }}%"
+            
+        # Basic performance tracking for development
+        - alert: DevPerformanceCheck
+          expr: |
+            (
+              (benchmark:intent_processing_latency_p95 <= 3.0) * 100/6 +
+              (benchmark_concurrent_users_current >= 50) * 100/6 +    # Lower expectation
+              (benchmark:intent_processing_rate_1m >= 20) * 100/6 +   # Lower expectation
+              (benchmark:availability_5m >= 99.0) * 100/6 +
+              (benchmark:rag_latency_p95 <= 0.5) * 100/6 +            # More relaxed
+              (benchmark:cache_hit_rate_5m >= 70) * 100/6              # Lower expectation
+            ) < 80  # Much lower threshold for development
+          for: 5m
+          labels:
+            severity: info
+            environment: development
+          annotations:
+            summary: "Development performance check"
+            description: "Performance score is {{ $value }}% (development tracking)"
+
+# No network policies for development (easier debugging)
+networkPolicies:
+  enabled: false
+
+# Development-specific extra configurations
+extraConfig:
+  # Basic performance settings
+  performance:
+    enableCaching: false      # Disabled for simpler debugging
+    cacheSize: "512Mi"
+    queryParallelism: 2       # Low parallelism
+    
+  # No security hardening for development
+  security:
+    enableTLS: false
+    enablePodSecurityStandards: false
+    
+  # No HA for development
+  highAvailability:
+    enabled: false
+    replicaCount: 1
+            
+  # No backup for development
+  backup:
+    enabled: false
+    
+  # Basic self-monitoring
+  selfMonitoring:
+    enabled: true
+    alerts:
+      enabled: false    # Disabled to reduce noise
+        
+  # Development and testing features
+  development:
+    enabled: true
+    
+    # Enable debug features
+    debug:
+      enabled: true
+      verboseLogging: true
+      enableProfiling: true
+      
+    # Development tools integration
+    tools:
+      mailhog:
+        enabled: true
+        port: 1025
+      
+      # Mock services for testing
+      mockServices:
+        enabled: true
+        llmMock: true
+        ragMock: true
+        webhookMock: true
+        
+    # Simplified testing
+    testing:
+      enabled: true
+      automatedTests: false      # Manual testing in development
+      loadTesting: false         # Disabled to save resources
+      
+    # Development convenience features
+    convenience:
+      autoReload: true           # Auto-reload configurations
+      hotReload: true            # Hot reload for dashboards
+      skipValidation: true       # Skip some validations for faster iteration
+
+# Additional development-specific services
+additionalServices:
+  # MailHog for email testing
+  mailhog:
+    enabled: true
+    image:
+      repository: mailhog/mailhog
+      tag: latest
+    service:
+      type: NodePort
+      port: 8025
+      nodePort: 30025
+      
+  # Simple webhook receiver for testing
+  webhookReceiver:
+    enabled: true
+    image:
+      repository: nginx
+      tag: alpine
+    service:
+      type: NodePort
+      port: 8080
+      nodePort: 30080

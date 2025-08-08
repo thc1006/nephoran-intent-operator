@@ -1,0 +1,401 @@
+{{- if .Values.serviceMonitors.enabled }}
+---
+# Service Monitor for LLM Processor
+{{- if .Values.serviceMonitors.llmProcessor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-llm-processor
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    {{- include "nephoran-performance-monitoring.claimsLabels" . | nindent 4 }}
+    component: llm-processor
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+spec:
+  jobLabel: app
+  selector:
+    matchLabels:
+      app: llm-processor
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.serviceMonitors.llmProcessor.namespace | default "nephoran-system" }}
+  endpoints:
+    {{- range .Values.serviceMonitors.llmProcessor.endpoints }}
+    - port: {{ .port }}
+      path: {{ .path | default "/metrics" }}
+      interval: {{ .interval | default "15s" }}
+      scrapeTimeout: {{ .scrapeTimeout | default "10s" }}
+      honorLabels: true
+      metricRelabelings:
+        # Add performance claim labels
+        - sourceLabels: [__name__]
+          regex: 'nephoran_intent_processing.*'
+          targetLabel: performance_claim
+          replacement: 'intent-processing-latency'
+        # Add component label
+        - targetLabel: component
+          replacement: 'llm-processor'
+        # Add service level
+        - targetLabel: service_level
+          replacement: 'critical'
+    {{- end }}
+{{- end }}
+
+---
+# Service Monitor for RAG API
+{{- if .Values.serviceMonitors.ragApi.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-rag-api
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    component: rag-api
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+spec:
+  jobLabel: app
+  selector:
+    matchLabels:
+      app: rag-api
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.serviceMonitors.ragApi.namespace | default "nephoran-system" }}
+  endpoints:
+    {{- range .Values.serviceMonitors.ragApi.endpoints }}
+    - port: {{ .port }}
+      path: {{ .path | default "/metrics" }}
+      interval: {{ .interval | default "15s" }}
+      scrapeTimeout: {{ .scrapeTimeout | default "10s" }}
+      honorLabels: true
+      metricRelabelings:
+        # Add performance claim labels for RAG latency
+        - sourceLabels: [__name__]
+          regex: 'nephoran_rag_retrieval.*'
+          targetLabel: performance_claim
+          replacement: 'rag-retrieval-latency'
+        # Add performance claim labels for cache metrics
+        - sourceLabels: [__name__]
+          regex: 'nephoran_cache.*'
+          targetLabel: performance_claim
+          replacement: 'cache-hit-rate'
+        # Add component label
+        - targetLabel: component
+          replacement: 'rag-api'
+        # Add service level
+        - targetLabel: service_level
+          replacement: 'critical'
+    {{- end }}
+{{- end }}
+
+---
+# Service Monitor for Performance Test Runner
+{{- if .Values.serviceMonitors.performanceRunner.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-performance-runner
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    component: performance-test-runner
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+    nephoran.com/benchmark-metrics: "true"
+spec:
+  jobLabel: app
+  selector:
+    matchLabels:
+      app: performance-test-runner
+  namespaceSelector:
+    matchNames:
+      - {{ .Values.serviceMonitors.performanceRunner.namespace | default "nephoran-monitoring" }}
+  endpoints:
+    {{- range .Values.serviceMonitors.performanceRunner.endpoints }}
+    - port: {{ .port }}
+      path: {{ .path | default "/metrics" }}
+      interval: {{ .interval | default "5s" }}
+      scrapeTimeout: {{ .scrapeTimeout | default "3s" }}
+      honorLabels: true
+      metricRelabelings:
+        # Add benchmark labels
+        - sourceLabels: [__name__]
+          regex: 'benchmark.*'
+          targetLabel: metric_type
+          replacement: 'benchmark'
+        # Add statistical validation labels
+        - sourceLabels: [__name__]
+          regex: 'statistical.*'
+          targetLabel: metric_type
+          replacement: 'statistical-validation'
+        # Add component label
+        - targetLabel: component
+          replacement: 'performance-test-runner'
+        # High priority for benchmark metrics
+        - targetLabel: priority
+          replacement: 'high'
+    {{- end }}
+{{- end }}
+
+---
+# Service Monitor for O-RAN Adaptor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-oran-adaptor
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    component: oran-adaptor
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+spec:
+  jobLabel: app
+  selector:
+    matchLabels:
+      app: oran-adaptor
+  namespaceSelector:
+    matchNames:
+      - nephoran-system
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+      metricRelabelings:
+        - targetLabel: component
+          replacement: 'oran-adaptor'
+        - targetLabel: service_level
+          replacement: 'important'
+
+---
+# Service Monitor for Nephio Bridge
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-nephio-bridge
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    component: nephio-bridge
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+spec:
+  jobLabel: app
+  selector:
+    matchLabels:
+      app: nephio-bridge
+  namespaceSelector:
+    matchNames:
+      - nephoran-system
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+      metricRelabelings:
+        - targetLabel: component
+          replacement: 'nephio-bridge'
+        - targetLabel: service_level
+          replacement: 'important'
+
+---
+# Service Monitor for Statistical Validator
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-statistical-validator
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    component: statistical-validator
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+    nephoran.com/statistical-metrics: "true"
+spec:
+  jobLabel: app
+  selector:
+    matchLabels:
+      app: statistical-validator
+  namespaceSelector:
+    matchNames:
+      - nephoran-monitoring
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 5s
+      scrapeTimeout: 3s
+      honorLabels: true
+      metricRelabelings:
+        # Label statistical validation metrics
+        - sourceLabels: [__name__]
+          regex: '(confidence_level|sample_.*|p_value|effect_size).*'
+          targetLabel: metric_category
+          replacement: 'statistical-validation'
+        - targetLabel: component
+          replacement: 'statistical-validator'
+        - targetLabel: priority
+          replacement: 'high'
+
+---
+# Service Monitor for Regression Detector
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-regression-detector
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    component: regression-detector
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+    nephoran.com/regression-metrics: "true"
+spec:
+  jobLabel: app
+  selector:
+    matchLabels:
+      app: regression-detector
+  namespaceSelector:
+    matchNames:
+      - nephoran-monitoring
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 10s
+      scrapeTimeout: 5s
+      honorLabels: true
+      metricRelabelings:
+        # Label regression detection metrics
+        - sourceLabels: [__name__]
+          regex: '(regression_detected|baseline_deviation|performance_change).*'
+          targetLabel: metric_category
+          replacement: 'regression-detection'
+        - targetLabel: component
+          replacement: 'regression-detector'
+        - targetLabel: alert_priority
+          replacement: 'critical'
+
+---
+# Service Monitor for Load Test Orchestrator
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-load-test-orchestrator
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    component: load-test-orchestrator
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+    nephoran.com/load-test-metrics: "true"
+spec:
+  jobLabel: app
+  selector:
+    matchLabels:
+      app: load-test-orchestrator
+  namespaceSelector:
+    matchNames:
+      - nephoran-monitoring
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 1s  # High frequency during load tests
+      scrapeTimeout: 1s
+      honorLabels: true
+      metricRelabelings:
+        # Label load test metrics
+        - sourceLabels: [__name__]
+          regex: '(concurrent_users|load_test_status|user_ramp_rate).*'
+          targetLabel: metric_category
+          replacement: 'load-testing'
+        # Add performance claim mapping
+        - sourceLabels: [__name__]
+          regex: 'concurrent_users.*'
+          targetLabel: performance_claim
+          replacement: 'concurrent-user-capacity'
+        - targetLabel: component
+          replacement: 'load-test-orchestrator'
+        - targetLabel: test_type
+          replacement: 'capacity-validation'
+
+---
+# Service Monitor for Weaviate (Vector Database)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-weaviate
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    component: weaviate
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+spec:
+  jobLabel: app
+  selector:
+    matchLabels:
+      app: weaviate
+  namespaceSelector:
+    matchNames:
+      - nephoran-system
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s
+      honorLabels: true
+      metricRelabelings:
+        # Add component and service level labels
+        - targetLabel: component
+          replacement: 'weaviate'
+        - targetLabel: service_level
+          replacement: 'important'
+        # Map vector search metrics to RAG performance claim
+        - sourceLabels: [__name__]
+          regex: 'weaviate_vector_.*'
+          targetLabel: performance_claim
+          replacement: 'rag-retrieval-latency'
+
+---
+# PodMonitor for Kubernetes system metrics related to performance
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-system-pods
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    component: system-monitoring
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+spec:
+  jobLabel: app
+  selector:
+    matchLabels:
+      nephoran.com/monitoring: "enabled"
+  namespaceSelector:
+    matchNames:
+      - nephoran-system
+      - nephoran-monitoring
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+      metricRelabelings:
+        # Add resource monitoring labels
+        - sourceLabels: [__name__]
+          regex: 'container_.*'
+          targetLabel: metric_category
+          replacement: 'resource-monitoring'
+        # Add performance impact tracking
+        - targetLabel: monitoring_scope
+          replacement: 'performance-impact'
+
+{{- end }}

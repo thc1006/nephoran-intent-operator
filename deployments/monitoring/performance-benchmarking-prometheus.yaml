@@ -1,0 +1,534 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: performance-benchmarking-prometheus-config
+  namespace: nephoran-monitoring
+  labels:
+    app: prometheus
+    component: performance-benchmarking
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 1s  # High frequency for performance benchmarking
+      evaluation_interval: 5s
+      external_labels:
+        cluster: 'nephoran-performance-benchmarking'
+        environment: 'benchmarking'
+
+    rule_files:
+      - "/etc/prometheus/rules/performance-benchmarking.yml"
+      - "/etc/prometheus/rules/statistical-validation.yml"
+      - "/etc/prometheus/rules/regression-detection.yml"
+
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+              - alertmanager:9093
+
+    scrape_configs:
+      # Performance Benchmarking Test Runner
+      - job_name: 'performance-benchmarking'
+        static_configs:
+          - targets: ['performance-test-runner:8090']
+        metrics_path: '/metrics'
+        scrape_interval: 1s  # Real-time benchmarking metrics
+        scrape_timeout: 5s
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'benchmark_.*'
+            target_label: 'component'
+            replacement: 'benchmarking'
+
+      # Intent Processing Benchmarks
+      - job_name: 'intent-processing-benchmarks'
+        static_configs:
+          - targets: ['intent-processor-benchmark:8091']
+        metrics_path: '/benchmark-metrics'
+        scrape_interval: 500ms  # Sub-second for latency measurements
+        scrape_timeout: 2s
+
+      # Statistical Validation Service
+      - job_name: 'statistical-validation'
+        static_configs:
+          - targets: ['statistical-validator:8092']
+        metrics_path: '/validation-metrics'
+        scrape_interval: 2s
+        scrape_timeout: 5s
+
+      # Distributed Load Tester
+      - job_name: 'distributed-load-tester'
+        static_configs:
+          - targets: ['distributed-load-tester:8093']
+        metrics_path: '/load-test-metrics'
+        scrape_interval: 1s
+        scrape_timeout: 5s
+
+      # Regression Detector
+      - job_name: 'regression-detector'
+        static_configs:
+          - targets: ['regression-detector:8094']
+        metrics_path: '/regression-metrics'
+        scrape_interval: 5s
+        scrape_timeout: 10s
+
+      # Enhanced Profiler
+      - job_name: 'enhanced-profiler'
+        static_configs:
+          - targets: ['enhanced-profiler:8095']
+        metrics_path: '/profiler-metrics'
+        scrape_interval: 2s
+        scrape_timeout: 5s
+
+      # Comprehensive Validation Test Suite
+      - job_name: 'validation-suite'
+        static_configs:
+          - targets: ['validation-suite:8096']
+        metrics_path: '/suite-metrics'
+        scrape_interval: 1s
+        scrape_timeout: 5s
+
+  performance-benchmarking.yml: |
+    groups:
+    - name: performance-claims-validation
+      interval: 1s
+      rules:
+      # CLAIM 1: Sub-2-second P95 latency for intent processing
+      - record: benchmark:intent_processing_latency_p95
+        expr: histogram_quantile(0.95, rate(nephoran_intent_processing_duration_seconds_bucket[5m]))
+
+      - record: benchmark:intent_latency_sla_compliance
+        expr: (benchmark:intent_processing_latency_p95 <= 2.0)
+
+      # CLAIM 2: 200+ concurrent user capacity
+      - record: benchmark_concurrent_users_current
+        expr: nephoran_concurrent_users_active
+
+      - record: benchmark:concurrent_users_capacity_check
+        expr: (benchmark_concurrent_users_current <= 200)
+
+      # CLAIM 3: 45 intents per minute throughput
+      - record: benchmark:intent_processing_rate_1m
+        expr: rate(nephoran_intents_processed_total[1m]) * 60
+
+      - record: benchmark:throughput_target_achievement
+        expr: (benchmark:intent_processing_rate_1m >= 45)
+
+      # CLAIM 4: 99.95% availability
+      - record: benchmark:availability_5m
+        expr: (rate(nephoran_requests_total[5m]) - rate(nephoran_requests_failed_total[5m])) / rate(nephoran_requests_total[5m]) * 100
+
+      - record: benchmark:availability_sla_compliance
+        expr: (benchmark:availability_5m >= 99.95)
+
+      # CLAIM 5: Sub-200ms P95 RAG retrieval latency
+      - record: benchmark:rag_latency_p95
+        expr: histogram_quantile(0.95, rate(nephoran_rag_retrieval_duration_seconds_bucket[5m]))
+
+      - record: benchmark:rag_latency_target_achievement
+        expr: (benchmark:rag_latency_p95 <= 0.2)
+
+      # CLAIM 6: 87% cache hit rate
+      - record: benchmark:cache_hit_rate_5m
+        expr: rate(nephoran_cache_hits_total[5m]) / (rate(nephoran_cache_hits_total[5m]) + rate(nephoran_cache_misses_total[5m])) * 100
+
+      - record: benchmark:cache_hit_rate_target_achievement
+        expr: (benchmark:cache_hit_rate_5m >= 87)
+
+      # Overall Performance Score (0-100%)
+      - record: benchmark:overall_performance_score
+        expr: |
+          (
+            benchmark:intent_latency_sla_compliance +
+            benchmark:concurrent_users_capacity_check +
+            benchmark:throughput_target_achievement +
+            benchmark:availability_sla_compliance +
+            benchmark:rag_latency_target_achievement +
+            benchmark:cache_hit_rate_target_achievement
+          ) / 6 * 100
+
+      # Benchmark execution metrics
+      - record: benchmark_tests_total
+        expr: sum(performance_benchmark_tests_total)
+
+      - record: benchmark_tests_passed
+        expr: sum(performance_benchmark_tests_passed)
+
+      - record: benchmark_tests_failed
+        expr: sum(performance_benchmark_tests_failed)
+
+      - record: benchmark_active_scenarios
+        expr: sum(performance_benchmark_active_scenarios)
+
+      # Statistical validation metrics
+      - record: benchmark_statistical_confidence
+        expr: avg(statistical_validation_confidence_level)
+
+      - record: benchmark_p_values
+        expr: statistical_validation_p_value
+
+      - record: benchmark_effect_sizes
+        expr: statistical_validation_effect_size
+
+      # Load testing scenario results
+      - record: benchmark_load_test_p95_latency
+        expr: histogram_quantile(0.95, rate(load_test_request_duration_seconds_bucket[5m]))
+
+      - record: benchmark_load_test_success_rate
+        expr: rate(load_test_requests_total[5m] - load_test_requests_failed_total[5m]) / rate(load_test_requests_total[5m]) * 100
+
+      - record: benchmark_load_test_throughput
+        expr: rate(load_test_requests_total[5m])
+
+  statistical-validation.yml: |
+    groups:
+    - name: statistical-validation-metrics
+      interval: 2s
+      rules:
+      # Confidence intervals for each claim
+      - record: benchmark:intent_latency_confidence_interval_lower
+        expr: benchmark:intent_processing_latency_p95 - (statistical_validation_stddev * 1.96)
+
+      - record: benchmark:intent_latency_confidence_interval_upper
+        expr: benchmark:intent_processing_latency_p95 + (statistical_validation_stddev * 1.96)
+
+      # Statistical significance tests
+      - record: benchmark:intent_latency_significance_test
+        expr: (statistical_validation_t_statistic > 1.96) or (statistical_validation_t_statistic < -1.96)
+
+      - record: benchmark:normality_test_passed
+        expr: statistical_validation_shapiro_wilk_p_value > 0.05
+
+      - record: benchmark:outliers_detected
+        expr: statistical_validation_outliers_count
+
+      - record: benchmark:sample_size_adequate
+        expr: statistical_validation_sample_size >= statistical_validation_required_sample_size
+
+      # Power analysis results
+      - record: benchmark:statistical_power
+        expr: statistical_validation_power_analysis_result
+
+      - record: benchmark:effect_size_magnitude
+        expr: |
+          label_replace(
+            label_replace(
+              statistical_validation_effect_size < 0.2, "magnitude", "small", "", ""
+            ), "magnitude", "medium", "magnitude", ""
+          ) or 
+          label_replace(
+            statistical_validation_effect_size >= 0.2 and statistical_validation_effect_size < 0.8, "magnitude", "medium", "", ""
+          ) or
+          label_replace(
+            statistical_validation_effect_size >= 0.8, "magnitude", "large", "", ""
+          )
+
+      # Validation status aggregation
+      - record: benchmark_validation_status
+        expr: |
+          (
+            benchmark:intent_latency_significance_test * 0.2 +
+            benchmark:normality_test_passed * 0.15 +
+            benchmark:sample_size_adequate * 0.15 +
+            (benchmark:statistical_power >= 0.8) * 0.25 +
+            (benchmark:overall_performance_score >= 90) * 0.25
+          )
+
+  regression-detection.yml: |
+    groups:
+    - name: performance-regression-detection
+      interval: 10s
+      rules:
+      # Trend analysis over different time windows
+      - record: benchmark:intent_latency_trend_1h
+        expr: rate(benchmark:intent_processing_latency_p95[1h])
+
+      - record: benchmark:intent_latency_trend_6h
+        expr: rate(benchmark:intent_processing_latency_p95[6h])
+
+      - record: benchmark:intent_latency_trend_24h
+        expr: rate(benchmark:intent_processing_latency_p95[24h])
+
+      # Regression detection based on percentage change
+      - record: benchmark:intent_latency_1h_change_percent
+        expr: |
+          100 * (
+            benchmark:intent_processing_latency_p95 - 
+            benchmark:intent_processing_latency_p95 offset 1h
+          ) / (
+            benchmark:intent_processing_latency_p95 offset 1h
+          )
+
+      - record: benchmark:intent_latency_24h_change_percent
+        expr: |
+          100 * (
+            benchmark:intent_processing_latency_p95 - 
+            benchmark:intent_processing_latency_p95 offset 24h
+          ) / (
+            benchmark:intent_processing_latency_p95 offset 24h
+          )
+
+      # Regression alerts
+      - record: benchmark_regression_detected
+        expr: |
+          (benchmark:intent_latency_24h_change_percent > 10) or
+          (benchmark:rag_latency_24h_change_percent > 15) or
+          ((benchmark:intent_processing_rate_1m - benchmark:intent_processing_rate_1m offset 24h) / (benchmark:intent_processing_rate_1m offset 24h) * 100 < -20) or
+          ((benchmark:cache_hit_rate_5m - benchmark:cache_hit_rate_5m offset 24h) / (benchmark:cache_hit_rate_5m offset 24h) * 100 < -5)
+
+      # Baseline comparison metrics
+      - record: benchmark:baseline_deviation_score
+        expr: |
+          abs(benchmark:intent_processing_latency_p95 - scalar(avg_over_time(benchmark:intent_processing_latency_p95[7d]))) / 
+          scalar(stddev_over_time(benchmark:intent_processing_latency_p95[7d]))
+
+      - record: benchmark:performance_stability_score
+        expr: |
+          100 - (
+            abs(benchmark:intent_latency_24h_change_percent) * 0.3 +
+            abs((benchmark:intent_processing_rate_1m - benchmark:intent_processing_rate_1m offset 24h) / (benchmark:intent_processing_rate_1m offset 24h) * 100) * 0.25 +
+            abs((benchmark:cache_hit_rate_5m - benchmark:cache_hit_rate_5m offset 24h) / (benchmark:cache_hit_rate_5m offset 24h) * 100) * 0.25 +
+            abs((benchmark:availability_5m - benchmark:availability_5m offset 24h) / (benchmark:availability_5m offset 24h) * 100) * 0.2
+          )
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: performance-benchmarking-alerts
+  namespace: nephoran-monitoring
+  labels:
+    app: prometheus
+    component: performance-benchmarking-alerts
+data:
+  alerts.yml: |
+    groups:
+    - name: performance-claims-violations
+      rules:
+      # CLAIM 1: Intent Processing Latency Violation
+      - alert: IntentProcessingLatencySLAViolation
+        expr: benchmark:intent_processing_latency_p95 > 2.0
+        for: 30s
+        labels:
+          severity: critical
+          claim: "intent-processing-latency"
+          sla: "2-seconds-p95"
+        annotations:
+          summary: "Intent processing P95 latency exceeds 2-second SLA"
+          description: "P95 latency is {{ $value }}s, violating the claimed 2-second SLA"
+          runbook_url: "https://docs.nephoran.com/runbooks/performance-latency-violation"
+
+      # CLAIM 2: Concurrent User Capacity Violation
+      - alert: ConcurrentUserCapacityExceeded
+        expr: benchmark_concurrent_users_current > 200
+        for: 1m
+        labels:
+          severity: warning
+          claim: "concurrent-user-capacity"
+          sla: "200-users"
+        annotations:
+          summary: "Concurrent user count exceeds claimed capacity of 200"
+          description: "Current users: {{ $value }}, claimed capacity: 200 users"
+
+      # CLAIM 3: Throughput Performance Violation
+      - alert: ThroughputBelowClaimedTarget
+        expr: benchmark:intent_processing_rate_1m < 45
+        for: 2m
+        labels:
+          severity: warning
+          claim: "throughput-capacity"
+          sla: "45-intents-per-minute"
+        annotations:
+          summary: "Throughput below claimed 45 intents/minute"
+          description: "Current: {{ $value }} intents/min, claimed: 45 intents/min"
+
+      # CLAIM 4: Availability SLA Violation
+      - alert: AvailabilitySLAViolation
+        expr: benchmark:availability_5m < 99.95
+        for: 1m
+        labels:
+          severity: critical
+          claim: "service-availability"
+          sla: "99.95-percent"
+        annotations:
+          summary: "Service availability below claimed 99.95% SLA"
+          description: "Current: {{ $value }}%, claimed: 99.95% availability"
+
+      # CLAIM 5: RAG Latency Violation
+      - alert: RAGLatencyClaimViolation
+        expr: benchmark:rag_latency_p95 * 1000 > 200
+        for: 1m
+        labels:
+          severity: warning
+          claim: "rag-retrieval-latency"
+          sla: "200ms-p95"
+        annotations:
+          summary: "RAG P95 latency exceeds claimed 200ms"
+          description: "P95 latency: {{ $value }}ms, claimed: <200ms"
+
+      # CLAIM 6: Cache Hit Rate Violation
+      - alert: CacheHitRateClaimViolation
+        expr: benchmark:cache_hit_rate_5m < 87
+        for: 5m
+        labels:
+          severity: warning
+          claim: "cache-hit-rate"
+          sla: "87-percent"
+        annotations:
+          summary: "Cache hit rate below claimed 87%"
+          description: "Current: {{ $value }}%, claimed: 87% hit rate"
+
+      # Overall Claims Validation Failure
+      - alert: OverallPerformanceClaimsFailure
+        expr: benchmark:overall_performance_score < 90
+        for: 5m
+        labels:
+          severity: critical
+          claim: "overall-performance"
+          sla: "all-claims-validated"
+        annotations:
+          summary: "Overall performance claims validation score below 90%"
+          description: "Score: {{ $value }}% - Multiple performance claims not validated"
+
+      # Statistical Validation Alerts
+      - alert: StatisticalValidationLowConfidence
+        expr: benchmark_statistical_confidence < 95
+        for: 2m
+        labels:
+          severity: warning
+          claim: "statistical-confidence"
+        annotations:
+          summary: "Statistical validation confidence below 95%"
+          description: "Confidence: {{ $value }}% - Results may not be statistically significant"
+
+      - alert: InsufficientSampleSize
+        expr: benchmark:sample_size_adequate == 0
+        for: 5m
+        labels:
+          severity: warning
+          claim: "statistical-power"
+        annotations:
+          summary: "Insufficient sample size for statistical validation"
+          description: "Current sample size inadequate for reliable statistical conclusions"
+
+      # Regression Detection Alerts
+      - alert: PerformanceRegressionDetected
+        expr: benchmark_regression_detected == 1
+        for: 0s
+        labels:
+          severity: critical
+          claim: "performance-regression"
+        annotations:
+          summary: "Performance regression detected in benchmarking"
+          description: "Significant performance degradation detected across multiple metrics"
+
+      - alert: PerformanceInstabilityDetected
+        expr: benchmark:performance_stability_score < 80
+        for: 10m
+        labels:
+          severity: warning
+          claim: "performance-stability"
+        annotations:
+          summary: "Performance instability detected"
+          description: "Stability score: {{ $value }}% - Performance metrics showing high variability"
+
+      # Benchmark Execution Alerts
+      - alert: BenchmarkExecutionFailures
+        expr: rate(benchmark_tests_failed[5m]) / rate(benchmark_tests_total[5m]) * 100 > 10
+        for: 2m
+        labels:
+          severity: warning
+          component: "benchmark-execution"
+        annotations:
+          summary: "High benchmark test failure rate"
+          description: "{{ $value }}% of benchmark tests are failing"
+
+      - alert: BenchmarkExecutionStalled
+        expr: rate(benchmark_tests_total[5m]) == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: "benchmark-execution"
+        annotations:
+          summary: "Benchmark execution appears stalled"
+          description: "No benchmark tests have executed in the last 5 minutes"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: performance-benchmarking-prometheus
+  namespace: nephoran-monitoring
+  labels:
+    app: performance-benchmarking-prometheus
+    component: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: performance-benchmarking-prometheus
+  template:
+    metadata:
+      labels:
+        app: performance-benchmarking-prometheus
+    spec:
+      serviceAccountName: prometheus
+      containers:
+      - name: prometheus
+        image: prom/prometheus:v2.45.0
+        args:
+          - '--config.file=/etc/prometheus/prometheus.yml'
+          - '--storage.tsdb.path=/prometheus/'
+          - '--web.console.libraries=/etc/prometheus/console_libraries'
+          - '--web.console.templates=/etc/prometheus/consoles'
+          - '--storage.tsdb.retention.time=7d'
+          - '--web.enable-lifecycle'
+          - '--storage.tsdb.retention.size=10GB'
+          - '--query.max-concurrency=20'
+          - '--query.max-samples=50000000'
+        ports:
+        - containerPort: 9090
+        resources:
+          limits:
+            cpu: "2"
+            memory: "4Gi"
+          requests:
+            cpu: "1"
+            memory: "2Gi"
+        volumeMounts:
+        - name: prometheus-config-volume
+          mountPath: /etc/prometheus/
+        - name: prometheus-rules-volume
+          mountPath: /etc/prometheus/rules/
+        - name: prometheus-storage-volume
+          mountPath: /prometheus/
+      volumes:
+      - name: prometheus-config-volume
+        configMap:
+          defaultMode: 420
+          name: performance-benchmarking-prometheus-config
+      - name: prometheus-rules-volume
+        configMap:
+          defaultMode: 420
+          name: performance-benchmarking-prometheus-config
+      - name: prometheus-storage-volume
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: performance-benchmarking-prometheus
+  namespace: nephoran-monitoring
+  labels:
+    app: performance-benchmarking-prometheus
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: web
+  selector:
+    app: performance-benchmarking-prometheus

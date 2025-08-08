@@ -1,0 +1,525 @@
+# Staging Configuration for Nephoran Performance Monitoring Stack
+# Staging environment with production-like settings but optimized for testing
+# and validation workflows with moderate resource allocation
+
+global:
+  namespace: nephoran-monitoring
+  environment: staging
+  
+  # Fast storage for staging tests
+  storageClass: fast-ssd
+  retention: 30d  # Shorter retention for staging
+  
+  # Staging security settings (production-like)
+  security:
+    enabled: true
+    runAsNonRoot: true
+    runAsUser: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    
+  # Moderate resource allocation for staging
+  resources:
+    limits:
+      cpu: "4"
+      memory: "8Gi"
+    requests:
+      cpu: "2"
+      memory: "4Gi"
+
+# Staging Prometheus configuration
+prometheus:
+  enabled: true
+  
+  server:
+    image:
+      tag: v2.48.0
+    
+    # Single replica for staging (cost optimization)
+    replicaCount: 1
+    
+    # Staging storage requirements
+    persistentVolume:
+      enabled: true
+      size: 200Gi
+      storageClass: fast-ssd
+      accessModes:
+        - ReadWriteOnce
+      
+    retention: 30d
+    retentionSize: 150GB
+    
+    # Staging resource allocation
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4Gi
+      requests:
+        cpu: 1000m
+        memory: 2Gi
+        
+    # Staging scraping configuration
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      scrape_timeout: 10s
+      external_labels:
+        cluster: 'nephoran-staging'
+        environment: 'staging'
+        region: 'us-west-2'
+        
+    # Staging optimization arguments
+    extraArgs:
+      web.enable-lifecycle: ""
+      web.enable-admin-api: ""
+      web.external-url: "https://prometheus-staging.nephoran.com"
+      storage.tsdb.min-block-duration: "2h"
+      storage.tsdb.max-block-duration: "2h"
+      storage.tsdb.retention.size: "150GB"
+      query.max-concurrency: "20"
+      query.timeout: "2m"
+      log.level: "info"
+      
+    # Staging service configuration
+    service:
+      type: ClusterIP  # Internal access only for staging
+      port: 9090
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        
+    # Staging ingress with TLS
+    ingress:
+      enabled: true
+      className: nginx
+      annotations:
+        nginx.ingress.kubernetes.io/ssl-redirect: "true"
+        cert-manager.io/cluster-issuer: "letsencrypt-staging"
+        nginx.ingress.kubernetes.io/auth-type: basic
+        nginx.ingress.kubernetes.io/auth-secret: basic-auth-staging
+        nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - Staging'
+      hosts:
+        - host: prometheus-staging.nephoran.com
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: prometheus-staging-tls
+          hosts:
+            - prometheus-staging.nephoran.com
+            
+    # Node selection for staging
+    nodeSelector:
+      kubernetes.io/arch: amd64
+      
+    tolerations:
+      - key: "staging"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+
+# Staging Grafana configuration
+grafana:
+  enabled: true
+  
+  image:
+    tag: 10.2.2
+    
+  # Single replica for staging
+  replicas: 1
+  
+  # Staging admin configuration
+  admin:
+    existingSecret: grafana-admin-secret
+    userKey: admin-user
+    passwordKey: admin-password
+    
+  # Staging persistence
+  persistence:
+    enabled: true
+    type: pvc
+    size: 20Gi
+    storageClassName: fast-ssd
+    accessModes:
+      - ReadWriteOnce
+      
+  # Staging service configuration
+  service:
+    type: ClusterIP
+    port: 3000
+      
+  # Staging ingress with basic auth
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-staging"
+      nginx.ingress.kubernetes.io/auth-type: basic
+      nginx.ingress.kubernetes.io/auth-secret: basic-auth-staging
+      nginx.ingress.kubernetes.io/auth-realm: 'Authentication Required - Staging'
+    hosts:
+      - grafana-staging.nephoran.com
+    tls:
+      - secretName: grafana-staging-tls
+        hosts:
+          - grafana-staging.nephoran.com
+      
+  # Staging resource allocation
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi
+      
+  # Staging Grafana configuration
+  grafana.ini:
+    server:
+      root_url: https://grafana-staging.nephoran.com
+      serve_from_sub_path: false
+    security:
+      admin_password: $__file{/etc/secrets/admin_password}
+      secret_key: $__file{/etc/secrets/secret_key}
+      cookie_secure: true
+      cookie_samesite: strict
+    auth:
+      disable_login_form: false
+    auth.anonymous:
+      enabled: false
+    auth.basic:
+      enabled: true
+    database:
+      type: sqlite3  # Simple database for staging
+      path: grafana.db
+    session:
+      provider: file
+    log:
+      mode: console
+      level: info
+    metrics:
+      enabled: true
+      
+  # Environment variables for staging
+  env:
+    GF_INSTALL_PLUGINS: "grafana-piechart-panel,grafana-worldmap-panel"
+    GF_SECURITY_COOKIE_SECURE: "true"
+    GF_USERS_ALLOW_SIGN_UP: "false"
+    GF_SNAPSHOTS_EXTERNAL_ENABLED: "false"
+    
+  # Node selection for staging
+  nodeSelector:
+    kubernetes.io/arch: amd64
+
+# Staging AlertManager configuration
+alertmanager:
+  enabled: true
+  
+  image:
+    tag: v0.26.0
+    
+  # Single replica for staging
+  replicaCount: 1
+  
+  # Staging persistence
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClass: fast-ssd
+    
+  # Staging resource allocation
+  resources:
+    limits:
+      cpu: 200m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+      
+  # Staging service configuration
+  service:
+    type: ClusterIP
+    port: 9093
+    
+  # Staging AlertManager configuration
+  config:
+    global:
+      smtp_smarthost: 'smtp-staging.nephoran.com:587'
+      smtp_from: 'alerts-staging@nephoran.com'
+      smtp_auth_username: 'alerts-staging@nephoran.com'
+      smtp_auth_password_file: '/etc/alertmanager/secrets/smtp-password'
+      slack_api_url_file: '/etc/alertmanager/secrets/slack-webhook'
+      
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 8h      # Less frequent for staging
+      receiver: 'staging-team'
+      routes:
+        - match:
+            severity: critical
+          receiver: 'critical-staging'
+          group_wait: 5s
+          group_interval: 5s
+          repeat_interval: 2h
+          
+        - match:
+            alertname: 'PerformanceClaimViolation'
+          receiver: 'performance-team-staging'
+          group_wait: 15s
+          
+        - match:
+            alertname: 'RegressionDetected'
+          receiver: 'regression-team-staging'
+          group_wait: 5s
+          
+    receivers:
+      - name: 'staging-team'
+        email_configs:
+          - to: 'staging-team@nephoran.com'
+            subject: '[STAGING] Nephoran Performance Alert - {{ .GroupLabels.alertname }}'
+            body: |
+              {{ range .Alerts }}
+              📊 **Staging Environment Alert**
+              
+              **Alert:** {{ .Annotations.summary }}
+              **Description:** {{ .Annotations.description }}
+              **Severity:** {{ .Labels.severity }}
+              **Environment:** Staging
+              **Time:** {{ .StartsAt.Format "2006-01-02 15:04:05 UTC" }}
+              
+              **Dashboard:** https://grafana-staging.nephoran.com/d/nephoran-executive-perf
+              {{ end }}
+              
+        slack_configs:
+          - api_url_file: '/etc/alertmanager/secrets/slack-webhook'
+            channel: '#staging-alerts'
+            title: '📊 Staging Alert: {{ .GroupLabels.alertname }}'
+            text: |
+              {{ range .Alerts }}
+              **Environment:** Staging
+              **Alert:** {{ .Annotations.summary }}
+              **Description:** {{ .Annotations.description }}
+              **Severity:** {{ .Labels.severity }}
+              {{ end }}
+              
+      - name: 'critical-staging'
+        email_configs:
+          - to: 'staging-alerts@nephoran.com'
+            subject: '[CRITICAL-STAGING] Alert Requires Attention'
+            
+        slack_configs:
+          - api_url_file: '/etc/alertmanager/secrets/slack-webhook'
+            channel: '#staging-critical'
+            title: '⚠️ Critical Staging Alert'
+            text: |
+              {{ range .Alerts }}
+              **Alert:** {{ .Annotations.summary }}
+              **Severity:** CRITICAL
+              **Environment:** Staging
+              {{ end }}
+            
+      - name: 'performance-team-staging'
+        webhook_configs:
+          - url: 'https://webhooks-staging.nephoran.com/performance-alerts'
+            send_resolved: true
+            
+      - name: 'regression-team-staging'
+        email_configs:
+          - to: 'performance-engineering@nephoran.com'
+            subject: '[STAGING-REGRESSION] Performance Regression Detected'
+
+# Service Monitors with staging settings
+serviceMonitors:
+  enabled: true
+  
+  llmProcessor:
+    enabled: true
+    namespace: nephoran-system
+    selector:
+      matchLabels:
+        app: llm-processor
+    endpoints:
+      - port: metrics
+        path: /metrics
+        interval: 10s     # Moderate frequency for staging
+        scrapeTimeout: 5s
+        
+  ragApi:
+    enabled: true
+    namespace: nephoran-system
+    selector:
+      matchLabels:
+        app: rag-api
+    endpoints:
+      - port: metrics
+        path: /metrics
+        interval: 10s
+        scrapeTimeout: 5s
+        
+  performanceRunner:
+    enabled: true
+    namespace: nephoran-monitoring
+    selector:
+      matchLabels:
+        app: performance-test-runner
+    endpoints:
+      - port: metrics
+        path: /metrics
+        interval: 5s      # Higher frequency for performance testing
+        scrapeTimeout: 3s
+
+# Staging Prometheus Rules
+prometheusRules:
+  enabled: true
+  
+  recordingRules:
+    - name: nephoran-performance-claims-staging
+      interval: 15s
+      rules:
+        - record: benchmark:intent_processing_latency_p95
+          expr: histogram_quantile(0.95, rate(nephoran_intent_processing_duration_seconds_bucket{service="llm-processor"}[5m]))
+          
+        - record: benchmark:intent_processing_latency_p50
+          expr: histogram_quantile(0.50, rate(nephoran_intent_processing_duration_seconds_bucket{service="llm-processor"}[5m]))
+          
+        - record: benchmark:intent_processing_rate_1m
+          expr: rate(nephoran_intent_processing_total{service="llm-processor"}[1m]) * 60
+          
+        - record: benchmark:availability_5m
+          expr: (1 - (sum(rate(nephoran_intent_processing_errors_total{service="llm-processor"}[5m])) / sum(rate(nephoran_intent_processing_total{service="llm-processor"}[5m])))) * 100
+          
+        - record: benchmark:rag_latency_p95
+          expr: histogram_quantile(0.95, rate(nephoran_rag_retrieval_duration_seconds_bucket{service="rag-api"}[5m]))
+          
+        - record: benchmark:cache_hit_rate_5m
+          expr: (sum(rate(nephoran_cache_hits_total{service="rag-api"}[5m])) / (sum(rate(nephoran_cache_hits_total{service="rag-api"}[5m])) + sum(rate(nephoran_cache_misses_total{service="rag-api"}[5m])))) * 100
+
+  alertingRules:
+    - name: nephoran-staging-alerts
+      rules:
+        # Standard thresholds for staging validation
+        - alert: IntentProcessingLatencySLAViolation
+          expr: benchmark:intent_processing_latency_p95 > 2.0
+          for: 30s
+          labels:
+            severity: warning   # Warning level for staging
+            environment: staging
+            component: llm-processor
+          annotations:
+            summary: "Staging: Intent processing P95 latency exceeds 2.0s"
+            description: "P95 latency is {{ $value }}s, exceeding SLA threshold"
+            
+        - alert: StagingAvailabilitySLAViolation
+          expr: benchmark:availability_5m < 99.95
+          for: 1m
+          labels:
+            severity: warning
+            environment: staging
+          annotations:
+            summary: "Staging availability below 99.95%"
+            description: "Current availability is {{ $value }}%"
+            
+        # Testing and validation alerts
+        - alert: StagingPerformanceValidation
+          expr: |
+            (
+              (benchmark:intent_processing_latency_p95 <= 2.0) * 100/6 +
+              (benchmark_concurrent_users_current >= 200) * 100/6 +
+              (benchmark:intent_processing_rate_1m >= 45) * 100/6 +
+              (benchmark:availability_5m >= 99.95) * 100/6 +
+              (benchmark:rag_latency_p95 <= 0.2) * 100/6 +
+              (benchmark:cache_hit_rate_5m >= 87) * 100/6
+            ) < 90
+          for: 2m
+          labels:
+            severity: warning
+            environment: staging
+          annotations:
+            summary: "Staging performance validation below 90%"
+            description: "Performance score is {{ $value }}%, indicating potential issues"
+
+# Staging network policies (more permissive for testing)
+networkPolicies:
+  enabled: true
+  
+  monitoring:
+    enabled: true
+    policyTypes:
+      - Ingress
+      - Egress
+    ingress:
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                name: nephoran-system
+        ports:
+          - protocol: TCP
+            port: 9090
+          - protocol: TCP
+            port: 3000
+          - protocol: TCP
+            port: 9093
+      # Allow broader access for testing
+      - from: []
+        ports:
+          - protocol: TCP
+            port: 80
+          - protocol: TCP
+            port: 443
+    egress:
+      # More permissive egress for testing
+      - to: []
+
+# Staging-specific extra configurations
+extraConfig:
+  # Performance settings for staging
+  performance:
+    enableCaching: true
+    cacheSize: "1Gi"
+    queryParallelism: 10
+    
+  # Basic security for staging
+  security:
+    enableTLS: true
+    tlsSecretName: monitoring-staging-tls
+    enablePodSecurityStandards: false  # Disabled for easier testing
+    
+  # No HA for staging (cost optimization)
+  highAvailability:
+    enabled: false
+    replicaCount: 1
+            
+  # Staging backup configuration
+  backup:
+    enabled: false  # Disabled for staging
+    
+  # Self-monitoring with relaxed thresholds
+  selfMonitoring:
+    enabled: true
+    alerts:
+      enabled: true
+      thresholds:
+        diskUsage: 90       # More relaxed
+        memoryUsage: 95
+        cpuUsage: 90
+        
+  # Testing and validation features
+  testing:
+    enabled: true
+    loadTesting:
+      enabled: true
+      schedule: "0 1 * * *"  # Nightly load tests
+      scenarios: ["baseline", "peak", "burst"]
+    
+    performanceValidation:
+      enabled: true
+      schedule: "*/15 * * * *"  # Every 15 minutes
+      reportWebhook: "https://webhooks-staging.nephoran.com/validation-results"
+      
+    automatedTesting:
+      enabled: true
+      ciIntegration: true
+      prValidation: true

@@ -3,6 +3,8 @@ package shared
 import (
 	"context"
 	"time"
+
+	"k8s.io/apimachinery/pkg/types"
 )
 
 // ClientInterface defines the interface for LLM clients
@@ -81,4 +83,50 @@ type SearchResponse struct {
 	Results []*SearchResult `json:"results"`
 	Took    int64           `json:"took"`
 	Total   int64           `json:"total"`
+}
+
+// ComponentType represents different types of components in the system
+type ComponentType string
+
+const (
+	ComponentTypeLLMProcessor        ComponentType = "llm-processor"
+	ComponentTypeResourcePlanner     ComponentType = "resource-planner"
+	ComponentTypeManifestGenerator   ComponentType = "manifest-generator"
+	ComponentTypeGitOpsController    ComponentType = "gitops-controller"
+	ComponentTypeDeploymentVerifier  ComponentType = "deployment-verifier"
+)
+
+// ComponentStatus represents the status of a component
+type ComponentStatus struct {
+	Type        ComponentType          `json:"type"`
+	Name        string                 `json:"name"`
+	Status      string                 `json:"status"`
+	Healthy     bool                   `json:"healthy"`
+	LastUpdate  time.Time              `json:"lastUpdate"`
+	Version     string                 `json:"version,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Metrics     map[string]float64     `json:"metrics,omitempty"`
+	Errors      []string               `json:"errors,omitempty"`
+}
+
+// SystemHealth represents the overall health of the system
+type SystemHealth struct {
+	OverallStatus   string                      `json:"overallStatus"`
+	Healthy         bool                        `json:"healthy"`
+	Components      map[string]*ComponentStatus `json:"components"`
+	LastUpdate      time.Time                   `json:"lastUpdate"`
+	ActiveIntents   int                         `json:"activeIntents"`
+	ProcessingRate  float64                     `json:"processingRate"`
+	ErrorRate       float64                     `json:"errorRate"`
+	ResourceUsage   ResourceUsage               `json:"resourceUsage"`
+}
+
+// ResourceUsage represents resource utilization
+type ResourceUsage struct {
+	CPUPercent      float64 `json:"cpuPercent"`
+	MemoryPercent   float64 `json:"memoryPercent"`
+	DiskPercent     float64 `json:"diskPercent"`
+	NetworkInMBps   float64 `json:"networkInMBps"`
+	NetworkOutMBps  float64 `json:"networkOutMBps"`
+	ActiveConnections int   `json:"activeConnections"`
 }

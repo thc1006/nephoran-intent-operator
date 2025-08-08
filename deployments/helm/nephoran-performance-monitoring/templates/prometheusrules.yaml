@@ -1,0 +1,345 @@
+{{- if .Values.prometheusRules.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-performance-claims
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    {{- include "nephoran-performance-monitoring.claimsLabels" . | nindent 4 }}
+    rule-type: performance-claims
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+    nephoran.com/rule-category: "performance-validation"
+spec:
+  groups:
+    {{- range .Values.prometheusRules.recordingRules }}
+    - name: {{ .name }}
+      interval: {{ .interval | default "15s" }}
+      rules:
+        {{- range .rules }}
+        - record: {{ .record }}
+          expr: |
+            {{ .expr | nindent 12 }}
+          {{- if .labels }}
+          labels:
+            {{- .labels | toYaml | nindent 12 }}
+          {{- end }}
+        {{- end }}
+    {{- end }}
+    
+    {{- range .Values.prometheusRules.alertingRules }}
+    - name: {{ .name }}
+      interval: {{ .interval | default "15s" }}
+      rules:
+        {{- range .rules }}
+        - alert: {{ .alert }}
+          expr: |
+            {{ .expr | nindent 12 }}
+          for: {{ .for | default "1m" }}
+          labels:
+            {{- .labels | toYaml | nindent 12 }}
+            # Add standard performance monitoring labels
+            monitoring_stack: "nephoran-performance"
+            rule_group: "{{ $.name }}"
+          annotations:
+            {{- .annotations | toYaml | nindent 12 }}
+            # Add standard annotations
+            runbook_url: "https://docs.nephoran.com/runbooks/{{ .alert | lower }}"
+            dashboard_url: "{{ $.Values.dashboardBaseUrl | default "http://grafana:3000" }}/d/nephoran-executive-perf"
+            {{- if eq .labels.severity "critical" }}
+            escalation: "immediate"
+            notification_channels: "slack,email,pagerduty"
+            {{- else if eq .labels.severity "warning" }}
+            escalation: "standard"
+            notification_channels: "slack,email"
+            {{- else }}
+            escalation: "standard"
+            notification_channels: "slack"
+            {{- end }}
+        {{- end }}
+    {{- end }}
+
+---
+# Additional specialized rules for advanced performance analysis
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-advanced-analytics
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    rule-type: advanced-analytics
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+    nephoran.com/rule-category: "advanced-performance-analytics"
+spec:
+  groups:
+    # Composite performance metrics
+    - name: composite-performance-metrics
+      interval: 30s
+      rules:
+        # Overall system health score (0-100%)
+        - record: nephoran:system_health_score
+          expr: |
+            (
+              # Service availability component (30%)
+              (avg(up{job=~"nephoran-.*"}) * 30) +
+              # Performance claims component (40%)
+              (
+                (
+                  (benchmark:intent_processing_latency_p95 <= 2.0) * 100/6 +
+                  (benchmark_concurrent_users_current >= 200) * 100/6 +
+                  (rate(benchmark:intent_processing_total[1m]) * 60 >= 45) * 100/6 +
+                  (benchmark:availability_5m >= 99.95) * 100/6 +
+                  (benchmark:rag_latency_p95 <= 0.2) * 100/6 +
+                  (benchmark:cache_hit_rate_5m >= 87) * 100/6
+                ) * 0.4
+              ) +
+              # Resource utilization component (20%)
+              ((100 - avg(rate(container_cpu_usage_seconds_total{pod=~"nephoran-.*"}[5m]) * 100)) * 0.2) +
+              # Error rate component (10%)
+              ((100 - (sum(rate(nephoran_errors_total[5m])) / sum(rate(nephoran_requests_total[5m])) * 100)) * 0.1)
+            )
+          labels:
+            metric_type: composite
+            component: system-wide
+            
+        # Performance trend indicator (improving/degrading/stable)
+        - record: nephoran:performance_trend_indicator
+          expr: |
+            (
+              (benchmark:intent_processing_latency_p95 - benchmark:intent_processing_latency_p95 offset 1h) /
+              benchmark:intent_processing_latency_p95 offset 1h * 100
+            )
+          labels:
+            metric_type: trend
+            timespan: 1h
+            
+        # Capacity utilization percentage
+        - record: nephoran:capacity_utilization_percentage
+          expr: |
+            (benchmark_concurrent_users_current / 200) * 100
+          labels:
+            metric_type: capacity
+            claim: concurrent-user-capacity
+            
+        # SLA compliance score
+        - record: nephoran:sla_compliance_score
+          expr: |
+            (
+              (benchmark:intent_processing_latency_p95 <= 2.0) * 25 +
+              (benchmark:availability_5m >= 99.95) * 25 +
+              (benchmark:rag_latency_p95 <= 0.2) * 25 +
+              (rate(benchmark:intent_processing_total[1m]) * 60 >= 45) * 25
+            )
+          labels:
+            metric_type: sla-compliance
+            component: system-wide
+
+    # Predictive analytics rules
+    - name: predictive-analytics
+      interval: 60s
+      rules:
+        # Predicted capacity exhaustion time (hours)
+        - record: nephoran:predicted_capacity_exhaustion_hours
+          expr: |
+            (200 - benchmark_concurrent_users_current) / 
+            (rate(benchmark_concurrent_users_current[1h]) != 0)
+          labels:
+            metric_type: prediction
+            prediction_type: capacity-exhaustion
+            
+        # Performance degradation risk score (0-100)
+        - record: nephoran:degradation_risk_score
+          expr: |
+            (
+              # Latency trend risk (40%)
+              (
+                clamp_max(
+                  (benchmark:intent_processing_latency_p95 - avg_over_time(benchmark:intent_processing_latency_p95[24h])) /
+                  avg_over_time(benchmark:intent_processing_latency_p95[24h]) * 100, 100
+                ) * 0.4
+              ) +
+              # Resource utilization risk (30%)
+              (avg(rate(container_cpu_usage_seconds_total{pod=~"nephoran-.*"}[5m]) * 100) * 0.3) +
+              # Error rate risk (20%)
+              ((sum(rate(nephoran_errors_total[5m])) / sum(rate(nephoran_requests_total[5m]))) * 100 * 0.2) +
+              # Memory pressure risk (10%)
+              (avg(container_memory_usage_bytes{pod=~"nephoran-.*"} / container_spec_memory_limit_bytes{pod=~"nephoran-.*"} * 100) * 0.1)
+            )
+          labels:
+            metric_type: risk-assessment
+            component: system-wide
+
+    # Business impact metrics
+    - name: business-impact-metrics
+      interval: 60s
+      rules:
+        # Cost per intent (estimated)
+        - record: nephoran:cost_per_intent_estimate
+          expr: |
+            (
+              # Compute costs (estimated $0.10/hour per core)
+              (sum(rate(container_cpu_usage_seconds_total{pod=~"nephoran-.*"}[1h])) * 0.10) +
+              # Memory costs (estimated $0.05/GB/hour)
+              (sum(container_memory_usage_bytes{pod=~"nephoran-.*"}) / 1024/1024/1024 * 0.05)
+            ) / sum(rate(benchmark:intent_processing_total[1h]))
+          labels:
+            metric_type: cost-analysis
+            unit: dollars-per-intent
+            
+        # Revenue impact of performance issues (estimated)
+        - record: nephoran:revenue_impact_estimate
+          expr: |
+            # Estimated $100 revenue loss per minute of downtime
+            (100 - benchmark:availability_5m) / 100 * 100
+          labels:
+            metric_type: revenue-impact
+            unit: dollars-per-minute
+            
+        # Customer satisfaction impact
+        - record: nephoran:customer_satisfaction_impact
+          expr: |
+            (
+              # Latency impact (40% weight)
+              (clamp_max((benchmark:intent_processing_latency_p95 - 1.0) / 1.0, 1.0) * 40) +
+              # Availability impact (40% weight)
+              ((100 - benchmark:availability_5m) / 0.05 * 40) +
+              # Throughput impact (20% weight)
+              (clamp_max((45 - rate(benchmark:intent_processing_total[1m]) * 60) / 45, 1.0) * 20)
+            )
+          labels:
+            metric_type: customer-impact
+            scale: 0-100
+
+---
+# Specialized alerting rules for advanced scenarios
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "nephoran-performance-monitoring.fullname" . }}-advanced-alerts
+  namespace: {{ include "nephoran-performance-monitoring.namespace" . }}
+  labels:
+    {{- include "nephoran-performance-monitoring.labels" . | nindent 4 }}
+    rule-type: advanced-alerts
+  annotations:
+    {{- include "nephoran-performance-monitoring.annotations" . | nindent 4 }}
+    nephoran.com/rule-category: "advanced-alerting"
+spec:
+  groups:
+    # Predictive alerts
+    - name: predictive-alerts
+      interval: 60s
+      rules:
+        # Predict capacity exhaustion
+        - alert: CapacityExhaustionPredicted
+          expr: nephoran:predicted_capacity_exhaustion_hours < 24
+          for: 5m
+          labels:
+            severity: warning
+            component: capacity-planning
+            alert_type: predictive
+            impact: capacity
+          annotations:
+            summary: "Capacity exhaustion predicted within {{ $value }} hours"
+            description: "Based on current growth trends, concurrent user capacity will be exhausted in {{ $value }} hours"
+            recommended_action: "Scale up infrastructure or implement load balancing"
+            
+        # High performance degradation risk
+        - alert: HighPerformanceDegradationRisk
+          expr: nephoran:degradation_risk_score > 75
+          for: 10m
+          labels:
+            severity: warning
+            component: risk-assessment
+            alert_type: predictive
+            impact: performance
+          annotations:
+            summary: "High risk of performance degradation detected"
+            description: "Performance degradation risk score is {{ $value }}%, indicating high probability of SLA violations"
+            recommended_action: "Review resource allocation and optimize performance bottlenecks"
+
+    # Business impact alerts
+    - name: business-impact-alerts
+      interval: 60s
+      rules:
+        # High cost per intent
+        - alert: HighCostPerIntent
+          expr: nephoran:cost_per_intent_estimate > 1.00
+          for: 15m
+          labels:
+            severity: warning
+            component: cost-optimization
+            alert_type: business-impact
+            impact: cost
+          annotations:
+            summary: "Cost per intent exceeds threshold"
+            description: "Current cost per intent is ${{ $value }}, exceeding the $1.00 threshold"
+            recommended_action: "Optimize resource usage and review scaling policies"
+            
+        # Significant revenue impact
+        - alert: SignificantRevenueImpact
+          expr: nephoran:revenue_impact_estimate > 500
+          for: 5m
+          labels:
+            severity: critical
+            component: business-impact
+            alert_type: business-impact
+            impact: revenue
+          annotations:
+            summary: "Performance issues causing significant revenue impact"
+            description: "Estimated revenue impact: ${{ $value }}/minute due to availability issues"
+            recommended_action: "Immediate attention required to restore service availability"
+
+    # Composite system health alerts
+    - name: system-health-alerts
+      interval: 30s
+      rules:
+        # Overall system health degradation
+        - alert: SystemHealthDegradation
+          expr: nephoran:system_health_score < 80
+          for: 5m
+          labels:
+            severity: warning
+            component: system-wide
+            alert_type: composite-health
+            impact: overall-performance
+          annotations:
+            summary: "Overall system health degraded"
+            description: "System health score is {{ $value }}%, indicating degraded performance across multiple components"
+            recommended_action: "Review individual component performance and address bottlenecks"
+            
+        # Critical system health failure
+        - alert: CriticalSystemHealthFailure
+          expr: nephoran:system_health_score < 60
+          for: 2m
+          labels:
+            severity: critical
+            component: system-wide
+            alert_type: composite-health
+            impact: overall-performance
+          annotations:
+            summary: "Critical system health failure"
+            description: "System health score is {{ $value }}%, indicating critical performance issues"
+            recommended_action: "Immediate intervention required to prevent service degradation"
+
+    # Customer satisfaction alerts
+    - name: customer-satisfaction-alerts
+      interval: 60s
+      rules:
+        # Customer satisfaction impact threshold
+        - alert: CustomerSatisfactionImpact
+          expr: nephoran:customer_satisfaction_impact > 30
+          for: 10m
+          labels:
+            severity: warning
+            component: customer-experience
+            alert_type: satisfaction-impact
+            impact: customer-satisfaction
+          annotations:
+            summary: "Performance issues impacting customer satisfaction"
+            description: "Customer satisfaction impact score is {{ $value }}/100, indicating negative user experience"
+            recommended_action: "Address performance issues affecting user experience"
+
+{{- end }}
