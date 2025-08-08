@@ -252,19 +252,7 @@ type ConfigMapTemplateSource struct {
 }
 
 // SecretReference defines a reference to a Secret
-type SecretReference struct {
-	// Name of the Secret
-	// +kubebuilder:validation:Required
-	Name string `json:"name"`
-
-	// Namespace of the Secret
-	// +optional
-	Namespace string `json:"namespace,omitempty"`
-
-	// Key within the Secret
-	// +optional
-	Key string `json:"key,omitempty"`
-}
+// SecretReference is defined in audittrail_types.go to avoid duplication
 
 // GenerationOptions contains options for manifest generation
 type GenerationOptions struct {

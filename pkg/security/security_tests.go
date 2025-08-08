@@ -8,13 +8,13 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"math/big"
 	"net"
-	"net/http"
 	"sync"
-	"testing"
 	"time"
 )
 
@@ -733,12 +733,12 @@ func (sts *SecurityTestSuite) RunComplianceTests() map[string]bool {
 // MockKeyStore implements a mock key store for testing
 type MockKeyStore struct{}
 
-func (m *MockKeyStore) Store(ctx context.Context, key *StoredKey) error {
+func (m *MockKeyStore) Store(ctx context.Context, key *DetailedStoredKey) error {
 	return nil
 }
 
-func (m *MockKeyStore) Retrieve(ctx context.Context, keyID string) (*StoredKey, error) {
-	return &StoredKey{
+func (m *MockKeyStore) Retrieve(ctx context.Context, keyID string) (*DetailedStoredKey, error) {
+	return &DetailedStoredKey{
 		ID:      keyID,
 		Version: 1,
 		Key:     make([]byte, 32),
@@ -750,11 +750,11 @@ func (m *MockKeyStore) Delete(ctx context.Context, keyID string) error {
 	return nil
 }
 
-func (m *MockKeyStore) List(ctx context.Context) ([]*StoredKey, error) {
-	return []*StoredKey{}, nil
+func (m *MockKeyStore) List(ctx context.Context) ([]*DetailedStoredKey, error) {
+	return []*DetailedStoredKey{}, nil
 }
 
-func (m *MockKeyStore) Rotate(ctx context.Context, keyID string, newKey *StoredKey) error {
+func (m *MockKeyStore) Rotate(ctx context.Context, keyID string, newKey *DetailedStoredKey) error {
 	return nil
 }
 

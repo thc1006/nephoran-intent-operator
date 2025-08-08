@@ -346,7 +346,7 @@ type ResourcePlanStatus struct {
 
 	// ComplianceStatus tracks compliance validation results
 	// +optional
-	ComplianceStatus []ComplianceStatus `json:"complianceStatus,omitempty"`
+	ComplianceStatus []ResourceComplianceStatus `json:"complianceStatus,omitempty"`
 
 	// OptimizationResults contains optimization outcomes
 	// +optional
@@ -537,8 +537,8 @@ type ScalingRecommendation struct {
 	Confidence *float64 `json:"confidence,omitempty"`
 }
 
-// ComplianceStatus represents compliance validation status
-type ComplianceStatus struct {
+// ResourceComplianceStatus represents compliance validation status
+type ResourceComplianceStatus struct {
 	// Standard being validated
 	Standard string `json:"standard"`
 

@@ -315,7 +315,7 @@ func (m *HTTPAuditMiddleware) captureRequestBody(r *http.Request) (string, error
 		bodyString := string(bodyBytes) + "[TRUNCATED]"
 		
 		// Replace body so subsequent handlers can read it
-		r.Body = io.NopCloser(strings.NewReader(string(bodyBytes[:m.config.MaxBodySize-len("[TRUNCATED]")])))
+		r.Body = io.NopCloser(strings.NewReader(string(bodyBytes[:m.config.MaxBodySize-int64(len("[TRUNCATED]"))])))
 		return bodyString, nil
 	}
 	

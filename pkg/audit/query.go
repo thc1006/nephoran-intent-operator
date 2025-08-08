@@ -10,12 +10,15 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"log/slog"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 // QueryEngine provides advanced audit log querying and analysis capabilities
 type QueryEngine struct {
 	system   *AuditSystem
-	backends map[string]Backend
+	backends map[string]backends.Backend
 	logger   *slog.Logger
 	metrics  *QueryMetrics
 }
@@ -36,7 +39,7 @@ type Query struct {
 	EndTime   time.Time `json:"end_time"`
 	
 	// Event filtering
-	EventTypes   []EventType `json:"event_types,omitempty"`
+	EventTypes   []types.EventType `json:"event_types,omitempty"`
 	Categories   []string    `json:"categories,omitempty"`
 	Severities   []string    `json:"severities,omitempty"`
 	
@@ -86,7 +89,7 @@ const (
 
 // QueryResult contains the results of an audit log query
 type QueryResult struct {
-	Events      []*AuditEvent             `json:"events,omitempty"`
+	Events      []*types.AuditEvent       `json:"events,omitempty"`
 	Aggregations map[string]interface{}   `json:"aggregations,omitempty"`
 	TotalCount  int64                     `json:"total_count"`
 	QueryTime   time.Duration             `json:"query_time"`
@@ -110,9 +113,9 @@ type SecurityThreat struct {
 	Type        string            `json:"type"`
 	Severity    string            `json:"severity"`
 	Description string            `json:"description"`
-	Actor       *ActorContext     `json:"actor"`
+	Actor       *types.UserContext     `json:"actor"`
 	Timeline    []time.Time       `json:"timeline"`
-	Evidence    []*AuditEvent     `json:"evidence"`
+	Evidence    []*types.AuditEvent     `json:"evidence"`
 	Confidence  float64           `json:"confidence"`
 	MITRE       string            `json:"mitre_technique,omitempty"`
 }
@@ -136,7 +139,7 @@ type PrivilegeEvent struct {
 	ToPrivileges   []string      `json:"to_privileges"`
 	Method         string        `json:"method"`
 	Success        bool          `json:"success"`
-	Context        *AuditEvent   `json:"context"`
+	Context        *types.AuditEvent   `json:"context"`
 }
 
 // AccessAnomaly represents unusual access patterns
@@ -158,7 +161,7 @@ type ComplianceIssue struct {
 	Control      string        `json:"control"`
 	Violation    string        `json:"violation"`
 	Severity     string        `json:"severity"`
-	Events       []*AuditEvent `json:"events"`
+	Events       []*types.AuditEvent `json:"events"`
 	Impact       string        `json:"impact"`
 	Remediation  string        `json:"remediation"`
 }
@@ -184,7 +187,7 @@ type BruteForceEvent struct {
 }
 
 // NewQueryEngine creates a new audit query engine
-func NewQueryEngine(system *AuditSystem, backends map[string]Backend, logger *slog.Logger) *QueryEngine {
+func NewQueryEngine(system *AuditSystem, backends map[string]backends.Backend, logger *slog.Logger) *QueryEngine {
 	metrics := &QueryMetrics{
 		queriesTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -311,14 +314,14 @@ func (qe *QueryEngine) GetUserActivity(ctx context.Context, userID string, timeR
 
 // GetSecurityEvents retrieves security-related events
 func (qe *QueryEngine) GetSecurityEvents(ctx context.Context, timeRange time.Duration, backend string) (*QueryResult, error) {
-	securityEventTypes := []EventType{
-		EventTypeAuthentication,
-		EventTypeAuthenticationFailure,
-		EventTypeAuthorizationFailure,
-		EventTypeSecurityViolation,
-		EventTypePrivilegeEscalation,
-		EventTypeUnauthorizedAccess,
-		EventTypeSuspiciousActivity,
+	securityEventTypes := []types.EventType{
+		types.EventTypeAuthentication,
+		types.EventTypeAuthenticationFailed,
+		types.EventTypeAuthorizationFailed,
+		types.EventTypeSecurityViolation,
+		types.EventTypeIntrusionAttempt,
+		types.EventTypeMalwareDetection,
+		types.EventTypeAnomalyDetection,
 	}
 	
 	query := &Query{
@@ -407,13 +410,13 @@ func (qe *QueryEngine) GetAggregatedStats(ctx context.Context, query *Query, bac
 	services := make(map[string]int)
 	
 	for _, event := range result.Events {
-		eventTypes[string(event.Type)]++
-		severities[event.Severity]++
-		if event.Actor != nil {
-			users[event.Actor.UserID]++
+		eventTypes[string(event.EventType)]++
+		severities[event.Severity.String()]++
+		if event.UserContext != nil {
+			users[event.UserContext.UserID]++
 		}
-		if event.System != nil {
-			services[event.System.ServiceName]++
+		if event.SystemContext != nil {
+			services[event.SystemContext.ServiceName]++
 		}
 	}
 	
@@ -493,12 +496,12 @@ func (qe *QueryEngine) calculateComplexity(query *Query) float64 {
 }
 
 // executeQuery executes the query against the backend
-func (qe *QueryEngine) executeQuery(ctx context.Context, backend Backend, query *Query, backendName string) (*QueryResult, error) {
+func (qe *QueryEngine) executeQuery(ctx context.Context, backend backends.Backend, query *Query, backendName string) (*QueryResult, error) {
 	// For this implementation, we'll simulate query execution
 	// In a real implementation, this would interface with specific backends
 	
 	result := &QueryResult{
-		Events:      []*AuditEvent{},
+		Events:      []*types.AuditEvent{},
 		Aggregations: make(map[string]interface{}),
 		TotalCount:  0,
 		Backend:     backendName,
@@ -516,7 +519,7 @@ func (qe *QueryEngine) analyzeAuthFailures(ctx context.Context, timeRange time.D
 	query := &Query{
 		StartTime:  time.Now().Add(-timeRange),
 		EndTime:    time.Now(),
-		EventTypes: []EventType{EventTypeAuthenticationFailure},
+		EventTypes: []types.EventType{types.EventTypeAuthenticationFailed},
 		Limit:      10000,
 	}
 	
@@ -537,13 +540,14 @@ func (qe *QueryEngine) analyzeAuthFailures(ctx context.Context, timeRange time.D
 	ips := make(map[string]bool)
 	
 	for _, event := range result.Events {
-		if event.Actor != nil {
-			users[event.Actor.UserID] = true
-			analysis.UserDistribution[event.Actor.UserID]++
+		if event.UserContext != nil {
+			users[event.UserContext.UserID] = true
+			analysis.UserDistribution[event.UserContext.UserID]++
 		}
-		if event.Network != nil {
-			ips[event.Network.ClientIP] = true
-			analysis.IPDistribution[event.Network.ClientIP]++
+		if event.NetworkContext != nil {
+			ipStr := event.NetworkContext.SourceIP.String()
+			ips[ipStr] = true
+			analysis.IPDistribution[ipStr]++
 		}
 		
 		// Time distribution by hour
@@ -568,7 +572,7 @@ func (qe *QueryEngine) detectThreats(ctx context.Context, timeRange time.Duratio
 	authQuery := &Query{
 		StartTime:  time.Now().Add(-timeRange),
 		EndTime:    time.Now(),
-		EventTypes: []EventType{EventTypeAuthenticationFailure},
+		EventTypes: []types.EventType{types.EventTypeAuthenticationFailed},
 		Limit:      1000,
 	}
 	
@@ -576,8 +580,9 @@ func (qe *QueryEngine) detectThreats(ctx context.Context, timeRange time.Duratio
 	if err == nil {
 		ipCounts := make(map[string]int)
 		for _, event := range authResult.Events {
-			if event.Network != nil {
-				ipCounts[event.Network.ClientIP]++
+			if event.NetworkContext != nil {
+				ipStr := event.NetworkContext.SourceIP.String()
+				ipCounts[ipStr]++
 			}
 		}
 		
@@ -607,10 +612,10 @@ func (qe *QueryEngine) detectAccessAnomalies(ctx context.Context, timeRange time
 	query := &Query{
 		StartTime: time.Now().Add(-timeRange),
 		EndTime:   time.Now(),
-		EventTypes: []EventType{
-			EventTypeResourceAccess,
-			EventTypeDataAccess,
-			EventTypeSystemAccess,
+		EventTypes: []types.EventType{
+			types.EventTypeResourceAccess,
+			types.EventTypeDataAccess,
+			types.EventTypeResourceAccess,
 		},
 		Limit: 5000,
 	}
@@ -623,8 +628,8 @@ func (qe *QueryEngine) detectAccessAnomalies(ctx context.Context, timeRange time
 	// Analyze access times
 	userAccessTimes := make(map[string][]time.Time)
 	for _, event := range result.Events {
-		if event.Actor != nil {
-			userAccessTimes[event.Actor.UserID] = append(userAccessTimes[event.Actor.UserID], event.Timestamp)
+		if event.UserContext != nil {
+			userAccessTimes[event.UserContext.UserID] = append(userAccessTimes[event.UserContext.UserID], event.Timestamp)
 		}
 	}
 	
@@ -653,7 +658,7 @@ func (qe *QueryEngine) checkComplianceViolations(ctx context.Context, timeRange 
 	query := &Query{
 		StartTime:  time.Now().Add(-timeRange),
 		EndTime:    time.Now(),
-		EventTypes: []EventType{EventTypeAuthorizationFailure, EventTypeUnauthorizedAccess},
+		EventTypes: []types.EventType{types.EventTypeAuthorizationFailed, types.EventTypeResourceAccess},
 		Limit:      1000,
 	}
 	
@@ -763,14 +768,15 @@ func (qe *QueryEngine) generateSecurityRecommendations(analysis *SecurityAnalysi
 }
 
 // detectBruteForce detects brute force attack patterns
-func (qe *QueryEngine) detectBruteForce(events []*AuditEvent) []*BruteForceEvent {
+func (qe *QueryEngine) detectBruteForce(events []*types.AuditEvent) []*BruteForceEvent {
 	patterns := []*BruteForceEvent{}
 	
 	// Group events by IP and time window
-	ipEvents := make(map[string][]*AuditEvent)
+	ipEvents := make(map[string][]*types.AuditEvent)
 	for _, event := range events {
-		if event.Network != nil && event.Network.ClientIP != "" {
-			ipEvents[event.Network.ClientIP] = append(ipEvents[event.Network.ClientIP], event)
+		if event.NetworkContext != nil && len(event.NetworkContext.SourceIP) > 0 {
+			ipStr := event.NetworkContext.SourceIP.String()
+			ipEvents[ipStr] = append(ipEvents[ipStr], event)
 		}
 	}
 	
@@ -795,11 +801,11 @@ func (qe *QueryEngine) detectBruteForce(events []*AuditEvent) []*BruteForceEvent
 			services := make(map[string]bool)
 			users := make(map[string]bool)
 			for _, event := range ipEventList {
-				if event.System != nil {
-					services[event.System.ServiceName] = true
+				if event.SystemContext != nil {
+					services[event.SystemContext.ServiceName] = true
 				}
-				if event.Actor != nil {
-					users[event.Actor.UserID] = true
+				if event.UserContext != nil {
+					users[event.UserContext.UserID] = true
 				}
 			}
 			
