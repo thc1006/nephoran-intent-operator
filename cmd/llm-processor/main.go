@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -304,7 +305,16 @@ func setupHTTPServer() *http.Server {
 	_, _, _, _, _, _, _, healthChecker := service.GetComponents()
 	router.HandleFunc("/healthz", healthChecker.HealthzHandler).Methods("GET")
 	router.HandleFunc("/readyz", healthChecker.ReadyzHandler).Methods("GET")
-	router.HandleFunc("/metrics", handler.MetricsHandler).Methods("GET")
+
+	// Configure metrics endpoint with IP allowlist if not publicly exposed
+	if cfg.ExposeMetricsPublicly {
+		logger.Info("Metrics endpoint exposed publicly")
+		router.HandleFunc("/metrics", handler.MetricsHandler).Methods("GET")
+	} else {
+		logger.Info("Metrics endpoint protected with IP allowlist",
+			slog.Any("allowed_cidrs", cfg.MetricsAllowedCIDRs))
+		router.HandleFunc("/metrics", createIPAllowlistHandler(handler.MetricsHandler, cfg.MetricsAllowedCIDRs, logger)).Methods("GET")
+	}
 
 	// Create handlers with MaxBytesHandler applied to POST endpoints
 	handlers := oauth2Manager.CreateHandlersWithSizeLimit(
@@ -325,4 +335,103 @@ func setupHTTPServer() *http.Server {
 		WriteTimeout: cfg.RequestTimeout,
 		IdleTimeout:  2 * time.Minute,
 	}
+}
+
+// createIPAllowlistHandler creates a handler that restricts access based on client IP addresses
+// This is specifically designed for protecting the metrics endpoint from unauthorized access
+func createIPAllowlistHandler(next http.HandlerFunc, allowedCIDRs []string, logger *slog.Logger) http.HandlerFunc {
+	// Parse CIDR blocks once during initialization for efficiency
+	var allowedNetworks []*net.IPNet
+	for _, cidrStr := range allowedCIDRs {
+		_, network, err := net.ParseCIDR(cidrStr)
+		if err != nil {
+			logger.Error("Failed to parse CIDR block for IP allowlist",
+				slog.String("cidr", cidrStr),
+				slog.String("error", err.Error()))
+			continue
+		}
+		allowedNetworks = append(allowedNetworks, network)
+	}
+
+	if len(allowedNetworks) == 0 {
+		logger.Warn("No valid CIDR blocks configured for IP allowlist, denying all access")
+	} else {
+		logger.Info("IP allowlist middleware configured",
+			slog.Int("allowed_networks", len(allowedNetworks)),
+			slog.Any("cidrs", allowedCIDRs))
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		clientIP := getClientIP(r)
+
+		logger.Debug("IP allowlist check",
+			slog.String("client_ip", clientIP),
+			slog.String("path", r.URL.Path),
+			slog.String("user_agent", r.Header.Get("User-Agent")))
+
+		// Parse client IP
+		ip := net.ParseIP(clientIP)
+		if ip == nil {
+			logger.Warn("Invalid client IP address",
+				slog.String("client_ip", clientIP),
+				slog.String("path", r.URL.Path),
+				slog.String("remote_addr", r.RemoteAddr))
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// Check if client IP is allowed
+		allowed := false
+		for _, network := range allowedNetworks {
+			if network.Contains(ip) {
+				allowed = true
+				logger.Debug("IP allowlist check passed",
+					slog.String("client_ip", clientIP),
+					slog.String("matched_network", network.String()))
+				break
+			}
+		}
+
+		if !allowed {
+			logger.Warn("IP allowlist check failed - access denied",
+				slog.String("client_ip", clientIP),
+				slog.String("path", r.URL.Path),
+				slog.String("remote_addr", r.RemoteAddr),
+				slog.String("user_agent", r.Header.Get("User-Agent")),
+				slog.Any("allowed_networks", allowedCIDRs))
+			http.Error(w, "Forbidden", http.StatusForbidden)
+			return
+		}
+
+		// IP is allowed, proceed with the original handler
+		next(w, r)
+	}
+}
+
+// getClientIP extracts the real client IP address from various headers
+// This handles common proxy scenarios including load balancers and reverse proxies
+func getClientIP(r *http.Request) string {
+	// Check X-Forwarded-For header first (most common)
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// X-Forwarded-For can contain multiple IPs, use the first one
+		ips := strings.Split(xff, ",")
+		return strings.TrimSpace(ips[0])
+	}
+
+	// Check X-Real-IP header (used by some proxies)
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return strings.TrimSpace(xri)
+	}
+
+	// Check CF-Connecting-IP header (Cloudflare)
+	if cfip := r.Header.Get("CF-Connecting-IP"); cfip != "" {
+		return strings.TrimSpace(cfip)
+	}
+
+	// Fall back to RemoteAddr (direct connection)
+	ip, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+	return ip
 }

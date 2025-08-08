@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"net"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -24,9 +26,11 @@ type LLMProcessorConfig struct {
 	LLMMaxTokens   int
 
 	// RAG Configuration
-	RAGAPIURL  string
-	RAGTimeout time.Duration
-	RAGEnabled bool
+	RAGAPIURL                string
+	RAGTimeout               time.Duration
+	RAGEnabled               bool
+	RAGPreferProcessEndpoint bool   // When true, prefer /process over /process_intent for new configs
+	RAGEndpointPath          string // Custom endpoint path override (optional)
 
 	// Streaming Configuration
 	StreamingEnabled     bool
@@ -79,6 +83,10 @@ type LLMProcessorConfig struct {
 	// Secret Management Configuration
 	UseKubernetesSecrets bool
 	SecretNamespace      string
+
+	// Metrics Security Configuration
+	ExposeMetricsPublicly bool     // Whether to expose metrics publicly (default: false)
+	MetricsAllowedCIDRs   []string // CIDR blocks allowed to access metrics endpoint
 }
 
 // DefaultLLMProcessorConfig returns a configuration with sensible defaults
@@ -94,9 +102,11 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 		LLMTimeout:     60 * time.Second,
 		LLMMaxTokens:   2048,
 
-		RAGAPIURL:  "http://rag-api:5001",
-		RAGTimeout: 30 * time.Second,
-		RAGEnabled: true,
+		RAGAPIURL:                "http://rag-api:5001",
+		RAGTimeout:               30 * time.Second,
+		RAGEnabled:               true,
+		RAGPreferProcessEndpoint: true, // Default to /process for new installations
+		RAGEndpointPath:          "",   // Auto-detect from URL pattern
 
 		StreamingEnabled:     true,
 		MaxConcurrentStreams: 100,
@@ -136,6 +146,10 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 
 		UseKubernetesSecrets: true,
 		SecretNamespace:      "nephoran-system",
+
+		// Metrics Security - Default to private with secure defaults
+		ExposeMetricsPublicly: false,
+		MetricsAllowedCIDRs:   []string{}, // Will be set to private networks if empty and not public
 	}
 }
 
@@ -168,6 +182,8 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg.RAGAPIURL = getEnvWithValidation("RAG_API_URL", cfg.RAGAPIURL, validateURL, &validationErrors)
 	cfg.RAGTimeout = parseDurationWithValidation("RAG_TIMEOUT", cfg.RAGTimeout, &validationErrors)
 	cfg.RAGEnabled = parseBoolWithDefault("RAG_ENABLED", cfg.RAGEnabled)
+	cfg.RAGPreferProcessEndpoint = parseBoolWithDefault("RAG_PREFER_PROCESS_ENDPOINT", cfg.RAGPreferProcessEndpoint)
+	cfg.RAGEndpointPath = GetEnvOrDefault("RAG_ENDPOINT_PATH", cfg.RAGEndpointPath)
 
 	// Streaming Configuration
 	cfg.StreamingEnabled = parseBoolWithDefault("STREAMING_ENABLED", cfg.StreamingEnabled)
@@ -188,7 +204,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	}
 	cfg.APIKey = apiKey
 	cfg.CORSEnabled = parseBoolWithDefault("CORS_ENABLED", cfg.CORSEnabled)
-	
+
 	// Parse and validate allowed origins
 	allowedOriginsStr := GetEnvOrDefault("LLM_ALLOWED_ORIGINS", "")
 	if cfg.CORSEnabled && allowedOriginsStr != "" {
@@ -245,6 +261,23 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	// Secret Management Configuration
 	cfg.UseKubernetesSecrets = parseBoolWithDefault("USE_KUBERNETES_SECRETS", cfg.UseKubernetesSecrets)
 	cfg.SecretNamespace = GetEnvOrDefault("SECRET_NAMESPACE", cfg.SecretNamespace)
+
+	// Metrics Security Configuration
+	cfg.ExposeMetricsPublicly = parseBoolWithDefault("EXPOSE_METRICS_PUBLICLY", cfg.ExposeMetricsPublicly)
+
+	// Parse CIDR allowlist
+	metricsAllowedCIDRs := GetEnvOrDefault("METRICS_ALLOWED_CIDRS", "")
+	if metricsAllowedCIDRs != "" {
+		parsedCIDRs, err := parseAndValidateCIDRs(metricsAllowedCIDRs)
+		if err != nil {
+			validationErrors = append(validationErrors, fmt.Sprintf("METRICS_ALLOWED_CIDRS: %v", err))
+		} else {
+			cfg.MetricsAllowedCIDRs = parsedCIDRs
+		}
+	} else if !cfg.ExposeMetricsPublicly {
+		// Set secure defaults for private access
+		cfg.MetricsAllowedCIDRs = getDefaultPrivateNetworks()
+	}
 
 	// Return validation errors if any
 	if len(validationErrors) > 0 {
@@ -317,22 +350,22 @@ func (c *LLMProcessorConfig) Validate() error {
 		} else {
 			// Validate individual origins
 			isProduction := os.Getenv("LLM_ENVIRONMENT") == "production"
-			
+
 			for _, origin := range c.AllowedOrigins {
 				if origin == "" {
 					continue
 				}
-				
+
 				// Check for wildcard in production
 				if origin == "*" && isProduction {
 					errors = append(errors, "wildcard origin '*' is not allowed in production environments")
 				}
-				
+
 				// Validate origin format
 				if origin != "*" && !strings.HasPrefix(origin, "http://") && !strings.HasPrefix(origin, "https://") {
 					errors = append(errors, fmt.Sprintf("origin '%s' must start with http:// or https://", origin))
 				}
-				
+
 				// Additional security checks
 				if strings.Contains(origin, "*") && origin != "*" {
 					errors = append(errors, fmt.Sprintf("origin '%s' contains wildcard but is not exact wildcard '*'", origin))
@@ -354,8 +387,44 @@ func (c *LLMProcessorConfig) Validate() error {
 		errors = append(errors, "MAX_REQUEST_SIZE should not exceed 100MB to prevent DoS attacks")
 	}
 
+	// Validate RAG configuration consistency
+	if err := c.validateRAGConfiguration(); err != nil {
+		errors = append(errors, fmt.Sprintf("RAG configuration: %v", err))
+	}
+
+	// Validate metrics security configuration
+	if err := c.validateMetricsSecurityConfiguration(); err != nil {
+		errors = append(errors, fmt.Sprintf("Metrics security configuration: %v", err))
+	}
+
 	if len(errors) > 0 {
 		return fmt.Errorf("%s", strings.Join(errors, "; "))
+	}
+
+	return nil
+}
+
+// validateRAGConfiguration performs RAG-specific configuration validation
+func (c *LLMProcessorConfig) validateRAGConfiguration() error {
+	if !c.RAGEnabled {
+		return nil // Skip validation if RAG is disabled
+	}
+
+	// Validate RAG API URL format and pattern
+	if c.RAGAPIURL == "" {
+		return fmt.Errorf("RAG_API_URL is required when RAG is enabled")
+	}
+
+	// Custom endpoint path validation
+	if c.RAGEndpointPath != "" {
+		if !strings.HasPrefix(c.RAGEndpointPath, "/") {
+			return fmt.Errorf("RAG_ENDPOINT_PATH must start with '/' if specified")
+		}
+
+		// Warn about conflicting settings
+		if c.RAGPreferProcessEndpoint {
+			// This is not an error, but the custom path takes precedence
+		}
 	}
 
 	return nil
@@ -474,6 +543,33 @@ func validateURL(url string) error {
 	if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
 		return fmt.Errorf("URL must start with http:// or https://")
 	}
+
+	// Additional URL pattern validation for RAG API URLs
+	if strings.Contains(url, "rag-api") || strings.Contains(url, "RAG_API") {
+		return validateRAGURL(url)
+	}
+
+	return nil
+}
+
+// validateRAGURL performs RAG-specific URL validation
+func validateRAGURL(ragURL string) error {
+	// Parse URL to validate structure
+	if _, err := url.Parse(ragURL); err != nil {
+		return fmt.Errorf("invalid URL format: %w", err)
+	}
+
+	// Check for common patterns and provide helpful warnings
+	if strings.HasSuffix(ragURL, "/process_intent") {
+		// This is valid but legacy - no error needed
+	} else if strings.HasSuffix(ragURL, "/process") {
+		// This is the preferred pattern - no error needed
+	} else if strings.HasSuffix(ragURL, "/health") {
+		return fmt.Errorf("RAG_API_URL should not end with '/health' - this is auto-detected for health checks")
+	} else if strings.HasSuffix(ragURL, "/stream") {
+		return fmt.Errorf("RAG_API_URL should not end with '/stream' - this is auto-detected for streaming")
+	}
+
 	return nil
 }
 
@@ -576,7 +672,7 @@ func validateOrigin(origin string, isProduction bool) error {
 // isDevelopmentEnvironment determines if we're running in development mode
 func isDevelopmentEnvironment() bool {
 	envVars := []string{"GO_ENV", "NODE_ENV", "ENVIRONMENT", "ENV", "APP_ENV", "LLM_ENVIRONMENT"}
-	
+
 	for _, envVar := range envVars {
 		value := strings.ToLower(os.Getenv(envVar))
 		switch value {
@@ -586,7 +682,7 @@ func isDevelopmentEnvironment() bool {
 			return false
 		}
 	}
-	
+
 	return false // Default to production for security
 }
 
@@ -608,4 +704,193 @@ func validateTLSFiles(certPath, keyPath string) error {
 	}
 
 	return nil
+}
+
+// GetRAGEndpointPreference returns the endpoint preference configuration
+func (c *LLMProcessorConfig) GetRAGEndpointPreference() (bool, string) {
+	return c.RAGPreferProcessEndpoint, c.RAGEndpointPath
+}
+
+// GetEffectiveRAGEndpoints returns the effective RAG endpoints based on configuration
+func (c *LLMProcessorConfig) GetEffectiveRAGEndpoints() (processEndpoint, healthEndpoint string) {
+	baseURL := strings.TrimSuffix(c.RAGAPIURL, "/")
+
+	// If custom endpoint path is specified, use it
+	if c.RAGEndpointPath != "" {
+		processEndpoint = baseURL + c.RAGEndpointPath
+	} else {
+		// Auto-detect based on URL pattern
+		if strings.HasSuffix(c.RAGAPIURL, "/process_intent") {
+			// Legacy pattern - use as configured
+			processEndpoint = c.RAGAPIURL
+		} else if strings.HasSuffix(c.RAGAPIURL, "/process") {
+			// New pattern - use as configured
+			processEndpoint = c.RAGAPIURL
+		} else {
+			// Base URL pattern - construct based on preference
+			if c.RAGPreferProcessEndpoint {
+				processEndpoint = baseURL + "/process"
+			} else {
+				processEndpoint = baseURL + "/process_intent"
+			}
+		}
+	}
+
+	// Health endpoint is always /health
+	// Extract base URL from process endpoint
+	processBase := processEndpoint
+	if strings.HasSuffix(processBase, "/process_intent") {
+		processBase = strings.TrimSuffix(processBase, "/process_intent")
+	} else if strings.HasSuffix(processBase, "/process") {
+		processBase = strings.TrimSuffix(processBase, "/process")
+	}
+	healthEndpoint = processBase + "/health"
+
+	return processEndpoint, healthEndpoint
+}
+
+// validateMetricsSecurityConfiguration validates the metrics security configuration
+func (c *LLMProcessorConfig) validateMetricsSecurityConfiguration() error {
+	// If metrics are exposed publicly, warn about security implications
+	if c.ExposeMetricsPublicly && len(c.MetricsAllowedCIDRs) == 0 {
+		return fmt.Errorf("when exposing metrics publicly, consider setting METRICS_ALLOWED_CIDRS for additional security")
+	}
+
+	// Validate each CIDR block
+	for i, cidr := range c.MetricsAllowedCIDRs {
+		if err := validateCIDR(cidr); err != nil {
+			return fmt.Errorf("invalid CIDR at position %d: %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+// parseAndValidateCIDRs parses a comma-separated list of CIDR blocks and validates them
+func parseAndValidateCIDRs(cidrsStr string) ([]string, error) {
+	if strings.TrimSpace(cidrsStr) == "" {
+		return nil, fmt.Errorf("CIDR string cannot be empty")
+	}
+
+	cidrs := strings.Split(cidrsStr, ",")
+	var validCIDRs []string
+
+	for _, cidr := range cidrs {
+		cidr = strings.TrimSpace(cidr)
+		if cidr == "" {
+			continue
+		}
+
+		// Validate CIDR format
+		if err := validateCIDR(cidr); err != nil {
+			return nil, fmt.Errorf("invalid CIDR '%s': %w", cidr, err)
+		}
+
+		validCIDRs = append(validCIDRs, cidr)
+	}
+
+	if len(validCIDRs) == 0 {
+		return nil, fmt.Errorf("no valid CIDR blocks found")
+	}
+
+	return validCIDRs, nil
+}
+
+// validateCIDR validates a single CIDR block
+func validateCIDR(cidr string) error {
+	if cidr == "" {
+		return fmt.Errorf("CIDR cannot be empty")
+	}
+
+	// Parse CIDR using net.ParseCIDR
+	_, ipNet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return fmt.Errorf("invalid CIDR format: %w", err)
+	}
+
+	// Additional validation for security
+	if ipNet == nil {
+		return fmt.Errorf("parsed CIDR is nil")
+	}
+
+	// Check for overly broad networks in production
+	if isProductionEnvironment() {
+		ones, bits := ipNet.Mask.Size()
+
+		// Warn about very broad networks
+		if bits == 32 && ones < 8 { // IPv4 networks broader than /8
+			return fmt.Errorf("CIDR '%s' is too broad for production use (/%d)", cidr, ones)
+		}
+		if bits == 128 && ones < 64 { // IPv6 networks broader than /64
+			return fmt.Errorf("CIDR '%s' is too broad for production use (/%d)", cidr, ones)
+		}
+	}
+
+	return nil
+}
+
+// getDefaultPrivateNetworks returns the standard private network CIDR blocks
+func getDefaultPrivateNetworks() []string {
+	return []string{
+		"10.0.0.0/8",     // Private Class A
+		"172.16.0.0/12",  // Private Class B
+		"192.168.0.0/16", // Private Class C
+		"127.0.0.0/8",    // Loopback
+		"::1/128",        // IPv6 loopback
+		"fc00::/7",       // IPv6 unique local addresses
+	}
+}
+
+// isProductionEnvironment determines if we're running in a production environment
+func isProductionEnvironment() bool {
+	envVars := []string{"GO_ENV", "NODE_ENV", "ENVIRONMENT", "ENV", "APP_ENV", "LLM_ENVIRONMENT"}
+
+	for _, envVar := range envVars {
+		value := strings.ToLower(os.Getenv(envVar))
+		switch value {
+		case "production", "prod":
+			return true
+		case "development", "dev", "local", "test", "testing", "staging", "stage":
+			return false
+		}
+	}
+
+	return false // Default to false for this specific validation
+}
+
+// GetMetricsAccessConfig returns the effective metrics access configuration
+func (c *LLMProcessorConfig) GetMetricsAccessConfig() (isPublic bool, allowedCIDRs []string) {
+	return c.ExposeMetricsPublicly, c.MetricsAllowedCIDRs
+}
+
+// IsMetricsAccessAllowed checks if the given IP address is allowed to access metrics
+func (c *LLMProcessorConfig) IsMetricsAccessAllowed(clientIP string) bool {
+	// If metrics are public, allow all access
+	if c.ExposeMetricsPublicly {
+		return true
+	}
+
+	// If no CIDRs are configured, deny access (should not happen due to defaults)
+	if len(c.MetricsAllowedCIDRs) == 0 {
+		return false
+	}
+
+	// Parse the client IP
+	ip := net.ParseIP(clientIP)
+	if ip == nil {
+		return false
+	}
+
+	// Check if the IP is in any of the allowed CIDR blocks
+	for _, cidrStr := range c.MetricsAllowedCIDRs {
+		_, cidr, err := net.ParseCIDR(cidrStr)
+		if err != nil {
+			continue // Skip invalid CIDRs (should be caught during validation)
+		}
+		if cidr.Contains(ip) {
+			return true
+		}
+	}
+
+	return false
 }

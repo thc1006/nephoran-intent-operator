@@ -85,8 +85,8 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: "High memory usage in {{ $labels.pod }}"
-            description: "Pod {{ $labels.pod }} is using {{ $value | humanizePercentage }} of its memory limit."
+            summary: "High memory usage in {{`{{ $labels.pod }}`}}"
+            description: "Pod {{`{{ $labels.pod }}`}} is using {{`{{ $value | humanizePercentage }}`}} of its memory limit."
             runbook_url: "https://docs.nephoran.com/runbooks/high-memory-usage"
         
         - alert: NephoranHighCPUUsage
@@ -100,8 +100,8 @@ spec:
           labels:
             severity: warning
           annotations:
-            summary: "High CPU usage in {{ $labels.pod }}"
-            description: "Pod {{ $labels.pod }} is using {{ $value | humanizePercentage }} of its CPU limit."
+            summary: "High CPU usage in {{`{{ $labels.pod }}`}}"
+            description: "Pod {{`{{ $labels.pod }}`}} is using {{`{{ $value | humanizePercentage }}`}} of its CPU limit."
             runbook_url: "https://docs.nephoran.com/runbooks/high-cpu-usage"
         
         # LLM Processor specific alerts
@@ -117,7 +117,7 @@ spec:
             component: llm-processor
           annotations:
             summary: "High LLM Processor latency"
-            description: "95th percentile latency is {{ $value }}s, which is above the 5-second threshold."
+            description: "95th percentile latency is {{`{{ $value }}`}}s, which is above the 5-second threshold."
             runbook_url: "https://docs.nephoran.com/runbooks/llm-high-latency"
         
         - alert: LLMProcessorHighErrorRate
@@ -133,7 +133,7 @@ spec:
             component: llm-processor
           annotations:
             summary: "High LLM Processor error rate"
-            description: "Error rate is {{ $value | humanizePercentage }}, which is above the 5% threshold."
+            description: "Error rate is {{`{{ $value | humanizePercentage }}`}}, which is above the 5% threshold."
             runbook_url: "https://docs.nephoran.com/runbooks/llm-high-error-rate"
         
         - alert: LLMProcessorQueueBacklog
@@ -144,7 +144,7 @@ spec:
             component: llm-processor
           annotations:
             summary: "LLM Processor queue backlog"
-            description: "Queue length is {{ $value }}, which indicates a processing backlog."
+            description: "Queue length is {{`{{ $value }}`}}, which indicates a processing backlog."
             runbook_url: "https://docs.nephoran.com/runbooks/llm-queue-backlog"
     
     - name: nephoran-operator-weaviate
@@ -163,7 +163,7 @@ spec:
             component: weaviate
           annotations:
             summary: "High Weaviate query latency"
-            description: "95th percentile query latency is {{ $value }}s, which is above the 1-second threshold."
+            description: "95th percentile query latency is {{`{{ $value }}`}}s, which is above the 1-second threshold."
             runbook_url: "https://docs.nephoran.com/runbooks/weaviate-high-latency"
         
         - alert: WeaviateClusterUnhealthy
@@ -190,7 +190,7 @@ spec:
             component: weaviate
           annotations:
             summary: "Weaviate storage space running low"
-            description: "Disk usage is {{ $value | humanizePercentage }}, which is above the 85% threshold."
+            description: "Disk usage is {{`{{ $value | humanizePercentage }}`}}, which is above the 85% threshold."
             runbook_url: "https://docs.nephoran.com/runbooks/weaviate-storage-low"
     
     - name: nephoran-operator-business-metrics
@@ -206,7 +206,7 @@ spec:
             component: controller
           annotations:
             summary: "Low intent processing rate"
-            description: "Intent processing rate is {{ $value }} intents/sec, which is below expected levels."
+            description: "Intent processing rate is {{`{{ $value }}`}} intents/sec, which is below expected levels."
             runbook_url: "https://docs.nephoran.com/runbooks/low-intent-rate"
         
         - alert: HighIntentFailureRate
@@ -222,7 +222,7 @@ spec:
             component: controller
           annotations:
             summary: "High intent processing failure rate"
-            description: "Intent failure rate is {{ $value | humanizePercentage }}, which is above the 10% threshold."
+            description: "Intent failure rate is {{`{{ $value | humanizePercentage }}`}}, which is above the 10% threshold."
             runbook_url: "https://docs.nephoran.com/runbooks/high-intent-failure-rate"
         
         - alert: NetworkFunctionDeploymentFailures
@@ -234,6 +234,6 @@ spec:
             component: nephio-bridge
           annotations:
             summary: "Network function deployment failures detected"
-            description: "{{ $value }} network function deployments are failing per second."
+            description: "{{`{{ $value }}`}} network function deployments are failing per second."
             runbook_url: "https://docs.nephoran.com/runbooks/nf-deployment-failures"
 {{- end }}

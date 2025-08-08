@@ -251,9 +251,10 @@ func (sm *ServiceManager) registerHealthChecks() {
 		})
 	}
 
-	// RAG API dependency check
+	// RAG API dependency check with smart endpoint detection
 	if sm.config.RAGEnabled && sm.config.RAGAPIURL != "" {
-		sm.healthChecker.RegisterDependency("rag_api", health.HTTPCheck("rag_api", sm.config.RAGAPIURL+"/health"))
+		_, healthEndpoint := sm.config.GetEffectiveRAGEndpoints()
+		sm.healthChecker.RegisterDependency("rag_api", health.HTTPCheck("rag_api", healthEndpoint))
 	}
 
 	sm.logger.Info("Health checks registered")

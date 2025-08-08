@@ -89,8 +89,15 @@ def readyz():
         return jsonify({"status": "not_ready", "error": "Pipeline not initialized"}), 503
 
 
-@app.route('/process_intent', methods=['POST'])
-def process_intent():
+@app.route('/health', methods=['GET'])
+def health():
+    """Health endpoint alias for Go code compatibility"""
+    app.logger.info("Health check requested via /health endpoint")
+    return healthz()
+
+
+def _process_intent_core(endpoint_name):
+    """Core intent processing logic shared by both endpoints"""
     if not rag_pipeline:
         return jsonify({"error": "RAG pipeline not initialized"}), 503
 
@@ -100,6 +107,8 @@ def process_intent():
 
     intent = data['intent']
     intent_id = data.get('intent_id')  # Optional intent ID for tracking
+    
+    app.logger.info(f"Processing intent via {endpoint_name} endpoint. Intent ID: {intent_id}")
     
     try:
         # Use enhanced pipeline if available
@@ -127,13 +136,112 @@ def process_intent():
             return jsonify(result)
             
     except Exception as e:
-        app.logger.error(f"Error processing intent: {e}")
+        app.logger.error(f"Error processing intent via {endpoint_name}: {e}")
         return jsonify({
             "error": "Failed to process intent",
             "intent_id": intent_id,
             "original_intent": intent,
             "exception": str(e)
         }), 500
+
+
+@app.route('/process', methods=['POST'])
+def process():
+    """
+    Primary intent processing endpoint for Go code compatibility.
+    This is the preferred endpoint - /process_intent is maintained for legacy support.
+    """
+    return _process_intent_core('/process')
+
+
+@app.route('/process_intent', methods=['POST'])
+def process_intent():
+    """
+    Legacy intent processing endpoint - maintained for backward compatibility.
+    New implementations should use /process endpoint.
+    """
+    return _process_intent_core('/process_intent')
+
+
+@app.route('/stream', methods=['POST'])
+def stream():
+    """
+    Server-Sent Events streaming endpoint for Go code compatibility.
+    Provides real-time streaming of intent processing results.
+    """
+    if not rag_pipeline:
+        return jsonify({"error": "RAG pipeline not initialized"}), 503
+
+    data = request.get_json()
+    if not data or 'intent' not in data:
+        return jsonify({"error": "Missing 'intent' in request body"}), 400
+
+    intent = data['intent']
+    intent_id = data.get('intent_id')
+    
+    app.logger.info(f"Streaming intent processing via /stream endpoint. Intent ID: {intent_id}")
+    
+    def generate_stream():
+        """Generator function for Server-Sent Events"""
+        try:
+            # Send initial status
+            yield f"data: {jsonify({'status': 'started', 'intent_id': intent_id, 'timestamp': time.time()}).get_data(as_text=True)}\n\n"
+            
+            # Check if streaming is available in the enhanced pipeline
+            if hasattr(rag_pipeline, 'process_intent_streaming'):
+                # If streaming is implemented, use it
+                for chunk in rag_pipeline.process_intent_streaming(intent, intent_id):
+                    yield f"data: {jsonify(chunk).get_data(as_text=True)}\n\n"
+            else:
+                # Fallback: process normally and send result as single chunk
+                yield f"data: {jsonify({'status': 'processing', 'message': 'Using fallback processing'}).get_data(as_text=True)}\n\n"
+                
+                # Use the same processing logic as the /process endpoint
+                if hasattr(rag_pipeline, 'process_intent_async'):
+                    import asyncio
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        result = loop.run_until_complete(
+                            rag_pipeline.process_intent_async(intent, intent_id)
+                        )
+                        # Convert dataclass to dict for JSON serialization
+                        if hasattr(result, '__dict__'):
+                            result_dict = result.__dict__.copy()
+                            if 'metrics' in result_dict and hasattr(result_dict['metrics'], '__dict__'):
+                                result_dict['metrics'] = result_dict['metrics'].__dict__
+                            yield f"data: {jsonify({'status': 'completed', 'result': result_dict}).get_data(as_text=True)}\n\n"
+                        else:
+                            yield f"data: {jsonify({'status': 'completed', 'result': result}).get_data(as_text=True)}\n\n"
+                    finally:
+                        loop.close()
+                else:
+                    # Fallback to basic pipeline
+                    result = rag_pipeline.process_intent(intent)
+                    yield f"data: {jsonify({'status': 'completed', 'result': result}).get_data(as_text=True)}\n\n"
+                    
+        except Exception as e:
+            app.logger.error(f"Error in streaming processing: {e}")
+            error_data = {
+                'status': 'error',
+                'error': 'Failed to process intent',
+                'intent_id': intent_id,
+                'exception': str(e)
+            }
+            yield f"data: {jsonify(error_data).get_data(as_text=True)}\n\n"
+
+    # Return Server-Sent Events response
+    from flask import Response
+    return Response(
+        generate_stream(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': 'Cache-Control'
+        }
+    )
 
 
 @app.route('/knowledge/upload', methods=['POST'])

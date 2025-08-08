@@ -273,9 +273,10 @@ func (s *LLMProcessorService) registerHealthChecks() {
 		})
 	}
 
-	// RAG API dependency check
+	// RAG API dependency check with smart endpoint detection
 	if s.config.RAGEnabled && s.config.RAGAPIURL != "" {
-		s.healthChecker.RegisterDependency("rag_api", health.HTTPCheck("rag_api", s.config.RAGAPIURL+"/health"))
+		_, healthEndpoint := s.config.GetEffectiveRAGEndpoints()
+		s.healthChecker.RegisterDependency("rag_api", health.HTTPCheck("rag_api", healthEndpoint))
 	}
 
 	s.logger.Info("Health checks registered")

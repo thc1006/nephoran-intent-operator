@@ -38,7 +38,7 @@ spec:
         prometheus.io/path: "/metrics"
         prometheus.io/scheme: "https"
         kubectl.kubernetes.io/default-container: manager
-        checksum/tls-secret: "{{ .Values.nephoranOperator.tlsChecksum | default \"\" }}"
+        checksum/tls-secret: {{ .Values.nephoranOperator.tlsChecksum | default "" | quote }}
     spec:
       {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:

@@ -19,54 +19,54 @@ import (
 // DependencyHealthTracker manages comprehensive health monitoring of external dependencies
 type DependencyHealthTracker struct {
 	// Core configuration
-	logger           *slog.Logger
-	serviceName      string
-	
+	logger      *slog.Logger
+	serviceName string
+
 	// Dependency registry
-	dependencies     map[string]*DependencyConfig
-	healthResults    map[string]*DependencyHealth
-	mu               sync.RWMutex
-	
+	dependencies  map[string]*DependencyConfig
+	healthResults map[string]*DependencyHealth
+	mu            sync.RWMutex
+
 	// Circuit breakers per dependency
-	circuitBreakers  map[string]*gobreaker.CircuitBreaker
-	
+	circuitBreakers map[string]*gobreaker.CircuitBreaker
+
 	// Health propagation
 	propagationRules map[string][]PropagationRule
 	impactAnalysis   *ImpactAnalyzer
-	
+
 	// Recovery tracking
-	recoveryTracker  *RecoveryTracker
-	
+	recoveryTracker *RecoveryTracker
+
 	// Metrics
-	metrics          *DependencyMetrics
-	
+	metrics *DependencyMetrics
+
 	// Kubernetes client for cluster health
-	kubeClient       kubernetes.Interface
+	kubeClient kubernetes.Interface
 }
 
 // DependencyConfig holds configuration for a dependency
 type DependencyConfig struct {
-	Name             string              `json:"name"`
-	Type             DependencyType      `json:"type"`
-	Category         DependencyCategory  `json:"category"`
-	Criticality      DependencyCriticality `json:"criticality"`
-	
+	Name        string                `json:"name"`
+	Type        DependencyType        `json:"type"`
+	Category    DependencyCategory    `json:"category"`
+	Criticality DependencyCriticality `json:"criticality"`
+
 	// Connection details
-	Endpoint         string              `json:"endpoint"`
-	Timeout          time.Duration       `json:"timeout"`
-	CheckInterval    time.Duration       `json:"check_interval"`
-	
+	Endpoint      string        `json:"endpoint"`
+	Timeout       time.Duration `json:"timeout"`
+	CheckInterval time.Duration `json:"check_interval"`
+
 	// Health check configuration
-	HealthCheckConfig HealthCheckConfig  `json:"health_check_config"`
-	
+	HealthCheckConfig HealthCheckConfig `json:"health_check_config"`
+
 	// Circuit breaker configuration
 	CircuitBreakerConfig CircuitBreakerConfig `json:"circuit_breaker_config"`
-	
+
 	// Service mesh configuration
 	ServiceMeshConfig *ServiceMeshConfig `json:"service_mesh_config,omitempty"`
-	
+
 	// Custom metadata
-	Metadata         map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // DependencyType represents the type of dependency
@@ -105,60 +105,60 @@ const (
 
 // DependencyHealth represents the health status of a dependency
 type DependencyHealth struct {
-	Name             string                 `json:"name"`
-	Type             DependencyType         `json:"type"`
-	Status           health.Status          `json:"status"`
-	LastChecked      time.Time              `json:"last_checked"`
-	ResponseTime     time.Duration          `json:"response_time"`
-	
+	Name         string         `json:"name"`
+	Type         DependencyType `json:"type"`
+	Status       health.Status  `json:"status"`
+	LastChecked  time.Time      `json:"last_checked"`
+	ResponseTime time.Duration  `json:"response_time"`
+
 	// Availability metrics
-	Uptime           time.Duration          `json:"uptime"`
-	DowntimeTotal    time.Duration          `json:"downtime_total"`
-	AvailabilityRate float64                `json:"availability_rate"`
-	
+	Uptime           time.Duration `json:"uptime"`
+	DowntimeTotal    time.Duration `json:"downtime_total"`
+	AvailabilityRate float64       `json:"availability_rate"`
+
 	// Error tracking
-	ErrorCount       int                    `json:"error_count"`
-	ConsecutiveErrors int                   `json:"consecutive_errors"`
-	LastError        string                 `json:"last_error,omitempty"`
-	LastErrorTime    time.Time              `json:"last_error_time,omitempty"`
-	
+	ErrorCount        int       `json:"error_count"`
+	ConsecutiveErrors int       `json:"consecutive_errors"`
+	LastError         string    `json:"last_error,omitempty"`
+	LastErrorTime     time.Time `json:"last_error_time,omitempty"`
+
 	// Circuit breaker status
 	CircuitBreakerState CircuitBreakerState `json:"circuit_breaker_state"`
-	
+
 	// Connection pool status
-	ConnectionPool   *ConnectionPoolHealth  `json:"connection_pool,omitempty"`
-	
+	ConnectionPool *ConnectionPoolHealth `json:"connection_pool,omitempty"`
+
 	// Service mesh health
-	ServiceMeshHealth *ServiceMeshHealth    `json:"service_mesh_health,omitempty"`
-	
+	ServiceMeshHealth *ServiceMeshHealth `json:"service_mesh_health,omitempty"`
+
 	// Recovery information
-	RecoveryInfo     *RecoveryInfo          `json:"recovery_info,omitempty"`
-	
+	RecoveryInfo *RecoveryInfo `json:"recovery_info,omitempty"`
+
 	// Impact assessment
-	ImpactAssessment *ImpactAssessment      `json:"impact_assessment,omitempty"`
-	
+	ImpactAssessment *ImpactAssessment `json:"impact_assessment,omitempty"`
+
 	// Additional details
-	Details          map[string]interface{} `json:"details,omitempty"`
+	Details map[string]interface{} `json:"details,omitempty"`
 }
 
 // HealthCheckConfig configures health check behavior
 type HealthCheckConfig struct {
-	Method           string            `json:"method"`           // GET, POST, etc.
-	Path             string            `json:"path"`             // Health check endpoint path
-	ExpectedStatus   []int             `json:"expected_status"`  // Expected HTTP status codes
-	Headers          map[string]string `json:"headers,omitempty"`
-	Body             string            `json:"body,omitempty"`
-	
+	Method         string            `json:"method"`          // GET, POST, etc.
+	Path           string            `json:"path"`            // Health check endpoint path
+	ExpectedStatus []int             `json:"expected_status"` // Expected HTTP status codes
+	Headers        map[string]string `json:"headers,omitempty"`
+	Body           string            `json:"body,omitempty"`
+
 	// Validation rules
 	ResponseValidation *ResponseValidation `json:"response_validation,omitempty"`
 }
 
 // ResponseValidation defines rules for validating health check responses
 type ResponseValidation struct {
-	ContentType      string   `json:"content_type,omitempty"`
-	RequiredFields   []string `json:"required_fields,omitempty"`
-	ExpectedValues   map[string]interface{} `json:"expected_values,omitempty"`
-	MaxResponseSize  int64    `json:"max_response_size,omitempty"`
+	ContentType     string                 `json:"content_type,omitempty"`
+	RequiredFields  []string               `json:"required_fields,omitempty"`
+	ExpectedValues  map[string]interface{} `json:"expected_values,omitempty"`
+	MaxResponseSize int64                  `json:"max_response_size,omitempty"`
 }
 
 // CircuitBreakerConfig configures circuit breaker behavior
@@ -172,12 +172,12 @@ type CircuitBreakerConfig struct {
 
 // ServiceMeshConfig holds service mesh specific configuration
 type ServiceMeshConfig struct {
-	Enabled         bool          `json:"enabled"`
-	ServiceName     string        `json:"service_name"`
-	Namespace       string        `json:"namespace"`
-	MeshType        string        `json:"mesh_type"` // istio, linkerd, etc.
-	RetryPolicy     *RetryPolicy  `json:"retry_policy,omitempty"`
-	TimeoutPolicy   *TimeoutPolicy `json:"timeout_policy,omitempty"`
+	Enabled       bool           `json:"enabled"`
+	ServiceName   string         `json:"service_name"`
+	Namespace     string         `json:"namespace"`
+	MeshType      string         `json:"mesh_type"` // istio, linkerd, etc.
+	RetryPolicy   *RetryPolicy   `json:"retry_policy,omitempty"`
+	TimeoutPolicy *TimeoutPolicy `json:"timeout_policy,omitempty"`
 }
 
 // RetryPolicy defines retry behavior in service mesh
@@ -189,9 +189,9 @@ type RetryPolicy struct {
 
 // TimeoutPolicy defines timeout behavior in service mesh
 type TimeoutPolicy struct {
-	RequestTimeout  time.Duration `json:"request_timeout"`
-	IdleTimeout     time.Duration `json:"idle_timeout"`
-	ConnectTimeout  time.Duration `json:"connect_timeout"`
+	RequestTimeout time.Duration `json:"request_timeout"`
+	IdleTimeout    time.Duration `json:"idle_timeout"`
+	ConnectTimeout time.Duration `json:"connect_timeout"`
 }
 
 // CircuitBreakerState represents circuit breaker states
@@ -215,12 +215,12 @@ type ConnectionPoolHealth struct {
 
 // ServiceMeshHealth represents service mesh specific health information
 type ServiceMeshHealth struct {
-	ProxyStatus      string  `json:"proxy_status"`
-	RequestsSuccess  float64 `json:"requests_success"`
-	RequestsError    float64 `json:"requests_error"`
-	LatencyP50       float64 `json:"latency_p50"`
-	LatencyP95       float64 `json:"latency_p95"`
-	LatencyP99       float64 `json:"latency_p99"`
+	ProxyStatus     string  `json:"proxy_status"`
+	RequestsSuccess float64 `json:"requests_success"`
+	RequestsError   float64 `json:"requests_error"`
+	LatencyP50      float64 `json:"latency_p50"`
+	LatencyP95      float64 `json:"latency_p95"`
+	LatencyP99      float64 `json:"latency_p99"`
 }
 
 // RecoveryInfo tracks recovery progress and timing
@@ -235,12 +235,12 @@ type RecoveryInfo struct {
 
 // ImpactAssessment assesses the impact of dependency issues
 type ImpactAssessment struct {
-	ServiceImpact      ServiceImpactLevel     `json:"service_impact"`
-	AffectedFeatures   []string               `json:"affected_features"`
-	UserImpact         UserImpactLevel        `json:"user_impact"`
-	BusinessImpact     BusinessImpactLevel    `json:"business_impact"`
-	MitigationActive   bool                   `json:"mitigation_active"`
-	MitigationStrategy string                 `json:"mitigation_strategy,omitempty"`
+	ServiceImpact      ServiceImpactLevel  `json:"service_impact"`
+	AffectedFeatures   []string            `json:"affected_features"`
+	UserImpact         UserImpactLevel     `json:"user_impact"`
+	BusinessImpact     BusinessImpactLevel `json:"business_impact"`
+	MitigationActive   bool                `json:"mitigation_active"`
+	MitigationStrategy string              `json:"mitigation_strategy,omitempty"`
 }
 
 // ServiceImpactLevel represents the level of service impact
@@ -276,10 +276,10 @@ const (
 
 // PropagationRule defines how dependency health propagates to service health
 type PropagationRule struct {
-	SourceDependency string        `json:"source_dependency"`
-	TargetService    string        `json:"target_service"`
-	PropagationType  PropagationType `json:"propagation_type"`
-	WeightFactor     float64       `json:"weight_factor"`
+	SourceDependency string                 `json:"source_dependency"`
+	TargetService    string                 `json:"target_service"`
+	PropagationType  PropagationType        `json:"propagation_type"`
+	WeightFactor     float64                `json:"weight_factor"`
 	Conditions       []PropagationCondition `json:"conditions,omitempty"`
 }
 
@@ -287,49 +287,49 @@ type PropagationRule struct {
 type PropagationType string
 
 const (
-	PropagationDirect     PropagationType = "direct"      // 1:1 propagation
-	PropagationWeighted   PropagationType = "weighted"    // Weighted propagation
-	PropagationThreshold  PropagationType = "threshold"   // Threshold-based
-	PropagationAggregated PropagationType = "aggregated"  // Aggregated with others
+	PropagationDirect     PropagationType = "direct"     // 1:1 propagation
+	PropagationWeighted   PropagationType = "weighted"   // Weighted propagation
+	PropagationThreshold  PropagationType = "threshold"  // Threshold-based
+	PropagationAggregated PropagationType = "aggregated" // Aggregated with others
 )
 
 // PropagationCondition defines conditions for health propagation
 type PropagationCondition struct {
-	Field     string      `json:"field"`
-	Operator  string      `json:"operator"`
-	Value     interface{} `json:"value"`
+	Field    string      `json:"field"`
+	Operator string      `json:"operator"`
+	Value    interface{} `json:"value"`
 }
 
 // RecoveryTracker tracks dependency recovery processes
 type RecoveryTracker struct {
-	recoveryMap    map[string]*RecoveryState
-	recoveryMu     sync.RWMutex
-	logger         *slog.Logger
+	recoveryMap map[string]*RecoveryState
+	recoveryMu  sync.RWMutex
+	logger      *slog.Logger
 }
 
 // RecoveryState tracks the state of a dependency recovery
 type RecoveryState struct {
-	DependencyName   string            `json:"dependency_name"`
-	StartTime        time.Time         `json:"start_time"`
-	Strategy         RecoveryStrategy  `json:"strategy"`
-	Attempts         int               `json:"attempts"`
-	MaxAttempts      int               `json:"max_attempts"`
-	BackoffStrategy  BackoffStrategy   `json:"backoff_strategy"`
-	CurrentBackoff   time.Duration     `json:"current_backoff"`
-	LastAttempt      time.Time         `json:"last_attempt"`
-	Success          bool              `json:"success"`
-	Automated        bool              `json:"automated"`
+	DependencyName  string           `json:"dependency_name"`
+	StartTime       time.Time        `json:"start_time"`
+	Strategy        RecoveryStrategy `json:"strategy"`
+	Attempts        int              `json:"attempts"`
+	MaxAttempts     int              `json:"max_attempts"`
+	BackoffStrategy BackoffStrategy  `json:"backoff_strategy"`
+	CurrentBackoff  time.Duration    `json:"current_backoff"`
+	LastAttempt     time.Time        `json:"last_attempt"`
+	Success         bool             `json:"success"`
+	Automated       bool             `json:"automated"`
 }
 
 // RecoveryStrategy defines the strategy for dependency recovery
 type RecoveryStrategy string
 
 const (
-	RecoveryRetry      RecoveryStrategy = "retry"
-	RecoveryReconnect  RecoveryStrategy = "reconnect"
-	RecoveryRestart    RecoveryStrategy = "restart"
-	RecoveryFailover   RecoveryStrategy = "failover"
-	RecoveryManual     RecoveryStrategy = "manual"
+	RecoveryRetry     RecoveryStrategy = "retry"
+	RecoveryReconnect RecoveryStrategy = "reconnect"
+	RecoveryRestart   RecoveryStrategy = "restart"
+	RecoveryFailover  RecoveryStrategy = "failover"
+	RecoveryManual    RecoveryStrategy = "manual"
 )
 
 // BackoffStrategy defines backoff behavior for recovery attempts
@@ -344,27 +344,27 @@ const (
 
 // ImpactAnalyzer analyzes the impact of dependency failures
 type ImpactAnalyzer struct {
-	dependencyGraph   *DependencyGraph
-	impactRules       map[string][]ImpactRule
-	logger            *slog.Logger
+	dependencyGraph *DependencyGraph
+	impactRules     map[string][]ImpactRule
+	logger          *slog.Logger
 }
 
 // ImpactRule defines how to assess impact from dependency failures
 type ImpactRule struct {
-	DependencyType   DependencyType    `json:"dependency_type"`
-	Criticality      DependencyCriticality `json:"criticality"`
-	ServiceImpact    ServiceImpactLevel `json:"service_impact"`
-	UserImpact       UserImpactLevel   `json:"user_impact"`
-	BusinessImpact   BusinessImpactLevel `json:"business_impact"`
-	Features         []string          `json:"features"`
-	Conditions       []ImpactCondition `json:"conditions,omitempty"`
+	DependencyType DependencyType        `json:"dependency_type"`
+	Criticality    DependencyCriticality `json:"criticality"`
+	ServiceImpact  ServiceImpactLevel    `json:"service_impact"`
+	UserImpact     UserImpactLevel       `json:"user_impact"`
+	BusinessImpact BusinessImpactLevel   `json:"business_impact"`
+	Features       []string              `json:"features"`
+	Conditions     []ImpactCondition     `json:"conditions,omitempty"`
 }
 
 // ImpactCondition defines conditions for impact assessment
 type ImpactCondition struct {
-	Field     string      `json:"field"`
-	Operator  string      `json:"operator"`
-	Value     interface{} `json:"value"`
+	Field    string      `json:"field"`
+	Operator string      `json:"operator"`
+	Value    interface{} `json:"value"`
 }
 
 // DependencyMetrics contains Prometheus metrics for dependency health
@@ -383,7 +383,7 @@ func NewDependencyHealthTracker(serviceName string, kubeClient kubernetes.Interf
 	if logger == nil {
 		logger = slog.Default()
 	}
-	
+
 	tracker := &DependencyHealthTracker{
 		logger:           logger.With("component", "dependency_health_tracker"),
 		serviceName:      serviceName,
@@ -394,22 +394,22 @@ func NewDependencyHealthTracker(serviceName string, kubeClient kubernetes.Interf
 		kubeClient:       kubeClient,
 		metrics:          initializeDependencyMetrics(),
 	}
-	
+
 	// Initialize components
 	tracker.recoveryTracker = &RecoveryTracker{
 		recoveryMap: make(map[string]*RecoveryState),
 		logger:      logger.With("component", "recovery_tracker"),
 	}
-	
+
 	tracker.impactAnalysis = &ImpactAnalyzer{
 		dependencyGraph: &DependencyGraph{},
 		impactRules:     make(map[string][]ImpactRule),
 		logger:          logger.With("component", "impact_analyzer"),
 	}
-	
+
 	// Register default dependencies
 	tracker.registerDefaultDependencies()
-	
+
 	return tracker
 }
 
@@ -420,33 +420,33 @@ func initializeDependencyMetrics() *DependencyMetrics {
 			Name: "dependency_health_status",
 			Help: "Health status of dependencies (0=unhealthy, 1=healthy, 0.5=degraded)",
 		}, []string{"dependency", "type", "criticality"}),
-		
+
 		ResponseTime: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "dependency_response_time_seconds",
 			Help:    "Response time of dependency health checks",
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 10),
 		}, []string{"dependency", "type"}),
-		
+
 		ErrorCount: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "dependency_errors_total",
 			Help: "Total number of dependency errors",
 		}, []string{"dependency", "type", "error_type"}),
-		
+
 		AvailabilityRate: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "dependency_availability_rate",
 			Help: "Availability rate of dependencies",
 		}, []string{"dependency", "type"}),
-		
+
 		CircuitBreakerState: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "dependency_circuit_breaker_state",
 			Help: "Circuit breaker state (0=closed, 1=open, 2=half-open)",
 		}, []string{"dependency"}),
-		
+
 		RecoveryAttempts: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "dependency_recovery_attempts_total",
 			Help: "Total number of dependency recovery attempts",
 		}, []string{"dependency", "strategy"}),
-		
+
 		ConnectionPoolMetrics: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "dependency_connection_pool_status",
 			Help: "Connection pool status metrics",
@@ -462,13 +462,13 @@ func (dht *DependencyHealthTracker) RegisterDependency(config *DependencyConfig)
 	if config.Name == "" {
 		return fmt.Errorf("dependency name cannot be empty")
 	}
-	
+
 	dht.mu.Lock()
 	defer dht.mu.Unlock()
-	
+
 	// Store configuration
 	dht.dependencies[config.Name] = config
-	
+
 	// Initialize health result
 	dht.healthResults[config.Name] = &DependencyHealth{
 		Name:             config.Name,
@@ -478,18 +478,18 @@ func (dht *DependencyHealthTracker) RegisterDependency(config *DependencyConfig)
 		AvailabilityRate: 0.0,
 		Details:          make(map[string]interface{}),
 	}
-	
+
 	// Create circuit breaker if enabled
 	if config.CircuitBreakerConfig.Enabled {
 		dht.createCircuitBreaker(config)
 	}
-	
+
 	dht.logger.Info("Dependency registered",
 		"name", config.Name,
 		"type", config.Type,
 		"endpoint", config.Endpoint,
 		"criticality", config.Criticality)
-	
+
 	return nil
 }
 
@@ -509,13 +509,13 @@ func (dht *DependencyHealthTracker) createCircuitBreaker(config *DependencyConfi
 				"dependency", name,
 				"from", from.String(),
 				"to", to.String())
-			
+
 			// Update metrics
 			stateValue := dht.circuitBreakerStateToFloat(to)
 			dht.metrics.CircuitBreakerState.WithLabelValues(name).Set(stateValue)
 		},
 	}
-	
+
 	dht.circuitBreakers[config.Name] = gobreaker.NewCircuitBreaker(settings)
 }
 
@@ -538,20 +538,20 @@ func (dht *DependencyHealthTracker) CheckDependencyHealth(ctx context.Context, d
 	dht.mu.RLock()
 	config, exists := dht.dependencies[dependencyName]
 	dht.mu.RUnlock()
-	
+
 	if !exists {
 		return nil, fmt.Errorf("dependency %s not found", dependencyName)
 	}
-	
+
 	start := time.Now()
-	
+
 	// Create timeout context
 	checkCtx, cancel := context.WithTimeout(ctx, config.Timeout)
 	defer cancel()
-	
+
 	var healthResult *DependencyHealth
 	var err error
-	
+
 	// Execute health check with circuit breaker if available
 	if cb, exists := dht.circuitBreakers[dependencyName]; exists {
 		_, err = cb.Execute(func() (interface{}, error) {
@@ -561,19 +561,19 @@ func (dht *DependencyHealthTracker) CheckDependencyHealth(ctx context.Context, d
 	} else {
 		healthResult, err = dht.performHealthCheck(checkCtx, config)
 	}
-	
+
 	if err != nil {
 		healthResult = &DependencyHealth{
-			Name:        dependencyName,
-			Type:        config.Type,
-			Status:      health.StatusUnhealthy,
-			LastChecked: time.Now(),
-			ResponseTime: time.Since(start),
-			LastError:   err.Error(),
+			Name:          dependencyName,
+			Type:          config.Type,
+			Status:        health.StatusUnhealthy,
+			LastChecked:   time.Now(),
+			ResponseTime:  time.Since(start),
+			LastError:     err.Error(),
 			LastErrorTime: time.Now(),
-			Details:     make(map[string]interface{}),
+			Details:       make(map[string]interface{}),
 		}
-		
+
 		// Update consecutive errors
 		dht.mu.RLock()
 		if previous, exists := dht.healthResults[dependencyName]; exists {
@@ -588,25 +588,25 @@ func (dht *DependencyHealthTracker) CheckDependencyHealth(ctx context.Context, d
 		// Reset consecutive errors on success
 		healthResult.ConsecutiveErrors = 0
 	}
-	
+
 	// Update health result
 	dht.mu.Lock()
 	dht.healthResults[dependencyName] = healthResult
 	dht.mu.Unlock()
-	
+
 	// Record metrics
 	dht.recordHealthMetrics(healthResult, config)
-	
+
 	// Assess impact if unhealthy
 	if healthResult.Status != health.StatusHealthy {
 		healthResult.ImpactAssessment = dht.impactAnalysis.assessImpact(config, healthResult)
-		
+
 		// Trigger recovery if needed
 		if config.CircuitBreakerConfig.Enabled {
 			dht.recoveryTracker.triggerRecovery(dependencyName, config, healthResult)
 		}
 	}
-	
+
 	return healthResult, nil
 }
 
@@ -636,35 +636,35 @@ func (dht *DependencyHealthTracker) performHealthCheck(ctx context.Context, conf
 func (dht *DependencyHealthTracker) checkLLMAPI(ctx context.Context, config *DependencyConfig) (*DependencyHealth, error) {
 	// Implement LLM API specific health check
 	start := time.Now()
-	
+
 	client := &http.Client{
 		Timeout: config.Timeout,
 	}
-	
+
 	url := config.Endpoint + "/health"
 	if config.HealthCheckConfig.Path != "" {
 		url = config.Endpoint + config.HealthCheckConfig.Path
 	}
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	// Add headers if configured
 	for key, value := range config.HealthCheckConfig.Headers {
 		req.Header.Set(key, value)
 	}
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("health check failed: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	status := health.StatusUnhealthy
 	message := fmt.Sprintf("HTTP %d", resp.StatusCode)
-	
+
 	// Check if status code is expected
 	if len(config.HealthCheckConfig.ExpectedStatus) == 0 {
 		// Default to 200-299 range
@@ -679,7 +679,7 @@ func (dht *DependencyHealthTracker) checkLLMAPI(ctx context.Context, config *Dep
 			}
 		}
 	}
-	
+
 	return &DependencyHealth{
 		Name:         config.Name,
 		Type:         config.Type,
@@ -699,15 +699,15 @@ func (dht *DependencyHealthTracker) checkKubernetesAPI(ctx context.Context, conf
 	if dht.kubeClient == nil {
 		return nil, fmt.Errorf("kubernetes client not available")
 	}
-	
+
 	start := time.Now()
-	
+
 	// Try to get server version
 	version, err := dht.kubeClient.Discovery().ServerVersion()
 	if err != nil {
 		return nil, fmt.Errorf("kubernetes API check failed: %w", err)
 	}
-	
+
 	return &DependencyHealth{
 		Name:         config.Name,
 		Type:         config.Type,
@@ -755,40 +755,40 @@ func (dht *DependencyHealthTracker) checkCache(ctx context.Context, config *Depe
 // checkGenericHTTP performs generic HTTP health check
 func (dht *DependencyHealthTracker) checkGenericHTTP(ctx context.Context, config *DependencyConfig) (*DependencyHealth, error) {
 	start := time.Now()
-	
+
 	client := &http.Client{
 		Timeout: config.Timeout,
 	}
-	
+
 	method := "GET"
 	if config.HealthCheckConfig.Method != "" {
 		method = config.HealthCheckConfig.Method
 	}
-	
+
 	url := config.Endpoint
 	if config.HealthCheckConfig.Path != "" {
 		url = config.Endpoint + config.HealthCheckConfig.Path
 	}
-	
+
 	req, err := http.NewRequestWithContext(ctx, method, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	// Add headers if configured
 	for key, value := range config.HealthCheckConfig.Headers {
 		req.Header.Set(key, value)
 	}
-	
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("health check failed: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	status := health.StatusUnhealthy
 	message := fmt.Sprintf("HTTP %d", resp.StatusCode)
-	
+
 	// Check if status code is expected
 	if len(config.HealthCheckConfig.ExpectedStatus) == 0 {
 		// Default to 200-299 range
@@ -803,7 +803,7 @@ func (dht *DependencyHealthTracker) checkGenericHTTP(ctx context.Context, config
 			}
 		}
 	}
-	
+
 	return &DependencyHealth{
 		Name:         config.Name,
 		Type:         config.Type,
@@ -822,7 +822,7 @@ func (dht *DependencyHealthTracker) checkGenericHTTP(ctx context.Context, config
 // recordHealthMetrics records metrics for dependency health
 func (dht *DependencyHealthTracker) recordHealthMetrics(health *DependencyHealth, config *DependencyConfig) {
 	labels := []string{health.Name, string(health.Type), string(config.Criticality)}
-	
+
 	// Health status metric
 	statusValue := 0.0
 	if health.Status == health.StatusHealthy {
@@ -831,13 +831,13 @@ func (dht *DependencyHealthTracker) recordHealthMetrics(health *DependencyHealth
 		statusValue = 0.5
 	}
 	dht.metrics.HealthStatus.WithLabelValues(labels...).Set(statusValue)
-	
+
 	// Response time metric
 	dht.metrics.ResponseTime.WithLabelValues(health.Name, string(health.Type)).Observe(health.ResponseTime.Seconds())
-	
+
 	// Availability rate metric
 	dht.metrics.AvailabilityRate.WithLabelValues(health.Name, string(health.Type)).Set(health.AvailabilityRate)
-	
+
 	// Error count if there was an error
 	if health.LastError != "" {
 		errorType := "unknown"
@@ -852,16 +852,16 @@ func (dht *DependencyHealthTracker) recordHealthMetrics(health *DependencyHealth
 func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 	// LLM Processor API
 	dht.RegisterDependency(&DependencyConfig{
-		Name:         "llm-processor",
-		Type:         DepTypeLLMAPI,
-		Category:     CatCore,
-		Criticality:  CriticalityEssential,
-		Endpoint:     getEnv("LLM_PROCESSOR_URL", "http://llm-processor:8080"),
-		Timeout:      15 * time.Second,
+		Name:          "llm-processor",
+		Type:          DepTypeLLMAPI,
+		Category:      CatCore,
+		Criticality:   CriticalityEssential,
+		Endpoint:      getEnv("LLM_PROCESSOR_URL", "http://llm-processor:8080"),
+		Timeout:       15 * time.Second,
 		CheckInterval: 30 * time.Second,
 		HealthCheckConfig: HealthCheckConfig{
-			Method: "GET",
-			Path:   "/healthz",
+			Method:         "GET",
+			Path:           "/healthz",
 			ExpectedStatus: []int{200},
 		},
 		CircuitBreakerConfig: CircuitBreakerConfig{
@@ -872,19 +872,32 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 			FailureThreshold: 0.6,
 		},
 	})
-	
-	// RAG API
+
+	// RAG API - Smart endpoint detection
+	ragAPIURL := getEnv("RAG_API_URL", "http://rag-api:5001")
+	ragHealthPath := "/health" // Always use /health for health checks
+
+	// If the configured URL already has an endpoint path, extract the base for health checks
+	if strings.HasSuffix(ragAPIURL, "/process_intent") || strings.HasSuffix(ragAPIURL, "/process") {
+		// Extract base URL and use it for health checks
+		if strings.HasSuffix(ragAPIURL, "/process_intent") {
+			ragAPIURL = strings.TrimSuffix(ragAPIURL, "/process_intent")
+		} else if strings.HasSuffix(ragAPIURL, "/process") {
+			ragAPIURL = strings.TrimSuffix(ragAPIURL, "/process")
+		}
+	}
+
 	dht.RegisterDependency(&DependencyConfig{
-		Name:         "rag-api",
-		Type:         DepTypeExternalAPI,
-		Category:     CatCore,
-		Criticality:  CriticalityImportant,
-		Endpoint:     getEnv("RAG_API_URL", "http://rag-api:8080"),
-		Timeout:      10 * time.Second,
+		Name:          "rag-api",
+		Type:          DepTypeExternalAPI,
+		Category:      CatCore,
+		Criticality:   CriticalityImportant,
+		Endpoint:      ragAPIURL,
+		Timeout:       10 * time.Second,
 		CheckInterval: 30 * time.Second,
 		HealthCheckConfig: HealthCheckConfig{
-			Method: "GET",
-			Path:   "/health",
+			Method:         "GET",
+			Path:           ragHealthPath,
 			ExpectedStatus: []int{200},
 		},
 		CircuitBreakerConfig: CircuitBreakerConfig{
@@ -895,19 +908,19 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 			FailureThreshold: 0.6,
 		},
 	})
-	
+
 	// Weaviate Vector Database
 	dht.RegisterDependency(&DependencyConfig{
-		Name:         "weaviate",
-		Type:         DepTypeDatabase,
-		Category:     CatInfrastructure,
-		Criticality:  CriticalityImportant,
-		Endpoint:     getEnv("WEAVIATE_URL", "http://weaviate:8080"),
-		Timeout:      10 * time.Second,
+		Name:          "weaviate",
+		Type:          DepTypeDatabase,
+		Category:      CatInfrastructure,
+		Criticality:   CriticalityImportant,
+		Endpoint:      getEnv("WEAVIATE_URL", "http://weaviate:8080"),
+		Timeout:       10 * time.Second,
 		CheckInterval: 30 * time.Second,
 		HealthCheckConfig: HealthCheckConfig{
-			Method: "GET",
-			Path:   "/v1/.well-known/ready",
+			Method:         "GET",
+			Path:           "/v1/.well-known/ready",
 			ExpectedStatus: []int{200},
 		},
 		CircuitBreakerConfig: CircuitBreakerConfig{
@@ -918,18 +931,18 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 			FailureThreshold: 0.6,
 		},
 	})
-	
+
 	// Kubernetes API
 	dht.RegisterDependency(&DependencyConfig{
-		Name:         "kubernetes-api",
-		Type:         DepTypeKubernetesAPI,
-		Category:     CatInfrastructure,
-		Criticality:  CriticalityEssential,
-		Endpoint:     "kubernetes-api",
-		Timeout:      5 * time.Second,
+		Name:          "kubernetes-api",
+		Type:          DepTypeKubernetesAPI,
+		Category:      CatInfrastructure,
+		Criticality:   CriticalityEssential,
+		Endpoint:      "kubernetes-api",
+		Timeout:       5 * time.Second,
 		CheckInterval: 30 * time.Second,
 		CircuitBreakerConfig: CircuitBreakerConfig{
-			Enabled:          false, // Don't circuit break Kubernetes API
+			Enabled: false, // Don't circuit break Kubernetes API
 		},
 	})
 }
@@ -938,14 +951,14 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 func (dht *DependencyHealthTracker) GetAllDependencyHealth(ctx context.Context) map[string]*DependencyHealth {
 	dht.mu.RLock()
 	defer dht.mu.RUnlock()
-	
+
 	result := make(map[string]*DependencyHealth)
 	for name, health := range dht.healthResults {
 		// Return a copy to avoid race conditions
 		healthCopy := *health
 		result[name] = &healthCopy
 	}
-	
+
 	return result
 }
 
@@ -953,13 +966,13 @@ func (dht *DependencyHealthTracker) GetAllDependencyHealth(ctx context.Context) 
 func (ia *ImpactAnalyzer) assessImpact(config *DependencyConfig, health *DependencyHealth) *ImpactAssessment {
 	// Default impact assessment based on criticality
 	assessment := &ImpactAssessment{
-		ServiceImpact:      ServiceImpactNone,
-		AffectedFeatures:   []string{},
-		UserImpact:         UserImpactNone,
-		BusinessImpact:     BusinessImpactNone,
-		MitigationActive:   false,
+		ServiceImpact:    ServiceImpactNone,
+		AffectedFeatures: []string{},
+		UserImpact:       UserImpactNone,
+		BusinessImpact:   BusinessImpactNone,
+		MitigationActive: false,
 	}
-	
+
 	// Assess impact based on criticality and type
 	switch config.Criticality {
 	case CriticalityEssential:
@@ -979,7 +992,7 @@ func (ia *ImpactAnalyzer) assessImpact(config *DependencyConfig, health *Depende
 		assessment.UserImpact = UserImpactNone
 		assessment.BusinessImpact = BusinessImpactNone
 	}
-	
+
 	// Add affected features based on dependency type
 	switch config.Type {
 	case DepTypeLLMAPI:
@@ -989,7 +1002,7 @@ func (ia *ImpactAnalyzer) assessImpact(config *DependencyConfig, health *Depende
 	case DepTypeKubernetesAPI:
 		assessment.AffectedFeatures = []string{"resource_management", "deployment", "scaling"}
 	}
-	
+
 	return assessment
 }
 
@@ -997,24 +1010,24 @@ func (ia *ImpactAnalyzer) assessImpact(config *DependencyConfig, health *Depende
 func (rt *RecoveryTracker) triggerRecovery(dependencyName string, config *DependencyConfig, health *DependencyHealth) {
 	rt.recoveryMu.Lock()
 	defer rt.recoveryMu.Unlock()
-	
+
 	// Check if recovery is already in progress
 	if existing, exists := rt.recoveryMap[dependencyName]; exists && !existing.Success {
 		// Update existing recovery state
 		existing.Attempts++
 		existing.LastAttempt = time.Now()
-		
+
 		// Calculate backoff
 		existing.CurrentBackoff = rt.calculateBackoff(existing)
-		
+
 		rt.logger.Info("Recovery attempt updated",
 			"dependency", dependencyName,
 			"attempt", existing.Attempts,
 			"backoff", existing.CurrentBackoff)
-		
+
 		return
 	}
-	
+
 	// Start new recovery process
 	recovery := &RecoveryState{
 		DependencyName:  dependencyName,
@@ -1028,9 +1041,9 @@ func (rt *RecoveryTracker) triggerRecovery(dependencyName string, config *Depend
 		Success:         false,
 		Automated:       true,
 	}
-	
+
 	rt.recoveryMap[dependencyName] = recovery
-	
+
 	rt.logger.Info("Recovery process started",
 		"dependency", dependencyName,
 		"strategy", recovery.Strategy)

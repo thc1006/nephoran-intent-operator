@@ -26,6 +26,11 @@ type ProcessingEngine struct {
 	httpClient     *http.Client
 	ragAPIURL      string
 	
+	// Smart endpoints from configuration
+	processEndpoint string
+	streamEndpoint  string
+	healthEndpoint  string
+	
 	// Processing state
 	mutex          sync.RWMutex
 	activeStreams  map[string]*StreamContext
@@ -151,6 +156,9 @@ func NewProcessingEngine(baseClient *Client, config *ProcessingConfig) *Processi
 		metrics:        &ProcessingMetrics{},
 	}
 	
+	// Initialize smart endpoints
+	processor.initializeEndpoints()
+	
 	// Initialize batch processor if enabled
 	if config.EnableBatching {
 		processor.batchProcessor = &batchProcessor{
@@ -169,6 +177,41 @@ func NewProcessingEngine(baseClient *Client, config *ProcessingConfig) *Processi
 	}
 	
 	return processor
+}
+
+// initializeEndpoints initializes smart endpoints based on configuration
+func (pe *ProcessingEngine) initializeEndpoints() {
+	// For ProcessingEngine, we need to work with ProcessingConfig
+	// Since ProcessingConfig doesn't have GetEffectiveRAGEndpoints, we implement the logic here
+	baseURL := strings.TrimSuffix(pe.ragAPIURL, "/")
+	
+	// Determine process endpoint based on URL pattern
+	if strings.HasSuffix(pe.ragAPIURL, "/process_intent") {
+		// Legacy pattern - use as configured
+		pe.processEndpoint = pe.ragAPIURL
+	} else if strings.HasSuffix(pe.ragAPIURL, "/process") {
+		// New pattern - use as configured
+		pe.processEndpoint = pe.ragAPIURL
+	} else {
+		// Base URL pattern - default to /process for new installations
+		pe.processEndpoint = baseURL + "/process"
+	}
+	
+	// Streaming endpoint
+	processBase := baseURL
+	if strings.HasSuffix(pe.processEndpoint, "/process_intent") {
+		processBase = strings.TrimSuffix(pe.processEndpoint, "/process_intent")
+	} else if strings.HasSuffix(pe.processEndpoint, "/process") {
+		processBase = strings.TrimSuffix(pe.processEndpoint, "/process")
+	}
+	pe.streamEndpoint = processBase + "/stream"
+	pe.healthEndpoint = processBase + "/health"
+	
+	pe.logger.Info("Initialized smart endpoints",
+		slog.String("process_endpoint", pe.processEndpoint),
+		slog.String("stream_endpoint", pe.streamEndpoint),
+		slog.String("health_endpoint", pe.healthEndpoint),
+	)
 }
 
 // getDefaultProcessingConfig returns default processing configuration
@@ -297,9 +340,12 @@ func (pe *ProcessingEngine) processWithRAG(ctx context.Context, intent string, s
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 	
-	// Create HTTP request
-	apiURL := pe.ragAPIURL + "/process"
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", apiURL, bytes.NewBuffer(reqBody))
+	// Create HTTP request using smart endpoint
+	if pe.processEndpoint == "" {
+		return nil, fmt.Errorf("process endpoint not initialized")
+	}
+	
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", pe.processEndpoint, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -339,7 +385,7 @@ func (pe *ProcessingEngine) processWithRAG(ctx context.Context, intent string, s
 		Batched:        false,
 		Metadata: map[string]interface{}{
 			"method": "rag",
-			"api_url": apiURL,
+			"api_url": pe.processEndpoint,
 		},
 	}, nil
 }
@@ -375,8 +421,11 @@ func (pe *ProcessingEngine) processStreamingRequest(streamCtx *StreamContext, re
 		return fmt.Errorf("failed to marshal request: %w", err)
 	}
 	
-	streamURL := pe.ragAPIURL + "/stream"
-	httpReq, err := http.NewRequestWithContext(streamCtx.Context, "POST", streamURL, bytes.NewBuffer(reqBody))
+	if pe.streamEndpoint == "" {
+		return fmt.Errorf("stream endpoint not initialized")
+	}
+	
+	httpReq, err := http.NewRequestWithContext(streamCtx.Context, "POST", pe.streamEndpoint, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return fmt.Errorf("failed to create stream request: %w", err)
 	}

@@ -10,6 +10,10 @@ global:
 # Feature flags
 rag:
   enabled: false
+  # RAG endpoint compatibility configuration
+  compat:
+    # When true, use legacy /process_intent endpoint; when false, use new /process endpoint
+    enableLegacyProcessIntent: true
 
 ml:
   enabled: false
@@ -17,77 +21,7 @@ ml:
 git:
   tokenSecret: ""
 
-# LLM Processor configuration
-llmProcessor:
-  enabled: true
-  replicaCount: 1
-  
-  image:
-    repository: thc1006/nephoran-llm-processor
-    pullPolicy: IfNotPresent
-    tag: "latest"
-  
-  service:
-    type: ClusterIP
-    port: 8080
-    targetPort: 8080
-  
-  # Health check configuration
-  healthCheck:
-    enabled: true
-    livenessProbe:
-      httpGet:
-        path: /health
-        port: 8080
-      failureThreshold: 3
-      periodSeconds: 10
-      initialDelaySeconds: 30
-      timeoutSeconds: 5
-    readinessProbe:
-      httpGet:
-        path: /health
-        port: 8080
-      failureThreshold: 3
-      periodSeconds: 10
-      initialDelaySeconds: 5
-      timeoutSeconds: 5
-  
-  # Resource limits and requests
-  resources:
-    limits:
-      cpu: 500m
-      memory: 512Mi
-    requests:
-      cpu: 100m
-      memory: 128Mi
-  
-  # Node selection
-  nodeSelector: {}
-  tolerations: []
-  affinity: {}
-  
-  # Security context
-  securityContext:
-    runAsNonRoot: true
-    runAsUser: 65534
-    readOnlyRootFilesystem: true
-    allowPrivilegeEscalation: false
-    capabilities:
-      drop:
-        - ALL
-  
-  # Pod security context
-  podSecurityContext:
-    fsGroup: 65534
-  
-  # Environment variables
-  env:
-    - name: PORT
-      value: "8080"
-  
-  # RAG service configuration (conditional)
-  ragService:
-    url: "http://rag-api:5001/process_intent"
+# Note: LLM Processor configuration moved below to avoid duplication
 
 # RAG API configuration (conditional deployment)
 ragApi:
@@ -215,13 +149,26 @@ secrets:
     backend: "vault"  # vault, aws-secrets-manager, azure-keyvault, gcp-secret-manager
     refreshInterval: "1h"
 
-# LLM Provider Configuration
+# LLM Processor Configuration
 llmProcessor:
   enabled: true
   replicaCount: 1
   
   # Log level
   logLevel: "info"
+  
+  # Metrics security configuration
+  metrics:
+    # When false (default), metrics are only accessible from allowed CIDR blocks
+    # When true, metrics are publicly accessible (not recommended for production)
+    exposePublicly: false
+    # CIDR blocks allowed to access metrics when exposePublicly is false
+    # Default includes common private network ranges
+    allowedCIDRs:
+      - "10.0.0.0/8"        # Private Class A networks
+      - "172.16.0.0/12"     # Private Class B networks  
+      - "192.168.0.0/16"    # Private Class C networks
+      - "127.0.0.0/8"       # Localhost
   
   # LLM provider configuration
   providers:
@@ -258,7 +205,7 @@ llmProcessor:
     enabled: true
     livenessProbe:
       httpGet:
-        path: /health
+        path: /healthz
         port: 8080
       failureThreshold: 3
       periodSeconds: 10
@@ -266,7 +213,7 @@ llmProcessor:
       timeoutSeconds: 5
     readinessProbe:
       httpGet:
-        path: /health
+        path: /readyz
         port: 8080
       failureThreshold: 3
       periodSeconds: 10
@@ -303,7 +250,8 @@ llmProcessor:
   
   # RAG service configuration (conditional)
   ragService:
-    url: "http://rag-api:5001/process_intent"
+    # Base URL for RAG API service (endpoint path determined by rag.compat.enableLegacyProcessIntent)
+    url: "http://rag-api:5001"
 
 # Weaviate Vector Database
 weaviate:

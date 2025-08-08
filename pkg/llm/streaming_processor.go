@@ -23,6 +23,12 @@ type StreamingProcessor struct {
 	metrics           *StreamingMetrics
 	activeStreams     map[string]*StreamingSession
 	mutex             sync.RWMutex
+	
+	// Smart endpoints for RAG integration
+	processEndpoint   string
+	streamEndpoint    string
+	healthEndpoint    string
+	ragAPIURL         string
 }
 
 // StreamingConfig holds configuration for streaming operations
@@ -147,6 +153,9 @@ func NewStreamingProcessor(baseClient Client, tokenManager *TokenManager, config
 		activeStreams:  make(map[string]*StreamingSession),
 	}
 	
+	// Initialize endpoints - will be set later via SetRAGEndpoints
+	sp.ragAPIURL = "" // Will be configured when used
+	
 	// Initialize context manager
 	sp.contextManager = NewStreamingContextManager(tokenManager, config.ContextInjectionOverhead)
 	
@@ -154,6 +163,52 @@ func NewStreamingProcessor(baseClient Client, tokenManager *TokenManager, config
 	go sp.maintenanceRoutine()
 	
 	return sp
+}
+
+// SetRAGEndpoints configures the RAG API endpoints for streaming
+func (sp *StreamingProcessor) SetRAGEndpoints(ragAPIURL string) {
+	sp.mutex.Lock()
+	defer sp.mutex.Unlock()
+	
+	sp.ragAPIURL = ragAPIURL
+	
+	// Initialize smart endpoints using the same logic as ProcessingEngine
+	baseURL := strings.TrimSuffix(ragAPIURL, "/")
+	
+	// Determine process endpoint based on URL pattern
+	if strings.HasSuffix(ragAPIURL, "/process_intent") {
+		// Legacy pattern - use as configured
+		sp.processEndpoint = ragAPIURL
+	} else if strings.HasSuffix(ragAPIURL, "/process") {
+		// New pattern - use as configured
+		sp.processEndpoint = ragAPIURL
+	} else {
+		// Base URL pattern - default to /process for new installations
+		sp.processEndpoint = baseURL + "/process"
+	}
+	
+	// Streaming endpoint
+	processBase := baseURL
+	if strings.HasSuffix(sp.processEndpoint, "/process_intent") {
+		processBase = strings.TrimSuffix(sp.processEndpoint, "/process_intent")
+	} else if strings.HasSuffix(sp.processEndpoint, "/process") {
+		processBase = strings.TrimSuffix(sp.processEndpoint, "/process")
+	}
+	sp.streamEndpoint = processBase + "/stream"
+	sp.healthEndpoint = processBase + "/health"
+	
+	sp.logger.Info("Configured RAG endpoints for streaming",
+		slog.String("process_endpoint", sp.processEndpoint),
+		slog.String("stream_endpoint", sp.streamEndpoint),
+		slog.String("health_endpoint", sp.healthEndpoint),
+	)
+}
+
+// GetConfiguredEndpoints returns the currently configured endpoints
+func (sp *StreamingProcessor) GetConfiguredEndpoints() (process, stream, health string) {
+	sp.mutex.RLock()
+	defer sp.mutex.RUnlock()
+	return sp.processEndpoint, sp.streamEndpoint, sp.healthEndpoint
 }
 
 // getDefaultStreamingConfig returns default streaming configuration
@@ -318,6 +373,9 @@ func (sp *StreamingProcessor) processStreamingRequest(session *StreamingSession,
 		// For now, we'll use the provided context
 		ragContext = request.Context
 		
+		// If we have a process endpoint configured, we could call it here for context
+		// This is where integration with RAG retrieval would happen
+		
 		// Send context injection event
 		contextChunk := &StreamingChunk{
 			Type:      "context_injection",
@@ -403,6 +461,7 @@ func (sp *StreamingProcessor) handleClientStreaming(session *StreamingSession, r
 }
 
 // simulateStreaming simulates streaming by chunking a complete response
+// If RAG endpoints are configured, it could use them for enhanced responses
 func (sp *StreamingProcessor) simulateStreaming(session *StreamingSession, request *StreamingRequest, ragContext string) error {
 	// Build the full prompt
 	prompt := request.Query
@@ -410,10 +469,10 @@ func (sp *StreamingProcessor) simulateStreaming(session *StreamingSession, reque
 		prompt = ragContext + "\n\nQuery: " + request.Query
 	}
 	
-	// Get complete response from base client
-	response, err := sp.baseClient.ProcessIntent(session.Context, prompt)
+	// Get complete response from base client or RAG endpoint if configured
+	response, err := sp.getResponseForStreaming(session.Context, prompt)
 	if err != nil {
-		return fmt.Errorf("base client processing failed: %w", err)
+		return fmt.Errorf("response processing failed: %w", err)
 	}
 	
 	// Chunk the response and stream it
@@ -795,4 +854,21 @@ func (sp *StreamingProcessor) Close() error {
 	
 	sp.logger.Info("Streaming processor shutdown complete")
 	return nil
+}
+
+// getResponseForStreaming gets response either from base client or RAG endpoint
+func (sp *StreamingProcessor) getResponseForStreaming(ctx context.Context, prompt string) (string, error) {
+	sp.mutex.RLock()
+	processEndpoint := sp.processEndpoint
+	sp.mutex.RUnlock()
+	
+	// If we have a configured RAG endpoint, we could use it here
+	// For now, fall back to base client
+	if processEndpoint != "" {
+		// In a full implementation, this would make an HTTP call to the RAG endpoint
+		// For now, we'll use the base client but log that RAG is available
+		sp.logger.Debug("RAG endpoint available for streaming", slog.String("endpoint", processEndpoint))
+	}
+	
+	return sp.baseClient.ProcessIntent(ctx, prompt)
 }

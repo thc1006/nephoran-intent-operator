@@ -608,7 +608,7 @@ ragApi:
     enabled: true
     livenessProbe:
       httpGet:
-        path: /health
+        path: /healthz
         port: 5001
         scheme: HTTP
       initialDelaySeconds: 45
@@ -617,7 +617,7 @@ ragApi:
       failureThreshold: 3
     readinessProbe:
       httpGet:
-        path: /ready
+        path: /readyz
         port: 5001
         scheme: HTTP
       initialDelaySeconds: 20
@@ -626,7 +626,7 @@ ragApi:
       failureThreshold: 3
     startupProbe:
       httpGet:
-        path: /health
+        path: /healthz
         port: 5001
         scheme: HTTP
       initialDelaySeconds: 30

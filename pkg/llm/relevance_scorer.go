@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
@@ -16,7 +17,7 @@ import (
 type RelevanceScorer struct {
 	config          *RelevanceScorerConfig
 	logger          *slog.Logger
-	embeddings      EmbeddingService // Interface for semantic similarity
+	embeddings      rag.EmbeddingServiceInterface // Interface for semantic similarity
 	domainKnowledge *TelecomDomainKnowledge
 	metrics         *ScoringMetrics
 	mutex           sync.RWMutex
@@ -106,11 +107,9 @@ type ScoredDocument struct {
 	TokenCount     int                  `json:"token_count"`
 }
 
-// EmbeddingService interface for semantic similarity calculations
-type EmbeddingService interface {
-	CalculateSimilarity(ctx context.Context, text1, text2 string) (float64, error)
-	GetEmbedding(ctx context.Context, text string) ([]float64, error)
-}
+// EmbeddingServiceInterface defines the interface for semantic similarity calculations
+// Note: This interface is now defined in pkg/rag/embedding_service_interface.go for better abstraction
+// This local definition is kept for backward compatibility but should be considered deprecated
 
 // TelecomDomainKnowledge provides domain-specific knowledge for scoring
 type TelecomDomainKnowledge struct {
@@ -122,7 +121,7 @@ type TelecomDomainKnowledge struct {
 }
 
 // NewRelevanceScorer creates a new relevance scorer
-func NewRelevanceScorer(config *RelevanceScorerConfig, embeddings EmbeddingService) *RelevanceScorer {
+func NewRelevanceScorer(config *RelevanceScorerConfig, embeddings rag.EmbeddingServiceInterface) *RelevanceScorer {
 	if config == nil {
 		config = getDefaultRelevanceScorerConfig()
 	}

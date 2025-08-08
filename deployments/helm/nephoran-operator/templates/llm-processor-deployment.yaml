@@ -53,6 +53,12 @@ spec:
             - name: ML_ENABLED
               value: "{{ .Values.ml.enabled }}"
             
+            # Metrics security configuration
+            - name: EXPOSE_METRICS_PUBLICLY
+              value: "{{ .Values.llmProcessor.metrics.exposePublicly }}"
+            - name: METRICS_ALLOWED_CIDRS
+              value: "{{ join "," .Values.llmProcessor.metrics.allowedCIDRs }}"
+            
             # OpenAI API credentials (from SOPS-encrypted secret)
             - name: OPENAI_API_KEY
               valueFrom:

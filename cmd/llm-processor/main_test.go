@@ -1162,3 +1162,220 @@ func TestTLSConfigurationIntegration(t *testing.T) {
 		})
 	}
 }
+
+// TestIPAllowlistMiddleware tests the IP allowlist middleware functionality
+func TestIPAllowlistMiddleware(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+		Level: slog.LevelError, // Only show errors in tests
+	}))
+
+	// Mock handler that returns "OK"
+	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
+
+	tests := []struct {
+		name            string
+		allowedCIDRs    []string
+		clientHeaders   map[string]string
+		expectedStatus  int
+		description     string
+	}{
+		{
+			name:         "Private network allowed via X-Forwarded-For",
+			allowedCIDRs: []string{"192.168.1.0/24", "10.0.0.0/8"},
+			clientHeaders: map[string]string{
+				"X-Forwarded-For": "192.168.1.100",
+			},
+			expectedStatus: http.StatusOK,
+			description:    "Client IP in allowed private network should pass",
+		},
+		{
+			name:         "Public IP blocked via X-Forwarded-For",
+			allowedCIDRs: []string{"192.168.1.0/24", "10.0.0.0/8"},
+			clientHeaders: map[string]string{
+				"X-Forwarded-For": "8.8.8.8",
+			},
+			expectedStatus: http.StatusForbidden,
+			description:    "Public IP not in allowlist should be blocked",
+		},
+		{
+			name:         "Localhost allowed via X-Real-IP",
+			allowedCIDRs: []string{"127.0.0.0/8"},
+			clientHeaders: map[string]string{
+				"X-Real-IP": "127.0.0.1",
+			},
+			expectedStatus: http.StatusOK,
+			description:    "Localhost should be allowed when in CIDR list",
+		},
+		{
+			name:         "CloudFlare header respected",
+			allowedCIDRs: []string{"172.16.0.0/12"},
+			clientHeaders: map[string]string{
+				"CF-Connecting-IP": "172.16.5.100",
+			},
+			expectedStatus: http.StatusOK,
+			description:    "CloudFlare CF-Connecting-IP header should be respected",
+		},
+		{
+			name:            "Empty allowlist blocks all",
+			allowedCIDRs:    []string{},
+			clientHeaders:   map[string]string{"X-Forwarded-For": "127.0.0.1"},
+			expectedStatus:  http.StatusForbidden,
+			description:     "Empty allowlist should block all traffic",
+		},
+		{
+			name:         "Multiple headers - first one wins",
+			allowedCIDRs: []string{"192.168.1.0/24"},
+			clientHeaders: map[string]string{
+				"X-Forwarded-For": "192.168.1.50",
+				"X-Real-IP":       "8.8.8.8", // Should be ignored since X-Forwarded-For takes precedence
+			},
+			expectedStatus: http.StatusOK,
+			description:    "X-Forwarded-For should take precedence over X-Real-IP",
+		},
+		{
+			name:         "Invalid CIDR ignored, valid ones work",
+			allowedCIDRs: []string{"invalid-cidr", "192.168.1.0/24"},
+			clientHeaders: map[string]string{
+				"X-Forwarded-For": "192.168.1.75",
+			},
+			expectedStatus: http.StatusOK,
+			description:    "Invalid CIDR should be ignored, valid ones should work",
+		},
+		{
+			name:         "Multiple IPs in X-Forwarded-For, first one used",
+			allowedCIDRs: []string{"192.168.1.0/24"},
+			clientHeaders: map[string]string{
+				"X-Forwarded-For": "192.168.1.100, 10.0.0.1, 8.8.8.8",
+			},
+			expectedStatus: http.StatusOK,
+			description:    "First IP in X-Forwarded-For chain should be used",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create handler with IP allowlist
+			handler := createIPAllowlistHandler(testHandler, tt.allowedCIDRs, logger)
+
+			// Create test request
+			req := httptest.NewRequest("GET", "/metrics", nil)
+			
+			// Set headers
+			for header, value := range tt.clientHeaders {
+				req.Header.Set(header, value)
+			}
+
+			// Create response recorder
+			rr := httptest.NewRecorder()
+
+			// Execute request
+			handler(rr, req)
+
+			// Check result
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("Test '%s' failed: expected status %d, got %d. %s",
+					tt.name, tt.expectedStatus, rr.Code, tt.description)
+				t.Errorf("Response body: %s", rr.Body.String())
+			}
+
+			// Additional checks for successful requests
+			if tt.expectedStatus == http.StatusOK && rr.Body.String() != "OK" {
+				t.Errorf("Test '%s': expected body 'OK', got '%s'", tt.name, rr.Body.String())
+			}
+		})
+	}
+}
+
+// TestMetricsEndpointConfiguration tests the conditional configuration of metrics endpoint
+func TestMetricsEndpointConfiguration(t *testing.T) {
+	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{
+		Level: slog.LevelError,
+	}))
+
+	tests := []struct {
+		name                 string
+		exposeMetricsPublicly bool
+		allowedCIDRs         []string
+		clientIP             string
+		expectedStatus       int
+		description          string
+	}{
+		{
+			name:                 "Metrics exposed publicly",
+			exposeMetricsPublicly: true,
+			allowedCIDRs:         []string{"127.0.0.0/8"},
+			clientIP:             "8.8.8.8", // Should be allowed because public exposure
+			expectedStatus:       http.StatusOK,
+			description:          "When ExposeMetricsPublicly=true, all IPs should be allowed",
+		},
+		{
+			name:                 "Metrics protected - allowed IP",
+			exposeMetricsPublicly: false,
+			allowedCIDRs:         []string{"127.0.0.0/8", "192.168.1.0/24"},
+			clientIP:             "192.168.1.100",
+			expectedStatus:       http.StatusOK,
+			description:          "When protected, allowed IP should pass",
+		},
+		{
+			name:                 "Metrics protected - blocked IP",
+			exposeMetricsPublicly: false,
+			allowedCIDRs:         []string{"127.0.0.0/8"},
+			clientIP:             "8.8.8.8",
+			expectedStatus:       http.StatusForbidden,
+			description:          "When protected, disallowed IP should be blocked",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a mock configuration
+			cfg := &config.LLMProcessorConfig{
+				ExposeMetricsPublicly: tt.exposeMetricsPublicly,
+				MetricsAllowedCIDRs:   tt.allowedCIDRs,
+			}
+
+			// Mock handler that returns metrics-like content
+			mockMetricsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "text/plain")
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("# HELP test_metric A test metric\n# TYPE test_metric counter\ntest_metric 1\n"))
+			})
+
+			var handler http.HandlerFunc
+			if cfg.ExposeMetricsPublicly {
+				// When publicly exposed, use handler directly (no IP filtering)
+				handler = mockMetricsHandler
+			} else {
+				// When not public, wrap with IP allowlist
+				handler = createIPAllowlistHandler(mockMetricsHandler, cfg.MetricsAllowedCIDRs, logger)
+			}
+
+			// Create test request
+			req := httptest.NewRequest("GET", "/metrics", nil)
+			req.Header.Set("X-Forwarded-For", tt.clientIP)
+
+			// Create response recorder
+			rr := httptest.NewRecorder()
+
+			// Execute request
+			handler(rr, req)
+
+			// Check result
+			if rr.Code != tt.expectedStatus {
+				t.Errorf("Test '%s' failed: expected status %d, got %d. %s",
+					tt.name, tt.expectedStatus, rr.Code, tt.description)
+			}
+
+			// For successful requests, verify we get metrics content
+			if tt.expectedStatus == http.StatusOK {
+				body := rr.Body.String()
+				if !strings.Contains(body, "test_metric") {
+					t.Errorf("Test '%s': expected metrics content, got: %s", tt.name, body)
+				}
+			}
+		})
+	}
+}

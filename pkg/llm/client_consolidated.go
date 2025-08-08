@@ -29,6 +29,10 @@ type Client struct {
 	maxTokens    int
 	backendType  string
 	
+	// Smart endpoints for RAG backend
+	processEndpoint string
+	healthEndpoint  string
+	
 	// Performance components
 	cache        *ResponseCache
 	circuitBreaker *CircuitBreaker
@@ -284,7 +288,43 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		tokenTracker: NewTokenTracker(),
 	}
 	
+	// Initialize smart endpoints for RAG backend
+	if config.BackendType == "rag" {
+		client.initializeRAGEndpoints()
+	}
+	
 	return client
+}
+
+// initializeRAGEndpoints initializes smart endpoints for RAG backend
+func (c *Client) initializeRAGEndpoints() {
+	baseURL := strings.TrimSuffix(c.url, "/")
+	
+	// Determine process endpoint based on URL pattern
+	if strings.HasSuffix(c.url, "/process_intent") {
+		// Legacy pattern - use as configured
+		c.processEndpoint = c.url
+	} else if strings.HasSuffix(c.url, "/process") {
+		// New pattern - use as configured
+		c.processEndpoint = c.url
+	} else {
+		// Base URL pattern - default to /process for new installations
+		c.processEndpoint = baseURL + "/process"
+	}
+	
+	// Health endpoint
+	processBase := baseURL
+	if strings.HasSuffix(c.processEndpoint, "/process_intent") {
+		processBase = strings.TrimSuffix(c.processEndpoint, "/process_intent")
+	} else if strings.HasSuffix(c.processEndpoint, "/process") {
+		processBase = strings.TrimSuffix(c.processEndpoint, "/process")
+	}
+	c.healthEndpoint = processBase + "/health"
+	
+	c.logger.Info("Initialized RAG client endpoints",
+		slog.String("process_endpoint", c.processEndpoint),
+		slog.String("health_endpoint", c.healthEndpoint),
+	)
 }
 
 // ProcessIntent processes an intent with all optimizations
@@ -460,7 +500,13 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 	
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.url+"/process", bytes.NewBuffer(reqBody))
+	// Use smart endpoint if available, otherwise fall back to URL construction
+	endpointURL := c.url + "/process" // Default fallback
+	if c.processEndpoint != "" {
+		endpointURL = c.processEndpoint
+	}
+	
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", endpointURL, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}

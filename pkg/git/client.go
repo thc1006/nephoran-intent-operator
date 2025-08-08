@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -38,6 +39,7 @@ type Client struct {
 	SshKey   string
 	RepoPath string
 	logger   *slog.Logger
+	pushSem  chan struct{} // Semaphore for concurrent git operations (buffered channel with capacity 4)
 }
 
 // NewGitClientConfig creates a new client configuration with token loading support.
@@ -86,6 +88,7 @@ func NewClientFromConfig(config *ClientConfig) *Client {
 		SshKey:   config.Token,
 		RepoPath: config.RepoPath,
 		logger:   config.Logger,
+		pushSem:  make(chan struct{}, 4), // Initialize semaphore with capacity 4
 	}
 }
 
@@ -100,6 +103,7 @@ func NewClient(repoURL, branch, sshKey string) *Client {
 		SshKey:   sshKey,
 		RepoPath: "/tmp/deployment-repo",
 		logger:   logger,
+		pushSem:  make(chan struct{}, 4), // Initialize semaphore with capacity 4
 	}
 }
 
@@ -116,11 +120,78 @@ func NewClientWithLogger(repoURL, branch, sshKey string, logger *slog.Logger) *C
 		SshKey:   sshKey,
 		RepoPath: "/tmp/deployment-repo",
 		logger:   logger,
+		pushSem:  make(chan struct{}, 4), // Initialize semaphore with capacity 4
+	}
+}
+
+// acquireSemaphore acquires the semaphore for git operations with debug logging.
+func (c *Client) acquireSemaphore(operation string) {
+	// Handle case where client was not created with constructor (tests)
+	if c.pushSem == nil {
+		c.pushSem = make(chan struct{}, 4)
+	}
+	if c.logger == nil {
+		c.logger = slog.Default().With("component", "git-client")
+	}
+	
+	// Try to acquire immediately first
+	select {
+	case c.pushSem <- struct{}{}:
+		// Successfully acquired immediately
+		c.logger.Debug("Semaphore acquired immediately", 
+			"operation", operation,
+			"goroutine", runtime.NumGoroutine())
+		return
+	default:
+		// Would block, log that we're waiting
+		c.logger.Debug("Waiting for semaphore acquisition", 
+			"operation", operation,
+			"goroutine", runtime.NumGoroutine(),
+			"queue_length", len(c.pushSem))
+	}
+	
+	// Now block and wait for acquisition
+	c.pushSem <- struct{}{}
+	c.logger.Debug("Semaphore acquired after waiting", 
+		"operation", operation,
+		"goroutine", runtime.NumGoroutine())
+}
+
+// releaseSemaphore releases the semaphore for git operations with debug logging.
+func (c *Client) releaseSemaphore(operation string) {
+	// Handle case where client was not created with constructor (tests)
+	if c.pushSem == nil || c.logger == nil {
+		return // No semaphore to release, nothing to do
+	}
+	
+	defer func() {
+		if r := recover(); r != nil {
+			c.logger.Error("Panic during semaphore release", 
+				"operation", operation,
+				"panic", r,
+				"goroutine", runtime.NumGoroutine())
+			panic(r) // Re-panic after logging
+		}
+	}()
+	
+	select {
+	case <-c.pushSem:
+		c.logger.Debug("Semaphore released", 
+			"operation", operation,
+			"goroutine", runtime.NumGoroutine(),
+			"remaining_capacity", cap(c.pushSem)-len(c.pushSem))
+	default:
+		c.logger.Warn("Attempted to release semaphore when none held", 
+			"operation", operation,
+			"goroutine", runtime.NumGoroutine())
 	}
 }
 
 // InitRepo clones the repository if it doesn't exist locally.
 func (c *Client) InitRepo() error {
+	c.acquireSemaphore("InitRepo")
+	defer c.releaseSemaphore("InitRepo")
+
 	if _, err := os.Stat(c.RepoPath); os.IsNotExist(err) {
 		_, err := git.PlainClone(c.RepoPath, false, &git.CloneOptions{
 			URL:      c.RepoURL,
@@ -136,6 +207,9 @@ func (c *Client) InitRepo() error {
 // CommitAndPush writes files, commits them, and pushes to the remote repository.
 // Returns the commit hash of the created commit.
 func (c *Client) CommitAndPush(files map[string]string, message string) (string, error) {
+	c.acquireSemaphore("CommitAndPush")
+	defer c.releaseSemaphore("CommitAndPush")
+
 	r, err := git.PlainOpen(c.RepoPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to open repo: %w", err)
@@ -208,6 +282,9 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 
 // CommitAndPushChanges commits and pushes any changes without specifying files
 func (c *Client) CommitAndPushChanges(message string) error {
+	c.acquireSemaphore("CommitAndPushChanges")
+	defer c.releaseSemaphore("CommitAndPushChanges")
+
 	r, err := git.PlainOpen(c.RepoPath)
 	if err != nil {
 		return fmt.Errorf("failed to open repo: %w", err)
@@ -268,6 +345,9 @@ func (c *Client) CommitAndPushChanges(message string) error {
 
 // RemoveDirectory removes a directory from the repository and commits the change
 func (c *Client) RemoveDirectory(path string, commitMessage string) error {
+	c.acquireSemaphore("RemoveDirectory")
+	defer c.releaseSemaphore("RemoveDirectory")
+
 	r, err := git.PlainOpen(c.RepoPath)
 	if err != nil {
 		return fmt.Errorf("failed to open repo: %w", err)
