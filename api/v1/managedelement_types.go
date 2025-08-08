@@ -22,14 +22,7 @@ import (
 )
 
 // SecretReference references a Kubernetes Secret for authentication credentials
-type SecretReference struct {
-	// Name is the name of the secret
-	Name string `json:"name"`
-	// Namespace is the namespace of the secret (defaults to the ManagedElement's namespace)
-	Namespace string `json:"namespace,omitempty"`
-	// Key is the key within the secret data
-	Key string `json:"key"`
-}
+// SecretReference is defined in audittrail_types.go to avoid duplication
 
 // ManagedElementCredentials defines authentication credentials for a managed element
 // Credentials should be stored in Kubernetes Secrets and referenced here

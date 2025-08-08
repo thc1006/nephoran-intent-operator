@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
 // LLMProcessorConfig holds configuration specific to the LLM processor service
@@ -173,7 +175,8 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	// LLM Configuration
 	cfg.LLMBackendType = getEnvWithValidation("LLM_BACKEND_TYPE", cfg.LLMBackendType, validateLLMBackendType, &validationErrors)
 	// Load LLM API key from file or env based on backend type
-	llmAPIKey, err := LoadLLMAPIKeyFromFile(cfg.LLMBackendType, nil)
+	var auditLogger interfaces.AuditLogger // nil interface is valid
+	llmAPIKey, err := LoadLLMAPIKeyFromFile(cfg.LLMBackendType, auditLogger)
 	if err != nil && cfg.LLMBackendType != "mock" && cfg.LLMBackendType != "rag" {
 		validationErrors = append(validationErrors, fmt.Sprintf("LLM API Key: %v", err))
 	}
@@ -202,7 +205,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	// Security Configuration
 	cfg.APIKeyRequired = parseBoolWithDefault("API_KEY_REQUIRED", cfg.APIKeyRequired)
 	// Load API key from file or env
-	apiKey, err := LoadAPIKeyFromFile(nil)
+	apiKey, err := LoadAPIKeyFromFile(auditLogger)
 	if err != nil && cfg.APIKeyRequired {
 		validationErrors = append(validationErrors, fmt.Sprintf("API Key: %v", err))
 	}
@@ -250,7 +253,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg.AuthEnabled = parseBoolWithDefault("AUTH_ENABLED", cfg.AuthEnabled)
 	cfg.AuthConfigFile = os.Getenv("AUTH_CONFIG_FILE")
 	// Load JWT secret key from file or env
-	jwtSecretKey, err := LoadJWTSecretKeyFromFile(nil)
+	jwtSecretKey, err := LoadJWTSecretKeyFromFile(auditLogger)
 	if err != nil && cfg.AuthEnabled {
 		validationErrors = append(validationErrors, fmt.Sprintf("JWT Secret Key: %v", err))
 	}

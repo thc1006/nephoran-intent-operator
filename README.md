@@ -6,15 +6,15 @@
 
 **Transform natural language into deployed network functions with AI-driven orchestration**
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/testing.yml?branch=main&style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/testing.yml)
-[![Documentation](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/docs-publish.yml?branch=main&style=flat-square&logo=gitbook&label=docs)](https://thc1006.github.io/nephoran-intent-operator)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/ci.yaml?branch=main&style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/ci.yaml)
+[![Documentation](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/docs-unified.yml?branch=main&style=flat-square&logo=gitbook&label=docs)](https://thc1006.github.io/nephoran-intent-operator)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/thc1006/nephoran-intent-operator?style=flat-square&logo=go)](https://golang.org/)
 [![License](https://img.shields.io/github/license/thc1006/nephoran-intent-operator?style=flat-square)](LICENSE)
 [![Code Coverage](https://img.shields.io/codecov/c/github/thc1006/nephoran-intent-operator?style=flat-square&logo=codecov)](https://codecov.io/gh/thc1006/nephoran-intent-operator)
 [![Docker Pulls](https://img.shields.io/docker/pulls/nephoran/intent-operator?style=flat-square&logo=docker)](https://hub.docker.com/r/nephoran/intent-operator)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.30+-blue?style=flat-square&logo=kubernetes)](https://kubernetes.io/)
 [![O-RAN Compliant](https://img.shields.io/badge/O--RAN-Compliant-green?style=flat-square&logo=verified)](https://www.o-ran.org/)
-[![Security Scan](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/security-scan.yml?branch=main&style=flat-square&logo=security&label=security)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/security-scan.yml)
+[![Security Scan](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/security-consolidated.yml?branch=main&style=flat-square&logo=security&label=security)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/security-consolidated.yml)
 [![Release](https://img.shields.io/github/v/release/thc1006/nephoran-intent-operator?style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/releases)
 
 </div>

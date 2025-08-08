@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
+	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/consul"    // Register consul provider
+	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/istio"     // Register istio provider
+	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/linkerd"   // Register linkerd provider
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

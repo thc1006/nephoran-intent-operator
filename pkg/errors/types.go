@@ -11,107 +11,14 @@ import (
 	"time"
 )
 
-// ErrorSeverity represents the severity level of an error
-type ErrorSeverity int
+// Removed duplicate ErrorSeverity - using the one from comprehensive_errors.go
 
-const (
-	SeverityLow ErrorSeverity = iota
-	SeverityMedium
-	SeverityHigh
-	SeverityCritical
-)
+// This file contains type aliases and imports for backward compatibility
 
-func (s ErrorSeverity) String() string {
-	switch s {
-	case SeverityLow:
-		return "low"
-	case SeverityMedium:
-		return "medium"
-	case SeverityHigh:
-		return "high"
-	case SeverityCritical:
-		return "critical"
-	default:
-		return "unknown"
-	}
-}
+// ErrorType represents different types of errors for classification - using types from errors.go
+// Additional constants for extended error types not in errors.go
 
-// ErrorCategory represents the category of an error
-type ErrorCategory string
-
-const (
-	CategoryUser        ErrorCategory = "user"
-	CategorySystem      ErrorCategory = "system"
-	CategoryInternal    ErrorCategory = "internal"
-	CategoryExternal    ErrorCategory = "external"
-	CategoryValidation  ErrorCategory = "validation"
-	CategoryPermission  ErrorCategory = "permission"
-	CategoryResource    ErrorCategory = "resource"
-	CategoryNetwork     ErrorCategory = "network"
-	CategoryTimeout     ErrorCategory = "timeout"
-	CategoryConfig      ErrorCategory = "config"
-)
-
-// ErrorType represents different types of errors for classification
-type ErrorType string
-
-const (
-	// Validation errors
-	ErrorTypeValidation ErrorType = "validation"
-	ErrorTypeRequired   ErrorType = "required"
-	ErrorTypeInvalid    ErrorType = "invalid"
-	ErrorTypeFormat     ErrorType = "format"
-	ErrorTypeRange      ErrorType = "range"
-
-	// Infrastructure errors  
-	ErrorTypeNetwork    ErrorType = "network"
-	ErrorTypeDatabase   ErrorType = "database"
-	ErrorTypeExternal   ErrorType = "external"
-	ErrorTypeTimeout    ErrorType = "timeout"
-	ErrorTypeRateLimit  ErrorType = "rate_limit"
-	ErrorTypeQuota      ErrorType = "quota"
-
-	// Authentication/Authorization errors
-	ErrorTypeAuth         ErrorType = "authentication"
-	ErrorTypeUnauthorized ErrorType = "unauthorized"
-	ErrorTypeForbidden    ErrorType = "forbidden"
-	ErrorTypeExpired      ErrorType = "expired"
-
-	// Business logic errors
-	ErrorTypeBusiness    ErrorType = "business"
-	ErrorTypeConflict    ErrorType = "conflict"
-	ErrorTypeNotFound    ErrorType = "not_found"
-	ErrorTypeDuplicate   ErrorType = "duplicate"
-	ErrorTypePrecondition ErrorType = "precondition"
-
-	// System errors
-	ErrorTypeInternal ErrorType = "internal"
-	ErrorTypeConfig   ErrorType = "configuration"
-	ErrorTypeResource ErrorType = "resource"
-	ErrorTypeDisk     ErrorType = "disk"
-	ErrorTypeMemory   ErrorType = "memory"
-	ErrorTypeCPU      ErrorType = "cpu"
-
-	// O-RAN specific errors
-	ErrorTypeORANA1     ErrorType = "oran_a1"
-	ErrorTypeORANO1     ErrorType = "oran_o1"
-	ErrorTypeORANO2     ErrorType = "oran_o2"
-	ErrorTypeORANE2     ErrorType = "oran_e2"
-	ErrorTypeRIC        ErrorType = "ric"
-	ErrorTypeNetworkSlice ErrorType = "network_slice"
-
-	// Kubernetes specific errors
-	ErrorTypeK8sResource   ErrorType = "k8s_resource"
-	ErrorTypeK8sAPI        ErrorType = "k8s_api"
-	ErrorTypeK8sOperator   ErrorType = "k8s_operator"
-	ErrorTypeK8sController ErrorType = "k8s_controller"
-
-	// LLM/AI specific errors
-	ErrorTypeLLM       ErrorType = "llm"
-	ErrorTypeRAG       ErrorType = "rag"
-	ErrorTypeEmbedding ErrorType = "embedding"
-	ErrorTypeVector    ErrorType = "vector"
-)
+// Note: Basic ErrorType constants are defined in errors.go to avoid conflicts
 
 // ErrorImpact represents the impact level of an error
 type ErrorImpact string

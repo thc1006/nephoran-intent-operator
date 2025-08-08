@@ -374,9 +374,9 @@ func (ea *EventAggregator[TInput, TOutput]) Close() error {
 // EventStore provides event sourcing capabilities.
 type EventStore[T any] interface {
 	Store(ctx context.Context, event Event[T]) Result[bool, error]
-	LoadByID(ctx context.Context, id string) Result[[]Event[T], error>
-	LoadByType(ctx context.Context, eventType string) Result[[]Event[T], error>
-	LoadSince(ctx context.Context, timestamp time.Time) Result[[]Event[T], error>
+	LoadByID(ctx context.Context, id string) Result[[]Event[T], error]
+	LoadByType(ctx context.Context, eventType string) Result[[]Event[T], error]
+	LoadSince(ctx context.Context, timestamp time.Time) Result[[]Event[T], error]
 }
 
 // MemoryEventStore provides an in-memory event store implementation.
@@ -442,7 +442,7 @@ func (mes *MemoryEventStore[T]) LoadSince(ctx context.Context, timestamp time.Ti
 		}
 	}
 	
-	return Ok[[]Event[T], error>(matching)
+	return Ok[[]Event[T], error](matching)
 }
 
 // EventStream provides streaming event capabilities.

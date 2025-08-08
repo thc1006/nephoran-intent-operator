@@ -171,17 +171,17 @@ func (cb *CircuitBreaker) canProceed() error {
 			}
 			return nil
 		}
-		return cb.createCircuitBreakerError(\"circuit breaker is open\")
+		return cb.createCircuitBreakerError("circuit breaker is open")
 		
 	case CircuitBreakerHalfOpen:
 		if atomic.LoadInt64(&cb.halfOpenCalls) >= int64(cb.config.HalfOpenMaxCalls) {
-			return cb.createCircuitBreakerError(\"circuit breaker half-open call limit exceeded\")
+			return cb.createCircuitBreakerError("circuit breaker half-open call limit exceeded")
 		}
 		atomic.AddInt64(&cb.halfOpenCalls, 1)
 		return nil
 		
 	default:
-		return cb.createCircuitBreakerError(\"unknown circuit breaker state\")
+		return cb.createCircuitBreakerError("unknown circuit breaker state")
 	}
 }
 
@@ -285,10 +285,10 @@ func (cb *CircuitBreaker) clearFailureWindow() {
 func (cb *CircuitBreaker) createCircuitBreakerError(message string) error {
 	return &ServiceError{
 		Type:           ErrorTypeResource,
-		Code:           \"circuit_breaker_open\",
+		Code:           "circuit_breaker_open",
 		Message:        message,
-		Service:        \"circuit-breaker\",
-		Operation:      \"execute\",
+		Service:        "circuit-breaker",
+		Operation:      "execute",
 		Component:      cb.config.Name,
 		Category:       CategorySystem,
 		Severity:       SeverityMedium,
@@ -300,9 +300,9 @@ func (cb *CircuitBreaker) createCircuitBreakerError(message string) error {
 		CircuitBreaker: cb.config.Name,
 		RetryAfter:     cb.config.ResetTimeout,
 		Metadata: map[string]interface{}{
-			\"circuit_breaker_state\": CircuitBreakerState(atomic.LoadInt32(&cb.state)).String(),
-			\"failures\":              atomic.LoadInt64(&cb.failures),
-			\"requests\":              atomic.LoadInt64(&cb.requests),
+			"circuit_breaker_state": CircuitBreakerState(atomic.LoadInt32(&cb.state)).String(),
+			"failures":              atomic.LoadInt64(&cb.failures),
+			"requests":              atomic.LoadInt64(&cb.requests),
 		},
 	}
 }
@@ -330,12 +330,12 @@ func (cb *CircuitBreaker) GetMetrics() map[string]interface{} {
 	cb.windowMutex.RUnlock()
 	
 	return map[string]interface{}{
-		\"name\":            cb.config.Name,
-		\"state\":           cb.GetState().String(),
-		\"failures\":        atomic.LoadInt64(&cb.failures),
-		\"requests\":        atomic.LoadInt64(&cb.requests),
-		\"window_failures\": windowFailures,
-		\"half_open_calls\": atomic.LoadInt64(&cb.halfOpenCalls),
+		"name":            cb.config.Name,
+		"state":           cb.GetState().String(),
+		"failures":        atomic.LoadInt64(&cb.failures),
+		"requests":        atomic.LoadInt64(&cb.requests),
+		"window_failures": windowFailures,
+		"half_open_calls": atomic.LoadInt64(&cb.halfOpenCalls),
 	}
 }
 
@@ -422,17 +422,17 @@ func (re *RetryExecutor) executeWithRetry(ctx context.Context, operation Retryab
 	// Enhance the error with retry information
 	if serviceErr, ok := lastError.(*ServiceError); ok {
 		serviceErr.RetryCount = re.policy.MaxRetries
-		serviceErr.AddTag(\"retry_exhausted\")
+		serviceErr.AddTag("retry_exhausted")
 		return serviceErr
 	}
 	
 	// Wrap non-ServiceError in a ServiceError
 	return &ServiceError{
 		Type:      ErrorTypeInternal,
-		Code:      \"retry_exhausted\",
-		Message:   fmt.Sprintf(\"Operation failed after %d retries\", re.policy.MaxRetries),
-		Service:   \"retry-executor\",
-		Operation: \"execute\",
+		Code:      "retry_exhausted",
+		Message:   fmt.Sprintf("Operation failed after %d retries", re.policy.MaxRetries),
+		Service:   "retry-executor",
+		Operation: "execute",
 		Category:  CategorySystem,
 		Severity:  SeverityHigh,
 		Impact:    ImpactSevere,
@@ -442,7 +442,7 @@ func (re *RetryExecutor) executeWithRetry(ctx context.Context, operation Retryab
 		Timestamp: time.Now(),
 		Cause:     lastError,
 		RetryCount: re.policy.MaxRetries,
-		Tags:      []string{\"retry_exhausted\"},
+		Tags:      []string{"retry_exhausted"},
 	}
 }
 
@@ -501,11 +501,11 @@ func isErrorOfType(err error, errorType ErrorType) bool {
 
 // BulkheadConfig configures bulkhead isolation patterns
 type BulkheadConfig struct {
-	Name           string        `json:\"name\"`
-	MaxConcurrent  int           `json:\"max_concurrent\"`
-	QueueSize      int           `json:\"queue_size\"`
-	Timeout        time.Duration `json:\"timeout\"`
-	RejectOverflow bool          `json:\"reject_overflow\"`
+	Name           string        `json:"name"`
+	MaxConcurrent  int           `json:"max_concurrent"`
+	QueueSize      int           `json:"queue_size"`
+	Timeout        time.Duration `json:"timeout"`
+	RejectOverflow bool          `json:"reject_overflow"`
 }
 
 // DefaultBulkheadConfig returns sensible defaults
@@ -534,7 +534,7 @@ type Bulkhead struct {
 // NewBulkhead creates a new bulkhead
 func NewBulkhead(config *BulkheadConfig) *Bulkhead {
 	if config == nil {
-		config = DefaultBulkheadConfig(\"default\")
+		config = DefaultBulkheadConfig("default")
 	}
 	
 	b := &Bulkhead{
@@ -571,14 +571,14 @@ func (b *Bulkhead) Execute(ctx context.Context, fn func() error) error {
 		// Queue is full
 		atomic.AddInt64(&b.rejected, 1)
 		if b.config.RejectOverflow {
-			return b.createBulkheadError(\"bulkhead queue is full\")
+			return b.createBulkheadError("bulkhead queue is full")
 		}
 		// Block until we can queue (with timeout)
 		select {
 		case b.queue <- work:
 			atomic.AddInt64(&b.queued, 1)
 		case <-time.After(b.config.Timeout):
-			return b.createBulkheadError(\"bulkhead queue timeout\")
+			return b.createBulkheadError("bulkhead queue timeout")
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -591,7 +591,7 @@ func (b *Bulkhead) Execute(ctx context.Context, fn func() error) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-time.After(b.config.Timeout):
-		return b.createBulkheadError(\"bulkhead execution timeout\")
+		return b.createBulkheadError("bulkhead execution timeout")
 	}
 }
 
@@ -607,10 +607,10 @@ func (b *Bulkhead) worker() {
 func (b *Bulkhead) createBulkheadError(message string) error {
 	return &ServiceError{
 		Type:      ErrorTypeResource,
-		Code:      \"bulkhead_limit\",
+		Code:      "bulkhead_limit",
 		Message:   message,
-		Service:   \"bulkhead\",
-		Operation: \"execute\",
+		Service:   "bulkhead",
+		Operation: "execute",
 		Component: b.config.Name,
 		Category:  CategorySystem,
 		Severity:  SeverityMedium,
@@ -620,10 +620,10 @@ func (b *Bulkhead) createBulkheadError(message string) error {
 		HTTPStatus: 503,
 		Timestamp: time.Now(),
 		Metadata: map[string]interface{}{
-			\"active\":    atomic.LoadInt64(&b.active),
-			\"queued\":    atomic.LoadInt64(&b.queued),
-			\"rejected\":  atomic.LoadInt64(&b.rejected),
-			\"completed\": atomic.LoadInt64(&b.completed),
+			"active":    atomic.LoadInt64(&b.active),
+			"queued":    atomic.LoadInt64(&b.queued),
+			"rejected":  atomic.LoadInt64(&b.rejected),
+			"completed": atomic.LoadInt64(&b.completed),
 		},
 	}
 }
@@ -631,11 +631,11 @@ func (b *Bulkhead) createBulkheadError(message string) error {
 // GetMetrics returns current bulkhead metrics
 func (b *Bulkhead) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
-		\"name\":      b.config.Name,
-		\"active\":    atomic.LoadInt64(&b.active),
-		\"queued\":    atomic.LoadInt64(&b.queued),
-		\"rejected\":  atomic.LoadInt64(&b.rejected),
-		\"completed\": atomic.LoadInt64(&b.completed),
+		"name":      b.config.Name,
+		"active":    atomic.LoadInt64(&b.active),
+		"queued":    atomic.LoadInt64(&b.queued),
+		"rejected":  atomic.LoadInt64(&b.rejected),
+		"completed": atomic.LoadInt64(&b.completed),
 	}
 }
 
@@ -646,9 +646,9 @@ func (b *Bulkhead) Close() {
 
 // TimeoutConfig configures timeout behavior
 type TimeoutConfig struct {
-	DefaultTimeout time.Duration `json:\"default_timeout\"`
-	MaxTimeout     time.Duration `json:\"max_timeout\"`
-	MinTimeout     time.Duration `json:\"min_timeout\"`
+	DefaultTimeout time.Duration `json:"default_timeout"`
+	MaxTimeout     time.Duration `json:"max_timeout"`
+	MinTimeout     time.Duration `json:"min_timeout"`
 }
 
 // DefaultTimeoutConfig returns sensible timeout defaults
@@ -704,10 +704,10 @@ func (te *TimeoutExecutor) ExecuteWithTimeout(ctx context.Context, timeout time.
 		if ctx.Err() == context.DeadlineExceeded {
 			return &ServiceError{
 				Type:      ErrorTypeTimeout,
-				Code:      \"operation_timeout\",
-				Message:   fmt.Sprintf(\"Operation timed out after %v\", timeout),
-				Service:   \"timeout-executor\",
-				Operation: \"execute\",
+				Code:      "operation_timeout",
+				Message:   fmt.Sprintf("Operation timed out after %v", timeout),
+				Service:   "timeout-executor",
+				Operation: "execute",
 				Category:  CategorySystem,
 				Severity:  SeverityMedium,
 				Impact:    ImpactModerate,
@@ -716,10 +716,10 @@ func (te *TimeoutExecutor) ExecuteWithTimeout(ctx context.Context, timeout time.
 				HTTPStatus: 504,
 				Timestamp: time.Now(),
 				Metadata: map[string]interface{}{
-					\"timeout\": timeout.String(),
+					"timeout": timeout.String(),
 				},
 			}
 		}
 		return ctx.Err()
 	}
-}"
+}

@@ -2,10 +2,7 @@ package compliance
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 
@@ -14,7 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 var (
@@ -38,7 +35,7 @@ var (
 type ComplianceLogger struct {
 	mutex     sync.RWMutex
 	logger    logr.Logger
-	standards []audit.ComplianceStandard
+	standards []types.ComplianceStandard
 	
 	// Compliance tracking
 	soc2Tracker     *SOC2Tracker
@@ -51,7 +48,7 @@ type ComplianceLogger struct {
 
 // ComplianceConfig holds configuration for compliance logging
 type ComplianceConfig struct {
-	Standards              []audit.ComplianceStandard `json:"standards" yaml:"standards"`
+	Standards              []types.ComplianceStandard `json:"standards" yaml:"standards"`
 	ReportingInterval      time.Duration               `json:"reporting_interval" yaml:"reporting_interval"`
 	RetentionPeriods       map[string]time.Duration    `json:"retention_periods" yaml:"retention_periods"`
 	ViolationThresholds    map[string]int              `json:"violation_thresholds" yaml:"violation_thresholds"`
@@ -63,7 +60,7 @@ type ComplianceConfig struct {
 // ComplianceReport represents a comprehensive compliance report
 type ComplianceReport struct {
 	ReportID        string                          `json:"report_id"`
-	Standard        audit.ComplianceStandard       `json:"standard"`
+	Standard        types.ComplianceStandard       `json:"standard"`
 	ReportType      string                          `json:"report_type"`
 	GenerationTime  time.Time                       `json:"generation_time"`
 	ReportPeriod    ReportPeriod                    `json:"report_period"`
@@ -160,7 +157,7 @@ type ComplianceAttestation struct {
 }
 
 // NewComplianceLogger creates a new compliance logger
-func NewComplianceLogger(standards []audit.ComplianceStandard) *ComplianceLogger {
+func NewComplianceLogger(standards []types.ComplianceStandard) *ComplianceLogger {
 	config := DefaultComplianceConfig()
 	config.Standards = standards
 	
@@ -173,11 +170,11 @@ func NewComplianceLogger(standards []audit.ComplianceStandard) *ComplianceLogger
 	// Initialize trackers for each standard
 	for _, standard := range standards {
 		switch standard {
-		case audit.ComplianceSOC2:
+		case types.ComplianceSOC2:
 			cl.soc2Tracker = NewSOC2Tracker()
-		case audit.ComplianceISO27001:
+		case types.ComplianceISO27001:
 			cl.iso27001Tracker = NewISO27001Tracker()
-		case audit.CompliancePCIDSS:
+		case types.CompliancePCIDSS:
 			cl.pciDSSTracker = NewPCIDSSTracker()
 		}
 	}
@@ -186,22 +183,22 @@ func NewComplianceLogger(standards []audit.ComplianceStandard) *ComplianceLogger
 }
 
 // ProcessEvent processes an audit event for compliance tracking
-func (cl *ComplianceLogger) ProcessEvent(event *audit.AuditEvent) {
+func (cl *ComplianceLogger) ProcessEvent(event *types.AuditEvent) {
 	cl.mutex.Lock()
 	defer cl.mutex.Unlock()
 	
 	// Process event with each enabled compliance tracker
 	for _, standard := range cl.standards {
 		switch standard {
-		case audit.ComplianceSOC2:
+		case types.ComplianceSOC2:
 			if cl.soc2Tracker != nil {
 				cl.soc2Tracker.ProcessEvent(event)
 			}
-		case audit.ComplianceISO27001:
+		case types.ComplianceISO27001:
 			if cl.iso27001Tracker != nil {
 				cl.iso27001Tracker.ProcessEvent(event)
 			}
-		case audit.CompliancePCIDSS:
+		case types.CompliancePCIDSS:
 			if cl.pciDSSTracker != nil {
 				cl.pciDSSTracker.ProcessEvent(event)
 			}
@@ -213,7 +210,7 @@ func (cl *ComplianceLogger) ProcessEvent(event *audit.AuditEvent) {
 }
 
 // GenerateReport generates a compliance report for a specific standard
-func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard audit.ComplianceStandard, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
+func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.ComplianceStandard, reportType string, startTime, endTime time.Time) (*ComplianceReport, error) {
 	start := time.Now()
 	defer func() {
 		duration := time.Since(start)
@@ -237,15 +234,15 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard audit.C
 	
 	// Generate report based on standard
 	switch standard {
-	case audit.ComplianceSOC2:
+	case types.ComplianceSOC2:
 		if cl.soc2Tracker != nil {
 			return cl.generateSOC2Report(report, reportType, startTime, endTime)
 		}
-	case audit.ComplianceISO27001:
+	case types.ComplianceISO27001:
 		if cl.iso27001Tracker != nil {
 			return cl.generateISO27001Report(report, reportType, startTime, endTime)
 		}
-	case audit.CompliancePCIDSS:
+	case types.CompliancePCIDSS:
 		if cl.pciDSSTracker != nil {
 			return cl.generatePCIDSSReport(report, reportType, startTime, endTime)
 		}
@@ -264,15 +261,15 @@ func (cl *ComplianceLogger) GetComplianceStatus() map[string]interface{} {
 	
 	for _, standard := range cl.standards {
 		switch standard {
-		case audit.ComplianceSOC2:
+		case types.ComplianceSOC2:
 			if cl.soc2Tracker != nil {
 				status["soc2"] = cl.soc2Tracker.GetStatus()
 			}
-		case audit.ComplianceISO27001:
+		case types.ComplianceISO27001:
 			if cl.iso27001Tracker != nil {
 				status["iso27001"] = cl.iso27001Tracker.GetStatus()
 			}
-		case audit.CompliancePCIDSS:
+		case types.CompliancePCIDSS:
 			if cl.pciDSSTracker != nil {
 				status["pci_dss"] = cl.pciDSSTracker.GetStatus()
 			}
@@ -283,12 +280,12 @@ func (cl *ComplianceLogger) GetComplianceStatus() map[string]interface{} {
 }
 
 // checkComplianceViolations checks for compliance violations in an audit event
-func (cl *ComplianceLogger) checkComplianceViolations(event *audit.AuditEvent) {
+func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 	// Check for common violation patterns
 	violations := make([]ComplianceViolation, 0)
 	
 	// Check authentication failures
-	if event.EventType == audit.EventTypeAuthenticationFailed {
+	if event.EventType == types.EventTypeAuthenticationFailed {
 		for _, standard := range cl.standards {
 			violation := ComplianceViolation{
 				ViolationID:       fmt.Sprintf("%s-auth-fail-%d", standard, time.Now().Unix()),
@@ -311,7 +308,7 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *audit.AuditEvent) {
 	}
 	
 	// Check unauthorized access
-	if event.EventType == audit.EventTypeAuthorizationFailed {
+	if event.EventType == types.EventTypeAuthorizationFailed {
 		for _, standard := range cl.standards {
 			violation := ComplianceViolation{
 				ViolationID:       fmt.Sprintf("%s-authz-fail-%d", standard, time.Now().Unix()),
@@ -334,7 +331,7 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *audit.AuditEvent) {
 	}
 	
 	// Check data access without proper authorization
-	if event.EventType == audit.EventTypeDataAccess && event.Result != audit.ResultSuccess {
+	if event.EventType == types.EventTypeDataAccess && event.Result != types.ResultSuccess {
 		for _, standard := range cl.standards {
 			violation := ComplianceViolation{
 				ViolationID:       fmt.Sprintf("%s-data-access-%d", standard, time.Now().Unix()),
@@ -488,39 +485,39 @@ func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, repor
 
 // Helper methods
 
-func (cl *ComplianceLogger) getAuthenticationControlID(standard audit.ComplianceStandard) string {
+func (cl *ComplianceLogger) getAuthenticationControlID(standard types.ComplianceStandard) string {
 	switch standard {
-	case audit.ComplianceSOC2:
+	case types.ComplianceSOC2:
 		return "CC6.1"
-	case audit.ComplianceISO27001:
+	case types.ComplianceISO27001:
 		return "A.9.2.1"
-	case audit.CompliancePCIDSS:
+	case types.CompliancePCIDSS:
 		return "8.1.1"
 	default:
 		return "unknown"
 	}
 }
 
-func (cl *ComplianceLogger) getAuthorizationControlID(standard audit.ComplianceStandard) string {
+func (cl *ComplianceLogger) getAuthorizationControlID(standard types.ComplianceStandard) string {
 	switch standard {
-	case audit.ComplianceSOC2:
+	case types.ComplianceSOC2:
 		return "CC6.2"
-	case audit.ComplianceISO27001:
+	case types.ComplianceISO27001:
 		return "A.9.2.2"
-	case audit.CompliancePCIDSS:
+	case types.CompliancePCIDSS:
 		return "7.1.1"
 	default:
 		return "unknown"
 	}
 }
 
-func (cl *ComplianceLogger) getDataAccessControlID(standard audit.ComplianceStandard) string {
+func (cl *ComplianceLogger) getDataAccessControlID(standard types.ComplianceStandard) string {
 	switch standard {
-	case audit.ComplianceSOC2:
+	case types.ComplianceSOC2:
 		return "CC6.7"
-	case audit.ComplianceISO27001:
+	case types.ComplianceISO27001:
 		return "A.12.4.1"
-	case audit.CompliancePCIDSS:
+	case types.CompliancePCIDSS:
 		return "10.2.1"
 	default:
 		return "unknown"
@@ -554,7 +551,7 @@ func (cl *ComplianceLogger) storeViolations(violations []ComplianceViolation) {
 // DefaultComplianceConfig returns a default compliance configuration
 func DefaultComplianceConfig() *ComplianceConfig {
 	return &ComplianceConfig{
-		Standards:         []audit.ComplianceStandard{},
+		Standards:         []types.ComplianceStandard{},
 		ReportingInterval: 24 * time.Hour,
 		RetentionPeriods: map[string]time.Duration{
 			"soc2":     7 * 365 * 24 * time.Hour, // 7 years

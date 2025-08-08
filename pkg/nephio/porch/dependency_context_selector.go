@@ -121,7 +121,7 @@ type QoSRequirements struct {
 	Availability     float64
 	Reliability      float64
 	PriorityLevel    int
-	5QI              int // 5G QoS Identifier
+	FiveGQI          int // 5G QoS Identifier
 }
 
 // SLARequirements defines Service Level Agreement requirements

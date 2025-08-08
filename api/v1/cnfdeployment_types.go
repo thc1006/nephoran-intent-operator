@@ -85,15 +85,15 @@ const (
 	CNFFunctionTrafficGenerator CNFFunction = "Traffic-Generator"
 )
 
-// DeploymentStrategy defines how the CNF should be deployed
+// CNFDeploymentStrategy defines how the CNF should be deployed
 // +kubebuilder:validation:Enum=Helm;Operator;Direct;GitOps
-type DeploymentStrategy string
+type CNFDeploymentStrategy string
 
 const (
-	DeploymentStrategyHelm     DeploymentStrategy = "Helm"
-	DeploymentStrategyOperator DeploymentStrategy = "Operator"
-	DeploymentStrategyDirect   DeploymentStrategy = "Direct"
-	DeploymentStrategyGitOps   DeploymentStrategy = "GitOps"
+	CNFDeploymentStrategyHelm     CNFDeploymentStrategy = "Helm"
+	CNFDeploymentStrategyOperator CNFDeploymentStrategy = "Operator"
+	CNFDeploymentStrategyDirect   CNFDeploymentStrategy = "Direct"
+	CNFDeploymentStrategyGitOps   CNFDeploymentStrategy = "GitOps"
 )
 
 // CNFResources defines resource requirements for CNF
@@ -241,11 +241,11 @@ type LoadBalancingConfig struct {
 
 	// Health check configuration
 	// +optional
-	HealthCheck *HealthCheckConfig `json:"healthCheck,omitempty"`
+	HealthCheck *CNFHealthCheckConfig `json:"healthCheck,omitempty"`
 }
 
-// HealthCheckConfig defines health check configuration
-type HealthCheckConfig struct {
+// CNFHealthCheckConfig defines health check configuration
+type CNFHealthCheckConfig struct {
 	// Path for HTTP health checks
 	Path string `json:"path"`
 
@@ -324,7 +324,7 @@ type CNFDeploymentSpec struct {
 	// Deployment strategy
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default="Helm"
-	DeploymentStrategy DeploymentStrategy `json:"deploymentStrategy"`
+	DeploymentStrategy CNFDeploymentStrategy `json:"deploymentStrategy"`
 
 	// Number of replicas
 	// +kubebuilder:validation:Minimum=1
@@ -483,7 +483,7 @@ type CNFDeploymentStatus struct {
 
 	// Health status
 	// +optional
-	Health *HealthStatus `json:"health,omitempty"`
+	Health *CNFHealthStatus `json:"health,omitempty"`
 
 	// Service endpoints
 	// +optional
@@ -494,8 +494,8 @@ type CNFDeploymentStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
-// HealthStatus defines the health status
-type HealthStatus struct {
+// CNFHealthStatus defines the health status
+type CNFHealthStatus struct {
 	// Overall health status
 	// +kubebuilder:validation:Enum=Healthy;Degraded;Unhealthy;Unknown
 	Status string `json:"status"`
@@ -649,14 +649,14 @@ func (cnf *CNFDeployment) validateFunctionCompatibility() error {
 // validateDeploymentStrategy ensures deployment strategy configuration is valid
 func (cnf *CNFDeployment) validateDeploymentStrategy() error {
 	switch cnf.Spec.DeploymentStrategy {
-	case DeploymentStrategyHelm:
+	case CNFDeploymentStrategyHelm:
 		if cnf.Spec.Helm == nil {
 			return fmt.Errorf("helm configuration is required for Helm deployment strategy")
 		}
 		if cnf.Spec.Helm.Repository == "" || cnf.Spec.Helm.ChartName == "" {
 			return fmt.Errorf("helm repository and chartName are required")
 		}
-	case DeploymentStrategyOperator:
+	case CNFDeploymentStrategyOperator:
 		if cnf.Spec.Operator == nil {
 			return fmt.Errorf("operator configuration is required for Operator deployment strategy")
 		}

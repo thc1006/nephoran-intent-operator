@@ -437,7 +437,7 @@ jobs:
           EOF
           
       - name: "Upload Test Results"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: load-test-results-${{ matrix.scenario }}-${{ github.run_number }}
           path: load-test-results/${{ matrix.scenario }}/
@@ -451,7 +451,7 @@ jobs:
     
     steps:
       - name: "Download All Test Results"
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           pattern: load-test-results-*-${{ github.run_number }}
           merge-multiple: true
@@ -546,7 +546,7 @@ jobs:
           EOF
           
       - name: "Upload Consolidated Results"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: consolidated-load-test-results-${{ github.run_number }}
           path: consolidated-results/

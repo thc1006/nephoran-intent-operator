@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	
-	"nephoran-intent-operator/pkg/monitoring/availability"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/availability"
 )
 
 // AvailabilityTrackingTestSuite tests the comprehensive availability tracking system

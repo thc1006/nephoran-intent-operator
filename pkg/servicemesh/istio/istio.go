@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nephoran-operator/pkg/servicemesh/abstraction"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,6 +22,36 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+func init() {
+	abstraction.RegisterProvider(abstraction.ProviderIstio, func(kubeClient kubernetes.Interface, dynamicClient client.Client, config *rest.Config, meshConfig *abstraction.ServiceMeshConfig) (abstraction.ServiceMeshInterface, error) {
+		// Create Istio-specific configuration
+		istioConfig := &Config{
+			Namespace:           meshConfig.Namespace,
+			TrustDomain:        meshConfig.TrustDomain,
+			ControlPlaneURL:    meshConfig.ControlPlaneURL,
+			CertificateConfig:  meshConfig.CertificateConfig,
+			PolicyDefaults:     meshConfig.PolicyDefaults,
+			ObservabilityConfig: meshConfig.ObservabilityConfig,
+			MultiCluster:       meshConfig.MultiCluster,
+		}
+
+		// Extract Istio-specific settings from custom config
+		if meshConfig.CustomConfig != nil {
+			if pilotURL, ok := meshConfig.CustomConfig["pilotURL"].(string); ok {
+				istioConfig.PilotURL = pilotURL
+			}
+			if meshID, ok := meshConfig.CustomConfig["meshID"].(string); ok {
+				istioConfig.MeshID = meshID
+			}
+			if network, ok := meshConfig.CustomConfig["network"].(string); ok {
+				istioConfig.Network = network
+			}
+		}
+
+		return NewIstioMesh(kubeClient, dynamicClient, config, istioConfig)
+	})
+}
 
 // Config contains Istio-specific configuration
 type Config struct {

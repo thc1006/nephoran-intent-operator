@@ -202,7 +202,7 @@ type PerformanceManagementConfig struct {
 	
 	// Prometheus integration
 	// +optional
-	PrometheusConfig *PrometheusConfig `json:"prometheusConfig,omitempty"`
+	PrometheusConfig *O1PrometheusConfig `json:"prometheusConfig,omitempty"`
 	
 	// Grafana integration
 	// +optional
@@ -345,7 +345,7 @@ type AlertManagerConfig struct {
 }
 
 // PrometheusConfig for Prometheus integration
-type PrometheusConfig struct {
+type O1PrometheusConfig struct {
 	URL string `json:"url"`
 	// +optional
 	PushGatewayURL string `json:"pushGatewayURL,omitempty"`

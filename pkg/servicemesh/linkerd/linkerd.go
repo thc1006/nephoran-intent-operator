@@ -6,13 +6,39 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/nephoran-operator/pkg/servicemesh/abstraction"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+func init() {
+	abstraction.RegisterProvider(abstraction.ProviderLinkerd, func(kubeClient kubernetes.Interface, dynamicClient client.Client, config *rest.Config, meshConfig *abstraction.ServiceMeshConfig) (abstraction.ServiceMeshInterface, error) {
+		// Create Linkerd-specific configuration
+		linkerdConfig := &Config{
+			Namespace:           meshConfig.Namespace,
+			TrustDomain:        meshConfig.TrustDomain,
+			ControlPlaneURL:    meshConfig.ControlPlaneURL,
+			CertificateConfig:  meshConfig.CertificateConfig,
+			PolicyDefaults:     meshConfig.PolicyDefaults,
+			ObservabilityConfig: meshConfig.ObservabilityConfig,
+		}
+
+		// Extract Linkerd-specific settings from custom config
+		if meshConfig.CustomConfig != nil {
+			if identityTrustDomain, ok := meshConfig.CustomConfig["identityTrustDomain"].(string); ok {
+				linkerdConfig.IdentityTrustDomain = identityTrustDomain
+			}
+			if proxyLogLevel, ok := meshConfig.CustomConfig["proxyLogLevel"].(string); ok {
+				linkerdConfig.ProxyLogLevel = proxyLogLevel
+			}
+		}
+
+		return NewLinkerdMesh(kubeClient, dynamicClient, config, linkerdConfig)
+	})
+}
 
 // Config contains Linkerd-specific configuration
 type Config struct {

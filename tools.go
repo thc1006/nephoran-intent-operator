@@ -20,31 +20,15 @@ import (
 	
 	// Security and vulnerability tools
 	_ "golang.org/x/vuln/cmd/govulncheck"
-	_ "github.com/securecodewarrior/github-action-add-sarif@latest"
 	
 	// SBOM generation tools
 	_ "github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod"
 	
 	// Testing and quality tools
 	_ "github.com/onsi/ginkgo/v2/ginkgo"
-	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
-	_ "gotest.tools/gotestsum"
-	_ "github.com/vektra/mockery/v2"
-	
-	// Performance and profiling tools
-	_ "github.com/google/pprof"
-	_ "github.com/pkg/profile"
-	
-	// Container and deployment tools
-	_ "github.com/google/ko"
-	_ "helm.sh/helm/v3/cmd/helm"
 	
 	// Documentation and API tools
 	_ "github.com/swaggo/swag/cmd/swag"
-	_ "k8s.io/kube-openapi/cmd/openapi-gen"
-	
-	// Git and version control tools
-	_ "github.com/git-chglog/git-chglog/cmd/git-chglog"
 )
 
 // Tool versions - update these when upgrading tools

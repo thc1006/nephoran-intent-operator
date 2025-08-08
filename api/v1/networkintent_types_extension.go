@@ -17,7 +17,7 @@ limitations under the License.
 package v1
 
 import (
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ExtendedProcessedParameters extends ProcessedParameters with CNF-specific fields
@@ -299,7 +299,7 @@ type CNFIntentStatus struct {
 	DeploymentPlanID string `json:"deploymentPlanId,omitempty"`
 
 	// CNFDeploymentStatuses status of individual CNF deployments
-	CNFDeploymentStatuses []CNFDeploymentStatus `json:"cnfDeploymentStatuses,omitempty"`
+	CNFDeploymentStatuses []IndividualCNFDeploymentStatus `json:"cnfDeploymentStatuses,omitempty"`
 
 	// OverallHealthStatus overall health of deployed CNFs
 	// +kubebuilder:validation:Enum=Healthy;Degraded;Unhealthy;Unknown
@@ -321,8 +321,8 @@ type CNFIntentStatus struct {
 	CNFProcessingErrors []string `json:"cnfProcessingErrors,omitempty"`
 }
 
-// CNFDeploymentStatus represents the status of an individual CNF deployment
-type CNFDeploymentStatus struct {
+// IndividualCNFDeploymentStatus represents the status of an individual CNF deployment
+type IndividualCNFDeploymentStatus struct {
 	// Name of the CNF deployment
 	Name string `json:"name"`
 

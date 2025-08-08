@@ -28,7 +28,7 @@ type SecretRotationManager struct {
 }
 
 // RotationConfig holds configuration for secret rotation
-type RotationConfig struct {
+type SecretRotationConfig struct {
 	SecretName      string        `json:"secret_name"`
 	RotationPeriod  time.Duration `json:"rotation_period"`
 	BackupCount     int           `json:"backup_count"`

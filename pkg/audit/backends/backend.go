@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 // Backend represents an audit log destination
@@ -17,10 +17,10 @@ type Backend interface {
 	Initialize(config BackendConfig) error
 	
 	// WriteEvent writes a single audit event
-	WriteEvent(ctx context.Context, event *audit.AuditEvent) error
+	WriteEvent(ctx context.Context, event *types.AuditEvent) error
 	
 	// WriteEvents writes multiple audit events in a batch
-	WriteEvents(ctx context.Context, events []*audit.AuditEvent) error
+	WriteEvents(ctx context.Context, events []*types.AuditEvent) error
 	
 	// Query searches for audit events (optional for compliance reporting)
 	Query(ctx context.Context, query *QueryRequest) (*QueryResponse, error)
@@ -117,10 +117,10 @@ type AuthConfig struct {
 
 // FilterConfig defines event filtering for backends
 type FilterConfig struct {
-	MinSeverity   audit.Severity     `json:"min_severity" yaml:"min_severity"`
-	EventTypes    []audit.EventType  `json:"event_types" yaml:"event_types"`
+	MinSeverity   types.Severity     `json:"min_severity" yaml:"min_severity"`
+	EventTypes    []types.EventType  `json:"event_types" yaml:"event_types"`
 	Components    []string           `json:"components" yaml:"components"`
-	ExcludeTypes  []audit.EventType  `json:"exclude_types" yaml:"exclude_types"`
+	ExcludeTypes  []types.EventType  `json:"exclude_types" yaml:"exclude_types"`
 	IncludeFields []string           `json:"include_fields" yaml:"include_fields"`
 	ExcludeFields []string           `json:"exclude_fields" yaml:"exclude_fields"`
 }
@@ -141,7 +141,7 @@ type QueryRequest struct {
 
 // QueryResponse represents the result of a search query
 type QueryResponse struct {
-	Events      []*audit.AuditEvent `json:"events"`
+	Events      []*types.AuditEvent `json:"events"`
 	TotalCount  int64               `json:"total_count"`
 	HasMore     bool                `json:"has_more"`
 	NextOffset  int                 `json:"next_offset"`
@@ -177,33 +177,21 @@ func NewBackend(config BackendConfig) (Backend, error) {
 	}
 	
 	switch config.Type {
-	case BackendTypeFile:
-		return NewFileBackend(config)
 	case BackendTypeElasticsearch:
 		return NewElasticsearchBackend(config)
 	case BackendTypeSplunk:
 		return NewSplunkBackend(config)
-	case BackendTypeSyslog:
-		return NewSyslogBackend(config)
-	case BackendTypeKafka:
-		return NewKafkaBackend(config)
-	case BackendTypeCloudWatch:
-		return NewCloudWatchBackend(config)
-	case BackendTypeStackdriver:
-		return NewStackdriverBackend(config)
-	case BackendTypeAzureMonitor:
-		return NewAzureMonitorBackend(config)
-	case BackendTypeSIEM:
-		return NewSIEMBackend(config)
-	case BackendTypeWebhook:
-		return NewWebhookBackend(config)
+	// TODO: Implement these backends
+	case BackendTypeFile, BackendTypeSyslog, BackendTypeKafka, BackendTypeCloudWatch, 
+		 BackendTypeStackdriver, BackendTypeAzureMonitor, BackendTypeSIEM, BackendTypeWebhook:
+		return nil, fmt.Errorf("backend type %s not yet implemented", config.Type)
 	default:
 		return nil, fmt.Errorf("unsupported backend type: %s", config.Type)
 	}
 }
 
 // ShouldProcessEvent determines if an event should be processed by this backend
-func (f *FilterConfig) ShouldProcessEvent(event *audit.AuditEvent) bool {
+func (f *FilterConfig) ShouldProcessEvent(event *types.AuditEvent) bool {
 	// Check minimum severity
 	if event.Severity < f.MinSeverity {
 		return false
@@ -248,7 +236,7 @@ func (f *FilterConfig) ShouldProcessEvent(event *audit.AuditEvent) bool {
 }
 
 // ApplyFieldFilters applies include/exclude field filters to an event
-func (f *FilterConfig) ApplyFieldFilters(event *audit.AuditEvent) *audit.AuditEvent {
+func (f *FilterConfig) ApplyFieldFilters(event *types.AuditEvent) *types.AuditEvent {
 	if len(f.IncludeFields) == 0 && len(f.ExcludeFields) == 0 {
 		return event
 	}
@@ -276,6 +264,6 @@ func DefaultRetryPolicy() RetryPolicy {
 // DefaultFilterConfig returns a default filter configuration
 func DefaultFilterConfig() FilterConfig {
 	return FilterConfig{
-		MinSeverity: audit.SeverityInfo,
+		MinSeverity: types.SeverityInfo,
 	}
 }

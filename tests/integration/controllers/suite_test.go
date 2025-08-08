@@ -187,8 +187,8 @@ func configureMockResponses(mockDeps *testutils.MockDependencies) {
 	By("mock responses configured")
 }
 
-// TestNamespace creates a unique namespace for each test
-func TestNamespace() string {
+// GenerateTestNamespace creates a unique namespace for each test
+func GenerateTestNamespace() string {
 	return fmt.Sprintf("test-ns-%d", GinkgoRandomSeed())
 }
 
@@ -196,7 +196,7 @@ func TestNamespace() string {
 func CreateTestNamespace() *corev1.Namespace {
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: TestNamespace(),
+			Name: GenerateTestNamespace(),
 			Labels: map[string]string{
 				"test":                    "integration",
 				"nephoran.com/test-type": "integration",

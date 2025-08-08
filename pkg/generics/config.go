@@ -15,7 +15,7 @@ import (
 
 // Configurable defines an interface for types that can be configured.
 type Configurable[T any] interface {
-	Configure(config T) Result[T, error>
+	Configure(config T) Result[T, error]
 	Validate() Result[bool, error]
 	Default() T
 }
@@ -288,7 +288,7 @@ func (ep *EnvironmentProvider[T]) Store(ctx context.Context, key string, value T
 
 // Watch is not supported for environment provider.
 func (ep *EnvironmentProvider[T]) Watch(ctx context.Context, key string) <-chan Result[T, error] {
-	resultChan := make(chan Result[T, error>, 1)
+	resultChan := make(chan Result[T, error], 1)
 	resultChan <- Err[T, error](fmt.Errorf("watch not supported for environment provider"))
 	close(resultChan)
 	return resultChan

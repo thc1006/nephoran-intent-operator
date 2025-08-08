@@ -4,15 +4,28 @@ package abstraction
 import (
 	"context"
 	"fmt"
+	"sync"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/consul"
-	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/istio"
-	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/linkerd"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+// ProviderFactory is a function that creates a service mesh implementation
+type ProviderFactory func(kubernetes.Interface, client.Client, *rest.Config, *ServiceMeshConfig) (ServiceMeshInterface, error)
+
+var (
+	providerRegistry = make(map[ServiceMeshProvider]ProviderFactory)
+	registryMutex    sync.RWMutex
+)
+
+// RegisterProvider registers a service mesh provider factory
+func RegisterProvider(provider ServiceMeshProvider, factory ProviderFactory) {
+	registryMutex.Lock()
+	defer registryMutex.Unlock()
+	providerRegistry[provider] = factory
+}
 
 // ServiceMeshFactory creates service mesh implementations
 type ServiceMeshFactory struct {
@@ -52,137 +65,31 @@ func (f *ServiceMeshFactory) CreateServiceMesh(ctx context.Context, config *Serv
 		f.logger.Info("Auto-detected service mesh provider", "provider", provider)
 	}
 
-	// Create provider-specific implementation
-	switch provider {
-	case ProviderIstio:
-		return f.createIstioMesh(ctx, config)
-	case ProviderLinkerd:
-		return f.createLinkerdMesh(ctx, config)
-	case ProviderConsul:
-		return f.createConsulMesh(ctx, config)
-	case ProviderNone:
-		return f.createNoOpMesh(ctx, config)
-	default:
+	// Create provider-specific implementation using registry
+	registryMutex.RLock()
+	factory, exists := providerRegistry[ServiceMeshProvider(provider)]
+	registryMutex.RUnlock()
+	
+	if !exists {
+		if provider == ProviderNone {
+			return f.createNoOpMesh(ctx, config)
+		}
 		return nil, fmt.Errorf("unsupported service mesh provider: %s", provider)
 	}
-}
-
-// createIstioMesh creates an Istio service mesh implementation
-func (f *ServiceMeshFactory) createIstioMesh(ctx context.Context, config *ServiceMeshConfig) (ServiceMeshInterface, error) {
-	f.logger.Info("Creating Istio service mesh implementation")
 	
-	// Create Istio-specific configuration
-	istioConfig := &istio.Config{
-		Namespace:           config.Namespace,
-		TrustDomain:        config.TrustDomain,
-		ControlPlaneURL:    config.ControlPlaneURL,
-		CertificateConfig:  config.CertificateConfig,
-		PolicyDefaults:     config.PolicyDefaults,
-		ObservabilityConfig: config.ObservabilityConfig,
-		MultiCluster:       config.MultiCluster,
-	}
-
-	// Extract Istio-specific settings from custom config
-	if config.CustomConfig != nil {
-		if pilotURL, ok := config.CustomConfig["pilotURL"].(string); ok {
-			istioConfig.PilotURL = pilotURL
-		}
-		if meshID, ok := config.CustomConfig["meshID"].(string); ok {
-			istioConfig.MeshID = meshID
-		}
-		if network, ok := config.CustomConfig["network"].(string); ok {
-			istioConfig.Network = network
-		}
-	}
-
-	mesh, err := istio.NewIstioMesh(f.kubeClient, f.dynamicClient, f.config, istioConfig)
+	mesh, err := factory(f.kubeClient, f.dynamicClient, f.config, config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Istio mesh: %w", err)
+		return nil, fmt.Errorf("failed to create service mesh %s: %w", provider, err)
 	}
-
+	
 	// Initialize the mesh
 	if err := mesh.Initialize(ctx, config); err != nil {
-		return nil, fmt.Errorf("failed to initialize Istio mesh: %w", err)
+		return nil, fmt.Errorf("failed to initialize service mesh %s: %w", provider, err)
 	}
-
+	
 	return mesh, nil
 }
 
-// createLinkerdMesh creates a Linkerd service mesh implementation
-func (f *ServiceMeshFactory) createLinkerdMesh(ctx context.Context, config *ServiceMeshConfig) (ServiceMeshInterface, error) {
-	f.logger.Info("Creating Linkerd service mesh implementation")
-	
-	// Create Linkerd-specific configuration
-	linkerdConfig := &linkerd.Config{
-		Namespace:           config.Namespace,
-		TrustDomain:        config.TrustDomain,
-		ControlPlaneURL:    config.ControlPlaneURL,
-		CertificateConfig:  config.CertificateConfig,
-		PolicyDefaults:     config.PolicyDefaults,
-		ObservabilityConfig: config.ObservabilityConfig,
-	}
-
-	// Extract Linkerd-specific settings from custom config
-	if config.CustomConfig != nil {
-		if identityTrustDomain, ok := config.CustomConfig["identityTrustDomain"].(string); ok {
-			linkerdConfig.IdentityTrustDomain = identityTrustDomain
-		}
-		if proxyLogLevel, ok := config.CustomConfig["proxyLogLevel"].(string); ok {
-			linkerdConfig.ProxyLogLevel = proxyLogLevel
-		}
-	}
-
-	mesh, err := linkerd.NewLinkerdMesh(f.kubeClient, f.dynamicClient, f.config, linkerdConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Linkerd mesh: %w", err)
-	}
-
-	// Initialize the mesh
-	if err := mesh.Initialize(ctx, config); err != nil {
-		return nil, fmt.Errorf("failed to initialize Linkerd mesh: %w", err)
-	}
-
-	return mesh, nil
-}
-
-// createConsulMesh creates a Consul Connect service mesh implementation
-func (f *ServiceMeshFactory) createConsulMesh(ctx context.Context, config *ServiceMeshConfig) (ServiceMeshInterface, error) {
-	f.logger.Info("Creating Consul Connect service mesh implementation")
-	
-	// Create Consul-specific configuration
-	consulConfig := &consul.Config{
-		Namespace:           config.Namespace,
-		TrustDomain:        config.TrustDomain,
-		CertificateConfig:  config.CertificateConfig,
-		PolicyDefaults:     config.PolicyDefaults,
-		ObservabilityConfig: config.ObservabilityConfig,
-	}
-
-	// Extract Consul-specific settings from custom config
-	if config.CustomConfig != nil {
-		if datacenter, ok := config.CustomConfig["datacenter"].(string); ok {
-			consulConfig.Datacenter = datacenter
-		}
-		if gossipKey, ok := config.CustomConfig["gossipKey"].(string); ok {
-			consulConfig.GossipKey = gossipKey
-		}
-		if aclEnabled, ok := config.CustomConfig["aclEnabled"].(bool); ok {
-			consulConfig.ACLEnabled = aclEnabled
-		}
-	}
-
-	mesh, err := consul.NewConsulMesh(f.kubeClient, f.dynamicClient, f.config, consulConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Consul mesh: %w", err)
-	}
-
-	// Initialize the mesh
-	if err := mesh.Initialize(ctx, config); err != nil {
-		return nil, fmt.Errorf("failed to initialize Consul mesh: %w", err)
-	}
-
-	return mesh, nil
-}
 
 // createNoOpMesh creates a no-op service mesh implementation for environments without service mesh
 func (f *ServiceMeshFactory) createNoOpMesh(ctx context.Context, config *ServiceMeshConfig) (ServiceMeshInterface, error) {

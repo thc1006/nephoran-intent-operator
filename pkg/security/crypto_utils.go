@@ -6,7 +6,6 @@ import (
 	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/constant"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -17,11 +16,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"go/constant"
 	"hash"
 	"io"
 	"runtime"
 	"sync"
 	"time"
+	"unsafe"
 
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/sha3"
@@ -231,7 +232,7 @@ func (ct *ConstantTimeOps) Select(v int, a, b []byte) []byte {
 
 // ConstantTimeLessOrEq performs constant-time less-or-equal comparison
 func (ct *ConstantTimeOps) LessOrEq(x, y int32) int {
-	return subtle.ConstantTimeLessOrEq(x, y)
+	return subtle.ConstantTimeLessOrEq(int(x), int(y))
 }
 
 // SecureRandom generates cryptographically secure random bytes

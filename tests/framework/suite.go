@@ -14,13 +14,12 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
@@ -285,15 +284,11 @@ func RunIntegrationTests(t *testing.T, config *TestConfig) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
 	
 	// Create test suite
-	testSuite := NewTestSuite()
+	testSuite := NewTestSuite(config)
+	_ = testSuite // Use the test suite variable
 	
 	// Run Ginkgo tests
 	ginkgo.RunSpecs(t, "Nephoran Intent Operator Integration Test Suite")
-}
-
-// Helper function to create a new test suite with default configuration
-func NewTestSuite() *TestSuite {
-	return NewTestSuite(DefaultTestConfig())
 }
 
 // ValidateTestEnvironment ensures the test environment is properly configured

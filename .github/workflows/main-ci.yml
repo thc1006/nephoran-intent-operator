@@ -1,5 +1,11 @@
 name: "Main CI/CD Pipeline"
 
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  actions: read
+
 on:
   push:
     branches: [ main, develop ]
@@ -53,12 +59,6 @@ jobs:
           check-latest: true
           cache: true
 
-      - name: "Setup Node.js"
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: '**/package-lock.json'
 
       - name: "Cache Go Dependencies"
         if: steps.changes.outputs.go == 'true'
@@ -67,10 +67,11 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum', '**/go.mod') }}
+          key: ${{ runner.os }}-go-lint-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum', '**/go.mod') }}
           restore-keys: |
-            ${{ runner.os }}-go-${{ env.GO_VERSION }}-
-            ${{ runner.os }}-go-
+            ${{ runner.os }}-go-lint-${{ env.GO_VERSION }}-
+            ${{ runner.os }}-go-lint-
+          save-always: true
 
       - name: "Download Dependencies"
         if: steps.changes.outputs.go == 'true'
@@ -105,8 +106,7 @@ jobs:
         run: |
           golangci-lint run --timeout=10m \
             --out-format=github-actions \
-            --issues-exit-code=1 \
-            --enable=gofmt,govet,ineffassign,misspell,revive,staticcheck,unused,gosimple
+            --issues-exit-code=1
 
   # =============================================================================
   # Matrix Testing with Coverage
@@ -170,10 +170,11 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum', '**/go.mod') }}
+          key: ${{ runner.os }}-go-test-${{ matrix.go-version }}-${{ hashFiles('**/go.sum', '**/go.mod') }}
           restore-keys: |
-            ${{ runner.os }}-go-${{ matrix.go-version }}-
-            ${{ runner.os }}-go-
+            ${{ runner.os }}-go-test-${{ matrix.go-version }}-
+            ${{ runner.os }}-go-test-
+          save-always: true
 
       - name: "Cache govulncheck Database"
         uses: actions/cache@v4
@@ -354,10 +355,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/go-build
-          key: ${{ runner.os }}-go-build-${{ matrix.goos }}-${{ matrix.goarch }}-${{ github.sha }}
+          key: ${{ runner.os }}-go-build-${{ matrix.goos }}-${{ matrix.goarch }}-${{ hashFiles('**/go.sum', '**/go.mod') }}
           restore-keys: |
             ${{ runner.os }}-go-build-${{ matrix.goos }}-${{ matrix.goarch }}-
             ${{ runner.os }}-go-build-
+          save-always: true
 
       - name: "Build Binaries"
         env:

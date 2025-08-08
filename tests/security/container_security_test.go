@@ -451,7 +451,7 @@ var _ = Describe("Container Security Tests", func() {
 })
 
 // Helper function to test container runtime security
-func TestContainerRuntimeSecurity(ctx context.Context, k8sClient client.Client, deployment appsv1.Deployment) error {
+func ValidateContainerRuntimeSecurity(ctx context.Context, k8sClient client.Client, deployment appsv1.Deployment) error {
 	// Get a running pod from the deployment
 	podList := &corev1.PodList{}
 	err := k8sClient.List(ctx, podList, client.InNamespace(deployment.Namespace), 

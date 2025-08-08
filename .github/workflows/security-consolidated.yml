@@ -69,7 +69,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: "Setup Python"
         if: matrix.language == 'python'
@@ -142,7 +141,7 @@ jobs:
       - name: "Install Security Tools"
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
           go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
 
       - name: "Download Dependencies"

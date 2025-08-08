@@ -2,13 +2,7 @@ package audit
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"log/slog"
-	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -17,11 +11,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/compliance"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 const (
@@ -83,7 +78,7 @@ type AuditSystemConfig struct {
 	ComplianceMode []ComplianceStandard `json:"compliance_mode" yaml:"compliance_mode"`
 	
 	// Backends configuration for different output destinations
-	Backends []BackendConfig `json:"backends" yaml:"backends"`
+	Backends []backends.BackendConfig `json:"backends" yaml:"backends"`
 }
 
 // DefaultAuditConfig returns a default configuration for the audit system
@@ -96,18 +91,18 @@ func DefaultAuditConfig() *AuditSystemConfig {
 		MaxQueueSize:    MaxAuditQueueSize,
 		EnableIntegrity: true,
 		ComplianceMode:  []ComplianceStandard{ComplianceSOC2, ComplianceISO27001},
-		Backends:        []BackendConfig{},
+		Backends:        []backends.BackendConfig{},
 	}
 }
 
 // AuditSystem is the main audit logging system
 type AuditSystem struct {
 	config   *AuditSystemConfig
-	backends []Backend
+	backends []backends.Backend
 	
 	// Event processing
-	eventQueue    chan *AuditEvent
-	batchBuffer   []*AuditEvent
+	eventQueue    chan *types.AuditEvent
+	batchBuffer   []*types.AuditEvent
 	batchMutex    sync.RWMutex
 	flushTimer    *time.Timer
 	
@@ -124,7 +119,7 @@ type AuditSystem struct {
 	
 	// Compliance features
 	retentionManager *RetentionManager
-	complianceLogger *ComplianceLogger
+	complianceLogger *compliance.ComplianceLogger
 	
 	// Metrics and monitoring
 	lastFlush      time.Time
@@ -142,8 +137,8 @@ func NewAuditSystem(config *AuditSystemConfig) (*AuditSystem, error) {
 	
 	system := &AuditSystem{
 		config:       config,
-		eventQueue:   make(chan *AuditEvent, config.MaxQueueSize),
-		batchBuffer:  make([]*AuditEvent, 0, config.BatchSize),
+		eventQueue:   make(chan *types.AuditEvent, config.MaxQueueSize),
+		batchBuffer:  make([]*types.AuditEvent, 0, config.BatchSize),
 		logger:       log.Log.WithName("audit-system"),
 		ctx:          ctx,
 		cancel:       cancel,
@@ -166,11 +161,11 @@ func NewAuditSystem(config *AuditSystemConfig) (*AuditSystem, error) {
 	system.retentionManager = NewRetentionManager(retentionConfig)
 	
 	// Initialize compliance logger
-	system.complianceLogger = NewComplianceLogger(config.ComplianceMode)
+	system.complianceLogger = compliance.NewComplianceLogger(config.ComplianceMode)
 	
 	// Initialize backends
 	for _, backendConfig := range config.Backends {
-		backend, err := NewBackend(backendConfig)
+		backend, err := backends.NewBackend(backendConfig)
 		if err != nil {
 			system.logger.Error(err, "Failed to initialize backend", "type", backendConfig.Type)
 			continue
@@ -251,7 +246,7 @@ func (as *AuditSystem) Stop() error {
 }
 
 // LogEvent submits an audit event for processing
-func (as *AuditSystem) LogEvent(event *AuditEvent) error {
+func (as *AuditSystem) LogEvent(event *types.AuditEvent) error {
 	if !as.config.Enabled || !as.running.Load() {
 		return nil
 	}
@@ -357,7 +352,7 @@ func (as *AuditSystem) flushBatch() {
 	}
 	
 	// Copy and clear buffer
-	events := make([]*AuditEvent, len(as.batchBuffer))
+	events := make([]*types.AuditEvent, len(as.batchBuffer))
 	copy(events, as.batchBuffer)
 	as.batchBuffer = as.batchBuffer[:0]
 	as.batchMutex.Unlock()
@@ -383,7 +378,7 @@ func (as *AuditSystem) flushBatch() {
 }
 
 // processEventsWithBackend sends events to a specific backend with timing metrics
-func (as *AuditSystem) processEventsWithBackend(backend Backend, events []*AuditEvent) error {
+func (as *AuditSystem) processEventsWithBackend(backend backends.Backend, events []*types.AuditEvent) error {
 	start := time.Now()
 	defer func() {
 		duration := time.Since(start)
@@ -394,7 +389,7 @@ func (as *AuditSystem) processEventsWithBackend(backend Backend, events []*Audit
 }
 
 // enrichEvent adds system metadata to audit events
-func (as *AuditSystem) enrichEvent(event *AuditEvent) {
+func (as *AuditSystem) enrichEvent(event *types.AuditEvent) {
 	if event.ID == "" {
 		event.ID = uuid.New().String()
 	}
@@ -430,7 +425,7 @@ func (as *AuditSystem) enrichEvent(event *AuditEvent) {
 }
 
 // addSOC2Metadata enriches events with SOC2-specific fields
-func (as *AuditSystem) addSOC2Metadata(event *AuditEvent) {
+func (as *AuditSystem) addSOC2Metadata(event *types.AuditEvent) {
 	if event.ComplianceMetadata == nil {
 		event.ComplianceMetadata = make(map[string]interface{})
 	}
@@ -440,7 +435,7 @@ func (as *AuditSystem) addSOC2Metadata(event *AuditEvent) {
 }
 
 // addISO27001Metadata enriches events with ISO 27001-specific fields
-func (as *AuditSystem) addISO27001Metadata(event *AuditEvent) {
+func (as *AuditSystem) addISO27001Metadata(event *types.AuditEvent) {
 	if event.ComplianceMetadata == nil {
 		event.ComplianceMetadata = make(map[string]interface{})
 	}
@@ -450,7 +445,7 @@ func (as *AuditSystem) addISO27001Metadata(event *AuditEvent) {
 }
 
 // addPCIDSSMetadata enriches events with PCI DSS-specific fields
-func (as *AuditSystem) addPCIDSSMetadata(event *AuditEvent) {
+func (as *AuditSystem) addPCIDSSMetadata(event *types.AuditEvent) {
 	if event.ComplianceMetadata == nil {
 		event.ComplianceMetadata = make(map[string]interface{})
 	}
@@ -523,7 +518,7 @@ func (as *AuditSystem) getPCIRequirement(eventType EventType) string {
 	}
 }
 
-func (as *AuditSystem) getPCIDataClassification(event *AuditEvent) string {
+func (as *AuditSystem) getPCIDataClassification(event *types.AuditEvent) string {
 	// Check if event involves cardholder data
 	if event.Data != nil {
 		if _, exists := event.Data["cardholder_data"]; exists {

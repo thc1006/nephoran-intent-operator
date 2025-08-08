@@ -1,8 +1,6 @@
-package integration_test
+package integration
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"math"
 	"sort"
