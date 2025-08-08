@@ -119,13 +119,13 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: '1.21'
         cache: true
     
     - name: Cache Dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cache/go-build
@@ -297,13 +297,13 @@ jobs:
         fetch-depth: 0
     
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: '1.21'
         cache: true
     
     - name: Cache Dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.cache/go-build
@@ -380,7 +380,7 @@ jobs:
     
     - name: Upload Test Results
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-results-${{ github.run_id }}
         path: |
@@ -478,7 +478,7 @@ jobs:
     
     - name: Upload Infrastructure Logs
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: infrastructure-logs-${{ github.run_id }}
         path: /tmp/nephoran-deployment-*.log
@@ -629,7 +629,7 @@ jobs:
     
     - name: Upload Application Logs
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: application-logs-${{ github.run_id }}
         path: /tmp/nephoran-deployment-*.log
@@ -801,7 +801,7 @@ jobs:
     
     - name: Upload Deployment Report
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: deployment-report-${{ github.run_id }}
         path: deployment-report.md

@@ -645,7 +645,7 @@ jobs:
       
       - name: 📤 Upload Pages Artifact
         if: github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: quality-reports/
       
