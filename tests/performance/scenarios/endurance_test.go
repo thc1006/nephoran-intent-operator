@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nephoran-intent-operator/pkg/performance"
+	"github.com/thc1006/nephoran-intent-operator/pkg/performance"
 	"k8s.io/klog/v2"
 )
 
