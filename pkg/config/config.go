@@ -31,6 +31,7 @@ type Config struct {
 	GitToken    string
 	GitTokenPath string  // Path to file containing Git token
 	GitBranch   string
+	GitConcurrentPushLimit int  // Maximum concurrent git operations (default 4 if <= 0)
 
 	// Weaviate configuration
 	WeaviateURL   string
@@ -131,6 +132,7 @@ func DefaultConfig() *Config {
 		RAGAPITimeout:     30 * time.Second,
 
 		GitBranch: "main",
+		GitConcurrentPushLimit: 4,  // Default value
 
 		WeaviateURL:   "http://weaviate.default.svc.cluster.local:8080",
 		WeaviateIndex: "telecom_knowledge",
@@ -357,6 +359,13 @@ func LoadFromEnv() (*Config, error) {
 
 	if val := os.Getenv("GIT_BRANCH"); val != "" {
 		cfg.GitBranch = val
+	}
+
+	if val := os.Getenv("GIT_CONCURRENT_PUSH_LIMIT"); val != "" {
+		if limit, err := strconv.Atoi(val); err == nil && limit > 0 {
+			cfg.GitConcurrentPushLimit = limit
+		}
+		// Ignore parse errors, will use default
 	}
 
 	if val := os.Getenv("WEAVIATE_URL"); val != "" {

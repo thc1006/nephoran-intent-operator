@@ -6,13 +6,39 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
+	"github.com/prometheus/client_golang/prometheus"
 )
+
+var (
+	// Metrics registration guard
+	metricsOnce sync.Once
+	
+	// Git push in-flight gauge metric
+	gitPushInFlightGauge prometheus.Gauge
+)
+
+// InitMetrics initializes the git client metrics
+// This should be called once, typically from the main application
+func InitMetrics(registerer prometheus.Registerer) {
+	metricsOnce.Do(func() {
+		gitPushInFlightGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+			Name: "nephoran_git_push_in_flight",
+			Help: "Number of git push operations currently in flight",
+		})
+		
+		if registerer != nil {
+			registerer.MustRegister(gitPushInFlightGauge)
+		}
+	})
+}
 
 // ClientInterface defines the interface for a Git client.
 type ClientInterface interface {
@@ -30,6 +56,7 @@ type ClientConfig struct {
 	TokenPath string   // Optional path to token file
 	RepoPath  string
 	Logger    *slog.Logger
+	ConcurrentPushLimit int // Maximum concurrent git operations (default 4 if <= 0)
 }
 
 // Client implements the Git client.
@@ -40,6 +67,11 @@ type Client struct {
 	RepoPath string
 	logger   *slog.Logger
 	pushSem  chan struct{} // Semaphore for concurrent git operations (buffered channel with capacity 4)
+	
+	// Test hooks - only used during testing, unexported
+	// These are nil in production and only set during tests
+	beforePushHook func()
+	afterPushHook  func()
 }
 
 // NewGitClientConfig creates a new client configuration with token loading support.
@@ -51,6 +83,17 @@ func NewGitClientConfig(repoURL, branch, token, tokenPath string) (*ClientConfig
 		Branch:   branch,
 		RepoPath: "/tmp/deployment-repo",
 		Logger:   slog.Default().With("component", "git-client"),
+		ConcurrentPushLimit: 4, // Default value
+	}
+	
+	// Override from environment variable if set
+	if val := os.Getenv("GIT_CONCURRENT_PUSH_LIMIT"); val != "" {
+		if limit, err := strconv.Atoi(val); err == nil && limit > 0 {
+			config.ConcurrentPushLimit = limit
+			config.Logger.Debug("Using custom concurrent push limit from env", "limit", limit)
+		} else {
+			config.Logger.Debug("Invalid GIT_CONCURRENT_PUSH_LIMIT, using default", "value", val, "default", 4)
+		}
 	}
 
 	// Try to read token from file first
@@ -81,6 +124,12 @@ func NewClientFromConfig(config *ClientConfig) *Client {
 	if config.Logger == nil {
 		config.Logger = slog.Default().With("component", "git-client")
 	}
+	
+	// Use configured limit or default to 4
+	limit := config.ConcurrentPushLimit
+	if limit <= 0 {
+		limit = 4
+	}
 
 	return &Client{
 		RepoURL:  config.RepoURL,
@@ -88,7 +137,7 @@ func NewClientFromConfig(config *ClientConfig) *Client {
 		SshKey:   config.Token,
 		RepoPath: config.RepoPath,
 		logger:   config.Logger,
-		pushSem:  make(chan struct{}, 4), // Initialize semaphore with capacity 4
+		pushSem:  make(chan struct{}, limit), // Initialize semaphore with configurable capacity
 	}
 }
 
@@ -97,13 +146,22 @@ func NewClient(repoURL, branch, sshKey string) *Client {
 	// Create a default logger if none provided
 	logger := slog.Default().With("component", "git-client")
 	
+	// Read concurrent push limit from environment or use default
+	limit := 4
+	if val := os.Getenv("GIT_CONCURRENT_PUSH_LIMIT"); val != "" {
+		if l, err := strconv.Atoi(val); err == nil && l > 0 {
+			limit = l
+			logger.Debug("Using custom concurrent push limit from env", "limit", limit)
+		}
+	}
+	
 	return &Client{
 		RepoURL:  repoURL,
 		Branch:   branch,
 		SshKey:   sshKey,
 		RepoPath: "/tmp/deployment-repo",
 		logger:   logger,
-		pushSem:  make(chan struct{}, 4), // Initialize semaphore with capacity 4
+		pushSem:  make(chan struct{}, limit), // Initialize semaphore with configurable capacity
 	}
 }
 
@@ -114,13 +172,22 @@ func NewClientWithLogger(repoURL, branch, sshKey string, logger *slog.Logger) *C
 	}
 	logger = logger.With("component", "git-client")
 	
+	// Read concurrent push limit from environment or use default
+	limit := 4
+	if val := os.Getenv("GIT_CONCURRENT_PUSH_LIMIT"); val != "" {
+		if l, err := strconv.Atoi(val); err == nil && l > 0 {
+			limit = l
+			logger.Debug("Using custom concurrent push limit from env", "limit", limit)
+		}
+	}
+	
 	return &Client{
 		RepoURL:  repoURL,
 		Branch:   branch,
 		SshKey:   sshKey,
 		RepoPath: "/tmp/deployment-repo",
 		logger:   logger,
-		pushSem:  make(chan struct{}, 4), // Initialize semaphore with capacity 4
+		pushSem:  make(chan struct{}, limit), // Initialize semaphore with configurable capacity
 	}
 }
 
@@ -138,23 +205,42 @@ func (c *Client) acquireSemaphore(operation string) {
 	select {
 	case c.pushSem <- struct{}{}:
 		// Successfully acquired immediately
-		c.logger.Debug("Semaphore acquired immediately", 
+		inFlight := len(c.pushSem)
+		c.logger.Debug("git push: acquired semaphore", 
 			"operation", operation,
+			"in_flight", inFlight,
+			"limit", cap(c.pushSem),
+			"acquired_immediately", true,
 			"goroutine", runtime.NumGoroutine())
+		
+		// Update metrics if available
+		if gitPushInFlightGauge != nil {
+			gitPushInFlightGauge.Set(float64(inFlight))
+		}
 		return
 	default:
 		// Would block, log that we're waiting
-		c.logger.Debug("Waiting for semaphore acquisition", 
+		c.logger.Debug("git push: waiting on semaphore", 
 			"operation", operation,
-			"goroutine", runtime.NumGoroutine(),
-			"queue_length", len(c.pushSem))
+			"in_flight", len(c.pushSem),
+			"limit", cap(c.pushSem),
+			"goroutine", runtime.NumGoroutine())
 	}
 	
 	// Now block and wait for acquisition
 	c.pushSem <- struct{}{}
-	c.logger.Debug("Semaphore acquired after waiting", 
+	inFlight := len(c.pushSem)
+	c.logger.Debug("git push: acquired semaphore", 
 		"operation", operation,
+		"in_flight", inFlight,
+		"limit", cap(c.pushSem),
+		"acquired_immediately", false,
 		"goroutine", runtime.NumGoroutine())
+	
+	// Update metrics if available
+	if gitPushInFlightGauge != nil {
+		gitPushInFlightGauge.Set(float64(inFlight))
+	}
 }
 
 // releaseSemaphore releases the semaphore for git operations with debug logging.
@@ -176,13 +262,22 @@ func (c *Client) releaseSemaphore(operation string) {
 	
 	select {
 	case <-c.pushSem:
-		c.logger.Debug("Semaphore released", 
+		inFlight := len(c.pushSem)
+		c.logger.Debug("git push: released semaphore", 
 			"operation", operation,
-			"goroutine", runtime.NumGoroutine(),
-			"remaining_capacity", cap(c.pushSem)-len(c.pushSem))
+			"in_flight", inFlight,
+			"limit", cap(c.pushSem),
+			"goroutine", runtime.NumGoroutine())
+		
+		// Update metrics if available
+		if gitPushInFlightGauge != nil {
+			gitPushInFlightGauge.Set(float64(inFlight))
+		}
 	default:
-		c.logger.Warn("Attempted to release semaphore when none held", 
+		c.logger.Warn("git push: attempted to release semaphore when none held", 
 			"operation", operation,
+			"in_flight", len(c.pushSem),
+			"limit", cap(c.pushSem),
 			"goroutine", runtime.NumGoroutine())
 	}
 }
@@ -209,6 +304,15 @@ func (c *Client) InitRepo() error {
 func (c *Client) CommitAndPush(files map[string]string, message string) (string, error) {
 	c.acquireSemaphore("CommitAndPush")
 	defer c.releaseSemaphore("CommitAndPush")
+	
+	// Test hook - before push operations
+	if c.beforePushHook != nil {
+		c.beforePushHook()
+	}
+	// Test hook - cleanup after push
+	if c.afterPushHook != nil {
+		defer c.afterPushHook()
+	}
 
 	r, err := git.PlainOpen(c.RepoPath)
 	if err != nil {
@@ -284,6 +388,15 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 func (c *Client) CommitAndPushChanges(message string) error {
 	c.acquireSemaphore("CommitAndPushChanges")
 	defer c.releaseSemaphore("CommitAndPushChanges")
+	
+	// Test hook - before push operations
+	if c.beforePushHook != nil {
+		c.beforePushHook()
+	}
+	// Test hook - cleanup after push
+	if c.afterPushHook != nil {
+		defer c.afterPushHook()
+	}
 
 	r, err := git.PlainOpen(c.RepoPath)
 	if err != nil {
@@ -347,6 +460,15 @@ func (c *Client) CommitAndPushChanges(message string) error {
 func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 	c.acquireSemaphore("RemoveDirectory")
 	defer c.releaseSemaphore("RemoveDirectory")
+	
+	// Test hook - before push operations
+	if c.beforePushHook != nil {
+		c.beforePushHook()
+	}
+	// Test hook - cleanup after push
+	if c.afterPushHook != nil {
+		defer c.afterPushHook()
+	}
 
 	r, err := git.PlainOpen(c.RepoPath)
 	if err != nil {
