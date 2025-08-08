@@ -58,10 +58,10 @@ jobs:
               - '**.md'
 
       - name: "Setup Node.js"
+        if: steps.changes.outputs.docs == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
 
       - name: "Setup Python"
         if: steps.changes.outputs.docs == 'true'
@@ -71,14 +71,16 @@ jobs:
           cache: 'pip'
 
       - name: "Cache Node Dependencies"
+        if: steps.changes.outputs.docs == 'true'
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}
           restore-keys: |
-            ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
+            ${{ runner.os }}-node-
 
       - name: "Install Link Checker"
+        if: steps.changes.outputs.docs == 'true'
         run: |
           npm install -g markdown-link-check
           npm install -g markdownlint-cli2
