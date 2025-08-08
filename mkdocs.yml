@@ -172,6 +172,44 @@ nav:
     - O-RAN Compliance: architecture/oran-compliance.md
     - Microservices: architecture/microservices.md
     - Security: architecture/security.md
+    - Decision Records:
+      - ADR-007 Production Architecture: adr/ADR-007-production-architecture-patterns.md
+      - ADR-008 Security Architecture: adr/ADR-008-production-security-architecture.md
+      - ADR-009 Data Management: adr/ADR-009-data-management-persistence.md
+  - Production Readiness:
+    - TRL 9 Evidence: production-readiness/trl9-evidence.md
+    - Enterprise Deployment Guide: production-readiness/enterprise-deployment-guide.md
+    - Deployment Case Studies: production-readiness/deployment-case-studies.md
+    - Production Checklist: production-readiness/production-checklist.md
+  - Enterprise Solutions:
+    - Business Continuity & DR: enterprise/business-continuity-disaster-recovery.md
+    - ROI and Business Case: enterprise/roi-business-case-analysis.md
+    - Scalability Planning: enterprise/scalability-planning.md
+    - Vendor Management: enterprise/vendor-management.md
+  - Operations:
+    - Production Operations Runbook: runbooks/production-operations-runbook.md
+    - Security Incident Response: runbooks/security-incident-response.md
+    - Disaster Recovery Procedures: runbooks/disaster-recovery.md
+    - Monitoring & Alerting: operations/02-monitoring-alerting-runbooks.md
+    - Performance Tuning: operations/PERFORMANCE-TUNING.md
+    - Backup & Recovery: operations/BACKUP-RECOVERY.md
+    - Maintenance Procedures: operations/04-maintenance-upgrade-procedures.md
+  - Compliance & Security:
+    - Security Compliance Framework: compliance/enterprise-security-compliance.md
+    - Security Hardening Guide: security/hardening-guide.md
+    - Audit Documentation: operations/05-compliance-audit-documentation.md
+    - Security Implementation: security/implementation-summary.md
+    - Penetration Testing: security/penetration-testing-reports.md
+  - Performance & Benchmarks:
+    - Comprehensive Performance Analysis: benchmarks/comprehensive-performance-analysis.md
+    - Benchmarking Guide: performance/BENCHMARKING_GUIDE.md
+    - Performance Optimization: optimization/PERFORMANCE_OPTIMIZATION_GUIDE.md
+    - Load Testing Results: benchmarks/load-testing-results.md
+  - Training & Certification:
+    - Enterprise Operator Certification: training/enterprise-operator-certification.md
+    - Operator Workshops: training/operator-workshops.md
+    - Training Resources: training/training-resources.md
+    - Skills Assessment: training/skills-assessment.md
   - User Guide:
     - Intent Processing: user-guide/intent-processing.md
     - Network Functions: user-guide/network-functions.md
@@ -185,14 +223,6 @@ nav:
     - Custom Resource Definitions: api/crds.md
     - OpenAPI Specification: api/openapi.md
     - Examples: api/examples.md
-  - Operations:
-    - Deployment Guide: operations/deployment.md
-    - Production Setup: operations/production.md
-    - Monitoring & Alerting: operations/monitoring.md
-    - Backup & Recovery: operations/backup-recovery.md
-    - Maintenance: operations/maintenance.md
-    - Security Hardening: operations/security.md
-    - Performance Tuning: operations/performance.md
   - Developer Guide:
     - Overview: developer/index.md
     - Development Environment: developer/environment.md

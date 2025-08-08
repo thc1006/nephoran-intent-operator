@@ -42,6 +42,164 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// Config defines configuration for the Porch client
+type Config struct {
+	// Porch server endpoint (optional, uses in-cluster config if empty)
+	Endpoint string
+	
+	// Authentication config
+	AuthConfig *AuthConfig
+	
+	// TLS configuration
+	TLSConfig *TLSConfig
+	
+	// Porch-specific configuration
+	PorchConfig *PorchConfig
+}
+
+// AuthConfig defines authentication configuration
+type AuthConfig struct {
+	Type        string // kubeconfig, bearer, basic
+	Token       string
+	Username    string
+	Password    string
+	Kubeconfig  string
+}
+
+// TLSConfig defines TLS configuration
+type TLSConfig struct {
+	InsecureSkipVerify bool
+	CertFile           string
+	KeyFile            string
+	CAFile             string
+}
+
+// PorchConfig defines Porch-specific configuration
+type PorchConfig struct {
+	// Default namespace for operations
+	DefaultNamespace string
+	
+	// Default repository for package operations
+	DefaultRepository string
+	
+	// Circuit breaker configuration
+	CircuitBreaker *CircuitBreakerConfig
+	
+	// Rate limiting configuration
+	RateLimit *RateLimitConfig
+	
+	// Connection pool configuration
+	ConnectionPool *ConnectionPoolConfig
+	
+	// Function execution configuration
+	FunctionExecution *FunctionExecutionConfig
+}
+
+// CircuitBreakerConfig defines circuit breaker settings
+type CircuitBreakerConfig struct {
+	Enabled             bool
+	FailureThreshold    int
+	SuccessThreshold    int
+	Timeout             time.Duration
+	HalfOpenMaxCalls    int
+}
+
+// RateLimitConfig defines rate limiting settings
+type RateLimitConfig struct {
+	Enabled           bool
+	RequestsPerSecond float64
+	Burst             int
+}
+
+// ConnectionPoolConfig defines connection pool settings
+type ConnectionPoolConfig struct {
+	MaxOpenConns    int
+	MaxIdleConns    int
+	ConnMaxLifetime time.Duration
+}
+
+// FunctionExecutionConfig defines function execution settings
+type FunctionExecutionConfig struct {
+	DefaultTimeout    time.Duration
+	MaxConcurrency    int
+	ResourceLimits    map[string]string
+}
+
+// GetKubernetesConfig returns the Kubernetes configuration from the Porch config
+func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
+	// If using in-cluster config
+	if c.AuthConfig == nil || c.AuthConfig.Type == "" {
+		return rest.InClusterConfig()
+	}
+	
+	// Build config based on auth type
+	config := &rest.Config{}
+	
+	if c.Endpoint != "" {
+		config.Host = c.Endpoint
+	}
+	
+	switch c.AuthConfig.Type {
+	case "bearer":
+		config.BearerToken = c.AuthConfig.Token
+	case "basic":
+		config.Username = c.AuthConfig.Username
+		config.Password = c.AuthConfig.Password
+	case "kubeconfig":
+		// Load from kubeconfig file
+		return rest.InClusterConfig()
+	default:
+		return rest.InClusterConfig()
+	}
+	
+	// Apply TLS configuration
+	if c.TLSConfig != nil {
+		config.TLSClientConfig = rest.TLSClientConfig{
+			Insecure:   c.TLSConfig.InsecureSkipVerify,
+			CertFile:   c.TLSConfig.CertFile,
+			KeyFile:    c.TLSConfig.KeyFile,
+			CAFile:     c.TLSConfig.CAFile,
+		}
+	}
+	
+	return config, nil
+}
+
+// DefaultPorchConfig returns default Porch configuration
+func DefaultPorchConfig() *Config {
+	return &Config{
+		PorchConfig: &PorchConfig{
+			DefaultNamespace:  "default",
+			DefaultRepository: "default",
+			CircuitBreaker: &CircuitBreakerConfig{
+				Enabled:             true,
+				FailureThreshold:    5,
+				SuccessThreshold:    3,
+				Timeout:             30 * time.Second,
+				HalfOpenMaxCalls:    3,
+			},
+			RateLimit: &RateLimitConfig{
+				Enabled:           true,
+				RequestsPerSecond: 10.0,
+				Burst:             20,
+			},
+			ConnectionPool: &ConnectionPoolConfig{
+				MaxOpenConns:    10,
+				MaxIdleConns:    5,
+				ConnMaxLifetime: 30 * time.Minute,
+			},
+			FunctionExecution: &FunctionExecutionConfig{
+				DefaultTimeout: 60 * time.Second,
+				MaxConcurrency: 5,
+				ResourceLimits: map[string]string{
+					"cpu":    "100m",
+					"memory": "128Mi",
+				},
+			},
+		},
+	}
+}
+
 // Client implements the PorchClient interface providing comprehensive CRUD operations
 type Client struct {
 	// Kubernetes clients
@@ -1193,7 +1351,6 @@ func (c *Client) syncRepositoryInternal(ctx context.Context, name string) error 
 
 // listPackageRevisionsInternal implements package revision listing
 func (c *Client) listPackageRevisionsInternal(ctx context.Context, opts *ListOptions) (*PackageRevisionList, error) {
-	// Implementation follows same pattern as listRepositoriesInternal
 	c.logger.V(1).Info("Listing package revisions", "opts", opts)
 	
 	if c.rateLimiter != nil {
@@ -1202,8 +1359,55 @@ func (c *Client) listPackageRevisionsInternal(ctx context.Context, opts *ListOpt
 		}
 	}
 	
-	// Return empty list for now - full implementation would use dynamic client
-	return &PackageRevisionList{}, nil
+	// Get package revisions using dynamic client
+	gvr := schema.GroupVersionResource{
+		Group:    "porch.kpt.dev",
+		Version:  "v1alpha1",
+		Resource: "packagerevisions",
+	}
+	
+	listOptions := metav1.ListOptions{}
+	if opts != nil {
+		if opts.LabelSelector != "" {
+			listOptions.LabelSelector = opts.LabelSelector
+		}
+		if opts.FieldSelector != "" {
+			listOptions.FieldSelector = opts.FieldSelector
+		}
+		if opts.Limit > 0 {
+			listOptions.Limit = opts.Limit
+		}
+		if opts.Continue != "" {
+			listOptions.Continue = opts.Continue
+		}
+	}
+	
+	namespace := ""
+	if opts != nil && opts.Namespace != "" {
+		namespace = opts.Namespace
+	}
+	
+	var obj *unstructured.UnstructuredList
+	var err error
+	
+	if namespace != "" {
+		obj, err = c.dynamic.Resource(gvr).Namespace(namespace).List(ctx, listOptions)
+	} else {
+		obj, err = c.dynamic.Resource(gvr).List(ctx, listOptions)
+	}
+	
+	if err != nil {
+		return nil, fmt.Errorf("failed to list package revisions: %w", err)
+	}
+	
+	// Convert unstructured list to PackageRevisionList
+	pkgList := &PackageRevisionList{}
+	if err := convertFromUnstructured(obj, pkgList); err != nil {
+		return nil, fmt.Errorf("failed to convert package revision list: %w", err)
+	}
+	
+	c.logger.V(1).Info("Successfully listed package revisions", "count", len(pkgList.Items))
+	return pkgList, nil
 }
 
 // createPackageRevisionInternal implements package revision creation
@@ -1216,8 +1420,53 @@ func (c *Client) createPackageRevisionInternal(ctx context.Context, pkg *Package
 		}
 	}
 	
-	// Return the package for now - full implementation would create via dynamic client
-	return pkg, nil
+	// Set creation timestamp and generate name if needed
+	now := metav1.Now()
+	if pkg.CreationTimestamp.IsZero() {
+		pkg.CreationTimestamp = now
+	}
+	
+	// Set API version and kind
+	pkg.APIVersion = "porch.kpt.dev/v1alpha1"
+	pkg.Kind = "PackageRevision"
+	
+	// Generate name if not set (typically packagename-revision)
+	if pkg.Name == "" {
+		pkg.Name = fmt.Sprintf("%s-%s", pkg.Spec.PackageName, pkg.Spec.Revision)
+	}
+	
+	// Set default lifecycle if not specified
+	if pkg.Spec.Lifecycle == "" {
+		pkg.Spec.Lifecycle = PackageRevisionLifecycleDraft
+	}
+	
+	// Convert to unstructured for creation
+	obj, err := convertToUnstructured(pkg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert package revision: %w", err)
+	}
+	
+	// Create package revision using dynamic client
+	gvr := schema.GroupVersionResource{
+		Group:    "porch.kpt.dev",
+		Version:  "v1alpha1",
+		Resource: "packagerevisions",
+	}
+	
+	// PackageRevisions are cluster-scoped in Porch
+	created, err := c.dynamic.Resource(gvr).Create(ctx, obj, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create package revision: %w", err)
+	}
+	
+	// Convert back to PackageRevision
+	result := &PackageRevision{}
+	if err := convertFromUnstructured(created, result); err != nil {
+		return nil, fmt.Errorf("failed to convert created package revision: %w", err)
+	}
+	
+	c.logger.Info("Successfully created package revision", "name", result.Name, "uid", result.UID)
+	return result, nil
 }
 
 // updatePackageRevisionInternal implements package revision update
@@ -1230,7 +1479,32 @@ func (c *Client) updatePackageRevisionInternal(ctx context.Context, pkg *Package
 		}
 	}
 	
-	return pkg, nil
+	// Convert to unstructured for update
+	obj, err := convertToUnstructured(pkg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert package revision: %w", err)
+	}
+	
+	// Update package revision using dynamic client
+	gvr := schema.GroupVersionResource{
+		Group:    "porch.kpt.dev",
+		Version:  "v1alpha1",
+		Resource: "packagerevisions",
+	}
+	
+	updated, err := c.dynamic.Resource(gvr).Update(ctx, obj, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update package revision: %w", err)
+	}
+	
+	// Convert back to PackageRevision
+	result := &PackageRevision{}
+	if err := convertFromUnstructured(updated, result); err != nil {
+		return nil, fmt.Errorf("failed to convert updated package revision: %w", err)
+	}
+	
+	c.logger.Info("Successfully updated package revision", "name", result.Name)
+	return result, nil
 }
 
 // deletePackageRevisionInternal implements package revision deletion
@@ -1243,6 +1517,25 @@ func (c *Client) deletePackageRevisionInternal(ctx context.Context, name string,
 		}
 	}
 	
+	// Delete package revision using dynamic client
+	gvr := schema.GroupVersionResource{
+		Group:    "porch.kpt.dev",
+		Version:  "v1alpha1",
+		Resource: "packagerevisions",
+	}
+	
+	// Construct the package revision name (typically name-revision)
+	resourceName := fmt.Sprintf("%s-%s", name, revision)
+	
+	err := c.dynamic.Resource(gvr).Delete(ctx, resourceName, metav1.DeleteOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return fmt.Errorf("package revision %s:%s not found: %w", name, revision, ErrPackageNotFound)
+		}
+		return fmt.Errorf("failed to delete package revision %s:%s: %w", name, revision, err)
+	}
+	
+	c.logger.Info("Successfully deleted package revision", "name", name, "revision", revision)
 	return nil
 }
 
@@ -1256,6 +1549,41 @@ func (c *Client) approvePackageRevisionInternal(ctx context.Context, name string
 		}
 	}
 	
+	// Get the current package revision
+	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
+	if err != nil {
+		return fmt.Errorf("failed to get package revision: %w", err)
+	}
+	
+	// Check current lifecycle state
+	if pkg.Spec.Lifecycle != PackageRevisionLifecycleProposed {
+		return fmt.Errorf("package revision must be in Proposed state to approve, current state: %s", pkg.Spec.Lifecycle)
+	}
+	
+	// Transition to Published lifecycle
+	pkg.Spec.Lifecycle = PackageRevisionLifecyclePublished
+	
+	// Update status to indicate approval
+	now := metav1.Now()
+	pkg.Status.PublishTime = &now
+	
+	// Set approval condition
+	condition := metav1.Condition{
+		Type:               "Approved",
+		Status:             metav1.ConditionTrue,
+		LastTransitionTime: now,
+		Reason:             "PackageApproved",
+		Message:            "Package revision has been approved and published",
+	}
+	pkg.SetCondition(condition)
+	
+	// Update the package revision
+	_, err = c.updatePackageRevisionInternal(ctx, pkg)
+	if err != nil {
+		return fmt.Errorf("failed to approve package revision: %w", err)
+	}
+	
+	c.logger.Info("Successfully approved package revision", "name", name, "revision", revision)
 	return nil
 }
 
@@ -1269,6 +1597,38 @@ func (c *Client) proposePackageRevisionInternal(ctx context.Context, name string
 		}
 	}
 	
+	// Get the current package revision
+	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
+	if err != nil {
+		return fmt.Errorf("failed to get package revision: %w", err)
+	}
+	
+	// Check current lifecycle state
+	if pkg.Spec.Lifecycle != PackageRevisionLifecycleDraft {
+		return fmt.Errorf("package revision must be in Draft state to propose, current state: %s", pkg.Spec.Lifecycle)
+	}
+	
+	// Transition to Proposed lifecycle
+	pkg.Spec.Lifecycle = PackageRevisionLifecycleProposed
+	
+	// Set proposed condition
+	now := metav1.Now()
+	condition := metav1.Condition{
+		Type:               "Proposed",
+		Status:             metav1.ConditionTrue,
+		LastTransitionTime: now,
+		Reason:             "PackageProposed",
+		Message:            "Package revision has been proposed for review",
+	}
+	pkg.SetCondition(condition)
+	
+	// Update the package revision
+	_, err = c.updatePackageRevisionInternal(ctx, pkg)
+	if err != nil {
+		return fmt.Errorf("failed to propose package revision: %w", err)
+	}
+	
+	c.logger.Info("Successfully proposed package revision", "name", name, "revision", revision)
 	return nil
 }
 
@@ -1282,6 +1642,38 @@ func (c *Client) rejectPackageRevisionInternal(ctx context.Context, name string,
 		}
 	}
 	
+	// Get the current package revision
+	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
+	if err != nil {
+		return fmt.Errorf("failed to get package revision: %w", err)
+	}
+	
+	// Check current lifecycle state
+	if pkg.Spec.Lifecycle != PackageRevisionLifecycleProposed {
+		return fmt.Errorf("package revision must be in Proposed state to reject, current state: %s", pkg.Spec.Lifecycle)
+	}
+	
+	// Transition back to Draft lifecycle
+	pkg.Spec.Lifecycle = PackageRevisionLifecycleDraft
+	
+	// Set rejection condition
+	now := metav1.Now()
+	condition := metav1.Condition{
+		Type:               "Rejected",
+		Status:             metav1.ConditionTrue,
+		LastTransitionTime: now,
+		Reason:             "PackageRejected",
+		Message:            fmt.Sprintf("Package revision rejected: %s", reason),
+	}
+	pkg.SetCondition(condition)
+	
+	// Update the package revision
+	_, err = c.updatePackageRevisionInternal(ctx, pkg)
+	if err != nil {
+		return fmt.Errorf("failed to reject package revision: %w", err)
+	}
+	
+	c.logger.Info("Successfully rejected package revision", "name", name, "revision", revision, "reason", reason)
 	return nil
 }
 
@@ -1295,7 +1687,42 @@ func (c *Client) getPackageContentsInternal(ctx context.Context, name string, re
 		}
 	}
 	
-	return make(map[string][]byte), nil
+	// Get the package revision first
+	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get package revision: %w", err)
+	}
+	
+	contents := make(map[string][]byte)
+	
+	// Extract contents from resources in the package revision spec
+	if pkg.Spec.Resources != nil {
+		for i, resource := range pkg.Spec.Resources {
+			// Convert KRMResource to YAML
+			yamlData, err := convertKRMResourceToYAML(resource)
+			if err != nil {
+				c.logger.Error(err, "Failed to convert resource to YAML", "index", i)
+				continue
+			}
+			
+			// Generate filename based on resource metadata
+			filename := generateResourceFilename(resource)
+			contents[filename] = yamlData
+		}
+	}
+	
+	// If no resources in spec, try to get from PackageRevisionResources sub-resource
+	if len(contents) == 0 {
+		resourceContents, err := c.getPackageResourcesFromPorch(ctx, name, revision)
+		if err != nil {
+			c.logger.V(1).Info("No resources found in PackageRevisionResources", "error", err)
+		} else {
+			contents = resourceContents
+		}
+	}
+	
+	c.logger.V(1).Info("Successfully retrieved package contents", "name", name, "revision", revision, "fileCount", len(contents))
+	return contents, nil
 }
 
 // updatePackageContentsInternal implements package content update
@@ -1308,6 +1735,45 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name string,
 		}
 	}
 	
+	// Get the current package revision
+	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
+	if err != nil {
+		return fmt.Errorf("failed to get package revision: %w", err)
+	}
+	
+	// Convert file contents to KRM resources
+	resources := []KRMResource{}
+	for filename, content := range contents {
+		// Skip non-YAML files
+		if !isYAMLFile(filename) {
+			continue
+		}
+		
+		resource, err := convertYAMLToKRMResource(content)
+		if err != nil {
+			c.logger.Error(err, "Failed to convert YAML to KRM resource", "filename", filename)
+			continue
+		}
+		
+		resources = append(resources, *resource)
+	}
+	
+	// Update the package revision with new resources
+	pkg.Spec.Resources = resources
+	
+	// Update the package revision
+	_, err = c.updatePackageRevisionInternal(ctx, pkg)
+	if err != nil {
+		return fmt.Errorf("failed to update package revision with new contents: %w", err)
+	}
+	
+	// Also try to update using PackageRevisionResources if available
+	if err := c.updatePackageResourcesInPorch(ctx, name, revision, contents); err != nil {
+		c.logger.V(1).Info("Failed to update PackageRevisionResources", "error", err)
+		// Don't fail the entire operation, as the main update succeeded
+	}
+	
+	c.logger.Info("Successfully updated package contents", "name", name, "revision", revision, "resourceCount", len(resources))
 	return nil
 }
 
@@ -1321,7 +1787,74 @@ func (c *Client) renderPackageInternal(ctx context.Context, name string, revisio
 		}
 	}
 	
-	return &RenderResult{}, nil
+	// Get the package revision
+	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get package revision: %w", err)
+	}
+	
+	// If no functions defined, return resources as-is
+	if len(pkg.Spec.Functions) == 0 {
+		return &RenderResult{
+			Resources: pkg.Spec.Resources,
+		}, nil
+	}
+	
+	// Execute each function in the pipeline
+	currentResources := pkg.Spec.Resources
+	var allResults []*FunctionResult
+	
+	for _, functionConfig := range pkg.Spec.Functions {
+		c.logger.V(1).Info("Executing function in pipeline", "image", functionConfig.Image)
+		
+		// Create function request
+		req := &FunctionRequest{
+			FunctionConfig: functionConfig,
+			Resources:      currentResources,
+			Context: &FunctionContext{
+				Package: &PackageReference{
+					Repository:  pkg.Spec.Repository,
+					PackageName: pkg.Spec.PackageName,
+					Revision:    pkg.Spec.Revision,
+				},
+			},
+		}
+		
+		// Execute function
+		resp, err := c.runFunctionInternal(ctx, req)
+		if err != nil {
+			return &RenderResult{
+				Resources: currentResources,
+				Error: &RenderError{
+					Message: fmt.Sprintf("Function %s failed: %v", functionConfig.Image, err),
+					Type:    "FunctionExecutionError",
+					Details: err.Error(),
+				},
+			}, nil
+		}
+		
+		// Check for function execution errors
+		if resp.Error != nil {
+			return &RenderResult{
+				Resources: currentResources,
+				Error: &RenderError{
+					Message: fmt.Sprintf("Function %s error: %s", functionConfig.Image, resp.Error.Message),
+					Type:    "FunctionError",
+					Details: resp.Error.Details,
+				},
+			}, nil
+		}
+		
+		// Update resources for next function in pipeline
+		currentResources = resp.Resources
+		allResults = append(allResults, resp.Results...)
+	}
+	
+	c.logger.V(1).Info("Successfully rendered package", "name", name, "revision", revision, "finalResourceCount", len(currentResources))
+	return &RenderResult{
+		Resources: currentResources,
+		Results:   allResults,
+	}, nil
 }
 
 // runFunctionInternal implements function execution
@@ -1334,7 +1867,55 @@ func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) 
 		}
 	}
 	
-	return &FunctionResponse{}, nil
+	// Create FunctionEvalTask resource for Porch function execution
+	gvr := schema.GroupVersionResource{
+		Group:    "porch.kpt.dev",
+		Version:  "v1alpha1",
+		Resource: "functionevaltasks",
+	}
+	
+	// Create the function evaluation task
+	task := map[string]interface{}{
+		"apiVersion": "porch.kpt.dev/v1alpha1",
+		"kind":       "FunctionEvalTask",
+		"metadata": map[string]interface{}{
+			"generateName": "function-eval-",
+			"labels": map[string]interface{}{
+				"function.image": strings.ReplaceAll(req.FunctionConfig.Image, "/", "-"),
+			},
+		},
+		"spec": map[string]interface{}{
+			"image":     req.FunctionConfig.Image,
+			"resources": c.convertResourcesToUnstructured(req.Resources),
+			"config":    req.FunctionConfig.ConfigMap,
+			"timeout":   "30s",
+		},
+	}
+	
+	// Convert to unstructured
+	taskObj := &unstructured.Unstructured{}
+	taskObj.Object = task
+	
+	// Create the task
+	createdTask, err := c.dynamic.Resource(gvr).Create(ctx, taskObj, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create function evaluation task: %w", err)
+	}
+	
+	// Wait for task completion (polling approach)
+	taskName := createdTask.GetName()
+	response, err := c.waitForFunctionTaskCompletion(ctx, taskName, 60*time.Second)
+	if err != nil {
+		return nil, fmt.Errorf("function execution failed: %w", err)
+	}
+	
+	// Clean up the task
+	if err := c.dynamic.Resource(gvr).Delete(ctx, taskName, metav1.DeleteOptions{}); err != nil {
+		c.logger.Error(err, "Failed to cleanup function evaluation task", "taskName", taskName)
+	}
+	
+	c.logger.V(1).Info("Successfully executed function", "image", req.FunctionConfig.Image, "resourceCount", len(response.Resources))
+	return response, nil
 }
 
 // validatePackageInternal implements package validation
@@ -1347,7 +1928,103 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 		}
 	}
 	
-	return &ValidationResult{Valid: true}, nil
+	// Get the package revision
+	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
+	if err != nil {
+		return &ValidationResult{
+			Valid: false,
+			Errors: []ValidationError{{
+				Path:     "package",
+				Message:  fmt.Sprintf("Failed to retrieve package: %v", err),
+				Severity: "error",
+			}},
+		}, nil
+	}
+	
+	var errors []ValidationError
+	var warnings []ValidationError
+	
+	// Validate basic package structure
+	if pkg.Spec.PackageName == "" {
+		errors = append(errors, ValidationError{
+			Path:     "spec.packageName",
+			Message:  "Package name is required",
+			Severity: "error",
+			Code:     "MISSING_PACKAGE_NAME",
+		})
+	}
+	
+	if pkg.Spec.Repository == "" {
+		errors = append(errors, ValidationError{
+			Path:     "spec.repository",
+			Message:  "Repository is required",
+			Severity: "error",
+			Code:     "MISSING_REPOSITORY",
+		})
+	}
+	
+	// Validate lifecycle transitions
+	if !IsValidLifecycle(pkg.Spec.Lifecycle) {
+		errors = append(errors, ValidationError{
+			Path:     "spec.lifecycle",
+			Message:  fmt.Sprintf("Invalid lifecycle state: %s", pkg.Spec.Lifecycle),
+			Severity: "error",
+			Code:     "INVALID_LIFECYCLE",
+		})
+	}
+	
+	// Validate resources
+	for i, resource := range pkg.Spec.Resources {
+		if resource.APIVersion == "" {
+			errors = append(errors, ValidationError{
+				Path:     fmt.Sprintf("spec.resources[%d].apiVersion", i),
+				Message:  "Resource apiVersion is required",
+				Severity: "error",
+				Code:     "MISSING_API_VERSION",
+			})
+		}
+		
+		if resource.Kind == "" {
+			errors = append(errors, ValidationError{
+				Path:     fmt.Sprintf("spec.resources[%d].kind", i),
+				Message:  "Resource kind is required",
+				Severity: "error",
+				Code:     "MISSING_KIND",
+			})
+		}
+		
+		// Check for resource name in metadata
+		if metadata, ok := resource.Metadata["name"]; !ok || metadata == "" {
+			warnings = append(warnings, ValidationError{
+				Path:     fmt.Sprintf("spec.resources[%d].metadata.name", i),
+				Message:  "Resource name is recommended in metadata",
+				Severity: "warning",
+				Code:     "MISSING_RESOURCE_NAME",
+			})
+		}
+	}
+	
+	// Validate function configurations
+	for i, function := range pkg.Spec.Functions {
+		if function.Image == "" {
+			errors = append(errors, ValidationError{
+				Path:     fmt.Sprintf("spec.functions[%d].image", i),
+				Message:  "Function image is required",
+				Severity: "error",
+				Code:     "MISSING_FUNCTION_IMAGE",
+			})
+		}
+	}
+	
+	isValid := len(errors) == 0
+	
+	c.logger.V(1).Info("Package validation completed", "name", name, "revision", revision, "valid", isValid, "errors", len(errors), "warnings", len(warnings))
+	
+	return &ValidationResult{
+		Valid:    isValid,
+		Errors:   errors,
+		Warnings: warnings,
+	}, nil
 }
 
 // getWorkflowInternal implements workflow retrieval
@@ -1800,6 +2477,334 @@ func convertFromUnstructured(obj interface{}, target interface{}) error {
 	}
 	
 	return nil
+}
+
+// Helper functions for package content operations
+
+// convertKRMResourceToYAML converts a KRMResource to YAML bytes
+func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
+	// Create a map with the resource data
+	resourceMap := map[string]interface{}{
+		"apiVersion": resource.APIVersion,
+		"kind":       resource.Kind,
+		"metadata":   resource.Metadata,
+	}
+	
+	if resource.Spec != nil {
+		resourceMap["spec"] = resource.Spec
+	}
+	if resource.Status != nil {
+		resourceMap["status"] = resource.Status
+	}
+	if resource.Data != nil {
+		resourceMap["data"] = resource.Data
+	}
+	
+	// Convert to YAML using JSON marshaling then conversion
+	jsonBytes, err := json.Marshal(resourceMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal resource to JSON: %w", err)
+	}
+	
+	// Simple YAML conversion (in production, use proper YAML library)
+	// For now, return as formatted JSON which is valid YAML
+	return jsonBytes, nil
+}
+
+// convertYAMLToKRMResource converts YAML bytes to a KRMResource
+func convertYAMLToKRMResource(yamlData []byte) (*KRMResource, error) {
+	var resourceMap map[string]interface{}
+	
+	// Parse as JSON first (most YAML is valid JSON)
+	if err := json.Unmarshal(yamlData, &resourceMap); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal YAML data: %w", err)
+	}
+	
+	resource := &KRMResource{}
+	
+	// Extract required fields
+	if apiVersion, ok := resourceMap["apiVersion"].(string); ok {
+		resource.APIVersion = apiVersion
+	}
+	if kind, ok := resourceMap["kind"].(string); ok {
+		resource.Kind = kind
+	}
+	if metadata, ok := resourceMap["metadata"].(map[string]interface{}); ok {
+		resource.Metadata = metadata
+	}
+	if spec, ok := resourceMap["spec"].(map[string]interface{}); ok {
+		resource.Spec = spec
+	}
+	if status, ok := resourceMap["status"].(map[string]interface{}); ok {
+		resource.Status = status
+	}
+	if data, ok := resourceMap["data"].(map[string]interface{}); ok {
+		resource.Data = data
+	}
+	
+	return resource, nil
+}
+
+// generateResourceFilename generates a filename for a KRM resource
+func generateResourceFilename(resource KRMResource) string {
+	var name string
+	if metadata := resource.Metadata; metadata != nil {
+		if resourceName, ok := metadata["name"].(string); ok && resourceName != "" {
+			name = resourceName
+		}
+	}
+	
+	if name == "" {
+		name = "resource"
+	}
+	
+	// Create filename from kind and name
+	kind := strings.ToLower(resource.Kind)
+	if kind == "" {
+		kind = "resource"
+	}
+	
+	return fmt.Sprintf("%s-%s.yaml", kind, name)
+}
+
+// isYAMLFile checks if a filename represents a YAML file
+func isYAMLFile(filename string) bool {
+	return strings.HasSuffix(strings.ToLower(filename), ".yaml") ||
+		   strings.HasSuffix(strings.ToLower(filename), ".yml")
+}
+
+// getPackageResourcesFromPorch retrieves package resources from Porch PackageRevisionResources
+func (c *Client) getPackageResourcesFromPorch(ctx context.Context, name string, revision string) (map[string][]byte, error) {
+	// PackageRevisionResources is a sub-resource of PackageRevision in Porch
+	gvr := schema.GroupVersionResource{
+		Group:    "porch.kpt.dev",
+		Version:  "v1alpha1",
+		Resource: "packagerevisionresources",
+	}
+	
+	resourceName := fmt.Sprintf("%s-%s", name, revision)
+	
+	obj, err := c.dynamic.Resource(gvr).Get(ctx, resourceName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get package revision resources: %w", err)
+	}
+	
+	// Extract resources from the PackageRevisionResources spec
+	spec, found, err := unstructured.NestedMap(obj.Object, "spec")
+	if err != nil || !found {
+		return nil, fmt.Errorf("no spec found in PackageRevisionResources")
+	}
+	
+	resources, found, err := unstructured.NestedMap(spec, "resources")
+	if err != nil || !found {
+		return nil, fmt.Errorf("no resources found in PackageRevisionResources spec")
+	}
+	
+	contents := make(map[string][]byte)
+	for filename, content := range resources {
+		if contentStr, ok := content.(string); ok {
+			contents[filename] = []byte(contentStr)
+		}
+	}
+	
+	return contents, nil
+}
+
+// updatePackageResourcesInPorch updates package resources in Porch PackageRevisionResources
+func (c *Client) updatePackageResourcesInPorch(ctx context.Context, name string, revision string, contents map[string][]byte) error {
+	gvr := schema.GroupVersionResource{
+		Group:    "porch.kpt.dev",
+		Version:  "v1alpha1",
+		Resource: "packagerevisionresources",
+	}
+	
+	resourceName := fmt.Sprintf("%s-%s", name, revision)
+	
+	// Get current PackageRevisionResources
+	obj, err := c.dynamic.Resource(gvr).Get(ctx, resourceName, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get package revision resources: %w", err)
+	}
+	
+	// Update resources in spec
+	resources := make(map[string]interface{})
+	for filename, content := range contents {
+		resources[filename] = string(content)
+	}
+	
+	if err := unstructured.SetNestedMap(obj.Object, resources, "spec", "resources"); err != nil {
+		return fmt.Errorf("failed to set resources in spec: %w", err)
+	}
+	
+	// Update the PackageRevisionResources
+	_, err = c.dynamic.Resource(gvr).Update(ctx, obj, metav1.UpdateOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to update package revision resources: %w", err)
+	}
+	
+	return nil
+}
+
+// convertResourcesToUnstructured converts KRM resources to unstructured format
+func (c *Client) convertResourcesToUnstructured(resources []KRMResource) []interface{} {
+	result := make([]interface{}, len(resources))
+	
+	for i, resource := range resources {
+		resourceMap := map[string]interface{}{
+			"apiVersion": resource.APIVersion,
+			"kind":       resource.Kind,
+			"metadata":   resource.Metadata,
+		}
+		
+		if resource.Spec != nil {
+			resourceMap["spec"] = resource.Spec
+		}
+		if resource.Status != nil {
+			resourceMap["status"] = resource.Status
+		}
+		if resource.Data != nil {
+			resourceMap["data"] = resource.Data
+		}
+		
+		result[i] = resourceMap
+	}
+	
+	return result
+}
+
+// waitForFunctionTaskCompletion waits for a function evaluation task to complete
+func (c *Client) waitForFunctionTaskCompletion(ctx context.Context, taskName string, timeout time.Duration) (*FunctionResponse, error) {
+	gvr := schema.GroupVersionResource{
+		Group:    "porch.kpt.dev",
+		Version:  "v1alpha1",
+		Resource: "functionevaltasks",
+	}
+	
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, fmt.Errorf("timeout waiting for function task completion")
+		case <-ticker.C:
+			obj, err := c.dynamic.Resource(gvr).Get(ctx, taskName, metav1.GetOptions{})
+			if err != nil {
+				c.logger.Error(err, "Failed to get function task status", "taskName", taskName)
+				continue
+			}
+			
+			// Check task status
+			status, found, err := unstructured.NestedMap(obj.Object, "status")
+			if err != nil || !found {
+				continue // Task not yet started
+			}
+			
+			// Check if completed
+			if phase, ok := status["phase"].(string); ok {
+				switch phase {
+				case "Succeeded":
+					return c.extractFunctionResponse(status)
+				case "Failed":
+					errorMsg := "Function execution failed"
+					if msg, ok := status["error"].(string); ok {
+						errorMsg = msg
+					}
+					return nil, fmt.Errorf(errorMsg)
+				case "Running", "Pending":
+					continue // Keep waiting
+				default:
+					c.logger.V(1).Info("Unknown function task phase", "phase", phase)
+					continue
+				}
+			}
+		}
+	}
+}
+
+// extractFunctionResponse extracts FunctionResponse from task status
+func (c *Client) extractFunctionResponse(status map[string]interface{}) (*FunctionResponse, error) {
+	response := &FunctionResponse{
+		Resources: []KRMResource{},
+		Results:   []*FunctionResult{},
+		Logs:      []string{},
+	}
+	
+	// Extract resources
+	if resources, ok := status["resources"].([]interface{}); ok {
+		for _, res := range resources {
+			if resMap, ok := res.(map[string]interface{}); ok {
+				resource := KRMResource{}
+				
+				if apiVersion, ok := resMap["apiVersion"].(string); ok {
+					resource.APIVersion = apiVersion
+				}
+				if kind, ok := resMap["kind"].(string); ok {
+					resource.Kind = kind
+				}
+				if metadata, ok := resMap["metadata"].(map[string]interface{}); ok {
+					resource.Metadata = metadata
+				}
+				if spec, ok := resMap["spec"].(map[string]interface{}); ok {
+					resource.Spec = spec
+				}
+				if statusData, ok := resMap["status"].(map[string]interface{}); ok {
+					resource.Status = statusData
+				}
+				if data, ok := resMap["data"].(map[string]interface{}); ok {
+					resource.Data = data
+				}
+				
+				response.Resources = append(response.Resources, resource)
+			}
+		}
+	}
+	
+	// Extract results
+	if results, ok := status["results"].([]interface{}); ok {
+		for _, res := range results {
+			if resMap, ok := res.(map[string]interface{}); ok {
+				result := &FunctionResult{}
+				
+				if message, ok := resMap["message"].(string); ok {
+					result.Message = message
+				}
+				if severity, ok := resMap["severity"].(string); ok {
+					result.Severity = severity
+				}
+				if field, ok := resMap["field"].(string); ok {
+					result.Field = field
+				}
+				if file, ok := resMap["file"].(string); ok {
+					result.File = file
+				}
+				if tags, ok := resMap["tags"].(map[string]interface{}); ok {
+					result.Tags = make(map[string]string)
+					for k, v := range tags {
+						if vStr, ok := v.(string); ok {
+							result.Tags[k] = vStr
+						}
+					}
+				}
+				
+				response.Results = append(response.Results, result)
+			}
+		}
+	}
+	
+	// Extract logs
+	if logs, ok := status["logs"].([]interface{}); ok {
+		for _, log := range logs {
+			if logStr, ok := log.(string); ok {
+				response.Logs = append(response.Logs, logStr)
+			}
+		}
+	}
+	
+	return response, nil
 }
 
 // Close closes the client and cleans up resources

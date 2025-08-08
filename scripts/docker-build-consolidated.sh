@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Production Docker build script with security scanning and multi-architecture support
-# Usage: ./docker-build.sh <service> [options]
+# Production Docker build script with consolidated Dockerfile support
+# Supports 3 essential Dockerfiles: production, development, multi-arch
+# Usage: ./docker-build-consolidated.sh <service> [options]
 
 set -euo pipefail
 
@@ -41,7 +42,7 @@ log_error() {
 # Help function
 show_help() {
     cat << EOF
-Production Docker Build Script for Nephoran Intent Operator
+Production Docker Build Script for Nephoran Intent Operator (Consolidated Dockerfiles)
 
 Usage: $0 <service> [options]
 
@@ -49,6 +50,8 @@ Services:
   llm-processor    Build LLM Processor service
   nephio-bridge    Build Nephio Bridge service
   oran-adaptor     Build ORAN Adaptor service
+  rag-api          Build RAG API Python service
+  security-scanner Build Security Scanner tools
   all              Build all services
 
 Options:
@@ -56,23 +59,70 @@ Options:
   --scan           Run security scan using Trivy
   --multi-arch     Build for multiple architectures (${PLATFORMS})
   --no-cache       Build without using Docker cache
+  --build-type     Build type: production, development, multi-arch (default: production)
   --registry       Set custom registry (default: ${REGISTRY})
   --version        Set version tag (default: ${VERSION})
   --platforms      Set target platforms (default: ${PLATFORMS})
   --help           Show this help message
 
+Build Types:
+  production       Production-ready build with security hardening (Dockerfile.production)
+  development      Development build with debugging tools (Dockerfile.dev)
+  multi-arch       Multi-architecture optimized build (Dockerfile.multiarch)
+
 Examples:
   $0 llm-processor --push --scan
   $0 all --multi-arch --push
   $0 nephio-bridge --registry my-registry.com --version v1.2.3
+  $0 rag-api --build-type development
+  $0 all --build-type production --push --scan
 
 Environment Variables:
   REGISTRY         Container registry URL
   VERSION          Image version tag
   PLATFORMS        Target platforms for multi-arch build
+  BUILD_TYPE       Build type (production, development, multi-arch)
   DOCKER_BUILDKIT  Enable BuildKit (recommended: 1)
   TRIVY_SEVERITY   Trivy scan severity (default: HIGH,CRITICAL)
 EOF
+}
+
+# Determine build type and dockerfile
+get_dockerfile_path() {
+    local build_type="${BUILD_TYPE:-production}"
+    
+    case "$build_type" in
+        "production")
+            echo "Dockerfile.production"
+            ;;
+        "development"|"dev")
+            echo "Dockerfile.dev"
+            ;;
+        "multi-arch"|"multiarch")
+            echo "Dockerfile.multiarch"
+            ;;
+        *)
+            log_warning "Unknown build type: $build_type, defaulting to production"
+            echo "Dockerfile.production"
+            ;;
+    esac
+}
+
+# Determine service type (go, python, scanner)
+get_service_type() {
+    local service_name="$1"
+    
+    case "$service_name" in
+        "rag-api")
+            echo "python"
+            ;;
+        "security-scanner")
+            echo "scanner"
+            ;;
+        *)
+            echo "go"
+            ;;
+    esac
 }
 
 # Parse command line arguments
@@ -84,7 +134,7 @@ NO_CACHE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
-        llm-processor|nephio-bridge|oran-adaptor|all)
+        llm-processor|nephio-bridge|oran-adaptor|rag-api|security-scanner|all)
             SERVICE="$1"
             shift
             ;;
@@ -103,6 +153,10 @@ while [[ $# -gt 0 ]]; do
         --no-cache)
             NO_CACHE=true
             shift
+            ;;
+        --build-type)
+            BUILD_TYPE="$2"
+            shift 2
             ;;
         --registry)
             REGISTRY="$2"
@@ -162,6 +216,13 @@ check_prerequisites() {
         exit 1
     fi
     
+    # Validate dockerfile exists
+    local dockerfile_path=$(get_dockerfile_path)
+    if [[ ! -f "${SCRIPT_DIR}/../${dockerfile_path}" ]]; then
+        log_error "Dockerfile not found: ${SCRIPT_DIR}/../${dockerfile_path}"
+        exit 1
+    fi
+    
     log_success "Prerequisites check completed"
 }
 
@@ -191,25 +252,35 @@ run_security_scan() {
     log_success "Security scan completed for ${image_name}"
 }
 
-# Build function for individual service
+# Build function for individual service with consolidated Dockerfiles
 build_service() {
     local service_name="$1"
     local image_name="${REGISTRY}/${service_name}:${VERSION}"
     local latest_name="${REGISTRY}/${service_name}:latest"
+    local dockerfile_path
+    local service_type
+    
+    # Determine dockerfile and service type
+    dockerfile_path=$(get_dockerfile_path)
+    service_type=$(get_service_type "$service_name")
     
     log_info "Building ${service_name} service..."
     log_info "Image: ${image_name}"
     log_info "Build date: ${BUILD_DATE}"
     log_info "VCS ref: ${VCS_REF}"
+    log_info "Dockerfile: ${dockerfile_path}"
+    log_info "Service type: ${service_type}"
     
-    # Build arguments
+    # Build arguments for consolidated Dockerfiles
     local build_args=(
-        --build-arg "SERVICE=${service_name}"
+        --build-arg "SERVICE_NAME=${service_name}"
+        --build-arg "SERVICE_TYPE=${service_type}"
         --build-arg "BUILD_DATE=${BUILD_DATE}"
         --build-arg "VCS_REF=${VCS_REF}"
         --build-arg "VERSION=${VERSION}"
         --tag "${image_name}"
         --tag "${latest_name}"
+        --target "final"
     )
     
     # Add no-cache if requested
@@ -217,8 +288,8 @@ build_service() {
         build_args+=(--no-cache)
     fi
     
-    # Choose build method based on multi-arch requirement
-    if [[ "$MULTI_ARCH" == true ]]; then
+    # Choose build method based on multi-arch requirement or dockerfile type
+    if [[ "$MULTI_ARCH" == true ]] || [[ "$dockerfile_path" == "Dockerfile.multiarch" ]]; then
         log_info "Building multi-architecture image for platforms: ${PLATFORMS}"
         
         # Create builder if it doesn't exist
@@ -226,20 +297,26 @@ build_service() {
             docker buildx create --name nephoran-builder --use
         fi
         
+        # Use multiarch dockerfile for cross-platform builds
+        if [[ "$dockerfile_path" != "Dockerfile.multiarch" ]]; then
+            log_warning "Switching to Dockerfile.multiarch for multi-arch build"
+            dockerfile_path="Dockerfile.multiarch"
+        fi
+        
         docker buildx build \
             "${build_args[@]}" \
             --platform "${PLATFORMS}" \
             --progress plain \
-            --file "${SCRIPT_DIR}/Dockerfile" \
-            "${SCRIPT_DIR}"
+            --file "${SCRIPT_DIR}/../${dockerfile_path}" \
+            "${SCRIPT_DIR}/.."
             
     else
         log_info "Building single-architecture image"
         docker build \
             "${build_args[@]}" \
             --progress plain \
-            --file "${SCRIPT_DIR}/Dockerfile" \
-            "${SCRIPT_DIR}"
+            --file "${SCRIPT_DIR}/../${dockerfile_path}" \
+            "${SCRIPT_DIR}/.."
     fi
     
     log_success "Successfully built ${service_name}"
@@ -260,10 +337,11 @@ build_service() {
 
 # Main execution
 main() {
-    log_info "Starting Docker build process for Nephoran Intent Operator"
+    log_info "Starting Docker build process for Nephoran Intent Operator (Consolidated)"
     log_info "Service: ${SERVICE}"
     log_info "Version: ${VERSION}"
     log_info "Registry: ${REGISTRY}"
+    log_info "Build type: ${BUILD_TYPE}"
     
     # Check prerequisites
     check_prerequisites
@@ -273,7 +351,7 @@ main() {
     
     # Build services
     if [[ "$SERVICE" == "all" ]]; then
-        for svc in llm-processor nephio-bridge oran-adaptor; do
+        for svc in llm-processor nephio-bridge oran-adaptor rag-api; do
             build_service "$svc"
         done
     else
@@ -286,12 +364,18 @@ main() {
     echo
     log_info "Built images:"
     if [[ "$SERVICE" == "all" ]]; then
-        for svc in llm-processor nephio-bridge oran-adaptor; do
+        for svc in llm-processor nephio-bridge oran-adaptor rag-api; do
             echo "  - ${REGISTRY}/${svc}:${VERSION}"
         done
     else
         echo "  - ${REGISTRY}/${SERVICE}:${VERSION}"
     fi
+    
+    log_info "Build configuration:"
+    echo "  - Build type: ${BUILD_TYPE}"
+    echo "  - Dockerfile: $(get_dockerfile_path)"
+    echo "  - Multi-arch: ${MULTI_ARCH}"
+    echo "  - Platforms: ${PLATFORMS}"
     
     if [[ "$SCAN" == true ]]; then
         echo

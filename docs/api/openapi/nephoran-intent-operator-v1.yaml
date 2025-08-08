@@ -1,0 +1,1606 @@
+openapi: 3.0.3
+info:
+  title: Nephoran Intent Operator API
+  version: 1.0.0
+  description: |
+    # Nephoran Intent Operator REST API
+
+    ## Overview
+    The Nephoran Intent Operator API provides comprehensive interfaces for telecommunications 
+    network intent management, AI-powered intent processing, and O-RAN compliant network function orchestration.
+
+    This production-ready API (TRL 9) enables:
+    - Natural language intent processing with LLM integration
+    - Semantic knowledge retrieval with RAG pipeline
+    - 5G Core and O-RAN network function deployment
+    - Real-time monitoring and health checking
+    - Enterprise-grade authentication and authorization
+
+    ## Authentication
+    All API endpoints require OAuth2 authentication using JWT tokens. 
+    Supported identity providers include:
+    - Azure AD
+    - Google Cloud Identity
+    - Keycloak
+    - Custom enterprise identity providers
+
+    ## Rate Limiting
+    - 1000 requests per minute for authenticated users
+    - 100 requests per minute for intent processing
+    - 10 concurrent streaming connections per user
+
+    ## API Stability
+    - Current Status: Production Ready (TRL 9)
+    - Stability: Stable
+    - Compatibility: Backward compatible with v1.x versions
+    - SLA: 99.95% availability, <2s average response time
+
+  termsOfService: https://nephoran.com/api-terms
+  contact:
+    name: Nephoran Support
+    email: api-support@nephoran.com
+    url: https://nephoran.com/support
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+  x-logo:
+    url: https://nephoran.com/logo.png
+
+servers:
+  - url: https://api.nephoran.com/v1
+    description: Production API Server
+  - url: https://staging-api.nephoran.com/v1
+    description: Staging API Server
+  - url: https://localhost:8080/v1
+    description: Development Server
+
+tags:
+  - name: Intent Management
+    description: Network intent creation and lifecycle management
+  - name: LLM Processing
+    description: Large Language Model intent processing endpoints
+  - name: RAG Retrieval
+    description: Semantic knowledge retrieval and search
+  - name: Monitoring
+    description: Health checks, metrics, and system status
+  - name: Authentication
+    description: OAuth2 and JWT token management
+  - name: O-RAN Management
+    description: O-RAN interface and network function management
+
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.nephoran.com/oauth/authorize
+          tokenUrl: https://auth.nephoran.com/oauth/token
+          refreshUrl: https://auth.nephoran.com/oauth/refresh
+          scopes:
+            intent.read: Read network intents
+            intent.write: Create and modify network intents
+            intent.execute: Execute network intents
+            intent.delete: Delete network intents
+            rag.query: Perform RAG queries
+            rag.admin: Administer knowledge base
+            monitoring.read: Access monitoring data
+            monitoring.admin: Administer monitoring systems
+            oran.read: Read O-RAN configurations
+            oran.write: Modify O-RAN configurations
+            admin: Full administrative access
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    NamespaceParam:
+      name: namespace
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+      description: Kubernetes namespace
+    IntentNameParam:
+      name: intentName
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+      description: Network intent name
+    LimitParam:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: Maximum number of results to return
+    OffsetParam:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+      description: Number of results to skip
+
+  schemas:
+    NetworkIntent:
+      type: object
+      required:
+        - apiVersion
+        - kind
+        - metadata
+        - spec
+      properties:
+        apiVersion:
+          type: string
+          example: nephoran.io/v1alpha1
+          description: API version
+        kind:
+          type: string
+          enum:
+            - NetworkIntent
+            - NetworkSlice
+            - RANIntent
+          description: Resource type
+        metadata:
+          $ref: '#/components/schemas/ObjectMeta'
+        spec:
+          $ref: '#/components/schemas/NetworkIntentSpec'
+        status:
+          $ref: '#/components/schemas/NetworkIntentStatus'
+          readOnly: true
+      example:
+        apiVersion: nephoran.io/v1alpha1
+        kind: NetworkIntent
+        metadata:
+          name: production-amf-deployment
+          namespace: telecom-5g
+          labels:
+            environment: production
+            component: amf
+        spec:
+          intent: "Deploy a high-availability AMF instance for production with auto-scaling"
+          priority: high
+          parameters:
+            replicas: 3
+            enableAutoScaling: true
+
+    ObjectMeta:
+      type: object
+      properties:
+        name:
+          type: string
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          description: Resource name
+        namespace:
+          type: string
+          pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+          description: Kubernetes namespace
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+          description: Resource labels
+        annotations:
+          type: object
+          additionalProperties:
+            type: string
+          description: Resource annotations
+        creationTimestamp:
+          type: string
+          format: date-time
+          readOnly: true
+        uid:
+          type: string
+          readOnly: true
+
+    NetworkIntentSpec:
+      type: object
+      required:
+        - intent
+      properties:
+        intent:
+          type: string
+          description: Natural language description of network intent
+          minLength: 10
+          maxLength: 1000
+          example: "Deploy a high-availability AMF instance for production with auto-scaling"
+        priority:
+          type: string
+          enum:
+            - low
+            - medium
+            - high
+            - critical
+          default: medium
+          description: Intent processing priority
+        parameters:
+          type: object
+          description: Structured parameters derived from intent processing
+          additionalProperties: true
+        targetClusters:
+          type: array
+          items:
+            type: string
+          description: Target Kubernetes clusters for deployment
+        networkSlice:
+          type: string
+          description: Network slice identifier for 5G deployments
+        oranCompliance:
+          type: boolean
+          default: true
+          description: Enforce O-RAN compliance standards
+
+    NetworkIntentStatus:
+      type: object
+      properties:
+        phase:
+          type: string
+          enum:
+            - Pending
+            - Processing
+            - Validating
+            - Deploying
+            - Deployed
+            - Failed
+            - Deleting
+          description: Current processing phase
+        message:
+          type: string
+          description: Human-readable status message
+        conditions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Condition'
+        deploymentDetails:
+          type: object
+          properties:
+            generatedManifests:
+              type: integer
+              description: Number of Kubernetes manifests generated
+            deployedResources:
+              type: integer
+              description: Number of resources successfully deployed
+            failedResources:
+              type: integer
+              description: Number of resources that failed deployment
+        processingMetrics:
+          type: object
+          properties:
+            llmProcessingTimeMs:
+              type: integer
+              description: LLM processing time in milliseconds
+            ragRetrievalTimeMs:
+              type: integer
+              description: RAG retrieval time in milliseconds
+            totalProcessingTimeMs:
+              type: integer
+              description: Total processing time in milliseconds
+
+    Condition:
+      type: object
+      required:
+        - type
+        - status
+      properties:
+        type:
+          type: string
+          description: Condition type
+        status:
+          type: string
+          enum:
+            - "True"
+            - "False"
+            - Unknown
+          description: Condition status
+        lastTransitionTime:
+          type: string
+          format: date-time
+          description: Last time the condition transitioned
+        reason:
+          type: string
+          description: Machine-readable reason for condition
+        message:
+          type: string
+          description: Human-readable message about condition
+
+    RAGQuery:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Natural language query for semantic search
+          minLength: 5
+          maxLength: 500
+          example: "Explain O-RAN Near-RT RIC architecture components"
+        context:
+          type: object
+          description: Optional context for more precise retrieval
+          properties:
+            domain:
+              type: string
+              enum:
+                - 5g-core
+                - o-ran
+                - network-slicing
+                - edge-computing
+              description: Telecommunications domain context
+            technology:
+              type: string
+              description: Specific technology context
+        maxResults:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+          description: Maximum number of results to return
+        threshold:
+          type: number
+          minimum: 0
+          maximum: 1
+          default: 0.7
+          description: Minimum relevance threshold
+        includeMetadata:
+          type: boolean
+          default: false
+          description: Include document metadata in results
+
+    RAGResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/RAGResult'
+        metadata:
+          type: object
+          properties:
+            totalResults:
+              type: integer
+            processingTimeMs:
+              type: integer
+            queryEnhanced:
+              type: string
+              description: Enhanced query after preprocessing
+
+    RAGResult:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Retrieved text content
+        score:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Relevance score
+        source:
+          type: string
+          description: Source document identifier
+        metadata:
+          type: object
+          properties:
+            documentType:
+              type: string
+            section:
+              type: string
+            page:
+              type: integer
+            lastUpdated:
+              type: string
+              format: date-time
+
+    LLMProcessingRequest:
+      type: object
+      required:
+        - intent
+      properties:
+        intent:
+          type: string
+          description: Natural language intent to process
+          minLength: 10
+          maxLength: 1000
+        context:
+          type: array
+          items:
+            type: string
+          description: Additional context from RAG retrieval
+        parameters:
+          type: object
+          description: Additional processing parameters
+          properties:
+            model:
+              type: string
+              enum:
+                - gpt-4o-mini
+                - claude-3-haiku
+                - mistral-8x22b
+              default: gpt-4o-mini
+              description: LLM model to use
+            temperature:
+              type: number
+              minimum: 0
+              maximum: 2
+              default: 0.7
+              description: Response randomness
+            maxTokens:
+              type: integer
+              minimum: 100
+              maximum: 4000
+              default: 2000
+              description: Maximum response tokens
+        streaming:
+          type: boolean
+          default: false
+          description: Enable streaming response
+
+    LLMProcessingResponse:
+      type: object
+      properties:
+        processedIntent:
+          type: object
+          description: Structured intent parameters
+        networkFunctions:
+          type: array
+          items:
+            type: string
+          description: Identified network functions
+        deploymentStrategy:
+          type: string
+          description: Recommended deployment strategy
+        oranCompliance:
+          type: object
+          description: O-RAN compliance assessment
+        confidence:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: Processing confidence score
+        processingMetrics:
+          type: object
+          properties:
+            tokenUsage:
+              type: integer
+            processingTimeMs:
+              type: integer
+            ragContextUsed:
+              type: boolean
+
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - healthy
+            - degraded
+            - unhealthy
+          description: Overall system health
+        timestamp:
+          type: string
+          format: date-time
+        components:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ComponentHealth'
+        metrics:
+          type: object
+          properties:
+            uptime:
+              type: integer
+              description: System uptime in seconds
+            requestRate:
+              type: number
+              description: Current request rate per second
+            errorRate:
+              type: number
+              description: Current error rate percentage
+            responseTime:
+              type: number
+              description: Average response time in milliseconds
+
+    ComponentHealth:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - healthy
+            - degraded
+            - unhealthy
+        message:
+          type: string
+        lastChecked:
+          type: string
+          format: date-time
+        metrics:
+          type: object
+          additionalProperties: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code
+          example: "INTENT_VALIDATION_FAILED"
+        message:
+          type: string
+          description: Human-readable error description
+          example: "Intent validation failed: missing required network function specifications"
+        details:
+          type: object
+          description: Additional error context
+          properties:
+            field:
+              type: string
+              description: Field that caused the error
+            reason:
+              type: string
+              description: Detailed reason for the error
+            suggestions:
+              type: array
+              items:
+                type: string
+              description: Suggested fixes
+        requestId:
+          type: string
+          description: Unique request identifier for debugging
+        timestamp:
+          type: string
+          format: date-time
+
+    PaginatedResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: {}
+        metadata:
+          type: object
+          properties:
+            totalItems:
+              type: integer
+            itemsPerPage:
+              type: integer
+            currentPage:
+              type: integer
+            totalPages:
+              type: integer
+            hasNext:
+              type: boolean
+            hasPrevious:
+              type: boolean
+
+    StreamEvent:
+      type: object
+      properties:
+        event:
+          type: string
+          enum:
+            - processing
+            - context_retrieved
+            - validation_complete
+            - deployment_started
+            - resource_created
+            - deployment_complete
+            - error
+        data:
+          type: object
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+
+security:
+  - OAuth2:
+      - intent.read
+  - BearerAuth: []
+
+paths:
+  /intents:
+    get:
+      tags:
+        - Intent Management
+      summary: List Network Intents
+      description: |
+        Retrieve a paginated list of network intents with optional filtering.
+        Supports filtering by status, namespace, and labels.
+      security:
+        - OAuth2:
+            - intent.read
+      parameters:
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          description: Filter by namespace
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Pending, Processing, Deployed, Failed]
+          description: Filter by status
+        - name: labels
+          in: query
+          schema:
+            type: string
+          description: Label selector (e.g., "environment=production")
+      responses:
+        '200':
+          description: Successful response with paginated intents
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/NetworkIntent'
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Intent Management
+      summary: Create a new Network Intent
+      description: |
+        Processes a natural language network intent and initiates deployment.
+        Supports complex 5G/O-RAN network function orchestration with:
+        - Real-time LLM processing
+        - Semantic knowledge retrieval
+        - O-RAN compliance validation
+        - Multi-cluster deployment
+      security:
+        - OAuth2:
+            - intent.write
+            - intent.execute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkIntent'
+            examples:
+              5GCoreAMF:
+                summary: 5G Core AMF Deployment
+                value:
+                  apiVersion: nephoran.io/v1alpha1
+                  kind: NetworkIntent
+                  metadata:
+                    name: production-amf-deployment
+                    namespace: telecom-5g
+                    labels:
+                      environment: production
+                      component: amf
+                  spec:
+                    intent: "Deploy a high-availability AMF instance for production with auto-scaling"
+                    priority: high
+                    parameters:
+                      replicas: 3
+                      enableAutoScaling: true
+              NetworkSlice:
+                summary: Network Slice Creation
+                value:
+                  apiVersion: nephoran.io/v1alpha1
+                  kind: NetworkSlice
+                  metadata:
+                    name: embb-slice-001
+                    namespace: network-slicing
+                  spec:
+                    intent: "Create an eMBB network slice for high-bandwidth mobile broadband services"
+                    priority: medium
+                    parameters:
+                      sliceType: "eMBB"
+                      guaranteedBitRate: "100Mbps"
+                      maxBitRate: "1Gbps"
+              ORANDeployment:
+                summary: O-RAN Near-RT RIC
+                value:
+                  apiVersion: nephoran.io/v1alpha1
+                  kind: RANIntent
+                  metadata:
+                    name: near-rt-ric-deployment
+                    namespace: o-ran
+                  spec:
+                    intent: "Deploy Near-RT RIC with traffic steering and QoS optimization xApps"
+                    priority: high
+                    oranCompliance: true
+      responses:
+        '201':
+          description: Intent successfully created and processing initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+        '400':
+          description: Invalid intent specification
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validation_error:
+                  value:
+                    code: "INTENT_VALIDATION_FAILED"
+                    message: "Intent validation failed: intent text too short"
+                    details:
+                      field: "spec.intent"
+                      reason: "Intent must be at least 10 characters long"
+                      suggestions:
+                        - "Provide a more detailed description of the network intent"
+        '403':
+          description: Insufficient permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                rate_limit:
+                  value:
+                    code: "RATE_LIMIT_EXCEEDED"
+                    message: "Intent processing rate limit exceeded"
+                    details:
+                      reason: "Maximum 100 intents per minute allowed"
+
+  /intents/{namespace}/{intentName}:
+    get:
+      tags:
+        - Intent Management
+      summary: Get Network Intent by name
+      description: Retrieve detailed information about a specific network intent
+      security:
+        - OAuth2:
+            - intent.read
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - $ref: '#/components/parameters/IntentNameParam'
+      responses:
+        '200':
+          description: Network intent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+        '404':
+          description: Intent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Intent Management
+      summary: Update Network Intent
+      description: |
+        Update an existing network intent. Triggers reprocessing and redeployment
+        if the intent specification changes.
+      security:
+        - OAuth2:
+            - intent.write
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - $ref: '#/components/parameters/IntentNameParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NetworkIntent'
+      responses:
+        '200':
+          description: Intent successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntent'
+        '400':
+          description: Invalid update request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Intent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Intent Management
+      summary: Delete Network Intent
+      description: |
+        Delete a network intent and all associated deployed resources.
+        Performs graceful cleanup of network functions and configurations.
+      security:
+        - OAuth2:
+            - intent.delete
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - $ref: '#/components/parameters/IntentNameParam'
+        - name: gracePeriodSeconds
+          in: query
+          schema:
+            type: integer
+            default: 30
+          description: Grace period for resource deletion
+      responses:
+        '204':
+          description: Intent successfully deleted
+        '404':
+          description: Intent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Intent cannot be deleted due to dependencies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /intents/{namespace}/{intentName}/status:
+    get:
+      tags:
+        - Intent Management
+      summary: Get Intent Processing Status
+      description: Get detailed processing and deployment status for a network intent
+      security:
+        - OAuth2:
+            - intent.read
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - $ref: '#/components/parameters/IntentNameParam'
+      responses:
+        '200':
+          description: Intent status details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NetworkIntentStatus'
+
+  /intents/{namespace}/{intentName}/events:
+    get:
+      tags:
+        - Intent Management
+      summary: Stream Intent Processing Events
+      description: |
+        Real-time streaming of intent processing events using Server-Sent Events.
+        Provides live updates on LLM processing, deployment progress, and errors.
+      security:
+        - OAuth2:
+            - intent.read
+      parameters:
+        - $ref: '#/components/parameters/NamespaceParam'
+        - $ref: '#/components/parameters/IntentNameParam'
+      responses:
+        '200':
+          description: Event stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+              examples:
+                processing_events:
+                  value: |
+                    event: processing
+                    data: {"stage": "llm_processing", "progress": 25}
+                    
+                    event: context_retrieved
+                    data: {"documents": 5, "relevance_score": 0.89}
+                    
+                    event: validation_complete
+                    data: {"status": "success", "issues": []}
+                    
+                    event: deployment_started
+                    data: {"resources": 12, "estimated_time": "2m30s"}
+
+  /llm/process:
+    post:
+      tags:
+        - LLM Processing
+      summary: Process Intent with LLM
+      description: |
+        Direct LLM processing endpoint for natural language intent analysis.
+        Supports streaming responses and multiple model backends.
+      security:
+        - OAuth2:
+            - intent.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LLMProcessingRequest'
+            examples:
+              amf_deployment:
+                value:
+                  intent: "Deploy a high-availability AMF with auto-scaling for 10,000 concurrent users"
+                  context:
+                    - "AMF supports N1/N2 interfaces for UE registration"
+                    - "Auto-scaling based on CPU and connection count metrics"
+                  parameters:
+                    model: "gpt-4o-mini"
+                    temperature: 0.3
+                    maxTokens: 2000
+      responses:
+        '200':
+          description: LLM processing completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LLMProcessingResponse'
+        '400':
+          description: Invalid processing request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: LLM rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /llm/stream:
+    post:
+      tags:
+        - LLM Processing
+      summary: Stream LLM Processing
+      description: |
+        Streaming LLM processing with real-time token generation.
+        Uses Server-Sent Events for progressive response delivery.
+      security:
+        - OAuth2:
+            - intent.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LLMProcessingRequest'
+      responses:
+        '200':
+          description: Streaming LLM response
+          content:
+            text/event-stream:
+              schema:
+                type: string
+
+  /rag/query:
+    post:
+      tags:
+        - RAG Retrieval
+      summary: Perform Semantic Knowledge Retrieval
+      description: |
+        Execute semantic search across telecommunications knowledge base.
+        Supports advanced RAG with:
+        - HNSW vector indexing for sub-200ms queries
+        - Domain-specific context filtering
+        - Relevance scoring and reranking
+        - Multi-language support
+      security:
+        - OAuth2:
+            - rag.query
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RAGQuery'
+            examples:
+              oran_architecture:
+                summary: O-RAN Architecture Query
+                value:
+                  query: "Explain O-RAN Near-RT RIC architecture components and E2 interface"
+                  context:
+                    domain: "o-ran"
+                    technology: "near-rt-ric"
+                  maxResults: 5
+                  threshold: 0.8
+                  includeMetadata: true
+              5g_core_slicing:
+                summary: 5G Network Slicing Query
+                value:
+                  query: "How to implement network slicing for eMBB and URLLC services"
+                  context:
+                    domain: "network-slicing"
+                  maxResults: 3
+              edge_computing:
+                summary: Edge Computing Query
+                value:
+                  query: "MEC deployment strategies for low-latency applications"
+                  context:
+                    domain: "edge-computing"
+                  maxResults: 5
+      responses:
+        '200':
+          description: Successful semantic retrieval
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RAGResponse'
+              examples:
+                oran_results:
+                  value:
+                    results:
+                      - text: "The Near-RT RIC is a key component of the O-RAN architecture that provides real-time radio resource management and optimization..."
+                        score: 0.94
+                        source: "oran-architecture-spec-v2.1"
+                        metadata:
+                          documentType: "specification"
+                          section: "Architecture Overview"
+                          page: 45
+                      - text: "The E2 interface connects the Near-RT RIC to RAN nodes and enables xApp communication..."
+                        score: 0.87
+                        source: "e2ap-protocol-spec-v1.2"
+                    metadata:
+                      totalResults: 2
+                      processingTimeMs: 156
+                      queryEnhanced: "O-RAN Near-RT RIC architecture components E2 interface specifications"
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /rag/knowledge-base:
+    get:
+      tags:
+        - RAG Retrieval
+      summary: List Knowledge Base Documents
+      description: |
+        Retrieve information about documents in the knowledge base.
+        Useful for understanding available context sources.
+      security:
+        - OAuth2:
+            - rag.query
+      parameters:
+        - name: domain
+          in: query
+          schema:
+            type: string
+            enum: [5g-core, o-ran, network-slicing, edge-computing]
+          description: Filter by telecommunications domain
+        - name: documentType
+          in: query
+          schema:
+            type: string
+            enum: [specification, whitepaper, manual, guide]
+          description: Filter by document type
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/OffsetParam'
+      responses:
+        '200':
+          description: Knowledge base document list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  documents:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        title:
+                          type: string
+                        source:
+                          type: string
+                        documentType:
+                          type: string
+                        domain:
+                          type: string
+                        lastUpdated:
+                          type: string
+                          format: date-time
+                        chunkCount:
+                          type: integer
+
+  /health:
+    get:
+      tags:
+        - Monitoring
+      summary: System Health Check
+      description: |
+        Comprehensive system health status including:
+        - Overall system health (healthy/degraded/unhealthy)
+        - Individual component status
+        - Performance metrics and SLA compliance
+        - Resource utilization
+      security: []
+      responses:
+        '200':
+          description: System health status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+              examples:
+                healthy_system:
+                  value:
+                    status: "healthy"
+                    timestamp: "2024-01-15T10:30:00Z"
+                    components:
+                      llm-processor:
+                        status: "healthy"
+                        message: "All LLM backends operational"
+                        lastChecked: "2024-01-15T10:29:45Z"
+                        metrics:
+                          responseTime: 850
+                          successRate: 99.2
+                      rag-service:
+                        status: "healthy"
+                        message: "Vector database operational"
+                        lastChecked: "2024-01-15T10:29:50Z"
+                        metrics:
+                          queryLatency: 145
+                          cacheHitRate: 78.5
+                      weaviate:
+                        status: "healthy"
+                        message: "Vector database cluster healthy"
+                        lastChecked: "2024-01-15T10:29:48Z"
+                    metrics:
+                      uptime: 2592000
+                      requestRate: 45.2
+                      errorRate: 0.05
+                      responseTime: 1250
+        '503':
+          description: System unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatus'
+
+  /health/ready:
+    get:
+      tags:
+        - Monitoring
+      summary: Readiness Probe
+      description: Kubernetes readiness probe endpoint
+      security: []
+      responses:
+        '200':
+          description: Service ready to accept traffic
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ready"
+        '503':
+          description: Service not ready
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "not ready"
+
+  /health/live:
+    get:
+      tags:
+        - Monitoring
+      summary: Liveness Probe
+      description: Kubernetes liveness probe endpoint
+      security: []
+      responses:
+        '200':
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "alive"
+
+  /metrics:
+    get:
+      tags:
+        - Monitoring
+      summary: Prometheus Metrics Endpoint
+      description: |
+        Exposes Prometheus-compatible metrics for comprehensive system monitoring:
+        - Request rates and latency percentiles
+        - LLM processing metrics and token usage
+        - RAG retrieval performance and cache metrics
+        - Business KPIs and SLA compliance
+        - Resource utilization and capacity metrics
+      security:
+        - OAuth2:
+            - monitoring.read
+      responses:
+        '200':
+          description: Metrics data in Prometheus text format
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: |
+                # HELP nephoran_intent_processing_duration_seconds Time spent processing intents
+                # TYPE nephoran_intent_processing_duration_seconds histogram
+                nephoran_intent_processing_duration_seconds_bucket{le="0.1"} 245
+                nephoran_intent_processing_duration_seconds_bucket{le="0.5"} 2489
+                nephoran_intent_processing_duration_seconds_bucket{le="1.0"} 4521
+                nephoran_intent_processing_duration_seconds_bucket{le="2.0"} 4890
+                nephoran_intent_processing_duration_seconds_bucket{le="+Inf"} 4952
+                nephoran_intent_processing_duration_seconds_sum 2847.3
+                nephoran_intent_processing_duration_seconds_count 4952
+                
+                # HELP nephoran_llm_token_usage_total Total LLM tokens consumed
+                # TYPE nephoran_llm_token_usage_total counter
+                nephoran_llm_token_usage_total{model="gpt-4o-mini"} 1248593
+                
+                # HELP nephoran_rag_cache_hit_rate RAG cache hit rate percentage
+                # TYPE nephoran_rag_cache_hit_rate gauge
+                nephoran_rag_cache_hit_rate 78.5
+
+  /auth/token:
+    post:
+      tags:
+        - Authentication
+      summary: Exchange Authorization Code for Access Token
+      description: |
+        OAuth2 token endpoint for exchanging authorization codes for access tokens.
+        Supports multiple grant types including authorization code and refresh token.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - grant_type
+              properties:
+                grant_type:
+                  type: string
+                  enum:
+                    - authorization_code
+                    - refresh_token
+                code:
+                  type: string
+                  description: Authorization code (required for authorization_code grant)
+                redirect_uri:
+                  type: string
+                  format: uri
+                  description: Redirect URI (required for authorization_code grant)
+                refresh_token:
+                  type: string
+                  description: Refresh token (required for refresh_token grant)
+                client_id:
+                  type: string
+                client_secret:
+                  type: string
+      responses:
+        '200':
+          description: Access token successfully issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: JWT access token
+                  token_type:
+                    type: string
+                    example: "Bearer"
+                  expires_in:
+                    type: integer
+                    description: Token expiry in seconds
+                    example: 3600
+                  refresh_token:
+                    type: string
+                    description: Refresh token for renewing access
+                  scope:
+                    type: string
+                    description: Granted scopes
+                    example: "intent.read intent.write rag.query"
+        '400':
+          description: Invalid token request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/userinfo:
+    get:
+      tags:
+        - Authentication
+      summary: Get User Information
+      description: Retrieve authenticated user information and permissions
+      security:
+        - OAuth2: []
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sub:
+                    type: string
+                    description: User identifier
+                  name:
+                    type: string
+                    description: User display name
+                  email:
+                    type: string
+                    format: email
+                    description: User email address
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                    description: Assigned roles
+                  permissions:
+                    type: array
+                    items:
+                      type: string
+                    description: Granted permissions
+                  tenant:
+                    type: string
+                    description: Tenant identifier
+
+  /oran/a1/policies:
+    get:
+      tags:
+        - O-RAN Management
+      summary: List A1 Policy Types
+      description: |
+        Retrieve available A1 policy types from O-RAN Near-RT RIC.
+        Supports filtering by policy category and RIC instance.
+      security:
+        - OAuth2:
+            - oran.read
+      parameters:
+        - name: ric_id
+          in: query
+          schema:
+            type: string
+          description: Near-RT RIC instance identifier
+        - name: policy_category
+          in: query
+          schema:
+            type: string
+            enum: [traffic_steering, qos, admission_control, energy_saving]
+          description: Filter by policy category
+      responses:
+        '200':
+          description: List of A1 policy types
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  policy_types:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        policy_type_id:
+                          type: string
+                        name:
+                          type: string
+                        description:
+                          type: string
+                        policy_schema:
+                          type: object
+
+    post:
+      tags:
+        - O-RAN Management
+      summary: Create A1 Policy Instance
+      description: |
+        Create a new A1 policy instance on the specified Near-RT RIC.
+        Supports all standard O-RAN policy types with validation.
+      security:
+        - OAuth2:
+            - oran.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - policy_type_id
+                - policy_instance_id
+                - ric_id
+                - policy_data
+              properties:
+                policy_type_id:
+                  type: string
+                policy_instance_id:
+                  type: string
+                ric_id:
+                  type: string
+                policy_data:
+                  type: object
+      responses:
+        '201':
+          description: Policy instance created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  policy_instance_id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [enforced, not_enforced, error]
+
+x-tagGroups:
+  - name: Core APIs
+    tags:
+      - Intent Management
+      - LLM Processing
+      - RAG Retrieval
+  - name: Operations
+    tags:
+      - Monitoring
+      - Authentication
+  - name: Telecommunications
+    tags:
+      - O-RAN Management
+
+x-code-samples:
+  - lang: 'curl'
+    source: |
+      # Create a network intent
+      curl -X POST "https://api.nephoran.com/v1/intents" \
+           -H "Authorization: Bearer $ACCESS_TOKEN" \
+           -H "Content-Type: application/json" \
+           -d '{
+             "apiVersion": "nephoran.io/v1alpha1",
+             "kind": "NetworkIntent",
+             "metadata": {
+               "name": "amf-production",
+               "namespace": "telecom-5g"
+             },
+             "spec": {
+               "intent": "Deploy high-availability AMF for production with auto-scaling"
+             }
+           }'
+  
+  - lang: 'python'
+    source: |
+      import requests
+      import json
+
+      # Initialize client with authentication
+      headers = {
+          'Authorization': f'Bearer {access_token}',
+          'Content-Type': 'application/json'
+      }
+
+      # Create network intent
+      intent_data = {
+          "apiVersion": "nephoran.io/v1alpha1",
+          "kind": "NetworkIntent",
+          "metadata": {
+              "name": "amf-production",
+              "namespace": "telecom-5g"
+          },
+          "spec": {
+              "intent": "Deploy high-availability AMF for production with auto-scaling"
+          }
+      }
+
+      response = requests.post(
+          'https://api.nephoran.com/v1/intents',
+          headers=headers,
+          json=intent_data
+      )
+      
+      if response.status_code == 201:
+          intent = response.json()
+          print(f"Intent created: {intent['metadata']['name']}")
+      else:
+          print(f"Error: {response.status_code} - {response.text}")
+
+  - lang: 'go'
+    source: |
+      package main
+
+      import (
+          "bytes"
+          "context"
+          "encoding/json"
+          "fmt"
+          "net/http"
+          "time"
+      )
+
+      type NetworkIntent struct {
+          APIVersion string      `json:"apiVersion"`
+          Kind       string      `json:"kind"`
+          Metadata   ObjectMeta  `json:"metadata"`
+          Spec       IntentSpec  `json:"spec"`
+      }
+
+      func main() {
+          client := &http.Client{Timeout: 30 * time.Second}
+          
+          intent := NetworkIntent{
+              APIVersion: "nephoran.io/v1alpha1",
+              Kind:       "NetworkIntent",
+              Metadata: ObjectMeta{
+                  Name:      "amf-production",
+                  Namespace: "telecom-5g",
+              },
+              Spec: IntentSpec{
+                  Intent: "Deploy high-availability AMF for production with auto-scaling",
+              },
+          }
+
+          jsonData, _ := json.Marshal(intent)
+          req, _ := http.NewRequestWithContext(
+              context.Background(),
+              "POST",
+              "https://api.nephoran.com/v1/intents",
+              bytes.NewBuffer(jsonData),
+          )
+          
+          req.Header.Set("Authorization", "Bearer "+accessToken)
+          req.Header.Set("Content-Type", "application/json")
+
+          resp, err := client.Do(req)
+          if err != nil {
+              panic(err)
+          }
+          defer resp.Body.Close()
+
+          fmt.Printf("Response Status: %s\n", resp.Status)
+      }

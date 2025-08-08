@@ -1,0 +1,965 @@
+{
+  "info": {
+    "name": "Nephoran Intent Operator API",
+    "description": "Complete API collection for testing the Nephoran Intent Operator - Production Ready (TRL 9) telecommunications network orchestration platform.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "oauth2",
+    "oauth2": [
+      {
+        "key": "tokenUrl",
+        "value": "{{auth_server}}/oauth/token",
+        "type": "string"
+      },
+      {
+        "key": "authUrl",
+        "value": "{{auth_server}}/oauth/authorize",
+        "type": "string"
+      },
+      {
+        "key": "scope",
+        "value": "intent.read intent.write intent.execute rag.query monitoring.read oran.read",
+        "type": "string"
+      },
+      {
+        "key": "clientId",
+        "value": "{{client_id}}",
+        "type": "string"
+      },
+      {
+        "key": "clientSecret",
+        "value": "{{client_secret}}",
+        "type": "string"
+      },
+      {
+        "key": "grant_type",
+        "value": "authorization_code",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://api.nephoran.com/v1",
+      "type": "string"
+    },
+    {
+      "key": "auth_server",
+      "value": "https://auth.nephoran.com",
+      "type": "string"
+    },
+    {
+      "key": "client_id",
+      "value": "your-client-id",
+      "type": "string"
+    },
+    {
+      "key": "client_secret",
+      "value": "your-client-secret",
+      "type": "string"
+    },
+    {
+      "key": "namespace",
+      "value": "telecom-5g",
+      "type": "string"
+    },
+    {
+      "key": "intent_name",
+      "value": "test-intent",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Get Access Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (responseCode.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('access_token', jsonData.access_token);",
+                  "    pm.environment.set('refresh_token', jsonData.refresh_token);",
+                  "    console.log('Access token saved to environment');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "client_credentials"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{client_secret}}"
+                },
+                {
+                  "key": "scope",
+                  "value": "intent.read intent.write intent.execute rag.query monitoring.read"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{auth_server}}/oauth/token",
+              "host": ["{{auth_server}}"],
+              "path": ["oauth", "token"]
+            }
+          }
+        },
+        {
+          "name": "Get User Info",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/userinfo",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "userinfo"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Intent Management",
+      "item": [
+        {
+          "name": "List Network Intents",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response status is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has items array', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('items');",
+                  "    pm.expect(jsonData.items).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/intents?limit=20&namespace={{namespace}}",
+              "host": ["{{base_url}}"],
+              "path": ["intents"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "namespace",
+                  "value": "{{namespace}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create 5G Core AMF Intent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Intent created successfully', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response contains intent metadata', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('metadata');",
+                  "    pm.expect(jsonData.metadata).to.have.property('name');",
+                  "    pm.environment.set('created_intent_name', jsonData.metadata.name);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiVersion\": \"nephoran.io/v1alpha1\",\n  \"kind\": \"NetworkIntent\",\n  \"metadata\": {\n    \"name\": \"amf-production-{{$randomInt}}\",\n    \"namespace\": \"{{namespace}}\",\n    \"labels\": {\n      \"environment\": \"production\",\n      \"component\": \"amf\",\n      \"test\": \"postman\"\n    }\n  },\n  \"spec\": {\n    \"intent\": \"Deploy a high-availability AMF instance for production with auto-scaling to handle 10,000 concurrent UE connections\",\n    \"priority\": \"high\",\n    \"parameters\": {\n      \"replicas\": 3,\n      \"enableAutoScaling\": true,\n      \"maxConcurrentConnections\": 10000\n    },\n    \"oranCompliance\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/intents",
+              "host": ["{{base_url}}"],
+              "path": ["intents"]
+            }
+          }
+        },
+        {
+          "name": "Create Network Slice Intent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Network slice intent created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Intent kind is NetworkSlice', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.kind).to.equal('NetworkSlice');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiVersion\": \"nephoran.io/v1alpha1\",\n  \"kind\": \"NetworkSlice\",\n  \"metadata\": {\n    \"name\": \"embb-slice-{{$randomInt}}\",\n    \"namespace\": \"network-slicing\",\n    \"labels\": {\n      \"slice-type\": \"eMBB\",\n      \"service-level\": \"premium\"\n    }\n  },\n  \"spec\": {\n    \"intent\": \"Create an eMBB network slice for high-bandwidth mobile broadband services with guaranteed 100Mbps per user and maximum 1Gbps burst\",\n    \"priority\": \"medium\",\n    \"parameters\": {\n      \"sliceType\": \"eMBB\",\n      \"guaranteedBitRate\": \"100Mbps\",\n      \"maxBitRate\": \"1Gbps\",\n      \"latencyRequirement\": \"<50ms\",\n      \"availabilityTarget\": \"99.9%\"\n    },\n    \"networkSlice\": \"embb-premium-001\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/intents",
+              "host": ["{{base_url}}"],
+              "path": ["intents"]
+            }
+          }
+        },
+        {
+          "name": "Create O-RAN Near-RT RIC Intent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('O-RAN intent created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('O-RAN compliance enabled', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.spec.oranCompliance).to.equal(true);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiVersion\": \"nephoran.io/v1alpha1\",\n  \"kind\": \"RANIntent\",\n  \"metadata\": {\n    \"name\": \"near-rt-ric-{{$randomInt}}\",\n    \"namespace\": \"o-ran\",\n    \"labels\": {\n      \"component\": \"near-rt-ric\",\n      \"oran-release\": \"r5\"\n    }\n  },\n  \"spec\": {\n    \"intent\": \"Deploy Near-RT RIC with traffic steering and QoS optimization xApps for intelligent RAN control\",\n    \"priority\": \"high\",\n    \"parameters\": {\n      \"xApps\": [\n        \"traffic-steering\",\n        \"qos-optimizer\",\n        \"anomaly-detector\"\n      ],\n      \"e2Interfaces\": [\n        \"E2-KPM\",\n        \"E2-RC\",\n        \"E2-NI\"\n      ]\n    },\n    \"oranCompliance\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/intents",
+              "host": ["{{base_url}}"],
+              "path": ["intents"]
+            }
+          }
+        },
+        {
+          "name": "Get Intent by Name",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/intents/{{namespace}}/{{created_intent_name}}",
+              "host": ["{{base_url}}"],
+              "path": ["intents", "{{namespace}}", "{{created_intent_name}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Intent Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/intents/{{namespace}}/{{created_intent_name}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["intents", "{{namespace}}", "{{created_intent_name}}", "status"]
+            }
+          }
+        },
+        {
+          "name": "Update Intent",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiVersion\": \"nephoran.io/v1alpha1\",\n  \"kind\": \"NetworkIntent\",\n  \"metadata\": {\n    \"name\": \"{{created_intent_name}}\",\n    \"namespace\": \"{{namespace}}\",\n    \"labels\": {\n      \"environment\": \"production\",\n      \"component\": \"amf\",\n      \"updated\": \"true\"\n    }\n  },\n  \"spec\": {\n    \"intent\": \"Deploy a high-availability AMF instance for production with auto-scaling to handle 15,000 concurrent UE connections\",\n    \"priority\": \"high\",\n    \"parameters\": {\n      \"replicas\": 5,\n      \"enableAutoScaling\": true,\n      \"maxConcurrentConnections\": 15000\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/intents/{{namespace}}/{{created_intent_name}}",
+              "host": ["{{base_url}}"],
+              "path": ["intents", "{{namespace}}", "{{created_intent_name}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "LLM Processing",
+      "item": [
+        {
+          "name": "Process 5G Intent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('LLM processing successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains processed intent', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('processedIntent');",
+                  "    pm.expect(jsonData).to.have.property('networkFunctions');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"intent\": \"Deploy a high-availability SMF with UPF integration for enterprise 5G network supporting 50,000 PDU sessions\",\n  \"context\": [\n    \"SMF manages PDU sessions and controls UPF for data plane\",\n    \"High availability requires N+1 redundancy and session state replication\",\n    \"Enterprise networks need advanced QoS and traffic steering capabilities\"\n  ],\n  \"parameters\": {\n    \"model\": \"gpt-4o-mini\",\n    \"temperature\": 0.3,\n    \"maxTokens\": 2000\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/llm/process",
+              "host": ["{{base_url}}"],
+              "path": ["llm", "process"]
+            }
+          }
+        },
+        {
+          "name": "Process O-RAN Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"intent\": \"Configure Near-RT RIC with xApps for traffic steering based on network load and user mobility patterns\",\n  \"context\": [\n    \"Near-RT RIC provides real-time RAN control through E2 interface\",\n    \"Traffic steering xApp optimizes load distribution across cells\",\n    \"Mobility patterns help predict handover requirements\"\n  ],\n  \"parameters\": {\n    \"model\": \"gpt-4o-mini\",\n    \"temperature\": 0.2,\n    \"maxTokens\": 1500\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/llm/process",
+              "host": ["{{base_url}}"],
+              "path": ["llm", "process"]
+            }
+          }
+        },
+        {
+          "name": "Process Network Slicing Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"intent\": \"Create URLLC network slice for industrial IoT with 1ms latency and 99.999% reliability\",\n  \"context\": [\n    \"URLLC requires ultra-low latency and high reliability\",\n    \"Industrial IoT applications are mission-critical\",\n    \"Network slicing enables service differentiation\"\n  ],\n  \"parameters\": {\n    \"model\": \"gpt-4o-mini\",\n    \"temperature\": 0.1,\n    \"maxTokens\": 2000\n  }\n}"
+            },\n            "url": {
+              "raw": "{{base_url}}/llm/process",
+              "host": ["{{base_url}}"],
+              "path": ["llm", "process"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "RAG Knowledge Retrieval",
+      "item": [
+        {
+          "name": "Query O-RAN Architecture",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('RAG query successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains results', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('results');",
+                  "    pm.expect(jsonData.results).to.be.an('array');",
+                  "    pm.expect(jsonData.results.length).to.be.greaterThan(0);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Explain O-RAN Near-RT RIC architecture components and E2 interface protocols\",\n  \"context\": {\n    \"domain\": \"o-ran\",\n    \"technology\": \"near-rt-ric\"\n  },\n  \"maxResults\": 5,\n  \"threshold\": 0.8,\n  \"includeMetadata\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rag/query",
+              "host": ["{{base_url}}"],
+              "path": ["rag", "query"]
+            }
+          }
+        },
+        {
+          "name": "Query 5G Core Network Functions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"How to deploy and configure AMF and SMF for high availability in 5G core network\",\n  \"context\": {\n    \"domain\": \"5g-core\",\n    \"technology\": \"service-based-architecture\"\n  },\n  \"maxResults\": 3,\n  \"threshold\": 0.75\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rag/query",
+              "host": ["{{base_url}}"],
+              "path": ["rag", "query"]
+            }
+          }
+        },
+        {
+          "name": "Query Network Slicing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Network slicing implementation for eMBB, URLLC, and mMTC service types\",\n  \"context\": {\n    \"domain\": \"network-slicing\",\n    \"technology\": \"5g-slicing\"\n  },\n  \"maxResults\": 5,\n  \"threshold\": 0.7,\n  \"includeMetadata\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rag/query",
+              "host": ["{{base_url}}"],
+              "path": ["rag", "query"]
+            }
+          }
+        },
+        {
+          "name": "Query Edge Computing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Multi-access Edge Computing (MEC) deployment strategies for low-latency applications\",\n  \"context\": {\n    \"domain\": \"edge-computing\",\n    \"technology\": \"mec\"\n  },\n  \"maxResults\": 4,\n  \"threshold\": 0.8\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/rag/query",
+              "host": ["{{base_url}}"],
+              "path": ["rag", "query"]
+            }
+          }
+        },
+        {
+          "name": "List Knowledge Base Documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/rag/knowledge-base?domain=o-ran&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["rag", "knowledge-base"],
+              "query": [
+                {
+                  "key": "domain",
+                  "value": "o-ran"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Monitoring & Health",
+      "item": [
+        {
+          "name": "System Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Health check returns status', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Readiness Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/ready",
+              "host": ["{{base_url}}"],
+              "path": ["health", "ready"]
+            }
+          }
+        },
+        {
+          "name": "Liveness Probe",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/live",
+              "host": ["{{base_url}}"],
+              "path": ["health", "live"]
+            }
+          }
+        },
+        {
+          "name": "Prometheus Metrics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/metrics",
+              "host": ["{{base_url}}"],
+              "path": ["metrics"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "O-RAN Management",
+      "item": [
+        {
+          "name": "List A1 Policy Types",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/oran/a1/policies?ric_id=ric-1&policy_category=traffic_steering",
+              "host": ["{{base_url}}"],
+              "path": ["oran", "a1", "policies"],
+              "query": [
+                {
+                  "key": "ric_id",
+                  "value": "ric-1"
+                },
+                {
+                  "key": "policy_category",
+                  "value": "traffic_steering"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create A1 Policy Instance",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"policy_type_id\": \"traffic_steering_policy_v1.0\",\n  \"policy_instance_id\": \"ts_policy_{{$randomInt}}\",\n  \"ric_id\": \"ric-1\",\n  \"policy_data\": {\n    \"steering_mode\": \"load_balancing\",\n    \"target_cells\": [\n      \"cell_001\",\n      \"cell_002\",\n      \"cell_003\"\n    ],\n    \"load_threshold\": 0.8,\n    \"priority_level\": \"high\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/oran/a1/policies",
+              "host": ["{{base_url}}"],
+              "path": ["oran", "a1", "policies"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Scenarios",
+      "item": [
+        {
+          "name": "Invalid Intent - Too Short",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns validation error', function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test('Error response has proper structure', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('code');",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiVersion\": \"nephoran.io/v1alpha1\",\n  \"kind\": \"NetworkIntent\",\n  \"metadata\": {\n    \"name\": \"invalid-intent\",\n    \"namespace\": \"{{namespace}}\"\n  },\n  \"spec\": {\n    \"intent\": \"Deploy\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/intents",
+              "host": ["{{base_url}}"],
+              "path": ["intents"]
+            }
+          }
+        },
+        {
+          "name": "Unauthorized Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 401 or 403', function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/intents",
+              "host": ["{{base_url}}"],
+              "path": ["intents"]
+            }
+          }
+        },
+        {
+          "name": "Intent Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Returns 404', function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/intents/{{namespace}}/non-existent-intent",
+              "host": ["{{base_url}}"],
+              "path": ["intents", "{{namespace}}", "non-existent-intent"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Performance Testing",
+      "item": [
+        {
+          "name": "Bulk Intent Creation",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// This script can be used to create multiple intents for load testing",
+                  "pm.globals.set('intent_id', pm.globals.get('intent_id') || 0);",
+                  "pm.globals.set('intent_id', parseInt(pm.globals.get('intent_id')) + 1);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Intent created within SLA', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    pm.expect(pm.response.responseTime).to.be.below(2000); // 2 second SLA",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"apiVersion\": \"nephoran.io/v1alpha1\",\n  \"kind\": \"NetworkIntent\",\n  \"metadata\": {\n    \"name\": \"load-test-{{$randomInt}}-{{intent_id}}\",\n    \"namespace\": \"{{namespace}}\",\n    \"labels\": {\n      \"test\": \"load-testing\",\n      \"batch\": \"{{intent_id}}\"\n    }\n  },\n  \"spec\": {\n    \"intent\": \"Deploy UPF instance with {{$randomInt}} Gbps throughput capacity for load testing\",\n    \"priority\": \"medium\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/intents",
+              "host": ["{{base_url}}"],
+              "path": ["intents"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global pre-request script",
+          "console.log('API Request to:', pm.request.url.toString());",
+          "",
+          "// Add request timestamp",
+          "pm.request.headers.add({",
+          "    key: 'X-Request-Timestamp',",
+          "    value: new Date().toISOString()",
+          "});",
+          "",
+          "// Add request ID for tracing",
+          "pm.request.headers.add({",
+          "    key: 'X-Request-ID',",
+          "    value: pm.variables.replaceIn('{{$guid}}')",
+          "});"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test script",
+          "pm.test('Response time within acceptable range', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});",
+          "",
+          "pm.test('Response has correct content type', function () {",
+          "    if (pm.response.status === 'OK' && pm.request.method !== 'DELETE') {",
+          "        pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "    }",
+          "});",
+          "",
+          "// Log response times for monitoring",
+          "console.log('Response time:', pm.response.responseTime + 'ms');"
+        ]
+      }
+    }
+  ]
+}

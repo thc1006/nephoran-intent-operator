@@ -1,0 +1,561 @@
+package llm
+
+import (
+	"bytes"
+	"context"
+	"crypto/tls"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log/slog"
+	"net"
+	"net/http"
+	"os"
+	"strings"
+	"sync"
+	"time"
+)
+
+// Client is the unified LLM client with all performance optimizations built-in
+type Client struct {
+	// HTTP client with optimization
+	httpClient   *http.Client
+	transport    *http.Transport
+	
+	// Core configuration
+	url          string
+	apiKey       string
+	modelName    string
+	maxTokens    int
+	backendType  string
+	
+	// Performance components
+	cache        *ResponseCache
+	circuitBreaker *CircuitBreaker
+	retryConfig  RetryConfig
+	
+	// Observability
+	logger       *slog.Logger
+	metrics      *ClientMetrics
+	
+	// Concurrency control
+	mutex        sync.RWMutex
+	fallbackURLs []string
+	
+	// Token and cost tracking
+	tokenTracker *TokenTracker
+}
+
+// ClientConfig holds unified configuration
+type ClientConfig struct {
+	APIKey               string        `json:"api_key"`
+	ModelName            string        `json:"model_name"`
+	MaxTokens            int           `json:"max_tokens"`
+	BackendType          string        `json:"backend_type"`
+	Timeout              time.Duration `json:"timeout"`
+	SkipTLSVerification  bool          `json:"skip_tls_verification"`
+	
+	// Performance settings
+	MaxConnsPerHost      int           `json:"max_conns_per_host"`
+	MaxIdleConns         int           `json:"max_idle_conns"`
+	IdleConnTimeout      time.Duration `json:"idle_conn_timeout"`
+	KeepAliveTimeout     time.Duration `json:"keep_alive_timeout"`
+	
+	// Cache settings
+	CacheTTL             time.Duration `json:"cache_ttl"`
+	CacheMaxSize         int           `json:"cache_max_size"`
+	
+	// Circuit breaker settings
+	CircuitBreakerConfig *CircuitBreakerConfig `json:"circuit_breaker_config"`
+}
+
+// RetryConfig defines retry behavior
+type RetryConfig struct {
+	MaxRetries    int           `json:"max_retries"`
+	BaseDelay     time.Duration `json:"base_delay"`
+	MaxDelay      time.Duration `json:"max_delay"`
+	JitterEnabled bool          `json:"jitter_enabled"`
+	BackoffFactor float64       `json:"backoff_factor"`
+}
+
+// CircuitState represents the state of a circuit breaker
+type CircuitState int
+
+const (
+	StateClosed CircuitState = iota
+	StateHalfOpen
+	StateOpen
+)
+
+// CircuitBreaker implements basic circuit breaker functionality
+type CircuitBreaker struct {
+	name             string
+	config           *CircuitBreakerConfig
+	state            CircuitState
+	failureCount     int64
+	requestCount     int64
+	lastFailureTime  time.Time
+	stateChangeTime  time.Time
+	mutex            sync.RWMutex
+}
+
+// NewCircuitBreaker creates a new circuit breaker
+func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreaker {
+	if config == nil {
+		config = getDefaultCircuitBreakerConfig()
+	}
+	
+	return &CircuitBreaker{
+		name:            name,
+		config:          config,
+		state:           StateClosed,
+		stateChangeTime: time.Now(),
+	}
+}
+
+// Execute executes an operation through the circuit breaker
+func (cb *CircuitBreaker) Execute(ctx context.Context, operation func(context.Context) (interface{}, error)) (interface{}, error) {
+	cb.mutex.RLock()
+	state := cb.state
+	cb.mutex.RUnlock()
+	
+	if state == StateOpen {
+		return nil, fmt.Errorf("circuit breaker is open")
+	}
+	
+	result, err := operation(ctx)
+	
+	cb.mutex.Lock()
+	defer cb.mutex.Unlock()
+	
+	cb.requestCount++
+	
+	if err != nil {
+		cb.failureCount++
+		cb.lastFailureTime = time.Now()
+		
+		if cb.shouldTrip() {
+			cb.state = StateOpen
+			cb.stateChangeTime = time.Now()
+		}
+		return nil, err
+	}
+	
+	if cb.state == StateHalfOpen {
+		cb.state = StateClosed
+		cb.stateChangeTime = time.Now()
+		cb.failureCount = 0
+	}
+	
+	return result, nil
+}
+
+// shouldTrip determines if the circuit breaker should trip to open state
+func (cb *CircuitBreaker) shouldTrip() bool {
+	if cb.requestCount < cb.config.MinimumRequestCount {
+		return false
+	}
+	
+	failureRate := float64(cb.failureCount) / float64(cb.requestCount)
+	return cb.failureCount >= cb.config.FailureThreshold || failureRate >= cb.config.FailureRate
+}
+
+// Reset resets the circuit breaker
+func (cb *CircuitBreaker) Reset() {
+	cb.mutex.Lock()
+	defer cb.mutex.Unlock()
+	
+	cb.state = StateClosed
+	cb.failureCount = 0
+	cb.requestCount = 0
+	cb.stateChangeTime = time.Now()
+}
+
+// ForceOpen forces the circuit breaker to open state
+func (cb *CircuitBreaker) ForceOpen() {
+	cb.mutex.Lock()
+	defer cb.mutex.Unlock()
+	
+	cb.state = StateOpen
+	cb.stateChangeTime = time.Now()
+}
+
+// NewClientMetrics creates new client metrics
+func NewClientMetrics() *ClientMetrics {
+	return &ClientMetrics{}
+}
+
+// NewClient creates a new unified LLM client
+func NewClient(url string) *Client {
+	return NewClientWithConfig(url, ClientConfig{
+		ModelName:   "gpt-4o-mini",
+		MaxTokens:   2048,
+		BackendType: "openai",
+		Timeout:     60 * time.Second,
+		
+		// Performance defaults
+		MaxConnsPerHost:  100,
+		MaxIdleConns:     50,
+		IdleConnTimeout:  90 * time.Second,
+		KeepAliveTimeout: 30 * time.Second,
+		
+		// Cache defaults
+		CacheTTL:     5 * time.Minute,
+		CacheMaxSize: 1000,
+	})
+}
+
+// NewClientWithConfig creates a client with specific configuration
+func NewClientWithConfig(url string, config ClientConfig) *Client {
+	logger := slog.Default().With("component", "llm-client")
+	
+	// Create optimized TLS configuration
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		CipherSuites: []uint16{
+			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+		},
+		PreferServerCipherSuites: true,
+	}
+	
+	// Security check for TLS verification
+	if config.SkipTLSVerification {
+		if !allowInsecureClient() {
+			logger.Error("SECURITY VIOLATION: Attempted to skip TLS verification without proper authorization")
+			panic("Security violation: TLS verification cannot be disabled")
+		}
+		logger.Warn("SECURITY WARNING: TLS verification disabled")
+		tlsConfig.InsecureSkipVerify = true
+	}
+	
+	// Create optimized HTTP transport
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   10 * time.Second,
+			KeepAlive: config.KeepAliveTimeout,
+		}).DialContext,
+		MaxIdleConns:          config.MaxIdleConns,
+		MaxIdleConnsPerHost:   config.MaxConnsPerHost,
+		IdleConnTimeout:       config.IdleConnTimeout,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		TLSClientConfig:       tlsConfig,
+		
+		// Performance optimizations
+		WriteBufferSize:       32 * 1024, // 32KB
+		ReadBufferSize:        32 * 1024, // 32KB
+		ForceAttemptHTTP2:     true,
+	}
+	
+	httpClient := &http.Client{
+		Timeout:   config.Timeout,
+		Transport: transport,
+	}
+	
+	// Create circuit breaker with config or defaults
+	cbConfig := config.CircuitBreakerConfig
+	if cbConfig == nil {
+		cbConfig = getDefaultCircuitBreakerConfig()
+	}
+	circuitBreaker := NewCircuitBreaker("llm-client", cbConfig)
+	
+	client := &Client{
+		httpClient:   httpClient,
+		transport:    transport,
+		url:          url,
+		apiKey:       config.APIKey,
+		modelName:    config.ModelName,
+		maxTokens:    config.MaxTokens,
+		backendType:  config.BackendType,
+		logger:       logger,
+		metrics:      NewClientMetrics(),
+		cache:        NewResponseCache(config.CacheTTL, config.CacheMaxSize),
+		circuitBreaker: circuitBreaker,
+		retryConfig: RetryConfig{
+			MaxRetries:    3,
+			BaseDelay:     time.Second,
+			MaxDelay:      30 * time.Second,
+			JitterEnabled: true,
+			BackoffFactor: 2.0,
+		},
+		tokenTracker: NewTokenTracker(),
+	}
+	
+	return client
+}
+
+// ProcessIntent processes an intent with all optimizations
+func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	start := time.Now()
+	var success bool
+	var cacheHit bool
+	var retryCount int
+	
+	defer func() {
+		c.updateMetrics(success, time.Since(start), cacheHit, retryCount)
+	}()
+	
+	c.logger.Debug("Processing intent", slog.String("intent", intent))
+	
+	// Check cache first
+	cacheKey := c.generateCacheKey(intent)
+	if cached, found := c.cache.Get(cacheKey); found {
+		cacheHit = true
+		success = true
+		return cached, nil
+	}
+	
+	// Process with circuit breaker protection
+	result, err := c.circuitBreaker.Execute(ctx, func(ctx context.Context) (interface{}, error) {
+		return c.processWithRetry(ctx, intent, &retryCount)
+	})
+	
+	if err != nil {
+		return "", err
+	}
+	
+	response := result.(string)
+	
+	// Cache successful response
+	c.cache.Set(cacheKey, response)
+	success = true
+	
+	return response, nil
+}
+
+// processWithRetry handles retry logic
+func (c *Client) processWithRetry(ctx context.Context, intent string, retryCount *int) (string, error) {
+	var lastErr error
+	delay := c.retryConfig.BaseDelay
+	
+	for attempt := 0; attempt <= c.retryConfig.MaxRetries; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return "", ctx.Err()
+			case <-time.After(delay):
+				// Exponential backoff with jitter
+				delay = time.Duration(float64(delay) * c.retryConfig.BackoffFactor)
+				if c.retryConfig.JitterEnabled {
+					jitter := time.Duration(float64(delay) * 0.25 * (2.0*float64(time.Now().UnixNano()%1000)/1000.0 - 1.0))
+					delay += jitter
+				}
+				if delay > c.retryConfig.MaxDelay {
+					delay = c.retryConfig.MaxDelay
+				}
+			}
+		}
+		
+		*retryCount = attempt
+		
+		result, err := c.processWithBackend(ctx, intent)
+		if err == nil {
+			return result, nil
+		}
+		
+		lastErr = err
+		if !c.isRetryableError(err) {
+			return "", err
+		}
+	}
+	
+	return "", fmt.Errorf("operation failed after %d retries: %w", c.retryConfig.MaxRetries, lastErr)
+}
+
+// processWithBackend handles different LLM backends
+func (c *Client) processWithBackend(ctx context.Context, intent string) (string, error) {
+	switch c.backendType {
+	case "openai", "mistral":
+		return c.processWithChatCompletion(ctx, intent)
+	case "rag":
+		return c.processWithRAGAPI(ctx, intent)
+	default:
+		return c.processWithChatCompletion(ctx, intent)
+	}
+}
+
+// processWithChatCompletion handles OpenAI/Mistral-style APIs
+func (c *Client) processWithChatCompletion(ctx context.Context, intent string) (string, error) {
+	requestBody := map[string]interface{}{
+		"model": c.modelName,
+		"messages": []map[string]string{
+			{"role": "system", "content": "You are a telecommunications network expert."},
+			{"role": "user", "content": intent},
+		},
+		"max_tokens":      c.maxTokens,
+		"temperature":     0.0,
+		"response_format": map[string]string{"type": "json_object"},
+	}
+	
+	reqBody, err := json.Marshal(requestBody)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+	
+	req, err := http.NewRequestWithContext(ctx, "POST", c.url, bytes.NewBuffer(reqBody))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", "nephoran-intent-operator/v1.0.0")
+	if c.apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	}
+	
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+	
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("LLM API returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+	
+	// Parse response
+	var chatResp struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+		Usage struct {
+			TotalTokens int `json:"total_tokens"`
+		} `json:"usage"`
+	}
+	
+	if err := json.Unmarshal(respBody, &chatResp); err != nil {
+		return "", fmt.Errorf("failed to decode response: %w", err)
+	}
+	
+	if len(chatResp.Choices) == 0 {
+		return "", fmt.Errorf("no choices in response")
+	}
+	
+	// Track token usage
+	c.tokenTracker.RecordUsage(chatResp.Usage.TotalTokens)
+	
+	return chatResp.Choices[0].Message.Content, nil
+}
+
+// processWithRAGAPI handles RAG API requests
+func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, error) {
+	req := map[string]interface{}{
+		"spec": map[string]string{
+			"intent": intent,
+		},
+	}
+	
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+	
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.url+"/process", bytes.NewBuffer(reqBody))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+	
+	httpReq.Header.Set("Content-Type", "application/json")
+	httpReq.Header.Set("User-Agent", "nephoran-intent-operator/v1.0.0")
+	
+	resp, err := c.httpClient.Do(httpReq)
+	if err != nil {
+		return "", fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+	
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("RAG API returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+	
+	return string(respBody), nil
+}
+
+// Helper methods
+func (c *Client) generateCacheKey(intent string) string {
+	return fmt.Sprintf("%s:%s:%s", c.backendType, c.modelName, intent)
+}
+
+func (c *Client) isRetryableError(err error) bool {
+	errorStr := strings.ToLower(err.Error())
+	retryablePatterns := []string{
+		"connection refused", "timeout", "temporary failure",
+		"service unavailable", "internal server error", "bad gateway",
+	}
+	
+	for _, pattern := range retryablePatterns {
+		if strings.Contains(errorStr, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+func allowInsecureClient() bool {
+	return os.Getenv("ALLOW_INSECURE_CLIENT") == "true"
+}
+
+// GetMetrics returns current client metrics
+func (c *Client) GetMetrics() ClientMetrics {
+	c.metrics.mutex.RLock()
+	defer c.metrics.mutex.RUnlock()
+	return *c.metrics
+}
+
+// SetFallbackURLs configures fallback URLs
+func (c *Client) SetFallbackURLs(urls []string) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.fallbackURLs = urls
+}
+
+// Shutdown gracefully shuts down the client
+func (c *Client) Shutdown() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	
+	if c.cache != nil {
+		c.cache.Stop()
+	}
+	
+	if c.transport != nil {
+		c.transport.CloseIdleConnections()
+	}
+}
+
+// updateMetrics updates client metrics
+func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit bool, retryCount int) {
+	c.metrics.mutex.Lock()
+	defer c.metrics.mutex.Unlock()
+	
+	c.metrics.RequestsTotal++
+	if success {
+		c.metrics.RequestsSuccess++
+	} else {
+		c.metrics.RequestsFailure++
+	}
+	c.metrics.TotalLatency += latency
+	
+	if cacheHit {
+		c.metrics.CacheHits++
+	} else {
+		c.metrics.CacheMisses++
+	}
+	
+	c.metrics.RetryAttempts += int64(retryCount)
+}

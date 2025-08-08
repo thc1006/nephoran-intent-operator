@@ -1,0 +1,269 @@
+# Development Dockerfile for Nephoran Intent Operator
+# Includes debugging tools, hot-reload, and development utilities
+# NOT for production use - contains development and debugging tools
+
+ARG SERVICE_TYPE=go
+ARG SERVICE_NAME
+ARG GO_VERSION=1.24
+
+# ============================================================================
+# STAGE 1: GOLANG DEVELOPMENT BASE
+# ============================================================================
+FROM golang:${GO_VERSION}-alpine AS go-dev-base
+
+# Install development and debugging tools
+RUN apk add --no-cache \
+    git \
+    ca-certificates \
+    tzdata \
+    curl \
+    wget \
+    bash \
+    make \
+    gcc \
+    musl-dev \
+    delve \
+    && rm -rf /var/cache/apk/*
+
+# Install Go development tools
+RUN go install github.com/cosmtrek/air@latest && \
+    go install github.com/go-delve/delve/cmd/dlv@latest && \
+    go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest && \
+    go install github.com/onsi/ginkgo/v2/ginkgo@latest
+
+# Create development user (can use root for development convenience)
+WORKDIR /workspace
+
+# Copy dependency files
+COPY go.mod go.sum ./
+RUN go mod download && go mod verify
+
+# ============================================================================
+# STAGE 2: GOLANG DEVELOPMENT RUNTIME
+# ============================================================================
+FROM go-dev-base AS go-dev-runtime
+
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION=dev
+ARG SERVICE_NAME
+
+# Copy source code
+COPY . .
+
+# Development environment variables
+ENV GO_ENV=development \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    LOG_LEVEL=debug \
+    METRICS_ENABLED=true \
+    DEBUG_ENABLED=true \
+    HOT_RELOAD=true
+
+# Development labels
+LABEL environment="development" \
+      debug.enabled="true" \
+      hot-reload="supported" \
+      org.opencontainers.image.title="Nephoran ${SERVICE_NAME} (Development)" \
+      org.opencontainers.image.description="Development build with debugging tools" \
+      org.opencontainers.image.version="${VERSION}" \
+      build.type="development"
+
+# Create air configuration for hot reload
+RUN cat > .air.toml << 'EOF'
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  bin = "./tmp/main"
+  cmd = "go build -o ./tmp/main ./cmd/${SERVICE_NAME}/main.go || go build -o ./tmp/main ./main.go"
+  delay = 1000
+  exclude_dir = ["tmp", "vendor", ".git"]
+  exclude_file = []
+  exclude_regex = []
+  exclude_unchanged = false
+  follow_symlink = false
+  full_bin = ""
+  include_dir = []
+  include_ext = ["go", "tpl", "tmpl", "html", "yaml", "yml"]
+  kill_delay = "0s"
+  log = "build-errors.log"
+  send_interrupt = false
+  stop_on_root = false
+
+[color]
+  app = ""
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"
+
+[log]
+  time = false
+
+[misc]
+  clean_on_exit = false
+EOF
+
+# Set proper permissions
+RUN chmod +x .air.toml
+
+# Expose common development ports
+EXPOSE 8080 8081 8082 5001 40000
+
+# Default command uses air for hot reload
+CMD ["air", "-c", ".air.toml"]
+
+# ============================================================================
+# STAGE 3: PYTHON DEVELOPMENT BASE
+# ============================================================================
+FROM python:3.11-slim AS python-dev-base
+
+# Install development tools
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    wget \
+    git \
+    gcc \
+    python3-dev \
+    build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python development tools
+RUN pip install --no-cache-dir \
+    debugpy \
+    pytest \
+    pytest-cov \
+    black \
+    flake8 \
+    mypy \
+    watchdog \
+    flask-cors
+
+WORKDIR /app
+
+# ============================================================================
+# STAGE 4: PYTHON DEVELOPMENT RUNTIME
+# ============================================================================
+FROM python-dev-base AS python-dev-runtime
+
+ARG BUILD_DATE
+ARG VCS_REF
+ARG VERSION=dev
+
+# Copy requirements and install
+COPY requirements-rag.txt ./
+RUN pip install --no-cache-dir -r requirements-rag.txt
+
+# Copy application
+COPY rag-python/ ./
+
+# Development environment
+ENV FLASK_ENV=development \
+    FLASK_DEBUG=1 \
+    PYTHONPATH=/app \
+    LOG_LEVEL=debug \
+    DEBUG_ENABLED=true \
+    HOT_RELOAD=true \
+    PORT=5001
+
+# Development labels
+LABEL environment="development" \
+      debug.enabled="true" \
+      hot-reload="supported" \
+      org.opencontainers.image.title="Nephoran RAG API (Development)" \
+      org.opencontainers.image.description="Development build with debugging tools" \
+      build.type="development"
+
+# Create development startup script
+RUN cat > start-dev.sh << 'EOF'
+#!/bin/bash
+set -e
+
+echo "Starting development server with hot reload..."
+echo "Python path: $PYTHONPATH"
+echo "Flask environment: $FLASK_ENV"
+echo "Debug enabled: $FLASK_DEBUG"
+echo ""
+
+# Start Flask with hot reload
+if [ "$DEBUG_ENABLED" = "true" ]; then
+    echo "Starting with debugpy support on port 5678"
+    python -m debugpy --listen 0.0.0.0:5678 --wait-for-client api.py
+else
+    echo "Starting without debugger"
+    python api.py
+fi
+EOF
+
+RUN chmod +x start-dev.sh
+
+# Expose application and debug ports
+EXPOSE 5001 5678
+
+CMD ["./start-dev.sh"]
+
+# ============================================================================
+# STAGE 5: DEVELOPMENT UTILITIES
+# ============================================================================
+FROM alpine:3.20 AS dev-utilities
+
+# Install development and testing utilities
+RUN apk add --no-cache \
+    bash \
+    curl \
+    wget \
+    git \
+    jq \
+    yq \
+    docker \
+    kubectl \
+    helm \
+    && rm -rf /var/cache/apk/*
+
+# Install testing tools
+RUN curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    -o /usr/local/bin/kubectl && \
+    chmod +x /usr/local/bin/kubectl
+
+RUN curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+# Development scripts
+COPY --chmod=755 <<'DEV_SCRIPT' /usr/local/bin/dev-tools.sh
+#!/bin/bash
+set -e
+
+echo "Nephoran Intent Operator - Development Tools"
+echo "============================================"
+echo ""
+echo "Available commands:"
+echo "  kubectl     - Kubernetes CLI"
+echo "  helm        - Helm package manager"
+echo "  curl        - HTTP client"
+echo "  jq          - JSON processor"
+echo "  yq          - YAML processor"
+echo ""
+echo "Development environment ready!"
+DEV_SCRIPT
+
+WORKDIR /workspace
+ENTRYPOINT ["/usr/local/bin/dev-tools.sh"]
+CMD ["bash"]
+
+# ============================================================================
+# FINAL STAGE SELECTION FOR DEVELOPMENT
+# ============================================================================
+FROM ${SERVICE_TYPE}-dev-runtime AS final
+
+# Development-specific health check (more lenient)
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=5 \
+    CMD curl -f http://localhost:8080/health || curl -f http://localhost:5001/health || exit 1
+
+# Development ports (all exposed for convenience)
+EXPOSE 8080 8081 8082 5001 5678 40000
+
+# Development entry point allows for different startup modes
+ENTRYPOINT ["/bin/sh", "-c"]
+CMD ["exec \"$@\"", "bash"]

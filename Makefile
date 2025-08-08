@@ -21,6 +21,7 @@ GOPRIVATE ?= github.com/thc1006/*
 REGISTRY ?= ghcr.io
 IMAGE_NAME = $(REGISTRY)/$(PROJECT_NAME)
 IMAGE_TAG ?= $(VERSION)
+BUILD_TYPE ?= production
 
 # Kubernetes configuration
 NAMESPACE ?= nephoran-system
@@ -29,6 +30,11 @@ KUBECONFIG ?= ~/.kube/config
 # Excellence framework configuration
 REPORTS_DIR = .excellence-reports
 EXCELLENCE_THRESHOLD = 75
+
+# Comprehensive Validation configuration
+VALIDATION_REPORTS_DIR = test-results
+VALIDATION_TARGET_SCORE = 90
+VALIDATION_CONCURRENCY = 50
 
 # Build flags
 LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -s -w"
@@ -192,6 +198,141 @@ coverage: test ## Generate and view test coverage report
 	go tool cover -html=$(REPORTS_DIR)/coverage.out -o $(REPORTS_DIR)/coverage.html
 	@echo "Coverage report generated: $(REPORTS_DIR)/coverage.html"
 
+##@ Comprehensive Validation Suite
+
+.PHONY: validation-setup
+validation-setup: ## Setup environment for comprehensive validation
+	@echo "Setting up comprehensive validation environment..."
+	mkdir -p $(VALIDATION_REPORTS_DIR)
+	go install github.com/onsi/ginkgo/v2/ginkgo@latest
+	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+
+.PHONY: validate-comprehensive
+validate-comprehensive: validation-setup ## Run comprehensive validation suite (target 90/100 points)
+	@echo "Running comprehensive validation suite..."
+	@echo "Target score: $(VALIDATION_TARGET_SCORE)/100 points"
+	go run ./tests/scripts/run-comprehensive-validation.go \
+		--scope=all \
+		--target-score=$(VALIDATION_TARGET_SCORE) \
+		--concurrency=$(VALIDATION_CONCURRENCY) \
+		--output-dir=$(VALIDATION_REPORTS_DIR) \
+		--report-format=both \
+		--verbose
+
+.PHONY: validate-functional
+validate-functional: validation-setup ## Run functional completeness validation (target 45/50 points)
+	@echo "Running functional completeness validation..."
+	go run ./tests/scripts/run-comprehensive-validation.go \
+		--scope=functional \
+		--target-score=45 \
+		--output-dir=$(VALIDATION_REPORTS_DIR) \
+		--report-format=both \
+		--verbose
+
+.PHONY: validate-performance-comprehensive
+validate-performance-comprehensive: validation-setup ## Run performance benchmarking validation (target 23/25 points)
+	@echo "Running performance benchmarking validation..."
+	go run ./tests/scripts/run-comprehensive-validation.go \
+		--scope=performance \
+		--target-score=23 \
+		--concurrency=$(VALIDATION_CONCURRENCY) \
+		--enable-load-test=true \
+		--output-dir=$(VALIDATION_REPORTS_DIR) \
+		--report-format=both \
+		--verbose
+
+.PHONY: validate-security-comprehensive
+validate-security-comprehensive: validation-setup ## Run security compliance validation (target 14/15 points)
+	@echo "Running security compliance validation..."
+	go run ./tests/scripts/run-comprehensive-validation.go \
+		--scope=security \
+		--target-score=14 \
+		--output-dir=$(VALIDATION_REPORTS_DIR) \
+		--report-format=both \
+		--verbose
+
+.PHONY: validate-production-comprehensive
+validate-production-comprehensive: validation-setup ## Run production readiness validation (target 8/10 points)
+	@echo "Running production readiness validation..."
+	go run ./tests/scripts/run-comprehensive-validation.go \
+		--scope=production \
+		--target-score=8 \
+		--enable-chaos-test=false \
+		--output-dir=$(VALIDATION_REPORTS_DIR) \
+		--report-format=both \
+		--verbose
+
+.PHONY: validate-chaos
+validate-chaos: validation-setup ## Run chaos engineering tests (destructive testing)
+	@echo "Running chaos engineering validation..."
+	@echo "WARNING: This will run destructive tests that may cause temporary failures"
+	@read -p "Are you sure you want to continue? [y/N] " confirm; \
+	if [ "$$confirm" = "y" ] || [ "$$confirm" = "Y" ]; then \
+		go run ./tests/scripts/run-comprehensive-validation.go \
+			--scope=production \
+			--target-score=8 \
+			--enable-chaos-test=true \
+			--output-dir=$(VALIDATION_REPORTS_DIR) \
+			--report-format=both \
+			--verbose; \
+	else \
+		echo "Chaos testing cancelled"; \
+	fi
+
+.PHONY: validation-report
+validation-report: ## Generate and display validation report
+	@echo "Generating comprehensive validation report..."
+	@if [ -f "$(VALIDATION_REPORTS_DIR)/validation-report.json" ]; then \
+		score=$$(jq -r '.total_score' $(VALIDATION_REPORTS_DIR)/validation-report.json); \
+		target=$$(jq -r '.max_possible_score' $(VALIDATION_REPORTS_DIR)/validation-report.json); \
+		echo ""; \
+		echo "============================================================================="; \
+		echo "NEPHORAN INTENT OPERATOR - COMPREHENSIVE VALIDATION REPORT"; \
+		echo "============================================================================="; \
+		echo ""; \
+		echo "OVERALL SCORE: $$score/$$target POINTS"; \
+		if [ "$$score" -ge "$(VALIDATION_TARGET_SCORE)" ]; then \
+			echo "STATUS: ✅ PASSED"; \
+		else \
+			echo "STATUS: ❌ FAILED"; \
+		fi; \
+		echo ""; \
+		echo "CATEGORY BREAKDOWN:"; \
+		echo "├── Functional Completeness:  $$(jq -r '.functional_score' $(VALIDATION_REPORTS_DIR)/validation-report.json)/50 points"; \
+		echo "├── Performance Benchmarks:   $$(jq -r '.performance_score' $(VALIDATION_REPORTS_DIR)/validation-report.json)/25 points"; \
+		echo "├── Security Compliance:      $$(jq -r '.security_score' $(VALIDATION_REPORTS_DIR)/validation-report.json)/15 points"; \
+		echo "└── Production Readiness:     $$(jq -r '.production_score' $(VALIDATION_REPORTS_DIR)/validation-report.json)/10 points"; \
+		echo ""; \
+		echo "HTML Report: $(VALIDATION_REPORTS_DIR)/validation-report.html"; \
+		echo "JSON Report: $(VALIDATION_REPORTS_DIR)/validation-report.json"; \
+		echo "============================================================================="; \
+	else \
+		echo "❌ No validation report found. Run 'make validate-comprehensive' first."; \
+	fi
+
+.PHONY: validation-gate
+validation-gate: ## Check if validation meets gate criteria (CI/CD gate)
+	@echo "Checking comprehensive validation gate..."
+	@if [ -f "$(VALIDATION_REPORTS_DIR)/validation-report.json" ]; then \
+		score=$$(jq -r '.total_score' $(VALIDATION_REPORTS_DIR)/validation-report.json); \
+		echo "Current validation score: $$score"; \
+		if [ "$$score" -ge "$(VALIDATION_TARGET_SCORE)" ]; then \
+			echo "✅ Validation gate PASSED (score: $$score >= $(VALIDATION_TARGET_SCORE))"; \
+		else \
+			echo "❌ Validation gate FAILED (score: $$score < $(VALIDATION_TARGET_SCORE))"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "❌ Validation gate FAILED - no validation report found"; \
+		echo "Run 'make validate-comprehensive' first"; \
+		exit 1; \
+	fi
+
+.PHONY: validation-clean
+validation-clean: ## Clean validation artifacts
+	@echo "Cleaning validation artifacts..."
+	rm -rf $(VALIDATION_REPORTS_DIR)/
+
 ##@ Excellence Validation
 
 .PHONY: validate-docs
@@ -275,10 +416,59 @@ cross-build: generate manifests fmt vet ## Build binaries for multiple platforms
 ##@ Container Images
 
 .PHONY: docker-build
-docker-build: ## Build Docker image
-	@echo "Building Docker image..."
-	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
+docker-build: ## Build Docker image (production)
+	@echo "Building production Docker image..."
+	docker build -f Dockerfile.production \
+		--build-arg SERVICE_NAME=manager \
+		--build-arg SERVICE_TYPE=go \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(DATE) \
+		--build-arg VCS_REF=$(COMMIT) \
+		--target final \
+		-t $(IMAGE_NAME):$(IMAGE_TAG) .
 	docker tag $(IMAGE_NAME):$(IMAGE_TAG) $(IMAGE_NAME):latest
+
+.PHONY: docker-build-dev
+docker-build-dev: ## Build development Docker image
+	@echo "Building development Docker image..."
+	docker build -f Dockerfile.dev \
+		--build-arg SERVICE_NAME=manager \
+		--build-arg SERVICE_TYPE=go \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(DATE) \
+		--build-arg VCS_REF=$(COMMIT) \
+		--target final \
+		-t $(IMAGE_NAME):$(IMAGE_TAG)-dev .
+
+.PHONY: docker-build-multiarch
+docker-build-multiarch: ## Build multi-architecture Docker image
+	@echo "Building multi-architecture Docker image..."
+	docker buildx build -f Dockerfile.multiarch \
+		--platform linux/amd64,linux/arm64 \
+		--build-arg SERVICE_NAME=manager \
+		--build-arg SERVICE_TYPE=go \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(DATE) \
+		--build-arg VCS_REF=$(COMMIT) \
+		--target final \
+		-t $(IMAGE_NAME):$(IMAGE_TAG) . \
+		--push
+
+.PHONY: docker-build-all-services
+docker-build-all-services: ## Build all service images using consolidated script
+	@echo "Building all services with consolidated Dockerfiles..."
+	@chmod +x scripts/docker-build-consolidated.sh
+	@./scripts/docker-build-consolidated.sh all --build-type $(BUILD_TYPE)
+
+.PHONY: docker-build-service
+docker-build-service: ## Build specific service (usage: make docker-build-service SERVICE=llm-processor)
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "ERROR: SERVICE is required. Usage: make docker-build-service SERVICE=llm-processor"; \
+		exit 1; \
+	fi
+	@echo "Building $(SERVICE) service..."
+	@chmod +x scripts/docker-build-consolidated.sh
+	@./scripts/docker-build-consolidated.sh $(SERVICE) --build-type $(BUILD_TYPE)
 
 .PHONY: docker-push
 docker-push: ## Push Docker image to registry
