@@ -21,21 +21,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
-	"github.com/go-logr/logr"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/multicluster"
 	"github.com/thc1006/nephoran-intent-operator/pkg/packagerevision"
@@ -45,99 +47,102 @@ import (
 // NephoranAPIServer provides comprehensive Web UI integration for the Nephoran Intent Operator
 type NephoranAPIServer struct {
 	// Core dependencies
-	intentManager     *controllers.IntentManager
-	packageManager    *packagerevision.PackageRevisionManager
-	clusterManager    *multicluster.ClusterPropagationManager
-	llmProcessor      *services.LLMProcessor
-	kubeClient        kubernetes.Interface
+	intentManager  *controllers.IntentManager
+	packageManager *packagerevision.PackageRevisionManager
+	clusterManager *multicluster.ClusterPropagationManager
+	llmProcessor   *services.LLMProcessor
+	kubeClient     kubernetes.Interface
 
 	// Authentication and authorization
-	authMiddleware    *auth.AuthMiddleware
-	sessionManager    *auth.SessionManager
-	rbacManager       *auth.RBACManager
+	authMiddleware *auth.AuthMiddleware
+	sessionManager *auth.SessionManager
+	rbacManager    *auth.RBACManager
 
 	// Configuration and metrics
-	config            *ServerConfig
-	metrics           *ServerMetrics
-	logger            logr.Logger
+	config  *ServerConfig
+	metrics *ServerMetrics
+	logger  logr.Logger
 
 	// HTTP server and routing
-	server            *http.Server
-	router            *mux.Router
-	upgrader          websocket.Upgrader
+	server   *http.Server
+	router   *mux.Router
+	upgrader websocket.Upgrader
 
 	// WebSocket and SSE connection management
-	wsConnections     map[string]*WebSocketConnection
-	sseConnections    map[string]*SSEConnection
-	connectionsMutex  sync.RWMutex
+	wsConnections    map[string]*WebSocketConnection
+	sseConnections   map[string]*SSEConnection
+	connectionsMutex sync.RWMutex
 
 	// Caching and performance
-	cache             *Cache
-	rateLimiter       *RateLimiter
+	cache       *Cache
+	rateLimiter *RateLimiter
 
 	// Background workers
-	shutdown          chan struct{}
-	wg                sync.WaitGroup
+	shutdown chan struct{}
+	wg       sync.WaitGroup
 }
 
 // ServerConfig holds API server configuration
 type ServerConfig struct {
 	// Server settings
-	Address           string        `json:"address"`
-	Port              int           `json:"port"`
-	ReadTimeout       time.Duration `json:"read_timeout"`
-	WriteTimeout      time.Duration `json:"write_timeout"`
-	IdleTimeout       time.Duration `json:"idle_timeout"`
-	ShutdownTimeout   time.Duration `json:"shutdown_timeout"`
+	Address         string        `json:"address"`
+	Port            int           `json:"port"`
+	ReadTimeout     time.Duration `json:"read_timeout"`
+	WriteTimeout    time.Duration `json:"write_timeout"`
+	IdleTimeout     time.Duration `json:"idle_timeout"`
+	ShutdownTimeout time.Duration `json:"shutdown_timeout"`
 
 	// TLS settings
-	TLSEnabled        bool   `json:"tls_enabled"`
-	TLSCertFile       string `json:"tls_cert_file"`
-	TLSKeyFile        string `json:"tls_key_file"`
+	TLSEnabled  bool   `json:"tls_enabled"`
+	TLSCertFile string `json:"tls_cert_file"`
+	TLSKeyFile  string `json:"tls_key_file"`
 
 	// CORS settings
-	EnableCORS        bool     `json:"enable_cors"`
-	AllowedOrigins    []string `json:"allowed_origins"`
-	AllowedMethods    []string `json:"allowed_methods"`
-	AllowedHeaders    []string `json:"allowed_headers"`
-	AllowCredentials  bool     `json:"allow_credentials"`
+	EnableCORS       bool     `json:"enable_cors"`
+	AllowedOrigins   []string `json:"allowed_origins"`
+	AllowedMethods   []string `json:"allowed_methods"`
+	AllowedHeaders   []string `json:"allowed_headers"`
+	AllowCredentials bool     `json:"allow_credentials"`
 
 	// Rate limiting
-	EnableRateLimit   bool          `json:"enable_rate_limit"`
-	RequestsPerMin    int           `json:"requests_per_min"`
-	BurstSize         int           `json:"burst_size"`
-	RateLimitWindow   time.Duration `json:"rate_limit_window"`
+	EnableRateLimit bool          `json:"enable_rate_limit"`
+	RequestsPerMin  int           `json:"requests_per_min"`
+	BurstSize       int           `json:"burst_size"`
+	RateLimitWindow time.Duration `json:"rate_limit_window"`
 
 	// Caching
-	EnableCaching     bool          `json:"enable_caching"`
-	CacheSize         int           `json:"cache_size"`
-	CacheTTL          time.Duration `json:"cache_ttl"`
-	
+	EnableCaching bool          `json:"enable_caching"`
+	CacheSize     int           `json:"cache_size"`
+	CacheTTL      time.Duration `json:"cache_ttl"`
+
 	// WebSocket and SSE
-	MaxWSConnections  int           `json:"max_ws_connections"`
-	WSTimeout         time.Duration `json:"ws_timeout"`
-	SSETimeout        time.Duration `json:"sse_timeout"`
-	PingInterval      time.Duration `json:"ping_interval"`
+	MaxWSConnections int           `json:"max_ws_connections"`
+	WSTimeout        time.Duration `json:"ws_timeout"`
+	SSETimeout       time.Duration `json:"sse_timeout"`
+	PingInterval     time.Duration `json:"ping_interval"`
 
 	// Pagination
-	DefaultPageSize   int `json:"default_page_size"`
-	MaxPageSize       int `json:"max_page_size"`
+	DefaultPageSize int `json:"default_page_size"`
+	MaxPageSize     int `json:"max_page_size"`
 
 	// Feature flags
 	EnableMetrics     bool `json:"enable_metrics"`
 	EnableProfiling   bool `json:"enable_profiling"`
 	EnableHealthCheck bool `json:"enable_health_check"`
+
+	// Authentication configuration
+	AuthConfigFile string `json:"auth_config_file"`
 }
 
 // ServerMetrics contains Prometheus metrics for the API server
 type ServerMetrics struct {
-	RequestsTotal       *prometheus.CounterVec
-	RequestDuration     *prometheus.HistogramVec
-	WSConnectionsActive prometheus.Gauge
+	RequestsTotal        *prometheus.CounterVec
+	RequestDuration      *prometheus.HistogramVec
+	WSConnectionsActive  prometheus.Gauge
 	SSEConnectionsActive prometheus.Gauge
-	CacheHits           prometheus.Counter
-	CacheMisses         prometheus.Counter
-	RateLimitExceeded   prometheus.Counter
+	CacheHits            prometheus.Counter
+	CacheMisses          prometheus.Counter
+	RateLimitExceeded    prometheus.Counter
 }
 
 // WebSocketConnection represents an active WebSocket connection
@@ -152,12 +157,12 @@ type WebSocketConnection struct {
 
 // SSEConnection represents an active Server-Sent Events connection
 type SSEConnection struct {
-	ID         string
-	UserID     string
-	Writer     http.ResponseWriter
-	Flusher    http.Flusher
-	Filters    map[string]interface{}
-	LastSeen   time.Time
+	ID       string
+	UserID   string
+	Writer   http.ResponseWriter
+	Flusher  http.Flusher
+	Filters  map[string]interface{}
+	LastSeen time.Time
 }
 
 // APIResponse represents a standard API response format
@@ -172,10 +177,10 @@ type APIResponse struct {
 
 // APIError represents an API error response
 type APIError struct {
-	Code        string      `json:"code"`
-	Message     string      `json:"message"`
-	Details     interface{} `json:"details,omitempty"`
-	RequestID   string      `json:"request_id,omitempty"`
+	Code      string      `json:"code"`
+	Message   string      `json:"message"`
+	Details   interface{} `json:"details,omitempty"`
+	RequestID string      `json:"request_id,omitempty"`
 }
 
 // Meta contains response metadata for pagination and filtering
@@ -255,19 +260,19 @@ func NewNephoranAPIServer(
 	}
 
 	server := &NephoranAPIServer{
-		intentManager:    intentManager,
-		packageManager:   packageManager,
-		clusterManager:   clusterManager,
-		llmProcessor:     llmProcessor,
-		kubeClient:       kubeClient,
-		config:           config,
-		metrics:          metrics,
-		logger:           logger,
-		wsConnections:    make(map[string]*WebSocketConnection),
-		sseConnections:   make(map[string]*SSEConnection),
-		cache:            cache,
-		rateLimiter:      rateLimiter,
-		shutdown:         make(chan struct{}),
+		intentManager:  intentManager,
+		packageManager: packageManager,
+		clusterManager: clusterManager,
+		llmProcessor:   llmProcessor,
+		kubeClient:     kubeClient,
+		config:         config,
+		metrics:        metrics,
+		logger:         logger,
+		wsConnections:  make(map[string]*WebSocketConnection),
+		sseConnections: make(map[string]*SSEConnection),
+		cache:          cache,
+		rateLimiter:    rateLimiter,
+		shutdown:       make(chan struct{}),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				return true // Configure based on CORS settings
@@ -310,7 +315,7 @@ func NewNephoranAPIServer(
 
 // initializeAuth sets up authentication and authorization middleware
 func (s *NephoranAPIServer) initializeAuth() error {
-	authConfig, err := auth.LoadAuthConfig("")
+	authConfig, err := auth.LoadAuthConfig(s.config.AuthConfigFile)
 	if err != nil {
 		return fmt.Errorf("failed to load auth config: %w", err)
 	}
@@ -358,7 +363,7 @@ func (s *NephoranAPIServer) setupRouter() {
 	// Apply middleware
 	s.router.Use(s.loggingMiddleware)
 	s.router.Use(s.metricsMiddleware)
-	
+
 	if s.rateLimiter != nil {
 		s.router.Use(s.rateLimitMiddleware)
 	}
@@ -413,7 +418,7 @@ func (s *NephoranAPIServer) Start(ctx context.Context) error {
 		} else {
 			err = s.server.ListenAndServe()
 		}
-		
+
 		if err != nil && err != http.ErrServerClosed {
 			s.logger.Error(err, "API server failed to start")
 		}
@@ -430,7 +435,7 @@ func (s *NephoranAPIServer) Shutdown() error {
 
 	// Signal background workers to stop
 	close(s.shutdown)
-	
+
 	// Wait for background workers to finish
 	s.wg.Wait()
 
@@ -464,20 +469,20 @@ func (s *NephoranAPIServer) loggingMiddleware(next http.Handler) http.Handler {
 func (s *NephoranAPIServer) metricsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Wrap response writer to capture status code
 		wrapper := &responseWrapper{ResponseWriter: w, statusCode: http.StatusOK}
-		
+
 		next.ServeHTTP(wrapper, r)
-		
+
 		duration := time.Since(start)
-		
+
 		s.metrics.RequestsTotal.WithLabelValues(
 			r.Method,
 			r.URL.Path,
 			fmt.Sprintf("%d", wrapper.statusCode),
 		).Inc()
-		
+
 		s.metrics.RequestDuration.WithLabelValues(
 			r.Method,
 			r.URL.Path,
@@ -546,7 +551,7 @@ func (s *NephoranAPIServer) metricsWorker() {
 
 func (s *NephoranAPIServer) cleanupStaleConnections() {
 	threshold := time.Now().Add(-s.config.WSTimeout)
-	
+
 	s.connectionsMutex.Lock()
 	defer s.connectionsMutex.Unlock()
 
@@ -705,6 +710,7 @@ func getDefaultServerConfig() *ServerConfig {
 		EnableMetrics:     true,
 		EnableProfiling:   false,
 		EnableHealthCheck: true,
+		AuthConfigFile:    config.GetEnvOrDefault("AUTH_CONFIG_FILE", ""),
 	}
 }
 

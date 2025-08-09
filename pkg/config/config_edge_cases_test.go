@@ -555,16 +555,15 @@ func TestLoadFromEnv_EdgeCasesAndErrorHandling(t *testing.T) {
 			errMsg:      "GIT_REPO_URL is required when Git features are enabled",
 		},
 		{
-			name: "RAG feature partially configured via env",
+			name: "RAG feature configured via env with defaults",
 			setupEnv: func() {
 				cleanupEnv(t)
 				os.Setenv("OPENAI_API_KEY", "sk-test-key")
 				os.Setenv("WEAVIATE_URL", "http://weaviate:8080")
-				// Don't set RAG_API_URL - this should trigger validation error
+				// Don't set RAG_API_URL - should use default and succeed
 			},
-			description: "Weaviate URL without RAG API URL should fail validation",
-			wantErr:     true,
-			errMsg:      "RAG_API_URL_INTERNAL is required when RAG features are enabled",
+			description: "Weaviate URL with default RAG API URL should succeed",
+			wantErr:     false,
 		},
 		{
 			name: "multiple validation errors via env",

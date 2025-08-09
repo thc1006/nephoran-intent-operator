@@ -296,6 +296,7 @@ spec:
 - **[Developer Guide](docs/DEVELOPER_GUIDE.md)**: Architecture deep-dive and contribution guidelines  
 - **[Operator Manual](docs/OPERATOR-MANUAL.md)**: Production deployment and operations
 - **[API Reference](docs/API_REFERENCE.md)**: Complete REST and gRPC API documentation
+- **[CI/CD Fixes & Infrastructure](CI_CD_FIXES_CONSOLIDATED.md)**: Comprehensive CI/CD implementation and fixes
 
 ### 🔍 Technical Reference
 
@@ -323,25 +324,30 @@ Enhanced security features include:
   - `X-Content-Type-Options` for MIME type sniffing protection
 
 ### 📁 Archive Directory
-The **[archive/](archive/)** directory contains example YAML configurations and reference files that support the quickstart guides and documentation. These files serve multiple purposes:
-- **Example Configurations**: Ready-to-use YAML files for testing NetworkIntent resources
-- **Quickstart Support**: Referenced by automated setup scripts for demonstration purposes  
-- **Educational Resources**: Preserved examples for learning the intent specification format
-- **Backward Compatibility**: Historical examples maintained for reference
+The **[archive/](archive/)** directory contains essential example YAML configurations and reference templates actively used throughout the project. Despite its name, these are not deprecated files but rather canonical examples that serve critical purposes:
+- **Reference Templates**: Canonical YAML configurations used by deployment scripts and quickstart guides
+- **Active Examples**: Referenced by 12+ scripts and documentation files for demonstrations
+- **Testing Resources**: Used in continuous integration and system validation workflows
+- **Learning Materials**: Comprehensive examples for understanding NetworkIntent specifications and system deployment
 
 Key files include:
-- `my-first-intent.yaml`: Basic NetworkIntent example for getting started
-- `test-deployment.yaml`: Sample deployment configuration for testing
-- `test-networkintent.yaml`: Advanced NetworkIntent with comprehensive specifications
+- `my-first-intent.yaml`: Basic NetworkIntent example used by quickstart scripts
+- `test-deployment.yaml`: Complete system deployment manifest with LLM Processor and Nephio Bridge
+- `test-networkintent.yaml`: Advanced E2 node deployment example for O-RAN testing
+
+For detailed information about each file and usage instructions, see the comprehensive [archive/README.md](archive/README.md)
 
 ### 📖 Advanced Topics
 - **[O-RAN Compliance Certification](docs/ORAN-COMPLIANCE-CERTIFICATION.md)**: Standards compliance details
-- **[Security Implementation](docs/security/implementation-summary.md)**: Enterprise security features
+- **[Security Documentation](docs/security/README.md)**: Complete security implementation guide
+  - **[OAuth2 Security Guide](docs/security/OAuth2-Security-Guide.md)**: Comprehensive OAuth2 implementation
+  - **[CORS Configuration](docs/security/CORS-Security-Configuration-Guide.md)**: CORS security setup
+- **[Operational Runbooks](docs/runbooks/README.md)**: Production operations and incident response
 - **[Performance Optimization](docs/reports/performance-optimization.md)**: Tuning and scaling guides
 - **[Multi-Region Deployment](deployments/multi-region/README.md)**: Global architecture patterns
 
 ### 🎯 Tutorials & Examples
-- **[Network Slicing Guide](docs/getting-started.md#network-slicing)**: End-to-end slice deployment
+- **[Network Slicing Guide](docs/NetworkIntent-Controller-Guide.md)**: End-to-end slice deployment with NetworkIntent
 - **[xApp Development](docs/xApp-Development-SDK-Guide.md)**: Custom application integration
 - **[GitOps Workflows](docs/GitOps-Package-Generation.md)**: CI/CD pipeline integration
 - **[Production Examples](examples/production/)**: Real-world deployment configurations

@@ -251,7 +251,7 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 
 	// OAuth2 Authentication Configuration
 	cfg.AuthEnabled = parseBoolWithDefault("AUTH_ENABLED", cfg.AuthEnabled)
-	cfg.AuthConfigFile = os.Getenv("AUTH_CONFIG_FILE")
+	cfg.AuthConfigFile = GetEnvOrDefault("AUTH_CONFIG_FILE", "")
 	// Load JWT secret key from file or env
 	jwtSecretKey, err := LoadJWTSecretKeyFromFile(auditLogger)
 	if err != nil && cfg.AuthEnabled {
@@ -358,7 +358,7 @@ func (c *LLMProcessorConfig) Validate() error {
 			errors = append(errors, "LLM_ALLOWED_ORIGINS must be configured when CORS is enabled")
 		} else {
 			// Validate individual origins
-			isProduction := os.Getenv("LLM_ENVIRONMENT") == "production"
+			isProduction := GetEnvOrDefault("LLM_ENVIRONMENT", "") == "production"
 
 			for _, origin := range c.AllowedOrigins {
 				if origin == "" {
@@ -452,7 +452,7 @@ func getEnvWithValidation(key, defaultValue string, validator func(string) error
 }
 
 func parseDurationWithValidation(key string, defaultValue time.Duration, errors *[]string) time.Duration {
-	if valueStr := os.Getenv(key); valueStr != "" {
+	if valueStr := GetEnvOrDefault(key, ""); valueStr != "" {
 		if d, err := time.ParseDuration(valueStr); err == nil {
 			if d <= 0 {
 				*errors = append(*errors, fmt.Sprintf("%s: duration must be positive", key))
@@ -467,7 +467,7 @@ func parseDurationWithValidation(key string, defaultValue time.Duration, errors 
 }
 
 func parseIntWithValidation(key string, defaultValue int, validator func(int) error, errors *[]string) int {
-	if valueStr := os.Getenv(key); valueStr != "" {
+	if valueStr := GetEnvOrDefault(key, ""); valueStr != "" {
 		if value, err := strconv.Atoi(valueStr); err == nil {
 			if err := validator(value); err != nil {
 				*errors = append(*errors, fmt.Sprintf("%s: %v", key, err))
@@ -482,7 +482,7 @@ func parseIntWithValidation(key string, defaultValue int, validator func(int) er
 }
 
 func parseInt64WithValidation(key string, defaultValue int64, validator func(int64) error, errors *[]string) int64 {
-	if valueStr := os.Getenv(key); valueStr != "" {
+	if valueStr := GetEnvOrDefault(key, ""); valueStr != "" {
 		if value, err := strconv.ParseInt(valueStr, 10, 64); err == nil {
 			if err := validator(value); err != nil {
 				*errors = append(*errors, fmt.Sprintf("%s: %v", key, err))
@@ -497,7 +497,7 @@ func parseInt64WithValidation(key string, defaultValue int64, validator func(int
 }
 
 func parseBoolWithDefault(key string, defaultValue bool) bool {
-	if valueStr := os.Getenv(key); valueStr != "" {
+	if valueStr := GetEnvOrDefault(key, ""); valueStr != "" {
 		return valueStr == "true" || valueStr == "1"
 	}
 	return defaultValue
@@ -621,7 +621,7 @@ func parseAllowedOrigins(originsStr string) ([]string, error) {
 
 	origins := strings.Split(originsStr, ",")
 	var validOrigins []string
-	isProduction := os.Getenv("LLM_ENVIRONMENT") == "production"
+	isProduction := GetEnvOrDefault("LLM_ENVIRONMENT", "") == "production"
 
 	for _, origin := range origins {
 		origin = strings.TrimSpace(origin)
@@ -683,7 +683,7 @@ func isDevelopmentEnvironment() bool {
 	envVars := []string{"GO_ENV", "NODE_ENV", "ENVIRONMENT", "ENV", "APP_ENV", "LLM_ENVIRONMENT"}
 
 	for _, envVar := range envVars {
-		value := strings.ToLower(os.Getenv(envVar))
+		value := strings.ToLower(GetEnvOrDefault(envVar, ""))
 		switch value {
 		case "development", "dev", "local", "test", "testing":
 			return true
@@ -855,7 +855,7 @@ func isProductionEnvironment() bool {
 	envVars := []string{"GO_ENV", "NODE_ENV", "ENVIRONMENT", "ENV", "APP_ENV", "LLM_ENVIRONMENT"}
 
 	for _, envVar := range envVars {
-		value := strings.ToLower(os.Getenv(envVar))
+		value := strings.ToLower(GetEnvOrDefault(envVar, ""))
 		switch value {
 		case "production", "prod":
 			return true

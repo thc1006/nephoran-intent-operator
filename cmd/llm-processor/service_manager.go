@@ -207,14 +207,19 @@ func (sm *ServiceManager) registerHealthChecks() {
 			}
 			
 			// Check if any circuit breakers are open
+			var openBreakers []string
 			for name, state := range stats {
 				if cbStats, ok := state.(map[string]interface{}); ok {
 					if cbState, exists := cbStats["state"]; exists && cbState == "open" {
-						return &health.Check{
-							Status:  health.StatusUnhealthy,
-							Message: fmt.Sprintf("Circuit breaker %s is open", name),
-						}
+						openBreakers = append(openBreakers, name)
 					}
+				}
+			}
+			
+			if len(openBreakers) > 0 {
+				return &health.Check{
+					Status:  health.StatusUnhealthy,
+					Message: fmt.Sprintf("Circuit breakers in open state: %v", openBreakers),
 				}
 			}
 			

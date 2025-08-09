@@ -753,7 +753,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 				},
 			},
 			expectedStatus: health.StatusUnhealthy,
-			expectedMessage: "Circuit breaker service-a is open",
+			expectedMessage: "Circuit breakers in open state: [service-a]",
 			expectUnhealthy: true,
 		},
 		{
@@ -773,11 +773,11 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 				},
 			},
 			expectedStatus: health.StatusUnhealthy,
-			expectedMessage: "Circuit breaker service-b is open",
+			expectedMessage: "Circuit breakers in open state: [service-b]",
 			expectUnhealthy: true,
 		},
 		{
-			name: "Multiple open circuit breakers (should return first found)",
+			name: "Multiple open circuit breakers (should return all open breakers)",
 			stats: map[string]interface{}{
 				"service-a": map[string]interface{}{
 					"state": "open",
@@ -790,7 +790,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			},
 			expectedStatus: health.StatusUnhealthy,
 			expectUnhealthy: true,
-			// Note: We can't predict which open breaker will be returned first due to map iteration order
+			// Message should contain all open breakers in array format
 		},
 		{
 			name: "Circuit breaker with malformed stats (missing state)",
@@ -848,7 +848,17 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 
 			if tt.expectUnhealthy {
 				assert.Equal(t, health.StatusUnhealthy, result.Status)
-				assert.Contains(t, result.Message, "is open")
+				if tt.name == "Multiple open circuit breakers (should return all open breakers)" {
+					// For multiple open breakers, verify all are reported
+					assert.Contains(t, result.Message, "Circuit breakers in open state:")
+					assert.Contains(t, result.Message, "service-a")
+					assert.Contains(t, result.Message, "service-b")
+				} else if tt.expectedMessage != "" {
+					// Use expected message for single circuit breaker cases
+					assert.Equal(t, tt.expectedMessage, result.Message)
+				} else {
+					assert.Contains(t, result.Message, "Circuit breakers in open state:")
+				}
 			} else {
 				assert.Equal(t, health.StatusHealthy, result.Status)
 				if tt.expectedMessage != "" {

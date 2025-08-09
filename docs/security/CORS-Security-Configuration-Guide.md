@@ -13,6 +13,8 @@ The Nephoran Intent Operator implements enterprise-grade Cross-Origin Resource S
 - [Troubleshooting Guide](#troubleshooting-guide)
 - [Common Scenarios](#common-scenarios)
 - [Security Considerations](#security-considerations)
+- [Testing and Validation](#testing-and-validation)
+- [Migration Guide](#migration-guide)
 
 ## Quick Start
 
@@ -516,44 +518,6 @@ kubectl logs deployment/llm-processor -n nephoran-system -f | grep "CORS violati
 - New unknown origin detected → Information
 - Configuration change → Audit log
 
-## Advanced Configuration
-
-### Custom CORS Middleware Extensions
-
-For advanced use cases, the CORS middleware can be extended:
-
-```go
-// Custom validation example
-func validateCustomOrigin(origin string) bool {
-    // Additional business logic validation
-    if strings.Contains(origin, "internal") {
-        return isInternalNetwork(origin)
-    }
-    return true
-}
-```
-
-### Dynamic Origin Loading
-
-For environments requiring dynamic origin updates:
-
-```bash
-#!/bin/bash
-# dynamic-cors-update.sh
-
-# Fetch allowed origins from external source
-ORIGINS=$(curl -s https://config.example.com/cors-origins)
-
-# Update ConfigMap
-kubectl patch configmap llm-processor-config \
-  -n nephoran-system \
-  --type merge \
-  -p "{\"data\":{\"LLM_ALLOWED_ORIGINS\":\"$ORIGINS\"}}"
-
-# Trigger rolling update
-kubectl rollout restart deployment/llm-processor -n nephoran-system
-```
-
 ## Testing and Validation
 
 ### Unit Testing CORS Configuration
@@ -675,6 +639,44 @@ kubectl logs deployment/llm-processor -n nephoran-system -f | \
   tee cors-violations.log
 ```
 
+## Advanced Configuration
+
+### Custom CORS Middleware Extensions
+
+For advanced use cases, the CORS middleware can be extended:
+
+```go
+// Custom validation example
+func validateCustomOrigin(origin string) bool {
+    // Additional business logic validation
+    if strings.Contains(origin, "internal") {
+        return isInternalNetwork(origin)
+    }
+    return true
+}
+```
+
+### Dynamic Origin Loading
+
+For environments requiring dynamic origin updates:
+
+```bash
+#!/bin/bash
+# dynamic-cors-update.sh
+
+# Fetch allowed origins from external source
+ORIGINS=$(curl -s https://config.example.com/cors-origins)
+
+# Update ConfigMap
+kubectl patch configmap llm-processor-config \
+  -n nephoran-system \
+  --type merge \
+  -p "{\"data\":{\"LLM_ALLOWED_ORIGINS\":\"$ORIGINS\"}}"
+
+# Trigger rolling update
+kubectl rollout restart deployment/llm-processor -n nephoran-system
+```
+
 ## Support and Resources
 
 ### Getting Help
@@ -691,7 +693,7 @@ If you encounter issues with CORS configuration:
 - [MDN CORS Documentation](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)
 - [OWASP CORS Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross-Origin_Resource_Sharing_Cheat_Sheet.html)
 - [Kubernetes Network Policies](https://kubernetes.io/docs/concepts/services-networking/network-policies/)
-- [Nephoran Security Documentation](./Security-Hardening-Guide.md)
+- [Nephoran OAuth2 Security Guide](./OAuth2-Security-Guide.md)
 
 ### Version History
 

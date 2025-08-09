@@ -1058,54 +1058,131 @@ func TestLoadAuthConfig_IntegrationTests(t *testing.T) {
 	}
 }
 
-// TestLoadAuthConfigWithCustomPath tests that LoadAuthConfig honors the custom config file path
+// TestLoadAuthConfigWithCustomPath tests comprehensive custom auth config file path functionality
 func TestLoadAuthConfigWithCustomPath(t *testing.T) {
+	// Save original audit logger
+	originalAuditLogger := security.GlobalAuditLogger
+	defer func() {
+		security.GlobalAuditLogger = originalAuditLogger
+	}()
+	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
+
 	tests := []struct {
-		name           string
-		configPath     string
-		envFile        string
-		fileContent    string
-		setupEnv       func()
-		expectError    bool
-		validateConfig func(*testing.T, *AuthConfig)
+		name                  string
+		configPath            string
+		setupEnvironment      func(t *testing.T) (customFile, envFile string, cleanup func())
+		expectError           bool
+		expectedErrorSubstring string
+		validateConfig        func(*testing.T, *AuthConfig)
 	}{
 		{
-			name:       "custom path takes precedence over environment",
-			configPath: "/custom/path/auth.json",
-			envFile:    "/env/path/auth.json",
-			fileContent: `{
-				"enabled": true,
-				"providers": {
-					"custom": {
+			name:       "custom path takes precedence over environment variable",
+			configPath: "custom-config.json", // Will be replaced with temp file path
+			setupEnvironment: func(t *testing.T) (string, string, func()) {
+				// Create temporary files
+				customFile := filepath.Join(t.TempDir(), "custom-config.json")
+				envFile := filepath.Join(t.TempDir(), "env-config.json")
+				
+				customContent := `{
+					"enabled": true,
+					"jwt_secret_key": "custom-jwt-secret-key-from-file-12345678901234567890",
+					"providers": {
+						"test-custom": {
+							"enabled": true,
+							"type": "custom",
+							"client_id": "custom-file-client-id",
+							"client_secret": "custom-file-secret-1234567890abcdef",
+							"auth_url": "https://custom.example.com/auth",
+							"token_url": "https://custom.example.com/token",
+							"user_info_url": "https://custom.example.com/userinfo"
+						}
+					},
+					"rbac": {
 						"enabled": true,
-						"clientId": "custom-client-id",
-						"clientSecret": "custom-secret"
+						"default_role": "viewer"
 					}
+				}`
+				
+				envContent := `{
+					"enabled": false,
+					"providers": {
+						"env-provider": {
+							"enabled": true,
+							"type": "google"
+						}
+					}
+				}`
+				
+				// Write custom config file
+				if err := os.WriteFile(customFile, []byte(customContent), 0644); err != nil {
+					t.Fatalf("Failed to create custom config file: %v", err)
 				}
-			}`,
-			setupEnv: func() {
-				os.Setenv("AUTH_CONFIG_FILE", "/env/path/auth.json")
-				os.Setenv("JWT_SECRET_KEY", "test-secret")
+				
+				// Write env config file
+				if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
+					t.Fatalf("Failed to create env config file: %v", err)
+				}
+				
+				// Set environment variables
+				os.Setenv("AUTH_CONFIG_FILE", envFile)
+				os.Setenv("AUTH_ENABLED", "false") // Should be overridden by custom file
+				
+				cleanup := func() {
+					os.Unsetenv("AUTH_CONFIG_FILE")
+					os.Unsetenv("AUTH_ENABLED")
+				}
+				
+				return customFile, envFile, cleanup
 			},
 			expectError: false,
 			validateConfig: func(t *testing.T, config *AuthConfig) {
-				// Should use the custom path, not the env path
 				if config == nil {
 					t.Fatal("config should not be nil")
 				}
+				// Should use values from custom file, not env file
 				if !config.Enabled {
 					t.Error("expected auth to be enabled from custom config file")
 				}
+				if config.JWTSecretKey != "custom-jwt-secret-key-from-file-12345678901234567890" {
+					t.Errorf("expected JWT secret from custom file, got: %s", config.JWTSecretKey)
+				}
+				if _, exists := config.Providers["test-custom"]; !exists {
+					t.Error("expected custom provider from custom config file")
+				}
 			},
 		},
 		{
-			name:       "empty path falls back to environment variable",
-			configPath: "",
-			envFile:    "/env/path/auth.json",
-			setupEnv: func() {
-				os.Setenv("AUTH_CONFIG_FILE", "/env/path/auth.json")
-				os.Setenv("JWT_SECRET_KEY", "test-secret")
-				os.Setenv("AUTH_ENABLED", "true")
+			name:          "empty config path falls back to AUTH_CONFIG_FILE environment variable",
+			configPath:    "", // Empty - should use env var
+			setupEnvironment: func(t *testing.T) (string, string, func()) {
+				envFile := filepath.Join(t.TempDir(), "env-fallback-config.json")
+				
+				envContent := `{
+					"enabled": true,
+					"jwt_secret_key": "env-jwt-secret-key-from-file-12345678901234567890",
+					"providers": {
+						"env-provider": {
+							"enabled": true,
+							"type": "google",
+							"client_id": "env-google-client-id",
+							"client_secret": "env-google-secret-123456789012345678901234"
+						}
+					}
+				}`
+				
+				if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
+					t.Fatalf("Failed to create env config file: %v", err)
+				}
+				
+				os.Setenv("AUTH_CONFIG_FILE", envFile)
+				os.Setenv("AUTH_ENABLED", "false") // Should be overridden by file
+				
+				cleanup := func() {
+					os.Unsetenv("AUTH_CONFIG_FILE")
+					os.Unsetenv("AUTH_ENABLED")
+				}
+				
+				return "", envFile, cleanup
 			},
 			expectError: false,
 			validateConfig: func(t *testing.T, config *AuthConfig) {
@@ -1113,75 +1190,221 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 					t.Fatal("config should not be nil")
 				}
 				if !config.Enabled {
-					t.Error("expected auth to be enabled from environment")
+					t.Error("expected auth to be enabled from env config file")
+				}
+				if config.JWTSecretKey != "env-jwt-secret-key-from-file-12345678901234567890" {
+					t.Errorf("expected JWT secret from env file, got: %s", config.JWTSecretKey)
+				}
+				if _, exists := config.Providers["env-provider"]; !exists {
+					t.Error("expected env provider from env config file")
 				}
 			},
 		},
 		{
-			name:       "non-existent custom path returns error",
-			configPath: "/non/existent/path.json",
-			setupEnv: func() {
-				os.Setenv("JWT_SECRET_KEY", "test-secret")
+			name:                   "custom path with non-existent file returns error",
+			configPath:             "/absolutely/non/existent/path/config.json",
+			setupEnvironment: func(t *testing.T) (string, string, func()) {
+				os.Setenv("JWT_SECRET_KEY", "fallback-jwt-secret-12345678901234567890")
+				cleanup := func() {
+					os.Unsetenv("JWT_SECRET_KEY")
+				}
+				return "", "", cleanup
 			},
-			expectError: true,
+			expectError:            true,
+			expectedErrorSubstring: "failed to load config file",
 		},
 		{
-			name:       "both empty path and no env var works",
+			name:       "custom path with invalid JSON returns error",
+			configPath: "invalid-json-config.json",
+			setupEnvironment: func(t *testing.T) (string, string, func()) {
+				customFile := filepath.Join(t.TempDir(), "invalid-json-config.json")
+				
+				invalidContent := `{
+					"enabled": true,
+					"providers": {
+						"invalid-json": {
+							"enabled": true,
+							// Invalid JSON comment
+							"client_id": "test"
+						}
+					// Missing closing brace
+				}`
+				
+				if err := os.WriteFile(customFile, []byte(invalidContent), 0644); err != nil {
+					t.Fatalf("Failed to create custom config file: %v", err)
+				}
+				
+				os.Setenv("JWT_SECRET_KEY", "fallback-jwt-secret-12345678901234567890")
+				
+				cleanup := func() {
+					os.Unsetenv("JWT_SECRET_KEY")
+				}
+				
+				return customFile, "", cleanup
+			},
+			expectError:            true,
+			expectedErrorSubstring: "failed to load config file",
+		},
+		{
+			name:       "both custom path and env var empty - uses environment variables only",
 			configPath: "",
-			setupEnv: func() {
-				os.Setenv("AUTH_CONFIG_FILE", "")
-				os.Setenv("JWT_SECRET_KEY", "test-secret")
-				os.Setenv("AUTH_ENABLED", "false")
+			setupEnvironment: func(t *testing.T) (string, string, func()) {
+				os.Setenv("AUTH_CONFIG_FILE", "") // Explicit empty
+				os.Setenv("AUTH_ENABLED", "true")
+				os.Setenv("JWT_SECRET_KEY", "env-only-jwt-secret-12345678901234567890")
+				os.Setenv("GOOGLE_CLIENT_ID", "env-google-client-id")
+				os.Setenv("GOOGLE_CLIENT_SECRET", "env-google-secret-123456789012345678901234")
+				
+				cleanup := func() {
+					os.Unsetenv("AUTH_CONFIG_FILE")
+					os.Unsetenv("AUTH_ENABLED")
+					os.Unsetenv("JWT_SECRET_KEY")
+					os.Unsetenv("GOOGLE_CLIENT_ID")
+					os.Unsetenv("GOOGLE_CLIENT_SECRET")
+				}
+				
+				return "", "", cleanup
 			},
 			expectError: false,
 			validateConfig: func(t *testing.T, config *AuthConfig) {
 				if config == nil {
 					t.Fatal("config should not be nil")
 				}
-				// Should work with defaults/env vars only
+				if !config.Enabled {
+					t.Error("expected auth to be enabled from environment variables")
+				}
+				if config.JWTSecretKey != "env-only-jwt-secret-12345678901234567890" {
+					t.Errorf("expected JWT secret from environment, got: %s", config.JWTSecretKey)
+				}
+				if _, exists := config.Providers["google"]; !exists {
+					t.Error("expected google provider from environment variables")
+				}
+			},
+		},
+		{
+			name:       "custom file overrides environment variables and providers",
+			configPath: "override-config.json",
+			setupEnvironment: func(t *testing.T) (string, string, func()) {
+				customFile := filepath.Join(t.TempDir(), "override-config.json")
+				
+				overrideContent := `{
+					"enabled": false,
+					"jwt_secret_key": "file-overrides-env-jwt-secret-12345678901234567890",
+					"token_ttl": "2h",
+					"refresh_ttl": "48h",
+					"providers": {
+						"file-azure": {
+							"enabled": true,
+							"type": "azure-ad",
+							"client_id": "file-azure-client-id",
+							"client_secret": "file-azure-secret-1234567890abcdef",
+							"tenant_id": "file-azure-tenant-id",
+							"scopes": ["openid", "profile", "email", "User.Read"]
+						}
+					},
+					"rbac": {
+						"enabled": true,
+						"default_role": "operator",
+						"admin_roles": ["admin", "super-admin"],
+						"operator_roles": ["operator", "network-admin"],
+						"readonly_roles": ["viewer", "guest"]
+					},
+					"admin_users": ["admin@example.com"],
+					"operator_users": ["operator@example.com"]
+				}`
+				
+				if err := os.WriteFile(customFile, []byte(overrideContent), 0644); err != nil {
+					t.Fatalf("Failed to create custom config file: %v", err)
+				}
+				
+				// Set conflicting environment variables that should be overridden
+				os.Setenv("AUTH_ENABLED", "true")
+				os.Setenv("JWT_SECRET_KEY", "env-jwt-secret-that-should-be-overridden")
+				os.Setenv("GOOGLE_CLIENT_ID", "env-google-client-id")
+				os.Setenv("GOOGLE_CLIENT_SECRET", "env-google-secret-123456789012345678901234")
+				
+				cleanup := func() {
+					os.Unsetenv("AUTH_ENABLED")
+					os.Unsetenv("JWT_SECRET_KEY")
+					os.Unsetenv("GOOGLE_CLIENT_ID")
+					os.Unsetenv("GOOGLE_CLIENT_SECRET")
+				}
+				
+				return customFile, "", cleanup
+			},
+			expectError: false,
+			validateConfig: func(t *testing.T, config *AuthConfig) {
+				if config == nil {
+					t.Fatal("config should not be nil")
+				}
+				// File should override environment
+				if config.Enabled {
+					t.Error("expected auth to be disabled per config file override")
+				}
+				if config.JWTSecretKey != "file-overrides-env-jwt-secret-12345678901234567890" {
+					t.Errorf("expected JWT secret from file override, got: %s", config.JWTSecretKey)
+				}
+				if config.TokenTTL.String() != "2h0m0s" {
+					t.Errorf("expected token TTL from file, got: %s", config.TokenTTL)
+				}
+				if config.RefreshTTL.String() != "48h0m0s" {
+					t.Errorf("expected refresh TTL from file, got: %s", config.RefreshTTL)
+				}
+				if _, exists := config.Providers["file-azure"]; !exists {
+					t.Error("expected azure provider from file")
+				}
+				if _, exists := config.Providers["google"]; exists {
+					t.Error("should not have google provider from env when file is provided")
+				}
+				if config.RBAC.DefaultRole != "operator" {
+					t.Errorf("expected RBAC default role from file, got: %s", config.RBAC.DefaultRole)
+				}
+				if len(config.AdminUsers) != 1 || config.AdminUsers[0] != "admin@example.com" {
+					t.Errorf("expected admin users from file, got: %v", config.AdminUsers)
+				}
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup environment - save and restore all env vars
-			originalEnv := make(map[string]string)
-			for _, env := range []string{"AUTH_CONFIG_FILE", "JWT_SECRET_KEY", "AUTH_ENABLED"} {
-				originalEnv[env] = os.Getenv(env)
-			}
-			defer func() {
-				for key, val := range originalEnv {
-					os.Setenv(key, val)
-				}
-			}()
+			// Setup test environment
+			customFile, envFile, cleanup := tt.setupEnvironment(t)
+			defer cleanup()
 			
-			if tt.setupEnv != nil {
-				tt.setupEnv()
+			// Use the actual file paths created by the setup
+			configPath := tt.configPath
+			if customFile != "" {
+				configPath = customFile
 			}
 
-			// Create test config file if specified
-			if tt.fileContent != "" && tt.configPath != "" {
-				// Note: In real tests, you would create a temp file
-				// For now, we'll test the logic without actual file creation
-				// This shows the test structure for verification
-			}
+			// Call LoadAuthConfig with the determined config path
+			config, err := LoadAuthConfig(configPath)
 
-			// Call LoadAuthConfig with custom path
-			config, err := LoadAuthConfig(tt.configPath)
-
-			// Check error expectation
+			// Validate error expectations
 			if tt.expectError {
 				if err == nil {
 					t.Error("expected error but got none")
+					return
 				}
-			} else {
-				if err != nil {
-					t.Errorf("unexpected error: %v", err)
+				if tt.expectedErrorSubstring != "" && !strings.Contains(err.Error(), tt.expectedErrorSubstring) {
+					t.Errorf("expected error to contain %q, got %q", tt.expectedErrorSubstring, err.Error())
 				}
-				if tt.validateConfig != nil {
-					tt.validateConfig(t, config)
-				}
+				return
+			}
+
+			// Validate success cases
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+				return
+			}
+
+			if config == nil {
+				t.Fatal("expected valid config but got nil")
+			}
+
+			if tt.validateConfig != nil {
+				tt.validateConfig(t, config)
 			}
 		})
 	}

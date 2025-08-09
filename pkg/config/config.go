@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -298,53 +297,21 @@ func LoadFromEnv() (*Config, error) {
 	cfg := DefaultConfig()
 
 	// Override defaults with environment variables if they exist
-	if val := os.Getenv("METRICS_ADDR"); val != "" {
-		cfg.MetricsAddr = val
-	}
-
-	if val := os.Getenv("PROBE_ADDR"); val != "" {
-		cfg.ProbeAddr = val
-	}
-
-	if val := os.Getenv("ENABLE_LEADER_ELECTION"); val != "" {
-		if b, err := strconv.ParseBool(val); err == nil {
-			cfg.EnableLeaderElection = b
-		}
-	}
-
-	if val := os.Getenv("LLM_PROCESSOR_URL"); val != "" {
-		cfg.LLMProcessorURL = val
-	}
-
-	if val := os.Getenv("LLM_PROCESSOR_TIMEOUT"); val != "" {
-		if d, err := time.ParseDuration(val); err == nil {
-			cfg.LLMProcessorTimeout = d
-		}
-	}
-
-	if val := os.Getenv("RAG_API_URL"); val != "" {
-		cfg.RAGAPIURLInternal = val
-	}
-
-	if val := os.Getenv("RAG_API_URL_EXTERNAL"); val != "" {
-		cfg.RAGAPIURLExternal = val
-	}
-
-	if val := os.Getenv("RAG_API_TIMEOUT"); val != "" {
-		if d, err := time.ParseDuration(val); err == nil {
-			cfg.RAGAPITimeout = d
-		}
-	}
-
-	if val := os.Getenv("GIT_REPO_URL"); val != "" {
-		cfg.GitRepoURL = val
-	}
+	cfg.MetricsAddr = GetEnvOrDefault("METRICS_ADDR", cfg.MetricsAddr)
+	cfg.ProbeAddr = GetEnvOrDefault("PROBE_ADDR", cfg.ProbeAddr)
+	cfg.EnableLeaderElection = GetBoolEnv("ENABLE_LEADER_ELECTION", cfg.EnableLeaderElection)
+	cfg.LLMProcessorURL = GetEnvOrDefault("LLM_PROCESSOR_URL", cfg.LLMProcessorURL)
+	cfg.LLMProcessorTimeout = GetDurationEnv("LLM_PROCESSOR_TIMEOUT", cfg.LLMProcessorTimeout)
+	cfg.RAGAPIURLInternal = GetEnvOrDefault("RAG_API_URL", cfg.RAGAPIURLInternal)
+	cfg.RAGAPIURLExternal = GetEnvOrDefault("RAG_API_URL_EXTERNAL", cfg.RAGAPIURLExternal)
+	cfg.RAGAPITimeout = GetDurationEnv("RAG_API_TIMEOUT", cfg.RAGAPITimeout)
+	cfg.GitRepoURL = GetEnvOrDefault("GIT_REPO_URL", cfg.GitRepoURL)
 
 	// Check for token file path first
-	if val := os.Getenv("GIT_TOKEN_PATH"); val != "" {
-		cfg.GitTokenPath = val
+	cfg.GitTokenPath = GetEnvOrDefault("GIT_TOKEN_PATH", cfg.GitTokenPath)
+	if cfg.GitTokenPath != "" {
 		// Try to read the token from file
-		if tokenData, err := os.ReadFile(val); err == nil {
+		if tokenData, err := os.ReadFile(cfg.GitTokenPath); err == nil {
 			cfg.GitToken = strings.TrimSpace(string(tokenData))
 		}
 		// If file read fails, GitToken will remain empty and fallback will occur
@@ -352,49 +319,23 @@ func LoadFromEnv() (*Config, error) {
 
 	// Fallback to direct environment variable if no token loaded from file
 	if cfg.GitToken == "" {
-		if val := os.Getenv("GIT_TOKEN"); val != "" {
-			cfg.GitToken = val
-		}
+		cfg.GitToken = GetEnvOrDefault("GIT_TOKEN", cfg.GitToken)
 	}
 
-	if val := os.Getenv("GIT_BRANCH"); val != "" {
-		cfg.GitBranch = val
+	cfg.GitBranch = GetEnvOrDefault("GIT_BRANCH", cfg.GitBranch)
+
+	// Use GetIntEnv with validation for positive values only
+	if limit := GetIntEnv("GIT_CONCURRENT_PUSH_LIMIT", cfg.GitConcurrentPushLimit); limit > 0 {
+		cfg.GitConcurrentPushLimit = limit
 	}
 
-	if val := os.Getenv("GIT_CONCURRENT_PUSH_LIMIT"); val != "" {
-		if limit, err := strconv.Atoi(val); err == nil && limit > 0 {
-			cfg.GitConcurrentPushLimit = limit
-		}
-		// Ignore parse errors, will use default
-	}
-
-	if val := os.Getenv("WEAVIATE_URL"); val != "" {
-		cfg.WeaviateURL = val
-	}
-
-	if val := os.Getenv("WEAVIATE_INDEX"); val != "" {
-		cfg.WeaviateIndex = val
-	}
-
-	if val := os.Getenv("OPENAI_API_KEY"); val != "" {
-		cfg.OpenAIAPIKey = val
-	}
-
-	if val := os.Getenv("OPENAI_MODEL"); val != "" {
-		cfg.OpenAIModel = val
-	}
-
-	if val := os.Getenv("OPENAI_EMBEDDING_MODEL"); val != "" {
-		cfg.OpenAIEmbeddingModel = val
-	}
-
-	if val := os.Getenv("NAMESPACE"); val != "" {
-		cfg.Namespace = val
-	}
-
-	if val := os.Getenv("CRD_PATH"); val != "" {
-		cfg.CRDPath = val
-	}
+	cfg.WeaviateURL = GetEnvOrDefault("WEAVIATE_URL", cfg.WeaviateURL)
+	cfg.WeaviateIndex = GetEnvOrDefault("WEAVIATE_INDEX", cfg.WeaviateIndex)
+	cfg.OpenAIAPIKey = GetEnvOrDefault("OPENAI_API_KEY", cfg.OpenAIAPIKey)
+	cfg.OpenAIModel = GetEnvOrDefault("OPENAI_MODEL", cfg.OpenAIModel)
+	cfg.OpenAIEmbeddingModel = GetEnvOrDefault("OPENAI_EMBEDDING_MODEL", cfg.OpenAIEmbeddingModel)
+	cfg.Namespace = GetEnvOrDefault("NAMESPACE", cfg.Namespace)
+	cfg.CRDPath = GetEnvOrDefault("CRD_PATH", cfg.CRDPath)
 
 	// Load mTLS configuration from environment
 	loadMTLSFromEnv(cfg)
@@ -486,95 +427,27 @@ func loadMTLSFromEnv(cfg *Config) {
 	}
 
 	// Global mTLS settings
-	if val := os.Getenv("MTLS_ENABLED"); val != "" {
-		if b, err := strconv.ParseBool(val); err == nil {
-			cfg.MTLSConfig.Enabled = b
-		}
-	}
-
-	if val := os.Getenv("MTLS_REQUIRE_CLIENT_CERTS"); val != "" {
-		if b, err := strconv.ParseBool(val); err == nil {
-			cfg.MTLSConfig.RequireClientCerts = b
-		}
-	}
-
-	if val := os.Getenv("MTLS_TENANT_ID"); val != "" {
-		cfg.MTLSConfig.TenantID = val
-	}
-
-	if val := os.Getenv("MTLS_CA_MANAGER_ENABLED"); val != "" {
-		if b, err := strconv.ParseBool(val); err == nil {
-			cfg.MTLSConfig.CAManagerEnabled = b
-		}
-	}
-
-	if val := os.Getenv("MTLS_AUTO_PROVISION"); val != "" {
-		if b, err := strconv.ParseBool(val); err == nil {
-			cfg.MTLSConfig.AutoProvision = b
-		}
-	}
-
-	if val := os.Getenv("MTLS_POLICY_TEMPLATE"); val != "" {
-		cfg.MTLSConfig.PolicyTemplate = val
-	}
-
-	if val := os.Getenv("MTLS_CERTIFICATE_BASE_DIR"); val != "" {
-		cfg.MTLSConfig.CertificateBaseDir = val
-	}
-
-	if val := os.Getenv("MTLS_VALIDITY_DURATION"); val != "" {
-		if d, err := time.ParseDuration(val); err == nil {
-			cfg.MTLSConfig.ValidityDuration = d
-		}
-	}
-
-	if val := os.Getenv("MTLS_RENEWAL_THRESHOLD"); val != "" {
-		if d, err := time.ParseDuration(val); err == nil {
-			cfg.MTLSConfig.RenewalThreshold = d
-		}
-	}
-
-	if val := os.Getenv("MTLS_ROTATION_ENABLED"); val != "" {
-		if b, err := strconv.ParseBool(val); err == nil {
-			cfg.MTLSConfig.RotationEnabled = b
-		}
-	}
-
-	if val := os.Getenv("MTLS_ROTATION_INTERVAL"); val != "" {
-		if d, err := time.ParseDuration(val); err == nil {
-			cfg.MTLSConfig.RotationInterval = d
-		}
-	}
+	cfg.MTLSConfig.Enabled = GetBoolEnv("MTLS_ENABLED", cfg.MTLSConfig.Enabled)
+	cfg.MTLSConfig.RequireClientCerts = GetBoolEnv("MTLS_REQUIRE_CLIENT_CERTS", cfg.MTLSConfig.RequireClientCerts)
+	cfg.MTLSConfig.TenantID = GetEnvOrDefault("MTLS_TENANT_ID", cfg.MTLSConfig.TenantID)
+	cfg.MTLSConfig.CAManagerEnabled = GetBoolEnv("MTLS_CA_MANAGER_ENABLED", cfg.MTLSConfig.CAManagerEnabled)
+	cfg.MTLSConfig.AutoProvision = GetBoolEnv("MTLS_AUTO_PROVISION", cfg.MTLSConfig.AutoProvision)
+	cfg.MTLSConfig.PolicyTemplate = GetEnvOrDefault("MTLS_POLICY_TEMPLATE", cfg.MTLSConfig.PolicyTemplate)
+	cfg.MTLSConfig.CertificateBaseDir = GetEnvOrDefault("MTLS_CERTIFICATE_BASE_DIR", cfg.MTLSConfig.CertificateBaseDir)
+	cfg.MTLSConfig.ValidityDuration = GetDurationEnv("MTLS_VALIDITY_DURATION", cfg.MTLSConfig.ValidityDuration)
+	cfg.MTLSConfig.RenewalThreshold = GetDurationEnv("MTLS_RENEWAL_THRESHOLD", cfg.MTLSConfig.RenewalThreshold)
+	cfg.MTLSConfig.RotationEnabled = GetBoolEnv("MTLS_ROTATION_ENABLED", cfg.MTLSConfig.RotationEnabled)
+	cfg.MTLSConfig.RotationInterval = GetDurationEnv("MTLS_ROTATION_INTERVAL", cfg.MTLSConfig.RotationInterval)
 
 	// TLS version settings
-	if val := os.Getenv("MTLS_MIN_TLS_VERSION"); val != "" {
-		cfg.MTLSConfig.MinTLSVersion = val
-	}
-
-	if val := os.Getenv("MTLS_MAX_TLS_VERSION"); val != "" {
-		cfg.MTLSConfig.MaxTLSVersion = val
-	}
+	cfg.MTLSConfig.MinTLSVersion = GetEnvOrDefault("MTLS_MIN_TLS_VERSION", cfg.MTLSConfig.MinTLSVersion)
+	cfg.MTLSConfig.MaxTLSVersion = GetEnvOrDefault("MTLS_MAX_TLS_VERSION", cfg.MTLSConfig.MaxTLSVersion)
 
 	// Security settings
-	if val := os.Getenv("MTLS_ENABLE_HSTS"); val != "" {
-		if b, err := strconv.ParseBool(val); err == nil {
-			cfg.MTLSConfig.EnableHSTS = b
-		}
-	}
-
-	if val := os.Getenv("MTLS_HSTS_MAX_AGE"); val != "" {
-		if i, err := strconv.ParseInt(val, 10, 64); err == nil {
-			cfg.MTLSConfig.HSTSMaxAge = i
-		}
-	}
-
-	if val := os.Getenv("MTLS_ALLOWED_CLIENT_CNS"); val != "" {
-		cfg.MTLSConfig.AllowedClientCNs = strings.Split(val, ",")
-	}
-
-	if val := os.Getenv("MTLS_ALLOWED_CLIENT_ORGS"); val != "" {
-		cfg.MTLSConfig.AllowedClientOrgs = strings.Split(val, ",")
-	}
+	cfg.MTLSConfig.EnableHSTS = GetBoolEnv("MTLS_ENABLE_HSTS", cfg.MTLSConfig.EnableHSTS)
+	cfg.MTLSConfig.HSTSMaxAge = GetInt64Env("MTLS_HSTS_MAX_AGE", cfg.MTLSConfig.HSTSMaxAge)
+	cfg.MTLSConfig.AllowedClientCNs = GetStringSliceEnv("MTLS_ALLOWED_CLIENT_CNS", cfg.MTLSConfig.AllowedClientCNs)
+	cfg.MTLSConfig.AllowedClientOrgs = GetStringSliceEnv("MTLS_ALLOWED_CLIENT_ORGS", cfg.MTLSConfig.AllowedClientOrgs)
 
 	// Service-specific settings - Controller
 	loadServiceMTLSFromEnv(cfg.MTLSConfig.Controller, "CONTROLLER")
@@ -607,95 +480,25 @@ func loadServiceMTLSFromEnv(serviceCfg *ServiceMTLSConfig, prefix string) {
 		return
 	}
 
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_ENABLED", prefix)); val != "" {
-		if b, err := strconv.ParseBool(val); err == nil {
-			serviceCfg.Enabled = b
-		}
-	}
+	serviceCfg.Enabled = GetBoolEnv(fmt.Sprintf("MTLS_%s_ENABLED", prefix), serviceCfg.Enabled)
+	serviceCfg.ServiceName = GetEnvOrDefault(fmt.Sprintf("MTLS_%s_SERVICE_NAME", prefix), serviceCfg.ServiceName)
+	serviceCfg.ServerCertPath = GetEnvOrDefault(fmt.Sprintf("MTLS_%s_SERVER_CERT_PATH", prefix), serviceCfg.ServerCertPath)
+	serviceCfg.ServerKeyPath = GetEnvOrDefault(fmt.Sprintf("MTLS_%s_SERVER_KEY_PATH", prefix), serviceCfg.ServerKeyPath)
+	serviceCfg.ClientCertPath = GetEnvOrDefault(fmt.Sprintf("MTLS_%s_CLIENT_CERT_PATH", prefix), serviceCfg.ClientCertPath)
+	serviceCfg.ClientKeyPath = GetEnvOrDefault(fmt.Sprintf("MTLS_%s_CLIENT_KEY_PATH", prefix), serviceCfg.ClientKeyPath)
+	serviceCfg.CACertPath = GetEnvOrDefault(fmt.Sprintf("MTLS_%s_CA_CERT_PATH", prefix), serviceCfg.CACertPath)
+	serviceCfg.ServerName = GetEnvOrDefault(fmt.Sprintf("MTLS_%s_SERVER_NAME", prefix), serviceCfg.ServerName)
+	serviceCfg.Port = GetIntEnv(fmt.Sprintf("MTLS_%s_PORT", prefix), serviceCfg.Port)
+	serviceCfg.InsecureSkipVerify = GetBoolEnv(fmt.Sprintf("MTLS_%s_INSECURE_SKIP_VERIFY", prefix), serviceCfg.InsecureSkipVerify)
 
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_SERVICE_NAME", prefix)); val != "" {
-		serviceCfg.ServiceName = val
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_SERVER_CERT_PATH", prefix)); val != "" {
-		serviceCfg.ServerCertPath = val
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_SERVER_KEY_PATH", prefix)); val != "" {
-		serviceCfg.ServerKeyPath = val
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_CLIENT_CERT_PATH", prefix)); val != "" {
-		serviceCfg.ClientCertPath = val
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_CLIENT_KEY_PATH", prefix)); val != "" {
-		serviceCfg.ClientKeyPath = val
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_CA_CERT_PATH", prefix)); val != "" {
-		serviceCfg.CACertPath = val
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_SERVER_NAME", prefix)); val != "" {
-		serviceCfg.ServerName = val
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_PORT", prefix)); val != "" {
-		if i, err := strconv.Atoi(val); err == nil {
-			serviceCfg.Port = i
-		}
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_INSECURE_SKIP_VERIFY", prefix)); val != "" {
-		if b, err := strconv.ParseBool(val); err == nil {
-			serviceCfg.InsecureSkipVerify = b
-		}
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_DIAL_TIMEOUT", prefix)); val != "" {
-		if d, err := time.ParseDuration(val); err == nil {
-			serviceCfg.DialTimeout = d
-		}
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_KEEP_ALIVE_TIMEOUT", prefix)); val != "" {
-		if d, err := time.ParseDuration(val); err == nil {
-			serviceCfg.KeepAliveTimeout = d
-		}
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_MAX_IDLE_CONNS", prefix)); val != "" {
-		if i, err := strconv.Atoi(val); err == nil {
-			serviceCfg.MaxIdleConns = i
-		}
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_MAX_CONNS_PER_HOST", prefix)); val != "" {
-		if i, err := strconv.Atoi(val); err == nil {
-			serviceCfg.MaxConnsPerHost = i
-		}
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_IDLE_CONN_TIMEOUT", prefix)); val != "" {
-		if d, err := time.ParseDuration(val); err == nil {
-			serviceCfg.IdleConnTimeout = d
-		}
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_REQUIRE_CLIENT_CERT", prefix)); val != "" {
-		if b, err := strconv.ParseBool(val); err == nil {
-			serviceCfg.RequireClientCert = b
-		}
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_ALLOWED_CLIENT_CNS", prefix)); val != "" {
-		serviceCfg.AllowedClientCNs = strings.Split(val, ",")
-	}
-
-	if val := os.Getenv(fmt.Sprintf("MTLS_%s_ALLOWED_CLIENT_ORGS", prefix)); val != "" {
-		serviceCfg.AllowedClientOrgs = strings.Split(val, ",")
-	}
+	serviceCfg.DialTimeout = GetDurationEnv(fmt.Sprintf("MTLS_%s_DIAL_TIMEOUT", prefix), serviceCfg.DialTimeout)
+	serviceCfg.KeepAliveTimeout = GetDurationEnv(fmt.Sprintf("MTLS_%s_KEEP_ALIVE_TIMEOUT", prefix), serviceCfg.KeepAliveTimeout)
+	serviceCfg.MaxIdleConns = GetIntEnv(fmt.Sprintf("MTLS_%s_MAX_IDLE_CONNS", prefix), serviceCfg.MaxIdleConns)
+	serviceCfg.MaxConnsPerHost = GetIntEnv(fmt.Sprintf("MTLS_%s_MAX_CONNS_PER_HOST", prefix), serviceCfg.MaxConnsPerHost)
+	serviceCfg.IdleConnTimeout = GetDurationEnv(fmt.Sprintf("MTLS_%s_IDLE_CONN_TIMEOUT", prefix), serviceCfg.IdleConnTimeout)
+	serviceCfg.RequireClientCert = GetBoolEnv(fmt.Sprintf("MTLS_%s_REQUIRE_CLIENT_CERT", prefix), serviceCfg.RequireClientCert)
+	serviceCfg.AllowedClientCNs = GetStringSliceEnv(fmt.Sprintf("MTLS_%s_ALLOWED_CLIENT_CNS", prefix), serviceCfg.AllowedClientCNs)
+	serviceCfg.AllowedClientOrgs = GetStringSliceEnv(fmt.Sprintf("MTLS_%s_ALLOWED_CLIENT_ORGS", prefix), serviceCfg.AllowedClientOrgs)
 }
 
 // ConfigProvider interface methods

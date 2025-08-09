@@ -654,3 +654,280 @@ func (suite *LLMProcessorServiceTestSuite) assertOptionalComponentsInitialized(s
 		assert.Nil(suite.T(), service.contextBuilder, "context builder should not be initialized when disabled")
 	}
 }
+
+// TestCircuitBreakerHealthCheck tests the circuit breaker health check functionality
+func (suite *LLMProcessorServiceTestSuite) TestCircuitBreakerHealthCheck() {
+	// Initialize service for testing
+	os.Setenv("OPENAI_API_KEY", "test-key")
+	defer os.Unsetenv("OPENAI_API_KEY")
+	
+	err := suite.service.Initialize(suite.ctx)
+	require.NoError(suite.T(), err)
+	
+	testCases := []struct {
+		name            string
+		stats           map[string]interface{}
+		expectedStatus  health.Status
+		expectedMessage string
+		checkContains   []string
+	}{
+		{
+			name:           "No circuit breakers registered",
+			stats:          map[string]interface{}{},
+			expectedStatus: health.StatusHealthy,
+			expectedMessage: "No circuit breakers registered",
+		},
+		{
+			name: "All circuit breakers closed",
+			stats: map[string]interface{}{
+				"llm-service": map[string]interface{}{
+					"state":    "closed",
+					"failures": 0,
+				},
+				"rag-service": map[string]interface{}{
+					"state":    "closed", 
+					"failures": 1,
+				},
+			},
+			expectedStatus: health.StatusHealthy,
+			expectedMessage: "All 2 circuit breakers operational",
+		},
+		{
+			name: "Circuit breakers in half-open state",
+			stats: map[string]interface{}{
+				"llm-service": map[string]interface{}{
+					"state":    "half-open",
+					"failures": 2,
+				},
+			},
+			expectedStatus: health.StatusHealthy,
+			expectedMessage: "All 1 circuit breakers operational",
+		},
+		{
+			name: "Single circuit breaker open",
+			stats: map[string]interface{}{
+				"llm-service": map[string]interface{}{
+					"state":    "open",
+					"failures": 5,
+				},
+			},
+			expectedStatus: health.StatusUnhealthy,
+			checkContains:  []string{"Circuit breakers in open state:", "llm-service"},
+		},
+		{
+			name: "Multiple circuit breakers with one open",
+			stats: map[string]interface{}{
+				"llm-service": map[string]interface{}{
+					"state":    "closed",
+					"failures": 0,
+				},
+				"rag-service": map[string]interface{}{
+					"state":    "open",
+					"failures": 5,
+				},
+				"token-service": map[string]interface{}{
+					"state":    "half-open",
+					"failures": 2,
+				},
+			},
+			expectedStatus: health.StatusUnhealthy,
+			checkContains:  []string{"Circuit breakers in open state:", "rag-service"},
+		},
+		{
+			name: "Multiple open circuit breakers",
+			stats: map[string]interface{}{
+				"llm-service": map[string]interface{}{
+					"state":    "open",
+					"failures": 3,
+				},
+				"rag-service": map[string]interface{}{
+					"state":    "open",
+					"failures": 7,
+				},
+				"token-service": map[string]interface{}{
+					"state":    "closed",
+					"failures": 0,
+				},
+			},
+			expectedStatus: health.StatusUnhealthy,
+			checkContains:  []string{"Circuit breakers in open state:", "llm-service", "rag-service"},
+		},
+		{
+			name: "Circuit breaker with malformed stats (missing state)",
+			stats: map[string]interface{}{
+				"llm-service": map[string]interface{}{
+					"failures": 0,
+					// Missing "state" field
+				},
+				"rag-service": map[string]interface{}{
+					"state":    "closed",
+					"failures": 1,
+				},
+			},
+			expectedStatus: health.StatusHealthy,
+			expectedMessage: "All 2 circuit breakers operational",
+		},
+		{
+			name: "Circuit breaker with non-string state",
+			stats: map[string]interface{}{
+				"llm-service": map[string]interface{}{
+					"state":    123, // Invalid type
+					"failures": 2,
+				},
+			},
+			expectedStatus: health.StatusHealthy,
+			expectedMessage: "All 1 circuit breakers operational",
+		},
+		{
+			name: "Circuit breaker with non-map stats",
+			stats: map[string]interface{}{
+				"llm-service": "invalid-stats", // Should be map
+				"rag-service": map[string]interface{}{
+					"state":    "closed",
+					"failures": 0,
+				},
+			},
+			expectedStatus: health.StatusHealthy,
+			expectedMessage: "All 2 circuit breakers operational",
+		},
+		{
+			name: "Mixed valid and invalid circuit breakers with open state",
+			stats: map[string]interface{}{
+				"llm-service": map[string]interface{}{
+					"state":    "open",
+					"failures": 5,
+				},
+				"invalid-service": "invalid-stats",
+				"rag-service": map[string]interface{}{
+					"state":    "closed",
+					"failures": 0,
+				},
+			},
+			expectedStatus: health.StatusUnhealthy,
+			checkContains:  []string{"Circuit breakers in open state:", "llm-service"},
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			// Mock circuit breaker manager
+			mockCBMgr := &MockCircuitBreakerManagerForLLM{
+				stats: tc.stats,
+			}
+
+			// Replace the circuit breaker manager temporarily
+			originalCBMgr := suite.service.circuitBreakerMgr
+			suite.service.circuitBreakerMgr = mockCBMgr
+			defer func() {
+				suite.service.circuitBreakerMgr = originalCBMgr
+			}()
+
+			// Re-register health checks with the mock
+			suite.service.registerHealthChecks()
+
+			// Execute the circuit breaker health check
+			result := suite.service.healthChecker.RunCheck(suite.ctx, "circuit_breaker")
+
+			// Verify the result
+			require.NotNil(suite.T(), result)
+			assert.Equal(suite.T(), tc.expectedStatus, result.Status)
+
+			if tc.expectedMessage != "" {
+				assert.Equal(suite.T(), tc.expectedMessage, result.Message)
+			}
+
+			if len(tc.checkContains) > 0 {
+				for _, expectedStr := range tc.checkContains {
+					assert.Contains(suite.T(), result.Message, expectedStr)
+				}
+			}
+		})
+	}
+}
+
+// TestCircuitBreakerHealthCheckEdgeCases tests edge cases for circuit breaker health checks
+func (suite *LLMProcessorServiceTestSuite) TestCircuitBreakerHealthCheckEdgeCases() {
+	os.Setenv("OPENAI_API_KEY", "test-key")
+	defer os.Unsetenv("OPENAI_API_KEY")
+	
+	err := suite.service.Initialize(suite.ctx)
+	require.NoError(suite.T(), err)
+
+	testCases := []struct {
+		name           string
+		cbManager      interface{} // Can be nil or mock
+		expectedStatus health.Status
+		checkContains  string
+	}{
+		{
+			name:           "No circuit breaker manager",
+			cbManager:      nil,
+			expectedStatus: health.StatusHealthy,
+			checkContains:  "No circuit breakers registered",
+		},
+		{
+			name: "Circuit breaker manager returns error",
+			cbManager: &MockCircuitBreakerManagerErrorForLLM{
+				shouldError: true,
+			},
+			expectedStatus: health.StatusHealthy,
+			checkContains:  "No circuit breakers registered",
+		},
+		{
+			name: "Empty stats from circuit breaker manager",
+			cbManager: &MockCircuitBreakerManagerForLLM{
+				stats: map[string]interface{}{},
+			},
+			expectedStatus: health.StatusHealthy,
+			checkContains:  "No circuit breakers registered",
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			// Replace the circuit breaker manager
+			originalCBMgr := suite.service.circuitBreakerMgr
+			suite.service.circuitBreakerMgr = tc.cbManager
+			defer func() {
+				suite.service.circuitBreakerMgr = originalCBMgr
+			}()
+
+			// Re-register health checks
+			suite.service.registerHealthChecks()
+
+			// Execute the health check
+			result := suite.service.healthChecker.RunCheck(suite.ctx, "circuit_breaker")
+
+			// Verify the result
+			require.NotNil(suite.T(), result)
+			assert.Equal(suite.T(), tc.expectedStatus, result.Status)
+			assert.Contains(suite.T(), result.Message, tc.checkContains)
+		})
+	}
+}
+
+// Mock implementations for testing
+
+// MockCircuitBreakerManagerForLLM mocks circuit breaker manager for LLM processor tests
+type MockCircuitBreakerManagerForLLM struct {
+	stats map[string]interface{}
+}
+
+func (m *MockCircuitBreakerManagerForLLM) GetStats() (map[string]interface{}, error) {
+	if m.stats == nil {
+		return map[string]interface{}{}, nil
+	}
+	return m.stats, nil
+}
+
+// MockCircuitBreakerManagerErrorForLLM mocks circuit breaker manager that returns errors
+type MockCircuitBreakerManagerErrorForLLM struct {
+	shouldError bool
+}
+
+func (m *MockCircuitBreakerManagerErrorForLLM) GetStats() (map[string]interface{}, error) {
+	if m.shouldError {
+		return nil, assert.AnError
+	}
+	return map[string]interface{}{}, nil
+}

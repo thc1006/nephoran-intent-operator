@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -220,7 +219,7 @@ func isDevelopmentEnvironment() bool {
 	envVars := []string{"GO_ENV", "NODE_ENV", "ENVIRONMENT", "ENV", "APP_ENV"}
 
 	for _, envVar := range envVars {
-		value := strings.ToLower(os.Getenv(envVar))
+		value := strings.ToLower(config.GetEnvOrDefault(envVar, ""))
 		switch value {
 		case "development", "dev", "local", "test", "testing":
 			return true
@@ -342,19 +341,25 @@ func setupHTTPServer() *http.Server {
 		slog.Bool("hsts_enabled", securityHeadersConfig.EnableHSTS),
 		slog.String("log_level", redactLoggerConfig.LogLevel.String()))
 
-	// Initialize OAuth2Manager
-	oauth2Config := &auth.OAuth2ManagerConfig{
+	// Initialize Enhanced OAuth2Manager for centralized route configuration
+	enhancedOAuth2Config := &auth.EnhancedOAuth2ManagerConfig{
+		// OAuth2 configuration
 		Enabled:          cfg.AuthEnabled,
 		AuthConfigFile:   cfg.AuthConfigFile,
 		JWTSecretKey:     cfg.JWTSecretKey,
 		RequireAuth:      cfg.RequireAuth,
 		StreamingEnabled: cfg.StreamingEnabled,
 		MaxRequestSize:   cfg.MaxRequestSize,
+		
+		// Public route configuration
+		ExposeMetricsPublicly:  cfg.ExposeMetricsPublicly,
+		MetricsAllowedCIDRs:    cfg.MetricsAllowedCIDRs,
+		HealthEndpointsEnabled: true, // Always enable health endpoints for Kubernetes
 	}
 
-	oauth2Manager, err := auth.NewOAuth2Manager(oauth2Config, logger)
+	oauth2Manager, err := auth.NewEnhancedOAuth2Manager(enhancedOAuth2Config, logger)
 	if err != nil {
-		logger.Error("Failed to create OAuth2Manager", slog.String("error", err.Error()))
+		logger.Error("Failed to create Enhanced OAuth2Manager", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
@@ -375,35 +380,29 @@ func setupHTTPServer() *http.Server {
 		router.Use(postRateLimiter.Middleware)
 	}
 
-	// Setup OAuth2 routes if enabled
-	oauth2Manager.SetupRoutes(router)
-
-	// Public health endpoints (no authentication required)
+	// Get health checker component
 	_, _, _, _, _, _, _, healthChecker := service.GetComponents()
-	router.HandleFunc("/healthz", healthChecker.HealthzHandler).Methods("GET")
-	router.HandleFunc("/readyz", healthChecker.ReadyzHandler).Methods("GET")
 
-	// Configure metrics endpoint with IP allowlist if not publicly exposed
-	if cfg.ExposeMetricsPublicly {
-		logger.Info("Metrics endpoint exposed publicly")
-		router.HandleFunc("/metrics", handler.MetricsHandler).Methods("GET")
-	} else {
-		logger.Info("Metrics endpoint protected with IP allowlist",
-			slog.Any("allowed_cidrs", cfg.MetricsAllowedCIDRs))
-		router.HandleFunc("/metrics", createIPAllowlistHandler(handler.MetricsHandler, cfg.MetricsAllowedCIDRs, logger)).Methods("GET")
+	// Prepare public route handlers
+	publicHandlers := &auth.PublicRouteHandlers{
+		Health:  healthChecker.HealthzHandler,
+		Ready:   healthChecker.ReadyzHandler,
+		Metrics: handler.MetricsHandler,
 	}
 
-	// Create handlers with MaxBytesHandler applied to POST endpoints
-	handlers := oauth2Manager.CreateHandlersWithSizeLimit(
-		handler.ProcessIntentHandler,
-		handler.StatusHandler,
-		handler.CircuitBreakerStatusHandler,
-		handler.StreamingHandler,
-		handler.MetricsHandler,
-	)
+	// Prepare protected route handlers
+	protectedHandlers := &auth.ProtectedRouteHandlers{
+		ProcessIntent:        handler.ProcessIntentHandler,
+		Status:               handler.StatusHandler,
+		CircuitBreakerStatus: handler.CircuitBreakerStatusHandler,
+		StreamingHandler:     handler.StreamingHandler,
+	}
 
-	// Configure protected routes using OAuth2Manager
-	oauth2Manager.ConfigureProtectedRoutes(router, handlers)
+	// Configure ALL routes through the centralized OAuth2Manager
+	if err := oauth2Manager.ConfigureAllRoutes(router, publicHandlers, protectedHandlers); err != nil {
+		logger.Error("Failed to configure routes", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
 
 	return &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -412,103 +411,4 @@ func setupHTTPServer() *http.Server {
 		WriteTimeout: cfg.RequestTimeout,
 		IdleTimeout:  2 * time.Minute,
 	}
-}
-
-// createIPAllowlistHandler creates a handler that restricts access based on client IP addresses
-// This is specifically designed for protecting the metrics endpoint from unauthorized access
-func createIPAllowlistHandler(next http.HandlerFunc, allowedCIDRs []string, logger *slog.Logger) http.HandlerFunc {
-	// Parse CIDR blocks once during initialization for efficiency
-	var allowedNetworks []*net.IPNet
-	for _, cidrStr := range allowedCIDRs {
-		_, network, err := net.ParseCIDR(cidrStr)
-		if err != nil {
-			logger.Error("Failed to parse CIDR block for IP allowlist",
-				slog.String("cidr", cidrStr),
-				slog.String("error", err.Error()))
-			continue
-		}
-		allowedNetworks = append(allowedNetworks, network)
-	}
-
-	if len(allowedNetworks) == 0 {
-		logger.Warn("No valid CIDR blocks configured for IP allowlist, denying all access")
-	} else {
-		logger.Info("IP allowlist middleware configured",
-			slog.Int("allowed_networks", len(allowedNetworks)),
-			slog.Any("cidrs", allowedCIDRs))
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		clientIP := getClientIP(r)
-
-		logger.Debug("IP allowlist check",
-			slog.String("client_ip", clientIP),
-			slog.String("path", r.URL.Path),
-			slog.String("user_agent", r.Header.Get("User-Agent")))
-
-		// Parse client IP
-		ip := net.ParseIP(clientIP)
-		if ip == nil {
-			logger.Warn("Invalid client IP address",
-				slog.String("client_ip", clientIP),
-				slog.String("path", r.URL.Path),
-				slog.String("remote_addr", r.RemoteAddr))
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
-
-		// Check if client IP is allowed
-		allowed := false
-		for _, network := range allowedNetworks {
-			if network.Contains(ip) {
-				allowed = true
-				logger.Debug("IP allowlist check passed",
-					slog.String("client_ip", clientIP),
-					slog.String("matched_network", network.String()))
-				break
-			}
-		}
-
-		if !allowed {
-			logger.Warn("IP allowlist check failed - access denied",
-				slog.String("client_ip", clientIP),
-				slog.String("path", r.URL.Path),
-				slog.String("remote_addr", r.RemoteAddr),
-				slog.String("user_agent", r.Header.Get("User-Agent")),
-				slog.Any("allowed_networks", allowedCIDRs))
-			http.Error(w, "Forbidden", http.StatusForbidden)
-			return
-		}
-
-		// IP is allowed, proceed with the original handler
-		next(w, r)
-	}
-}
-
-// getClientIP extracts the real client IP address from various headers
-// This handles common proxy scenarios including load balancers and reverse proxies
-func getClientIP(r *http.Request) string {
-	// Check X-Forwarded-For header first (most common)
-	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
-		// X-Forwarded-For can contain multiple IPs, use the first one
-		ips := strings.Split(xff, ",")
-		return strings.TrimSpace(ips[0])
-	}
-
-	// Check X-Real-IP header (used by some proxies)
-	if xri := r.Header.Get("X-Real-IP"); xri != "" {
-		return strings.TrimSpace(xri)
-	}
-
-	// Check CF-Connecting-IP header (Cloudflare)
-	if cfip := r.Header.Get("CF-Connecting-IP"); cfip != "" {
-		return strings.TrimSpace(cfip)
-	}
-
-	// Fall back to RemoteAddr (direct connection)
-	ip, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err != nil {
-		return r.RemoteAddr
-	}
-	return ip
 }

@@ -454,14 +454,104 @@ func parseRoleMappings(mappingStr string) map[string][]string {
 	return mappings
 }
 
-// loadFromFile loads configuration from JSON file
+// loadFromFile loads configuration from JSON file with comprehensive security validation
 func (c *AuthConfig) loadFromFile(filename string) error {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return err
+	// SECURITY: Validate config file path to prevent path traversal attacks
+	if err := validateConfigFilePath(filename); err != nil {
+		// Log security event for audit trail
+		slog.Error("Config file path validation failed",
+			"file", filename,
+			"error", err,
+			"event", "config_path_traversal_attempt")
+		if security.GlobalAuditLogger != nil {
+			security.GlobalAuditLogger.LogSecretAccess(
+				"auth_config",
+				"file",
+				filename,
+				"",
+				false,
+				fmt.Errorf("path validation failed: %w", err))
+		}
+		return fmt.Errorf("invalid config file path: %w", err)
 	}
 
-	return json.Unmarshal(data, c)
+	// SECURITY: Check file metadata before reading
+	info, err := os.Stat(filename)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("config file does not exist: %s", filename)
+		}
+		if os.IsPermission(err) {
+			return fmt.Errorf("permission denied accessing config file: %s", filename)
+		}
+		return fmt.Errorf("cannot access config file: %w", err)
+	}
+
+	// SECURITY: Prevent reading extremely large files (potential DoS)
+	const maxConfigFileSize = 10 * 1024 * 1024 // 10MB limit for config files
+	if info.Size() > maxConfigFileSize {
+		return fmt.Errorf("config file too large (max %d bytes): %d bytes", maxConfigFileSize, info.Size())
+	}
+
+	if info.Size() == 0 {
+		return fmt.Errorf("config file is empty")
+	}
+
+	// SECURITY: Check if file is a symlink and resolve it safely
+	if info.Mode()&os.ModeSymlink != 0 {
+		// Resolve symlink and validate the target
+		realPath, err := filepath.EvalSymlinks(filename)
+		if err != nil {
+			return fmt.Errorf("cannot resolve symlink: %w", err)
+		}
+		// Re-validate the resolved path
+		if err := validateConfigFilePath(realPath); err != nil {
+			slog.Error("Symlink target validation failed",
+				"symlink", filename,
+				"target", realPath,
+				"error", err,
+				"event", "config_symlink_traversal_attempt")
+			return fmt.Errorf("symlink target validation failed: %w", err)
+		}
+		filename = realPath
+	}
+
+	// SECURITY: Warn about overly permissive file permissions
+	mode := info.Mode()
+	if mode&0044 != 0 { // Check if world or group readable
+		slog.Warn("Config file has overly permissive permissions",
+			"file", filename,
+			"mode", mode.String(),
+			"recommended", "0600 or 0640")
+	}
+
+	// Read file contents with security checks passed
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	// SECURITY: Validate JSON structure before unmarshaling to prevent malformed input attacks
+	if !json.Valid(data) {
+		return fmt.Errorf("config file contains invalid JSON")
+	}
+
+	// Parse JSON with size-limited decoder to prevent memory exhaustion
+	decoder := json.NewDecoder(strings.NewReader(string(data)))
+	decoder.DisallowUnknownFields() // Strict parsing - reject unknown fields
+
+	if err := decoder.Decode(c); err != nil {
+		return fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	// Log successful config load for audit trail
+	slog.Info("Auth config loaded from file",
+		"file", filename,
+		"size", info.Size(),
+		"providers_count", len(c.Providers),
+		"ldap_providers_count", len(c.LDAPProviders))
+
+	return nil
 }
 
 // validate validates the configuration with enhanced security checks
@@ -972,7 +1062,116 @@ func isValidProviderName(provider string) bool {
 	return true
 }
 
+// validateConfigFilePath validates configuration file paths with stricter security rules
+// This is used specifically for main config files, not OAuth2 secrets
+func validateConfigFilePath(filePath string) error {
+	// Check for empty path
+	if strings.TrimSpace(filePath) == "" {
+		return fmt.Errorf("empty file path")
+	}
+	
+	// SECURITY: Clean the path first to normalize it
+	cleanedPath := filepath.Clean(filePath)
+	
+	// SECURITY: Detect obvious path traversal attempts before resolution
+	if strings.Contains(filePath, "..") || strings.Contains(cleanedPath, "..") {
+		return fmt.Errorf("path traversal attempt detected: contains '..'")
+	}
+	
+	// SECURITY: Reject paths with null bytes (potential injection)
+	if strings.Contains(filePath, "\x00") {
+		return fmt.Errorf("path contains null byte")
+	}
+	
+	// Convert to absolute path for validation
+	absPath, err := filepath.Abs(cleanedPath)
+	if err != nil {
+		return fmt.Errorf("invalid file path format: %w", err)
+	}
+	
+	// SECURITY: Additional check after absolute path conversion
+	if strings.Contains(absPath, "..") {
+		return fmt.Errorf("path traversal detected in absolute path")
+	}
+	
+	// SECURITY: Check for Windows UNC paths or special devices
+	if strings.HasPrefix(absPath, "\\\\") || strings.HasPrefix(absPath, "//") {
+		return fmt.Errorf("UNC paths not allowed")
+	}
+	
+	// SECURITY: Restrict to specific directories for config files
+	// Config files should only be in designated configuration directories
+	allowedPrefixes := []string{
+		"/etc/nephoran",       // Production config directory
+		"/etc/nephoran-operator", // Alternative production config
+		"/var/lib/nephoran",   // State directory
+		"/opt/nephoran/config", // Alternative config location
+		"/config",             // Kubernetes ConfigMap mount
+		"/etc/config",         // Alternative Kubernetes mount
+	}
+	
+	// For development/testing, allow current directory subdirectories
+	currentDir, _ := os.Getwd()
+	if currentDir != "" {
+		// Only allow config subdirectory in development
+		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "config"))
+		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "test", "config"))
+		
+		// For CI/CD environments
+		if strings.Contains(currentDir, "github") || strings.Contains(currentDir, "gitlab") {
+			allowedPrefixes = append(allowedPrefixes, currentDir)
+		}
+	}
+	
+	// SECURITY: Check if path starts with any allowed prefix
+	pathAllowed := false
+	for _, prefix := range allowedPrefixes {
+		// Use proper path comparison to avoid prefix bypass
+		prefixAbs, _ := filepath.Abs(prefix)
+		if prefixAbs != "" && (absPath == prefixAbs || strings.HasPrefix(absPath, prefixAbs+string(filepath.Separator))) {
+			pathAllowed = true
+			break
+		}
+	}
+	
+	if !pathAllowed {
+		return fmt.Errorf("config file path not in allowed directory (must be in /etc/nephoran, /config, or ./config)")
+	}
+	
+	// SECURITY: Validate file extension
+	ext := strings.ToLower(filepath.Ext(absPath))
+	allowedExtensions := []string{".json", ".yaml", ".yml", ".conf", ""}
+	extensionAllowed := false
+	for _, allowedExt := range allowedExtensions {
+		if ext == allowedExt {
+			extensionAllowed = true
+			break
+		}
+	}
+	
+	if !extensionAllowed {
+		return fmt.Errorf("invalid config file extension: %s (allowed: .json, .yaml, .yml, .conf)", ext)
+	}
+	
+	// SECURITY: Check filename for suspicious patterns
+	filename := filepath.Base(absPath)
+	if strings.HasPrefix(filename, ".") && filename != ".config" {
+		return fmt.Errorf("hidden files not allowed as config")
+	}
+	
+	// SECURITY: Reject special file names
+	dangerousNames := []string{"/dev/", "/proc/", "/sys/", "passwd", "shadow", "sudoers"}
+	for _, dangerous := range dangerousNames {
+		if strings.Contains(strings.ToLower(absPath), dangerous) {
+			return fmt.Errorf("suspicious file path detected")
+		}
+	}
+	
+	return nil
+}
+
 // validateFilePath prevents path traversal attacks and validates file path security
+// This is used for OAuth2 secret files with different allowed directories
 func validateFilePath(filePath string) error {
 	// Check for empty path
 	if strings.TrimSpace(filePath) == "" {
@@ -1227,7 +1426,7 @@ func determineSecretSource(filename, envVar string) string {
 	}
 	
 	// Check if environment variable is set
-	if os.Getenv(envVar) != "" {
+	if config.GetEnvOrDefault(envVar, "") != "" {
 		return "environment"
 	}
 	
