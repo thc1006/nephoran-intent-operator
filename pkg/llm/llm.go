@@ -695,13 +695,27 @@ func (c *Client) processWithChatCompletion(ctx context.Context, systemPrompt, in
 func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, error) {
 	// Use the RAG client interface if available
 	if c.ragClient != nil {
-		result, err := c.ragClient.ProcessIntent(ctx, intent)
+		// Use the new Retrieve method to get relevant documents
+		docs, err := c.ragClient.Retrieve(ctx, intent)
 		if err != nil {
-			c.logger.Debug("RAG client processing failed, falling back to direct API",
+			c.logger.Debug("RAG client retrieval failed, falling back to direct API",
 				slog.String("error", err.Error()))
 			// Fall through to direct API call
 		} else {
-			return result, nil
+			// Build context from retrieved documents
+			var contextBuilder strings.Builder
+			contextBuilder.WriteString("Based on the following context:\n\n")
+			
+			for i, doc := range docs {
+				contextBuilder.WriteString(fmt.Sprintf("Context %d (confidence: %.2f):\n%s\n\n", 
+					i+1, doc.Confidence, doc.Content))
+			}
+			
+			// Generate enhanced response using ChatCompletion with RAG context
+			systemPrompt := c.promptEngine.GeneratePrompt("NetworkFunctionDeployment", intent)
+			enhancedPrompt := fmt.Sprintf("%s\n\nAdditional Context:\n%s", systemPrompt, contextBuilder.String())
+			
+			return c.processWithChatCompletion(ctx, enhancedPrompt, intent)
 		}
 	}
 

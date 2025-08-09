@@ -4,7 +4,6 @@ package rag
 
 import (
 	"context"
-	"fmt"
 )
 
 // noOpRAGClient is a no-op implementation of RAGClient
@@ -18,30 +17,20 @@ func newRAGClientImpl(config *RAGClientConfig) RAGClient {
 	return &noOpRAGClient{config: config}
 }
 
-// ProcessIntent returns an error indicating RAG is not enabled
-func (c *noOpRAGClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
-	return "", fmt.Errorf("RAG support is not enabled. Build with -tags=rag to enable Weaviate integration")
+// Retrieve returns empty results for no-op implementation
+func (c *noOpRAGClient) Retrieve(ctx context.Context, query string) ([]Doc, error) {
+	// Return empty results - no error, just no content
+	return []Doc{}, nil
 }
 
-// Search returns an error indicating RAG is not enabled
-func (c *noOpRAGClient) Search(ctx context.Context, query string, limit int) ([]SearchResult, error) {
-	return nil, fmt.Errorf("RAG support is not enabled. Build with -tags=rag to enable Weaviate integration")
-}
-
-// Initialize does nothing for no-op implementation
+// Initialize is a no-op for the no-op implementation
 func (c *noOpRAGClient) Initialize(ctx context.Context) error {
-	// No-op: nothing to initialize
+	// No-op client requires no initialization
 	return nil
 }
 
-// Shutdown does nothing for no-op implementation
+// Shutdown is a no-op for the no-op implementation
 func (c *noOpRAGClient) Shutdown(ctx context.Context) error {
-	// No-op: nothing to shutdown
+	// No-op client requires no shutdown
 	return nil
-}
-
-// IsHealthy always returns true for no-op implementation
-func (c *noOpRAGClient) IsHealthy() bool {
-	// No-op is always "healthy" since it does nothing
-	return true
 }

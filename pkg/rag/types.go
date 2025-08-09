@@ -7,26 +7,29 @@ import (
 	"context"
 )
 
+// Doc represents a document retrieved from the RAG system
+type Doc struct {
+	ID         string
+	Content    string
+	Confidence float64
+	Metadata   map[string]interface{}
+}
+
 // RAGClient is the main interface for RAG operations
 // This allows for different implementations (Weaviate, no-op, etc.)
 type RAGClient interface {
-	// ProcessIntent processes an intent with RAG enhancement
-	ProcessIntent(ctx context.Context, intent string) (string, error)
+	// Retrieve performs a semantic search for relevant documents
+	Retrieve(ctx context.Context, query string) ([]Doc, error)
 	
-	// Search performs a semantic search for relevant documents
-	Search(ctx context.Context, query string, limit int) ([]SearchResult, error)
-	
-	// Initialize sets up the RAG client
+	// Initialize initializes the RAG client and its dependencies
 	Initialize(ctx context.Context) error
 	
-	// Shutdown gracefully shuts down the client
+	// Shutdown gracefully shuts down the RAG client and releases resources
 	Shutdown(ctx context.Context) error
-	
-	// IsHealthy checks if the RAG service is healthy
-	IsHealthy() bool
 }
 
 // SearchResult represents a search result from the RAG system
+// Deprecated: Use Doc instead
 type SearchResult struct {
 	ID         string
 	Content    string
@@ -65,7 +68,7 @@ type TokenUsage struct {
 // Without "rag" build tag: returns no-op implementation
 func NewRAGClient(config *RAGClientConfig) RAGClient {
 	// This function will be implemented differently in:
-	// - client_weaviate.go (with //go:build rag)
-	// - client_noop.go (with //go:build !rag)
+	// - weaviate_client.go (with //go:build rag)
+	// - noop/client.go (no build tag)
 	return newRAGClientImpl(config)
 }
