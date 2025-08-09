@@ -26,11 +26,11 @@ type EventBus interface {
 	PublishStateChange(ctx context.Context, event StateChangeEvent) error
 	Subscribe(eventType string, handler EventHandler) error
 	Unsubscribe(eventType string) error
-	
+
 	// Event bus lifecycle
 	Start(ctx context.Context) error
 	Stop(ctx context.Context) error
-	
+
 	// Event querying
 	GetEventHistory(ctx context.Context, intentID string) ([]ProcessingEvent, error)
 	GetEventsByType(ctx context.Context, eventType string, limit int) ([]ProcessingEvent, error)
@@ -47,7 +47,7 @@ type ProcessingEvent struct {
 	Phase         string                 `json:"phase"`
 	Success       bool                   `json:"success"`
 	Data          map[string]interface{} `json:"data"`
-	Timestamp     int64                  `json:"timestamp"`  // Unix timestamp
+	Timestamp     int64                  `json:"timestamp"` // Unix timestamp
 	CorrelationID string                 `json:"correlationId"`
 	Metadata      map[string]string      `json:"metadata,omitempty"`
 }

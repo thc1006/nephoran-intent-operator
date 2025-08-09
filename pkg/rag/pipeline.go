@@ -17,119 +17,119 @@ import (
 // RAGPipeline orchestrates the complete RAG processing pipeline
 type RAGPipeline struct {
 	// Core components
-	documentLoader       *DocumentLoader
-	chunkingService      *ChunkingService
-	embeddingService     *EmbeddingService
-	weaviateClient      *WeaviateClient
-	weaviatePool        *WeaviateConnectionPool
-	enhancedRetrieval   *EnhancedRetrievalService
-	llmClient           shared.ClientInterface
-	redisCache          *RedisCache
-	monitor             *RAGMonitor
+	documentLoader    *DocumentLoader
+	chunkingService   *ChunkingService
+	embeddingService  *EmbeddingService
+	weaviateClient    *WeaviateClient
+	weaviatePool      *WeaviateConnectionPool
+	enhancedRetrieval *EnhancedRetrievalService
+	llmClient         shared.ClientInterface
+	redisCache        *RedisCache
+	monitor           *RAGMonitor
 
 	// Configuration
-	config              *PipelineConfig
-	logger              *slog.Logger
+	config *PipelineConfig
+	logger *slog.Logger
 
 	// State management
-	isInitialized       bool
-	isProcessing        bool
-	mutex               sync.RWMutex
+	isInitialized bool
+	isProcessing  bool
+	mutex         sync.RWMutex
 
 	// Async processing components
-	documentQueue       chan DocumentJob
-	queryQueue          chan QueryJob
-	workerPool          *AsyncWorkerPool
-	resultCallbacks     map[string]func(interface{}, error)
-	callbackMutex       sync.RWMutex
+	documentQueue   chan DocumentJob
+	queryQueue      chan QueryJob
+	workerPool      *AsyncWorkerPool
+	resultCallbacks map[string]func(interface{}, error)
+	callbackMutex   sync.RWMutex
 
 	// Metrics and monitoring
-	startTime           time.Time
-	processedDocuments  int64
-	processedQueries    int64
-	totalChunks         int64
-	activeJobs          int64
-	queuedJobs          int64
+	startTime          time.Time
+	processedDocuments int64
+	processedQueries   int64
+	totalChunks        int64
+	activeJobs         int64
+	queuedJobs         int64
 }
 
 // PipelineConfig holds configuration for the entire RAG pipeline
 type PipelineConfig struct {
 	// Component configurations
-	DocumentLoaderConfig    *DocumentLoaderConfig    `json:"document_loader"`
-	ChunkingConfig          *ChunkingConfig          `json:"chunking"`
-	EmbeddingConfig         *EmbeddingConfig         `json:"embedding"`
-	WeaviateConfig          *WeaviateConfig          `json:"weaviate"`
-	WeaviatePoolConfig      *PoolConfig              `json:"weaviate_pool"`
-	RetrievalConfig         *RetrievalConfig         `json:"retrieval"`
-	RedisCacheConfig        *RedisCacheConfig        `json:"redis_cache"`
-	MonitoringConfig        *MonitoringConfig        `json:"monitoring"`
+	DocumentLoaderConfig *DocumentLoaderConfig `json:"document_loader"`
+	ChunkingConfig       *ChunkingConfig       `json:"chunking"`
+	EmbeddingConfig      *EmbeddingConfig      `json:"embedding"`
+	WeaviateConfig       *WeaviateConfig       `json:"weaviate"`
+	WeaviatePoolConfig   *PoolConfig           `json:"weaviate_pool"`
+	RetrievalConfig      *RetrievalConfig      `json:"retrieval"`
+	RedisCacheConfig     *RedisCacheConfig     `json:"redis_cache"`
+	MonitoringConfig     *MonitoringConfig     `json:"monitoring"`
 
 	// Pipeline-specific settings
 	EnableCaching           bool          `json:"enable_caching"`
 	EnableMonitoring        bool          `json:"enable_monitoring"`
 	MaxConcurrentProcessing int           `json:"max_concurrent_processing"`
 	ProcessingTimeout       time.Duration `json:"processing_timeout"`
-	
+
 	// Async processing settings
-	AsyncProcessing         bool          `json:"async_processing"`
-	DocumentQueueSize       int           `json:"document_queue_size"`
-	QueryQueueSize          int           `json:"query_queue_size"`
-	WorkerPoolSize          int           `json:"worker_pool_size"`
-	BatchSize               int           `json:"batch_size"`
-	MaxRetries              int           `json:"max_retries"`
-	
+	AsyncProcessing   bool `json:"async_processing"`
+	DocumentQueueSize int  `json:"document_queue_size"`
+	QueryQueueSize    int  `json:"query_queue_size"`
+	WorkerPoolSize    int  `json:"worker_pool_size"`
+	BatchSize         int  `json:"batch_size"`
+	MaxRetries        int  `json:"max_retries"`
+
 	// Knowledge base management
-	AutoIndexing            bool          `json:"auto_indexing"`
-	IndexingInterval        time.Duration `json:"indexing_interval"`
-	
+	AutoIndexing     bool          `json:"auto_indexing"`
+	IndexingInterval time.Duration `json:"indexing_interval"`
+
 	// Quality assurance
-	EnableQualityChecks     bool    `json:"enable_quality_checks"`
-	MinQualityThreshold     float32 `json:"min_quality_threshold"`
-	
+	EnableQualityChecks bool    `json:"enable_quality_checks"`
+	MinQualityThreshold float32 `json:"min_quality_threshold"`
+
 	// Integration settings
-	LLMIntegration          bool   `json:"llm_integration"`
-	KubernetesIntegration   bool   `json:"kubernetes_integration"`
+	LLMIntegration        bool `json:"llm_integration"`
+	KubernetesIntegration bool `json:"kubernetes_integration"`
 }
 
 // PipelineStatus represents the current status of the pipeline
 type PipelineStatus struct {
-	IsHealthy           bool      `json:"is_healthy"`
-	IsProcessing        bool      `json:"is_processing"`
-	StartTime           time.Time `json:"start_time"`
-	Uptime              time.Duration `json:"uptime"`
-	ProcessedDocuments  int64     `json:"processed_documents"`
-	ProcessedQueries    int64     `json:"processed_queries"`
-	TotalChunks         int64     `json:"total_chunks"`
-	ComponentStatuses   map[string]string `json:"component_statuses"`
-	LastProcessingTime  time.Time `json:"last_processing_time"`
-	ErrorCount          int64     `json:"error_count"`
-	LastError           string    `json:"last_error,omitempty"`
-	ActiveJobs          int64     `json:"active_jobs"`
-	QueuedJobs          int64     `json:"queued_jobs"`
-	AsyncEnabled        bool      `json:"async_enabled"`
+	IsHealthy          bool              `json:"is_healthy"`
+	IsProcessing       bool              `json:"is_processing"`
+	StartTime          time.Time         `json:"start_time"`
+	Uptime             time.Duration     `json:"uptime"`
+	ProcessedDocuments int64             `json:"processed_documents"`
+	ProcessedQueries   int64             `json:"processed_queries"`
+	TotalChunks        int64             `json:"total_chunks"`
+	ComponentStatuses  map[string]string `json:"component_statuses"`
+	LastProcessingTime time.Time         `json:"last_processing_time"`
+	ErrorCount         int64             `json:"error_count"`
+	LastError          string            `json:"last_error,omitempty"`
+	ActiveJobs         int64             `json:"active_jobs"`
+	QueuedJobs         int64             `json:"queued_jobs"`
+	AsyncEnabled       bool              `json:"async_enabled"`
 }
 
 // DocumentJob represents an async document processing job
 type DocumentJob struct {
-	ID          string
-	Documents   []Document
-	Callback    func([]ProcessedDocument, error)
-	Context     context.Context
-	StartTime   time.Time
-	RetryCount  int
-	MaxRetries  int
+	ID         string
+	Documents  []Document
+	Callback   func([]ProcessedDocument, error)
+	Context    context.Context
+	StartTime  time.Time
+	RetryCount int
+	MaxRetries int
 }
 
 // QueryJob represents an async query processing job
 type QueryJob struct {
-	ID          string
-	Query       string
-	Parameters  QueryParameters
-	Callback    func(QueryResult, error)
-	Context     context.Context
-	StartTime   time.Time
-	RetryCount  int
-	MaxRetries  int
+	ID         string
+	Query      string
+	Parameters QueryParameters
+	Callback   func(QueryResult, error)
+	Context    context.Context
+	StartTime  time.Time
+	RetryCount int
+	MaxRetries int
 }
 
 // AsyncWorkerPool manages async processing workers
@@ -189,22 +189,22 @@ type ProcessedChunk struct {
 
 // QueryResult represents the result of a query operation
 type QueryResult struct {
-	ID           string
-	Results      []RetrievedDocument
-	Response     string
-	Confidence   float32
-	ProcessTime  time.Duration
-	CacheHit     bool
-	Metadata     map[string]interface{}
+	ID          string
+	Results     []RetrievedDocument
+	Response    string
+	Confidence  float32
+	ProcessTime time.Duration
+	CacheHit    bool
+	Metadata    map[string]interface{}
 }
 
 // RetrievedDocument represents a document retrieved from the query
 type RetrievedDocument struct {
-	ID        string
-	Content   string
-	Score     float32
-	Source    string
-	Metadata  map[string]interface{}
+	ID       string
+	Content  string
+	Score    float32
+	Source   string
+	Metadata map[string]interface{}
 }
 
 // QueryParameters contains parameters for query processing
@@ -255,10 +255,10 @@ func NewRAGPipeline(config *PipelineConfig, llmClient shared.ClientInterface) (*
 // getDefaultPipelineConfig returns default pipeline configuration
 func getDefaultPipelineConfig() *PipelineConfig {
 	return &PipelineConfig{
-		DocumentLoaderConfig:    getDefaultLoaderConfig(),
-		ChunkingConfig:          getDefaultChunkingConfig(),
-		EmbeddingConfig:         getDefaultEmbeddingConfig(),
-		WeaviateConfig:          &WeaviateConfig{
+		DocumentLoaderConfig: getDefaultLoaderConfig(),
+		ChunkingConfig:       getDefaultChunkingConfig(),
+		EmbeddingConfig:      getDefaultEmbeddingConfig(),
+		WeaviateConfig: &WeaviateConfig{
 			Host:   "localhost:8080",
 			Scheme: "http",
 		},
@@ -395,7 +395,7 @@ func (rp *RAGPipeline) ProcessDocument(ctx context.Context, documentPath string)
 	}
 
 	processingTime := time.Since(startTime)
-	
+
 	rp.logger.Info("Document processing completed",
 		"document", documentPath,
 		"documents_processed", len(documents),
@@ -438,8 +438,8 @@ func (rp *RAGPipeline) processIndividualDocument(ctx context.Context, doc *Loade
 	for _, chunk := range chunks {
 		telecomDoc := rp.convertChunkToTelecomDocument(chunk)
 		if err := rp.weaviateClient.AddDocument(ctx, telecomDoc); err != nil {
-			rp.logger.Error("Failed to store chunk in vector database", 
-				"chunk_id", chunk.ID, 
+			rp.logger.Error("Failed to store chunk in vector database",
+				"chunk_id", chunk.ID,
 				"error", err,
 			)
 			continue
@@ -469,26 +469,26 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 	if maxWorkers <= 0 {
 		maxWorkers = runtime.NumCPU()
 	}
-	
+
 	// Limit to reasonable maximum to avoid resource exhaustion
 	if maxWorkers > 20 {
 		maxWorkers = 20
 	}
-	
+
 	// Don't create more workers than documents
 	if maxWorkers > len(documents) {
 		maxWorkers = len(documents)
 	}
-	
-	rp.logger.Info("Starting parallel document processing", 
-		"documents", len(documents), 
+
+	rp.logger.Info("Starting parallel document processing",
+		"documents", len(documents),
 		"workers", maxWorkers,
 	)
-	
+
 	// Create channels for work distribution
 	docChan := make(chan *LoadedDocument, len(documents))
 	resultChan := make(chan error, len(documents))
-	
+
 	// Start worker goroutines
 	var wg sync.WaitGroup
 	for i := 0; i < maxWorkers; i++ {
@@ -496,7 +496,7 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 		go func(workerID int) {
 			defer wg.Done()
 			rp.logger.Debug("Starting document processing worker", "worker_id", workerID)
-			
+
 			for doc := range docChan {
 				select {
 				case <-ctx.Done():
@@ -506,17 +506,17 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 					startTime := time.Now()
 					err := rp.processIndividualDocument(ctx, doc)
 					processingTime := time.Since(startTime)
-					
+
 					if err != nil {
-						rp.logger.Error("Worker failed to process document", 
+						rp.logger.Error("Worker failed to process document",
 							"worker_id", workerID,
-							"doc_id", doc.ID, 
+							"doc_id", doc.ID,
 							"error", err,
 							"processing_time", processingTime,
 						)
 						resultChan <- fmt.Errorf("worker %d failed to process doc %s: %w", workerID, doc.ID, err)
 					} else {
-						rp.logger.Debug("Worker successfully processed document", 
+						rp.logger.Debug("Worker successfully processed document",
 							"worker_id", workerID,
 							"doc_id", doc.ID,
 							"processing_time", processingTime,
@@ -528,7 +528,7 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 			}
 		}(i)
 	}
-	
+
 	// Send documents to workers
 	go func() {
 		defer close(docChan)
@@ -540,17 +540,17 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 			}
 		}
 	}()
-	
+
 	// Wait for all workers to complete
 	go func() {
 		wg.Wait()
 		close(resultChan)
 	}()
-	
+
 	// Collect results and track errors
 	var errors []error
 	processedCount := 0
-	
+
 	for err := range resultChan {
 		if err != nil {
 			errors = append(errors, err)
@@ -558,14 +558,14 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 			processedCount++
 		}
 	}
-	
-	rp.logger.Info("Parallel document processing completed", 
+
+	rp.logger.Info("Parallel document processing completed",
 		"total_documents", len(documents),
 		"processed_successfully", processedCount,
 		"errors", len(errors),
 		"workers", maxWorkers,
 	)
-	
+
 	// If we have some errors but not all failed, log warnings but continue
 	if len(errors) > 0 {
 		errorRate := float64(len(errors)) / float64(len(documents))
@@ -581,10 +581,9 @@ func (rp *RAGPipeline) processDocumentsParallel(ctx context.Context, documents [
 			)
 		}
 	}
-	
+
 	return nil
 }
-
 
 // ProcessQuery processes a query through the enhanced retrieval pipeline
 func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearchRequest) (*EnhancedSearchResponse, error) {
@@ -595,7 +594,7 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 	startTime := time.Now()
 	rp.processedQueries++
 
-	rp.logger.Info("Processing query", 
+	rp.logger.Info("Processing query",
 		"query", request.Query,
 		"intent_type", request.IntentType,
 	)
@@ -604,20 +603,20 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 	if rp.redisCache != nil && rp.config.EnableCaching {
 		if cached, metadata, found := rp.redisCache.GetContext(ctx, request.Query, request.IntentType); found {
 			rp.logger.Debug("Query result found in cache", "query", request.Query)
-			
+
 			if rp.monitor != nil {
 				rp.monitor.RecordCacheHitRate("query_result", 1.0)
 			}
 
 			return &EnhancedSearchResponse{
-				Query:              request.Query,
-				AssembledContext:   cached,
-				ContextMetadata:    metadata,
-				ProcessingTime:     time.Since(startTime),
-				ProcessedAt:        time.Now(),
+				Query:            request.Query,
+				AssembledContext: cached,
+				ContextMetadata:  metadata,
+				ProcessingTime:   time.Since(startTime),
+				ProcessedAt:      time.Now(),
 			}, nil
 		}
-		
+
 		if rp.monitor != nil {
 			rp.monitor.RecordCacheHitRate("query_result", 0.0)
 		}
@@ -640,7 +639,7 @@ func (rp *RAGPipeline) ProcessQuery(ctx context.Context, request *EnhancedSearch
 		if contextKey == "" {
 			contextKey = "general"
 		}
-		
+
 		if err := rp.redisCache.SetContext(ctx, request.Query, contextKey, response.AssembledContext, response.ContextMetadata); err != nil {
 			rp.logger.Warn("Failed to cache query result", "query", request.Query, "error", err)
 		}
@@ -773,7 +772,7 @@ func (rp *RAGPipeline) getTechnologiesFromMetadata(metadata *DocumentMetadata) [
 // classifyIntent performs simple intent classification
 func (rp *RAGPipeline) classifyIntent(intent string) string {
 	intentLower := strings.ToLower(intent)
-	
+
 	configKeywords := []string{"configure", "config", "setup", "parameter", "setting"}
 	troubleshootKeywords := []string{"problem", "issue", "error", "troubleshoot", "debug", "fix"}
 	optimizeKeywords := []string{"optimize", "improve", "performance", "enhance", "tuning"}
@@ -855,14 +854,14 @@ func (rp *RAGPipeline) startAutoIndexing() {
 	for range ticker.C {
 		rp.logger.Info("Starting automatic indexing")
 		ctx, cancel := context.WithTimeout(context.Background(), rp.config.ProcessingTimeout)
-		
+
 		// Process documents from configured paths
 		for _, path := range rp.config.DocumentLoaderConfig.LocalPaths {
 			if err := rp.ProcessDocument(ctx, path); err != nil {
 				rp.logger.Error("Auto-indexing failed for path", "path", path, "error", err)
 			}
 		}
-		
+
 		cancel()
 		rp.logger.Info("Automatic indexing completed")
 	}
@@ -1009,11 +1008,11 @@ func (rp *RAGPipeline) ProcessDocumentsAsync(ctx context.Context, jobID string, 
 	}
 
 	job := DocumentJob{
-		ID:        jobID,
-		Documents: documents,
-		Callback:  callback,
-		Context:   ctx,
-		StartTime: time.Now(),
+		ID:         jobID,
+		Documents:  documents,
+		Callback:   callback,
+		Context:    ctx,
+		StartTime:  time.Now(),
 		MaxRetries: rp.config.MaxRetries,
 	}
 
@@ -1104,8 +1103,8 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 	for _, doc := range job.Documents {
 		// Process document through pipeline
 		chunks, err := rp.chunkingService.ChunkDocument(ctx, &LoadedDocument{
-			ID:      doc.ID,
-			Content: doc.Content,
+			ID:       doc.ID,
+			Content:  doc.Content,
 			Metadata: &DocumentMetadata{},
 		})
 		if err != nil {
@@ -1323,12 +1322,12 @@ func (rp *RAGPipeline) GetQueueStatus() map[string]interface{} {
 	defer rp.mutex.RUnlock()
 
 	return map[string]interface{}{
-		"document_queue_length": len(rp.documentQueue),
-		"query_queue_length":    len(rp.queryQueue),
+		"document_queue_length":   len(rp.documentQueue),
+		"query_queue_length":      len(rp.queryQueue),
 		"document_queue_capacity": cap(rp.documentQueue),
 		"query_queue_capacity":    cap(rp.queryQueue),
-		"total_queued_jobs":     rp.queuedJobs,
-		"active_jobs":           rp.activeJobs,
-		"async_enabled":         rp.config.AsyncProcessing,
+		"total_queued_jobs":       rp.queuedJobs,
+		"active_jobs":             rp.activeJobs,
+		"async_enabled":           rp.config.AsyncProcessing,
 	}
 }

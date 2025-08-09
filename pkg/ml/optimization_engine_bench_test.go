@@ -30,24 +30,24 @@ func (m *mockPrometheusAPI) QueryRange(ctx context.Context, query string, r v1.R
 	// Generate mock data
 	matrix := make(model.Matrix, 1)
 	values := make([]model.SamplePair, 0, m.dataPoints)
-	
+
 	step := r.Step.Seconds()
 	current := float64(r.Start.Unix())
 	end := float64(r.End.Unix())
-	
+
 	for current <= end {
 		values = append(values, model.SamplePair{
-			Timestamp: model.Time(current * 1000), // Convert to milliseconds
+			Timestamp: model.Time(current * 1000),                // Convert to milliseconds
 			Value:     model.SampleValue(50 + (current/3600)%50), // Varying values
 		})
 		current += step
 	}
-	
+
 	matrix[0] = &model.SampleStream{
 		Metric: model.Metric{"__name__": "test_metric"},
 		Values: values,
 	}
-	
+
 	return matrix, nil, nil
 }
 
@@ -180,9 +180,9 @@ func BenchmarkOptimizeNetworkDeployment(b *testing.B) {
 		dataPoints int
 		queryDelay time.Duration
 	}{
-		{"Small-NoDelay", 24, 0},           // 24 hours of data
-		{"Medium-NoDelay", 168, 0},         // 7 days of data
-		{"Large-NoDelay", 720, 0},          // 30 days of data
+		{"Small-NoDelay", 24, 0},   // 24 hours of data
+		{"Medium-NoDelay", 168, 0}, // 7 days of data
+		{"Large-NoDelay", 720, 0},  // 30 days of data
 		{"Small-NetworkDelay", 24, 10 * time.Millisecond},
 		{"Medium-NetworkDelay", 168, 10 * time.Millisecond},
 		{"Large-NetworkDelay", 720, 10 * time.Millisecond},
@@ -202,7 +202,7 @@ func BenchmarkOptimizeNetworkDeployment(b *testing.B) {
 			}
 
 			ctx := context.Background()
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				_, err := engine.OptimizeNetworkDeployment(ctx, intent)
@@ -241,7 +241,7 @@ func BenchmarkGatherHistoricalData(b *testing.B) {
 					// Simulate parallel data gathering
 					var wg sync.WaitGroup
 					wg.Add(3)
-					
+
 					go func() {
 						defer wg.Done()
 						engine.gatherHistoricalData(ctx, intent)
@@ -254,7 +254,7 @@ func BenchmarkGatherHistoricalData(b *testing.B) {
 						defer wg.Done()
 						engine.gatherHistoricalData(ctx, intent)
 					}()
-					
+
 					wg.Wait()
 				} else {
 					engine.gatherHistoricalData(ctx, intent)
@@ -288,24 +288,24 @@ func BenchmarkMemoryUsage(b *testing.B) {
 			}
 
 			ctx := context.Background()
-			
+
 			// Force GC before measurement
 			runtime.GC()
 			var m1 runtime.MemStats
 			runtime.ReadMemStats(&m1)
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				for _, intent := range intents {
 					engine.OptimizeNetworkDeployment(ctx, intent)
 				}
 			}
-			
+
 			// Measure memory after
 			runtime.GC()
 			var m2 runtime.MemStats
 			runtime.ReadMemStats(&m2)
-			
+
 			b.ReportMetric(float64(m2.Alloc-m1.Alloc)/float64(b.N), "bytes/op")
 			b.ReportMetric(float64(m2.Mallocs-m1.Mallocs)/float64(b.N), "allocs/op")
 		})
@@ -327,7 +327,7 @@ func BenchmarkModelPrediction(b *testing.B) {
 	for _, m := range models {
 		b.Run(m.name, func(b *testing.B) {
 			engine := createBenchmarkEngine(b, 100, 0)
-			
+
 			// Prepare test data
 			testData := make([]DataPoint, 100)
 			for i := 0; i < 100; i++ {
@@ -340,13 +340,13 @@ func BenchmarkModelPrediction(b *testing.B) {
 					},
 				}
 			}
-			
+
 			// Train the model
 			ctx := context.Background()
 			if model, exists := engine.models[m.modelType]; exists {
 				model.Train(ctx, testData)
 			}
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				if model, exists := engine.models[m.modelType]; exists {
@@ -363,11 +363,11 @@ func BenchmarkModelPrediction(b *testing.B) {
 // BenchmarkConcurrentOptimization tests concurrent request handling
 func BenchmarkConcurrentOptimization(b *testing.B) {
 	concurrencyLevels := []int{1, 10, 50, 100}
-	
+
 	for _, level := range concurrencyLevels {
 		b.Run(fmt.Sprintf("Concurrent-%d", level), func(b *testing.B) {
 			engine := createBenchmarkEngine(b, 100, 5*time.Millisecond)
-			
+
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				ctx := context.Background()
@@ -375,7 +375,7 @@ func BenchmarkConcurrentOptimization(b *testing.B) {
 					ID:          fmt.Sprintf("intent-%d", runtime.NumGoroutine()),
 					Description: "Concurrent test",
 				}
-				
+
 				for pb.Next() {
 					_, err := engine.OptimizeNetworkDeployment(ctx, intent)
 					if err != nil {
@@ -390,7 +390,7 @@ func BenchmarkConcurrentOptimization(b *testing.B) {
 // BenchmarkDataPointProcessing tests the efficiency of data point processing
 func BenchmarkDataPointProcessing(b *testing.B) {
 	sizes := []int{100, 1000, 10000}
-	
+
 	for _, size := range sizes {
 		b.Run(fmt.Sprintf("Size-%d", size), func(b *testing.B) {
 			// Create test data
@@ -409,7 +409,7 @@ func BenchmarkDataPointProcessing(b *testing.B) {
 					},
 				}
 			}
-			
+
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
 				// Simulate data processing
@@ -432,7 +432,7 @@ func BenchmarkDataPointProcessing(b *testing.B) {
 // BenchmarkConfidenceScoreCalculation tests score calculation performance
 func BenchmarkConfidenceScoreCalculation(b *testing.B) {
 	engine := createBenchmarkEngine(b, 100, 0)
-	
+
 	recommendations := &OptimizationRecommendations{
 		IntentID: "test",
 		ResourceAllocation: &ResourceRecommendation{
@@ -451,7 +451,7 @@ func BenchmarkConfidenceScoreCalculation(b *testing.B) {
 			OverallRisk: "LOW",
 		},
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = engine.calculateConfidenceScore(recommendations)

@@ -50,7 +50,7 @@ func (rlm *ResourceLifecycleManager) generateBackupID(resourceID string) string 
 func (rlm *ResourceLifecycleManager) updateResourceState(state *ResourceState) {
 	rlm.stateMutex.Lock()
 	defer rlm.stateMutex.Unlock()
-	
+
 	rlm.resourceStates[state.ResourceID] = state
 	rlm.updateMetricsForResourceState(state)
 }
@@ -59,12 +59,12 @@ func (rlm *ResourceLifecycleManager) updateResourceState(state *ResourceState) {
 func (rlm *ResourceLifecycleManager) getResourceState(resourceID string) (*ResourceState, error) {
 	rlm.stateMutex.RLock()
 	defer rlm.stateMutex.RUnlock()
-	
+
 	state, exists := rlm.resourceStates[resourceID]
 	if !exists {
 		return nil, fmt.Errorf("resource state not found for resource %s", resourceID)
 	}
-	
+
 	return state, nil
 }
 
@@ -72,7 +72,7 @@ func (rlm *ResourceLifecycleManager) getResourceState(resourceID string) (*Resou
 func (rlm *ResourceLifecycleManager) getResourceStateIfExists(resourceID string) (*ResourceState, bool) {
 	rlm.stateMutex.RLock()
 	defer rlm.stateMutex.RUnlock()
-	
+
 	state, exists := rlm.resourceStates[resourceID]
 	return state, exists
 }
@@ -81,7 +81,7 @@ func (rlm *ResourceLifecycleManager) getResourceStateIfExists(resourceID string)
 func (rlm *ResourceLifecycleManager) removeResourceState(resourceID string) {
 	rlm.stateMutex.Lock()
 	defer rlm.stateMutex.Unlock()
-	
+
 	delete(rlm.resourceStates, resourceID)
 }
 
@@ -114,7 +114,7 @@ func (rlm *ResourceLifecycleManager) startOperationWorkers() {
 // operationWorker processes operations from the queue
 func (rlm *ResourceLifecycleManager) operationWorker(workerID int) {
 	rlm.logger.Info("starting operation worker", "worker_id", workerID)
-	
+
 	for {
 		select {
 		case <-rlm.stopCh:
@@ -177,14 +177,14 @@ func (rlm *ResourceLifecycleManager) processOperation(ctx context.Context, opera
 		operation.Status = OperationStatusFailed
 		operation.ErrorMessage = err.Error()
 		rlm.metrics.OperationsFailure[operation.OperationType]++
-		
+
 		// Handle retry logic
 		rlm.handleOperationFailure(operation, err)
 	} else {
 		logger.Info("operation completed successfully", "duration", duration)
 		operation.Status = OperationStatusCompleted
 		rlm.metrics.OperationsSuccess[operation.OperationType]++
-		
+
 		// Update resource state on success
 		rlm.updateResourceStateOnSuccess(operation, result)
 	}
@@ -291,9 +291,9 @@ func (rlm *ResourceLifecycleManager) processScaleOperation(ctx context.Context, 
 	targetReplicas := operation.Parameters["target_replicas"].(*int32)
 
 	scaleReq := &providers.ScaleRequest{
-		Type:      scaleType,
-		Amount:    *targetReplicas,
-		Timeout:   operation.Timeout,
+		Type:    scaleType,
+		Amount:  *targetReplicas,
+		Timeout: operation.Timeout,
 	}
 
 	err = provider.ScaleResource(ctx, operation.ResourceID, scaleReq)
@@ -368,8 +368,8 @@ func (rlm *ResourceLifecycleManager) processMigrateOperation(ctx context.Context
 			"source_provider": sourceProvider,
 			"target_provider": targetProvider,
 		},
-		Duration:   time.Since(*operation.StartedAt),
-		Timestamp:  time.Now(),
+		Duration:  time.Since(*operation.StartedAt),
+		Timestamp: time.Now(),
 	}, nil
 }
 
@@ -396,34 +396,34 @@ func (rlm *ResourceLifecycleManager) processBackupOperation(ctx context.Context,
 
 	// Create backup data structure
 	backupData := map[string]interface{}{
-		"resource_id":     operation.ResourceID,
-		"resource_type":   providerResource.Type,
-		"specification":   providerResource.Specification,
-		"labels":          providerResource.Labels,
-		"annotations":     providerResource.Annotations,
-		"status":          providerResource.Status,
-		"backup_type":     backupType,
-		"backup_time":     time.Now(),
-		"provider":        resourceState.Provider,
+		"resource_id":   operation.ResourceID,
+		"resource_type": providerResource.Type,
+		"specification": providerResource.Specification,
+		"labels":        providerResource.Labels,
+		"annotations":   providerResource.Annotations,
+		"status":        providerResource.Status,
+		"backup_type":   backupType,
+		"backup_time":   time.Now(),
+		"provider":      resourceState.Provider,
 	}
 
 	// In a real implementation, this would store the backup to persistent storage
 	// For now, we simulate backup completion
-	
+
 	return &OperationResult{
 		Success:    true,
 		ResourceID: operation.ResourceID,
 		Operation:  operation.OperationType,
 		Result: &BackupInfo{
-			BackupID:       backupID,
-			ResourceID:     operation.ResourceID,
-			BackupType:     backupType,
-			Status:         "COMPLETED",
-			CreatedAt:      *operation.StartedAt,
-			CompletedAt:    &[]time.Time{time.Now()}[0],
+			BackupID:    backupID,
+			ResourceID:  operation.ResourceID,
+			BackupType:  backupType,
+			Status:      "COMPLETED",
+			CreatedAt:   *operation.StartedAt,
+			CompletedAt: &[]time.Time{time.Now()}[0],
 		},
-		Duration:   time.Since(*operation.StartedAt),
-		Timestamp:  time.Now(),
+		Duration:  time.Since(*operation.StartedAt),
+		Timestamp: time.Now(),
 	}, nil
 }
 
@@ -463,8 +463,8 @@ func (rlm *ResourceLifecycleManager) processRestoreOperation(ctx context.Context
 		Metadata: map[string]interface{}{
 			"backup_id": backupID,
 		},
-		Duration:   time.Since(*operation.StartedAt),
-		Timestamp:  time.Now(),
+		Duration:  time.Since(*operation.StartedAt),
+		Timestamp: time.Now(),
 	}, nil
 }
 
@@ -632,7 +632,7 @@ func (rlm *ResourceLifecycleManager) performHealthChecks(ctx context.Context) {
 			rlm.logger.Error("failed to get resource health",
 				"resource_id", state.ResourceID,
 				"error", err)
-			
+
 			// Update resource state to reflect health check failure
 			state.HealthStatus = HealthStatusUnknown
 			state.ErrorMessage = err.Error()
@@ -679,7 +679,7 @@ func (rlm *ResourceLifecycleManager) convertToProviderSpec(config *runtime.RawEx
 	if config == nil {
 		return make(map[string]interface{})
 	}
-	
+
 	// In a real implementation, this would parse the configuration
 	// and convert it to the provider's expected format
 	return map[string]interface{}{
@@ -733,7 +733,7 @@ func (rlm *ResourceLifecycleManager) checkResourceQuotas(ctx context.Context, re
 	totalResources := len(rlm.resourceStates)
 	resourcesForProvider := 0
 	resourcesForType := 0
-	
+
 	for _, state := range rlm.resourceStates {
 		if state.Provider == req.Provider {
 			resourcesForProvider++
@@ -765,13 +765,13 @@ func (rlm *ResourceLifecycleManager) canConfigure(state *ResourceState) bool {
 		ResourceStatusActive,
 		ResourceStatusScaling,
 	}
-	
+
 	for _, configurableState := range configurableStates {
 		if state.CurrentStatus == configurableState {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -881,7 +881,7 @@ func (rlm *ResourceLifecycleManager) handleOperationFailure(operation *ResourceO
 		// Calculate next retry time with exponential backoff
 		backoffDelay := rlm.calculateBackoffDelay(resourceState.RetryCount)
 		resourceState.NextRetry = time.Now().Add(backoffDelay)
-		
+
 		rlm.logger.Info("scheduling operation retry",
 			"operation_id", operation.OperationID,
 			"resource_id", operation.ResourceID,
@@ -891,7 +891,7 @@ func (rlm *ResourceLifecycleManager) handleOperationFailure(operation *ResourceO
 		// Schedule retry
 		go func() {
 			time.Sleep(backoffDelay)
-			
+
 			// Create retry operation
 			retryOperation := &ResourceOperation{
 				OperationID:   rlm.generateOperationID(),
@@ -903,14 +903,14 @@ func (rlm *ResourceLifecycleManager) handleOperationFailure(operation *ResourceO
 				CreatedAt:     time.Now(),
 				Status:        OperationStatusQueued,
 			}
-			
+
 			rlm.queueOperation(retryOperation)
 		}()
 	} else {
 		// No more retries, mark operation as permanently failed
 		resourceState.OperationStatus = OperationStatusFailed
 		resourceState.CurrentStatus = ResourceStatusError
-		
+
 		rlm.logger.Error("operation permanently failed after maximum retries",
 			"operation_id", operation.OperationID,
 			"resource_id", operation.ResourceID,
@@ -1070,7 +1070,7 @@ func (reb *ResourceEventBus) PublishEvent(ctx context.Context, event *ResourceLi
 func (reb *ResourceEventBus) Subscribe(eventType string, subscriber EventSubscriber) {
 	reb.mutex.Lock()
 	defer reb.mutex.Unlock()
-	
+
 	reb.subscribers[eventType] = append(reb.subscribers[eventType], subscriber)
 }
 
@@ -1091,22 +1091,22 @@ func newResourceLifecycleMetrics() *ResourceLifecycleMetrics {
 func newDefaultResourcePolicies() *ResourcePolicies {
 	return &ResourcePolicies{
 		RetryPolicy: &RetryPolicy{
-			MaxRetries:     3,
-			RetryInterval:  30 * time.Second,
-			BackoffFactor:  2.0,
-			MaxRetryDelay:  5 * time.Minute,
+			MaxRetries:      3,
+			RetryInterval:   30 * time.Second,
+			BackoffFactor:   2.0,
+			MaxRetryDelay:   5 * time.Minute,
 			RetriableErrors: []string{"timeout", "connection", "network", "temporary"},
 		},
 		TimeoutPolicy: &TimeoutPolicy{
 			DefaultTimeout: 10 * time.Minute,
 			OperationTimeouts: map[string]time.Duration{
-				"PROVISION":  15 * time.Minute,
-				"CONFIGURE":  5 * time.Minute,
-				"SCALE":      10 * time.Minute,
-				"MIGRATE":    30 * time.Minute,
-				"BACKUP":     20 * time.Minute,
-				"RESTORE":    25 * time.Minute,
-				"TERMINATE":  10 * time.Minute,
+				"PROVISION": 15 * time.Minute,
+				"CONFIGURE": 5 * time.Minute,
+				"SCALE":     10 * time.Minute,
+				"MIGRATE":   30 * time.Minute,
+				"BACKUP":    20 * time.Minute,
+				"RESTORE":   25 * time.Minute,
+				"TERMINATE": 10 * time.Minute,
 			},
 		},
 		ScalingPolicy: &ScalingPolicy{

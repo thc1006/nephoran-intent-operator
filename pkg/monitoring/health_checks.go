@@ -25,34 +25,34 @@ const (
 
 // ComponentHealth represents the health of a single component
 type ComponentHealth struct {
-	Name           string                 `json:"name"`
-	Status         HealthStatus           `json:"status"`
-	Message        string                 `json:"message,omitempty"`
-	LastChecked    time.Time              `json:"last_checked"`
-	ResponseTime   time.Duration          `json:"response_time"`
-	Details        map[string]interface{} `json:"details,omitempty"`
-	Dependencies   []ComponentHealth      `json:"dependencies,omitempty"`
-	CheckInterval  time.Duration          `json:"check_interval"`
-	FailureCount   int                    `json:"failure_count"`
-	ConsecutiveFails int                  `json:"consecutive_fails"`
+	Name             string                 `json:"name"`
+	Status           HealthStatus           `json:"status"`
+	Message          string                 `json:"message,omitempty"`
+	LastChecked      time.Time              `json:"last_checked"`
+	ResponseTime     time.Duration          `json:"response_time"`
+	Details          map[string]interface{} `json:"details,omitempty"`
+	Dependencies     []ComponentHealth      `json:"dependencies,omitempty"`
+	CheckInterval    time.Duration          `json:"check_interval"`
+	FailureCount     int                    `json:"failure_count"`
+	ConsecutiveFails int                    `json:"consecutive_fails"`
 }
 
 // SystemHealth represents the overall system health
 type SystemHealth struct {
-	Status      HealthStatus      `json:"status"`
-	Version     string            `json:"version"`
-	Timestamp   time.Time         `json:"timestamp"`
-	Uptime      time.Duration     `json:"uptime"`
-	Components  []ComponentHealth `json:"components"`
-	Summary     HealthSummary     `json:"summary"`
+	Status     HealthStatus      `json:"status"`
+	Version    string            `json:"version"`
+	Timestamp  time.Time         `json:"timestamp"`
+	Uptime     time.Duration     `json:"uptime"`
+	Components []ComponentHealth `json:"components"`
+	Summary    HealthSummary     `json:"summary"`
 }
 
 // HealthSummary provides a summary of system health
 type HealthSummary struct {
-	TotalComponents int `json:"total_components"`
-	HealthyComponents int `json:"healthy_components"`
+	TotalComponents     int `json:"total_components"`
+	HealthyComponents   int `json:"healthy_components"`
 	UnhealthyComponents int `json:"unhealthy_components"`
-	DegradedComponents int `json:"degraded_components"`
+	DegradedComponents  int `json:"degraded_components"`
 }
 
 // HealthCheckFunc defines a health check function
@@ -60,24 +60,24 @@ type HealthCheckFunc func(ctx context.Context) *ComponentHealth
 
 // HealthCheckConfig holds configuration for a health check
 type HealthCheckConfig struct {
-	Name          string        `json:"name"`
-	Interval      time.Duration `json:"interval"`
-	Timeout       time.Duration `json:"timeout"`
-	FailureThreshold int        `json:"failure_threshold"`
-	Enabled       bool          `json:"enabled"`
+	Name             string        `json:"name"`
+	Interval         time.Duration `json:"interval"`
+	Timeout          time.Duration `json:"timeout"`
+	FailureThreshold int           `json:"failure_threshold"`
+	Enabled          bool          `json:"enabled"`
 }
 
 // HealthChecker manages health checks for all components
 type HealthChecker struct {
-	mu            sync.RWMutex
-	checks        map[string]*HealthCheckConfig
-	checkResults  map[string]*ComponentHealth
-	checkFuncs    map[string]HealthCheckFunc
-	running       bool
-	stopCh        chan struct{}
-	startTime     time.Time
-	version       string
-	kubeClient    kubernetes.Interface
+	mu              sync.RWMutex
+	checks          map[string]*HealthCheckConfig
+	checkResults    map[string]*ComponentHealth
+	checkFuncs      map[string]HealthCheckFunc
+	running         bool
+	stopCh          chan struct{}
+	startTime       time.Time
+	version         string
+	kubeClient      kubernetes.Interface
 	metricsRecorder *MetricsRecorder
 }
 
@@ -102,7 +102,7 @@ func (hc *HealthChecker) RegisterHealthCheck(config *HealthCheckConfig, checkFun
 
 	hc.checks[config.Name] = config
 	hc.checkFuncs[config.Name] = checkFunc
-	
+
 	// Initialize result
 	hc.checkResults[config.Name] = &ComponentHealth{
 		Name:          config.Name,
@@ -158,7 +158,7 @@ func (hc *HealthChecker) GetSystemHealth() *SystemHealth {
 
 	for _, result := range hc.checkResults {
 		components = append(components, *result)
-		
+
 		switch result.Status {
 		case HealthStatusHealthy:
 			summary.HealthyComponents++
@@ -338,7 +338,7 @@ func (hc *HealthChecker) kubernetesAPIHealthCheck(ctx context.Context) *Componen
 	}
 
 	startTime := time.Now()
-	
+
 	// Try to get server version
 	version, err := hc.kubeClient.Discovery().ServerVersion()
 	duration := time.Since(startTime)
@@ -394,7 +394,7 @@ func (hc *HealthChecker) controllerManagerHealthCheck(ctx context.Context) *Comp
 	}
 
 	startTime := time.Now()
-	
+
 	// Check if we can list custom resources
 	_, err := hc.kubeClient.Discovery().ServerResourcesForGroupVersion("nephoran.com/v1")
 	duration := time.Since(startTime)
@@ -563,12 +563,12 @@ type CircuitBreakerHealthCheck struct {
 
 // CircuitBreaker represents a simple circuit breaker
 type CircuitBreaker struct {
-	name           string
-	failureCount   int
-	lastFailure    time.Time
-	state          CircuitBreakerState
+	name             string
+	failureCount     int
+	lastFailure      time.Time
+	state            CircuitBreakerState
 	failureThreshold int
-	timeout        time.Duration
+	timeout          time.Duration
 }
 
 // CircuitBreakerState represents circuit breaker states

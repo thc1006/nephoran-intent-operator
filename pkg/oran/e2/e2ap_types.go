@@ -74,10 +74,10 @@ type RICSubscriptionDetails struct {
 
 // RICActionToBeSetup represents an action to be setup
 type RICActionToBeSetup struct {
-	ActionID               int                   `json:"action_id"`
-	ActionType             RICActionType         `json:"action_type"`
-	ActionDefinition       []byte                `json:"action_definition,omitempty"`
-	SubsequentAction       *RICSubsequentAction  `json:"subsequent_action,omitempty"`
+	ActionID         int                  `json:"action_id"`
+	ActionType       RICActionType        `json:"action_type"`
+	ActionDefinition []byte               `json:"action_definition,omitempty"`
+	SubsequentAction *RICSubsequentAction `json:"subsequent_action,omitempty"`
 }
 
 // RICActionToBeSetupItem represents an action item to be setup
@@ -226,11 +226,11 @@ const (
 
 // CriticalityDiagnostics represents criticality diagnostics
 type CriticalityDiagnostics struct {
-	ProcedureCode             *int32                               `json:"procedure_code,omitempty"`
-	TriggeringMessage         *TriggeringMessage                   `json:"triggering_message,omitempty"`
-	ProcedureCriticality      *int                                 `json:"procedure_criticality,omitempty"`
-	RICRequestorID            *int32                               `json:"ric_requestor_id,omitempty"`
-	IEsCriticalityDiagnostics []CriticalityDiagnosticsIEItem       `json:"ies_criticality_diagnostics,omitempty"`
+	ProcedureCode             *int32                         `json:"procedure_code,omitempty"`
+	TriggeringMessage         *TriggeringMessage             `json:"triggering_message,omitempty"`
+	ProcedureCriticality      *int                           `json:"procedure_criticality,omitempty"`
+	RICRequestorID            *int32                         `json:"ric_requestor_id,omitempty"`
+	IEsCriticalityDiagnostics []CriticalityDiagnosticsIEItem `json:"ies_criticality_diagnostics,omitempty"`
 }
 
 // TriggeringMessage represents the triggering message
@@ -261,11 +261,11 @@ const (
 
 // E2EventTrigger represents an E2 event trigger
 type E2EventTrigger struct {
-	InterfaceID      string                 `json:"interface_id"`
-	InterfaceDirection InterfaceDirection   `json:"interface_direction"`
-	ProcedureCode    int                    `json:"procedure_code"`
-	MessageType      int                    `json:"message_type"`
-	EventDefinition  map[string]interface{} `json:"event_definition,omitempty"`
+	InterfaceID        string                 `json:"interface_id"`
+	InterfaceDirection InterfaceDirection     `json:"interface_direction"`
+	ProcedureCode      int                    `json:"procedure_code"`
+	MessageType        int                    `json:"message_type"`
+	EventDefinition    map[string]interface{} `json:"event_definition,omitempty"`
 }
 
 // InterfaceDirection represents the direction of an interface
@@ -292,9 +292,9 @@ type E2SubsequentAction struct {
 
 // E2ControlResponse represents an E2 control response
 type E2ControlResponse struct {
-	Success          bool                   `json:"success"`
-	FailureCause     string                 `json:"failure_cause,omitempty"`
-	ControlOutcome   map[string]interface{} `json:"control_outcome,omitempty"`
+	Success        bool                   `json:"success"`
+	FailureCause   string                 `json:"failure_cause,omitempty"`
+	ControlOutcome map[string]interface{} `json:"control_outcome,omitempty"`
 }
 
 // E2ServiceModel represents an E2 service model
@@ -330,12 +330,12 @@ const (
 
 // NodeHealth represents the health status of a node
 type NodeHealth struct {
-	NodeID       string                 `json:"node_id"`
-	Status       string                 `json:"status"`
-	LastCheck    time.Time              `json:"last_check"`
-	ResponseTime time.Duration          `json:"response_time"`
-	FailureCount int                    `json:"failure_count"`
-	LastFailure  string                 `json:"last_failure,omitempty"`
+	NodeID       string                  `json:"node_id"`
+	Status       string                  `json:"status"`
+	LastCheck    time.Time               `json:"last_check"`
+	ResponseTime time.Duration           `json:"response_time"`
+	FailureCount int                     `json:"failure_count"`
+	LastFailure  string                  `json:"last_failure,omitempty"`
 	Functions    map[int]*FunctionHealth `json:"functions,omitempty"`
 }
 
@@ -351,15 +351,15 @@ type FunctionHealth struct {
 
 // E2Metrics contains E2 interface metrics
 type E2Metrics struct {
-	NodesConnected        int                    `json:"nodes_connected"`
-	TotalMessages         int64                  `json:"total_messages"`
-	MessagesPerSecond     float64                `json:"messages_per_second"`
-	SubscriptionsActive   int                    `json:"subscriptions_active"`
-	IndicationsReceived   int64                  `json:"indications_received"`
-	ControlRequestsSent   int64                  `json:"control_requests_sent"`
-	ErrorRate             float64                `json:"error_rate"`
-	AverageLatency        time.Duration          `json:"average_latency"`
-	NodeMetrics           map[string]*NodeMetrics `json:"node_metrics,omitempty"`
+	NodesConnected      int                     `json:"nodes_connected"`
+	TotalMessages       int64                   `json:"total_messages"`
+	MessagesPerSecond   float64                 `json:"messages_per_second"`
+	SubscriptionsActive int                     `json:"subscriptions_active"`
+	IndicationsReceived int64                   `json:"indications_received"`
+	ControlRequestsSent int64                   `json:"control_requests_sent"`
+	ErrorRate           float64                 `json:"error_rate"`
+	AverageLatency      time.Duration           `json:"average_latency"`
+	NodeMetrics         map[string]*NodeMetrics `json:"node_metrics,omitempty"`
 }
 
 // NodeMetrics contains per-node metrics
@@ -376,39 +376,39 @@ type NodeMetrics struct {
 
 // E2Indication represents an E2 indication
 type E2Indication struct {
-	NodeID           string                 `json:"node_id"`
-	SubscriptionID   string                 `json:"subscription_id"`
-	IndicationType   string                 `json:"indication_type"`
-	IndicationHeader map[string]interface{} `json:"indication_header"`
+	NodeID            string                 `json:"node_id"`
+	SubscriptionID    string                 `json:"subscription_id"`
+	IndicationType    string                 `json:"indication_type"`
+	IndicationHeader  map[string]interface{} `json:"indication_header"`
 	IndicationMessage map[string]interface{} `json:"indication_message"`
-	Timestamp        time.Time              `json:"timestamp"`
+	Timestamp         time.Time              `json:"timestamp"`
 }
 
 // E2Subscription represents an E2 subscription
 type E2Subscription struct {
-	SubscriptionID   string                 `json:"subscription_id"`
-	NodeID           string                 `json:"node_id"`
-	RequestorID      string                 `json:"requestor_id"`
-	InstanceID       int                    `json:"instance_id"`
-	RanFunctionID    int                    `json:"ran_function_id"`
-	EventTriggers    []E2EventTrigger       `json:"event_triggers"`
-	Actions          []E2Action             `json:"actions"`
-	Status           string                 `json:"status"`
-	CreatedAt        time.Time              `json:"created_at"`
-	UpdatedAt        time.Time              `json:"updated_at"`
-	Parameters       map[string]interface{} `json:"parameters,omitempty"`
+	SubscriptionID string                 `json:"subscription_id"`
+	NodeID         string                 `json:"node_id"`
+	RequestorID    string                 `json:"requestor_id"`
+	InstanceID     int                    `json:"instance_id"`
+	RanFunctionID  int                    `json:"ran_function_id"`
+	EventTriggers  []E2EventTrigger       `json:"event_triggers"`
+	Actions        []E2Action             `json:"actions"`
+	Status         string                 `json:"status"`
+	CreatedAt      time.Time              `json:"created_at"`
+	UpdatedAt      time.Time              `json:"updated_at"`
+	Parameters     map[string]interface{} `json:"parameters,omitempty"`
 }
 
 // SubscriptionState represents the state of a subscription
 type SubscriptionState string
 
 const (
-	SubscriptionStatePending    SubscriptionState = "PENDING"
-	SubscriptionStateActive     SubscriptionState = "ACTIVE"
-	SubscriptionStateSuspended  SubscriptionState = "SUSPENDED"
-	SubscriptionStateFailed     SubscriptionState = "FAILED"
-	SubscriptionStateDeleting   SubscriptionState = "DELETING"
-	SubscriptionStateDeleted    SubscriptionState = "DELETED"
+	SubscriptionStatePending   SubscriptionState = "PENDING"
+	SubscriptionStateActive    SubscriptionState = "ACTIVE"
+	SubscriptionStateSuspended SubscriptionState = "SUSPENDED"
+	SubscriptionStateFailed    SubscriptionState = "FAILED"
+	SubscriptionStateDeleting  SubscriptionState = "DELETING"
+	SubscriptionStateDeleted   SubscriptionState = "DELETED"
 )
 
 // SubscriptionHealth represents the health of a subscription

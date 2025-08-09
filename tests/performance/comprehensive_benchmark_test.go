@@ -29,16 +29,16 @@ func TestComprehensivePerformanceBenchmark(t *testing.T) {
 
 	// Configure performance test
 	config := &performance.PerformanceTestConfig{
-		EnableProfiling:    true,
-		EnableFlameGraphs:  true,
-		EnableLoadTests:    true,
-		EnableBenchmarks:   true,
-		ProfileDuration:    30 * time.Second,
-		LoadTestDuration:   2 * time.Minute,
-		TargetCPUPercent:   60.0,  // Target: ≤60% CPU on 8-core cluster
-		TargetP99Latency:   30 * time.Second, // Target: ≤30s P99 latency
-		OutputDirectory:    outputDir,
-		ClusterCores:       8,
+		EnableProfiling:   true,
+		EnableFlameGraphs: true,
+		EnableLoadTests:   true,
+		EnableBenchmarks:  true,
+		ProfileDuration:   30 * time.Second,
+		LoadTestDuration:  2 * time.Minute,
+		TargetCPUPercent:  60.0,             // Target: ≤60% CPU on 8-core cluster
+		TargetP99Latency:  30 * time.Second, // Target: ≤30s P99 latency
+		OutputDirectory:   outputDir,
+		ClusterCores:      8,
 	}
 
 	// Create performance test runner
@@ -56,7 +56,7 @@ func TestComprehensivePerformanceBenchmark(t *testing.T) {
 
 	// Print summary
 	fmt.Println("\n" + runner.GenerateExecutiveSummary())
-	
+
 	// Save detailed report
 	report := runner.GenerateDetailedReport()
 	reportPath := fmt.Sprintf("%s/detailed_report.txt", outputDir)
@@ -76,7 +76,7 @@ func TestFlameGraphGeneration(t *testing.T) {
 	ctx := context.Background()
 	profileDir := "/tmp/profiles"
 	outputDir := "/tmp/flamegraphs"
-	
+
 	os.MkdirAll(profileDir, 0755)
 	os.MkdirAll(outputDir, 0755)
 
@@ -212,7 +212,7 @@ func TestLoadTestScenarios(t *testing.T) {
 			t.Logf("Scenario: %s", scenario.Name)
 			t.Logf("  Passed: %v", result.Passed)
 			t.Logf("  Total Requests: %d", result.Metrics.TotalRequests)
-			t.Logf("  Success Rate: %.2f%%", 
+			t.Logf("  Success Rate: %.2f%%",
 				float64(result.Metrics.SuccessfulRequests)/float64(result.Metrics.TotalRequests)*100)
 			t.Logf("  P99 Latency: %v", result.Analysis.P99Latency)
 			t.Logf("  Throughput: %.2f req/s", result.Analysis.Throughput)
@@ -319,12 +319,12 @@ func allocateAndRelease() {
 func processIntentUnoptimized() {
 	// Simulate unoptimized processing
 	time.Sleep(50 * time.Millisecond)
-	
+
 	// Multiple individual queries
 	for i := 0; i < 5; i++ {
 		time.Sleep(5 * time.Millisecond)
 	}
-	
+
 	// No caching
 	computeExpensiveOperation()
 }
@@ -334,14 +334,14 @@ func processIntentOptimized(cache map[string]interface{}, pool *ConnectionPool) 
 	if _, exists := cache["result"]; exists {
 		return
 	}
-	
+
 	// Optimized processing with connection pooling
 	conn := pool.Get()
 	defer pool.Put(conn)
-	
+
 	// Batched queries
 	time.Sleep(20 * time.Millisecond)
-	
+
 	// Store in cache
 	cache["result"] = "processed"
 }
@@ -421,10 +421,10 @@ func TestPerformanceRegression(t *testing.T) {
 	}
 
 	delta, comparison := suite.CompareWithBaseline(currentResult, historicalResult)
-	
+
 	t.Logf("Performance comparison with baseline:")
 	t.Log(comparison)
-	
+
 	// Check for regression (negative delta means regression for overall score)
 	if delta < -10 {
 		t.Errorf("Performance regression detected: %.2f%% degradation", -delta)

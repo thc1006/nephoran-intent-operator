@@ -12,11 +12,11 @@ import (
 
 func TestGeneratePackage_IntentTypeRouting(t *testing.T) {
 	tests := []struct {
-		name           string
-		intentType     string
-		expectedFiles  []string
-		expectError    bool
-		errorContains  string
+		name          string
+		intentType    string
+		expectedFiles []string
+		expectError   bool
+		errorContains string
 	}{
 		{
 			name:       "deployment intent type",
@@ -229,10 +229,10 @@ func createTestParameters(intentType string) map[string]interface{} {
 			"policyTypes": []string{"Ingress", "Egress"},
 		}
 		baseParams["a1_policy"] = map[string]interface{}{
-			"policy_type_id": 20000,
+			"policy_type_id":     20000,
 			"policy_instance_id": "slice-policy-001",
 			"policy_data": map[string]interface{}{
-				"scope": "network-slice",
+				"scope":  "network-slice",
 				"target": "slice-001",
 			},
 		}

@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -28,12 +28,12 @@ func init() {
 		// Create Istio-specific configuration
 		istioConfig := &Config{
 			Namespace:           meshConfig.Namespace,
-			TrustDomain:        meshConfig.TrustDomain,
-			ControlPlaneURL:    meshConfig.ControlPlaneURL,
-			CertificateConfig:  meshConfig.CertificateConfig,
-			PolicyDefaults:     meshConfig.PolicyDefaults,
+			TrustDomain:         meshConfig.TrustDomain,
+			ControlPlaneURL:     meshConfig.ControlPlaneURL,
+			CertificateConfig:   meshConfig.CertificateConfig,
+			PolicyDefaults:      meshConfig.PolicyDefaults,
 			ObservabilityConfig: meshConfig.ObservabilityConfig,
-			MultiCluster:       meshConfig.MultiCluster,
+			MultiCluster:        meshConfig.MultiCluster,
 		}
 
 		// Extract Istio-specific settings from custom config
@@ -55,16 +55,16 @@ func init() {
 
 // Config contains Istio-specific configuration
 type Config struct {
-	Namespace           string                              `json:"namespace"`
-	TrustDomain        string                              `json:"trustDomain"`
-	ControlPlaneURL    string                              `json:"controlPlaneUrl"`
-	PilotURL           string                              `json:"pilotUrl"`
-	MeshID             string                              `json:"meshId"`
-	Network            string                              `json:"network"`
-	CertificateConfig  *abstraction.CertificateConfig      `json:"certificateConfig"`
-	PolicyDefaults     *abstraction.PolicyDefaults         `json:"policyDefaults"`
-	ObservabilityConfig *abstraction.ObservabilityConfig   `json:"observabilityConfig"`
-	MultiCluster       *abstraction.MultiClusterConfig    `json:"multiCluster"`
+	Namespace           string                           `json:"namespace"`
+	TrustDomain         string                           `json:"trustDomain"`
+	ControlPlaneURL     string                           `json:"controlPlaneUrl"`
+	PilotURL            string                           `json:"pilotUrl"`
+	MeshID              string                           `json:"meshId"`
+	Network             string                           `json:"network"`
+	CertificateConfig   *abstraction.CertificateConfig   `json:"certificateConfig"`
+	PolicyDefaults      *abstraction.PolicyDefaults      `json:"policyDefaults"`
+	ObservabilityConfig *abstraction.ObservabilityConfig `json:"observabilityConfig"`
+	MultiCluster        *abstraction.MultiClusterConfig  `json:"multiCluster"`
 }
 
 // IstioMesh implements ServiceMeshInterface for Istio
@@ -420,7 +420,7 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 			},
 		}
 		trafficPolicy["outlierDetection"] = map[string]interface{}{
-			"consecutiveErrors":   policy.Spec.CircuitBreaker.ConsecutiveErrors,
+			"consecutiveErrors":  policy.Spec.CircuitBreaker.ConsecutiveErrors,
 			"interval":           policy.Spec.CircuitBreaker.Interval,
 			"baseEjectionTime":   policy.Spec.CircuitBreaker.BaseEjectionTime,
 			"maxEjectionPercent": policy.Spec.CircuitBreaker.MaxEjectionPercent,
@@ -517,9 +517,9 @@ func (m *IstioMesh) ApplyTrafficPolicy(ctx context.Context, policy *abstraction.
 // ValidatePolicies validates policies in a namespace
 func (m *IstioMesh) ValidatePolicies(ctx context.Context, namespace string) (*abstraction.PolicyValidationResult, error) {
 	result := &abstraction.PolicyValidationResult{
-		Valid:    true,
-		Errors:   []abstraction.PolicyError{},
-		Warnings: []abstraction.PolicyWarning{},
+		Valid:     true,
+		Errors:    []abstraction.PolicyError{},
+		Warnings:  []abstraction.PolicyWarning{},
 		Conflicts: []abstraction.PolicyConflict{},
 	}
 
@@ -788,7 +788,7 @@ func (m *IstioMesh) getServicePolicies(ctx context.Context, serviceName string, 
 
 	// List all policy types and check if they apply to this service
 	// This is simplified - in reality, we'd evaluate selectors
-	
+
 	return policies
 }
 
@@ -890,7 +890,7 @@ func (m *IstioMesh) GetMTLSStatus(ctx context.Context, namespace string) (*abstr
 
 	// Add recommendations
 	if report.Coverage < 100 {
-		report.Recommendations = append(report.Recommendations, 
+		report.Recommendations = append(report.Recommendations,
 			"Enable mTLS for all services to ensure end-to-end encryption")
 	}
 

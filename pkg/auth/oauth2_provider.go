@@ -97,7 +97,7 @@ func (p *OAuth2Provider) GetAuthorizationURL(state, redirectURI string) string {
 // ExchangeCodeForToken exchanges authorization code for access token
 func (p *OAuth2Provider) ExchangeCodeForToken(ctx context.Context, code, redirectURI string) (*TokenResponse, error) {
 	config := p.getOAuth2Config(redirectURI)
-	
+
 	token, err := config.Exchange(ctx, code)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange code for token: %w", err)

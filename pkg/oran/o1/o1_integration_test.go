@@ -21,17 +21,17 @@ func TestO1AdaptorIntegrationWithManagedElement(t *testing.T) {
 	// Setup test environment
 	ctx := context.Background()
 	logger := log.FromContext(ctx)
-	
+
 	// Create fake Kubernetes client with ManagedElement CRD
 	s := runtime.NewScheme()
 	err := nephoranv1.AddToScheme(s)
 	require.NoError(t, err)
-	
+
 	fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
-	
+
 	// Create O1 adaptor
 	adaptor := NewO1Adaptor(nil, fakeClient)
-	
+
 	tests := []struct {
 		name           string
 		managedElement *nephoranv1.ManagedElement
@@ -188,7 +188,7 @@ func testO1ConfigurationApplication(t *testing.T, adaptor *O1Adaptor, me *nephor
 		// Test that YANG models are loaded
 		models := adaptor.yangRegistry.ListModels()
 		assert.Greater(t, len(models), 0, "YANG models should be loaded")
-		
+
 		// Verify specific O-RAN models are present
 		modelNames := make([]string, len(models))
 		for i, model := range models {
@@ -248,7 +248,7 @@ func testO1PerformanceMonitoring(t *testing.T, adaptor *O1Adaptor, me *nephoranv
 // TestO1AdaptorControllerCompatibility tests compatibility with Kubernetes controllers
 func TestO1AdaptorControllerCompatibility(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Create O1 adaptor
 	adaptor := NewO1Adaptor(&O1Config{
 		DefaultPort:    830,
@@ -290,7 +290,7 @@ func TestO1AdaptorControllerCompatibility(t *testing.T) {
 	// Test status field compatibility
 	t.Run("status_field_compatibility", func(t *testing.T) {
 		me := &nephoranv1.ManagedElement{}
-		
+
 		// Test that status fields can be set (as a controller would do)
 		me.Status.Phase = "Ready"
 		me.Status.Conditions = []nephoranv1.ManagedElementCondition{
@@ -310,12 +310,12 @@ func TestO1AdaptorControllerCompatibility(t *testing.T) {
 // TestO1AdaptorWithMockNetconfServer simulates NETCONF server interactions
 func TestO1AdaptorWithMockNetconfServer(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Note: This would ideally use a mock NETCONF server
 	// For now, we test the error handling and interface behavior
-	
+
 	adaptor := NewO1Adaptor(nil, fakeClient)
-	
+
 	mockME := &nephoranv1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "mock-element",
@@ -555,7 +555,7 @@ func TestO1AdaptorResourceManagement(t *testing.T) {
 func BenchmarkO1AdaptorValidateConfiguration(b *testing.B) {
 	ctx := context.Background()
 	adaptor := NewO1Adaptor(nil, fakeClient)
-	
+
 	config := `<hardware>
 		<component>
 			<name>test-component</name>
@@ -575,7 +575,7 @@ func BenchmarkO1AdaptorValidateConfiguration(b *testing.B) {
 
 func BenchmarkO1AdaptorParseAlarmData(b *testing.B) {
 	adaptor := NewO1Adaptor(nil, fakeClient)
-	
+
 	xmlData := `<data>
 		<active-alarm-list>
 			<active-alarms>

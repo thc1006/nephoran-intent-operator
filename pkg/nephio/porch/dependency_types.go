@@ -31,17 +31,17 @@ import (
 
 // DependencyResolverConfig configures the dependency resolver
 type DependencyResolverConfig struct {
-	WorkerCount             int
-	QueueSize               int
-	EnableCaching           bool
-	CacheTimeout            time.Duration
-	MaxGraphDepth           int
-	MaxResolutionTime       time.Duration
-	VersionSolverConfig     *VersionSolverConfig
-	ConflictResolverConfig  *ConflictResolverConfig
-	GraphBuilderConfig      *GraphBuilderConfig
-	HealthCheckerConfig     *HealthCheckerConfig
-	CacheConfig             *CacheConfig
+	WorkerCount            int
+	QueueSize              int
+	EnableCaching          bool
+	CacheTimeout           time.Duration
+	MaxGraphDepth          int
+	MaxResolutionTime      time.Duration
+	VersionSolverConfig    *VersionSolverConfig
+	ConflictResolverConfig *ConflictResolverConfig
+	GraphBuilderConfig     *GraphBuilderConfig
+	HealthCheckerConfig    *HealthCheckerConfig
+	CacheConfig            *CacheConfig
 }
 
 // VersionSolverConfig configures the version solver
@@ -73,8 +73,8 @@ type HealthCheckerConfig struct {
 
 // CacheConfig configures caching
 type CacheConfig struct {
-	MaxSize      int
-	TTL          time.Duration
+	MaxSize        int
+	TTL            time.Duration
 	EvictionPolicy string
 }
 
@@ -404,9 +404,9 @@ type CycleBreakingOption struct {
 }
 
 type CycleImpact struct {
-	BlockedPackages   int
-	DeploymentDelay   time.Duration
-	RollbackRequired  bool
+	BlockedPackages  int
+	DeploymentDelay  time.Duration
+	RollbackRequired bool
 }
 
 type PropagationPlan struct {
@@ -438,22 +438,22 @@ type BreakingChange struct {
 }
 
 type UpdateImpact struct {
-	Compatibility    bool
-	BreakingChanges  []*BreakingChange
+	Compatibility     bool
+	BreakingChanges   []*BreakingChange
 	PerformanceImpact string
-	SecurityImpact   string
+	SecurityImpact    string
 }
 
 type UpdatePrerequisite struct {
-	Package    *PackageReference
-	Version    string
-	Reason     string
-	Mandatory  bool
+	Package   *PackageReference
+	Version   string
+	Reason    string
+	Mandatory bool
 }
 
 type UpdateRollback struct {
-	Steps     []*RollbackStep
-	DataBackup bool
+	Steps        []*RollbackStep
+	DataBackup   bool
 	TimeEstimate time.Duration
 }
 
@@ -465,11 +465,11 @@ type RollbackStep struct {
 }
 
 type ConflictResolutionOption struct {
-	Strategy     string
-	Description  string
-	Steps        []string
-	RiskLevel    RiskLevel
-	Success      float64
+	Strategy    string
+	Description string
+	Steps       []string
+	RiskLevel   RiskLevel
+	Success     float64
 }
 
 type ConflictImpact struct {
@@ -480,9 +480,9 @@ type ConflictImpact struct {
 }
 
 type ExcludedDependency struct {
-	PackageRef *PackageReference
-	Reason     string
-	Impact     string
+	PackageRef  *PackageReference
+	Reason      string
+	Impact      string
 	Alternative *PackageReference
 }
 
@@ -493,11 +493,11 @@ type SubstitutionCondition struct {
 }
 
 type OutdatedDependency struct {
-	PackageRef      *PackageReference
-	CurrentVersion  string
-	LatestVersion   string
-	VersionsBehind  int
-	SecurityIssues  []string
+	PackageRef     *PackageReference
+	CurrentVersion string
+	LatestVersion  string
+	VersionsBehind int
+	SecurityIssues []string
 }
 
 type VulnerableDependency struct {
@@ -521,10 +521,10 @@ type ConflictingDependency struct {
 }
 
 type UnusedDependency struct {
-	PackageRef    *PackageReference
-	LastUsed      time.Time
-	Reason        string
-	CanBeRemoved  bool
+	PackageRef   *PackageReference
+	LastUsed     time.Time
+	Reason       string
+	CanBeRemoved bool
 }
 
 type HealthRecommendation struct {
@@ -536,14 +536,14 @@ type HealthRecommendation struct {
 }
 
 type ConflictedPackage struct {
-	PackageRef     *PackageReference
-	ConflictCount  int
-	ConflictTypes  []ConflictType
+	PackageRef    *PackageReference
+	ConflictCount int
+	ConflictTypes []ConflictType
 }
 
 type DependencyTree struct {
-	Root     *TreeNode
-	Depth    int
+	Root      *TreeNode
+	Depth     int
 	NodeCount int
 }
 
@@ -556,10 +556,10 @@ type TreeNode struct {
 }
 
 type Dependent struct {
-	PackageRef    *PackageReference
+	PackageRef     *PackageReference
 	DependencyType DependencyType
-	Direct        bool
-	Distance      int
+	Direct         bool
+	Distance       int
 }
 
 type DependencyPath struct {
@@ -571,9 +571,9 @@ type DependencyPath struct {
 }
 
 type CompatibilityResult struct {
-	Compatible bool
-	Reason     string
-	Conflicts  []string
+	Compatible  bool
+	Reason      string
+	Conflicts   []string
 	Suggestions []string
 }
 
@@ -583,11 +583,11 @@ type VersionHistory struct {
 }
 
 type VersionInfo struct {
-	Version      string
-	ReleaseDate  time.Time
-	Deprecated   bool
-	Supported    bool
-	Changelog    string
+	Version     string
+	ReleaseDate time.Time
+	Deprecated  bool
+	Supported   bool
+	Changelog   string
 }
 
 type VersionDistance struct {
@@ -610,13 +610,13 @@ type ResolutionStatistics struct {
 }
 
 type ResolverHealth struct {
-	Status       string
-	ActiveTasks  int
-	QueuedTasks  int
-	CacheSize    int
-	ErrorRate    float64
-	LastError    string
-	Uptime       time.Duration
+	Status      string
+	ActiveTasks int
+	QueuedTasks int
+	CacheSize   int
+	ErrorRate   float64
+	LastError   string
+	Uptime      time.Duration
 }
 
 type CacheCleanupResult struct {
@@ -647,25 +647,25 @@ type PackageInfo struct {
 }
 
 type RiskAssessment struct {
-	OverallRisk   RiskLevel
-	RiskFactors   []string
-	Mitigations   []string
+	OverallRisk    RiskLevel
+	RiskFactors    []string
+	Mitigations    []string
 	Recommendation string
 }
 
 type MaintenanceWindow struct {
-	Start    time.Time
-	End      time.Time
+	Start     time.Time
+	End       time.Time
 	Recurring bool
 	Timezone  string
 }
 
 type DeploymentContext struct {
-	TargetClusters  []*WorkloadCluster
-	Environment     string
-	TelcoProfile    *TelcoProfile
-	ResourceLimits  *ResourceLimits
-	Policies        []string
+	TargetClusters []*WorkloadCluster
+	Environment    string
+	TelcoProfile   *TelcoProfile
+	ResourceLimits *ResourceLimits
+	Policies       []string
 }
 
 type ResourceLimits struct {
@@ -708,8 +708,8 @@ type DependencyPolicy struct {
 }
 
 type PolicyRule struct {
-	Condition string
-	Action    string
+	Condition  string
+	Action     string
 	Parameters map[string]interface{}
 }
 
@@ -824,15 +824,15 @@ const (
 type RANType string
 
 const (
-	RANTypeORAN       RANType = "o-ran"
-	RANTypeVRAN       RANType = "vran"
+	RANTypeORAN        RANType = "o-ran"
+	RANTypeVRAN        RANType = "vran"
 	RANTypeTraditional RANType = "traditional"
 )
 
 type CoreType string
 
 const (
-	CoreType5GSA CoreType = "5g-sa"
+	CoreType5GSA  CoreType = "5g-sa"
 	CoreType5GNSA CoreType = "5g-nsa"
 	CoreTypeEPC   CoreType = "epc"
 )
@@ -846,8 +846,8 @@ const (
 )
 
 type RegulatoryRequirements struct {
-	DataLocality     bool
-	Encryption       string
+	DataLocality        bool
+	Encryption          string
 	ComplianceStandards []string
 }
 
@@ -923,17 +923,17 @@ const (
 type CircularResolutionStrategy string
 
 const (
-	CircularResolutionStrategyBreak      CircularResolutionStrategy = "break"
-	CircularResolutionStrategyRefactor   CircularResolutionStrategy = "refactor"
-	CircularResolutionStrategyIgnore     CircularResolutionStrategy = "ignore"
+	CircularResolutionStrategyBreak    CircularResolutionStrategy = "break"
+	CircularResolutionStrategyRefactor CircularResolutionStrategy = "refactor"
+	CircularResolutionStrategyIgnore   CircularResolutionStrategy = "ignore"
 )
 
 type PropagationStrategy string
 
 const (
-	PropagationStrategyEager      PropagationStrategy = "eager"
-	PropagationStrategyLazy       PropagationStrategy = "lazy"
-	PropagationStrategySelective  PropagationStrategy = "selective"
+	PropagationStrategyEager     PropagationStrategy = "eager"
+	PropagationStrategyLazy      PropagationStrategy = "lazy"
+	PropagationStrategySelective PropagationStrategy = "selective"
 )
 
 type StepType string
@@ -955,11 +955,11 @@ const (
 )
 
 type ResolutionWarning struct {
-	Code        string
-	Message     string
-	Severity    string
-	PackageRef  *PackageReference
-	Suggestion  string
+	Code       string
+	Message    string
+	Severity   string
+	PackageRef *PackageReference
+	Suggestion string
 }
 
 type Prerequisite struct {
@@ -982,9 +982,9 @@ type RollbackPlan struct {
 }
 
 type ScopeConstraint struct {
-	Scope       DependencyScope
-	Allowed     bool
-	Reason      string
+	Scope   DependencyScope
+	Allowed bool
+	Reason  string
 }
 
 type SecurityConstraint struct {
@@ -1000,43 +1000,43 @@ type PolicyConstraint struct {
 }
 
 type ExclusionRule struct {
-	Pattern     string
-	Reason      string
-	Exceptions  []string
+	Pattern    string
+	Reason     string
+	Exceptions []string
 }
 
 type InclusionRule struct {
-	Pattern     string
-	Reason      string
-	Mandatory   bool
+	Pattern   string
+	Reason    string
+	Mandatory bool
 }
 
 type VersionConflict struct {
-	PackageRef       *PackageReference
+	PackageRef        *PackageReference
 	RequestedVersions []string
-	ConflictReason   string
-	Resolution       string
+	ConflictReason    string
+	Resolution        string
 }
 
 type TreeSortOption string
 
 const (
 	TreeSortOptionAlphabetical TreeSortOption = "alphabetical"
-	TreeSortOptionDependency    TreeSortOption = "dependency"
-	TreeSortOptionPriority      TreeSortOption = "priority"
+	TreeSortOptionDependency   TreeSortOption = "dependency"
+	TreeSortOptionPriority     TreeSortOption = "priority"
 )
 
 type CompatibilityMatrix struct {
-	Packages     []*PackageReference
+	Packages      []*PackageReference
 	Compatibility map[string]map[string]bool
-	Conflicts    map[string]map[string]string
+	Conflicts     map[string]map[string]string
 }
 
 type ResourceProfile struct {
-	CPURequests    int64
-	MemoryRequests int64
-	CPULimits      int64
-	MemoryLimits   int64
+	CPURequests     int64
+	MemoryRequests  int64
+	CPULimits       int64
+	MemoryLimits    int64
 	StorageRequests int64
 }
 

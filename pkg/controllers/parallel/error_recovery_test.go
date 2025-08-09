@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
 	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
@@ -43,28 +43,28 @@ type ErrorRecoveryTestSuite struct {
 	engine        *ParallelProcessingEngine
 	resilienceMgr *resilience.ResilienceManager
 	errorTracker  *monitoring.ErrorTracker
-	ctx          context.Context
-	cancel       context.CancelFunc
+	ctx           context.Context
+	cancel        context.CancelFunc
 }
 
 // SetupSuite initializes the test suite
 func (suite *ErrorRecoveryTestSuite) SetupSuite() {
 	zapLogger, _ := zap.NewDevelopment()
 	suite.logger = zapr.New(zapLogger)
-	
+
 	suite.ctx, suite.cancel = context.WithCancel(context.Background())
-	
+
 	// Create resilience manager with test configuration
 	resilienceConfig := &resilience.ResilienceConfig{
 		DefaultTimeout:          10 * time.Second,
 		MaxConcurrentOperations: 50,
 		HealthCheckInterval:     5 * time.Second,
 		TimeoutEnabled:          true,
-		BulkheadEnabled:        true,
-		CircuitBreakerEnabled:  true,
-		RateLimitingEnabled:    true,
-		RetryEnabled:          true,
-		HealthCheckEnabled:    true,
+		BulkheadEnabled:         true,
+		CircuitBreakerEnabled:   true,
+		RateLimitingEnabled:     true,
+		RetryEnabled:            true,
+		HealthCheckEnabled:      true,
 		TimeoutConfigs: map[string]*resilience.TimeoutConfig{
 			"test_operation": {
 				Name:           "test_operation",
@@ -74,10 +74,10 @@ func (suite *ErrorRecoveryTestSuite) SetupSuite() {
 			},
 		},
 	}
-	
+
 	suite.resilienceMgr = resilience.NewResilienceManager(resilienceConfig, suite.logger)
 	require.NoError(suite.T(), suite.resilienceMgr.Start(suite.ctx))
-	
+
 	// Create error tracker
 	errorConfig := &monitoring.ErrorTrackingConfig{
 		EnablePrometheus:    true,
@@ -86,25 +86,25 @@ func (suite *ErrorRecoveryTestSuite) SetupSuite() {
 		DashboardEnabled:    false, // Disable for tests
 		ReportsEnabled:      false, // Disable for tests
 	}
-	
+
 	var err error
 	suite.errorTracker, err = monitoring.NewErrorTracker(errorConfig, suite.logger)
 	require.NoError(suite.T(), err)
-	
+
 	// Create parallel processing engine
 	engineConfig := &ParallelProcessingConfig{
 		MaxConcurrentIntents: 20,
-		IntentPoolSize:      5,
-		LLMPoolSize:        3,
-		RAGPoolSize:        3,
-		ResourcePoolSize:   4,
-		ManifestPoolSize:   4,
-		GitOpsPoolSize:     2,
-		DeploymentPoolSize: 2,
-		TaskQueueSize:      100,
-		HealthCheckInterval: 5 * time.Second,
+		IntentPoolSize:       5,
+		LLMPoolSize:          3,
+		RAGPoolSize:          3,
+		ResourcePoolSize:     4,
+		ManifestPoolSize:     4,
+		GitOpsPoolSize:       2,
+		DeploymentPoolSize:   2,
+		TaskQueueSize:        100,
+		HealthCheckInterval:  5 * time.Second,
 	}
-	
+
 	suite.engine, err = NewParallelProcessingEngine(
 		engineConfig,
 		suite.resilienceMgr,
@@ -112,7 +112,7 @@ func (suite *ErrorRecoveryTestSuite) SetupSuite() {
 		suite.logger,
 	)
 	require.NoError(suite.T(), err)
-	
+
 	// Start the engine
 	require.NoError(suite.T(), suite.engine.Start(suite.ctx))
 }
@@ -132,50 +132,50 @@ func (suite *ErrorRecoveryTestSuite) TearDownSuite() {
 func (suite *ErrorRecoveryTestSuite) TestErrorCorrelation() {
 	intentID := "intent-correlation-test"
 	correlationID := "corr-123"
-	
+
 	// Create related tasks that will fail
 	tasks := []*Task{
 		{
-			ID:              "task-1",
-			IntentID:        intentID,
-			CorrelationID:   correlationID,
-			Type:           TaskTypeLLMProcessing,
-			Priority:       1,
-			Dependencies:   []string{},
-			Status:         TaskStatusPending,
-			InputData:      map[string]interface{}{"intent": "test intent"},
-			Timeout:        5 * time.Second,
+			ID:            "task-1",
+			IntentID:      intentID,
+			CorrelationID: correlationID,
+			Type:          TaskTypeLLMProcessing,
+			Priority:      1,
+			Dependencies:  []string{},
+			Status:        TaskStatusPending,
+			InputData:     map[string]interface{}{"intent": "test intent"},
+			Timeout:       5 * time.Second,
 		},
 		{
-			ID:              "task-2", 
-			IntentID:        intentID,
-			CorrelationID:   correlationID,
-			Type:           TaskTypeRAGRetrieval,
-			Priority:       1,
-			Dependencies:   []string{"task-1"},
-			Status:         TaskStatusPending,
-			InputData:      map[string]interface{}{"query": "test query"},
-			Timeout:        5 * time.Second,
+			ID:            "task-2",
+			IntentID:      intentID,
+			CorrelationID: correlationID,
+			Type:          TaskTypeRAGRetrieval,
+			Priority:      1,
+			Dependencies:  []string{"task-1"},
+			Status:        TaskStatusPending,
+			InputData:     map[string]interface{}{"query": "test query"},
+			Timeout:       5 * time.Second,
 		},
 	}
-	
+
 	// Submit tasks
 	for _, task := range tasks {
 		err := suite.engine.SubmitTask(task)
 		require.NoError(suite.T(), err)
 	}
-	
+
 	// Wait for processing
 	time.Sleep(2 * time.Second)
-	
+
 	// Check error correlation
 	errors := suite.errorTracker.GetErrorsByCorrelation(correlationID)
 	suite.T().Logf("Found %d correlated errors", len(errors))
-	
+
 	// Verify error correlation exists if errors occurred
 	if len(errors) > 0 {
 		assert.True(suite.T(), len(errors) >= 1, "Expected at least one correlated error")
-		
+
 		for _, err := range errors {
 			assert.Equal(suite.T(), correlationID, err.CorrelationID)
 			assert.Equal(suite.T(), intentID, err.IntentID)
@@ -190,42 +190,42 @@ func (suite *ErrorRecoveryTestSuite) TestCircuitBreakerIntegration() {
 		failureRate: 1.0, // Always fail
 		logger:      suite.logger,
 	}
-	
+
 	// Submit multiple tasks to trigger circuit breaker
 	intentID := "intent-circuit-breaker-test"
 	var wg sync.WaitGroup
-	
+
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func(taskID int) {
 			defer wg.Done()
-			
+
 			task := &Task{
-				ID:              fmt.Sprintf("task-%d", taskID),
-				IntentID:        intentID,
-				Type:           TaskTypeLLMProcessing,
-				Priority:       1,
-				Status:         TaskStatusPending,
-				InputData:      map[string]interface{}{"intent": "test intent"},
-				Timeout:        2 * time.Second,
+				ID:        fmt.Sprintf("task-%d", taskID),
+				IntentID:  intentID,
+				Type:      TaskTypeLLMProcessing,
+				Priority:  1,
+				Status:    TaskStatusPending,
+				InputData: map[string]interface{}{"intent": "test intent"},
+				Timeout:   2 * time.Second,
 			}
-			
+
 			err := suite.engine.SubmitTask(task)
 			if err != nil {
 				suite.T().Logf("Task submission failed: %v", err)
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
-	
+
 	// Wait for circuit breaker to potentially open
 	time.Sleep(3 * time.Second)
-	
+
 	// Check if circuit breaker metrics indicate protection
 	metrics := suite.resilienceMgr.GetMetrics()
 	assert.NotNil(suite.T(), metrics)
-	
+
 	if metrics.CircuitBreakerMetrics != nil {
 		suite.T().Logf("Circuit breaker metrics: %+v", metrics.CircuitBreakerMetrics)
 	}
@@ -240,16 +240,16 @@ func (suite *ErrorRecoveryTestSuite) TestRetryMechanismWithBackoff() {
 		logger:       suite.logger,
 		mutex:        sync.Mutex{},
 	}
-	
+
 	intentID := "intent-retry-test"
 	task := &Task{
-		ID:              "retry-task-1",
-		IntentID:        intentID,
-		Type:           TaskTypeLLMProcessing,
-		Priority:       1,
-		Status:         TaskStatusPending,
-		InputData:      map[string]interface{}{"intent": "test intent"},
-		Timeout:        10 * time.Second,
+		ID:        "retry-task-1",
+		IntentID:  intentID,
+		Type:      TaskTypeLLMProcessing,
+		Priority:  1,
+		Status:    TaskStatusPending,
+		InputData: map[string]interface{}{"intent": "test intent"},
+		Timeout:   10 * time.Second,
 		RetryConfig: &TaskRetryConfig{
 			MaxAttempts:   5,
 			InitialDelay:  100 * time.Millisecond,
@@ -257,17 +257,17 @@ func (suite *ErrorRecoveryTestSuite) TestRetryMechanismWithBackoff() {
 			MaxDelay:      2 * time.Second,
 		},
 	}
-	
+
 	startTime := time.Now()
 	err := suite.engine.SubmitTask(task)
 	require.NoError(suite.T(), err)
-	
+
 	// Wait for completion with retries
 	time.Sleep(8 * time.Second)
-	
+
 	duration := time.Since(startTime)
 	suite.T().Logf("Retry test completed in %v", duration)
-	
+
 	// Verify retry behavior occurred (should take longer than single attempt)
 	assert.True(suite.T(), duration > 500*time.Millisecond, "Expected retries to take significant time")
 }
@@ -275,75 +275,75 @@ func (suite *ErrorRecoveryTestSuite) TestRetryMechanismWithBackoff() {
 // TestBulkheadIsolation tests that failures in one pool don't affect others
 func (suite *ErrorRecoveryTestSuite) TestBulkheadIsolation() {
 	intentID := "intent-bulkhead-test"
-	
+
 	// Create tasks for different pools
 	llmTask := &Task{
 		ID:        "llm-bulkhead-task",
 		IntentID:  intentID,
-		Type:     TaskTypeLLMProcessing,
-		Priority: 1,
-		Status:   TaskStatusPending,
+		Type:      TaskTypeLLMProcessing,
+		Priority:  1,
+		Status:    TaskStatusPending,
 		InputData: map[string]interface{}{"intent": "test intent"},
-		Timeout:  5 * time.Second,
+		Timeout:   5 * time.Second,
 	}
-	
+
 	ragTask := &Task{
 		ID:        "rag-bulkhead-task",
 		IntentID:  intentID,
-		Type:     TaskTypeRAGRetrieval,
-		Priority: 1,
-		Status:   TaskStatusPending,
+		Type:      TaskTypeRAGRetrieval,
+		Priority:  1,
+		Status:    TaskStatusPending,
 		InputData: map[string]interface{}{"query": "test query"},
-		Timeout:  5 * time.Second,
+		Timeout:   5 * time.Second,
 	}
-	
+
 	// Submit tasks to different pools
 	err1 := suite.engine.SubmitTask(llmTask)
 	err2 := suite.engine.SubmitTask(ragTask)
-	
+
 	assert.NoError(suite.T(), err1)
 	assert.NoError(suite.T(), err2)
-	
+
 	// Wait for processing
 	time.Sleep(3 * time.Second)
-	
+
 	// Verify both pools are functioning independently
 	engineMetrics := suite.engine.GetMetrics()
 	assert.NotNil(suite.T(), engineMetrics)
-	
+
 	suite.T().Logf("Engine metrics: %+v", engineMetrics)
 }
 
 // TestTimeoutHandling tests timeout behavior and recovery
 func (suite *ErrorRecoveryTestSuite) TestTimeoutHandling() {
 	intentID := "intent-timeout-test"
-	
+
 	// Create a task with short timeout
 	task := &Task{
 		ID:        "timeout-task",
 		IntentID:  intentID,
-		Type:     TaskTypeLLMProcessing,
-		Priority: 1,
-		Status:   TaskStatusPending,
+		Type:      TaskTypeLLMProcessing,
+		Priority:  1,
+		Status:    TaskStatusPending,
 		InputData: map[string]interface{}{"intent": "test intent"},
-		Timeout:  500 * time.Millisecond, // Very short timeout
+		Timeout:   500 * time.Millisecond, // Very short timeout
 	}
-	
+
 	startTime := time.Now()
 	err := suite.engine.SubmitTask(task)
 	require.NoError(suite.T(), err)
-	
+
 	// Wait for timeout to occur
 	time.Sleep(2 * time.Second)
-	
+
 	duration := time.Since(startTime)
 	suite.T().Logf("Timeout test completed in %v", duration)
-	
+
 	// Check timeout metrics
 	timeoutMetrics := suite.resilienceMgr.GetMetrics()
 	if timeoutMetrics != nil && timeoutMetrics.TimeoutMetrics != nil {
 		suite.T().Logf("Timeout metrics: %+v", timeoutMetrics.TimeoutMetrics)
-		
+
 		// If timeouts occurred, verify they were handled properly
 		if timeoutMetrics.TimeoutMetrics.TimeoutOperations > 0 {
 			assert.True(suite.T(), timeoutMetrics.TimeoutMetrics.TimeoutRate > 0)
@@ -354,12 +354,12 @@ func (suite *ErrorRecoveryTestSuite) TestTimeoutHandling() {
 // TestDependencyFailurePropagation tests how dependency failures affect downstream tasks
 func (suite *ErrorRecoveryTestSuite) TestDependencyFailurePropagation() {
 	intentID := "intent-dependency-test"
-	
+
 	// Create tasks with dependencies
 	tasks := []*Task{
 		{
-			ID:            "dep-task-root",
-			IntentID:      intentID,
+			ID:           "dep-task-root",
+			IntentID:     intentID,
 			Type:         TaskTypeLLMProcessing,
 			Priority:     1,
 			Dependencies: []string{},
@@ -368,8 +368,8 @@ func (suite *ErrorRecoveryTestSuite) TestDependencyFailurePropagation() {
 			Timeout:      5 * time.Second,
 		},
 		{
-			ID:            "dep-task-child1",
-			IntentID:      intentID,
+			ID:           "dep-task-child1",
+			IntentID:     intentID,
 			Type:         TaskTypeRAGRetrieval,
 			Priority:     1,
 			Dependencies: []string{"dep-task-root"},
@@ -378,8 +378,8 @@ func (suite *ErrorRecoveryTestSuite) TestDependencyFailurePropagation() {
 			Timeout:      5 * time.Second,
 		},
 		{
-			ID:            "dep-task-child2",
-			IntentID:      intentID,
+			ID:           "dep-task-child2",
+			IntentID:     intentID,
 			Type:         TaskTypeResourcePlanning,
 			Priority:     1,
 			Dependencies: []string{"dep-task-root"},
@@ -388,8 +388,8 @@ func (suite *ErrorRecoveryTestSuite) TestDependencyFailurePropagation() {
 			Timeout:      5 * time.Second,
 		},
 		{
-			ID:            "dep-task-grandchild",
-			IntentID:      intentID,
+			ID:           "dep-task-grandchild",
+			IntentID:     intentID,
 			Type:         TaskTypeManifestGeneration,
 			Priority:     1,
 			Dependencies: []string{"dep-task-child1", "dep-task-child2"},
@@ -398,22 +398,22 @@ func (suite *ErrorRecoveryTestSuite) TestDependencyFailurePropagation() {
 			Timeout:      5 * time.Second,
 		},
 	}
-	
+
 	// Submit all tasks
 	for _, task := range tasks {
 		err := suite.engine.SubmitTask(task)
 		require.NoError(suite.T(), err)
 	}
-	
+
 	// Wait for processing
 	time.Sleep(5 * time.Second)
-	
+
 	// Check task status and dependency handling
 	for _, task := range tasks {
 		status := suite.engine.GetTaskStatus(task.ID)
 		suite.T().Logf("Task %s status: %v", task.ID, status)
 	}
-	
+
 	// Verify dependency graph handled the relationships
 	dependencyMetrics := suite.engine.GetDependencyMetrics()
 	assert.NotNil(suite.T(), dependencyMetrics)
@@ -425,41 +425,41 @@ func (suite *ErrorRecoveryTestSuite) TestConcurrentErrorHandling() {
 	intentID := "intent-concurrent-error-test"
 	numTasks := 50
 	var wg sync.WaitGroup
-	
+
 	// Create many concurrent tasks
 	for i := 0; i < numTasks; i++ {
 		wg.Add(1)
 		go func(taskNum int) {
 			defer wg.Done()
-			
+
 			task := &Task{
 				ID:        fmt.Sprintf("concurrent-task-%d", taskNum),
 				IntentID:  intentID,
-				Type:     TaskTypeLLMProcessing,
-				Priority: 1,
-				Status:   TaskStatusPending,
+				Type:      TaskTypeLLMProcessing,
+				Priority:  1,
+				Status:    TaskStatusPending,
 				InputData: map[string]interface{}{"intent": "test intent"},
-				Timeout:  10 * time.Second,
+				Timeout:   10 * time.Second,
 			}
-			
+
 			err := suite.engine.SubmitTask(task)
 			if err != nil {
 				suite.T().Logf("Task %d submission failed: %v", taskNum, err)
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
-	
+
 	// Wait for processing
 	time.Sleep(10 * time.Second)
-	
+
 	// Check overall system health
 	engineMetrics := suite.engine.GetMetrics()
 	assert.NotNil(suite.T(), engineMetrics)
-	
+
 	suite.T().Logf("Concurrent processing metrics: %+v", engineMetrics)
-	
+
 	// Verify system handled concurrent load
 	assert.True(suite.T(), engineMetrics.TotalTasks >= int64(numTasks))
 }
@@ -467,43 +467,43 @@ func (suite *ErrorRecoveryTestSuite) TestConcurrentErrorHandling() {
 // TestRecoveryAfterFailure tests system recovery after component failures
 func (suite *ErrorRecoveryTestSuite) TestRecoveryAfterFailure() {
 	intentID := "intent-recovery-test"
-	
+
 	// First, submit a normal task to establish baseline
 	normalTask := &Task{
 		ID:        "recovery-normal-task",
 		IntentID:  intentID,
-		Type:     TaskTypeLLMProcessing,
-		Priority: 1,
-		Status:   TaskStatusPending,
+		Type:      TaskTypeLLMProcessing,
+		Priority:  1,
+		Status:    TaskStatusPending,
 		InputData: map[string]interface{}{"intent": "test intent"},
-		Timeout:  5 * time.Second,
+		Timeout:   5 * time.Second,
 	}
-	
+
 	err := suite.engine.SubmitTask(normalTask)
 	require.NoError(suite.T(), err)
-	
+
 	time.Sleep(2 * time.Second)
-	
+
 	// Now submit tasks after potential failures
 	recoveryTask := &Task{
 		ID:        "recovery-task",
 		IntentID:  intentID,
-		Type:     TaskTypeRAGRetrieval,
-		Priority: 1,
-		Status:   TaskStatusPending,
+		Type:      TaskTypeRAGRetrieval,
+		Priority:  1,
+		Status:    TaskStatusPending,
 		InputData: map[string]interface{}{"query": "recovery query"},
-		Timeout:  5 * time.Second,
+		Timeout:   5 * time.Second,
 	}
-	
+
 	err = suite.engine.SubmitTask(recoveryTask)
 	require.NoError(suite.T(), err)
-	
+
 	time.Sleep(3 * time.Second)
-	
+
 	// Verify system is still functional
 	health := suite.engine.HealthCheck()
 	assert.NoError(suite.T(), health)
-	
+
 	metrics := suite.engine.GetMetrics()
 	assert.NotNil(suite.T(), metrics)
 	suite.T().Logf("Recovery metrics: %+v", metrics)
@@ -512,48 +512,48 @@ func (suite *ErrorRecoveryTestSuite) TestRecoveryAfterFailure() {
 // TestErrorReporting tests comprehensive error reporting and metrics
 func (suite *ErrorRecoveryTestSuite) TestErrorReporting() {
 	intentID := "intent-error-reporting-test"
-	
+
 	// Create various types of tasks to generate different error patterns
 	tasks := []*Task{
 		{
 			ID:        "error-report-task-1",
 			IntentID:  intentID,
-			Type:     TaskTypeLLMProcessing,
-			Priority: 1,
-			Status:   TaskStatusPending,
+			Type:      TaskTypeLLMProcessing,
+			Priority:  1,
+			Status:    TaskStatusPending,
 			InputData: map[string]interface{}{"intent": "test intent 1"},
-			Timeout:  5 * time.Second,
+			Timeout:   5 * time.Second,
 		},
 		{
 			ID:        "error-report-task-2",
 			IntentID:  intentID,
-			Type:     TaskTypeRAGRetrieval,
-			Priority: 2,
-			Status:   TaskStatusPending,
+			Type:      TaskTypeRAGRetrieval,
+			Priority:  2,
+			Status:    TaskStatusPending,
 			InputData: map[string]interface{}{"query": "test query 2"},
-			Timeout:  3 * time.Second,
+			Timeout:   3 * time.Second,
 		},
 	}
-	
+
 	// Submit tasks
 	for _, task := range tasks {
 		err := suite.engine.SubmitTask(task)
 		require.NoError(suite.T(), err)
 	}
-	
+
 	// Wait for processing
 	time.Sleep(5 * time.Second)
-	
+
 	// Check error tracking and reporting
 	errorSummary := suite.errorTracker.GetErrorSummary()
 	assert.NotNil(suite.T(), errorSummary)
 	suite.T().Logf("Error summary: %+v", errorSummary)
-	
+
 	// Check error patterns
 	errorPatterns := suite.errorTracker.GetErrorPatterns()
 	assert.NotNil(suite.T(), errorPatterns)
 	suite.T().Logf("Error patterns: %+v", errorPatterns)
-	
+
 	// Verify error metrics are being collected
 	metrics := suite.errorTracker.GetMetrics()
 	assert.NotNil(suite.T(), metrics)
@@ -575,10 +575,10 @@ type FailingProcessor struct {
 
 func (fp *FailingProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResult, error) {
 	fp.logger.Info("FailingProcessor processing task", "taskId", task.ID)
-	
+
 	// Simulate processing time
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Always fail based on failure rate
 	if fp.failureRate >= 1.0 {
 		return &TaskResult{
@@ -587,7 +587,7 @@ func (fp *FailingProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskR
 			Error:   fmt.Errorf("simulated processor failure"),
 		}, fmt.Errorf("simulated processor failure")
 	}
-	
+
 	return &TaskResult{
 		TaskID:  task.ID,
 		Success: true,
@@ -620,15 +620,15 @@ type RetryableProcessor struct {
 func (rp *RetryableProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResult, error) {
 	rp.mutex.Lock()
 	defer rp.mutex.Unlock()
-	
+
 	rp.currentTries++
-	rp.logger.Info("RetryableProcessor processing task", 
-		"taskId", task.ID, 
+	rp.logger.Info("RetryableProcessor processing task",
+		"taskId", task.ID,
 		"attempt", rp.currentTries)
-	
+
 	// Simulate processing time
 	time.Sleep(200 * time.Millisecond)
-	
+
 	// Fail for the first few attempts
 	if rp.currentTries <= rp.failCount {
 		return &TaskResult{
@@ -637,13 +637,13 @@ func (rp *RetryableProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 			Error:   fmt.Errorf("simulated failure on attempt %d", rp.currentTries),
 		}, fmt.Errorf("simulated failure on attempt %d", rp.currentTries)
 	}
-	
+
 	// Succeed after enough attempts
 	return &TaskResult{
 		TaskID:  task.ID,
 		Success: true,
 		OutputData: map[string]interface{}{
-			"attempts": rp.currentTries,
+			"attempts":                rp.currentTries,
 			"succeeded_after_retries": true,
 		},
 	}, nil
@@ -660,10 +660,10 @@ func (rp *RetryableProcessor) HealthCheck(ctx context.Context) error {
 func (rp *RetryableProcessor) GetMetrics() map[string]interface{} {
 	rp.mutex.Lock()
 	defer rp.mutex.Unlock()
-	
+
 	return map[string]interface{}{
-		"processor_type":  "retryable_processor",
-		"current_tries":   rp.currentTries,
-		"fail_count":      rp.failCount,
+		"processor_type": "retryable_processor",
+		"current_tries":  rp.currentTries,
+		"fail_count":     rp.failCount,
 	}
 }

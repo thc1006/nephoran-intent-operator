@@ -14,10 +14,10 @@ import (
 
 // OptimizedSystem demonstrates the complete integration of Go 1.24+ optimizations
 type OptimizedSystem struct {
-	httpClient     *OptimizedHTTPClient
-	memoryManager  *MemoryPoolManager
-	jsonProcessor  *OptimizedJSONProcessor
-	goroutinePool  *EnhancedGoroutinePool
+	httpClient    *OptimizedHTTPClient
+	memoryManager *MemoryPoolManager
+	jsonProcessor *OptimizedJSONProcessor
+	goroutinePool *EnhancedGoroutinePool
 	cache         *OptimizedCache[string, interface{}]
 	dbManager     *OptimizedDBManager
 	analyzer      *PerformanceAnalyzer
@@ -35,7 +35,7 @@ func NewOptimizedSystem() (*OptimizedSystem, error) {
 	jsonProcessor := NewOptimizedJSONProcessor(DefaultJSONConfig())
 	goroutinePool := NewEnhancedGoroutinePool(DefaultPoolConfig())
 	cache := NewOptimizedCache[string, interface{}](DefaultCacheConfig())
-	
+
 	dbManager, err := NewOptimizedDBManager(DefaultDBConfig())
 	if err != nil {
 		cancel()
@@ -49,11 +49,11 @@ func NewOptimizedSystem() (*OptimizedSystem, error) {
 		memoryManager: memoryManager,
 		jsonProcessor: jsonProcessor,
 		goroutinePool: goroutinePool,
-		cache:        cache,
-		dbManager:    dbManager,
-		analyzer:     analyzer,
-		ctx:          ctx,
-		cancel:       cancel,
+		cache:         cache,
+		dbManager:     dbManager,
+		analyzer:      analyzer,
+		ctx:           ctx,
+		cancel:        cancel,
 	}, nil
 }
 
@@ -150,7 +150,7 @@ func (os *OptimizedSystem) demonstrateHTTPOptimizations() error {
 
 	metrics := os.httpClient.GetMetrics()
 	klog.Infof("HTTP Metrics: Requests=%d, AvgTime=%.2fms, PoolHitRate=%.2f%%",
-		metrics.RequestCount, os.httpClient.GetAverageResponseTime(), 
+		metrics.RequestCount, os.httpClient.GetAverageResponseTime(),
 		os.httpClient.bufferPool.GetHitRate()*100)
 
 	return nil
@@ -262,7 +262,7 @@ func (os *OptimizedSystem) demonstrateJSONOptimizations() error {
 
 	metrics := os.jsonProcessor.GetMetrics()
 	klog.Infof("JSON Metrics: Marshal=%d, Unmarshal=%d, AvgTime=%.2fμs, SchemaHitRate=%.2f%%",
-		metrics.MarshalCount, metrics.UnmarshalCount, 
+		metrics.MarshalCount, metrics.UnmarshalCount,
 		os.jsonProcessor.GetAverageProcessingTime(), metrics.SchemaHitRate*100)
 
 	return nil
@@ -338,7 +338,7 @@ func (os *OptimizedSystem) demonstrateGoroutineOptimizations() error {
 
 	metrics := os.goroutinePool.GetMetrics()
 	klog.Infof("Goroutine Metrics: Completed=%d, Workers=%d, AvgWait=%.2fms, StolenTasks=%d",
-		metrics.CompletedTasks, metrics.ActiveWorkers, 
+		metrics.CompletedTasks, metrics.ActiveWorkers,
 		os.goroutinePool.GetAverageWaitTime(), metrics.StolenTasks)
 
 	return nil
@@ -454,7 +454,7 @@ func (os *OptimizedSystem) demonstrateDatabaseOptimizations() error {
 
 	metrics := os.dbManager.GetMetrics()
 	klog.Infof("Database Metrics: Queries=%d, AvgTime=%.2fms, Batches=%d, ErrorRate=%.4f%%",
-		metrics.QueryCount, os.dbManager.GetAverageQueryTime(), metrics.BatchCount, 
+		metrics.QueryCount, os.dbManager.GetAverageQueryTime(), metrics.BatchCount,
 		float64(metrics.ErrorCount)/float64(max(metrics.QueryCount, 1))*100)
 
 	return nil
@@ -529,7 +529,7 @@ func (os *OptimizedSystem) demonstrateIntegratedWorkload() error {
 
 				return nil
 			},
-			Priority: PriorityNormal,
+			Priority:   PriorityNormal,
 			MaxRetries: 2,
 		}
 	}

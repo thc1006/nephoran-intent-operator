@@ -24,14 +24,14 @@ import (
 
 var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 	var (
-		namespace         *corev1.Namespace
-		testCtx          context.Context
-		o2Server         *o2.O2APIServer
-		httpTestServer   *httptest.Server
-		testClient       *http.Client
-		metricsRegistry  *prometheus.Registry
-		testLogger       *logging.StructuredLogger
-		providerManager  *providers.IntegrationManager
+		namespace       *corev1.Namespace
+		testCtx         context.Context
+		o2Server        *o2.O2APIServer
+		httpTestServer  *httptest.Server
+		testClient      *http.Client
+		metricsRegistry *prometheus.Registry
+		testLogger      *logging.StructuredLogger
+		providerManager *providers.IntegrationManager
 	)
 
 	BeforeEach(func() {
@@ -45,9 +45,9 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 
 		// Setup O2 IMS service with multi-cloud provider configuration
 		config := &o2.O2IMSConfig{
-			ServerAddress:    "127.0.0.1",
-			ServerPort:       0,
-			TLSEnabled:       false,
+			ServerAddress: "127.0.0.1",
+			ServerPort:    0,
+			TLSEnabled:    false,
 			DatabaseConfig: map[string]interface{}{
 				"type":     "memory",
 				"database": "o2_multicloud_test_db",
@@ -57,27 +57,27 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 					"enabled": true,
 					"config": map[string]interface{}{
 						"kubeconfig": "",
-						"namespace": namespace.Name,
+						"namespace":  namespace.Name,
 					},
 				},
 				"openstack": map[string]interface{}{
 					"enabled": true,
 					"config": map[string]interface{}{
-						"auth_url":    "http://mock-openstack.test:5000/v3",
-						"username":    "test-user",
-						"password":    "test-password",
-						"project":     "test-project",
-						"region":      "RegionOne",
-						"mock_mode":   true,
+						"auth_url":  "http://mock-openstack.test:5000/v3",
+						"username":  "test-user",
+						"password":  "test-password",
+						"project":   "test-project",
+						"region":    "RegionOne",
+						"mock_mode": true,
 					},
 				},
 				"aws": map[string]interface{}{
 					"enabled": true,
 					"config": map[string]interface{}{
-						"region":          "us-west-2",
-						"access_key_id":   "test-access-key",
+						"region":            "us-west-2",
+						"access_key_id":     "test-access-key",
 						"secret_access_key": "test-secret-key",
-						"mock_mode":       true,
+						"mock_mode":         true,
 					},
 				},
 				"azure": map[string]interface{}{
@@ -93,11 +93,11 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 				"gcp": map[string]interface{}{
 					"enabled": true,
 					"config": map[string]interface{}{
-						"project":       "test-project",
-						"region":        "us-central1",
-						"zone":          "us-central1-a",
-						"credentials":   "test-credentials.json",
-						"mock_mode":     true,
+						"project":     "test-project",
+						"region":      "us-central1",
+						"zone":        "us-central1-a",
+						"credentials": "test-credentials.json",
+						"mock_mode":   true,
 					},
 				},
 				"vmware": map[string]interface{}{
@@ -121,7 +121,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 							},
 							{
 								"name":     "edge-node-2",
-								"location": "cell-tower-2", 
+								"location": "cell-tower-2",
 								"endpoint": "http://edge-node-2.test:8080",
 							},
 						},
@@ -183,7 +183,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 					Expect(provider).To(HaveKey("status"))
 					Expect(provider).To(HaveKey("capabilities"))
 					Expect(provider).To(HaveKey("region"))
-					
+
 					status, ok := provider["status"].(string)
 					Expect(ok).To(BeTrue())
 					Expect(status).To(Or(Equal("AVAILABLE"), Equal("UNAVAILABLE"), Equal("MAINTENANCE")))
@@ -203,7 +203,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 
 				Expect(k8sProvider["name"]).To(Equal("kubernetes"))
 				Expect(k8sProvider["type"]).To(Equal("container-orchestration"))
-				
+
 				capabilities, ok := k8sProvider["capabilities"].([]interface{})
 				Expect(ok).To(BeTrue())
 				Expect(capabilities).To(ContainElement("container-deployment"))
@@ -222,7 +222,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 
 				Expect(awsProvider["name"]).To(Equal("aws"))
 				Expect(awsProvider["type"]).To(Equal("public-cloud"))
-				
+
 				capabilities, ok = awsProvider["capabilities"].([]interface{})
 				Expect(ok).To(BeTrue())
 				Expect(capabilities).To(ContainElement("vm-deployment"))
@@ -257,15 +257,15 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 
 					pool := &models.ResourcePool{
 						ResourcePoolID: poolID,
-						Name:          fmt.Sprintf("%s Test Pool", provider.name),
-						Description:   fmt.Sprintf("Integration test pool for %s provider", provider.name),
-						Provider:      provider.name,
-						OCloudID:      "test-ocloud-" + provider.name,
-						Location:      fmt.Sprintf("%s-region", provider.name),
+						Name:           fmt.Sprintf("%s Test Pool", provider.name),
+						Description:    fmt.Sprintf("Integration test pool for %s provider", provider.name),
+						Provider:       provider.name,
+						OCloudID:       "test-ocloud-" + provider.name,
+						Location:       fmt.Sprintf("%s-region", provider.name),
 						Extensions: map[string]interface{}{
 							"poolType": provider.poolType,
 							"providerSpecific": map[string]interface{}{
-								"mockMode": true,
+								"mockMode":        true,
 								"testEnvironment": true,
 							},
 						},
@@ -316,7 +316,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 				DeferCleanup(func() {
 					By("cleaning up created resource pools")
 					for _, poolID := range createdPools {
-						req, _ := http.NewRequest("DELETE", 
+						req, _ := http.NewRequest("DELETE",
 							httpTestServer.URL+"/o2ims/v1/resourcePools/"+poolID, nil)
 						testClient.Do(req)
 					}
@@ -358,15 +358,15 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 				By("creating Kubernetes resource pool with container-specific capabilities")
 				k8sPool := &models.ResourcePool{
 					ResourcePoolID: poolID,
-					Name:          "K8s Capability Test Pool",
-					Provider:      "kubernetes",
-					OCloudID:      "test-k8s-ocloud",
+					Name:           "K8s Capability Test Pool",
+					Provider:       "kubernetes",
+					OCloudID:       "test-k8s-ocloud",
 					Extensions: map[string]interface{}{
 						"kubernetesConfig": map[string]interface{}{
-							"namespace":      namespace.Name,
-							"storageClass":   "standard",
-							"ingressClass":   "nginx",
-							"serviceType":    "ClusterIP",
+							"namespace":    namespace.Name,
+							"storageClass": "standard",
+							"ingressClass": "nginx",
+							"serviceType":  "ClusterIP",
 						},
 						"supportedWorkloads": []string{
 							"deployment", "statefulset", "daemonset", "job", "cronjob",
@@ -415,7 +415,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 				}
 
 				DeferCleanup(func() {
-					req, _ := http.NewRequest("DELETE", 
+					req, _ := http.NewRequest("DELETE",
 						httpTestServer.URL+"/o2ims/v1/resourcePools/"+poolID, nil)
 					testClient.Do(req)
 				})
@@ -427,11 +427,11 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 				By("creating AWS resource pool with cloud-specific capabilities")
 				awsPool := &models.ResourcePool{
 					ResourcePoolID: poolID,
-					Name:          "AWS Capability Test Pool",
-					Provider:      "aws",
-					Region:        "us-west-2",
-					Zone:          "us-west-2a",
-					OCloudID:      "test-aws-ocloud",
+					Name:           "AWS Capability Test Pool",
+					Provider:       "aws",
+					Region:         "us-west-2",
+					Zone:           "us-west-2a",
+					OCloudID:       "test-aws-ocloud",
 					Extensions: map[string]interface{}{
 						"awsConfig": map[string]interface{}{
 							"vpcId":           "vpc-test123",
@@ -476,7 +476,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 				Expect(monitoring).To(HaveKey("xray"))
 
 				DeferCleanup(func() {
-					req, _ := http.NewRequest("DELETE", 
+					req, _ := http.NewRequest("DELETE",
 						httpTestServer.URL+"/o2ims/v1/resourcePools/"+poolID, nil)
 					testClient.Do(req)
 				})
@@ -488,29 +488,29 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 				By("creating Edge resource pool with edge-specific capabilities")
 				edgePool := &models.ResourcePool{
 					ResourcePoolID: poolID,
-					Name:          "Edge Capability Test Pool",
-					Provider:      "edge",
-					Location:      "cell-tower-site-1",
-					OCloudID:      "test-edge-ocloud",
+					Name:           "Edge Capability Test Pool",
+					Provider:       "edge",
+					Location:       "cell-tower-site-1",
+					OCloudID:       "test-edge-ocloud",
 					Extensions: map[string]interface{}{
 						"edgeConfig": map[string]interface{}{
-							"siteType":        "cell-tower",
-							"connectivity":    []string{"5G", "4G", "fiber"},
-							"powerSource":     "grid-with-backup",
+							"siteType":          "cell-tower",
+							"connectivity":      []string{"5G", "4G", "fiber"},
+							"powerSource":       "grid-with-backup",
 							"environmentRating": "outdoor",
 							"computeCapability": map[string]interface{}{
-								"cpuType":      "arm64",
-								"accelerator":  "gpu",
-								"storage":      "nvme-ssd",
-								"network":      "dpdk-capable",
+								"cpuType":     "arm64",
+								"accelerator": "gpu",
+								"storage":     "nvme-ssd",
+								"network":     "dpdk-capable",
 							},
 						},
 						"supportedFunctions": []string{
 							"ran-function", "mec-app", "cdn-cache", "ai-inference",
 						},
 						"latencyRequirements": map[string]interface{}{
-							"ultra-low":  "< 1ms",
-							"low":       "< 10ms", 
+							"ultra-low": "< 1ms",
+							"low":       "< 10ms",
 							"medium":    "< 50ms",
 						},
 					},
@@ -547,7 +547,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 				Expect(computeCapability["cpuType"]).To(Equal("arm64"))
 
 				DeferCleanup(func() {
-					req, _ := http.NewRequest("DELETE", 
+					req, _ := http.NewRequest("DELETE",
 						httpTestServer.URL+"/o2ims/v1/resourcePools/"+poolID, nil)
 					testClient.Do(req)
 				})
@@ -563,16 +563,16 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 				By("creating a hybrid deployment specification")
 				hybridDeployment := map[string]interface{}{
 					"deploymentId": deploymentID,
-					"name":        "Hybrid Multi-Cloud Deployment",
-					"description": "Test deployment spanning multiple cloud providers",
+					"name":         "Hybrid Multi-Cloud Deployment",
+					"description":  "Test deployment spanning multiple cloud providers",
 					"components": []map[string]interface{}{
 						{
 							"name":     "core-services",
 							"provider": "kubernetes",
 							"region":   "us-west-2",
 							"resources": map[string]interface{}{
-								"cpu":    "4",
-								"memory": "8Gi",
+								"cpu":      "4",
+								"memory":   "8Gi",
 								"replicas": 3,
 							},
 						},
@@ -600,8 +600,8 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 					},
 					"networking": map[string]interface{}{
 						"connectivity": "vpn-mesh",
-						"bandwidth":   "10Gbps",
-						"protocol":    "service-mesh",
+						"bandwidth":    "10Gbps",
+						"protocol":     "service-mesh",
 					},
 				}
 
@@ -662,7 +662,7 @@ var _ = Describe("O2 Multi-Cloud Provider Integration Tests", func() {
 				Expect(providers).To(HaveKey("edge"))
 
 				DeferCleanup(func() {
-					req, _ := http.NewRequest("DELETE", 
+					req, _ := http.NewRequest("DELETE",
 						httpTestServer.URL+"/o2ims/v1/deployments/"+deploymentID, nil)
 					testClient.Do(req)
 				})

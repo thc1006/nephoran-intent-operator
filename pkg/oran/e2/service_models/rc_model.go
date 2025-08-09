@@ -71,8 +71,8 @@ type RCControlParams struct {
 
 // RCControlResult represents control operation result
 type RCControlResult struct {
-	Success bool   `json:"success"`
-	Cause   string `json:"cause,omitempty"`
+	Success bool                   `json:"success"`
+	Cause   string                 `json:"cause,omitempty"`
 	Details map[string]interface{} `json:"details,omitempty"`
 }
 
@@ -292,7 +292,7 @@ func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID string, targetCellID
 	// Build control request
 	request := &e2.E2ControlRequest{
 		RequestID:         fmt.Sprintf("rc-traffic-%s-%d", ueID, time.Now().Unix()),
-		RanFunctionID:     2, // RC function ID
+		RanFunctionID:     2,  // RC function ID
 		CallProcessID:     "", // Empty string instead of nil
 		ControlHeader:     map[string]interface{}{"data": header},
 		ControlMessage:    map[string]interface{}{"data": message},
@@ -365,7 +365,7 @@ func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams 
 	// Build control request
 	request := &e2.E2ControlRequest{
 		RequestID:         fmt.Sprintf("rc-qos-%s-%d", ueID, time.Now().Unix()),
-		RanFunctionID:     2, // RC function ID
+		RanFunctionID:     2,  // RC function ID
 		CallProcessID:     "", // Empty string instead of nil
 		ControlHeader:     map[string]interface{}{"data": header},
 		ControlMessage:    map[string]interface{}{"data": message},
@@ -423,7 +423,7 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID string, targetCellID string
 	// Build control request
 	request := &e2.E2ControlRequest{
 		RequestID:         fmt.Sprintf("rc-handover-%s-%d", ueID, time.Now().Unix()),
-		RanFunctionID:     2, // RC function ID
+		RanFunctionID:     2,  // RC function ID
 		CallProcessID:     "", // Empty string instead of nil
 		ControlHeader:     map[string]interface{}{"data": header},
 		ControlMessage:    map[string]interface{}{"data": message},
@@ -481,7 +481,7 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID string, operation s
 	// Build control request
 	request := &e2.E2ControlRequest{
 		RequestID:         fmt.Sprintf("rc-dc-%s-%d", ueID, time.Now().Unix()),
-		RanFunctionID:     2, // RC function ID
+		RanFunctionID:     2,  // RC function ID
 		CallProcessID:     "", // Empty string instead of nil
 		ControlHeader:     map[string]interface{}{"data": header},
 		ControlMessage:    map[string]interface{}{"data": message},

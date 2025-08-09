@@ -20,7 +20,7 @@ import (
 type O2IMSInterface string
 
 const (
-	O2InfrastructureInventoryInterface     O2IMSInterface = "O2IMS-InfrastructureInventory"     // Infrastructure inventory management
+	O2InfrastructureInventoryInterface    O2IMSInterface = "O2IMS-InfrastructureInventory"    // Infrastructure inventory management
 	O2InfrastructureMonitoringInterface   O2IMSInterface = "O2IMS-InfrastructureMonitoring"   // Infrastructure monitoring and alarming
 	O2InfrastructureProvisioningInterface O2IMSInterface = "O2IMS-InfrastructureProvisioning" // Infrastructure provisioning and lifecycle
 )
@@ -37,7 +37,7 @@ type CloudProvider string
 
 const (
 	CloudProviderKubernetes CloudProvider = "kubernetes"
-	CloudProviderOpenStack CloudProvider = "openstack"
+	CloudProviderOpenStack  CloudProvider = "openstack"
 	CloudProviderAWS        CloudProvider = "aws"
 	CloudProviderAzure      CloudProvider = "azure"
 	CloudProviderGCP        CloudProvider = "gcp"
@@ -122,12 +122,12 @@ type InventoryService interface {
 	// Infrastructure discovery
 	DiscoverInfrastructure(ctx context.Context, provider CloudProvider) (*InfrastructureDiscovery, error)
 	UpdateInventory(ctx context.Context, updates []*InventoryUpdate) error
-	
+
 	// Asset management
 	TrackAsset(ctx context.Context, asset *Asset) error
 	GetAsset(ctx context.Context, assetID string) (*Asset, error)
 	UpdateAsset(ctx context.Context, assetID string, asset *Asset) error
-	
+
 	// Capacity management
 	CalculateCapacity(ctx context.Context, poolID string) (*models.ResourceCapacity, error)
 	PredictCapacity(ctx context.Context, poolID string, horizon time.Duration) (*CapacityPrediction, error)
@@ -138,17 +138,17 @@ type MonitoringService interface {
 	// Health monitoring
 	CheckResourceHealth(ctx context.Context, resourceID string) (*ResourceHealth, error)
 	MonitorResourceHealth(ctx context.Context, resourceID string, callback HealthCallback) error
-	
+
 	// Metrics collection
 	CollectMetrics(ctx context.Context, resourceID string, metricNames []string) (*MetricsData, error)
 	StartMetricsCollection(ctx context.Context, resourceID string, config *MetricsCollectionConfig) (string, error)
 	StopMetricsCollection(ctx context.Context, collectionID string) error
-	
+
 	// Alarm management
 	RaiseAlarm(ctx context.Context, alarm *Alarm) error
 	ClearAlarm(ctx context.Context, alarmID string) error
 	GetAlarms(ctx context.Context, filter *AlarmFilter) ([]*Alarm, error)
-	
+
 	// Event handling
 	EmitEvent(ctx context.Context, event *InfrastructureEvent) error
 	ProcessEvent(ctx context.Context, event *InfrastructureEvent) error
@@ -157,108 +157,108 @@ type MonitoringService interface {
 // O2IMSConfig holds configuration for the O2 IMS service
 type O2IMSConfig struct {
 	// Service configuration
-	Port                    int                        `json:"port" validate:"required,min=1,max=65535"`
-	Host                    string                     `json:"host"`
-	TLSEnabled              bool                       `json:"tls_enabled"`
-	CertFile                string                     `json:"cert_file"`
-	KeyFile                 string                     `json:"key_file"`
-	ReadTimeout             time.Duration              `json:"read_timeout"`
-	WriteTimeout            time.Duration              `json:"write_timeout"`
-	IdleTimeout             time.Duration              `json:"idle_timeout"`
-	MaxHeaderBytes          int                        `json:"max_header_bytes"`
+	Port           int           `json:"port" validate:"required,min=1,max=65535"`
+	Host           string        `json:"host"`
+	TLSEnabled     bool          `json:"tls_enabled"`
+	CertFile       string        `json:"cert_file"`
+	KeyFile        string        `json:"key_file"`
+	ReadTimeout    time.Duration `json:"read_timeout"`
+	WriteTimeout   time.Duration `json:"write_timeout"`
+	IdleTimeout    time.Duration `json:"idle_timeout"`
+	MaxHeaderBytes int           `json:"max_header_bytes"`
 
 	// Cloud provider configurations
-	CloudProviders          map[string]*CloudProviderConfig `json:"cloud_providers"`
-	DefaultProvider         string                     `json:"default_provider"`
+	CloudProviders  map[string]*CloudProviderConfig `json:"cloud_providers"`
+	DefaultProvider string                          `json:"default_provider"`
 
 	// Database configuration
-	DatabaseURL             string                     `json:"database_url"`
-	DatabaseType            string                     `json:"database_type"` // postgres, mysql, sqlite
-	
+	DatabaseURL  string `json:"database_url"`
+	DatabaseType string `json:"database_type"` // postgres, mysql, sqlite
+
 	// Authentication configuration
-	AuthenticationConfig    *AuthenticationConfig      `json:"authentication_config"`
-	
+	AuthenticationConfig *AuthenticationConfig `json:"authentication_config"`
+
 	// Monitoring configuration
-	MetricsConfig           *MetricsConfig             `json:"metrics_config"`
-	HealthCheckConfig       *HealthCheckConfig         `json:"health_check_config"`
-	
+	MetricsConfig     *MetricsConfig     `json:"metrics_config"`
+	HealthCheckConfig *HealthCheckConfig `json:"health_check_config"`
+
 	// Event and notification configuration
-	NotificationConfig      *NotificationConfig        `json:"notification_config"`
-	
+	NotificationConfig *NotificationConfig `json:"notification_config"`
+
 	// Security configuration
-	SecurityConfig          *SecurityConfig            `json:"security_config"`
-	
+	SecurityConfig *SecurityConfig `json:"security_config"`
+
 	// Resource management configuration
-	ResourceConfig          *ResourceManagementConfig  `json:"resource_config"`
-	
+	ResourceConfig *ResourceManagementConfig `json:"resource_config"`
+
 	// Logging configuration
-	Logger                  *logging.StructuredLogger  `json:"-"`
+	Logger *logging.StructuredLogger `json:"-"`
 }
 
 // CloudProviderConfig represents configuration for a cloud infrastructure provider
 type CloudProviderConfig struct {
-	ProviderID      string                 `json:"provider_id"`
-	Name            string                 `json:"name"`
-	Type            CloudProvider          `json:"type"`
-	Description     string                 `json:"description,omitempty"`
-	Endpoint        string                 `json:"endpoint"`
-	Region          string                 `json:"region,omitempty"`
-	
+	ProviderID  string        `json:"provider_id"`
+	Name        string        `json:"name"`
+	Type        CloudProvider `json:"type"`
+	Description string        `json:"description,omitempty"`
+	Endpoint    string        `json:"endpoint"`
+	Region      string        `json:"region,omitempty"`
+
 	// Authentication
-	AuthMethod      string                 `json:"auth_method"` // oauth2, apikey, certificate, basic
-	AuthConfig      map[string]interface{} `json:"auth_config"`
-	
+	AuthMethod string                 `json:"auth_method"` // oauth2, apikey, certificate, basic
+	AuthConfig map[string]interface{} `json:"auth_config"`
+
 	// Connection settings
-	Timeout         time.Duration          `json:"timeout"`
-	MaxRetries      int                    `json:"max_retries"`
-	RetryInterval   time.Duration          `json:"retry_interval"`
-	
+	Timeout       time.Duration `json:"timeout"`
+	MaxRetries    int           `json:"max_retries"`
+	RetryInterval time.Duration `json:"retry_interval"`
+
 	// TLS configuration
-	TLSConfig       *oran.TLSConfig        `json:"tls_config"`
-	
+	TLSConfig *oran.TLSConfig `json:"tls_config"`
+
 	// Provider-specific configuration
-	Properties      map[string]interface{} `json:"properties"`
-	
+	Properties map[string]interface{} `json:"properties"`
+
 	// Status and monitoring
-	Enabled         bool                   `json:"enabled"`
-	Status          string                 `json:"status"` // ACTIVE, INACTIVE, ERROR, MAINTENANCE
-	LastHealthCheck time.Time              `json:"last_health_check"`
-	
+	Enabled         bool      `json:"enabled"`
+	Status          string    `json:"status"` // ACTIVE, INACTIVE, ERROR, MAINTENANCE
+	LastHealthCheck time.Time `json:"last_health_check"`
+
 	// Metadata
-	Tags            map[string]string      `json:"tags"`
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
+	Tags      map[string]string `json:"tags"`
+	CreatedAt time.Time         `json:"created_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
 }
 
 // AuthenticationConfig configures authentication for O2 IMS
 type AuthenticationConfig struct {
-	Enabled          bool              `json:"enabled"`
-	Method           string            `json:"method"` // oauth2, jwt, basic, apikey
-	JWTSecret        string            `json:"jwt_secret,omitempty"`
-	TokenValidation  bool              `json:"token_validation"`
-	AllowedIssuers   []string          `json:"allowed_issuers,omitempty"`
-	RequiredClaims   map[string]string `json:"required_claims,omitempty"`
-	TokenExpiry      time.Duration     `json:"token_expiry"`
-	RefreshEnabled   bool              `json:"refresh_enabled"`
+	Enabled         bool              `json:"enabled"`
+	Method          string            `json:"method"` // oauth2, jwt, basic, apikey
+	JWTSecret       string            `json:"jwt_secret,omitempty"`
+	TokenValidation bool              `json:"token_validation"`
+	AllowedIssuers  []string          `json:"allowed_issuers,omitempty"`
+	RequiredClaims  map[string]string `json:"required_claims,omitempty"`
+	TokenExpiry     time.Duration     `json:"token_expiry"`
+	RefreshEnabled  bool              `json:"refresh_enabled"`
 }
 
 // MetricsConfig configures metrics collection for O2 IMS
 type MetricsConfig struct {
-	Enabled         bool          `json:"enabled"`
-	Endpoint        string        `json:"endpoint"`
-	Namespace       string        `json:"namespace"`
-	Subsystem       string        `json:"subsystem"`
-	CollectionInterval time.Duration `json:"collection_interval"`
-	RetentionPeriod time.Duration `json:"retention_period"`
-	PrometheusConfig *PrometheusConfig `json:"prometheus_config,omitempty"`
+	Enabled            bool              `json:"enabled"`
+	Endpoint           string            `json:"endpoint"`
+	Namespace          string            `json:"namespace"`
+	Subsystem          string            `json:"subsystem"`
+	CollectionInterval time.Duration     `json:"collection_interval"`
+	RetentionPeriod    time.Duration     `json:"retention_period"`
+	PrometheusConfig   *PrometheusConfig `json:"prometheus_config,omitempty"`
 }
 
 // PrometheusConfig configures Prometheus integration
 type PrometheusConfig struct {
-	Enabled         bool   `json:"enabled"`
-	PushGateway     string `json:"push_gateway,omitempty"`
-	JobName         string `json:"job_name"`
-	Instance        string `json:"instance"`
+	Enabled     bool   `json:"enabled"`
+	PushGateway string `json:"push_gateway,omitempty"`
+	JobName     string `json:"job_name"`
+	Instance    string `json:"instance"`
 }
 
 // HealthCheckConfig configures health checking behavior
@@ -273,13 +273,13 @@ type HealthCheckConfig struct {
 
 // NotificationConfig configures event notifications
 type NotificationConfig struct {
-	Enabled         bool                    `json:"enabled"`
-	WebhookURL      string                  `json:"webhook_url,omitempty"`
-	EventTypes      []string                `json:"event_types"`
-	RetryPolicy     *RetryPolicy            `json:"retry_policy"`
-	WebhookConfig   *WebhookConfig          `json:"webhook_config,omitempty"`
-	EmailConfig     *EmailConfig            `json:"email_config,omitempty"`
-	SlackConfig     *SlackConfig            `json:"slack_config,omitempty"`
+	Enabled       bool           `json:"enabled"`
+	WebhookURL    string         `json:"webhook_url,omitempty"`
+	EventTypes    []string       `json:"event_types"`
+	RetryPolicy   *RetryPolicy   `json:"retry_policy"`
+	WebhookConfig *WebhookConfig `json:"webhook_config,omitempty"`
+	EmailConfig   *EmailConfig   `json:"email_config,omitempty"`
+	SlackConfig   *SlackConfig   `json:"slack_config,omitempty"`
 }
 
 // RetryPolicy defines retry behavior for notifications
@@ -292,23 +292,23 @@ type RetryPolicy struct {
 
 // WebhookConfig configures webhook notifications
 type WebhookConfig struct {
-	URL             string            `json:"url"`
-	Method          string            `json:"method"`
-	Headers         map[string]string `json:"headers,omitempty"`
-	AuthToken       string            `json:"auth_token,omitempty"`
-	TLSConfig       *oran.TLSConfig   `json:"tls_config,omitempty"`
+	URL       string            `json:"url"`
+	Method    string            `json:"method"`
+	Headers   map[string]string `json:"headers,omitempty"`
+	AuthToken string            `json:"auth_token,omitempty"`
+	TLSConfig *oran.TLSConfig   `json:"tls_config,omitempty"`
 }
 
 // EmailConfig configures email notifications
 type EmailConfig struct {
-	SMTPServer   string   `json:"smtp_server"`
-	SMTPPort     int      `json:"smtp_port"`
-	Username     string   `json:"username"`
-	Password     string   `json:"password"`
-	FromAddress  string   `json:"from_address"`
-	ToAddresses  []string `json:"to_addresses"`
-	Subject      string   `json:"subject"`
-	TLSEnabled   bool     `json:"tls_enabled"`
+	SMTPServer  string   `json:"smtp_server"`
+	SMTPPort    int      `json:"smtp_port"`
+	Username    string   `json:"username"`
+	Password    string   `json:"password"`
+	FromAddress string   `json:"from_address"`
+	ToAddresses []string `json:"to_addresses"`
+	Subject     string   `json:"subject"`
+	TLSEnabled  bool     `json:"tls_enabled"`
 }
 
 // SlackConfig configures Slack notifications
@@ -321,15 +321,15 @@ type SlackConfig struct {
 
 // SecurityConfig configures security settings
 type SecurityConfig struct {
-	EnableCSRF          bool              `json:"enable_csrf"`
-	CSRFTokenLength     int               `json:"csrf_token_length"`
-	CORSEnabled         bool              `json:"cors_enabled"`
-	CORSAllowedOrigins  []string          `json:"cors_allowed_origins"`
-	CORSAllowedMethods  []string          `json:"cors_allowed_methods"`
-	CORSAllowedHeaders  []string          `json:"cors_allowed_headers"`
-	RateLimitConfig     *RateLimitConfig  `json:"rate_limit_config"`
-	InputValidation     *ValidationConfig `json:"input_validation"`
-	AuditLogging        bool              `json:"audit_logging"`
+	EnableCSRF         bool              `json:"enable_csrf"`
+	CSRFTokenLength    int               `json:"csrf_token_length"`
+	CORSEnabled        bool              `json:"cors_enabled"`
+	CORSAllowedOrigins []string          `json:"cors_allowed_origins"`
+	CORSAllowedMethods []string          `json:"cors_allowed_methods"`
+	CORSAllowedHeaders []string          `json:"cors_allowed_headers"`
+	RateLimitConfig    *RateLimitConfig  `json:"rate_limit_config"`
+	InputValidation    *ValidationConfig `json:"input_validation"`
+	AuditLogging       bool              `json:"audit_logging"`
 }
 
 // RateLimitConfig configures request rate limiting
@@ -344,9 +344,9 @@ type RateLimitConfig struct {
 // ValidationConfig configures input validation
 type ValidationConfig struct {
 	EnableSchemaValidation bool `json:"enable_schema_validation"`
-	StrictValidation      bool `json:"strict_validation"`
-	MaxRequestSize        int  `json:"max_request_size"`
-	SanitizeInput         bool `json:"sanitize_input"`
+	StrictValidation       bool `json:"strict_validation"`
+	MaxRequestSize         int  `json:"max_request_size"`
+	SanitizeInput          bool `json:"sanitize_input"`
 }
 
 // ResourceManagementConfig configures resource management behavior
@@ -482,18 +482,18 @@ type O2IMSStorage interface {
 
 // RequestContext holds request-specific context information for O2 IMS
 type RequestContext struct {
-	RequestID       string                 `json:"request_id"`
-	UserID          string                 `json:"user_id,omitempty"`
-	TenantID        string                 `json:"tenant_id,omitempty"`
-	UserAgent       string                 `json:"user_agent,omitempty"`
-	RemoteAddr      string                 `json:"remote_addr,omitempty"`
-	Method          string                 `json:"method"`
-	Path            string                 `json:"path"`
-	Headers         map[string][]string    `json:"headers,omitempty"`
-	QueryParams     map[string][]string    `json:"query_params,omitempty"`
-	Authentication  map[string]interface{} `json:"authentication,omitempty"`
-	StartTime       time.Time              `json:"start_time"`
-	Trace           *TraceContext          `json:"trace,omitempty"`
+	RequestID      string                 `json:"request_id"`
+	UserID         string                 `json:"user_id,omitempty"`
+	TenantID       string                 `json:"tenant_id,omitempty"`
+	UserAgent      string                 `json:"user_agent,omitempty"`
+	RemoteAddr     string                 `json:"remote_addr,omitempty"`
+	Method         string                 `json:"method"`
+	Path           string                 `json:"path"`
+	Headers        map[string][]string    `json:"headers,omitempty"`
+	QueryParams    map[string][]string    `json:"query_params,omitempty"`
+	Authentication map[string]interface{} `json:"authentication,omitempty"`
+	StartTime      time.Time              `json:"start_time"`
+	Trace          *TraceContext          `json:"trace,omitempty"`
 }
 
 // TraceContext holds distributed tracing information
@@ -516,25 +516,25 @@ type ResponseInfo struct {
 
 // HealthCheck represents health status information for O2 IMS
 type HealthCheck struct {
-	Status      string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Version     string                 `json:"version,omitempty"`
-	Uptime      time.Duration          `json:"uptime,omitempty"`
-	Components  map[string]interface{} `json:"components,omitempty"`
-	Checks      []ComponentCheck       `json:"checks,omitempty"`
-	Services    []ServiceStatus        `json:"services,omitempty"`
-	Resources   *ResourceHealthSummary `json:"resources,omitempty"`
+	Status     string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Version    string                 `json:"version,omitempty"`
+	Uptime     time.Duration          `json:"uptime,omitempty"`
+	Components map[string]interface{} `json:"components,omitempty"`
+	Checks     []ComponentCheck       `json:"checks,omitempty"`
+	Services   []ServiceStatus        `json:"services,omitempty"`
+	Resources  *ResourceHealthSummary `json:"resources,omitempty"`
 }
 
 // ComponentCheck represents individual component health status
 type ComponentCheck struct {
-	Name        string                 `json:"name" validate:"required"`
-	Status      string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
-	Message     string                 `json:"message,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Duration    time.Duration          `json:"duration,omitempty"`
-	Details     map[string]interface{} `json:"details,omitempty"`
-	CheckType   string                 `json:"check_type,omitempty"` // connectivity, resource, dependency
+	Name      string                 `json:"name" validate:"required"`
+	Status    string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
+	Message   string                 `json:"message,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	Duration  time.Duration          `json:"duration,omitempty"`
+	Details   map[string]interface{} `json:"details,omitempty"`
+	CheckType string                 `json:"check_type,omitempty"` // connectivity, resource, dependency
 }
 
 // ServiceStatus represents the status of external service dependencies
@@ -549,11 +549,11 @@ type ServiceStatus struct {
 
 // ResourceHealthSummary provides a summary of resource health across the infrastructure
 type ResourceHealthSummary struct {
-	TotalResources    int `json:"total_resources"`
-	HealthyResources  int `json:"healthy_resources"`
-	DegradedResources int `json:"degraded_resources"`
+	TotalResources     int `json:"total_resources"`
+	HealthyResources   int `json:"healthy_resources"`
+	DegradedResources  int `json:"degraded_resources"`
 	UnhealthyResources int `json:"unhealthy_resources"`
-	UnknownResources  int `json:"unknown_resources"`
+	UnknownResources   int `json:"unknown_resources"`
 }
 
 // Common HTTP status codes used in O2 IMS interface
@@ -596,19 +596,19 @@ func DefaultO2IMSConfig() *O2IMSConfig {
 		WriteTimeout:   30 * time.Second,
 		IdleTimeout:    120 * time.Second,
 		MaxHeaderBytes: 1 << 20, // 1MB
-		
+
 		CloudProviders:  make(map[string]*CloudProviderConfig),
 		DefaultProvider: "kubernetes",
-		
-		DatabaseType:    "sqlite",
-		
+
+		DatabaseType: "sqlite",
+
 		AuthenticationConfig: &AuthenticationConfig{
-			Enabled: false,
-			Method:  "jwt",
-			TokenExpiry: 24 * time.Hour,
+			Enabled:        false,
+			Method:         "jwt",
+			TokenExpiry:    24 * time.Hour,
 			RefreshEnabled: true,
 		},
-		
+
 		MetricsConfig: &MetricsConfig{
 			Enabled:            true,
 			Endpoint:           "/metrics",
@@ -617,7 +617,7 @@ func DefaultO2IMSConfig() *O2IMSConfig {
 			CollectionInterval: 30 * time.Second,
 			RetentionPeriod:    24 * time.Hour,
 		},
-		
+
 		HealthCheckConfig: &HealthCheckConfig{
 			Enabled:          true,
 			CheckInterval:    30 * time.Second,
@@ -626,7 +626,7 @@ func DefaultO2IMSConfig() *O2IMSConfig {
 			SuccessThreshold: 1,
 			DeepHealthCheck:  true,
 		},
-		
+
 		NotificationConfig: &NotificationConfig{
 			Enabled: true,
 			EventTypes: []string{
@@ -641,7 +641,7 @@ func DefaultO2IMSConfig() *O2IMSConfig {
 				MaxInterval:   30 * time.Second,
 			},
 		},
-		
+
 		SecurityConfig: &SecurityConfig{
 			EnableCSRF:         true,
 			CSRFTokenLength:    32,
@@ -658,13 +658,13 @@ func DefaultO2IMSConfig() *O2IMSConfig {
 			},
 			InputValidation: &ValidationConfig{
 				EnableSchemaValidation: true,
-				StrictValidation:      false,
-				MaxRequestSize:        10 * 1024 * 1024, // 10MB
-				SanitizeInput:         true,
+				StrictValidation:       false,
+				MaxRequestSize:         10 * 1024 * 1024, // 10MB
+				SanitizeInput:          true,
 			},
 			AuditLogging: true,
 		},
-		
+
 		ResourceConfig: &ResourceManagementConfig{
 			DefaultTimeout:          5 * time.Minute,
 			MaxConcurrentOperations: 100,
@@ -704,29 +704,29 @@ func (cpc *CloudProviderConfig) UnmarshalJSON(data []byte) error {
 	}{
 		Alias: (*Alias)(cpc),
 	}
-	
+
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	
+
 	if aux.CreatedAt != "" {
 		if t, err := time.Parse(time.RFC3339, aux.CreatedAt); err == nil {
 			cpc.CreatedAt = t
 		}
 	}
-	
+
 	if aux.UpdatedAt != "" {
 		if t, err := time.Parse(time.RFC3339, aux.UpdatedAt); err == nil {
 			cpc.UpdatedAt = t
 		}
 	}
-	
+
 	if aux.LastHealthCheck != "" {
 		if t, err := time.Parse(time.RFC3339, aux.LastHealthCheck); err == nil {
 			cpc.LastHealthCheck = t
 		}
 	}
-	
+
 	return nil
 }
 

@@ -100,26 +100,26 @@ type PromotionEngine interface {
 // promotionEngine implements comprehensive cross-environment package promotion
 type promotionEngine struct {
 	// Core dependencies
-	client           *Client
-	logger           logr.Logger
-	metrics          *PromotionEngineMetrics
+	client  *Client
+	logger  logr.Logger
+	metrics *PromotionEngineMetrics
 
 	// Environment management
 	environmentRegistry *EnvironmentRegistry
-	clusterManager     *ClusterManager
+	clusterManager      *ClusterManager
 
 	// Promotion strategies
-	canaryManager      *CanaryManager
-	blueGreenManager   *BlueGreenManager
-	rolloutStrategy    *RolloutStrategyManager
+	canaryManager    *CanaryManager
+	blueGreenManager *BlueGreenManager
+	rolloutStrategy  *RolloutStrategyManager
 
 	// Health and validation
-	healthChecker      *PromotionHealthChecker
-	validator          *PromotionValidator
+	healthChecker *PromotionHealthChecker
+	validator     *PromotionValidator
 
 	// Pipeline management
-	pipelineRegistry   *PipelineRegistry
-	executionEngine    *PipelineExecutionEngine
+	pipelineRegistry *PipelineRegistry
+	executionEngine  *PipelineExecutionEngine
 
 	// Approval integration
 	approvalIntegrator *ApprovalIntegrator
@@ -128,42 +128,42 @@ type promotionEngine struct {
 	crossClusterManager *CrossClusterManager
 
 	// State management
-	promotionTracker   *PromotionTracker
-	checkpointManager  *CheckpointManager
+	promotionTracker  *PromotionTracker
+	checkpointManager *CheckpointManager
 
 	// Configuration
-	config             *PromotionEngineConfig
+	config *PromotionEngineConfig
 
 	// Concurrency control
-	promotionLocks     map[string]*sync.Mutex
-	lockMutex          sync.RWMutex
+	promotionLocks map[string]*sync.Mutex
+	lockMutex      sync.RWMutex
 
 	// Background processing
-	healthMonitor      *PromotionHealthMonitor
-	metricsCollector   *PromotionMetricsCollector
+	healthMonitor    *PromotionHealthMonitor
+	metricsCollector *PromotionMetricsCollector
 
 	// Shutdown coordination
-	shutdown           chan struct{}
-	wg                 sync.WaitGroup
+	shutdown chan struct{}
+	wg       sync.WaitGroup
 }
 
 // Core data structures
 
 // PromotionOptions configures promotion behavior
 type PromotionOptions struct {
-	Strategy           PromotionStrategy
-	RequireApproval    bool
-	Approvers          []string
-	RunHealthChecks    bool
-	HealthCheckTimeout time.Duration
-	DryRun             bool
-	Force              bool
-	RollbackOnFailure  bool
+	Strategy            PromotionStrategy
+	RequireApproval     bool
+	Approvers           []string
+	RunHealthChecks     bool
+	HealthCheckTimeout  time.Duration
+	DryRun              bool
+	Force               bool
+	RollbackOnFailure   bool
 	NotificationTargets []string
-	Metadata           map[string]string
-	Timeout            time.Duration
-	PrePromotionHooks  []PromotionHook
-	PostPromotionHooks []PromotionHook
+	Metadata            map[string]string
+	Timeout             time.Duration
+	PrePromotionHooks   []PromotionHook
+	PostPromotionHooks  []PromotionHook
 }
 
 // PromotionResult contains promotion operation results
@@ -188,35 +188,35 @@ type PromotionResult struct {
 
 // PromotionPipeline defines a multi-stage promotion pipeline
 type PromotionPipeline struct {
-	ID                 string
-	Name               string
-	Description        string
-	Environments       []string
-	Stages             []*PipelineStage
+	ID                   string
+	Name                 string
+	Description          string
+	Environments         []string
+	Stages               []*PipelineStage
 	ApprovalRequirements map[string]*ApprovalRequirement
-	HealthChecks       map[string][]HealthCheck
-	RollbackPolicy     *PipelineRollbackPolicy
-	Timeout            time.Duration
-	ParallelExecution  bool
-	CreatedAt          time.Time
-	CreatedBy          string
-	Metadata           map[string]string
+	HealthChecks         map[string][]HealthCheck
+	RollbackPolicy       *PipelineRollbackPolicy
+	Timeout              time.Duration
+	ParallelExecution    bool
+	CreatedAt            time.Time
+	CreatedBy            string
+	Metadata             map[string]string
 }
 
 // PipelineStage represents a single stage in promotion pipeline
 type PipelineStage struct {
-	ID                 string
-	Name               string
-	Environment        string
-	Strategy           PromotionStrategy
-	Prerequisites      []string
-	Actions            []PipelineAction
-	HealthChecks       []HealthCheck
-	ApprovalRequired   bool
-	Approvers          []string
-	Timeout            time.Duration
-	OnFailure          PipelineFailureAction
-	Conditions         []StageCondition
+	ID               string
+	Name             string
+	Environment      string
+	Strategy         PromotionStrategy
+	Prerequisites    []string
+	Actions          []PipelineAction
+	HealthChecks     []HealthCheck
+	ApprovalRequired bool
+	Approvers        []string
+	Timeout          time.Duration
+	OnFailure        PipelineFailureAction
+	Conditions       []StageCondition
 }
 
 // Canary deployment types
@@ -236,18 +236,18 @@ type CanaryConfig struct {
 
 // CanaryPromotion represents an active canary deployment
 type CanaryPromotion struct {
-	ID                 string
-	PackageRef         *PackageReference
-	Environment        string
-	Config             *CanaryConfig
-	Status             CanaryStatus
+	ID                    string
+	PackageRef            *PackageReference
+	Environment           string
+	Config                *CanaryConfig
+	Status                CanaryStatus
 	CurrentTrafficPercent int
-	StartTime          time.Time
-	LastUpdate         time.Time
-	AnalysisResults    []*CanaryAnalysis
-	HealthMetrics      *CanaryMetrics
-	NextIncrement      *time.Time
-	AutoPromotionEnabled bool
+	StartTime             time.Time
+	LastUpdate            time.Time
+	AnalysisResults       []*CanaryAnalysis
+	HealthMetrics         *CanaryMetrics
+	NextIncrement         *time.Time
+	AutoPromotionEnabled  bool
 }
 
 // TrafficIncrement defines traffic increment schedule
@@ -290,19 +290,19 @@ type BlueGreenPromotion struct {
 
 // Environment represents a deployment environment
 type Environment struct {
-	ID                 string
-	Name               string
-	Description        string
-	Type               EnvironmentType
-	Clusters           []*ClusterTarget
-	PromotionPolicies  []*PromotionPolicy
-	HealthChecks       []HealthCheck
-	Configuration      map[string]interface{}
-	Constraints        []EnvironmentConstraint
-	Metadata           map[string]string
-	Status             EnvironmentStatus
-	CreatedAt          time.Time
-	UpdatedAt          time.Time
+	ID                string
+	Name              string
+	Description       string
+	Type              EnvironmentType
+	Clusters          []*ClusterTarget
+	PromotionPolicies []*PromotionPolicy
+	HealthChecks      []HealthCheck
+	Configuration     map[string]interface{}
+	Constraints       []EnvironmentConstraint
+	Metadata          map[string]string
+	Status            EnvironmentStatus
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // PromotionPolicy defines promotion rules for an environment
@@ -322,29 +322,29 @@ type PromotionPolicy struct {
 
 // HealthCheck defines a health check
 type HealthCheck struct {
-	ID                 string
-	Name               string
-	Type               HealthCheckType
-	Configuration      map[string]interface{}
-	Timeout            time.Duration
-	RetryPolicy        *RetryPolicy
-	SuccessCriteria    []SuccessCriterion
-	FailureCriteria    []FailureCriterion
+	ID              string
+	Name            string
+	Type            HealthCheckType
+	Configuration   map[string]interface{}
+	Timeout         time.Duration
+	RetryPolicy     *RetryPolicy
+	SuccessCriteria []SuccessCriterion
+	FailureCriteria []FailureCriterion
 }
 
 // HealthCheckResult contains health check execution results
 type HealthCheckResult struct {
-	CheckID            string
-	CheckName          string
-	Status             HealthCheckStatus
-	StartTime          time.Time
-	EndTime            time.Time
-	Duration           time.Duration
-	Result             map[string]interface{}
-	Metrics            map[string]float64
-	Errors             []string
-	Warnings           []string
-	RetryCount         int
+	CheckID    string
+	CheckName  string
+	Status     HealthCheckStatus
+	StartTime  time.Time
+	EndTime    time.Time
+	Duration   time.Duration
+	Result     map[string]interface{}
+	Metrics    map[string]float64
+	Errors     []string
+	Warnings   []string
+	RetryCount int
 }
 
 // Cross-cluster types
@@ -392,27 +392,27 @@ type ClusterPromotionResult struct {
 
 // PromotionMetrics provides promotion metrics for an environment
 type PromotionMetrics struct {
-	Environment        string
-	TotalPromotions    int64
+	Environment          string
+	TotalPromotions      int64
 	SuccessfulPromotions int64
-	FailedPromotions   int64
+	FailedPromotions     int64
 	AveragePromotionTime time.Duration
-	CanaryPromotions   int64
-	BlueGreenPromotions int64
-	RollbackCount      int64
-	HealthCheckMetrics *HealthCheckMetrics
-	LastPromotionTime  time.Time
+	CanaryPromotions     int64
+	BlueGreenPromotions  int64
+	RollbackCount        int64
+	HealthCheckMetrics   *HealthCheckMetrics
+	LastPromotionTime    time.Time
 }
 
 // EnvironmentMetrics provides system-wide environment metrics
 type EnvironmentMetrics struct {
-	TotalEnvironments  int
-	ActivePromotions   int
-	QueuedPromotions   int
-	PromotionsPerHour  float64
-	EnvironmentHealth  map[string]float64
-	PromotionLatency   map[string]time.Duration
-	ErrorRates         map[string]float64
+	TotalEnvironments int
+	ActivePromotions  int
+	QueuedPromotions  int
+	PromotionsPerHour float64
+	EnvironmentHealth map[string]float64
+	PromotionLatency  map[string]time.Duration
+	ErrorRates        map[string]float64
 }
 
 // Enums and constants
@@ -421,11 +421,11 @@ type EnvironmentMetrics struct {
 type PromotionStrategy string
 
 const (
-	PromotionStrategyDirect     PromotionStrategy = "direct"
-	PromotionStrategyCanary     PromotionStrategy = "canary"
-	PromotionStrategyBlueGreen  PromotionStrategy = "blue_green"
-	PromotionStrategyRolling    PromotionStrategy = "rolling"
-	PromotionStrategyRecreate   PromotionStrategy = "recreate"
+	PromotionStrategyDirect    PromotionStrategy = "direct"
+	PromotionStrategyCanary    PromotionStrategy = "canary"
+	PromotionStrategyBlueGreen PromotionStrategy = "blue_green"
+	PromotionStrategyRolling   PromotionStrategy = "rolling"
+	PromotionStrategyRecreate  PromotionStrategy = "recreate"
 )
 
 // PromotionResultStatus defines promotion result status
@@ -503,12 +503,12 @@ func NewPromotionEngine(client *Client, config *PromotionEngineConfig) (Promotio
 	}
 
 	pe := &promotionEngine{
-		client:           client,
-		logger:           log.Log.WithName("promotion-engine"),
-		config:           config,
-		promotionLocks:   make(map[string]*sync.Mutex),
-		shutdown:         make(chan struct{}),
-		metrics:          initPromotionEngineMetrics(),
+		client:         client,
+		logger:         log.Log.WithName("promotion-engine"),
+		config:         config,
+		promotionLocks: make(map[string]*sync.Mutex),
+		shutdown:       make(chan struct{}),
+		metrics:        initPromotionEngineMetrics(),
 	}
 
 	// Initialize components
@@ -546,17 +546,17 @@ func NewPromotionEngine(client *Client, config *PromotionEngineConfig) (Promotio
 
 // PromoteToEnvironment promotes a package to a target environment
 func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *PackageReference, targetEnv string, opts *PromotionOptions) (*PromotionResult, error) {
-	pe.logger.Info("Starting environment promotion", 
-		"package", ref.GetPackageKey(), 
-		"targetEnvironment", targetEnv, 
+	pe.logger.Info("Starting environment promotion",
+		"package", ref.GetPackageKey(),
+		"targetEnvironment", targetEnv,
 		"strategy", opts.Strategy)
 
 	startTime := time.Now()
-	
+
 	if opts == nil {
 		opts = &PromotionOptions{
-			Strategy: PromotionStrategyDirect,
-			RunHealthChecks: true,
+			Strategy:           PromotionStrategyDirect,
+			RunHealthChecks:    true,
 			HealthCheckTimeout: 5 * time.Minute,
 		}
 	}
@@ -598,7 +598,7 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 		result.Status = PromotionResultStatusFailed
 		return result, fmt.Errorf("failed to get current package: %w", err)
 	}
-	
+
 	sourceEnv := pe.determineSourceEnvironment(currentPkg)
 	result.SourceEnvironment = sourceEnv
 
@@ -636,7 +636,7 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 			return result, fmt.Errorf("approval check failed: %w", err)
 		}
 		result.ApprovalResults = approvalResult
-		
+
 		if approvalResult.Status != ApprovalStatusApproved && !opts.Force {
 			result.Status = PromotionResultStatusPending
 			return result, nil // Wait for approval
@@ -662,11 +662,11 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 			Code:    "PROMOTION_FAILED",
 			Message: promotionErr.Error(),
 		})
-		
+
 		if opts.RollbackOnFailure {
 			pe.rollbackPromotion(ctx, result)
 		}
-		
+
 		return result, promotionErr
 	}
 
@@ -676,7 +676,7 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 		if err != nil || !healthResult.AllPassed {
 			pe.logger.Error(err, "Health checks failed", "package", ref.GetPackageKey(), "environment", targetEnv)
 			result.HealthCheckResults = []*HealthCheckResult{healthResult}
-			
+
 			if opts.RollbackOnFailure {
 				pe.logger.Info("Rolling back due to health check failure")
 				pe.rollbackPromotion(ctx, result)
@@ -684,7 +684,7 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 			} else {
 				result.Status = PromotionResultStatusFailed
 			}
-			
+
 			if !opts.Force {
 				return result, fmt.Errorf("health checks failed")
 			}
@@ -719,7 +719,7 @@ func (pe *promotionEngine) PromoteToEnvironment(ctx context.Context, ref *Packag
 	// Update tracker
 	pe.promotionTracker.UpdatePromotion(ctx, result)
 
-	pe.logger.Info("Environment promotion completed", 
+	pe.logger.Info("Environment promotion completed",
 		"package", ref.GetPackageKey(),
 		"targetEnvironment", targetEnv,
 		"status", result.Status,
@@ -828,14 +828,14 @@ func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageRefe
 	pe.logger.V(1).Info("Running health checks", "package", ref.GetPackageKey(), "environment", env, "checks", len(checks))
 
 	result := &HealthCheckResult{
-		CheckID:    fmt.Sprintf("healthcheck-%d", time.Now().UnixNano()),
-		CheckName:  "Environment Health Check",
-		Status:     HealthCheckStatusRunning,
-		StartTime:  time.Now(),
-		Result:     make(map[string]interface{}),
-		Metrics:    make(map[string]float64),
-		Errors:     []string{},
-		Warnings:   []string{},
+		CheckID:   fmt.Sprintf("healthcheck-%d", time.Now().UnixNano()),
+		CheckName: "Environment Health Check",
+		Status:    HealthCheckStatusRunning,
+		StartTime: time.Now(),
+		Result:    make(map[string]interface{}),
+		Metrics:   make(map[string]float64),
+		Errors:    []string{},
+		Warnings:  []string{},
 	}
 
 	allPassed := true
@@ -870,7 +870,7 @@ func (pe *promotionEngine) RunHealthChecks(ctx context.Context, ref *PackageRefe
 	// Add AllPassed field for easier checking
 	result.Result["AllPassed"] = allPassed
 
-	pe.logger.V(1).Info("Health checks completed", 
+	pe.logger.V(1).Info("Health checks completed",
 		"package", ref.GetPackageKey(),
 		"environment", env,
 		"status", result.Status,
@@ -943,10 +943,10 @@ func (pe *promotionEngine) promotionCleanupWorker() {
 // Close gracefully shuts down the promotion engine
 func (pe *promotionEngine) Close() error {
 	pe.logger.Info("Shutting down promotion engine")
-	
+
 	close(pe.shutdown)
 	pe.wg.Wait()
-	
+
 	// Close components
 	if pe.environmentRegistry != nil {
 		pe.environmentRegistry.Close()
@@ -960,7 +960,7 @@ func (pe *promotionEngine) Close() error {
 	if pe.healthChecker != nil {
 		pe.healthChecker.Close()
 	}
-	
+
 	pe.logger.Info("Promotion engine shutdown complete")
 	return nil
 }
@@ -1055,7 +1055,7 @@ func (pe *promotionEngine) registerDefaultEnvironments() {
 		},
 		{
 			ID:   "staging",
-			Name: "staging", 
+			Name: "staging",
 			Type: EnvironmentTypeStaging,
 		},
 		{
@@ -1074,11 +1074,11 @@ func (pe *promotionEngine) registerDefaultEnvironments() {
 
 func getDefaultPromotionEngineConfig() *PromotionEngineConfig {
 	return &PromotionEngineConfig{
-		MaxConcurrentPromotions: 50,
+		MaxConcurrentPromotions:   50,
 		DefaultHealthCheckTimeout: 5 * time.Minute,
-		DefaultPromotionTimeout: 30 * time.Minute,
-		EnableMetrics: true,
-		EnableHealthMonitoring: true,
+		DefaultPromotionTimeout:   30 * time.Minute,
+		EnableMetrics:             true,
+		EnableHealthMonitoring:    true,
 	}
 }
 
@@ -1093,8 +1093,8 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 		),
 		promotionDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name: "porch_promotion_duration_seconds",
-				Help: "Duration of package promotions",
+				Name:    "porch_promotion_duration_seconds",
+				Help:    "Duration of package promotions",
 				Buckets: []float64{30, 60, 120, 300, 600, 1200, 1800},
 			},
 			[]string{"environment", "strategy"},
@@ -1125,8 +1125,8 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 		),
 		healthCheckDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name: "porch_health_check_duration_seconds",
-				Help: "Duration of health checks",
+				Name:    "porch_health_check_duration_seconds",
+				Help:    "Duration of health checks",
 				Buckets: prometheus.DefBuckets,
 			},
 			[]string{"environment", "check_type"},
@@ -1144,9 +1144,9 @@ func initPromotionEngineMetrics() *PromotionEngineMetrics {
 // Supporting types and configurations
 
 type PromotionEngineConfig struct {
-	MaxConcurrentPromotions    int
-	DefaultHealthCheckTimeout  time.Duration
-	DefaultPromotionTimeout    time.Duration
+	MaxConcurrentPromotions   int
+	DefaultHealthCheckTimeout time.Duration
+	DefaultPromotionTimeout   time.Duration
 	EnableMetrics             bool
 	EnableHealthMonitoring    bool
 	EnvironmentRegistryConfig *EnvironmentRegistryConfig
@@ -1191,14 +1191,14 @@ type RollbackInfo struct {
 }
 
 type PromotionHook struct {
-	ID   string
-	Type string
+	ID     string
+	Type   string
 	Config map[string]interface{}
 }
 
 type PromotionValidationResult struct {
-	Valid   bool
-	Errors  []string
+	Valid    bool
+	Errors   []string
 	Warnings []string
 }
 
@@ -1225,73 +1225,130 @@ type PromotionListOptions struct {
 
 // Placeholder component implementations
 type EnvironmentRegistry struct{}
-func NewEnvironmentRegistry(config *EnvironmentRegistryConfig) *EnvironmentRegistry { return &EnvironmentRegistry{} }
-func (er *EnvironmentRegistry) RegisterEnvironment(ctx context.Context, env *Environment) error { return nil }
+
+func NewEnvironmentRegistry(config *EnvironmentRegistryConfig) *EnvironmentRegistry {
+	return &EnvironmentRegistry{}
+}
+func (er *EnvironmentRegistry) RegisterEnvironment(ctx context.Context, env *Environment) error {
+	return nil
+}
 func (er *EnvironmentRegistry) GetEnvironment(ctx context.Context, name string) (*Environment, error) {
 	return &Environment{Name: name, HealthChecks: []HealthCheck{}}, nil
 }
 func (er *EnvironmentRegistry) Close() error { return nil }
 
 type ClusterManager struct{}
+
 func NewClusterManager(config *ClusterManagerConfig) *ClusterManager { return &ClusterManager{} }
 
 type CanaryManager struct{}
+
 func NewCanaryManager(config *CanaryManagerConfig) *CanaryManager { return &CanaryManager{} }
-func (cm *CanaryManager) RegisterCanary(ctx context.Context, canary *CanaryPromotion) error { return nil }
-func (cm *CanaryManager) InitializeCanary(ctx context.Context, canary *CanaryPromotion) error { return nil }
-func (cm *CanaryManager) SetTrafficPercent(ctx context.Context, canaryID string, percent int) error { return nil }
+func (cm *CanaryManager) RegisterCanary(ctx context.Context, canary *CanaryPromotion) error {
+	return nil
+}
+func (cm *CanaryManager) InitializeCanary(ctx context.Context, canary *CanaryPromotion) error {
+	return nil
+}
+func (cm *CanaryManager) SetTrafficPercent(ctx context.Context, canaryID string, percent int) error {
+	return nil
+}
 func (cm *CanaryManager) Close() error { return nil }
 
 type BlueGreenManager struct{}
-func NewBlueGreenManager(config *BlueGreenManagerConfig) *BlueGreenManager { return &BlueGreenManager{} }
-func (bgm *BlueGreenManager) RegisterPromotion(ctx context.Context, promotion *BlueGreenPromotion) error { return nil }
-func (bgm *BlueGreenManager) DeployToGreen(ctx context.Context, promotion *BlueGreenPromotion) error { return nil }
+
+func NewBlueGreenManager(config *BlueGreenManagerConfig) *BlueGreenManager {
+	return &BlueGreenManager{}
+}
+func (bgm *BlueGreenManager) RegisterPromotion(ctx context.Context, promotion *BlueGreenPromotion) error {
+	return nil
+}
+func (bgm *BlueGreenManager) DeployToGreen(ctx context.Context, promotion *BlueGreenPromotion) error {
+	return nil
+}
 func (bgm *BlueGreenManager) RunValidationChecks(ctx context.Context, promotion *BlueGreenPromotion) ([]*ValidationResult, error) {
 	return []*ValidationResult{}, nil
 }
 func (bgm *BlueGreenManager) Close() error { return nil }
 
 type RolloutStrategyManager struct{}
-func NewRolloutStrategyManager(config *RolloutStrategyManagerConfig) *RolloutStrategyManager { return &RolloutStrategyManager{} }
+
+func NewRolloutStrategyManager(config *RolloutStrategyManagerConfig) *RolloutStrategyManager {
+	return &RolloutStrategyManager{}
+}
 
 type PromotionHealthChecker struct{}
-func NewPromotionHealthChecker(config *PromotionHealthCheckerConfig) *PromotionHealthChecker { return &PromotionHealthChecker{} }
+
+func NewPromotionHealthChecker(config *PromotionHealthCheckerConfig) *PromotionHealthChecker {
+	return &PromotionHealthChecker{}
+}
 func (phc *PromotionHealthChecker) ExecuteHealthCheck(ctx context.Context, ref *PackageReference, env string, check *HealthCheck) (*HealthCheckResult, error) {
 	return &HealthCheckResult{Status: HealthCheckStatusPassed, Metrics: make(map[string]float64)}, nil
 }
 func (phc *PromotionHealthChecker) Close() error { return nil }
 
 type PromotionValidator struct{}
-func NewPromotionValidator(config *PromotionValidatorConfig) *PromotionValidator { return &PromotionValidator{} }
+
+func NewPromotionValidator(config *PromotionValidatorConfig) *PromotionValidator {
+	return &PromotionValidator{}
+}
 func (pv *PromotionValidator) ValidatePromotion(ctx context.Context, ref *PackageReference, targetEnv string) (*PromotionValidationResult, error) {
 	return &PromotionValidationResult{Valid: true}, nil
 }
 
 type PipelineRegistry struct{}
-func NewPipelineRegistry(config *PipelineRegistryConfig) *PipelineRegistry { return &PipelineRegistry{} }
+
+func NewPipelineRegistry(config *PipelineRegistryConfig) *PipelineRegistry {
+	return &PipelineRegistry{}
+}
 
 type PipelineExecutionEngine struct{}
-func NewPipelineExecutionEngine(config *PipelineExecutionEngineConfig) *PipelineExecutionEngine { return &PipelineExecutionEngine{} }
+
+func NewPipelineExecutionEngine(config *PipelineExecutionEngineConfig) *PipelineExecutionEngine {
+	return &PipelineExecutionEngine{}
+}
 
 type ApprovalIntegrator struct{}
-func NewApprovalIntegrator(config *ApprovalIntegratorConfig) *ApprovalIntegrator { return &ApprovalIntegrator{} }
+
+func NewApprovalIntegrator(config *ApprovalIntegratorConfig) *ApprovalIntegrator {
+	return &ApprovalIntegrator{}
+}
 
 type CrossClusterManager struct{}
-func NewCrossClusterManager(config *CrossClusterManagerConfig) *CrossClusterManager { return &CrossClusterManager{} }
+
+func NewCrossClusterManager(config *CrossClusterManagerConfig) *CrossClusterManager {
+	return &CrossClusterManager{}
+}
 
 type PromotionTracker struct{}
-func NewPromotionTracker(config *PromotionTrackerConfig) *PromotionTracker { return &PromotionTracker{} }
-func (pt *PromotionTracker) RegisterPromotion(ctx context.Context, result *PromotionResult) error { return nil }
-func (pt *PromotionTracker) UpdatePromotion(ctx context.Context, result *PromotionResult) error { return nil }
+
+func NewPromotionTracker(config *PromotionTrackerConfig) *PromotionTracker {
+	return &PromotionTracker{}
+}
+func (pt *PromotionTracker) RegisterPromotion(ctx context.Context, result *PromotionResult) error {
+	return nil
+}
+func (pt *PromotionTracker) UpdatePromotion(ctx context.Context, result *PromotionResult) error {
+	return nil
+}
 
 type CheckpointManager struct{}
-func NewCheckpointManager(config *CheckpointManagerConfig) *CheckpointManager { return &CheckpointManager{} }
+
+func NewCheckpointManager(config *CheckpointManagerConfig) *CheckpointManager {
+	return &CheckpointManager{}
+}
 
 type PromotionHealthMonitor struct{}
-func NewPromotionHealthMonitor(config *PromotionHealthMonitorConfig) *PromotionHealthMonitor { return &PromotionHealthMonitor{} }
+
+func NewPromotionHealthMonitor(config *PromotionHealthMonitorConfig) *PromotionHealthMonitor {
+	return &PromotionHealthMonitor{}
+}
 
 type PromotionMetricsCollector struct{}
-func NewPromotionMetricsCollector(config *PromotionMetricsCollectorConfig) *PromotionMetricsCollector { return &PromotionMetricsCollector{} }
+
+func NewPromotionMetricsCollector(config *PromotionMetricsCollectorConfig) *PromotionMetricsCollector {
+	return &PromotionMetricsCollector{}
+}
 
 // Configuration placeholder types
 type EnvironmentRegistryConfig struct{}

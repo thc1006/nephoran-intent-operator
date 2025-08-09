@@ -624,7 +624,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			result, err := reconciler.reconcileDelete(ctx, networkIntent)
 
 			By("Verifying that reconcileDelete schedules a retry")
-			Expect(err).NotTo(HaveOccurred()) // reconcileDelete returns nil error on retry
+			Expect(err).NotTo(HaveOccurred())                     // reconcileDelete returns nil error on retry
 			Expect(result.RequeueAfter).To(BeNumerically(">", 0)) // Should schedule retry
 
 			By("Verifying finalizer is retained")
@@ -697,22 +697,22 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 
 			By("Calling reconcileDelete multiple times and verifying exponential backoff")
 			expectedDelays := []time.Duration{
-				1 * time.Second,  // retry 1: 1 * RetryDelay
-				2 * time.Second,  // retry 2: 2 * RetryDelay
-				3 * time.Second,  // retry 3: 3 * RetryDelay
+				1 * time.Second, // retry 1: 1 * RetryDelay
+				2 * time.Second, // retry 2: 2 * RetryDelay
+				3 * time.Second, // retry 3: 3 * RetryDelay
 			}
 
 			for i, expectedDelay := range expectedDelays {
 				result, err := reconciler.reconcileDelete(ctx, networkIntent)
-				
+
 				Expect(err).NotTo(HaveOccurred())
 				Expect(result.RequeueAfter).To(Equal(expectedDelay))
-				
+
 				// Get updated intent to check retry count
 				updatedIntent := &nephoranv1.NetworkIntent{}
 				Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updatedIntent)).To(Succeed())
 				Expect(getRetryCount(updatedIntent, "cleanup")).To(Equal(i + 1))
-				
+
 				// Update networkIntent for next iteration
 				networkIntent = updatedIntent
 			}
@@ -742,7 +742,7 @@ var _ = Describe("NetworkIntent Controller Resource Cleanup", func() {
 			By("Verifying finalizer is removed to prevent stuck resource")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Requeue).To(BeFalse())
-			
+
 			updatedIntent := &nephoranv1.NetworkIntent{}
 			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updatedIntent)).To(Succeed())
 			Expect(containsFinalizer(updatedIntent.Finalizers, NetworkIntentFinalizer)).To(BeFalse())

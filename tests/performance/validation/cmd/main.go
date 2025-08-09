@@ -11,7 +11,7 @@ import (
 func main() {
 	// Set up logging
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	
+
 	// Create and execute the validation command
 	cmd := validation.NewValidationCommand()
 	if err := cmd.Execute(); err != nil {

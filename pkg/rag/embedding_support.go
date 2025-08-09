@@ -18,12 +18,13 @@ import (
 
 // LoadBalancer manages provider selection and load distribution
 type LoadBalancer struct {
-	strategy  string
-	providers []string
-	weights   map[string]float64
+	strategy   string
+	providers  []string
+	weights    map[string]float64
 	currentIdx int
-	mutex     sync.Mutex
+	mutex      sync.Mutex
 }
+
 func NewLoadBalancer(strategy string, providers []string) *LoadBalancer {
 	return &LoadBalancer{
 		strategy:  strategy,
@@ -86,7 +87,6 @@ func (lb *LoadBalancer) bestQuality(providers []string) string {
 	return providers[0]
 }
 
-
 // CostManager tracks and manages embedding costs
 type CostManager struct {
 	dailySpend   map[string]float64
@@ -96,25 +96,23 @@ type CostManager struct {
 	mutex        sync.RWMutex
 }
 
-
-
 // QualityManager assesses and ensures embedding quality
 type QualityManager struct {
-	minScore    float64
-	sampleSize  int
-	testHistory []QualityResult
+	minScore     float64
+	sampleSize   int
+	testHistory  []QualityResult
 	qualityTests []QualityTest
-	mutex       sync.RWMutex
+	mutex        sync.RWMutex
 }
 
 // QualityResult represents quality assessment result
 type QualityResult struct {
-	Timestamp  time.Time           `json:"timestamp"`
-	Provider   string              `json:"provider"`
-	Model      string              `json:"model"`
-	Score      float64             `json:"score"`
-	TestScores map[string]float64  `json:"test_scores"`
-	SampleSize int                 `json:"sample_size"`
+	Timestamp  time.Time          `json:"timestamp"`
+	Provider   string             `json:"provider"`
+	Model      string             `json:"model"`
+	Score      float64            `json:"score"`
+	TestScores map[string]float64 `json:"test_scores"`
+	SampleSize int                `json:"sample_size"`
 }
 
 // QualityTest represents a quality test function
@@ -180,7 +178,6 @@ type Document struct {
 	Content  string                 `json:"content"`
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
-
 
 func NewCostManager(limits CostLimits) *CostManager {
 	return &CostManager{
@@ -656,7 +653,6 @@ func (cache *LRUCache) evictLRU() {
 	}
 }
 
-
 // ProviderHealthMonitor monitors provider health
 func NewProviderHealthMonitor(checkInterval time.Duration) *ProviderHealthMonitor {
 	return &ProviderHealthMonitor{
@@ -725,4 +721,3 @@ func (phm *ProviderHealthMonitor) GetStatus() map[string]*HealthStatus {
 func (phm *ProviderHealthMonitor) Stop() {
 	close(phm.stopChan)
 }
-

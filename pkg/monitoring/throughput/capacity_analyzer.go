@@ -60,8 +60,8 @@ func NewCapacityAnalyzer() *CapacityAnalyzer {
 
 // RecordThroughputDataPoint adds a new throughput measurement
 func (a *CapacityAnalyzer) RecordThroughputDataPoint(
-	throughput float64, 
-	cpuUsage float64, 
+	throughput float64,
+	cpuUsage float64,
 	memoryUsage float64,
 ) {
 	a.mu.Lock()
@@ -130,14 +130,14 @@ func (a *CapacityAnalyzer) GetBottlenecks() map[string]string {
 	// Check resource utilization
 	if a.resourceUtilization.CPUCores > 0.8 {
 		bottlenecks["cpu"] = fmt.Sprintf(
-			"High CPU usage: %.2f cores (>80%% utilization)", 
+			"High CPU usage: %.2f cores (>80%% utilization)",
 			a.resourceUtilization.CPUCores,
 		)
 	}
 
 	if a.resourceUtilization.MemoryGB > 0.9 {
 		bottlenecks["memory"] = fmt.Sprintf(
-			"High memory usage: %.2f GB (>90%% utilization)", 
+			"High memory usage: %.2f GB (>90%% utilization)",
 			a.resourceUtilization.MemoryGB,
 		)
 	}
@@ -158,7 +158,7 @@ func (a *CapacityAnalyzer) GetScalingRecommendations() map[string]string {
 
 	if scalingRatio > 1.5 {
 		recommendations["scale_up"] = fmt.Sprintf(
-			"Recommended: Scale up by %.1fx to meet predicted demand", 
+			"Recommended: Scale up by %.1fx to meet predicted demand",
 			scalingRatio,
 		)
 	} else if scalingRatio < 0.5 {

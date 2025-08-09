@@ -23,7 +23,7 @@ func TestValidationBuilder_Required(t *testing.T) {
 	validator := builder.
 		Required("name", func(u TestUser) any { return u.Name }).
 		Build()
-	
+
 	tests := []struct {
 		name  string
 		user  TestUser
@@ -40,14 +40,14 @@ func TestValidationBuilder_Required(t *testing.T) {
 			valid: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator(tt.user)
 			if result.Valid != tt.valid {
 				t.Errorf("Expected valid=%v, got %v", tt.valid, result.Valid)
 			}
-			
+
 			if !tt.valid && len(result.Errors) == 0 {
 				t.Error("Expected validation errors for invalid case")
 			}
@@ -61,7 +61,7 @@ func TestValidationBuilder_MinMaxLength(t *testing.T) {
 		MinLength("name", 2, func(u TestUser) string { return u.Name }).
 		MaxLength("name", 50, func(u TestUser) string { return u.Name }).
 		Build()
-	
+
 	tests := []struct {
 		name  string
 		user  TestUser
@@ -83,7 +83,7 @@ func TestValidationBuilder_MinMaxLength(t *testing.T) {
 			valid: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator(tt.user)
@@ -97,10 +97,10 @@ func TestValidationBuilder_MinMaxLength(t *testing.T) {
 func TestValidationBuilder_Pattern(t *testing.T) {
 	builder := NewValidationBuilder[TestUser]()
 	validator := builder.
-		Pattern("name", `^[A-Za-z\s]+$`, "name must contain only letters and spaces", 
+		Pattern("name", `^[A-Za-z\s]+$`, "name must contain only letters and spaces",
 			func(u TestUser) string { return u.Name }).
 		Build()
-	
+
 	tests := []struct {
 		name  string
 		user  TestUser
@@ -122,7 +122,7 @@ func TestValidationBuilder_Pattern(t *testing.T) {
 			valid: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator(tt.user)
@@ -138,7 +138,7 @@ func TestValidationBuilder_Email(t *testing.T) {
 	validator := builder.
 		Email("email", func(u TestUser) string { return u.Email }).
 		Build()
-	
+
 	tests := []struct {
 		name  string
 		user  TestUser
@@ -170,7 +170,7 @@ func TestValidationBuilder_Email(t *testing.T) {
 			valid: true, // Email validator allows empty strings
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator(tt.user)
@@ -186,7 +186,7 @@ func TestValidationBuilder_Range(t *testing.T) {
 	validator := builder.
 		Range("age", 0, 120, func(u TestUser) int64 { return int64(u.Age) }).
 		Build()
-	
+
 	tests := []struct {
 		name  string
 		user  TestUser
@@ -218,7 +218,7 @@ func TestValidationBuilder_Range(t *testing.T) {
 			valid: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator(tt.user)
@@ -233,13 +233,13 @@ func TestValidationBuilder_OneOf(t *testing.T) {
 	type Status struct {
 		Value string
 	}
-	
+
 	builder := NewValidationBuilder[Status]()
 	validator := builder.
-		OneOf("status", []string{"active", "inactive", "pending"}, 
+		OneOf("status", []string{"active", "inactive", "pending"},
 			func(s Status) string { return s.Value }).
 		Build()
-	
+
 	tests := []struct {
 		name   string
 		status Status
@@ -261,7 +261,7 @@ func TestValidationBuilder_OneOf(t *testing.T) {
 			valid:  false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator(tt.status)
@@ -283,7 +283,7 @@ func TestValidationBuilder_Custom(t *testing.T) {
 			return result
 		}).
 		Build()
-	
+
 	tests := []struct {
 		name  string
 		user  TestUser
@@ -305,7 +305,7 @@ func TestValidationBuilder_Custom(t *testing.T) {
 			valid: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator(tt.user)
@@ -329,7 +329,7 @@ func TestValidationBuilder_Conditional(t *testing.T) {
 				return result
 			}).
 		Build()
-	
+
 	tests := []struct {
 		name  string
 		user  TestUser
@@ -351,7 +351,7 @@ func TestValidationBuilder_Conditional(t *testing.T) {
 			valid: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator(tt.user)
@@ -364,31 +364,31 @@ func TestValidationBuilder_Conditional(t *testing.T) {
 
 func TestStructValidator(t *testing.T) {
 	validator := NewStructValidator[TestUser]()
-	
+
 	user := TestUser{
-		Name:     "",      // Should fail required
+		Name:     "",        // Should fail required
 		Email:    "invalid", // Should fail email
-		Age:      150,     // Should fail max
+		Age:      150,       // Should fail max
 		Password: "test",
 	}
-	
+
 	result := validator.Validate(user)
-	
+
 	if result.Valid {
 		t.Error("Expected validation to fail")
 	}
-	
+
 	// Check that we have multiple errors
 	if len(result.Errors) == 0 {
 		t.Error("Expected validation errors")
 	}
-	
+
 	// Verify specific error types exist
 	errorCodes := make(map[string]bool)
 	for _, err := range result.Errors {
 		errorCodes[err.Code] = true
 	}
-	
+
 	expectedCodes := []string{"required", "email", "max"}
 	for _, code := range expectedCodes {
 		if !errorCodes[code] {
@@ -405,7 +405,7 @@ func TestValidationPipeline(t *testing.T) {
 		}
 		return result
 	}
-	
+
 	validator2 := func(u TestUser) ValidationResult {
 		result := NewValidationResult()
 		if u.Age < 0 {
@@ -413,16 +413,16 @@ func TestValidationPipeline(t *testing.T) {
 		}
 		return result
 	}
-	
+
 	pipeline := NewValidationPipeline[TestUser]().
 		Add(validator1).
 		Add(validator2)
-	
+
 	tests := []struct {
-		name        string
-		user        TestUser
-		valid       bool
-		errorCount  int
+		name       string
+		user       TestUser
+		valid      bool
+		errorCount int
 	}{
 		{
 			name:       "valid user",
@@ -449,15 +449,15 @@ func TestValidationPipeline(t *testing.T) {
 			errorCount: 2,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := pipeline.Execute(tt.user)
-			
+
 			if result.Valid != tt.valid {
 				t.Errorf("Expected valid=%v, got %v", tt.valid, result.Valid)
 			}
-			
+
 			if len(result.Errors) != tt.errorCount {
 				t.Errorf("Expected %d errors, got %d", tt.errorCount, len(result.Errors))
 			}
@@ -473,7 +473,7 @@ func TestValidationPipeline_StopOnFirstError(t *testing.T) {
 		}
 		return result
 	}
-	
+
 	validator2 := func(u TestUser) ValidationResult {
 		result := NewValidationResult()
 		if u.Age < 0 {
@@ -481,24 +481,24 @@ func TestValidationPipeline_StopOnFirstError(t *testing.T) {
 		}
 		return result
 	}
-	
+
 	pipeline := NewValidationPipeline[TestUser]().
 		Add(validator1).
 		Add(validator2).
 		StopOnFirstError(true)
-	
+
 	user := TestUser{Name: "", Age: -5} // Both validators should fail
 	result := pipeline.Execute(user)
-	
+
 	if result.Valid {
 		t.Error("Expected validation to fail")
 	}
-	
+
 	// Should only have 1 error because we stop on first error
 	if len(result.Errors) != 1 {
 		t.Errorf("Expected 1 error (stop on first), got %d", len(result.Errors))
 	}
-	
+
 	// Should be the name error
 	if result.Errors[0].Field != "name" {
 		t.Errorf("Expected first error to be 'name', got '%s'", result.Errors[0].Field)
@@ -515,14 +515,14 @@ func TestAsyncValidator(t *testing.T) {
 		}
 		return result
 	}
-	
+
 	asyncValidator := NewAsyncValidator(validator)
-	
+
 	user := TestUser{Name: ""}
 	ctx := context.Background()
-	
+
 	resultChan := asyncValidator.ValidateAsync(ctx, user)
-	
+
 	select {
 	case result := <-resultChan:
 		if result.Valid {
@@ -544,32 +544,32 @@ func TestBatchValidator(t *testing.T) {
 		}
 		return result
 	}
-	
+
 	batchValidator := NewBatchValidator(validator, 2)
-	
+
 	users := []TestUser{
 		{Name: "John"},
 		{Name: ""},
 		{Name: "Jane"},
 		{Name: ""},
 	}
-	
+
 	ctx := context.Background()
 	resultChan := batchValidator.ValidateBatch(ctx, users)
-	
+
 	results := make([]BatchValidationResult[TestUser], 0, len(users))
 	for result := range resultChan {
 		results = append(results, result)
 	}
-	
+
 	if len(results) != len(users) {
 		t.Errorf("Expected %d results, got %d", len(users), len(results))
 	}
-	
+
 	// Count valid and invalid results
 	validCount := 0
 	invalidCount := 0
-	
+
 	for _, result := range results {
 		if result.Result.Valid {
 			validCount++
@@ -577,11 +577,11 @@ func TestBatchValidator(t *testing.T) {
 			invalidCount++
 		}
 	}
-	
+
 	if validCount != 2 {
 		t.Errorf("Expected 2 valid results, got %d", validCount)
 	}
-	
+
 	if invalidCount != 2 {
 		t.Errorf("Expected 2 invalid results, got %d", invalidCount)
 	}
@@ -610,7 +610,7 @@ func TestConditionalValidator(t *testing.T) {
 		Default(func(u TestUser) ValidationResult {
 			return NewValidationResult() // Always valid for default case
 		})
-	
+
 	tests := []struct {
 		name  string
 		user  TestUser
@@ -637,7 +637,7 @@ func TestConditionalValidator(t *testing.T) {
 			valid: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator.Validate(tt.user)
@@ -652,7 +652,7 @@ func TestConditionalValidator(t *testing.T) {
 
 func TestNotEmpty(t *testing.T) {
 	validator := NotEmpty("name", func(u TestUser) string { return u.Name })
-	
+
 	tests := []struct {
 		name  string
 		user  TestUser
@@ -674,7 +674,7 @@ func TestNotEmpty(t *testing.T) {
 			valid: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator(tt.user)
@@ -687,7 +687,7 @@ func TestNotEmpty(t *testing.T) {
 
 func TestPositiveNumber(t *testing.T) {
 	validator := PositiveNumber("age", func(u TestUser) int64 { return int64(u.Age) })
-	
+
 	tests := []struct {
 		name  string
 		user  TestUser
@@ -709,7 +709,7 @@ func TestPositiveNumber(t *testing.T) {
 			valid: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator(tt.user)
@@ -724,9 +724,9 @@ func TestUniqueSliceValidator(t *testing.T) {
 	type ListData struct {
 		Items []int
 	}
-	
+
 	validator := UniqueSlice("items", func(d ListData) []int { return d.Items })
-	
+
 	tests := []struct {
 		name  string
 		data  ListData
@@ -748,7 +748,7 @@ func TestUniqueSliceValidator(t *testing.T) {
 			valid: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator(tt.data)
@@ -761,64 +761,64 @@ func TestUniqueSliceValidator(t *testing.T) {
 
 func TestPasswordStrength(t *testing.T) {
 	validator := PasswordStrength("password", func(u TestUser) string { return u.Password })
-	
+
 	tests := []struct {
-		name     string
-		user     TestUser
-		valid    bool
+		name      string
+		user      TestUser
+		valid     bool
 		minErrors int
 	}{
 		{
-			name:     "strong password",
-			user:     TestUser{Password: "StrongPass123!"},
-			valid:    true,
+			name:      "strong password",
+			user:      TestUser{Password: "StrongPass123!"},
+			valid:     true,
 			minErrors: 0,
 		},
 		{
-			name:     "weak password - too short",
-			user:     TestUser{Password: "Weak1!"},
-			valid:    false,
+			name:      "weak password - too short",
+			user:      TestUser{Password: "Weak1!"},
+			valid:     false,
 			minErrors: 1,
 		},
 		{
-			name:     "weak password - no uppercase",
-			user:     TestUser{Password: "weakpass123!"},
-			valid:    false,
+			name:      "weak password - no uppercase",
+			user:      TestUser{Password: "weakpass123!"},
+			valid:     false,
 			minErrors: 1,
 		},
 		{
-			name:     "weak password - no lowercase",
-			user:     TestUser{Password: "WEAKPASS123!"},
-			valid:    false,
+			name:      "weak password - no lowercase",
+			user:      TestUser{Password: "WEAKPASS123!"},
+			valid:     false,
 			minErrors: 1,
 		},
 		{
-			name:     "weak password - no digit",
-			user:     TestUser{Password: "WeakPass!"},
-			valid:    false,
+			name:      "weak password - no digit",
+			user:      TestUser{Password: "WeakPass!"},
+			valid:     false,
 			minErrors: 1,
 		},
 		{
-			name:     "weak password - no special char",
-			user:     TestUser{Password: "WeakPass123"},
-			valid:    false,
+			name:      "weak password - no special char",
+			user:      TestUser{Password: "WeakPass123"},
+			valid:     false,
 			minErrors: 1,
 		},
 		{
-			name:     "very weak password",
-			user:     TestUser{Password: "weak"},
-			valid:    false,
+			name:      "very weak password",
+			user:      TestUser{Password: "weak"},
+			valid:     false,
 			minErrors: 4, // All requirements fail
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator(tt.user)
 			if result.Valid != tt.valid {
 				t.Errorf("Expected valid=%v, got %v", tt.valid, result.Valid)
 			}
-			
+
 			if len(result.Errors) < tt.minErrors {
 				t.Errorf("Expected at least %d errors, got %d", tt.minErrors, len(result.Errors))
 			}
@@ -833,13 +833,13 @@ func BenchmarkValidationBuilder_Simple(b *testing.B) {
 		Required("name", func(u TestUser) any { return u.Name }).
 		Email("email", func(u TestUser) string { return u.Email }).
 		Build()
-	
+
 	user := TestUser{
 		Name:  "John Doe",
 		Email: "john@example.com",
 		Age:   25,
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = validator(user)
@@ -853,7 +853,7 @@ func BenchmarkStructValidator(b *testing.B) {
 		Email: "john@example.com",
 		Age:   25,
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = validator.Validate(user)
@@ -868,7 +868,7 @@ func BenchmarkValidationPipeline(b *testing.B) {
 		}
 		return result
 	}
-	
+
 	validator2 := func(u TestUser) ValidationResult {
 		result := NewValidationResult()
 		if u.Age < 0 {
@@ -876,13 +876,13 @@ func BenchmarkValidationPipeline(b *testing.B) {
 		}
 		return result
 	}
-	
+
 	pipeline := NewValidationPipeline[TestUser]().
 		Add(validator1).
 		Add(validator2)
-	
+
 	user := TestUser{Name: "John", Age: 25}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = pipeline.Execute(user)

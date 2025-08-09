@@ -62,12 +62,12 @@ type CNFDeploymentReconciler struct {
 
 // CNFControllerConfig holds configuration for the CNF controller
 type CNFControllerConfig struct {
-	ReconcileTimeout     time.Duration
+	ReconcileTimeout        time.Duration
 	MaxConcurrentReconciles int
-	EnableStatusUpdates  bool
-	StatusUpdateInterval time.Duration
-	EnableMetrics        bool
-	EnableEvents         bool
+	EnableStatusUpdates     bool
+	StatusUpdateInterval    time.Duration
+	EnableMetrics           bool
+	EnableEvents            bool
 }
 
 // CNFDeploymentRequest represents a CNF deployment request with context
@@ -216,7 +216,7 @@ func (r *CNFDeploymentReconciler) handleDeployingCNF(ctx context.Context, cnfDep
 // handleRunningCNF handles CNF deployments in running state
 func (r *CNFDeploymentReconciler) handleRunningCNF(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (ctrl.Result, error) {
 	logger := log.FromContext(ctx)
-	
+
 	// Update resource utilization metrics
 	if err := r.updateResourceMetrics(ctx, cnfDeployment); err != nil {
 		logger.Error(err, "Failed to update resource metrics")
@@ -259,7 +259,7 @@ func (r *CNFDeploymentReconciler) handleUpgradingCNF(ctx context.Context, cnfDep
 	// Upgrade logic would be implemented here
 	// For now, just transition back to running
 	r.updateCNFDeploymentStatus(ctx, cnfDeployment, "Running", "CNF upgrade completed")
-	
+
 	return ctrl.Result{RequeueAfter: CNFReconcileInterval}, nil
 }
 
@@ -270,7 +270,7 @@ func (r *CNFDeploymentReconciler) handleFailedCNF(ctx context.Context, cnfDeploy
 
 	// Implement retry logic or manual intervention workflow
 	// For now, just log and requeue for manual intervention
-	
+
 	return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
 }
 
@@ -402,7 +402,7 @@ func (r *CNFDeploymentReconciler) checkHelmDeploymentReadiness(ctx context.Conte
 	// Check if all deployments are ready
 	totalReplicas := int32(0)
 	readyReplicas := int32(0)
-	
+
 	for _, deployment := range deploymentList.Items {
 		totalReplicas += *deployment.Spec.Replicas
 		readyReplicas += deployment.Status.ReadyReplicas
@@ -453,11 +453,11 @@ func (r *CNFDeploymentReconciler) updateResourceMetrics(ctx context.Context, cnf
 	if cnfDeployment.Status.ResourceUtilization == nil {
 		cnfDeployment.Status.ResourceUtilization = make(map[string]string)
 	}
-	
+
 	cnfDeployment.Status.ResourceUtilization["cpu"] = "50%"
 	cnfDeployment.Status.ResourceUtilization["memory"] = "60%"
 	cnfDeployment.Status.ResourceUtilization["lastUpdated"] = time.Now().Format(time.RFC3339)
-	
+
 	return r.Status().Update(ctx, cnfDeployment)
 }
 
@@ -501,7 +501,7 @@ func (r *CNFDeploymentReconciler) isScalingComplete(ctx context.Context, cnfDepl
 		Name:      hpaName,
 		Namespace: cnfDeployment.Namespace,
 	}, hpa)
-	
+
 	if err != nil {
 		return false
 	}
@@ -514,19 +514,19 @@ func (r *CNFDeploymentReconciler) isScalingComplete(ctx context.Context, cnfDepl
 func (r *CNFDeploymentReconciler) performHealthChecks(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
 	// Implement health checks based on CNF function type
 	// This is a placeholder for actual health check implementation
-	
+
 	// Update health status
 	if cnfDeployment.Status.Health == nil {
 		cnfDeployment.Status.Health = &nephoranv1.HealthStatus{}
 	}
-	
+
 	cnfDeployment.Status.Health.Status = "Healthy"
 	cnfDeployment.Status.Health.LastCheckTime = &metav1.Time{Time: time.Now()}
 	cnfDeployment.Status.Health.Details = map[string]string{
-		"overall": "healthy",
+		"overall":   "healthy",
 		"lastCheck": time.Now().Format(time.RFC3339),
 	}
-	
+
 	return r.Status().Update(ctx, cnfDeployment)
 }
 
@@ -710,8 +710,8 @@ func NewCNFDeploymentReconciler(mgr ctrl.Manager, cnfOrchestrator *cnf.CNFOrches
 			MaxConcurrentReconciles: 5,
 			EnableStatusUpdates:     true,
 			StatusUpdateInterval:    CNFStatusUpdateInterval,
-			EnableMetrics:          true,
-			EnableEvents:           true,
+			EnableMetrics:           true,
+			EnableEvents:            true,
 		},
 	}
 }

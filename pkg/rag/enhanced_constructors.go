@@ -15,7 +15,7 @@ import (
 func NewEnhancedLoadBalancer(strategy string, providers []string) *EnhancedLoadBalancer {
 	// Create base LoadBalancer
 	baseLoadBalancer := NewLoadBalancer(strategy, providers)
-	
+
 	// Create enhanced version by embedding the base type
 	enhanced := &EnhancedLoadBalancer{
 		strategy:   baseLoadBalancer.strategy,
@@ -24,7 +24,7 @@ func NewEnhancedLoadBalancer(strategy string, providers []string) *EnhancedLoadB
 		weights:    baseLoadBalancer.weights,
 		mutex:      sync.RWMutex{}, // Initialize a new RWMutex
 	}
-	
+
 	return enhanced
 }
 
@@ -36,10 +36,10 @@ func NewEnhancedCostManager(limits EnhancedCostLimits) *EnhancedCostManager {
 		MonthlyLimit:   limits.MonthlyLimit,
 		AlertThreshold: limits.AlertThreshold,
 	}
-	
+
 	// Create base CostManager
 	baseCostManager := NewCostManager(baseLimits)
-	
+
 	// Create enhanced version by embedding the base type data
 	enhanced := &EnhancedCostManager{
 		dailySpend:   baseCostManager.dailySpend,
@@ -48,7 +48,7 @@ func NewEnhancedCostManager(limits EnhancedCostLimits) *EnhancedCostManager {
 		alerts:       []EnhancedCostAlert{}, // Convert alerts when needed
 		mutex:        baseCostManager.mutex,
 	}
-	
+
 	return enhanced
 }
 
@@ -68,7 +68,7 @@ func NewEnhancedProviderConfig(baseConfig ProviderConfig) *EnhancedProviderConfi
 		Headers:        make(map[string]string),
 		Enabled:        baseConfig.Enabled,
 	}
-	
+
 	return enhanced
 }
 
@@ -122,7 +122,7 @@ func (ecm *EnhancedCostManager) checkEnhancedAlerts(today, thisMonth string) {
 			if dailyPercent >= 0.95 {
 				level = "critical"
 			}
-			
+
 			alert := EnhancedCostAlert{
 				Timestamp: time.Now(),
 				Level:     level,
@@ -142,7 +142,7 @@ func (ecm *EnhancedCostManager) checkEnhancedAlerts(today, thisMonth string) {
 			if monthlyPercent >= 0.95 {
 				level = "critical"
 			}
-			
+
 			alert := EnhancedCostAlert{
 				Timestamp: time.Now(),
 				Level:     level,
@@ -213,7 +213,7 @@ func (elb *EnhancedLoadBalancer) leastCost(providers []string) string {
 	// Enhanced cost-based selection logic
 	bestProvider := providers[0]
 	bestCost := elb.weights[bestProvider]
-	
+
 	for _, provider := range providers[1:] {
 		cost := elb.weights[provider]
 		if cost < bestCost {
@@ -221,7 +221,7 @@ func (elb *EnhancedLoadBalancer) leastCost(providers []string) string {
 			bestProvider = provider
 		}
 	}
-	
+
 	return bestProvider
 }
 
@@ -241,28 +241,28 @@ func (elb *EnhancedLoadBalancer) bestQuality(providers []string) string {
 func NewOpenAIProvider(config EnhancedProviderConfig) (EnhancedEmbeddingProvider, error) {
 	// Convert enhanced config to base config
 	baseConfig := ProviderConfig{
-		Name:        config.Name,
-		APIKey:      config.APIKey,
-		APIEndpoint: config.APIEndpoint,
-		ModelName:   config.ModelName,
-		Dimensions:  768, // Default dimensions
-		MaxTokens:   config.MaxConcurrency * 1000, // Approximate
+		Name:         config.Name,
+		APIKey:       config.APIKey,
+		APIEndpoint:  config.APIEndpoint,
+		ModelName:    config.ModelName,
+		Dimensions:   768,                          // Default dimensions
+		MaxTokens:    config.MaxConcurrency * 1000, // Approximate
 		CostPerToken: config.CostPerToken,
-		RateLimit:   config.RateLimit,
-		Priority:    config.Priority,
-		Enabled:     config.Enabled,
-		Healthy:     true,
-		LastCheck:   time.Now(),
+		RateLimit:    config.RateLimit,
+		Priority:     config.Priority,
+		Enabled:      config.Enabled,
+		Healthy:      true,
+		LastCheck:    time.Now(),
 	}
-	
+
 	// Create HTTP client with timeout
 	httpClient := &http.Client{
 		Timeout: config.Timeout,
 	}
-	
+
 	// Create base provider
 	baseProvider := NewBasicOpenAIProvider(baseConfig, httpClient)
-	
+
 	// Return enhanced adapter
 	return &EnhancedProviderAdapter{
 		baseProvider: baseProvider,
@@ -274,28 +274,28 @@ func NewOpenAIProvider(config EnhancedProviderConfig) (EnhancedEmbeddingProvider
 func NewAzureOpenAIProvider(config EnhancedProviderConfig) (EnhancedEmbeddingProvider, error) {
 	// Convert enhanced config to base config
 	baseConfig := ProviderConfig{
-		Name:        config.Name,
-		APIKey:      config.APIKey,
-		APIEndpoint: config.APIEndpoint,
-		ModelName:   config.ModelName,
-		Dimensions:  768, // Default dimensions
-		MaxTokens:   config.MaxConcurrency * 1000, // Approximate
+		Name:         config.Name,
+		APIKey:       config.APIKey,
+		APIEndpoint:  config.APIEndpoint,
+		ModelName:    config.ModelName,
+		Dimensions:   768,                          // Default dimensions
+		MaxTokens:    config.MaxConcurrency * 1000, // Approximate
 		CostPerToken: config.CostPerToken,
-		RateLimit:   config.RateLimit,
-		Priority:    config.Priority,
-		Enabled:     config.Enabled,
-		Healthy:     true,
-		LastCheck:   time.Now(),
+		RateLimit:    config.RateLimit,
+		Priority:     config.Priority,
+		Enabled:      config.Enabled,
+		Healthy:      true,
+		LastCheck:    time.Now(),
 	}
-	
+
 	// Create HTTP client with timeout
 	httpClient := &http.Client{
 		Timeout: config.Timeout,
 	}
-	
+
 	// Create base provider
 	baseProvider := NewBasicAzureOpenAIProvider(baseConfig, httpClient)
-	
+
 	// Return enhanced adapter
 	return &EnhancedProviderAdapter{
 		baseProvider: baseProvider,
@@ -307,28 +307,28 @@ func NewAzureOpenAIProvider(config EnhancedProviderConfig) (EnhancedEmbeddingPro
 func NewHuggingFaceProvider(config EnhancedProviderConfig) (EnhancedEmbeddingProvider, error) {
 	// Convert enhanced config to base config
 	baseConfig := ProviderConfig{
-		Name:        config.Name,
-		APIKey:      config.APIKey,
-		APIEndpoint: config.APIEndpoint,
-		ModelName:   config.ModelName,
-		Dimensions:  768, // Default dimensions
-		MaxTokens:   config.MaxConcurrency * 1000, // Approximate
+		Name:         config.Name,
+		APIKey:       config.APIKey,
+		APIEndpoint:  config.APIEndpoint,
+		ModelName:    config.ModelName,
+		Dimensions:   768,                          // Default dimensions
+		MaxTokens:    config.MaxConcurrency * 1000, // Approximate
 		CostPerToken: config.CostPerToken,
-		RateLimit:   config.RateLimit,
-		Priority:    config.Priority,
-		Enabled:     config.Enabled,
-		Healthy:     true,
-		LastCheck:   time.Now(),
+		RateLimit:    config.RateLimit,
+		Priority:     config.Priority,
+		Enabled:      config.Enabled,
+		Healthy:      true,
+		LastCheck:    time.Now(),
 	}
-	
+
 	// Create HTTP client with timeout
 	httpClient := &http.Client{
 		Timeout: config.Timeout,
 	}
-	
+
 	// Create base provider
 	baseProvider := NewBasicHuggingFaceProvider(baseConfig, httpClient)
-	
+
 	// Return enhanced adapter
 	return &EnhancedProviderAdapter{
 		baseProvider: baseProvider,
@@ -357,14 +357,14 @@ func (epa *EnhancedProviderAdapter) GenerateEmbeddings(ctx context.Context, text
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert to enhanced response
 	response := &EmbeddingResponse{
-		Embeddings:  embeddings,
-		TokenUsage:  tokenUsage,
-		ModelUsed:   epa.config.ModelName,
+		Embeddings: embeddings,
+		TokenUsage: tokenUsage,
+		ModelUsed:  epa.config.ModelName,
 	}
-	
+
 	return response, nil
 }
 
@@ -389,7 +389,7 @@ func (epa *EnhancedProviderAdapter) EstimateCost(texts []string) float64 {
 	for _, text := range texts {
 		totalTokens += len(text) / 4 // Rough token estimate
 	}
-	
+
 	return epa.baseProvider.GetCostEstimate(totalTokens)
 }
 
@@ -397,7 +397,7 @@ func (epa *EnhancedProviderAdapter) EstimateCost(texts []string) float64 {
 func (epa *EnhancedProviderAdapter) IsHealthy() bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	return epa.baseProvider.HealthCheck(ctx) == nil
 }
 
@@ -407,7 +407,7 @@ func (epa *EnhancedProviderAdapter) GetLatency() time.Duration {
 	start := time.Now()
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	
+
 	epa.baseProvider.HealthCheck(ctx)
 	return time.Since(start)
 }
@@ -433,17 +433,17 @@ func (lep *LocalEnhancedProvider) GenerateEmbeddings(ctx context.Context, texts 
 		}
 		embeddings[i] = embedding
 	}
-	
+
 	tokenUsage := &TokenUsage{
 		PromptTokens:  len(texts) * 10, // Rough estimate
 		TotalTokens:   len(texts) * 10,
 		EstimatedCost: float64(len(texts)) * lep.config.CostPerToken,
 	}
-	
+
 	return &EmbeddingResponse{
-		Embeddings:  embeddings,
-		TokenUsage:  *tokenUsage, // Dereference the pointer
-		ModelUsed:   lep.config.ModelName,
+		Embeddings: embeddings,
+		TokenUsage: *tokenUsage, // Dereference the pointer
+		ModelUsed:  lep.config.ModelName,
 	}, nil
 }
 
@@ -491,7 +491,7 @@ func (pha *ProviderHealthAdapter) GetEmbeddings(ctx context.Context, texts []str
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert [][]float32 to [][]float64
 	embeddings := make([][]float64, len(response.Embeddings))
 	for i, embedding := range response.Embeddings {
@@ -500,7 +500,7 @@ func (pha *ProviderHealthAdapter) GetEmbeddings(ctx context.Context, texts []str
 			embeddings[i][j] = float64(val)
 		}
 	}
-	
+
 	return embeddings, nil
 }
 
@@ -516,9 +516,9 @@ func (pha *ProviderHealthAdapter) GetLatency() time.Duration {
 
 // Enhanced types that were referenced but not defined
 type EnhancedCostSummary struct {
-	DailySpending   float64               `json:"daily_spending"`
-	MonthlySpending float64               `json:"monthly_spending"`
-	DailyLimit      float64               `json:"daily_limit"`
-	MonthlyLimit    float64               `json:"monthly_limit"`
-	Alerts          []EnhancedCostAlert   `json:"alerts"`
+	DailySpending   float64             `json:"daily_spending"`
+	MonthlySpending float64             `json:"monthly_spending"`
+	DailyLimit      float64             `json:"daily_limit"`
+	MonthlyLimit    float64             `json:"monthly_limit"`
+	Alerts          []EnhancedCostAlert `json:"alerts"`
 }

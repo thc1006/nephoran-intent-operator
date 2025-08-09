@@ -45,7 +45,7 @@ func (suite *HealthCheckerTestSuite) SetupTest() {
 
 func (suite *HealthCheckerTestSuite) TestNewHealthChecker() {
 	checker := NewHealthChecker("nephoran-llm-processor", "2.1.0", suite.logger)
-	
+
 	assert.Equal(suite.T(), "nephoran-llm-processor", checker.serviceName)
 	assert.Equal(suite.T(), "2.1.0", checker.serviceVersion)
 	assert.NotZero(suite.T(), checker.startTime)
@@ -65,13 +65,13 @@ func (suite *HealthCheckerTestSuite) TestRegisterCheck() {
 			Message: "Database connection OK",
 		}
 	}
-	
+
 	suite.checker.RegisterCheck(checkName, checkFunc)
-	
+
 	suite.checker.mu.RLock()
 	registeredFunc, exists := suite.checker.checks[checkName]
 	suite.checker.mu.RUnlock()
-	
+
 	assert.True(suite.T(), exists)
 	assert.NotNil(suite.T(), registeredFunc)
 }
@@ -84,13 +84,13 @@ func (suite *HealthCheckerTestSuite) TestRegisterDependency() {
 			Message: "External API reachable",
 		}
 	}
-	
+
 	suite.checker.RegisterDependency(depName, depFunc)
-	
+
 	suite.checker.mu.RLock()
 	registeredFunc, exists := suite.checker.dependencies[depName]
 	suite.checker.mu.RUnlock()
-	
+
 	assert.True(suite.T(), exists)
 	assert.NotNil(suite.T(), registeredFunc)
 }
@@ -98,11 +98,11 @@ func (suite *HealthCheckerTestSuite) TestRegisterDependency() {
 func (suite *HealthCheckerTestSuite) TestSetAndGetReady() {
 	// Initially not ready
 	assert.False(suite.T(), suite.checker.IsReady())
-	
+
 	// Set ready
 	suite.checker.SetReady(true)
 	assert.True(suite.T(), suite.checker.IsReady())
-	
+
 	// Set not ready
 	suite.checker.SetReady(false)
 	assert.False(suite.T(), suite.checker.IsReady())
@@ -111,11 +111,11 @@ func (suite *HealthCheckerTestSuite) TestSetAndGetReady() {
 func (suite *HealthCheckerTestSuite) TestSetAndGetHealthy() {
 	// Initially healthy
 	assert.True(suite.T(), suite.checker.IsHealthy())
-	
+
 	// Set unhealthy
 	suite.checker.SetHealthy(false)
 	assert.False(suite.T(), suite.checker.IsHealthy())
-	
+
 	// Set healthy
 	suite.checker.SetHealthy(true)
 	assert.True(suite.T(), suite.checker.IsHealthy())
@@ -123,7 +123,7 @@ func (suite *HealthCheckerTestSuite) TestSetAndGetHealthy() {
 
 func (suite *HealthCheckerTestSuite) TestCheck_NoChecks() {
 	response := suite.checker.Check(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), response)
 	assert.Equal(suite.T(), "test-service", response.Service)
 	assert.Equal(suite.T(), "1.0.0", response.Version)
@@ -143,16 +143,16 @@ func (suite *HealthCheckerTestSuite) TestCheck_HealthyChecks() {
 			Message: "Check 1 is healthy",
 		}
 	})
-	
+
 	suite.checker.RegisterCheck("check2", func(ctx context.Context) *Check {
 		return &Check{
 			Status:  StatusHealthy,
 			Message: "Check 2 is healthy",
 		}
 	})
-	
+
 	response := suite.checker.Check(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), response)
 	assert.Equal(suite.T(), StatusHealthy, response.Status)
 	assert.Len(suite.T(), response.Checks, 2)
@@ -169,16 +169,16 @@ func (suite *HealthCheckerTestSuite) TestCheck_UnhealthyChecks() {
 			Error:  "Something went wrong",
 		}
 	})
-	
+
 	suite.checker.RegisterCheck("healthy-check", func(ctx context.Context) *Check {
 		return &Check{
 			Status:  StatusHealthy,
 			Message: "This check is fine",
 		}
 	})
-	
+
 	response := suite.checker.Check(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), response)
 	assert.Equal(suite.T(), StatusUnhealthy, response.Status)
 	assert.Len(suite.T(), response.Checks, 2)
@@ -195,16 +195,16 @@ func (suite *HealthCheckerTestSuite) TestCheck_DegradedChecks() {
 			Message: "Service is running but performance is degraded",
 		}
 	})
-	
+
 	suite.checker.RegisterCheck("healthy-check", func(ctx context.Context) *Check {
 		return &Check{
 			Status:  StatusHealthy,
 			Message: "This check is fine",
 		}
 	})
-	
+
 	response := suite.checker.Check(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), response)
 	assert.Equal(suite.T(), StatusDegraded, response.Status)
 	assert.Len(suite.T(), response.Checks, 2)
@@ -222,7 +222,7 @@ func (suite *HealthCheckerTestSuite) TestCheck_WithDependencies() {
 			Message: "Service is running",
 		}
 	})
-	
+
 	// Register dependency
 	suite.checker.RegisterDependency("database", func(ctx context.Context) *Check {
 		return &Check{
@@ -230,16 +230,16 @@ func (suite *HealthCheckerTestSuite) TestCheck_WithDependencies() {
 			Message: "Database is responsive",
 		}
 	})
-	
+
 	suite.checker.RegisterDependency("cache", func(ctx context.Context) *Check {
 		return &Check{
 			Status:  StatusDegraded,
 			Message: "Cache is slow but responsive",
 		}
 	})
-	
+
 	response := suite.checker.Check(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), response)
 	assert.Equal(suite.T(), StatusDegraded, response.Status)
 	assert.Len(suite.T(), response.Checks, 1)
@@ -254,9 +254,9 @@ func (suite *HealthCheckerTestSuite) TestCheck_NilCheckResult() {
 	suite.checker.RegisterCheck("nil-check", func(ctx context.Context) *Check {
 		return nil
 	})
-	
+
 	response := suite.checker.Check(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), response)
 	assert.Len(suite.T(), response.Checks, 1)
 	assert.Equal(suite.T(), StatusUnknown, response.Status)
@@ -269,7 +269,7 @@ func (suite *HealthCheckerTestSuite) TestCheck_ContextTimeout() {
 	// Create a context with very short timeout
 	ctx, cancel := context.WithTimeout(suite.ctx, 1*time.Millisecond)
 	defer cancel()
-	
+
 	// Register check that takes longer than timeout
 	suite.checker.RegisterCheck("slow-check", func(ctx context.Context) *Check {
 		select {
@@ -285,9 +285,9 @@ func (suite *HealthCheckerTestSuite) TestCheck_ContextTimeout() {
 			}
 		}
 	})
-	
+
 	response := suite.checker.Check(ctx)
-	
+
 	assert.NotNil(suite.T(), response)
 	// The check should handle timeout gracefully
 	assert.Len(suite.T(), response.Checks, 1)
@@ -300,19 +300,19 @@ func (suite *HealthCheckerTestSuite) TestHealthzHandler_Healthy() {
 			Message: "All good",
 		}
 	})
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	suite.checker.HealthzHandler(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusOK, recorder.Code)
 	assert.Equal(suite.T(), "application/json", recorder.Header().Get("Content-Type"))
-	
+
 	var response HealthResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), StatusHealthy, response.Status)
 	assert.Equal(suite.T(), "test-service", response.Service)
 }
@@ -324,21 +324,21 @@ func (suite *HealthCheckerTestSuite) TestHealthzHandler_Unhealthy() {
 			Error:  "Check failed",
 		}
 	})
-	
+
 	// Ensure we're not in grace period
 	suite.checker.startTime = time.Now().Add(-20 * time.Second)
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	suite.checker.HealthzHandler(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusServiceUnavailable, recorder.Code)
-	
+
 	var response HealthResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), StatusUnhealthy, response.Status)
 }
 
@@ -349,31 +349,31 @@ func (suite *HealthCheckerTestSuite) TestHealthzHandler_GracePeriod() {
 			Error:  "Check failed",
 		}
 	})
-	
+
 	// Ensure we're in grace period
 	suite.checker.startTime = time.Now()
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	suite.checker.HealthzHandler(recorder, req)
-	
+
 	// Should return healthy during grace period despite failing checks
 	assert.Equal(suite.T(), http.StatusOK, recorder.Code)
-	
+
 	var response HealthResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), StatusHealthy, response.Status)
 }
 
 func (suite *HealthCheckerTestSuite) TestHealthzHandler_WrongMethod() {
 	req := httptest.NewRequest(http.MethodPost, "/healthz", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	suite.checker.HealthzHandler(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusMethodNotAllowed, recorder.Code)
 }
 
@@ -385,18 +385,18 @@ func (suite *HealthCheckerTestSuite) TestReadyzHandler_Ready() {
 			Message: "Ready to serve",
 		}
 	})
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	suite.checker.ReadyzHandler(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusOK, recorder.Code)
-	
+
 	var response HealthResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), StatusHealthy, response.Status)
 }
 
@@ -408,18 +408,18 @@ func (suite *HealthCheckerTestSuite) TestReadyzHandler_NotReady_ServiceNotReady(
 			Message: "Check is healthy",
 		}
 	})
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	suite.checker.ReadyzHandler(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusServiceUnavailable, recorder.Code)
-	
+
 	var response HealthResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), StatusUnhealthy, response.Status)
 }
 
@@ -431,25 +431,25 @@ func (suite *HealthCheckerTestSuite) TestReadyzHandler_NotReady_UnhealthyDepende
 			Message: "Check is healthy",
 		}
 	})
-	
+
 	suite.checker.RegisterDependency("critical-service", func(ctx context.Context) *Check {
 		return &Check{
 			Status: StatusUnhealthy,
 			Error:  "Critical service is down",
 		}
 	})
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	suite.checker.ReadyzHandler(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusServiceUnavailable, recorder.Code)
-	
+
 	var response HealthResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), StatusUnhealthy, response.Status)
 }
 
@@ -461,30 +461,30 @@ func (suite *HealthCheckerTestSuite) TestReadyzHandler_ReadyWithDegradedService(
 			Message: "Service is degraded but functional",
 		}
 	})
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	suite.checker.ReadyzHandler(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusOK, recorder.Code)
-	
+
 	var response HealthResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), StatusHealthy, response.Status)
 }
 
 // Table-driven tests for different health check scenarios
 func (suite *HealthCheckerTestSuite) TestHealthCheckScenarios_TableDriven() {
 	testCases := []struct {
-		name            string
-		setupChecks     func(*HealthChecker)
-		expectedStatus  Status
-		expectedHealthy int
+		name              string
+		setupChecks       func(*HealthChecker)
+		expectedStatus    Status
+		expectedHealthy   int
 		expectedUnhealthy int
-		expectedDegraded int
+		expectedDegraded  int
 	}{
 		{
 			name: "All checks healthy",
@@ -550,14 +550,14 @@ func (suite *HealthCheckerTestSuite) TestHealthCheckScenarios_TableDriven() {
 			expectedDegraded:  0,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			checker := NewHealthChecker("test-service", "1.0.0", suite.logger)
 			tc.setupChecks(checker)
-			
+
 			response := checker.Check(suite.ctx)
-			
+
 			assert.Equal(suite.T(), tc.expectedStatus, response.Status)
 			assert.Equal(suite.T(), tc.expectedHealthy, response.Summary.Healthy)
 			assert.Equal(suite.T(), tc.expectedUnhealthy, response.Summary.Unhealthy)
@@ -575,10 +575,10 @@ func (suite *HealthCheckerTestSuite) TestHTTPCheck_Success() {
 		w.Write([]byte("OK"))
 	}))
 	defer server.Close()
-	
+
 	checkFunc := HTTPCheck("api-health", server.URL)
 	check := checkFunc(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), check)
 	assert.Equal(suite.T(), StatusHealthy, check.Status)
 	assert.Contains(suite.T(), check.Message, "HTTP 200")
@@ -591,10 +591,10 @@ func (suite *HealthCheckerTestSuite) TestHTTPCheck_Failure() {
 		w.Write([]byte("Internal Error"))
 	}))
 	defer server.Close()
-	
+
 	checkFunc := HTTPCheck("api-health", server.URL)
 	check := checkFunc(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), check)
 	assert.Equal(suite.T(), StatusUnhealthy, check.Status)
 	assert.Contains(suite.T(), check.Error, "HTTP 500")
@@ -604,7 +604,7 @@ func (suite *HealthCheckerTestSuite) TestHTTPCheck_NetworkError() {
 	// Use invalid URL to trigger network error
 	checkFunc := HTTPCheck("api-health", "http://non-existent-host:12345/health")
 	check := checkFunc(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), check)
 	assert.Equal(suite.T(), StatusUnhealthy, check.Status)
 	assert.Contains(suite.T(), check.Error, "HTTP request failed")
@@ -614,10 +614,10 @@ func (suite *HealthCheckerTestSuite) TestDatabaseCheck_Success() {
 	pingFunc := func(ctx context.Context) error {
 		return nil // Successful ping
 	}
-	
+
 	checkFunc := DatabaseCheck("database", pingFunc)
 	check := checkFunc(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), check)
 	assert.Equal(suite.T(), StatusHealthy, check.Status)
 	assert.Contains(suite.T(), check.Message, "Database connection successful")
@@ -627,10 +627,10 @@ func (suite *HealthCheckerTestSuite) TestDatabaseCheck_Failure() {
 	pingFunc := func(ctx context.Context) error {
 		return fmt.Errorf("connection refused")
 	}
-	
+
 	checkFunc := DatabaseCheck("database", pingFunc)
 	check := checkFunc(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), check)
 	assert.Equal(suite.T(), StatusUnhealthy, check.Status)
 	assert.Contains(suite.T(), check.Error, "Database connection failed")
@@ -640,7 +640,7 @@ func (suite *HealthCheckerTestSuite) TestDatabaseCheck_Failure() {
 func (suite *HealthCheckerTestSuite) TestMemoryCheck() {
 	checkFunc := MemoryCheck("memory", 1024)
 	check := checkFunc(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), check)
 	assert.Equal(suite.T(), StatusHealthy, check.Status)
 	assert.Contains(suite.T(), check.Message, "Memory usage within limits")
@@ -649,12 +649,12 @@ func (suite *HealthCheckerTestSuite) TestMemoryCheck() {
 // Concurrent execution tests
 func (suite *HealthCheckerTestSuite) TestConcurrentHealthChecks() {
 	numChecks := 10
-	
+
 	// Register multiple checks that take different amounts of time
 	for i := 0; i < numChecks; i++ {
 		checkName := fmt.Sprintf("check-%d", i)
 		delay := time.Duration(i*10) * time.Millisecond
-		
+
 		suite.checker.RegisterCheck(checkName, func(ctx context.Context) *Check {
 			time.Sleep(delay)
 			return &Check{
@@ -663,11 +663,11 @@ func (suite *HealthCheckerTestSuite) TestConcurrentHealthChecks() {
 			}
 		})
 	}
-	
+
 	start := time.Now()
 	response := suite.checker.Check(suite.ctx)
 	duration := time.Since(start)
-	
+
 	// All checks should complete concurrently, so total time should be less than
 	// the sum of all delays (which would be ~450ms)
 	assert.Less(suite.T(), duration, 300*time.Millisecond)
@@ -679,8 +679,8 @@ func (suite *HealthCheckerTestSuite) TestConcurrentHealthChecks() {
 // Edge cases and error handling tests
 func (suite *HealthCheckerTestSuite) TestEdgeCases() {
 	testCases := []struct {
-		name        string
-		setupFunc   func(*HealthChecker)
+		name         string
+		setupFunc    func(*HealthChecker)
 		validateFunc func(*testing.T, *HealthResponse)
 	}{
 		{
@@ -725,8 +725,8 @@ func (suite *HealthCheckerTestSuite) TestEdgeCases() {
 						Status:  StatusHealthy,
 						Message: "Check with metadata",
 						Metadata: map[string]interface{}{
-							"version": "1.2.3",
-							"uptime":  "5m30s",
+							"version":     "1.2.3",
+							"uptime":      "5m30s",
 							"connections": 42,
 						},
 					}
@@ -739,12 +739,12 @@ func (suite *HealthCheckerTestSuite) TestEdgeCases() {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			checker := NewHealthChecker("test-service", "1.0.0", suite.logger)
 			tc.setupFunc(checker)
-			
+
 			response := checker.Check(suite.ctx)
 			tc.validateFunc(suite.T(), response)
 		})
@@ -755,7 +755,7 @@ func (suite *HealthCheckerTestSuite) TestEdgeCases() {
 func (suite *HealthCheckerTestSuite) TestHighLoadConcurrentChecks() {
 	numChecks := 100
 	var wg sync.WaitGroup
-	
+
 	// Register many checks
 	for i := 0; i < numChecks; i++ {
 		checkName := fmt.Sprintf("load-check-%d", i)
@@ -768,11 +768,11 @@ func (suite *HealthCheckerTestSuite) TestHighLoadConcurrentChecks() {
 			}
 		})
 	}
-	
+
 	// Run multiple health checks concurrently
 	numConcurrentChecks := 10
 	responses := make([]*HealthResponse, numConcurrentChecks)
-	
+
 	for i := 0; i < numConcurrentChecks; i++ {
 		wg.Add(1)
 		go func(index int) {
@@ -780,9 +780,9 @@ func (suite *HealthCheckerTestSuite) TestHighLoadConcurrentChecks() {
 			responses[index] = suite.checker.Check(suite.ctx)
 		}(i)
 	}
-	
+
 	wg.Wait()
-	
+
 	// Verify all responses are valid
 	for i, response := range responses {
 		assert.NotNil(suite.T(), response, "Response %d should not be nil", i)
@@ -795,16 +795,16 @@ func (suite *HealthCheckerTestSuite) TestHighLoadConcurrentChecks() {
 func BenchmarkHealthCheck_SingleCheck(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	checker := NewHealthChecker("benchmark-service", "1.0.0", logger)
-	
+
 	checker.RegisterCheck("benchmark", func(ctx context.Context) *Check {
 		return &Check{
 			Status:  StatusHealthy,
 			Message: "Benchmark check",
 		}
 	})
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = checker.Check(ctx)
@@ -814,7 +814,7 @@ func BenchmarkHealthCheck_SingleCheck(b *testing.B) {
 func BenchmarkHealthCheck_MultipleChecks(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	checker := NewHealthChecker("benchmark-service", "1.0.0", logger)
-	
+
 	// Register 10 checks
 	for i := 0; i < 10; i++ {
 		checkName := fmt.Sprintf("benchmark-check-%d", i)
@@ -825,9 +825,9 @@ func BenchmarkHealthCheck_MultipleChecks(b *testing.B) {
 			}
 		})
 	}
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = checker.Check(ctx)
@@ -837,7 +837,7 @@ func BenchmarkHealthCheck_MultipleChecks(b *testing.B) {
 func BenchmarkHealthCheck_WithDependencies(b *testing.B) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
 	checker := NewHealthChecker("benchmark-service", "1.0.0", logger)
-	
+
 	// Register service checks
 	for i := 0; i < 5; i++ {
 		checkName := fmt.Sprintf("service-check-%d", i)
@@ -845,7 +845,7 @@ func BenchmarkHealthCheck_WithDependencies(b *testing.B) {
 			return &Check{Status: StatusHealthy, Message: "Service check"}
 		})
 	}
-	
+
 	// Register dependencies
 	for i := 0; i < 5; i++ {
 		depName := fmt.Sprintf("dependency-%d", i)
@@ -853,9 +853,9 @@ func BenchmarkHealthCheck_WithDependencies(b *testing.B) {
 			return &Check{Status: StatusHealthy, Message: "Dependency check"}
 		})
 	}
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = checker.Check(ctx)

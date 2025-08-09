@@ -45,12 +45,12 @@ const (
 	// Validation limits
 	MaxAllowedRetries    = 10
 	MaxAllowedRetryDelay = time.Hour
-	
+
 	// Exponential backoff configuration
-	BaseBackoffDelay     = 1 * time.Second
-	MaxBackoffDelay      = 5 * time.Minute
-	JitterFactor         = 0.1 // 10% jitter
-	BackoffMultiplier    = 2.0
+	BaseBackoffDelay  = 1 * time.Second
+	MaxBackoffDelay   = 5 * time.Minute
+	JitterFactor      = 0.1 // 10% jitter
+	BackoffMultiplier = 2.0
 )
 
 // Dependencies interface defines the external dependencies for the controller
@@ -80,10 +80,10 @@ type Config struct {
 type ProcessingPhase string
 
 const (
-	PhaseLLMProcessing     ProcessingPhase = "LLMProcessing"
-	PhaseResourcePlanning  ProcessingPhase = "ResourcePlanning"
-	PhaseManifestGeneration ProcessingPhase = "ManifestGeneration"
-	PhaseGitOpsCommit      ProcessingPhase = "GitOpsCommit"
+	PhaseLLMProcessing          ProcessingPhase = "LLMProcessing"
+	PhaseResourcePlanning       ProcessingPhase = "ResourcePlanning"
+	PhaseManifestGeneration     ProcessingPhase = "ManifestGeneration"
+	PhaseGitOpsCommit           ProcessingPhase = "GitOpsCommit"
 	PhaseDeploymentVerification ProcessingPhase = "DeploymentVerification"
 )
 
@@ -98,88 +98,88 @@ type ProcessingContext struct {
 	Manifests         map[string]string
 	GitCommitHash     string
 	DeploymentStatus  map[string]interface{}
-	Metrics          map[string]float64
+	Metrics           map[string]float64
 }
 
 // ResourcePlan represents the planned resources for deployment
 type ResourcePlan struct {
-	NetworkFunctions []PlannedNetworkFunction `json:"network_functions"`
-	ResourceRequirements ResourceRequirements `json:"resource_requirements"`
-	DeploymentPattern string                  `json:"deployment_pattern"`
-	QoSProfile       string                   `json:"qos_profile"`
-	SliceConfiguration *SliceConfiguration    `json:"slice_configuration,omitempty"`
-	Interfaces       []InterfaceConfiguration `json:"interfaces"`
-	SecurityPolicies []SecurityPolicy         `json:"security_policies"`
-	EstimatedCost    float64                  `json:"estimated_cost"`
+	NetworkFunctions     []PlannedNetworkFunction `json:"network_functions"`
+	ResourceRequirements ResourceRequirements     `json:"resource_requirements"`
+	DeploymentPattern    string                   `json:"deployment_pattern"`
+	QoSProfile           string                   `json:"qos_profile"`
+	SliceConfiguration   *SliceConfiguration      `json:"slice_configuration,omitempty"`
+	Interfaces           []InterfaceConfiguration `json:"interfaces"`
+	SecurityPolicies     []SecurityPolicy         `json:"security_policies"`
+	EstimatedCost        float64                  `json:"estimated_cost"`
 }
 
 // PlannedNetworkFunction represents a planned network function deployment
 type PlannedNetworkFunction struct {
-	Name           string            `json:"name"`
-	Type           string            `json:"type"`
-	Version        string            `json:"version"`
-	Replicas       int               `json:"replicas"`
-	Resources      ResourceRequirements `json:"resources"`
-	Configuration  map[string]interface{} `json:"configuration"`
-	Dependencies   []string          `json:"dependencies"`
-	Interfaces     []string          `json:"interfaces"`
-	HealthChecks   []HealthCheckSpec `json:"health_checks"`
-	Monitoring     MonitoringSpec    `json:"monitoring"`
+	Name          string                 `json:"name"`
+	Type          string                 `json:"type"`
+	Version       string                 `json:"version"`
+	Replicas      int                    `json:"replicas"`
+	Resources     ResourceRequirements   `json:"resources"`
+	Configuration map[string]interface{} `json:"configuration"`
+	Dependencies  []string               `json:"dependencies"`
+	Interfaces    []string               `json:"interfaces"`
+	HealthChecks  []HealthCheckSpec      `json:"health_checks"`
+	Monitoring    MonitoringSpec         `json:"monitoring"`
 }
 
 // ResourceRequirements represents compute resource requirements
 type ResourceRequirements struct {
-	CPU        string `json:"cpu"`
-	Memory     string `json:"memory"`
-	Storage    string `json:"storage"`
-	NetworkBW  string `json:"network_bandwidth"`
-	GPU        string `json:"gpu,omitempty"`
+	CPU         string `json:"cpu"`
+	Memory      string `json:"memory"`
+	Storage     string `json:"storage"`
+	NetworkBW   string `json:"network_bandwidth"`
+	GPU         string `json:"gpu,omitempty"`
 	Accelerator string `json:"accelerator,omitempty"`
 }
 
 // SliceConfiguration represents network slice configuration
 type SliceConfiguration struct {
-	SliceType    string            `json:"slice_type"`
-	SST          int               `json:"sst"`
-	SD           string            `json:"sd,omitempty"`
-	QoSProfile   string            `json:"qos_profile"`
-	Isolation    string            `json:"isolation"`
-	Parameters   map[string]interface{} `json:"parameters"`
+	SliceType  string                 `json:"slice_type"`
+	SST        int                    `json:"sst"`
+	SD         string                 `json:"sd,omitempty"`
+	QoSProfile string                 `json:"qos_profile"`
+	Isolation  string                 `json:"isolation"`
+	Parameters map[string]interface{} `json:"parameters"`
 }
 
 // InterfaceConfiguration represents network interface configuration
 type InterfaceConfiguration struct {
-	Name         string            `json:"name"`
-	Type         string            `json:"type"`
-	Protocol     []string          `json:"protocol"`
-	Endpoints    []EndpointSpec    `json:"endpoints"`
-	Security     SecuritySpec      `json:"security"`
-	QoS          QoSSpec           `json:"qos"`
+	Name      string         `json:"name"`
+	Type      string         `json:"type"`
+	Protocol  []string       `json:"protocol"`
+	Endpoints []EndpointSpec `json:"endpoints"`
+	Security  SecuritySpec   `json:"security"`
+	QoS       QoSSpec        `json:"qos"`
 }
 
 // SecurityPolicy represents security policy configuration
 type SecurityPolicy struct {
-	Name         string            `json:"name"`
-	Type         string            `json:"type"`
-	Rules        []SecurityRule    `json:"rules"`
-	AppliesTo    []string          `json:"applies_to"`
+	Name      string         `json:"name"`
+	Type      string         `json:"type"`
+	Rules     []SecurityRule `json:"rules"`
+	AppliesTo []string       `json:"applies_to"`
 }
 
 // Supporting specification types
 type HealthCheckSpec struct {
-	Type        string `json:"type"`
-	Path        string `json:"path"`
-	Port        int    `json:"port"`
-	Interval    int    `json:"interval"`
-	Timeout     int    `json:"timeout"`
-	Retries     int    `json:"retries"`
+	Type     string `json:"type"`
+	Path     string `json:"path"`
+	Port     int    `json:"port"`
+	Interval int    `json:"interval"`
+	Timeout  int    `json:"timeout"`
+	Retries  int    `json:"retries"`
 }
 
 type MonitoringSpec struct {
-	Enabled     bool     `json:"enabled"`
-	Metrics     []string `json:"metrics"`
-	Alerts      []string `json:"alerts"`
-	Dashboards  []string `json:"dashboards"`
+	Enabled    bool     `json:"enabled"`
+	Metrics    []string `json:"metrics"`
+	Alerts     []string `json:"alerts"`
+	Dashboards []string `json:"dashboards"`
 }
 
 type EndpointSpec struct {
@@ -203,11 +203,11 @@ type QoSSpec struct {
 }
 
 type SecurityRule struct {
-	Action    string   `json:"action"`
-	Protocol  string   `json:"protocol"`
-	Ports     []int    `json:"ports"`
-	Sources   []string `json:"sources"`
-	Targets   []string `json:"targets"`
+	Action   string   `json:"action"`
+	Protocol string   `json:"protocol"`
+	Ports    []int    `json:"ports"`
+	Sources  []string `json:"sources"`
+	Targets  []string `json:"targets"`
 }
 
 // NetworkIntentReconciler orchestrates the reconciliation of NetworkIntent resources
@@ -231,26 +231,26 @@ func calculateExponentialBackoff(retryCount int, baseDelay, maxDelay time.Durati
 	if maxDelay <= 0 {
 		maxDelay = MaxBackoffDelay
 	}
-	
+
 	// Calculate exponential backoff: baseDelay * multiplier^retryCount
 	backoffSeconds := float64(baseDelay.Seconds()) * math.Pow(BackoffMultiplier, float64(retryCount))
 	backoffDuration := time.Duration(backoffSeconds * float64(time.Second))
-	
+
 	// Apply jitter: ±10% random variation to prevent thundering herd
 	jitterRange := float64(backoffDuration) * JitterFactor
-	jitter := (rand.Float64()*2-1) * jitterRange // Random between -jitterRange and +jitterRange
+	jitter := (rand.Float64()*2 - 1) * jitterRange // Random between -jitterRange and +jitterRange
 	finalDelay := time.Duration(float64(backoffDuration) + jitter)
-	
+
 	// Cap at maximum delay
 	if finalDelay > maxDelay {
 		finalDelay = maxDelay
 	}
-	
+
 	// Ensure minimum delay
 	if finalDelay < baseDelay {
 		finalDelay = baseDelay
 	}
-	
+
 	return finalDelay
 }
 
@@ -282,7 +282,7 @@ func (r *NetworkIntentReconciler) setReadyCondition(ctx context.Context, network
 		LastTransitionTime: metav1.Now(),
 	}
 	updateCondition(&networkIntent.Status.Conditions, condition)
-	
+
 	return r.safeStatusUpdate(ctx, networkIntent)
 }
 
@@ -290,7 +290,7 @@ func (r *NetworkIntentReconciler) setReadyCondition(ctx context.Context, network
 func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, deps Dependencies, config *Config) (*NetworkIntentReconciler, error) {
 	// Initialize random number generator for jitter in exponential backoff
 	rand.Seed(time.Now().UnixNano())
-	
+
 	if client == nil {
 		return nil, fmt.Errorf("client cannot be nil")
 	}
@@ -402,7 +402,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		ExtractedEntities: make(map[string]interface{}),
 		TelecomContext:    make(map[string]interface{}),
 		DeploymentStatus:  make(map[string]interface{}),
-		Metrics:          make(map[string]float64),
+		Metrics:           make(map[string]float64),
 	}
 
 	// Update observed generation
@@ -411,7 +411,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Initialize metrics collector
 	metricsCollector := r.deps.GetMetricsCollector()
 	if metricsCollector != nil {
-		metricsCollector.UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace, 
+		metricsCollector.UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace,
 			r.extractIntentType(networkIntent.Spec.Intent), "processing")
 	}
 
@@ -432,7 +432,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		logger.Error(err, "processing pipeline failed")
 		r.recordFailureEvent(&networkIntent, "ProcessingPipelineFailed", err.Error())
 		if metricsCollector != nil {
-			metricsCollector.UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace, 
+			metricsCollector.UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace,
 				r.extractIntentType(networkIntent.Spec.Intent), "failed")
 		}
 		return result, err
@@ -448,7 +448,7 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		logger.Error(err, "failed to update completion phase")
 		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update completion phase: %w", err)
 	}
-	
+
 	// Set Ready condition to True indicating successful completion of entire pipeline
 	if err := r.setReadyCondition(ctx, &networkIntent, metav1.ConditionTrue, "AllPhasesCompleted", "All processing phases completed successfully and NetworkIntent is ready"); err != nil {
 		logger.Error(err, "failed to set ready condition on completion")
@@ -460,11 +460,11 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		processingDuration := time.Since(processingCtx.StartTime)
 		metricsCollector.RecordNetworkIntentProcessed(
 			r.extractIntentType(networkIntent.Spec.Intent), "completed", processingDuration)
-		metricsCollector.UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace, 
+		metricsCollector.UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace,
 			r.extractIntentType(networkIntent.Spec.Intent), "completed")
 	}
 
-	r.recordEvent(&networkIntent, "Normal", "ReconciliationCompleted", 
+	r.recordEvent(&networkIntent, "Normal", "ReconciliationCompleted",
 		"NetworkIntent successfully processed through all phases and deployed")
 	logger.Info("NetworkIntent reconciliation completed successfully",
 		"intent", networkIntent.Spec.Intent,
@@ -569,7 +569,7 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		// Set Ready condition to indicate failure
 		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMProcessingFailed", fmt.Sprintf("LLM processing failed after %d retries: %v", r.config.MaxRetries, err))
 		return ctrl.Result{}, err
@@ -588,7 +588,7 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		// Set Ready condition to indicate configuration issue
 		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMClientNotConfigured", "LLM client is not properly configured")
 		return ctrl.Result{}, err
@@ -606,11 +606,11 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 	// Process with LLM
 	logger.Info("Processing intent with LLM", "retry_count", retryCount+1, "enhanced_prompt_length", len(enhancedPrompt))
 	processedResult, err := llmClient.ProcessIntent(ctx, enhancedPrompt)
-	
+
 	if err != nil {
 		logger.Error(err, "LLM processing failed", "retry", retryCount+1)
 		setRetryCount(networkIntent, "llm-processing", retryCount+1)
-		
+
 		condition := metav1.Condition{
 			Type:               "Processed",
 			Status:             metav1.ConditionFalse,
@@ -619,19 +619,19 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		// Set Ready condition to False while retrying
 		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMProcessingRetrying", fmt.Sprintf("LLM processing failed, retrying (attempt %d/%d): %v", retryCount+1, r.config.MaxRetries, err))
-		
+
 		r.recordFailureEvent(networkIntent, "LLMProcessingRetry", fmt.Sprintf("attempt %d/%d failed: %v", retryCount+1, r.config.MaxRetries, err))
-		
+
 		// Use exponential backoff with jitter for LLM operations
 		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "llm-processing")
-		logger.V(1).Info("Scheduling LLM processing retry with exponential backoff", 
-			"delay", backoffDelay, 
-			"attempt", retryCount+1, 
+		logger.V(1).Info("Scheduling LLM processing retry with exponential backoff",
+			"delay", backoffDelay,
+			"attempt", retryCount+1,
 			"max_retries", r.config.MaxRetries)
-		
+
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 
@@ -640,7 +640,7 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 	if err := json.Unmarshal([]byte(processedResult), &parameters); err != nil {
 		logger.Error(err, "failed to parse LLM response as JSON", "response", processedResult)
 		setRetryCount(networkIntent, "llm-processing", retryCount+1)
-		
+
 		condition := metav1.Condition{
 			Type:               "Processed",
 			Status:             metav1.ConditionFalse,
@@ -649,10 +649,10 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		// Set Ready condition to False due to parsing error
 		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMResponseParsingFailed", fmt.Sprintf("Failed to parse LLM response as JSON: %v", err))
-		
+
 		// Use exponential backoff for parsing failures too
 		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "llm-processing")
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
@@ -677,7 +677,7 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 	processingDuration := time.Since(startTime)
 	now := metav1.Now()
 	networkIntent.Status.ProcessingCompletionTime = &now
-	
+
 	condition := metav1.Condition{
 		Type:               "Processed",
 		Status:             metav1.ConditionTrue,
@@ -686,7 +686,7 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 		LastTransitionTime: now,
 	}
 	updateCondition(&networkIntent.Status.Conditions, condition)
-	
+
 	// Set Ready condition to True for LLM processing success (this phase only)
 	// Note: Overall Ready status will be managed by the full pipeline
 	if err := r.safeStatusUpdate(ctx, networkIntent); err != nil {
@@ -739,7 +739,7 @@ func (r *NetworkIntentReconciler) buildTelecomEnhancedPrompt(ctx context.Context
 				promptBuilder.WriteString(fmt.Sprintf("- **%s** (%s): %s\n", nf.Name, nf.Type, nf.Description))
 				promptBuilder.WriteString(fmt.Sprintf("  - Interfaces: %s\n", strings.Join(nf.Interfaces, ", ")))
 				promptBuilder.WriteString(fmt.Sprintf("  - Dependencies: %s\n", strings.Join(nf.Dependencies, ", ")))
-				promptBuilder.WriteString(fmt.Sprintf("  - Performance: Max %d RPS, Avg latency %.1fms\n", 
+				promptBuilder.WriteString(fmt.Sprintf("  - Performance: Max %d RPS, Avg latency %.1fms\n",
 					nf.Performance.MaxThroughputRPS, nf.Performance.AvgLatencyMs))
 			}
 		}
@@ -834,7 +834,7 @@ func (r *NetworkIntentReconciler) extractTelecomContext(intent string, kb *telec
 	// Also check for common aliases
 	nfAliases := map[string]string{
 		"access and mobility management": "amf",
-		"session management":             "smf", 
+		"session management":             "smf",
 		"user plane":                     "upf",
 		"policy control":                 "pcf",
 		"authentication server":          "ausf",
@@ -842,7 +842,7 @@ func (r *NetworkIntentReconciler) extractTelecomContext(intent string, kb *telec
 		"network repository":             "nrf",
 		"network slice selection":        "nssf",
 		"base station":                   "gnb",
-		"gnodeb":                        "gnb",
+		"gnodeb":                         "gnb",
 	}
 
 	for alias, nf := range nfAliases {
@@ -855,14 +855,14 @@ func (r *NetworkIntentReconciler) extractTelecomContext(intent string, kb *telec
 
 	// Detect slice types
 	sliceKeywords := map[string]string{
-		"embb":             "embb",
-		"enhanced mobile":  "embb",
-		"broadband":        "embb",
+		"embb":            "embb",
+		"enhanced mobile": "embb",
+		"broadband":       "embb",
 		"urllc":           "urllc",
-		"ultra reliable":   "urllc",
-		"low latency":      "urllc",
+		"ultra reliable":  "urllc",
+		"low latency":     "urllc",
 		"mmtc":            "mmtc",
-		"machine type":     "mmtc",
+		"machine type":    "mmtc",
 		"iot":             "mmtc",
 		"massive":         "mmtc",
 	}
@@ -877,10 +877,10 @@ func (r *NetworkIntentReconciler) extractTelecomContext(intent string, kb *telec
 	// Detect deployment patterns
 	deploymentKeywords := map[string]string{
 		"high availability": "high-availability",
-		"ha":               "high-availability", 
-		"production":       "high-availability",
-		"edge":             "edge-optimized",
-		"low latency":      "edge-optimized",
+		"ha":                "high-availability",
+		"production":        "high-availability",
+		"edge":              "edge-optimized",
+		"low latency":       "edge-optimized",
 	}
 
 	for keyword, pattern := range deploymentKeywords {
@@ -902,7 +902,7 @@ func (r *NetworkIntentReconciler) extractTelecomContext(intent string, kb *telec
 	if strings.Contains(intentLower, "small") || strings.Contains(intentLower, "dev") {
 		context["resource_profile"] = "small"
 	} else if strings.Contains(intentLower, "large") || strings.Contains(intentLower, "prod") {
-		context["resource_profile"] = "large"  
+		context["resource_profile"] = "large"
 	} else {
 		context["resource_profile"] = "medium"
 	}
@@ -940,7 +940,7 @@ func (r *NetworkIntentReconciler) planResources(ctx context.Context, networkInte
 	// Create resource plan
 	resourcePlan := &ResourcePlan{
 		NetworkFunctions: []PlannedNetworkFunction{},
-		Interfaces:      []InterfaceConfiguration{},
+		Interfaces:       []InterfaceConfiguration{},
 		SecurityPolicies: []SecurityPolicy{},
 	}
 
@@ -962,7 +962,7 @@ func (r *NetworkIntentReconciler) planResources(ctx context.Context, networkInte
 		if st, ok := sliceConfig["slice_type"].(string); ok {
 			sliceType = st
 		}
-		
+
 		if sliceSpec, exists := kb.GetSliceType(sliceType); exists {
 			resourcePlan.SliceConfiguration = &SliceConfiguration{
 				SliceType:  sliceType,
@@ -971,7 +971,7 @@ func (r *NetworkIntentReconciler) planResources(ctx context.Context, networkInte
 				Isolation:  "standard",
 				Parameters: make(map[string]interface{}),
 			}
-			
+
 			// Copy slice requirements to parameters
 			resourcePlan.SliceConfiguration.Parameters["latency_requirement"] = sliceSpec.Requirements.Latency.UserPlane
 			resourcePlan.SliceConfiguration.Parameters["throughput_min"] = sliceSpec.Requirements.Throughput.Min
@@ -986,9 +986,9 @@ func (r *NetworkIntentReconciler) planResources(ctx context.Context, networkInte
 			if !interfaceMap[ifaceName] {
 				if ifaceSpec, exists := kb.GetInterface(ifaceName); exists {
 					interfaceConfig := InterfaceConfiguration{
-						Name:     ifaceSpec.Name,
-						Type:     ifaceSpec.Type,
-						Protocol: ifaceSpec.Protocol,
+						Name:      ifaceSpec.Name,
+						Type:      ifaceSpec.Type,
+						Protocol:  ifaceSpec.Protocol,
 						Endpoints: []EndpointSpec{},
 						Security: SecuritySpec{
 							Authentication: ifaceSpec.SecurityModel.Authentication,
@@ -1001,7 +1001,7 @@ func (r *NetworkIntentReconciler) planResources(ctx context.Context, networkInte
 							PacketLoss: ifaceSpec.QosRequirements.PacketLoss,
 						},
 					}
-					
+
 					// Add endpoints from interface spec
 					for _, endpoint := range ifaceSpec.Endpoints {
 						interfaceConfig.Endpoints = append(interfaceConfig.Endpoints, EndpointSpec{
@@ -1011,7 +1011,7 @@ func (r *NetworkIntentReconciler) planResources(ctx context.Context, networkInte
 							Path:     endpoint.Path,
 						})
 					}
-					
+
 					resourcePlan.Interfaces = append(resourcePlan.Interfaces, interfaceConfig)
 					interfaceMap[ifaceName] = true
 				}
@@ -1021,8 +1021,8 @@ func (r *NetworkIntentReconciler) planResources(ctx context.Context, networkInte
 
 	// Calculate total resource requirements
 	totalResources := ResourceRequirements{
-		CPU:    "0",
-		Memory: "0Gi", 
+		CPU:     "0",
+		Memory:  "0Gi",
 		Storage: "0Gi",
 	}
 
@@ -1032,12 +1032,12 @@ func (r *NetworkIntentReconciler) planResources(ctx context.Context, networkInte
 		var cpu float64
 		fmt.Sscanf(nf.Resources.CPU, "%f", &cpu)
 		totalCPU += cpu * float64(nf.Replicas)
-		
+
 		// Parse Memory
 		var memory float64
-		fmt.Sscanf(nf.Resources.Memory, "%fGi", &memory) 
+		fmt.Sscanf(nf.Resources.Memory, "%fGi", &memory)
 		totalMemory += memory * float64(nf.Replicas)
-		
+
 		// Parse Storage
 		var storage float64
 		fmt.Sscanf(nf.Resources.Storage, "%fGi", &storage)
@@ -1074,7 +1074,7 @@ func (r *NetworkIntentReconciler) planResources(ctx context.Context, networkInte
 	condition := metav1.Condition{
 		Type:               "ResourcesPlanned",
 		Status:             metav1.ConditionTrue,
-		Reason:             "ResourcePlanningSucceeded", 
+		Reason:             "ResourcePlanningSucceeded",
 		Message:            fmt.Sprintf("Resource plan created with %d network functions, estimated cost $%.2f", len(resourcePlan.NetworkFunctions), resourcePlan.EstimatedCost),
 		LastTransitionTime: metav1.Now(),
 	}
@@ -1089,10 +1089,10 @@ func (r *NetworkIntentReconciler) planResources(ctx context.Context, networkInte
 	processingCtx.Metrics["planned_network_functions"] = float64(len(resourcePlan.NetworkFunctions))
 	processingCtx.Metrics["estimated_cost"] = resourcePlan.EstimatedCost
 
-	r.recordEvent(networkIntent, "Normal", "ResourcePlanningSucceeded", 
+	r.recordEvent(networkIntent, "Normal", "ResourcePlanningSucceeded",
 		fmt.Sprintf("Created resource plan with %d NFs", len(resourcePlan.NetworkFunctions)))
-	logger.Info("Resource planning phase completed successfully", 
-		"duration", planningDuration, 
+	logger.Info("Resource planning phase completed successfully",
+		"duration", planningDuration,
 		"network_functions", len(resourcePlan.NetworkFunctions),
 		"estimated_cost", resourcePlan.EstimatedCost)
 
@@ -1115,7 +1115,7 @@ func (r *NetworkIntentReconciler) planNetworkFunction(nfSpec *telecom.NetworkFun
 		} else {
 			// Create minimal config
 			deployConfig = telecom.DeploymentConfig{
-				Replicas: 1,
+				Replicas:        1,
 				ResourceProfile: "medium",
 			}
 		}
@@ -1171,31 +1171,31 @@ func (r *NetworkIntentReconciler) planNetworkFunction(nfSpec *telecom.NetworkFun
 	}
 
 	return PlannedNetworkFunction{
-		Name:           strings.ToLower(nfSpec.Name),
-		Type:           nfSpec.Type,
-		Version:        nfSpec.Version,
-		Replicas:       replicas,
+		Name:     strings.ToLower(nfSpec.Name),
+		Type:     nfSpec.Type,
+		Version:  nfSpec.Version,
+		Replicas: replicas,
 		Resources: ResourceRequirements{
-			CPU:     nfSpec.Resources.MaxCPU,
-			Memory:  nfSpec.Resources.MaxMemory,
-			Storage: nfSpec.Resources.Storage,
-			NetworkBW: nfSpec.Resources.NetworkBW,
+			CPU:         nfSpec.Resources.MaxCPU,
+			Memory:      nfSpec.Resources.MaxMemory,
+			Storage:     nfSpec.Resources.Storage,
+			NetworkBW:   nfSpec.Resources.NetworkBW,
 			Accelerator: nfSpec.Resources.Accelerator,
 		},
-		Configuration:  configuration,
-		Dependencies:   nfSpec.Dependencies,
-		Interfaces:     nfSpec.Interfaces,
-		HealthChecks:   healthChecks,
-		Monitoring:     monitoring,
+		Configuration: configuration,
+		Dependencies:  nfSpec.Dependencies,
+		Interfaces:    nfSpec.Interfaces,
+		HealthChecks:  healthChecks,
+		Monitoring:    monitoring,
 	}
 }
 
 // calculateEstimatedCost calculates estimated monthly cost for resources
 func (r *NetworkIntentReconciler) calculateEstimatedCost(cpu, memory, storage float64) float64 {
 	// Simplified cost calculation (in USD per month)
-	cpuCostPerCore := 50.0    // $50 per CPU core per month
-	memoryCostPerGi := 10.0   // $10 per Gi memory per month  
-	storageCostPerGi := 2.0   // $2 per Gi storage per month
+	cpuCostPerCore := 50.0  // $50 per CPU core per month
+	memoryCostPerGi := 10.0 // $10 per Gi memory per month
+	storageCostPerGi := 2.0 // $2 per Gi storage per month
 
 	totalCost := (cpu * cpuCostPerCore) + (memory * memoryCostPerGi) + (storage * storageCostPerGi)
 	return totalCost
@@ -1297,10 +1297,10 @@ func (r *NetworkIntentReconciler) generateManifests(ctx context.Context, network
 	processingCtx.Metrics["manifest_generation_duration"] = manifestGenDuration.Seconds()
 	processingCtx.Metrics["generated_manifests"] = float64(len(manifests))
 
-	r.recordEvent(networkIntent, "Normal", "ManifestGenerationSucceeded", 
+	r.recordEvent(networkIntent, "Normal", "ManifestGenerationSucceeded",
 		fmt.Sprintf("Generated %d Kubernetes manifests", len(manifests)))
-	logger.Info("Manifest generation phase completed successfully", 
-		"duration", manifestGenDuration, 
+	logger.Info("Manifest generation phase completed successfully",
+		"duration", manifestGenDuration,
 		"manifests_count", len(manifests))
 
 	return ctrl.Result{}, nil
@@ -1309,11 +1309,11 @@ func (r *NetworkIntentReconciler) generateManifests(ctx context.Context, network
 // generateDeploymentManifest creates a Kubernetes Deployment for a network function
 func (r *NetworkIntentReconciler) generateDeploymentManifest(networkIntent *nephoranv1.NetworkIntent, nf *PlannedNetworkFunction) *appsv1.Deployment {
 	labels := map[string]string{
-		"app.kubernetes.io/name":       nf.Name,
-		"app.kubernetes.io/instance":   networkIntent.Name,
-		"app.kubernetes.io/component":  nf.Type,
-		"app.kubernetes.io/part-of":    "5g-core",
-		"app.kubernetes.io/managed-by": "nephoran-intent-operator",
+		"app.kubernetes.io/name":        nf.Name,
+		"app.kubernetes.io/instance":    networkIntent.Name,
+		"app.kubernetes.io/component":   nf.Type,
+		"app.kubernetes.io/part-of":     "5g-core",
+		"app.kubernetes.io/managed-by":  "nephoran-intent-operator",
 		"nephoran.com/network-function": nf.Name,
 	}
 
@@ -1368,14 +1368,14 @@ func (r *NetworkIntentReconciler) generateDeploymentManifest(networkIntent *neph
 									corev1.ResourceMemory: parseQuantity(nf.Resources.Memory),
 								},
 							},
-							Ports: r.generateContainerPorts(nf),
-							Env:   r.generateEnvironmentVariables(nf),
+							Ports:          r.generateContainerPorts(nf),
+							Env:            r.generateEnvironmentVariables(nf),
 							LivenessProbe:  r.generateLivenessProbe(nf),
 							ReadinessProbe: r.generateReadinessProbe(nf),
 							SecurityContext: &corev1.SecurityContext{
 								AllowPrivilegeEscalation: &[]bool{false}[0],
-								RunAsNonRoot:            &[]bool{true}[0],
-								RunAsUser:               &[]int64{1000}[0],
+								RunAsNonRoot:             &[]bool{true}[0],
+								RunAsUser:                &[]int64{1000}[0],
 								Capabilities: &corev1.Capabilities{
 									Drop: []corev1.Capability{"ALL"},
 									Add:  []corev1.Capability{"NET_BIND_SERVICE"},
@@ -1462,7 +1462,7 @@ func (r *NetworkIntentReconciler) generateConfigMapManifest(networkIntent *nepho
 	}
 
 	data := make(map[string]string)
-	
+
 	// Convert configuration to YAML string
 	if configBytes, err := yaml.Marshal(nf.Configuration); err == nil {
 		data["config.yaml"] = string(configBytes)
@@ -1558,7 +1558,7 @@ func (r *NetworkIntentReconciler) generateSliceConfigMap(networkIntent *nephoran
 	}
 
 	data := make(map[string]string)
-	
+
 	// Convert slice configuration to YAML
 	if configBytes, err := yaml.Marshal(sliceConfig); err == nil {
 		data["slice-config.yaml"] = string(configBytes)
@@ -1623,7 +1623,7 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		// Set Ready condition to indicate Git operation failure
 		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "GitOperationsFailed", fmt.Sprintf("Git operations failed after %d retries", r.config.MaxRetries))
 		return ctrl.Result{}, fmt.Errorf("max retries exceeded for GitOps commit")
@@ -1633,7 +1633,7 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 	if err := gitClient.InitRepo(); err != nil {
 		logger.Error(err, "failed to initialize git repository")
 		setRetryCount(networkIntent, "git-deployment", retryCount+1)
-		
+
 		condition := metav1.Condition{
 			Type:               "GitOpsCommitted",
 			Status:             metav1.ConditionFalse,
@@ -1642,24 +1642,24 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		// Set Ready condition to False during Git initialization failures
 		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "GitRepoInitializationFailed", fmt.Sprintf("Git repository initialization failed: %v", err))
-		
+
 		// Use exponential backoff for Git operations
 		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "git-operations")
-		logger.V(1).Info("Scheduling git initialization retry with exponential backoff", 
-			"delay", backoffDelay, 
-			"attempt", retryCount+1, 
+		logger.V(1).Info("Scheduling git initialization retry with exponential backoff",
+			"delay", backoffDelay,
+			"attempt", retryCount+1,
 			"max_retries", r.config.MaxRetries)
-		
+
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 
 	// Organize manifests by deployment path
 	deploymentFiles := make(map[string]string)
 	basePath := fmt.Sprintf("%s/%s-%s", r.config.GitDeployPath, networkIntent.Namespace, networkIntent.Name)
-	
+
 	for filename, content := range processingCtx.Manifests {
 		filePath := fmt.Sprintf("%s/%s", basePath, filename)
 		deploymentFiles[filePath] = content
@@ -1682,7 +1682,7 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 	if err != nil {
 		logger.Error(err, "failed to commit and push deployment files")
 		setRetryCount(networkIntent, "git-deployment", retryCount+1)
-		
+
 		condition := metav1.Condition{
 			Type:               "GitOpsCommitted",
 			Status:             metav1.ConditionFalse,
@@ -1691,17 +1691,17 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 			LastTransitionTime: metav1.Now(),
 		}
 		updateCondition(&networkIntent.Status.Conditions, condition)
-		
+
 		// Set Ready condition to False during Git commit/push failures
 		r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "GitCommitPushFailed", fmt.Sprintf("Git commit and push failed: %v", err))
-		
+
 		// Use exponential backoff for Git commit/push operations
 		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "git-operations")
-		logger.V(1).Info("Scheduling git commit/push retry with exponential backoff", 
-			"delay", backoffDelay, 
-			"attempt", retryCount+1, 
+		logger.V(1).Info("Scheduling git commit/push retry with exponential backoff",
+			"delay", backoffDelay,
+			"attempt", retryCount+1,
 			"max_retries", r.config.MaxRetries)
-		
+
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 
@@ -1713,7 +1713,7 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 	now := metav1.Now()
 	networkIntent.Status.DeploymentCompletionTime = &now
 	networkIntent.Status.GitCommitHash = commitHash
-	
+
 	condition := metav1.Condition{
 		Type:               "GitOpsCommitted",
 		Status:             metav1.ConditionTrue,
@@ -1722,7 +1722,7 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 		LastTransitionTime: now,
 	}
 	updateCondition(&networkIntent.Status.Conditions, condition)
-	
+
 	// Note: Don't set Ready=True here yet, wait for full pipeline completion
 
 	if err := r.safeStatusUpdate(ctx, networkIntent); err != nil {
@@ -1739,9 +1739,9 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 	commitDuration := time.Since(startTime)
 	processingCtx.Metrics["gitops_commit_duration"] = commitDuration.Seconds()
 
-	r.recordEvent(networkIntent, "Normal", "GitOpsCommitSucceeded", 
+	r.recordEvent(networkIntent, "Normal", "GitOpsCommitSucceeded",
 		fmt.Sprintf("Committed %d manifests to GitOps (commit: %s)", len(deploymentFiles), commitHash[:8]))
-	logger.Info("GitOps commit phase completed successfully", 
+	logger.Info("GitOps commit phase completed successfully",
 		"duration", commitDuration,
 		"commit_hash", commitHash[:8],
 		"files_committed", len(deploymentFiles))
@@ -1758,7 +1758,7 @@ func (r *NetworkIntentReconciler) verifyDeployment(ctx context.Context, networkI
 
 	// For now, we'll implement a simple verification that checks if the GitOps commit was successful
 	// In a real implementation, this would check if the manifests were actually deployed and are running
-	
+
 	if processingCtx.GitCommitHash == "" {
 		return ctrl.Result{}, fmt.Errorf("no Git commit hash available for verification")
 	}
@@ -1768,21 +1768,21 @@ func (r *NetworkIntentReconciler) verifyDeployment(ctx context.Context, networkI
 
 	// Update deployment status
 	deploymentStatus := map[string]interface{}{
-		"git_commit_hash":       processingCtx.GitCommitHash,
-		"deployment_timestamp":  time.Now(),
-		"verification_status":   "verified", 
-		"network_functions":     len(processingCtx.ResourcePlan.NetworkFunctions),
-		"manifests_deployed":    len(processingCtx.Manifests),
+		"git_commit_hash":      processingCtx.GitCommitHash,
+		"deployment_timestamp": time.Now(),
+		"verification_status":  "verified",
+		"network_functions":    len(processingCtx.ResourcePlan.NetworkFunctions),
+		"manifests_deployed":   len(processingCtx.Manifests),
 	}
 
 	processingCtx.DeploymentStatus = deploymentStatus
 
 	// Create successful verification condition
 	condition := metav1.Condition{
-		Type:               "DeploymentVerified",
-		Status:             metav1.ConditionTrue,
-		Reason:             "DeploymentVerificationSucceeded",
-		Message:            fmt.Sprintf("Deployment verified successfully - %d network functions deployed via commit %s", 
+		Type:   "DeploymentVerified",
+		Status: metav1.ConditionTrue,
+		Reason: "DeploymentVerificationSucceeded",
+		Message: fmt.Sprintf("Deployment verified successfully - %d network functions deployed via commit %s",
 			len(processingCtx.ResourcePlan.NetworkFunctions), processingCtx.GitCommitHash[:8]),
 		LastTransitionTime: metav1.Now(),
 	}
@@ -1809,7 +1809,7 @@ func (r *NetworkIntentReconciler) verifyDeployment(ctx context.Context, networkI
 // extractIntentType extracts the intent type from the intent text
 func (r *NetworkIntentReconciler) extractIntentType(intent string) string {
 	intentLower := strings.ToLower(intent)
-	
+
 	// Check for slice types
 	if strings.Contains(intentLower, "embb") || strings.Contains(intentLower, "broadband") {
 		return "embb"
@@ -1818,7 +1818,7 @@ func (r *NetworkIntentReconciler) extractIntentType(intent string) string {
 	} else if strings.Contains(intentLower, "mmtc") || strings.Contains(intentLower, "machine type") || strings.Contains(intentLower, "iot") {
 		return "mmtc"
 	}
-	
+
 	// Check for network functions
 	if strings.Contains(intentLower, "amf") || strings.Contains(intentLower, "access") {
 		return "5gc-control"
@@ -1827,7 +1827,7 @@ func (r *NetworkIntentReconciler) extractIntentType(intent string) string {
 	} else if strings.Contains(intentLower, "gnb") || strings.Contains(intentLower, "base station") {
 		return "ran"
 	}
-	
+
 	return "generic"
 }
 
@@ -1836,7 +1836,7 @@ func (r *NetworkIntentReconciler) getNetworkFunctionsList(plan *ResourcePlan) st
 	if plan == nil || len(plan.NetworkFunctions) == 0 {
 		return "none"
 	}
-	
+
 	var names []string
 	for _, nf := range plan.NetworkFunctions {
 		names = append(names, nf.Name)
@@ -1847,7 +1847,7 @@ func (r *NetworkIntentReconciler) getNetworkFunctionsList(plan *ResourcePlan) st
 // generateContainerPorts generates container ports based on interfaces
 func (r *NetworkIntentReconciler) generateContainerPorts(nf *PlannedNetworkFunction) []corev1.ContainerPort {
 	var ports []corev1.ContainerPort
-	
+
 	// Add standard ports based on network function type
 	switch nf.Type {
 	case "5gc-control-plane":
@@ -1873,14 +1873,14 @@ func (r *NetworkIntentReconciler) generateContainerPorts(nf *PlannedNetworkFunct
 			Protocol:      corev1.ProtocolUDP,
 		})
 	}
-	
+
 	return ports
 }
 
 // generateEnvironmentVariables generates environment variables for the container
 func (r *NetworkIntentReconciler) generateEnvironmentVariables(nf *PlannedNetworkFunction) []corev1.EnvVar {
 	var envVars []corev1.EnvVar
-	
+
 	// Add configuration as environment variables
 	for key, value := range nf.Configuration {
 		if strValue, ok := value.(string); ok {
@@ -1890,7 +1890,7 @@ func (r *NetworkIntentReconciler) generateEnvironmentVariables(nf *PlannedNetwor
 			})
 		}
 	}
-	
+
 	// Add common environment variables
 	envVars = append(envVars, corev1.EnvVar{
 		Name: "POD_NAME",
@@ -1900,7 +1900,7 @@ func (r *NetworkIntentReconciler) generateEnvironmentVariables(nf *PlannedNetwor
 			},
 		},
 	})
-	
+
 	envVars = append(envVars, corev1.EnvVar{
 		Name: "POD_NAMESPACE",
 		ValueFrom: &corev1.EnvVarSource{
@@ -1909,7 +1909,7 @@ func (r *NetworkIntentReconciler) generateEnvironmentVariables(nf *PlannedNetwor
 			},
 		},
 	})
-	
+
 	return envVars
 }
 
@@ -1931,7 +1931,7 @@ func (r *NetworkIntentReconciler) generateLivenessProbe(nf *PlannedNetworkFuncti
 			}
 		}
 	}
-	
+
 	// Default HTTP liveness probe
 	return &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
@@ -1965,7 +1965,7 @@ func (r *NetworkIntentReconciler) generateReadinessProbe(nf *PlannedNetworkFunct
 			}
 		}
 	}
-	
+
 	// Default HTTP readiness probe
 	return &corev1.Probe{
 		ProbeHandler: corev1.ProbeHandler{
@@ -1984,7 +1984,7 @@ func (r *NetworkIntentReconciler) generateReadinessProbe(nf *PlannedNetworkFunct
 // generateServicePorts generates service ports
 func (r *NetworkIntentReconciler) generateServicePorts(nf *PlannedNetworkFunction) []corev1.ServicePort {
 	var ports []corev1.ServicePort
-	
+
 	// Add standard ports based on network function type
 	switch nf.Type {
 	case "5gc-control-plane":
@@ -2008,14 +2008,14 @@ func (r *NetworkIntentReconciler) generateServicePorts(nf *PlannedNetworkFunctio
 			Protocol:   corev1.ProtocolUDP,
 		})
 	}
-	
+
 	return ports
 }
 
 // generateIngressRules generates ingress network policy rules
 func (r *NetworkIntentReconciler) generateIngressRules(nf *PlannedNetworkFunction) []networkingv1.NetworkPolicyIngressRule {
 	var rules []networkingv1.NetworkPolicyIngressRule
-	
+
 	// Allow ingress from same namespace by default
 	rule := networkingv1.NetworkPolicyIngressRule{
 		From: []networkingv1.NetworkPolicyPeer{
@@ -2026,7 +2026,7 @@ func (r *NetworkIntentReconciler) generateIngressRules(nf *PlannedNetworkFunctio
 			},
 		},
 	}
-	
+
 	rules = append(rules, rule)
 	return rules
 }
@@ -2034,7 +2034,7 @@ func (r *NetworkIntentReconciler) generateIngressRules(nf *PlannedNetworkFunctio
 // generateEgressRules generates egress network policy rules
 func (r *NetworkIntentReconciler) generateEgressRules(nf *PlannedNetworkFunction) []networkingv1.NetworkPolicyEgressRule {
 	var rules []networkingv1.NetworkPolicyEgressRule
-	
+
 	// Allow egress to same namespace and DNS
 	rule := networkingv1.NetworkPolicyEgressRule{
 		To: []networkingv1.NetworkPolicyPeer{
@@ -2045,7 +2045,7 @@ func (r *NetworkIntentReconciler) generateEgressRules(nf *PlannedNetworkFunction
 			},
 		},
 	}
-	
+
 	rules = append(rules, rule)
 	return rules
 }
@@ -2076,7 +2076,7 @@ func (r *NetworkIntentReconciler) processIntentWithRetry(ctx context.Context, ne
 		ExtractedEntities: make(map[string]interface{}),
 		TelecomContext:    make(map[string]interface{}),
 		DeploymentStatus:  make(map[string]interface{}),
-		Metrics:          make(map[string]float64),
+		Metrics:           make(map[string]float64),
 	})
 }
 
@@ -2086,13 +2086,13 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 		StartTime: time.Now(),
 		Manifests: make(map[string]string),
 	}
-	
+
 	// Generate basic manifests for backward compatibility
 	var parameters map[string]interface{}
 	if len(networkIntent.Spec.Parameters.Raw) > 0 {
 		json.Unmarshal(networkIntent.Spec.Parameters.Raw, &parameters)
 	}
-	
+
 	// Create a simple manifest
 	manifest := map[string]interface{}{
 		"apiVersion": "v1",
@@ -2111,7 +2111,7 @@ func (r *NetworkIntentReconciler) deployViaGitOps(ctx context.Context, networkIn
 
 	manifestYAML, _ := yaml.Marshal(manifest)
 	processingCtx.Manifests["networkintent-configmap.yaml"] = string(manifestYAML)
-	
+
 	return r.commitToGitOps(ctx, networkIntent, processingCtx)
 }
 
@@ -2281,14 +2281,14 @@ func (r *NetworkIntentReconciler) reconcileDelete(ctx context.Context, networkIn
 		// Update condition to show retry with specific Git error information
 		now := metav1.Now()
 		networkIntent.Status.LastRetryTime = &now
-		
+
 		reason := "CleanupRetrying"
 		message := fmt.Sprintf("Cleanup failed (attempt %d/%d): %v", retryCount+1, r.config.MaxRetries, err)
 		if !gitPushSucceeded && strings.Contains(err.Error(), "push") {
 			reason = "GitPushFailed"
 			message = fmt.Sprintf("Git push failed during cleanup (attempt %d/%d): %v", retryCount+1, r.config.MaxRetries, err)
 		}
-		
+
 		condition := metav1.Condition{
 			Type:               "Ready",
 			Status:             metav1.ConditionFalse,
@@ -2307,8 +2307,8 @@ func (r *NetworkIntentReconciler) reconcileDelete(ctx context.Context, networkIn
 		// Use exponential backoff with jitter for cleanup operations
 		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "cleanup")
 
-		logger.V(1).Info("Scheduling cleanup retry with exponential backoff", 
-			"delay", backoffDelay, 
+		logger.V(1).Info("Scheduling cleanup retry with exponential backoff",
+			"delay", backoffDelay,
 			"attempt", retryCount+1,
 			"max_retries", r.config.MaxRetries)
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
@@ -2316,7 +2316,7 @@ func (r *NetworkIntentReconciler) reconcileDelete(ctx context.Context, networkIn
 
 	// Git push confirmed successful, now safe to remove finalizer
 	logger.Info("Git push confirmed successful, proceeding with finalizer removal")
-	
+
 	// Clear retry count
 	clearRetryCount(networkIntent, "cleanup")
 
@@ -2364,10 +2364,10 @@ func (r *NetworkIntentReconciler) performCleanupWithGitConfirmation(ctx context.
 	gitClient := r.deps.GetGitClient()
 	if gitClient != nil && r.config.GitRepoURL != "" {
 		logger.V(1).Info("Starting GitOps cleanup with push confirmation")
-		
+
 		// Track Git operations explicitly
 		*gitPushSucceeded = false
-		
+
 		if err := r.cleanupGitOpsPackagesWithWait(ctx, networkIntent, gitClient); err != nil {
 			// Check if this was specifically a push error
 			if strings.Contains(err.Error(), "push") || strings.Contains(err.Error(), "remote") {
@@ -2376,7 +2376,7 @@ func (r *NetworkIntentReconciler) performCleanupWithGitConfirmation(ctx context.
 			}
 			return fmt.Errorf("GitOps cleanup failed: %w", err)
 		}
-		
+
 		// If we got here, Git push succeeded
 		*gitPushSucceeded = true
 		logger.V(1).Info("GitOps cleanup completed successfully with push confirmation")

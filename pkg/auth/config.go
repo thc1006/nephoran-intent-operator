@@ -16,15 +16,15 @@ import (
 
 // AuthConfig holds authentication configuration
 type AuthConfig struct {
-	Enabled       bool                     `json:"enabled"`
-	JWTSecretKey  string                   `json:"jwt_secret_key"`
-	TokenTTL      time.Duration            `json:"token_ttl"`
-	RefreshTTL    time.Duration            `json:"refresh_ttl"`
-	Providers     map[string]ProviderConfig `json:"providers"`
+	Enabled       bool                          `json:"enabled"`
+	JWTSecretKey  string                        `json:"jwt_secret_key"`
+	TokenTTL      time.Duration                 `json:"token_ttl"`
+	RefreshTTL    time.Duration                 `json:"refresh_ttl"`
+	Providers     map[string]ProviderConfig     `json:"providers"`
 	LDAPProviders map[string]LDAPProviderConfig `json:"ldap_providers"`
-	RBAC          RBACConfig               `json:"rbac"`
-	AdminUsers    []string                 `json:"admin_users"`
-	OperatorUsers []string                 `json:"operator_users"`
+	RBAC          RBACConfig                    `json:"rbac"`
+	AdminUsers    []string                      `json:"admin_users"`
+	OperatorUsers []string                      `json:"operator_users"`
 }
 
 // ProviderConfig holds OAuth2 provider configuration
@@ -33,10 +33,10 @@ type ProviderConfig struct {
 	Type         string   `json:"type"` // azure-ad, okta, keycloak, google, ldap
 	ClientID     string   `json:"client_id"`
 	ClientSecret string   `json:"client_secret"`
-	TenantID     string   `json:"tenant_id,omitempty"`     // Azure AD
-	Domain       string   `json:"domain,omitempty"`        // Okta
-	BaseURL      string   `json:"base_url,omitempty"`      // Keycloak
-	Realm        string   `json:"realm,omitempty"`         // Keycloak
+	TenantID     string   `json:"tenant_id,omitempty"` // Azure AD
+	Domain       string   `json:"domain,omitempty"`    // Okta
+	BaseURL      string   `json:"base_url,omitempty"`  // Keycloak
+	Realm        string   `json:"realm,omitempty"`     // Keycloak
 	Scopes       []string `json:"scopes,omitempty"`
 	AuthURL      string   `json:"auth_url,omitempty"`      // Custom
 	TokenURL     string   `json:"token_url,omitempty"`     // Custom
@@ -45,31 +45,31 @@ type ProviderConfig struct {
 
 // LDAPProviderConfig holds LDAP provider configuration
 type LDAPProviderConfig struct {
-	Enabled               bool                        `json:"enabled"`
-	Host                  string                      `json:"host"`
-	Port                  int                         `json:"port"`
-	UseSSL                bool                        `json:"use_ssl"`
-	UseTLS                bool                        `json:"use_tls"`
-	SkipVerify            bool                        `json:"skip_verify"`
-	BindDN                string                      `json:"bind_dn"`
-	BindPassword          string                      `json:"bind_password"`
-	BaseDN                string                      `json:"base_dn"`
-	UserFilter            string                      `json:"user_filter"`
-	GroupFilter           string                      `json:"group_filter"`
-	UserSearchBase        string                      `json:"user_search_base"`
-	GroupSearchBase       string                      `json:"group_search_base"`
-	UserAttributes        LDAPAttributeMapping        `json:"user_attributes"`
-	GroupAttributes       LDAPAttributeMapping        `json:"group_attributes"`
-	AuthMethod            string                      `json:"auth_method"`
-	Timeout               time.Duration               `json:"timeout"`
-	ConnectionTimeout     time.Duration               `json:"connection_timeout"`
-	MaxConnections        int                         `json:"max_connections"`
-	IsActiveDirectory     bool                        `json:"is_active_directory"`
-	Domain                string                      `json:"domain"`
-	GroupMemberAttribute  string                      `json:"group_member_attribute"`
-	UserGroupAttribute    string                      `json:"user_group_attribute"`
-	RoleMappings          map[string][]string         `json:"role_mappings"`
-	DefaultRoles          []string                    `json:"default_roles"`
+	Enabled              bool                 `json:"enabled"`
+	Host                 string               `json:"host"`
+	Port                 int                  `json:"port"`
+	UseSSL               bool                 `json:"use_ssl"`
+	UseTLS               bool                 `json:"use_tls"`
+	SkipVerify           bool                 `json:"skip_verify"`
+	BindDN               string               `json:"bind_dn"`
+	BindPassword         string               `json:"bind_password"`
+	BaseDN               string               `json:"base_dn"`
+	UserFilter           string               `json:"user_filter"`
+	GroupFilter          string               `json:"group_filter"`
+	UserSearchBase       string               `json:"user_search_base"`
+	GroupSearchBase      string               `json:"group_search_base"`
+	UserAttributes       LDAPAttributeMapping `json:"user_attributes"`
+	GroupAttributes      LDAPAttributeMapping `json:"group_attributes"`
+	AuthMethod           string               `json:"auth_method"`
+	Timeout              time.Duration        `json:"timeout"`
+	ConnectionTimeout    time.Duration        `json:"connection_timeout"`
+	MaxConnections       int                  `json:"max_connections"`
+	IsActiveDirectory    bool                 `json:"is_active_directory"`
+	Domain               string               `json:"domain"`
+	GroupMemberAttribute string               `json:"group_member_attribute"`
+	UserGroupAttribute   string               `json:"user_group_attribute"`
+	RoleMappings         map[string][]string  `json:"role_mappings"`
+	DefaultRoles         []string             `json:"default_roles"`
 }
 
 // LDAPAttributeMapping maps LDAP attributes to standard fields
@@ -88,43 +88,43 @@ type LDAPAttributeMapping struct {
 
 // RBACConfig holds role-based access control configuration
 type RBACConfig struct {
-	Enabled       bool                       `json:"enabled"`
-	DefaultRole   string                     `json:"default_role"`
-	RoleMapping   map[string][]string        `json:"role_mapping"`   // provider_role -> internal_roles
-	GroupMapping  map[string][]string        `json:"group_mapping"`  // provider_group -> internal_roles
-	AdminRoles    []string                   `json:"admin_roles"`
-	OperatorRoles []string                   `json:"operator_roles"`
-	ReadOnlyRoles []string                   `json:"readonly_roles"`
-	Permissions   map[string][]string        `json:"permissions"`    // role -> permissions
+	Enabled       bool                `json:"enabled"`
+	DefaultRole   string              `json:"default_role"`
+	RoleMapping   map[string][]string `json:"role_mapping"`  // provider_role -> internal_roles
+	GroupMapping  map[string][]string `json:"group_mapping"` // provider_group -> internal_roles
+	AdminRoles    []string            `json:"admin_roles"`
+	OperatorRoles []string            `json:"operator_roles"`
+	ReadOnlyRoles []string            `json:"readonly_roles"`
+	Permissions   map[string][]string `json:"permissions"` // role -> permissions
 }
 
 // Configuration constants for security limits and validation
 const (
 	// Secret file size limits
-	MaxSecretFileSize       = 64 * 1024 // 64KB limit for secret files
-	MinSecretLength         = 16        // Minimum secret length for security
-	MaxSecretLength         = 512       // Maximum secret length to prevent DoS
-	MaxProviderNameLength   = 50        // Maximum provider name length
-	MinJWTSecretLength      = 32        // Minimum JWT secret length
-	
+	MaxSecretFileSize     = 64 * 1024 // 64KB limit for secret files
+	MinSecretLength       = 16        // Minimum secret length for security
+	MaxSecretLength       = 512       // Maximum secret length to prevent DoS
+	MaxProviderNameLength = 50        // Maximum provider name length
+	MinJWTSecretLength    = 32        // Minimum JWT secret length
+
 	// Default configuration values
-	DefaultKeycloakRealm    = "master"  // Default Keycloak realm
-	DefaultTokenTTL         = 24 * 60 * 60 // 24 hours in seconds
-	DefaultRefreshTTL       = 7 * 24 * 60 * 60 // 7 days in seconds
+	DefaultKeycloakRealm = "master"         // Default Keycloak realm
+	DefaultTokenTTL      = 24 * 60 * 60     // 24 hours in seconds
+	DefaultRefreshTTL    = 7 * 24 * 60 * 60 // 7 days in seconds
 )
 
 // Permission constants
 const (
-	PermissionCreateIntent    = "intent:create"
-	PermissionReadIntent      = "intent:read"
-	PermissionUpdateIntent    = "intent:update"
-	PermissionDeleteIntent    = "intent:delete"
-	PermissionManageE2Nodes   = "e2nodes:manage"
-	PermissionViewMetrics     = "metrics:view"
-	PermissionManageSystem    = "system:manage"
-	PermissionManageUsers     = "users:manage"
-	PermissionViewLogs        = "logs:view"
-	PermissionManageSecrets   = "secrets:manage"
+	PermissionCreateIntent  = "intent:create"
+	PermissionReadIntent    = "intent:read"
+	PermissionUpdateIntent  = "intent:update"
+	PermissionDeleteIntent  = "intent:delete"
+	PermissionManageE2Nodes = "e2nodes:manage"
+	PermissionViewMetrics   = "metrics:view"
+	PermissionManageSystem  = "system:manage"
+	PermissionManageUsers   = "users:manage"
+	PermissionViewLogs      = "logs:view"
+	PermissionManageSecrets = "secrets:manage"
 )
 
 // LoadAuthConfig loads authentication configuration from environment and file
@@ -134,11 +134,11 @@ func LoadAuthConfig(configPath string) (*AuthConfig, error) {
 	jwtSecretKey, _ := config.LoadJWTSecretKeyFromFile(security.GlobalAuditLogger)
 
 	authConfig := &AuthConfig{
-		Enabled:      config.GetBoolEnv("AUTH_ENABLED", false),
-		JWTSecretKey: jwtSecretKey,
-		TokenTTL:     config.GetDurationEnv("TOKEN_TTL", 24*time.Hour),
-		RefreshTTL:   config.GetDurationEnv("REFRESH_TTL", 7*24*time.Hour),
-		Providers:    make(map[string]ProviderConfig),
+		Enabled:       config.GetBoolEnv("AUTH_ENABLED", false),
+		JWTSecretKey:  jwtSecretKey,
+		TokenTTL:      config.GetDurationEnv("TOKEN_TTL", 24*time.Hour),
+		RefreshTTL:    config.GetDurationEnv("REFRESH_TTL", 7*24*time.Hour),
+		Providers:     make(map[string]ProviderConfig),
 		LDAPProviders: make(map[string]LDAPProviderConfig),
 		RBAC: RBACConfig{
 			Enabled:       config.GetBoolEnv("RBAC_ENABLED", true),
@@ -169,7 +169,7 @@ func LoadAuthConfig(configPath string) (*AuthConfig, error) {
 	if configFile == "" {
 		configFile = config.GetEnvOrDefault("AUTH_CONFIG_FILE", "")
 	}
-	
+
 	// Load from config file if specified
 	if configFile != "" {
 		if err := authConfig.loadFromFile(configFile); err != nil {
@@ -193,14 +193,14 @@ func LoadAuthConfig(configPath string) (*AuthConfig, error) {
 // loadProviders loads OAuth2 provider configurations from environment with secure error handling
 func (c *AuthConfig) loadProviders() error {
 	var errors []error
-	
+
 	// Azure AD provider
 	if azureClientID := config.GetEnvOrDefault("AZURE_CLIENT_ID", ""); azureClientID != "" {
 		secret, err := getOAuth2ClientSecret("azure")
 		if err != nil && config.GetBoolEnv("AZURE_ENABLED", true) {
 			errors = append(errors, fmt.Errorf("azure-ad: %w", err))
 		}
-		
+
 		c.Providers["azure-ad"] = ProviderConfig{
 			Enabled:      config.GetBoolEnv("AZURE_ENABLED", true),
 			Type:         "azure-ad",
@@ -217,7 +217,7 @@ func (c *AuthConfig) loadProviders() error {
 		if err != nil && config.GetBoolEnv("OKTA_ENABLED", true) {
 			errors = append(errors, fmt.Errorf("okta: %w", err))
 		}
-		
+
 		c.Providers["okta"] = ProviderConfig{
 			Enabled:      config.GetBoolEnv("OKTA_ENABLED", true),
 			Type:         "okta",
@@ -234,7 +234,7 @@ func (c *AuthConfig) loadProviders() error {
 		if err != nil && config.GetBoolEnv("KEYCLOAK_ENABLED", true) {
 			errors = append(errors, fmt.Errorf("keycloak: %w", err))
 		}
-		
+
 		c.Providers["keycloak"] = ProviderConfig{
 			Enabled:      config.GetBoolEnv("KEYCLOAK_ENABLED", true),
 			Type:         "keycloak",
@@ -252,7 +252,7 @@ func (c *AuthConfig) loadProviders() error {
 		if err != nil && config.GetBoolEnv("GOOGLE_ENABLED", true) {
 			errors = append(errors, fmt.Errorf("google: %w", err))
 		}
-		
+
 		c.Providers["google"] = ProviderConfig{
 			Enabled:      config.GetBoolEnv("GOOGLE_ENABLED", true),
 			Type:         "google",
@@ -268,7 +268,7 @@ func (c *AuthConfig) loadProviders() error {
 		if err != nil && config.GetBoolEnv("CUSTOM_ENABLED", true) {
 			errors = append(errors, fmt.Errorf("custom: %w", err))
 		}
-		
+
 		c.Providers["custom"] = ProviderConfig{
 			Enabled:      config.GetBoolEnv("CUSTOM_ENABLED", true),
 			Type:         "custom",
@@ -287,7 +287,7 @@ func (c *AuthConfig) loadProviders() error {
 		for _, err := range errors {
 			slog.Error("Provider configuration error", "error", err)
 		}
-		
+
 		// Return aggregated error
 		if len(errors) == 1 {
 			return errors[0]
@@ -317,19 +317,19 @@ func (c *AuthConfig) loadLDAPProviders() error {
 		}
 
 		c.LDAPProviders["ldap"] = LDAPProviderConfig{
-			Enabled:               config.GetBoolEnv("LDAP_ENABLED", true),
-			Host:                  ldapHost,
-			Port:                  config.GetIntEnv("LDAP_PORT", 389),
-			UseSSL:                config.GetBoolEnv("LDAP_USE_SSL", false),
-			UseTLS:                config.GetBoolEnv("LDAP_USE_TLS", true),
-			SkipVerify:            config.GetBoolEnv("LDAP_SKIP_VERIFY", false),
-			BindDN:                config.GetEnvOrDefault("LDAP_BIND_DN", ""),
-			BindPassword:          bindPassword,
-			BaseDN:                config.GetEnvOrDefault("LDAP_BASE_DN", ""),
-			UserFilter:            config.GetEnvOrDefault("LDAP_USER_FILTER", ""),
-			GroupFilter:           config.GetEnvOrDefault("LDAP_GROUP_FILTER", ""),
-			UserSearchBase:        config.GetEnvOrDefault("LDAP_USER_SEARCH_BASE", ""),
-			GroupSearchBase:       config.GetEnvOrDefault("LDAP_GROUP_SEARCH_BASE", ""),
+			Enabled:         config.GetBoolEnv("LDAP_ENABLED", true),
+			Host:            ldapHost,
+			Port:            config.GetIntEnv("LDAP_PORT", 389),
+			UseSSL:          config.GetBoolEnv("LDAP_USE_SSL", false),
+			UseTLS:          config.GetBoolEnv("LDAP_USE_TLS", true),
+			SkipVerify:      config.GetBoolEnv("LDAP_SKIP_VERIFY", false),
+			BindDN:          config.GetEnvOrDefault("LDAP_BIND_DN", ""),
+			BindPassword:    bindPassword,
+			BaseDN:          config.GetEnvOrDefault("LDAP_BASE_DN", ""),
+			UserFilter:      config.GetEnvOrDefault("LDAP_USER_FILTER", ""),
+			GroupFilter:     config.GetEnvOrDefault("LDAP_GROUP_FILTER", ""),
+			UserSearchBase:  config.GetEnvOrDefault("LDAP_USER_SEARCH_BASE", ""),
+			GroupSearchBase: config.GetEnvOrDefault("LDAP_GROUP_SEARCH_BASE", ""),
 			UserAttributes: LDAPAttributeMapping{
 				Username:    config.GetEnvOrDefault("LDAP_USER_ATTR_USERNAME", ""),
 				Email:       config.GetEnvOrDefault("LDAP_USER_ATTR_EMAIL", ""),
@@ -341,16 +341,16 @@ func (c *AuthConfig) loadLDAPProviders() error {
 				Phone:       config.GetEnvOrDefault("LDAP_USER_ATTR_PHONE", ""),
 				Manager:     config.GetEnvOrDefault("LDAP_USER_ATTR_MANAGER", ""),
 			},
-			AuthMethod:            config.GetEnvOrDefault("LDAP_AUTH_METHOD", "simple"),
-			Timeout:               config.GetDurationEnv("LDAP_TIMEOUT", 30*time.Second),
-			ConnectionTimeout:     config.GetDurationEnv("LDAP_CONNECTION_TIMEOUT", 10*time.Second),
-			MaxConnections:        config.GetIntEnv("LDAP_MAX_CONNECTIONS", 10),
-			IsActiveDirectory:     config.GetBoolEnv("LDAP_IS_ACTIVE_DIRECTORY", false),
-			Domain:                config.GetEnvOrDefault("LDAP_DOMAIN", ""),
-			GroupMemberAttribute:  config.GetEnvOrDefault("LDAP_GROUP_MEMBER_ATTR", ""),
-			UserGroupAttribute:    config.GetEnvOrDefault("LDAP_USER_GROUP_ATTR", ""),
-			RoleMappings:          parseRoleMappings(config.GetEnvOrDefault("LDAP_ROLE_MAPPINGS", "")),
-			DefaultRoles:          config.GetStringSliceEnv("LDAP_DEFAULT_ROLES", []string{"user"}),
+			AuthMethod:           config.GetEnvOrDefault("LDAP_AUTH_METHOD", "simple"),
+			Timeout:              config.GetDurationEnv("LDAP_TIMEOUT", 30*time.Second),
+			ConnectionTimeout:    config.GetDurationEnv("LDAP_CONNECTION_TIMEOUT", 10*time.Second),
+			MaxConnections:       config.GetIntEnv("LDAP_MAX_CONNECTIONS", 10),
+			IsActiveDirectory:    config.GetBoolEnv("LDAP_IS_ACTIVE_DIRECTORY", false),
+			Domain:               config.GetEnvOrDefault("LDAP_DOMAIN", ""),
+			GroupMemberAttribute: config.GetEnvOrDefault("LDAP_GROUP_MEMBER_ATTR", ""),
+			UserGroupAttribute:   config.GetEnvOrDefault("LDAP_USER_GROUP_ATTR", ""),
+			RoleMappings:         parseRoleMappings(config.GetEnvOrDefault("LDAP_ROLE_MAPPINGS", "")),
+			DefaultRoles:         config.GetStringSliceEnv("LDAP_DEFAULT_ROLES", []string{"user"}),
 		}
 	}
 
@@ -369,19 +369,19 @@ func (c *AuthConfig) loadLDAPProviders() error {
 		}
 
 		c.LDAPProviders["active-directory"] = LDAPProviderConfig{
-			Enabled:               config.GetBoolEnv("AD_ENABLED", true),
-			Host:                  adHost,
-			Port:                  config.GetIntEnv("AD_PORT", 389),
-			UseSSL:                config.GetBoolEnv("AD_USE_SSL", false),
-			UseTLS:                config.GetBoolEnv("AD_USE_TLS", true),
-			SkipVerify:            config.GetBoolEnv("AD_SKIP_VERIFY", false),
-			BindDN:                config.GetEnvOrDefault("AD_BIND_DN", ""),
-			BindPassword:          bindPassword,
-			BaseDN:                config.GetEnvOrDefault("AD_BASE_DN", ""),
-			UserFilter:            config.GetEnvOrDefault("AD_USER_FILTER", ""),
-			GroupFilter:           config.GetEnvOrDefault("AD_GROUP_FILTER", ""),
-			UserSearchBase:        config.GetEnvOrDefault("AD_USER_SEARCH_BASE", ""),
-			GroupSearchBase:       config.GetEnvOrDefault("AD_GROUP_SEARCH_BASE", ""),
+			Enabled:         config.GetBoolEnv("AD_ENABLED", true),
+			Host:            adHost,
+			Port:            config.GetIntEnv("AD_PORT", 389),
+			UseSSL:          config.GetBoolEnv("AD_USE_SSL", false),
+			UseTLS:          config.GetBoolEnv("AD_USE_TLS", true),
+			SkipVerify:      config.GetBoolEnv("AD_SKIP_VERIFY", false),
+			BindDN:          config.GetEnvOrDefault("AD_BIND_DN", ""),
+			BindPassword:    bindPassword,
+			BaseDN:          config.GetEnvOrDefault("AD_BASE_DN", ""),
+			UserFilter:      config.GetEnvOrDefault("AD_USER_FILTER", ""),
+			GroupFilter:     config.GetEnvOrDefault("AD_GROUP_FILTER", ""),
+			UserSearchBase:  config.GetEnvOrDefault("AD_USER_SEARCH_BASE", ""),
+			GroupSearchBase: config.GetEnvOrDefault("AD_GROUP_SEARCH_BASE", ""),
 			UserAttributes: LDAPAttributeMapping{
 				Username:    config.GetEnvOrDefault("AD_USER_ATTR_USERNAME", ""),
 				Email:       config.GetEnvOrDefault("AD_USER_ATTR_EMAIL", ""),
@@ -393,16 +393,16 @@ func (c *AuthConfig) loadLDAPProviders() error {
 				Phone:       config.GetEnvOrDefault("AD_USER_ATTR_PHONE", ""),
 				Manager:     config.GetEnvOrDefault("AD_USER_ATTR_MANAGER", ""),
 			},
-			AuthMethod:            config.GetEnvOrDefault("AD_AUTH_METHOD", "simple"),
-			Timeout:               config.GetDurationEnv("AD_TIMEOUT", 30*time.Second),
-			ConnectionTimeout:     config.GetDurationEnv("AD_CONNECTION_TIMEOUT", 10*time.Second),
-			MaxConnections:        config.GetIntEnv("AD_MAX_CONNECTIONS", 10),
-			IsActiveDirectory:     true, // Always true for AD provider
-			Domain:                config.GetEnvOrDefault("AD_DOMAIN", ""),
-			GroupMemberAttribute:  config.GetEnvOrDefault("AD_GROUP_MEMBER_ATTR", ""),
-			UserGroupAttribute:    config.GetEnvOrDefault("AD_USER_GROUP_ATTR", ""),
-			RoleMappings:          parseRoleMappings(config.GetEnvOrDefault("AD_ROLE_MAPPINGS", "")),
-			DefaultRoles:          config.GetStringSliceEnv("AD_DEFAULT_ROLES", []string{"user"}),
+			AuthMethod:           config.GetEnvOrDefault("AD_AUTH_METHOD", "simple"),
+			Timeout:              config.GetDurationEnv("AD_TIMEOUT", 30*time.Second),
+			ConnectionTimeout:    config.GetDurationEnv("AD_CONNECTION_TIMEOUT", 10*time.Second),
+			MaxConnections:       config.GetIntEnv("AD_MAX_CONNECTIONS", 10),
+			IsActiveDirectory:    true, // Always true for AD provider
+			Domain:               config.GetEnvOrDefault("AD_DOMAIN", ""),
+			GroupMemberAttribute: config.GetEnvOrDefault("AD_GROUP_MEMBER_ATTR", ""),
+			UserGroupAttribute:   config.GetEnvOrDefault("AD_USER_GROUP_ATTR", ""),
+			RoleMappings:         parseRoleMappings(config.GetEnvOrDefault("AD_ROLE_MAPPINGS", "")),
+			DefaultRoles:         config.GetStringSliceEnv("AD_DEFAULT_ROLES", []string{"user"}),
 		}
 	}
 
@@ -579,7 +579,7 @@ func (c *AuthConfig) validate() error {
 	providerErrors := make(map[string][]string)
 
 	// Check OAuth2 providers
-	
+
 	for name, provider := range c.Providers {
 		if !provider.Enabled {
 			continue
@@ -690,14 +690,14 @@ func validateJWTSecret(secret string) error {
 		"secret", "changeme", "password", "12345678",
 		"default", "admin", "test", "demo",
 	}
-	
+
 	lowerSecret := strings.ToLower(secret)
 	for _, weak := range weakSecrets {
 		if lowerSecret == weak || strings.Contains(lowerSecret, weak) {
 			return fmt.Errorf("weak or default secret detected")
 		}
 	}
-	
+
 	// Check for repetitive patterns
 	if len(secret) > 4 {
 		firstChar := secret[0]
@@ -712,7 +712,7 @@ func validateJWTSecret(secret string) error {
 			return fmt.Errorf("repetitive pattern detected")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -731,7 +731,7 @@ func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error)
 			errors = append(errors, fmt.Errorf("%s: client_id is empty", name))
 			continue
 		}
-		
+
 		if config.ClientSecret == "" {
 			errors = append(errors, fmt.Errorf("%s: client_secret is empty", name))
 			continue
@@ -751,24 +751,24 @@ func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error)
 				continue
 			}
 			provider = NewAzureADProvider(config.TenantID, config.ClientID, config.ClientSecret)
-			
+
 		case "okta":
 			if config.Domain == "" {
 				errors = append(errors, fmt.Errorf("%s: domain is required", name))
 				continue
 			}
 			provider = NewOktaProvider(config.Domain, config.ClientID, config.ClientSecret)
-			
+
 		case "keycloak":
 			if config.BaseURL == "" {
 				errors = append(errors, fmt.Errorf("%s: base_url is required", name))
 				continue
 			}
 			provider = NewKeycloakProvider(config.BaseURL, config.Realm, config.ClientID, config.ClientSecret)
-			
+
 		case "google":
 			provider = NewGoogleProvider(config.ClientID, config.ClientSecret)
-			
+
 		case "custom":
 			if config.AuthURL == "" || config.TokenURL == "" || config.UserInfoURL == "" {
 				errors = append(errors, fmt.Errorf("%s: auth_url, token_url, and user_info_url are required", name))
@@ -783,7 +783,7 @@ func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error)
 				config.UserInfoURL,
 				config.Scopes,
 			)
-			
+
 		default:
 			errors = append(errors, fmt.Errorf("%s: unknown provider type: %s", name, config.Type))
 			continue
@@ -795,9 +795,9 @@ func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error)
 		}
 
 		providers[name] = provider
-		
+
 		// Log successful provider creation
-		slog.Info("OAuth2 provider created successfully", 
+		slog.Info("OAuth2 provider created successfully",
 			"provider", name,
 			"type", config.Type,
 			"scopes", config.Scopes)
@@ -948,7 +948,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 		auditSecretAccess("", "validation", "", false, "empty provider name")
 		return "", fmt.Errorf("provider name cannot be empty")
 	}
-	
+
 	// Sanitize provider name to prevent injection - only allow alphanumeric and hyphens
 	sanitizedProvider := strings.ToUpper(strings.ReplaceAll(provider, "-", "_"))
 	if !isValidProviderName(sanitizedProvider) {
@@ -958,7 +958,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 
 	// Step 1: Check environment variable first - OAUTH2_<PROVIDER>_CLIENT_SECRET
 	envVar := fmt.Sprintf("OAUTH2_%s_CLIENT_SECRET", sanitizedProvider)
-	
+
 	// Use atomic read of environment variable to prevent race conditions
 	secret := getEnvAtomic(envVar)
 	if secret != "" {
@@ -967,10 +967,10 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 			auditSecretAccess(provider, "environment", envVar, false, "secret validation failed")
 			return "", fmt.Errorf("invalid OAuth2 client secret format for provider %s", provider)
 		}
-		
+
 		auditSecretAccess(provider, "environment", envVar, true, "")
-		slog.Info("OAuth2 client secret loaded from environment", 
-			"provider", provider, 
+		slog.Info("OAuth2 client secret loaded from environment",
+			"provider", provider,
 			"source", "environment",
 			"env_var", envVar)
 		return secret, nil
@@ -985,10 +985,10 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 			auditSecretAccess(provider, "environment", fallbackEnvVar, false, "secret validation failed")
 			return "", fmt.Errorf("invalid OAuth2 client secret format for provider %s", provider)
 		}
-		
+
 		auditSecretAccess(provider, "environment", fallbackEnvVar, true, "")
-		slog.Info("OAuth2 client secret loaded from environment (backward compatibility)", 
-			"provider", provider, 
+		slog.Info("OAuth2 client secret loaded from environment (backward compatibility)",
+			"provider", provider,
 			"source", "environment",
 			"env_var", fallbackEnvVar,
 			"note", "Consider migrating to OAUTH2_<PROVIDER>_CLIENT_SECRET format")
@@ -998,12 +998,12 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 	// Step 2: Fall back to file path from environment variable - OAUTH2_<PROVIDER>_SECRET_FILE
 	fileEnvVar := fmt.Sprintf("OAUTH2_%s_SECRET_FILE", sanitizedProvider)
 	filePath := getEnvAtomic(fileEnvVar)
-	
+
 	if filePath != "" {
 		// Validate file path to prevent path traversal attacks
 		if err := validateFilePath(filePath); err != nil {
 			auditSecretAccess(provider, "file_path_validation", fileEnvVar, false, err.Error())
-			slog.Error("Invalid file path for OAuth2 secret", 
+			slog.Error("Invalid file path for OAuth2 secret",
 				"provider", provider,
 				"error", "path validation failed")
 			return "", fmt.Errorf("OAuth2 client secret configuration error for provider: %s", provider)
@@ -1013,7 +1013,7 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 		secret, err := readSecretFile(filePath)
 		if err != nil {
 			auditSecretAccess(provider, "file", filePath, false, "file read failed")
-			slog.Error("Failed to read OAuth2 client secret file", 
+			slog.Error("Failed to read OAuth2 client secret file",
 				"provider", provider,
 				"error", "file access error")
 			return "", fmt.Errorf("OAuth2 client secret file not accessible for provider: %s", provider)
@@ -1026,20 +1026,20 @@ func getOAuth2ClientSecret(provider string) (string, error) {
 		}
 
 		auditSecretAccess(provider, "file", filePath, true, "")
-		slog.Info("OAuth2 client secret loaded from file", 
-			"provider", provider, 
+		slog.Info("OAuth2 client secret loaded from file",
+			"provider", provider,
 			"source", "file")
 		return secret, nil
 	}
 
 	// Step 3: Neither environment variable nor file path provided
 	auditSecretAccess(provider, "not_configured", "", false, "no secret source configured")
-	slog.Error("OAuth2 client secret not configured", 
+	slog.Error("OAuth2 client secret not configured",
 		"provider", provider,
 		"expected_env_var", envVar,
 		"expected_file_env_var", fileEnvVar)
-	
-	return "", fmt.Errorf("OAuth2 client secret not configured for provider: %s. Set either %s or %s environment variable", 
+
+	return "", fmt.Errorf("OAuth2 client secret not configured for provider: %s. Set either %s or %s environment variable",
 		provider, envVar, fileEnvVar)
 }
 
@@ -1053,7 +1053,7 @@ func isValidProviderName(provider string) bool {
 	if len(provider) == 0 || len(provider) > MaxProviderNameLength {
 		return false
 	}
-	
+
 	for _, char := range provider {
 		if !((char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9') || char == '_') {
 			return false
@@ -1069,60 +1069,60 @@ func validateConfigFilePath(filePath string) error {
 	if strings.TrimSpace(filePath) == "" {
 		return fmt.Errorf("empty file path")
 	}
-	
+
 	// SECURITY: Clean the path first to normalize it
 	cleanedPath := filepath.Clean(filePath)
-	
+
 	// SECURITY: Detect obvious path traversal attempts before resolution
 	if strings.Contains(filePath, "..") || strings.Contains(cleanedPath, "..") {
 		return fmt.Errorf("path traversal attempt detected: contains '..'")
 	}
-	
+
 	// SECURITY: Reject paths with null bytes (potential injection)
 	if strings.Contains(filePath, "\x00") {
 		return fmt.Errorf("path contains null byte")
 	}
-	
+
 	// Convert to absolute path for validation
 	absPath, err := filepath.Abs(cleanedPath)
 	if err != nil {
 		return fmt.Errorf("invalid file path format: %w", err)
 	}
-	
+
 	// SECURITY: Additional check after absolute path conversion
 	if strings.Contains(absPath, "..") {
 		return fmt.Errorf("path traversal detected in absolute path")
 	}
-	
+
 	// SECURITY: Check for Windows UNC paths or special devices
 	if strings.HasPrefix(absPath, "\\\\") || strings.HasPrefix(absPath, "//") {
 		return fmt.Errorf("UNC paths not allowed")
 	}
-	
+
 	// SECURITY: Restrict to specific directories for config files
 	// Config files should only be in designated configuration directories
 	allowedPrefixes := []string{
-		"/etc/nephoran",       // Production config directory
+		"/etc/nephoran",          // Production config directory
 		"/etc/nephoran-operator", // Alternative production config
-		"/var/lib/nephoran",   // State directory
-		"/opt/nephoran/config", // Alternative config location
-		"/config",             // Kubernetes ConfigMap mount
-		"/etc/config",         // Alternative Kubernetes mount
+		"/var/lib/nephoran",      // State directory
+		"/opt/nephoran/config",   // Alternative config location
+		"/config",                // Kubernetes ConfigMap mount
+		"/etc/config",            // Alternative Kubernetes mount
 	}
-	
+
 	// For development/testing, allow current directory subdirectories
 	currentDir, _ := os.Getwd()
 	if currentDir != "" {
 		// Only allow config subdirectory in development
 		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "config"))
 		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "test", "config"))
-		
+
 		// For CI/CD environments
 		if strings.Contains(currentDir, "github") || strings.Contains(currentDir, "gitlab") {
 			allowedPrefixes = append(allowedPrefixes, currentDir)
 		}
 	}
-	
+
 	// SECURITY: Check if path starts with any allowed prefix
 	pathAllowed := false
 	for _, prefix := range allowedPrefixes {
@@ -1133,11 +1133,11 @@ func validateConfigFilePath(filePath string) error {
 			break
 		}
 	}
-	
+
 	if !pathAllowed {
 		return fmt.Errorf("config file path not in allowed directory (must be in /etc/nephoran, /config, or ./config)")
 	}
-	
+
 	// SECURITY: Validate file extension
 	ext := strings.ToLower(filepath.Ext(absPath))
 	allowedExtensions := []string{".json", ".yaml", ".yml", ".conf", ""}
@@ -1148,17 +1148,17 @@ func validateConfigFilePath(filePath string) error {
 			break
 		}
 	}
-	
+
 	if !extensionAllowed {
 		return fmt.Errorf("invalid config file extension: %s (allowed: .json, .yaml, .yml, .conf)", ext)
 	}
-	
+
 	// SECURITY: Check filename for suspicious patterns
 	filename := filepath.Base(absPath)
 	if strings.HasPrefix(filename, ".") && filename != ".config" {
 		return fmt.Errorf("hidden files not allowed as config")
 	}
-	
+
 	// SECURITY: Reject special file names
 	dangerousNames := []string{"/dev/", "/proc/", "/sys/", "passwd", "shadow", "sudoers"}
 	for _, dangerous := range dangerousNames {
@@ -1166,7 +1166,7 @@ func validateConfigFilePath(filePath string) error {
 			return fmt.Errorf("suspicious file path detected")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -1177,34 +1177,34 @@ func validateFilePath(filePath string) error {
 	if strings.TrimSpace(filePath) == "" {
 		return fmt.Errorf("empty file path")
 	}
-	
+
 	// Convert to absolute path and clean it
 	absPath, err := filepath.Abs(filepath.Clean(filePath))
 	if err != nil {
 		return fmt.Errorf("invalid file path format")
 	}
-	
+
 	// Prevent path traversal attacks - check for suspicious patterns
 	if strings.Contains(absPath, "..") {
 		return fmt.Errorf("path traversal attempt detected")
 	}
-	
+
 	// Restrict to reasonable base directories for security
 	allowedPrefixes := []string{
 		"/etc/secrets",
-		"/var/secrets", 
+		"/var/secrets",
 		"/tmp/secrets",
 		"/secrets",
 		"/run/secrets", // Common Kubernetes secret mount path
 	}
-	
+
 	// Allow relative paths under current directory for development
 	currentDir, _ := os.Getwd()
 	if currentDir != "" {
 		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "secrets"))
 		allowedPrefixes = append(allowedPrefixes, filepath.Join(currentDir, "config"))
 	}
-	
+
 	// Check if path starts with any allowed prefix
 	pathAllowed := false
 	for _, prefix := range allowedPrefixes {
@@ -1213,11 +1213,11 @@ func validateFilePath(filePath string) error {
 			break
 		}
 	}
-	
+
 	if !pathAllowed {
 		return fmt.Errorf("file path not in allowed directory")
 	}
-	
+
 	return nil
 }
 
@@ -1234,36 +1234,36 @@ func readSecretFile(filePath string) (string, error) {
 		}
 		return "", fmt.Errorf("cannot access secret file")
 	}
-	
+
 	// Check file size limits (prevent reading huge files)
 	if info.Size() > MaxSecretFileSize {
 		return "", fmt.Errorf("secret file too large")
 	}
-	
+
 	if info.Size() == 0 {
 		return "", fmt.Errorf("secret file is empty")
 	}
-	
+
 	// Check file permissions - should not be world-readable
 	mode := info.Mode()
 	if mode&0044 != 0 { // Check if world or group readable
-		slog.Warn("Secret file has overly permissive permissions", 
-			"file", filePath, 
+		slog.Warn("Secret file has overly permissive permissions",
+			"file", filePath,
 			"mode", mode.String())
 	}
-	
+
 	// Read file contents
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read secret file contents")
 	}
-	
+
 	// Trim whitespace and newlines
 	secret := strings.TrimSpace(string(content))
 	if secret == "" {
 		return "", fmt.Errorf("secret file contains only whitespace")
 	}
-	
+
 	return secret, nil
 }
 
@@ -1274,20 +1274,20 @@ func validateSecretContent(secret string) error {
 	if secret == "" {
 		return fmt.Errorf("secret is empty or contains only whitespace")
 	}
-	
+
 	// Check minimum length for security
 	if len(secret) < MinSecretLength {
 		return fmt.Errorf("secret too short, minimum %d characters required", MinSecretLength)
 	}
-	
+
 	// Check maximum length to prevent potential DoS
 	if len(secret) > MaxSecretLength {
 		return fmt.Errorf("secret too long, maximum %d characters allowed", MaxSecretLength)
 	}
-	
+
 	// Check for common weak patterns
 	lowerSecret := strings.ToLower(secret)
-	
+
 	// Check if secret starts with obvious weak patterns
 	weakPrefixes := []string{"password", "test", "example", "demo", "sample"}
 	for _, prefix := range weakPrefixes {
@@ -1295,25 +1295,25 @@ func validateSecretContent(secret string) error {
 			return fmt.Errorf("secret starts with weak pattern: %s", prefix)
 		}
 	}
-	
+
 	// Only reject if the secret is JUST a weak pattern or very simple
 	weakPatterns := []string{"password", "secret", "test", "example", "admin", "demo"}
 	for _, pattern := range weakPatterns {
 		// Reject if the secret is exactly the pattern or pattern with simple suffix
-		if lowerSecret == pattern || 
-		   lowerSecret == pattern+"123" || 
-		   lowerSecret == pattern+"1234" ||
-		   lowerSecret == "my"+pattern ||
-		   lowerSecret == "your"+pattern {
+		if lowerSecret == pattern ||
+			lowerSecret == pattern+"123" ||
+			lowerSecret == pattern+"1234" ||
+			lowerSecret == "my"+pattern ||
+			lowerSecret == "your"+pattern {
 			return fmt.Errorf("secret contains common weak patterns")
 		}
 	}
-	
+
 	// Basic entropy check - ensure it's not all the same character
 	if len(strings.TrimLeft(secret, string(secret[0]))) == 0 {
 		return fmt.Errorf("secret has insufficient entropy")
 	}
-	
+
 	return nil
 }
 
@@ -1323,7 +1323,7 @@ func auditSecretAccess(provider, source, location string, success bool, errorMsg
 	if !success {
 		logLevel = slog.LevelWarn
 	}
-	
+
 	attrs := []slog.Attr{
 		slog.String("event", "oauth2_secret_access"),
 		slog.String("provider", provider),
@@ -1331,7 +1331,7 @@ func auditSecretAccess(provider, source, location string, success bool, errorMsg
 		slog.Bool("success", success),
 		slog.Time("timestamp", time.Now()),
 	}
-	
+
 	if location != "" && success {
 		// For successful operations, log safe location info
 		if strings.Contains(location, "OAUTH2_") {
@@ -1340,19 +1340,19 @@ func auditSecretAccess(provider, source, location string, success bool, errorMsg
 			attrs = append(attrs, slog.String("file_type", "secret_file"))
 		}
 	}
-	
+
 	if !success && errorMsg != "" {
 		attrs = append(attrs, slog.String("error_type", errorMsg))
 	}
-	
+
 	slog.LogAttrs(nil, logLevel, "OAuth2 client secret access attempt", attrs...)
-	
+
 	// Additional audit logging through security package if available
 	if security.GlobalAuditLogger != nil {
 		security.GlobalAuditLogger.LogSecretAccess(
 			fmt.Sprintf("oauth2_%s", provider),
 			source,
-			"", "", success, 
+			"", "", success,
 			func() error {
 				if errorMsg != "" {
 					return fmt.Errorf("%s", errorMsg)
@@ -1368,7 +1368,7 @@ func validateOAuth2ClientSecret(provider, secret string) error {
 	if strings.TrimSpace(secret) == "" {
 		return fmt.Errorf("empty secret")
 	}
-	
+
 	// Provider-specific validation
 	switch provider {
 	case "azure":
@@ -1378,32 +1378,32 @@ func validateOAuth2ClientSecret(provider, secret string) error {
 		}
 		// Azure secrets often contain special characters
 		// No specific format validation beyond length
-		
+
 	case "okta":
 		// Okta client secrets are typically 64 characters
 		if len(secret) < 40 {
 			return fmt.Errorf("secret too short")
 		}
-		
+
 	case "keycloak":
 		// Keycloak secrets are UUID-like or random strings - require longer minimum
 		if len(secret) < MinJWTSecretLength {
 			return fmt.Errorf("secret too short")
 		}
-		
+
 	case "google":
 		// Google OAuth2 secrets have specific format
 		if len(secret) < 24 {
 			return fmt.Errorf("secret too short")
 		}
-		
+
 	default:
 		// Generic validation for custom providers
 		if len(secret) < MinSecretLength {
 			return fmt.Errorf("secret too short")
 		}
 	}
-	
+
 	// Check for common placeholder values
 	lowerSecret := strings.ToLower(secret)
 	if strings.Contains(lowerSecret, "your-secret") ||
@@ -1414,7 +1414,7 @@ func validateOAuth2ClientSecret(provider, secret string) error {
 		secret == "secret" {
 		return fmt.Errorf("placeholder secret detected")
 	}
-	
+
 	return nil
 }
 
@@ -1424,12 +1424,12 @@ func determineSecretSource(filename, envVar string) string {
 	if _, err := os.Stat(filepath.Join("/secrets/oauth2", filename)); err == nil {
 		return "file"
 	}
-	
+
 	// Check if environment variable is set
 	if config.GetEnvOrDefault(envVar, "") != "" {
 		return "environment"
 	}
-	
+
 	return "unknown"
 }
 

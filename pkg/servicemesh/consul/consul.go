@@ -6,8 +6,8 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,9 +19,9 @@ func init() {
 		// Create Consul-specific configuration
 		consulConfig := &Config{
 			Namespace:           meshConfig.Namespace,
-			TrustDomain:        meshConfig.TrustDomain,
-			CertificateConfig:  meshConfig.CertificateConfig,
-			PolicyDefaults:     meshConfig.PolicyDefaults,
+			TrustDomain:         meshConfig.TrustDomain,
+			CertificateConfig:   meshConfig.CertificateConfig,
+			PolicyDefaults:      meshConfig.PolicyDefaults,
 			ObservabilityConfig: meshConfig.ObservabilityConfig,
 		}
 
@@ -44,14 +44,14 @@ func init() {
 
 // Config contains Consul-specific configuration
 type Config struct {
-	Namespace           string                              `json:"namespace"`
-	TrustDomain         string                              `json:"trustDomain"`
-	Datacenter          string                              `json:"datacenter"`
-	GossipKey           string                              `json:"gossipKey"`
-	ACLEnabled          bool                                `json:"aclEnabled"`
-	CertificateConfig   *abstraction.CertificateConfig      `json:"certificateConfig"`
-	PolicyDefaults      *abstraction.PolicyDefaults         `json:"policyDefaults"`
-	ObservabilityConfig *abstraction.ObservabilityConfig    `json:"observabilityConfig"`
+	Namespace           string                           `json:"namespace"`
+	TrustDomain         string                           `json:"trustDomain"`
+	Datacenter          string                           `json:"datacenter"`
+	GossipKey           string                           `json:"gossipKey"`
+	ACLEnabled          bool                             `json:"aclEnabled"`
+	CertificateConfig   *abstraction.CertificateConfig   `json:"certificateConfig"`
+	PolicyDefaults      *abstraction.PolicyDefaults      `json:"policyDefaults"`
+	ObservabilityConfig *abstraction.ObservabilityConfig `json:"observabilityConfig"`
 }
 
 // ConsulMesh implements ServiceMeshInterface for Consul Connect

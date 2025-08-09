@@ -11,27 +11,27 @@ import (
 
 // ContextMatcher provides intelligent context matching for telecom intents
 type ContextMatcher struct {
-	knowledgeBase  *TelecomKnowledgeBase
-	patterns       map[string]*regexp.Regexp
-	synonyms       map[string][]string
-	abbreviations  map[string]string
-	contextCache   map[string]*MatchResult
-	initialized    bool
+	knowledgeBase *TelecomKnowledgeBase
+	patterns      map[string]*regexp.Regexp
+	synonyms      map[string][]string
+	abbreviations map[string]string
+	contextCache  map[string]*MatchResult
+	initialized   bool
 }
 
 // MatchResult contains the results of intent matching
 type MatchResult struct {
-	Intent             string                    `json:"intent"`
-	NetworkFunctions   []*NetworkFunctionMatch   `json:"network_functions"`
-	Interfaces         []*InterfaceMatch         `json:"interfaces"`
-	SliceTypes         []*SliceTypeMatch         `json:"slice_types"`
-	QosProfiles        []*QosMatch               `json:"qos_profiles"`
-	DeploymentPatterns []*DeploymentMatch        `json:"deployment_patterns"`
-	KPIs               []*KPIMatch               `json:"kpis"`
-	Requirements       *RequirementExtraction    `json:"requirements"`
-	Context3GPP        *Context3GPP              `json:"context_3gpp"`
-	Confidence         float64                   `json:"confidence"`
-	Timestamp          time.Time                 `json:"timestamp"`
+	Intent             string                  `json:"intent"`
+	NetworkFunctions   []*NetworkFunctionMatch `json:"network_functions"`
+	Interfaces         []*InterfaceMatch       `json:"interfaces"`
+	SliceTypes         []*SliceTypeMatch       `json:"slice_types"`
+	QosProfiles        []*QosMatch             `json:"qos_profiles"`
+	DeploymentPatterns []*DeploymentMatch      `json:"deployment_patterns"`
+	KPIs               []*KPIMatch             `json:"kpis"`
+	Requirements       *RequirementExtraction  `json:"requirements"`
+	Context3GPP        *Context3GPP            `json:"context_3gpp"`
+	Confidence         float64                 `json:"confidence"`
+	Timestamp          time.Time               `json:"timestamp"`
 }
 
 // NetworkFunctionMatch represents a matched network function
@@ -84,12 +84,12 @@ type KPIMatch struct {
 
 // RequirementExtraction contains extracted requirements from the intent
 type RequirementExtraction struct {
-	Latency       *LatencyRequirement    `json:"latency,omitempty"`
-	Throughput    *ThroughputRequirement `json:"throughput,omitempty"`
-	Reliability   *ReliabilityRequirement `json:"reliability,omitempty"`
-	Scalability   *ScalabilityRequirement `json:"scalability,omitempty"`
-	Security      *SecurityRequirement   `json:"security,omitempty"`
-	Availability  *AvailabilityRequirement `json:"availability,omitempty"`
+	Latency      *LatencyRequirement      `json:"latency,omitempty"`
+	Throughput   *ThroughputRequirement   `json:"throughput,omitempty"`
+	Reliability  *ReliabilityRequirement  `json:"reliability,omitempty"`
+	Scalability  *ScalabilityRequirement  `json:"scalability,omitempty"`
+	Security     *SecurityRequirement     `json:"security,omitempty"`
+	Availability *AvailabilityRequirement `json:"availability,omitempty"`
 }
 
 // Context3GPP contains 3GPP specification context
@@ -148,12 +148,12 @@ func NewContextMatcher(kb *TelecomKnowledgeBase) *ContextMatcher {
 		abbreviations: make(map[string]string),
 		contextCache:  make(map[string]*MatchResult),
 	}
-	
+
 	cm.initializePatterns()
 	cm.initializeSynonyms()
 	cm.initializeAbbreviations()
 	cm.initialized = true
-	
+
 	return cm
 }
 
@@ -847,7 +847,7 @@ func (cm *ContextMatcher) extractLatencyRequirement(intent string) *LatencyRequi
 				} else if strings.Contains(intent, "end-to-end") {
 					reqType = "end-to-end"
 				}
-				
+
 				return &LatencyRequirement{
 					Value: value,
 					Unit:  unit,
@@ -877,7 +877,7 @@ func (cm *ContextMatcher) extractThroughputRequirement(intent string) *Throughpu
 				} else if strings.Contains(intent, "downlink") || strings.Contains(intent, "dl") {
 					reqType = "downlink"
 				}
-				
+
 				return &ThroughputRequirement{
 					Value: value,
 					Unit:  unit,
@@ -906,7 +906,7 @@ func (cm *ContextMatcher) extractReliabilityRequirement(intent string) *Reliabil
 				if strings.Contains(pattern, "packet") {
 					reqType = "packet-loss"
 				}
-				
+
 				return &ReliabilityRequirement{
 					Value: value,
 					Unit:  "percentage",
@@ -963,8 +963,8 @@ func (cm *ContextMatcher) extractScalabilityRequirement(intent string) *Scalabil
 
 func (cm *ContextMatcher) extractSecurityRequirement(intent string) *SecurityRequirement {
 	req := &SecurityRequirement{
-		Features: make([]string, 0),
-		Compliance: make([]string, 0),
+		Features:     make([]string, 0),
+		Compliance:   make([]string, 0),
 		Certificates: make([]string, 0),
 	}
 
@@ -1018,14 +1018,14 @@ func (cm *ContextMatcher) extractAvailabilityRequirement(intent string) *Availab
 					nines := value
 					value = 100 - (100 / pow10(int(nines)))
 				}
-				
+
 				reqType := "service"
 				if strings.Contains(intent, "system") {
 					reqType = "system"
 				} else if strings.Contains(intent, "network") {
 					reqType = "network"
 				}
-				
+
 				return &AvailabilityRequirement{
 					Value: value,
 					Unit:  "percentage",
@@ -1121,12 +1121,12 @@ func (cm *ContextMatcher) initializeSynonyms() {
 	cm.synonyms["nrf"] = []string{"nrf", "network repository function"}
 	cm.synonyms["nssf"] = []string{"nssf", "network slice selection function"}
 	cm.synonyms["gnb"] = []string{"gnb", "gnodeb", "5g base station", "base station"}
-	
+
 	// Slice types
 	cm.synonyms["embb"] = []string{"embb", "enhanced mobile broadband", "broadband"}
 	cm.synonyms["urllc"] = []string{"urllc", "ultra reliable low latency", "low latency", "ultra reliable"}
 	cm.synonyms["mmtc"] = []string{"mmtc", "massive machine type communications", "iot", "machine type"}
-	
+
 	// Interfaces
 	cm.synonyms["n1"] = []string{"n1", "ue amf interface", "nas"}
 	cm.synonyms["n2"] = []string{"n2", "gnb amf interface", "ngap"}

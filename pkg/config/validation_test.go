@@ -123,11 +123,11 @@ func TestConfigValidateFeatureRequirements(t *testing.T) {
 // TestConfigFeatureDetection tests the helper methods that detect if features are enabled
 func TestConfigFeatureDetection(t *testing.T) {
 	tests := []struct {
-		name           string
-		setupConfig    func() *Config
-		expectGit      bool
-		expectLLM      bool
-		expectRAG      bool
+		name        string
+		setupConfig func() *Config
+		expectGit   bool
+		expectLLM   bool
+		expectRAG   bool
 	}{
 		{
 			name: "git enabled by URL only",

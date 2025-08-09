@@ -35,15 +35,15 @@ import (
 
 const (
 	// O-RAN Blueprint Categories
-	BlueprintCategoryNearRTRIC   = "near-rt-ric"
-	BlueprintCategoryNonRTRIC    = "non-rt-ric"
-	BlueprintCategoryORAN_DU     = "oran-du"
-	BlueprintCategoryORAN_CU     = "oran-cu"
-	BlueprintCategoryXApp        = "xapp"
-	BlueprintCategoryRApp        = "rapp"
-	BlueprintCategorySMO         = "smo"
-	BlueprintCategory5GCore      = "5g-core"
-	
+	BlueprintCategoryNearRTRIC = "near-rt-ric"
+	BlueprintCategoryNonRTRIC  = "non-rt-ric"
+	BlueprintCategoryORAN_DU   = "oran-du"
+	BlueprintCategoryORAN_CU   = "oran-cu"
+	BlueprintCategoryXApp      = "xapp"
+	BlueprintCategoryRApp      = "rapp"
+	BlueprintCategorySMO       = "smo"
+	BlueprintCategory5GCore    = "5g-core"
+
 	// Blueprint lifecycle states
 	BlueprintStatePending    = "Pending"
 	BlueprintStateGenerating = "Generating"
@@ -51,12 +51,12 @@ const (
 	BlueprintStateFailed     = "Failed"
 	BlueprintStateDeploying  = "Deploying"
 	BlueprintStateDeployed   = "Deployed"
-	
+
 	// O-RAN Interface Types
-	InterfaceA1 = "a1"
-	InterfaceO1 = "o1"
-	InterfaceO2 = "o2"
-	InterfaceE2 = "e2"
+	InterfaceA1            = "a1"
+	InterfaceO1            = "o1"
+	InterfaceO2            = "o2"
+	InterfaceE2            = "e2"
 	InterfaceOpenFronthaul = "open-fronthaul"
 )
 
@@ -66,7 +66,7 @@ type ORANBlueprintManager struct {
 	porchClient porch.PorchClient
 	logger      *zap.Logger
 	metrics     *BlueprintMetrics
-	
+
 	// Component managers
 	oranCatalog    *ORANBlueprintCatalog
 	fiveGCatalog   *FiveGCoreCatalog
@@ -74,91 +74,91 @@ type ORANBlueprintManager struct {
 	configGen      *NetworkFunctionConfigGenerator
 	validator      *ORANValidator
 	templateEngine *TemplateEngine
-	
+
 	// Operation management
 	operationQueue chan *BlueprintOperation
 	workerpool     *sync.WaitGroup
 	ctx            context.Context
 	cancel         context.CancelFunc
-	
+
 	// Configuration
 	config *BlueprintConfig
 }
 
 // ORANBlueprintCatalog manages O-RAN specific blueprint templates
 type ORANBlueprintCatalog struct {
-	NearRTRIC    map[string]*BlueprintTemplate
-	NonRTRIC     map[string]*BlueprintTemplate
-	ORAN_DU      map[string]*BlueprintTemplate
-	ORAN_CU      map[string]*BlueprintTemplate
-	xApps        map[string]*BlueprintTemplate
-	rApps        map[string]*BlueprintTemplate
-	SMO          map[string]*BlueprintTemplate
-	interfaces   map[string]*InterfaceTemplate
-	mutex        sync.RWMutex
+	NearRTRIC  map[string]*BlueprintTemplate
+	NonRTRIC   map[string]*BlueprintTemplate
+	ORAN_DU    map[string]*BlueprintTemplate
+	ORAN_CU    map[string]*BlueprintTemplate
+	xApps      map[string]*BlueprintTemplate
+	rApps      map[string]*BlueprintTemplate
+	SMO        map[string]*BlueprintTemplate
+	interfaces map[string]*InterfaceTemplate
+	mutex      sync.RWMutex
 }
 
 // FiveGCoreCatalog manages 5G Core network function blueprints
 type FiveGCoreCatalog struct {
-	AMF    *AmfBlueprintTemplate
-	SMF    *SmfBlueprintTemplate
-	UPF    *UpfBlueprintTemplate
-	NSSF   *NssfBlueprintTemplate
-	UDM    *UdmBlueprintTemplate
-	AUSF   *AusfBlueprintTemplate
-	PCF    *PcfBlueprintTemplate
-	NRF    *NrfBlueprintTemplate
-	UDR    *UdrBlueprintTemplate
-	NWDAF  *NwdafBlueprintTemplate
-	mutex  sync.RWMutex
+	AMF   *AmfBlueprintTemplate
+	SMF   *SmfBlueprintTemplate
+	UPF   *UpfBlueprintTemplate
+	NSSF  *NssfBlueprintTemplate
+	UDM   *UdmBlueprintTemplate
+	AUSF  *AusfBlueprintTemplate
+	PCF   *PcfBlueprintTemplate
+	NRF   *NrfBlueprintTemplate
+	UDR   *UdrBlueprintTemplate
+	NWDAF *NwdafBlueprintTemplate
+	mutex sync.RWMutex
 }
 
 // BlueprintTemplate represents a complete blueprint template
 type BlueprintTemplate struct {
-	ID             string                    `json:"id" yaml:"id"`
-	Name           string                    `json:"name" yaml:"name"`
-	Description    string                    `json:"description" yaml:"description"`
-	Version        string                    `json:"version" yaml:"version"`
-	Category       string                    `json:"category" yaml:"category"`
-	ComponentType  v1.TargetComponent        `json:"componentType" yaml:"componentType"`
-	IntentTypes    []v1.IntentType          `json:"intentTypes" yaml:"intentTypes"`
-	
+	ID            string             `json:"id" yaml:"id"`
+	Name          string             `json:"name" yaml:"name"`
+	Description   string             `json:"description" yaml:"description"`
+	Version       string             `json:"version" yaml:"version"`
+	Category      string             `json:"category" yaml:"category"`
+	ComponentType v1.TargetComponent `json:"componentType" yaml:"componentType"`
+	IntentTypes   []v1.IntentType    `json:"intentTypes" yaml:"intentTypes"`
+
 	// O-RAN Compliance
-	ORANCompliant  bool                     `json:"oranCompliant" yaml:"oranCompliant"`
-	Interfaces     []string                 `json:"interfaces" yaml:"interfaces"`
-	ServiceModels  []string                 `json:"serviceModels,omitempty" yaml:"serviceModels,omitempty"`
-	
+	ORANCompliant bool     `json:"oranCompliant" yaml:"oranCompliant"`
+	Interfaces    []string `json:"interfaces" yaml:"interfaces"`
+	ServiceModels []string `json:"serviceModels,omitempty" yaml:"serviceModels,omitempty"`
+
 	// Templates and configurations
-	HelmChart      *HelmChartTemplate       `json:"helmChart,omitempty" yaml:"helmChart,omitempty"`
-	KRMResources   []KRMResourceTemplate    `json:"krmResources" yaml:"krmResources"`
-	ConfigMaps     []ConfigMapTemplate      `json:"configMaps,omitempty" yaml:"configMaps,omitempty"`
-	Secrets        []SecretTemplate         `json:"secrets,omitempty" yaml:"secrets,omitempty"`
-	
+	HelmChart    *HelmChartTemplate    `json:"helmChart,omitempty" yaml:"helmChart,omitempty"`
+	KRMResources []KRMResourceTemplate `json:"krmResources" yaml:"krmResources"`
+	ConfigMaps   []ConfigMapTemplate   `json:"configMaps,omitempty" yaml:"configMaps,omitempty"`
+	Secrets      []SecretTemplate      `json:"secrets,omitempty" yaml:"secrets,omitempty"`
+
 	// Network Function specific
-	NetworkConfig  *NetworkFunctionConfig   `json:"networkConfig,omitempty" yaml:"networkConfig,omitempty"`
-	QoSProfile     *QoSProfileConfig        `json:"qosProfile,omitempty" yaml:"qosProfile,omitempty"`
-	ScalingPolicy  *ScalingPolicyConfig     `json:"scalingPolicy,omitempty" yaml:"scalingPolicy,omitempty"`
-	
+	NetworkConfig *NetworkFunctionConfig `json:"networkConfig,omitempty" yaml:"networkConfig,omitempty"`
+	QoSProfile    *QoSProfileConfig      `json:"qosProfile,omitempty" yaml:"qosProfile,omitempty"`
+	ScalingPolicy *ScalingPolicyConfig   `json:"scalingPolicy,omitempty" yaml:"scalingPolicy,omitempty"`
+
 	// Dependencies and constraints
-	Dependencies   []BlueprintDependency    `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
-	Constraints    []BlueprintConstraint    `json:"constraints,omitempty" yaml:"constraints,omitempty"`
-	
+	Dependencies []BlueprintDependency `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
+	Constraints  []BlueprintConstraint `json:"constraints,omitempty" yaml:"constraints,omitempty"`
+
 	// Metadata
-	CreatedAt      time.Time                `json:"createdAt" yaml:"createdAt"`
-	UpdatedAt      time.Time                `json:"updatedAt" yaml:"updatedAt"`
-	Author         string                   `json:"author" yaml:"author"`
-	License        string                   `json:"license" yaml:"license"`
+	CreatedAt time.Time `json:"createdAt" yaml:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt" yaml:"updatedAt"`
+	Author    string    `json:"author" yaml:"author"`
+	License   string    `json:"license" yaml:"license"`
 }
 
 // InterfaceTemplate represents O-RAN interface configuration templates
 type InterfaceTemplate struct {
-	InterfaceType  string                   `json:"interfaceType" yaml:"interfaceType"`
-	Version        string                   `json:"version" yaml:"version"`
-	Endpoints      []EndpointConfig         `json:"endpoints" yaml:"endpoints"`
-	Protocol       string                   `json:"protocol" yaml:"protocol"`
-	Security       *SecurityConfig          `json:"security,omitempty" yaml:"security,omitempty"`
-	QoS            *QoSConfig              `json:"qos,omitempty" yaml:"qos,omitempty"`
-	Monitoring     *MonitoringConfig       `json:"monitoring,omitempty" yaml:"monitoring,omitempty"`
+	InterfaceType string            `json:"interfaceType" yaml:"interfaceType"`
+	Version       string            `json:"version" yaml:"version"`
+	Endpoints     []EndpointConfig  `json:"endpoints" yaml:"endpoints"`
+	Protocol      string            `json:"protocol" yaml:"protocol"`
+	Security      *SecurityConfig   `json:"security,omitempty" yaml:"security,omitempty"`
+	QoS           *QoSConfig        `json:"qos,omitempty" yaml:"qos,omitempty"`
+	Monitoring    *MonitoringConfig `json:"monitoring,omitempty" yaml:"monitoring,omitempty"`
 }
 
 // Network Function Blueprint Templates
@@ -166,47 +166,47 @@ type InterfaceTemplate struct {
 // AmfBlueprintTemplate represents AMF-specific blueprint template
 type AmfBlueprintTemplate struct {
 	*BlueprintTemplate
-	SessionManagement *SessionManagementConfig `json:"sessionManagement" yaml:"sessionManagement"`
-	MobilityManagement *MobilityManagementConfig `json:"mobilityManagement" yaml:"mobilityManagement"`
-	AuthenticationConfig *AuthenticationConfig `json:"authentication" yaml:"authentication"`
-	PLMNConfiguration []PLMNConfig `json:"plmnConfig" yaml:"plmnConfig"`
+	SessionManagement    *SessionManagementConfig  `json:"sessionManagement" yaml:"sessionManagement"`
+	MobilityManagement   *MobilityManagementConfig `json:"mobilityManagement" yaml:"mobilityManagement"`
+	AuthenticationConfig *AuthenticationConfig     `json:"authentication" yaml:"authentication"`
+	PLMNConfiguration    []PLMNConfig              `json:"plmnConfig" yaml:"plmnConfig"`
 }
 
 // SmfBlueprintTemplate represents SMF-specific blueprint template
 type SmfBlueprintTemplate struct {
 	*BlueprintTemplate
 	PDUSessionManagement *PDUSessionConfig `json:"pduSessionManagement" yaml:"pduSessionManagement"`
-	QoSFlowManagement *QoSFlowConfig `json:"qosFlowManagement" yaml:"qosFlowManagement"`
-	ChargingConfig *ChargingConfig `json:"chargingConfig" yaml:"chargingConfig"`
-	PolicyEnforcement *PolicyConfig `json:"policyEnforcement" yaml:"policyEnforcement"`
+	QoSFlowManagement    *QoSFlowConfig    `json:"qosFlowManagement" yaml:"qosFlowManagement"`
+	ChargingConfig       *ChargingConfig   `json:"chargingConfig" yaml:"chargingConfig"`
+	PolicyEnforcement    *PolicyConfig     `json:"policyEnforcement" yaml:"policyEnforcement"`
 }
 
 // UpfBlueprintTemplate represents UPF-specific blueprint template
 type UpfBlueprintTemplate struct {
 	*BlueprintTemplate
-	DataPlaneConfig *DataPlaneConfig `json:"dataPlaneConfig" yaml:"dataPlaneConfig"`
-	TrafficRouting *TrafficRoutingConfig `json:"trafficRouting" yaml:"trafficRouting"`
-	EdgeDeployment *EdgeDeploymentConfig `json:"edgeDeployment,omitempty" yaml:"edgeDeployment,omitempty"`
-	PerformanceOptimization *PerformanceConfig `json:"performanceOptimization" yaml:"performanceOptimization"`
+	DataPlaneConfig         *DataPlaneConfig      `json:"dataPlaneConfig" yaml:"dataPlaneConfig"`
+	TrafficRouting          *TrafficRoutingConfig `json:"trafficRouting" yaml:"trafficRouting"`
+	EdgeDeployment          *EdgeDeploymentConfig `json:"edgeDeployment,omitempty" yaml:"edgeDeployment,omitempty"`
+	PerformanceOptimization *PerformanceConfig    `json:"performanceOptimization" yaml:"performanceOptimization"`
 }
 
 // Additional 5G Core blueprint templates would follow similar patterns...
 type NssfBlueprintTemplate struct {
 	*BlueprintTemplate
 	SliceSelection *SliceSelectionConfig `json:"sliceSelection" yaml:"sliceSelection"`
-	NSIManagement *NSIManagementConfig `json:"nsiManagement" yaml:"nsiManagement"`
+	NSIManagement  *NSIManagementConfig  `json:"nsiManagement" yaml:"nsiManagement"`
 }
 
 type UdmBlueprintTemplate struct {
 	*BlueprintTemplate
-	SubscriberData *SubscriberDataConfig `json:"subscriberData" yaml:"subscriberData"`
+	SubscriberData     *SubscriberDataConfig     `json:"subscriberData" yaml:"subscriberData"`
 	IdentityManagement *IdentityManagementConfig `json:"identityManagement" yaml:"identityManagement"`
 }
 
 type AusfBlueprintTemplate struct {
 	*BlueprintTemplate
 	AuthenticationServer *AuthenticationServerConfig `json:"authenticationServer" yaml:"authenticationServer"`
-	KeyManagement *KeyManagementConfig `json:"keyManagement" yaml:"keyManagement"`
+	KeyManagement        *KeyManagementConfig        `json:"keyManagement" yaml:"keyManagement"`
 }
 
 type PcfBlueprintTemplate struct {
@@ -217,44 +217,44 @@ type PcfBlueprintTemplate struct {
 
 type NrfBlueprintTemplate struct {
 	*BlueprintTemplate
-	ServiceRegistry *ServiceRegistryConfig `json:"serviceRegistry" yaml:"serviceRegistry"`
+	ServiceRegistry  *ServiceRegistryConfig  `json:"serviceRegistry" yaml:"serviceRegistry"`
 	ServiceDiscovery *ServiceDiscoveryConfig `json:"serviceDiscovery" yaml:"serviceDiscovery"`
 }
 
 type UdrBlueprintTemplate struct {
 	*BlueprintTemplate
-	DataRepository *DataRepositoryConfig `json:"dataRepository" yaml:"dataRepository"`
+	DataRepository  *DataRepositoryConfig  `json:"dataRepository" yaml:"dataRepository"`
 	DataConsistency *DataConsistencyConfig `json:"dataConsistency" yaml:"dataConsistency"`
 }
 
 type NwdafBlueprintTemplate struct {
 	*BlueprintTemplate
 	AnalyticsEngine *AnalyticsEngineConfig `json:"analyticsEngine" yaml:"analyticsEngine"`
-	MLPipeline *MLPipelineConfig `json:"mlPipeline" yaml:"mlPipeline"`
+	MLPipeline      *MLPipelineConfig      `json:"mlPipeline" yaml:"mlPipeline"`
 }
 
 // Configuration structures for network functions
 
 type NetworkFunctionConfig struct {
-	Interfaces []InterfaceConfig `json:"interfaces" yaml:"interfaces"`
-	ServiceBindings []ServiceBinding `json:"serviceBindings" yaml:"serviceBindings"`
+	Interfaces           []InterfaceConfig    `json:"interfaces" yaml:"interfaces"`
+	ServiceBindings      []ServiceBinding     `json:"serviceBindings" yaml:"serviceBindings"`
 	ResourceRequirements ResourceRequirements `json:"resourceRequirements" yaml:"resourceRequirements"`
 }
 
 type QoSProfileConfig struct {
-	QCI                int     `json:"qci" yaml:"qci"`
-	Priority           int     `json:"priority" yaml:"priority"`
-	PacketDelayBudget  int     `json:"packetDelayBudget" yaml:"packetDelayBudget"`
-	PacketErrorRate    float64 `json:"packetErrorRate" yaml:"packetErrorRate"`
-	MaxBitRate         string  `json:"maxBitRate" yaml:"maxBitRate"`
-	GuaranteedBitRate  string  `json:"guaranteedBitRate" yaml:"guaranteedBitRate"`
+	QCI               int     `json:"qci" yaml:"qci"`
+	Priority          int     `json:"priority" yaml:"priority"`
+	PacketDelayBudget int     `json:"packetDelayBudget" yaml:"packetDelayBudget"`
+	PacketErrorRate   float64 `json:"packetErrorRate" yaml:"packetErrorRate"`
+	MaxBitRate        string  `json:"maxBitRate" yaml:"maxBitRate"`
+	GuaranteedBitRate string  `json:"guaranteedBitRate" yaml:"guaranteedBitRate"`
 }
 
 type ScalingPolicyConfig struct {
-	MinReplicas     int32 `json:"minReplicas" yaml:"minReplicas"`
-	MaxReplicas     int32 `json:"maxReplicas" yaml:"maxReplicas"`
-	TargetCPU       int32 `json:"targetCPU" yaml:"targetCPU"`
-	TargetMemory    int32 `json:"targetMemory" yaml:"targetMemory"`
+	MinReplicas     int32        `json:"minReplicas" yaml:"minReplicas"`
+	MaxReplicas     int32        `json:"maxReplicas" yaml:"maxReplicas"`
+	TargetCPU       int32        `json:"targetCPU" yaml:"targetCPU"`
+	TargetMemory    int32        `json:"targetMemory" yaml:"targetMemory"`
 	ScaleUpPolicy   *ScalePolicy `json:"scaleUpPolicy" yaml:"scaleUpPolicy"`
 	ScaleDownPolicy *ScalePolicy `json:"scaleDownPolicy" yaml:"scaleDownPolicy"`
 }
@@ -268,11 +268,11 @@ type ScalePolicy struct {
 // Template structures
 
 type HelmChartTemplate struct {
-	Name         string            `json:"name" yaml:"name"`
-	Version      string            `json:"version" yaml:"version"`
-	Repository   string            `json:"repository" yaml:"repository"`
+	Name         string                 `json:"name" yaml:"name"`
+	Version      string                 `json:"version" yaml:"version"`
+	Repository   string                 `json:"repository" yaml:"repository"`
 	Values       map[string]interface{} `json:"values" yaml:"values"`
-	Dependencies []HelmDependency `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
+	Dependencies []HelmDependency       `json:"dependencies,omitempty" yaml:"dependencies,omitempty"`
 }
 
 type KRMResourceTemplate struct {
@@ -315,16 +315,16 @@ type BlueprintConstraint struct {
 // Configuration specific to network functions
 
 type SessionManagementConfig struct {
-	MaxSessions        int     `json:"maxSessions" yaml:"maxSessions"`
-	SessionTimeout     int     `json:"sessionTimeout" yaml:"sessionTimeout"`
-	HandoverSupport    bool    `json:"handoverSupport" yaml:"handoverSupport"`
-	EmergencyService   bool    `json:"emergencyService" yaml:"emergencyService"`
+	MaxSessions      int  `json:"maxSessions" yaml:"maxSessions"`
+	SessionTimeout   int  `json:"sessionTimeout" yaml:"sessionTimeout"`
+	HandoverSupport  bool `json:"handoverSupport" yaml:"handoverSupport"`
+	EmergencyService bool `json:"emergencyService" yaml:"emergencyService"`
 }
 
 type MobilityManagementConfig struct {
-	TrackingAreaList   []int   `json:"trackingAreaList" yaml:"trackingAreaList"`
-	ReregistrationTime int     `json:"reregistrationTime" yaml:"reregistrationTime"`
-	PagingPolicy       string  `json:"pagingPolicy" yaml:"pagingPolicy"`
+	TrackingAreaList   []int  `json:"trackingAreaList" yaml:"trackingAreaList"`
+	ReregistrationTime int    `json:"reregistrationTime" yaml:"reregistrationTime"`
+	PagingPolicy       string `json:"pagingPolicy" yaml:"pagingPolicy"`
 }
 
 type AuthenticationConfig struct {
@@ -334,9 +334,9 @@ type AuthenticationConfig struct {
 }
 
 type PLMNConfig struct {
-	MCC         string   `json:"mcc" yaml:"mcc"`
-	MNC         string   `json:"mnc" yaml:"mnc"`
-	TAC         int      `json:"tac" yaml:"tac"`
+	MCC          string      `json:"mcc" yaml:"mcc"`
+	MNC          string      `json:"mnc" yaml:"mnc"`
+	TAC          int         `json:"tac" yaml:"tac"`
 	SliceSupport []SliceInfo `json:"sliceSupport" yaml:"sliceSupport"`
 }
 
@@ -346,9 +346,9 @@ type SliceInfo struct {
 }
 
 type PDUSessionConfig struct {
-	MaxPDUSessions     int     `json:"maxPDUSessions" yaml:"maxPDUSessions"`
-	DefaultQoS         QoSInfo `json:"defaultQoS" yaml:"defaultQoS"`
-	SessionAmbr        string  `json:"sessionAmbr" yaml:"sessionAmbr"`
+	MaxPDUSessions      int      `json:"maxPDUSessions" yaml:"maxPDUSessions"`
+	DefaultQoS          QoSInfo  `json:"defaultQoS" yaml:"defaultQoS"`
+	SessionAmbr         string   `json:"sessionAmbr" yaml:"sessionAmbr"`
 	AllowedSessionTypes []string `json:"allowedSessionTypes" yaml:"allowedSessionTypes"`
 }
 
@@ -367,24 +367,24 @@ type QoSInfo struct {
 }
 
 type ChargingConfig struct {
-	ChargingMode       string   `json:"chargingMode" yaml:"chargingMode"`
-	RatingGroups       []int    `json:"ratingGroups" yaml:"ratingGroups"`
-	MeasurementMethod  string   `json:"measurementMethod" yaml:"measurementMethod"`
-	ReportingInterval  int      `json:"reportingInterval" yaml:"reportingInterval"`
+	ChargingMode      string `json:"chargingMode" yaml:"chargingMode"`
+	RatingGroups      []int  `json:"ratingGroups" yaml:"ratingGroups"`
+	MeasurementMethod string `json:"measurementMethod" yaml:"measurementMethod"`
+	ReportingInterval int    `json:"reportingInterval" yaml:"reportingInterval"`
 }
 
 type PolicyConfig struct {
-	PolicyDecisionPoint string              `json:"policyDecisionPoint" yaml:"policyDecisionPoint"`
-	PolicyRules         []PolicyRule        `json:"policyRules" yaml:"policyRules"`
-	EnforcementPoints   []EnforcementPoint  `json:"enforcementPoints" yaml:"enforcementPoints"`
+	PolicyDecisionPoint string             `json:"policyDecisionPoint" yaml:"policyDecisionPoint"`
+	PolicyRules         []PolicyRule       `json:"policyRules" yaml:"policyRules"`
+	EnforcementPoints   []EnforcementPoint `json:"enforcementPoints" yaml:"enforcementPoints"`
 }
 
 type PolicyRule struct {
-	ID          string      `json:"id" yaml:"id"`
-	Condition   string      `json:"condition" yaml:"condition"`
-	Action      string      `json:"action" yaml:"action"`
-	Priority    int         `json:"priority" yaml:"priority"`
-	Parameters  map[string]interface{} `json:"parameters" yaml:"parameters"`
+	ID         string                 `json:"id" yaml:"id"`
+	Condition  string                 `json:"condition" yaml:"condition"`
+	Action     string                 `json:"action" yaml:"action"`
+	Priority   int                    `json:"priority" yaml:"priority"`
+	Parameters map[string]interface{} `json:"parameters" yaml:"parameters"`
 }
 
 type EnforcementPoint struct {
@@ -394,44 +394,44 @@ type EnforcementPoint struct {
 }
 
 type DataPlaneConfig struct {
-	InterfaceType      string   `json:"interfaceType" yaml:"interfaceType"`
-	EncapsulationMode  string   `json:"encapsulationMode" yaml:"encapsulationMode"`
-	SupportedProtocols []string `json:"supportedProtocols" yaml:"supportedProtocols"`
+	InterfaceType       string       `json:"interfaceType" yaml:"interfaceType"`
+	EncapsulationMode   string       `json:"encapsulationMode" yaml:"encapsulationMode"`
+	SupportedProtocols  []string     `json:"supportedProtocols" yaml:"supportedProtocols"`
 	BufferConfiguration BufferConfig `json:"bufferConfiguration" yaml:"bufferConfiguration"`
 }
 
 type BufferConfig struct {
-	Size          string `json:"size" yaml:"size"`
-	Thresholds    map[string]int `json:"thresholds" yaml:"thresholds"`
-	DropPolicies  []DropPolicy   `json:"dropPolicies" yaml:"dropPolicies"`
+	Size         string         `json:"size" yaml:"size"`
+	Thresholds   map[string]int `json:"thresholds" yaml:"thresholds"`
+	DropPolicies []DropPolicy   `json:"dropPolicies" yaml:"dropPolicies"`
 }
 
 type DropPolicy struct {
-	Priority   int    `json:"priority" yaml:"priority"`
-	Threshold  int    `json:"threshold" yaml:"threshold"`
-	Action     string `json:"action" yaml:"action"`
+	Priority  int    `json:"priority" yaml:"priority"`
+	Threshold int    `json:"threshold" yaml:"threshold"`
+	Action    string `json:"action" yaml:"action"`
 }
 
 type TrafficRoutingConfig struct {
-	RoutingRules       []RoutingRule       `json:"routingRules" yaml:"routingRules"`
-	LoadBalancing      LoadBalancingConfig `json:"loadBalancing" yaml:"loadBalancing"`
-	TrafficSteering    TrafficSteeringConfig `json:"trafficSteering" yaml:"trafficSteering"`
+	RoutingRules    []RoutingRule         `json:"routingRules" yaml:"routingRules"`
+	LoadBalancing   LoadBalancingConfig   `json:"loadBalancing" yaml:"loadBalancing"`
+	TrafficSteering TrafficSteeringConfig `json:"trafficSteering" yaml:"trafficSteering"`
 }
 
 type RoutingRule struct {
-	ID          string      `json:"id" yaml:"id"`
-	Source      string      `json:"source" yaml:"source"`
-	Destination string      `json:"destination" yaml:"destination"`
-	Protocol    string      `json:"protocol" yaml:"protocol"`
-	Action      string      `json:"action" yaml:"action"`
-	Priority    int         `json:"priority" yaml:"priority"`
+	ID          string `json:"id" yaml:"id"`
+	Source      string `json:"source" yaml:"source"`
+	Destination string `json:"destination" yaml:"destination"`
+	Protocol    string `json:"protocol" yaml:"protocol"`
+	Action      string `json:"action" yaml:"action"`
+	Priority    int    `json:"priority" yaml:"priority"`
 }
 
 type LoadBalancingConfig struct {
-	Algorithm    string               `json:"algorithm" yaml:"algorithm"`
-	HealthCheck  HealthCheckConfig    `json:"healthCheck" yaml:"healthCheck"`
+	Algorithm       string            `json:"algorithm" yaml:"algorithm"`
+	HealthCheck     HealthCheckConfig `json:"healthCheck" yaml:"healthCheck"`
 	SessionAffinity bool              `json:"sessionAffinity" yaml:"sessionAffinity"`
-	Weights      map[string]int       `json:"weights" yaml:"weights"`
+	Weights         map[string]int    `json:"weights" yaml:"weights"`
 }
 
 type HealthCheckConfig struct {
@@ -442,53 +442,53 @@ type HealthCheckConfig struct {
 }
 
 type TrafficSteeringConfig struct {
-	Enabled    bool            `json:"enabled" yaml:"enabled"`
-	Rules      []SteeringRule  `json:"rules" yaml:"rules"`
-	Fallback   string          `json:"fallback" yaml:"fallback"`
+	Enabled  bool           `json:"enabled" yaml:"enabled"`
+	Rules    []SteeringRule `json:"rules" yaml:"rules"`
+	Fallback string         `json:"fallback" yaml:"fallback"`
 }
 
 type SteeringRule struct {
-	Criteria   string `json:"criteria" yaml:"criteria"`
+	Criteria    string `json:"criteria" yaml:"criteria"`
 	Destination string `json:"destination" yaml:"destination"`
-	Weight     int    `json:"weight" yaml:"weight"`
+	Weight      int    `json:"weight" yaml:"weight"`
 }
 
 type EdgeDeploymentConfig struct {
-	Enabled        bool              `json:"enabled" yaml:"enabled"`
-	EdgeLocations  []EdgeLocation    `json:"edgeLocations" yaml:"edgeLocations"`
-	Optimization   OptimizationConfig `json:"optimization" yaml:"optimization"`
+	Enabled       bool               `json:"enabled" yaml:"enabled"`
+	EdgeLocations []EdgeLocation     `json:"edgeLocations" yaml:"edgeLocations"`
+	Optimization  OptimizationConfig `json:"optimization" yaml:"optimization"`
 }
 
 type EdgeLocation struct {
-	Name      string            `json:"name" yaml:"name"`
-	Region    string            `json:"region" yaml:"region"`
-	Resources ResourceLimits    `json:"resources" yaml:"resources"`
-	Latency   LatencyConfig     `json:"latency" yaml:"latency"`
+	Name      string         `json:"name" yaml:"name"`
+	Region    string         `json:"region" yaml:"region"`
+	Resources ResourceLimits `json:"resources" yaml:"resources"`
+	Latency   LatencyConfig  `json:"latency" yaml:"latency"`
 }
 
 type OptimizationConfig struct {
-	CPU         bool `json:"cpu" yaml:"cpu"`
-	Memory      bool `json:"memory" yaml:"memory"`
-	Network     bool `json:"network" yaml:"network"`
-	Storage     bool `json:"storage" yaml:"storage"`
+	CPU     bool `json:"cpu" yaml:"cpu"`
+	Memory  bool `json:"memory" yaml:"memory"`
+	Network bool `json:"network" yaml:"network"`
+	Storage bool `json:"storage" yaml:"storage"`
 }
 
 type LatencyConfig struct {
-	Target    int `json:"target" yaml:"target"`
-	Max       int `json:"max" yaml:"max"`
-	Jitter    int `json:"jitter" yaml:"jitter"`
+	Target int `json:"target" yaml:"target"`
+	Max    int `json:"max" yaml:"max"`
+	Jitter int `json:"jitter" yaml:"jitter"`
 }
 
 type PerformanceConfig struct {
-	Throughput       ThroughputConfig     `json:"throughput" yaml:"throughput"`
-	Latency          LatencyOptimization  `json:"latency" yaml:"latency"`
-	ResourceUsage    ResourceOptimization `json:"resourceUsage" yaml:"resourceUsage"`
+	Throughput    ThroughputConfig     `json:"throughput" yaml:"throughput"`
+	Latency       LatencyOptimization  `json:"latency" yaml:"latency"`
+	ResourceUsage ResourceOptimization `json:"resourceUsage" yaml:"resourceUsage"`
 }
 
 type ThroughputConfig struct {
-	Target       string `json:"target" yaml:"target"`
-	Burst        string `json:"burst" yaml:"burst"`
-	Sustained    string `json:"sustained" yaml:"sustained"`
+	Target    string `json:"target" yaml:"target"`
+	Burst     string `json:"burst" yaml:"burst"`
+	Sustained string `json:"sustained" yaml:"sustained"`
 }
 
 type LatencyOptimization struct {
@@ -499,29 +499,29 @@ type LatencyOptimization struct {
 }
 
 type ResourceOptimization struct {
-	CPUAffinity      bool     `json:"cpuAffinity" yaml:"cpuAffinity"`
-	NUMATopology     bool     `json:"numaTopology" yaml:"numaTopology"`
-	HugePagesEnabled bool     `json:"hugePagesEnabled" yaml:"hugePagesEnabled"`
-	IsolatedCores    []int    `json:"isolatedCores" yaml:"isolatedCores"`
+	CPUAffinity      bool  `json:"cpuAffinity" yaml:"cpuAffinity"`
+	NUMATopology     bool  `json:"numaTopology" yaml:"numaTopology"`
+	HugePagesEnabled bool  `json:"hugePagesEnabled" yaml:"hugePagesEnabled"`
+	IsolatedCores    []int `json:"isolatedCores" yaml:"isolatedCores"`
 }
 
 // Additional configuration types for other network functions
 type SliceSelectionConfig struct {
-	SelectionRules    []SliceSelectionRule `json:"selectionRules" yaml:"selectionRules"`
-	DefaultSlice      SliceInfo            `json:"defaultSlice" yaml:"defaultSlice"`
-	LoadBalancing     bool                 `json:"loadBalancing" yaml:"loadBalancing"`
+	SelectionRules []SliceSelectionRule `json:"selectionRules" yaml:"selectionRules"`
+	DefaultSlice   SliceInfo            `json:"defaultSlice" yaml:"defaultSlice"`
+	LoadBalancing  bool                 `json:"loadBalancing" yaml:"loadBalancing"`
 }
 
 type SliceSelectionRule struct {
-	Criteria      string    `json:"criteria" yaml:"criteria"`
-	TargetSlice   SliceInfo `json:"targetSlice" yaml:"targetSlice"`
-	Priority      int       `json:"priority" yaml:"priority"`
+	Criteria    string    `json:"criteria" yaml:"criteria"`
+	TargetSlice SliceInfo `json:"targetSlice" yaml:"targetSlice"`
+	Priority    int       `json:"priority" yaml:"priority"`
 }
 
 type NSIManagementConfig struct {
-	MaxNSI           int              `json:"maxNSI" yaml:"maxNSI"`
-	LifecyclePolicy  LifecyclePolicy  `json:"lifecyclePolicy" yaml:"lifecyclePolicy"`
-	ResourceSharing  bool             `json:"resourceSharing" yaml:"resourceSharing"`
+	MaxNSI          int             `json:"maxNSI" yaml:"maxNSI"`
+	LifecyclePolicy LifecyclePolicy `json:"lifecyclePolicy" yaml:"lifecyclePolicy"`
+	ResourceSharing bool            `json:"resourceSharing" yaml:"resourceSharing"`
 }
 
 type LifecyclePolicy struct {
@@ -531,21 +531,21 @@ type LifecyclePolicy struct {
 }
 
 type SubscriberDataConfig struct {
-	DataConsistency    string          `json:"dataConsistency" yaml:"dataConsistency"`
-	ReplicationFactor  int             `json:"replicationFactor" yaml:"replicationFactor"`
-	BackupStrategy     BackupStrategy  `json:"backupStrategy" yaml:"backupStrategy"`
+	DataConsistency   string         `json:"dataConsistency" yaml:"dataConsistency"`
+	ReplicationFactor int            `json:"replicationFactor" yaml:"replicationFactor"`
+	BackupStrategy    BackupStrategy `json:"backupStrategy" yaml:"backupStrategy"`
 }
 
 type BackupStrategy struct {
-	Enabled    bool   `json:"enabled" yaml:"enabled"`
-	Frequency  string `json:"frequency" yaml:"frequency"`
-	Retention  string `json:"retention" yaml:"retention"`
-	Storage    string `json:"storage" yaml:"storage"`
+	Enabled   bool   `json:"enabled" yaml:"enabled"`
+	Frequency string `json:"frequency" yaml:"frequency"`
+	Retention string `json:"retention" yaml:"retention"`
+	Storage   string `json:"storage" yaml:"storage"`
 }
 
 type IdentityManagementConfig struct {
-	IdentityTypes     []string        `json:"identityTypes" yaml:"identityTypes"`
-	PrivacyProtection bool            `json:"privacyProtection" yaml:"privacyProtection"`
+	IdentityTypes     []string         `json:"identityTypes" yaml:"identityTypes"`
+	PrivacyProtection bool             `json:"privacyProtection" yaml:"privacyProtection"`
 	Encryption        EncryptionConfig `json:"encryption" yaml:"encryption"`
 }
 
@@ -569,14 +569,14 @@ type CertificateConfig struct {
 }
 
 type TokenManagementConfig struct {
-	TokenLifetime      int  `json:"tokenLifetime" yaml:"tokenLifetime"`
-	RefreshEnabled     bool `json:"refreshEnabled" yaml:"refreshEnabled"`
-	RefreshLifetime    int  `json:"refreshLifetime" yaml:"refreshLifetime"`
+	TokenLifetime   int  `json:"tokenLifetime" yaml:"tokenLifetime"`
+	RefreshEnabled  bool `json:"refreshEnabled" yaml:"refreshEnabled"`
+	RefreshLifetime int  `json:"refreshLifetime" yaml:"refreshLifetime"`
 }
 
 type KeyManagementConfig struct {
-	KeyDerivationFunction string          `json:"keyDerivationFunction" yaml:"keyDerivationFunction"`
-	KeyStorage            KeyStorageConfig `json:"keyStorage" yaml:"keyStorage"`
+	KeyDerivationFunction string            `json:"keyDerivationFunction" yaml:"keyDerivationFunction"`
+	KeyStorage            KeyStorageConfig  `json:"keyStorage" yaml:"keyStorage"`
 	KeyRotationPolicy     KeyRotationPolicy `json:"keyRotationPolicy" yaml:"keyRotationPolicy"`
 }
 
@@ -593,28 +593,28 @@ type KeyRotationPolicy struct {
 }
 
 type PolicyControlConfig struct {
-	PolicyStore      PolicyStoreConfig      `json:"policyStore" yaml:"policyStore"`
-	DecisionEngine   DecisionEngineConfig   `json:"decisionEngine" yaml:"decisionEngine"`
-	EnforcementMode  string                 `json:"enforcementMode" yaml:"enforcementMode"`
+	PolicyStore     PolicyStoreConfig    `json:"policyStore" yaml:"policyStore"`
+	DecisionEngine  DecisionEngineConfig `json:"decisionEngine" yaml:"decisionEngine"`
+	EnforcementMode string               `json:"enforcementMode" yaml:"enforcementMode"`
 }
 
 type PolicyStoreConfig struct {
-	StorageType    string `json:"storageType" yaml:"storageType"`
-	Consistency    string `json:"consistency" yaml:"consistency"`
-	CacheEnabled   bool   `json:"cacheEnabled" yaml:"cacheEnabled"`
-	CacheTTL       int    `json:"cacheTTL" yaml:"cacheTTL"`
+	StorageType  string `json:"storageType" yaml:"storageType"`
+	Consistency  string `json:"consistency" yaml:"consistency"`
+	CacheEnabled bool   `json:"cacheEnabled" yaml:"cacheEnabled"`
+	CacheTTL     int    `json:"cacheTTL" yaml:"cacheTTL"`
 }
 
 type DecisionEngineConfig struct {
-	Algorithm         string `json:"algorithm" yaml:"algorithm"`
-	ConcurrentRequests int   `json:"concurrentRequests" yaml:"concurrentRequests"`
-	TimeoutMs         int    `json:"timeoutMs" yaml:"timeoutMs"`
+	Algorithm          string `json:"algorithm" yaml:"algorithm"`
+	ConcurrentRequests int    `json:"concurrentRequests" yaml:"concurrentRequests"`
+	TimeoutMs          int    `json:"timeoutMs" yaml:"timeoutMs"`
 }
 
 type ChargingRulesConfig struct {
-	RuleEngine        RuleEngineConfig        `json:"ruleEngine" yaml:"ruleEngine"`
-	MeteringEnabled   bool                    `json:"meteringEnabled" yaml:"meteringEnabled"`
-	ReportingInterval int                     `json:"reportingInterval" yaml:"reportingInterval"`
+	RuleEngine        RuleEngineConfig `json:"ruleEngine" yaml:"ruleEngine"`
+	MeteringEnabled   bool             `json:"meteringEnabled" yaml:"meteringEnabled"`
+	ReportingInterval int              `json:"reportingInterval" yaml:"reportingInterval"`
 }
 
 type RuleEngineConfig struct {
@@ -624,49 +624,49 @@ type RuleEngineConfig struct {
 }
 
 type ServiceRegistryConfig struct {
-	MaxServices       int                   `json:"maxServices" yaml:"maxServices"`
-	HeartbeatInterval int                   `json:"heartbeatInterval" yaml:"heartbeatInterval"`
-	ServiceTimeout    int                   `json:"serviceTimeout" yaml:"serviceTimeout"`
-	LoadBalancing     ServiceLoadBalancing  `json:"loadBalancing" yaml:"loadBalancing"`
+	MaxServices       int                  `json:"maxServices" yaml:"maxServices"`
+	HeartbeatInterval int                  `json:"heartbeatInterval" yaml:"heartbeatInterval"`
+	ServiceTimeout    int                  `json:"serviceTimeout" yaml:"serviceTimeout"`
+	LoadBalancing     ServiceLoadBalancing `json:"loadBalancing" yaml:"loadBalancing"`
 }
 
 type ServiceLoadBalancing struct {
-	Enabled   bool   `json:"enabled" yaml:"enabled"`
-	Algorithm string `json:"algorithm" yaml:"algorithm"`
-	HealthCheck bool `json:"healthCheck" yaml:"healthCheck"`
+	Enabled     bool   `json:"enabled" yaml:"enabled"`
+	Algorithm   string `json:"algorithm" yaml:"algorithm"`
+	HealthCheck bool   `json:"healthCheck" yaml:"healthCheck"`
 }
 
 type ServiceDiscoveryConfig struct {
-	DiscoveryMethods []string            `json:"discoveryMethods" yaml:"discoveryMethods"`
-	CacheConfig      ServiceCacheConfig  `json:"cacheConfig" yaml:"cacheConfig"`
-	FilterEnabled    bool                `json:"filterEnabled" yaml:"filterEnabled"`
+	DiscoveryMethods []string           `json:"discoveryMethods" yaml:"discoveryMethods"`
+	CacheConfig      ServiceCacheConfig `json:"cacheConfig" yaml:"cacheConfig"`
+	FilterEnabled    bool               `json:"filterEnabled" yaml:"filterEnabled"`
 }
 
 type ServiceCacheConfig struct {
-	Enabled   bool `json:"enabled" yaml:"enabled"`
-	TTL       int  `json:"ttl" yaml:"ttl"`
-	MaxSize   int  `json:"maxSize" yaml:"maxSize"`
-	Preload   bool `json:"preload" yaml:"preload"`
+	Enabled bool `json:"enabled" yaml:"enabled"`
+	TTL     int  `json:"ttl" yaml:"ttl"`
+	MaxSize int  `json:"maxSize" yaml:"maxSize"`
+	Preload bool `json:"preload" yaml:"preload"`
 }
 
 type DataRepositoryConfig struct {
-	StorageEngine    StorageEngineConfig    `json:"storageEngine" yaml:"storageEngine"`
-	ReplicationConfig ReplicationConfig     `json:"replicationConfig" yaml:"replicationConfig"`
-	IndexingStrategy  IndexingConfig        `json:"indexingStrategy" yaml:"indexingStrategy"`
+	StorageEngine     StorageEngineConfig `json:"storageEngine" yaml:"storageEngine"`
+	ReplicationConfig ReplicationConfig   `json:"replicationConfig" yaml:"replicationConfig"`
+	IndexingStrategy  IndexingConfig      `json:"indexingStrategy" yaml:"indexingStrategy"`
 }
 
 type StorageEngineConfig struct {
-	EngineType       string `json:"engineType" yaml:"engineType"`
-	ConnectionPool   int    `json:"connectionPool" yaml:"connectionPool"`
-	QueryTimeout     int    `json:"queryTimeout" yaml:"queryTimeout"`
-	TransactionMode  string `json:"transactionMode" yaml:"transactionMode"`
+	EngineType      string `json:"engineType" yaml:"engineType"`
+	ConnectionPool  int    `json:"connectionPool" yaml:"connectionPool"`
+	QueryTimeout    int    `json:"queryTimeout" yaml:"queryTimeout"`
+	TransactionMode string `json:"transactionMode" yaml:"transactionMode"`
 }
 
 type ReplicationConfig struct {
-	Enabled       bool   `json:"enabled" yaml:"enabled"`
-	ReplicaCount  int    `json:"replicaCount" yaml:"replicaCount"`
-	SyncMode      string `json:"syncMode" yaml:"syncMode"`
-	FailoverTime  int    `json:"failoverTime" yaml:"failoverTime"`
+	Enabled      bool   `json:"enabled" yaml:"enabled"`
+	ReplicaCount int    `json:"replicaCount" yaml:"replicaCount"`
+	SyncMode     string `json:"syncMode" yaml:"syncMode"`
+	FailoverTime int    `json:"failoverTime" yaml:"failoverTime"`
 }
 
 type IndexingConfig struct {
@@ -676,23 +676,23 @@ type IndexingConfig struct {
 }
 
 type DataConsistencyConfig struct {
-	ConsistencyLevel   string            `json:"consistencyLevel" yaml:"consistencyLevel"`
-	ConflictResolution string            `json:"conflictResolution" yaml:"conflictResolution"`
-	ValidationRules    []ValidationRule  `json:"validationRules" yaml:"validationRules"`
+	ConsistencyLevel   string           `json:"consistencyLevel" yaml:"consistencyLevel"`
+	ConflictResolution string           `json:"conflictResolution" yaml:"conflictResolution"`
+	ValidationRules    []ValidationRule `json:"validationRules" yaml:"validationRules"`
 }
 
 type ValidationRule struct {
-	Field      string      `json:"field" yaml:"field"`
-	Type       string      `json:"type" yaml:"type"`
-	Required   bool        `json:"required" yaml:"required"`
-	Constraints []string   `json:"constraints" yaml:"constraints"`
+	Field       string   `json:"field" yaml:"field"`
+	Type        string   `json:"type" yaml:"type"`
+	Required    bool     `json:"required" yaml:"required"`
+	Constraints []string `json:"constraints" yaml:"constraints"`
 }
 
 type AnalyticsEngineConfig struct {
-	ProcessingMode     string                   `json:"processingMode" yaml:"processingMode"`
-	DataSources        []DataSourceConfig       `json:"dataSources" yaml:"dataSources"`
-	AnalyticsModels    []AnalyticsModelConfig   `json:"analyticsModels" yaml:"analyticsModels"`
-	OutputConfiguration OutputConfig            `json:"outputConfiguration" yaml:"outputConfiguration"`
+	ProcessingMode      string                 `json:"processingMode" yaml:"processingMode"`
+	DataSources         []DataSourceConfig     `json:"dataSources" yaml:"dataSources"`
+	AnalyticsModels     []AnalyticsModelConfig `json:"analyticsModels" yaml:"analyticsModels"`
+	OutputConfiguration OutputConfig           `json:"outputConfiguration" yaml:"outputConfiguration"`
 }
 
 type DataSourceConfig struct {
@@ -703,70 +703,70 @@ type DataSourceConfig struct {
 }
 
 type AnalyticsModelConfig struct {
-	ModelID        string            `json:"modelId" yaml:"modelId"`
-	ModelType      string            `json:"modelType" yaml:"modelType"`
-	TrainingData   string            `json:"trainingData" yaml:"trainingData"`
+	ModelID        string                 `json:"modelId" yaml:"modelId"`
+	ModelType      string                 `json:"modelType" yaml:"modelType"`
+	TrainingData   string                 `json:"trainingData" yaml:"trainingData"`
 	Parameters     map[string]interface{} `json:"parameters" yaml:"parameters"`
-	UpdateInterval int               `json:"updateInterval" yaml:"updateInterval"`
+	UpdateInterval int                    `json:"updateInterval" yaml:"updateInterval"`
 }
 
 type OutputConfig struct {
-	Destinations   []OutputDestination `json:"destinations" yaml:"destinations"`
-	Format         string              `json:"format" yaml:"format"`
-	Aggregation    AggregationConfig   `json:"aggregation" yaml:"aggregation"`
+	Destinations []OutputDestination `json:"destinations" yaml:"destinations"`
+	Format       string              `json:"format" yaml:"format"`
+	Aggregation  AggregationConfig   `json:"aggregation" yaml:"aggregation"`
 }
 
 type OutputDestination struct {
-	Name       string            `json:"name" yaml:"name"`
-	Type       string            `json:"type" yaml:"type"`
-	Endpoint   string            `json:"endpoint" yaml:"endpoint"`
+	Name        string            `json:"name" yaml:"name"`
+	Type        string            `json:"type" yaml:"type"`
+	Endpoint    string            `json:"endpoint" yaml:"endpoint"`
 	Credentials map[string]string `json:"credentials" yaml:"credentials"`
 }
 
 type AggregationConfig struct {
-	Enabled     bool     `json:"enabled" yaml:"enabled"`
-	Window      int      `json:"window" yaml:"window"`
-	Functions   []string `json:"functions" yaml:"functions"`
-	Grouping    []string `json:"grouping" yaml:"grouping"`
+	Enabled   bool     `json:"enabled" yaml:"enabled"`
+	Window    int      `json:"window" yaml:"window"`
+	Functions []string `json:"functions" yaml:"functions"`
+	Grouping  []string `json:"grouping" yaml:"grouping"`
 }
 
 type MLPipelineConfig struct {
-	PipelineStages    []PipelineStage    `json:"pipelineStages" yaml:"pipelineStages"`
-	ModelManagement   ModelManagement    `json:"modelManagement" yaml:"modelManagement"`
-	TrainingSchedule  TrainingSchedule   `json:"trainingSchedule" yaml:"trainingSchedule"`
+	PipelineStages   []PipelineStage  `json:"pipelineStages" yaml:"pipelineStages"`
+	ModelManagement  ModelManagement  `json:"modelManagement" yaml:"modelManagement"`
+	TrainingSchedule TrainingSchedule `json:"trainingSchedule" yaml:"trainingSchedule"`
 }
 
 type PipelineStage struct {
-	Name         string            `json:"name" yaml:"name"`
-	Type         string            `json:"type" yaml:"type"`
+	Name          string                 `json:"name" yaml:"name"`
+	Type          string                 `json:"type" yaml:"type"`
 	Configuration map[string]interface{} `json:"configuration" yaml:"configuration"`
-	Dependencies []string          `json:"dependencies" yaml:"dependencies"`
+	Dependencies  []string               `json:"dependencies" yaml:"dependencies"`
 }
 
 type ModelManagement struct {
-	Versioning     bool   `json:"versioning" yaml:"versioning"`
-	ModelRegistry  string `json:"modelRegistry" yaml:"modelRegistry"`
-	A_BTestingEnabled bool `json:"abTestingEnabled" yaml:"abTestingEnabled"`
-	RollbackEnabled bool  `json:"rollbackEnabled" yaml:"rollbackEnabled"`
+	Versioning        bool   `json:"versioning" yaml:"versioning"`
+	ModelRegistry     string `json:"modelRegistry" yaml:"modelRegistry"`
+	A_BTestingEnabled bool   `json:"abTestingEnabled" yaml:"abTestingEnabled"`
+	RollbackEnabled   bool   `json:"rollbackEnabled" yaml:"rollbackEnabled"`
 }
 
 type TrainingSchedule struct {
-	Enabled      bool   `json:"enabled" yaml:"enabled"`
-	Frequency    string `json:"frequency" yaml:"frequency"`
-	DataWindow   int    `json:"dataWindow" yaml:"dataWindow"`
-	AutoDeploy   bool   `json:"autoDeploy" yaml:"autoDeploy"`
+	Enabled    bool   `json:"enabled" yaml:"enabled"`
+	Frequency  string `json:"frequency" yaml:"frequency"`
+	DataWindow int    `json:"dataWindow" yaml:"dataWindow"`
+	AutoDeploy bool   `json:"autoDeploy" yaml:"autoDeploy"`
 }
 
 // Common configuration types used across network functions
 
 type InterfaceConfig struct {
-	Name         string            `json:"name" yaml:"name"`
-	Type         string            `json:"type" yaml:"type"`
-	Protocol     string            `json:"protocol" yaml:"protocol"`
-	Address      string            `json:"address" yaml:"address"`
-	Port         int               `json:"port" yaml:"port"`
-	TLS          *TLSConfig        `json:"tls,omitempty" yaml:"tls,omitempty"`
-	Parameters   map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Name       string            `json:"name" yaml:"name"`
+	Type       string            `json:"type" yaml:"type"`
+	Protocol   string            `json:"protocol" yaml:"protocol"`
+	Address    string            `json:"address" yaml:"address"`
+	Port       int               `json:"port" yaml:"port"`
+	TLS        *TLSConfig        `json:"tls,omitempty" yaml:"tls,omitempty"`
+	Parameters map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
 type TLSConfig struct {
@@ -778,25 +778,25 @@ type TLSConfig struct {
 }
 
 type ServiceBinding struct {
-	Service       string            `json:"service" yaml:"service"`
-	Interface     string            `json:"interface" yaml:"interface"`
-	Protocol      string            `json:"protocol" yaml:"protocol"`
-	LoadBalancer  *LoadBalancerConfig `json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
+	Service      string              `json:"service" yaml:"service"`
+	Interface    string              `json:"interface" yaml:"interface"`
+	Protocol     string              `json:"protocol" yaml:"protocol"`
+	LoadBalancer *LoadBalancerConfig `json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
 }
 
 type LoadBalancerConfig struct {
-	Type      string `json:"type" yaml:"type"`
-	Algorithm string `json:"algorithm" yaml:"algorithm"`
+	Type        string             `json:"type" yaml:"type"`
+	Algorithm   string             `json:"algorithm" yaml:"algorithm"`
 	HealthCheck *HealthCheckConfig `json:"healthCheck,omitempty" yaml:"healthCheck,omitempty"`
 }
 
 type ResourceRequirements struct {
-	CPU           string            `json:"cpu" yaml:"cpu"`
-	Memory        string            `json:"memory" yaml:"memory"`
-	Storage       string            `json:"storage" yaml:"storage"`
-	EphemeralStorage string         `json:"ephemeralStorage,omitempty" yaml:"ephemeralStorage,omitempty"`
-	Limits        ResourceLimits    `json:"limits" yaml:"limits"`
-	Requests      ResourceRequests  `json:"requests" yaml:"requests"`
+	CPU              string           `json:"cpu" yaml:"cpu"`
+	Memory           string           `json:"memory" yaml:"memory"`
+	Storage          string           `json:"storage" yaml:"storage"`
+	EphemeralStorage string           `json:"ephemeralStorage,omitempty" yaml:"ephemeralStorage,omitempty"`
+	Limits           ResourceLimits   `json:"limits" yaml:"limits"`
+	Requests         ResourceRequests `json:"requests" yaml:"requests"`
 }
 
 type ResourceLimits struct {
@@ -812,12 +812,12 @@ type ResourceRequests struct {
 }
 
 type EndpointConfig struct {
-	Name        string            `json:"name" yaml:"name"`
-	Address     string            `json:"address" yaml:"address"`
-	Port        int               `json:"port" yaml:"port"`
-	Protocol    string            `json:"protocol" yaml:"protocol"`
-	Path        string            `json:"path,omitempty" yaml:"path,omitempty"`
-	Headers     map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
+	Name     string            `json:"name" yaml:"name"`
+	Address  string            `json:"address" yaml:"address"`
+	Port     int               `json:"port" yaml:"port"`
+	Protocol string            `json:"protocol" yaml:"protocol"`
+	Path     string            `json:"path,omitempty" yaml:"path,omitempty"`
+	Headers  map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
 }
 
 type SecurityConfig struct {
@@ -832,9 +832,9 @@ type AuthConfig struct {
 }
 
 type AuthzConfig struct {
-	Type       string   `json:"type" yaml:"type"`
-	Policies   []string `json:"policies" yaml:"policies"`
-	Roles      []string `json:"roles" yaml:"roles"`
+	Type     string   `json:"type" yaml:"type"`
+	Policies []string `json:"policies" yaml:"policies"`
+	Roles    []string `json:"roles" yaml:"roles"`
 }
 
 type QoSConfig struct {
@@ -844,52 +844,52 @@ type QoSConfig struct {
 }
 
 type MonitoringConfig struct {
-	Enabled     bool                `json:"enabled" yaml:"enabled"`
-	Metrics     MetricsConfig       `json:"metrics" yaml:"metrics"`
-	Logging     LoggingConfig       `json:"logging" yaml:"logging"`
-	Tracing     TracingConfig       `json:"tracing" yaml:"tracing"`
-	Alerting    AlertingConfig      `json:"alerting" yaml:"alerting"`
+	Enabled  bool           `json:"enabled" yaml:"enabled"`
+	Metrics  MetricsConfig  `json:"metrics" yaml:"metrics"`
+	Logging  LoggingConfig  `json:"logging" yaml:"logging"`
+	Tracing  TracingConfig  `json:"tracing" yaml:"tracing"`
+	Alerting AlertingConfig `json:"alerting" yaml:"alerting"`
 }
 
 type MetricsConfig struct {
-	Enabled    bool     `json:"enabled" yaml:"enabled"`
-	Endpoint   string   `json:"endpoint" yaml:"endpoint"`
-	Interval   int      `json:"interval" yaml:"interval"`
-	Metrics    []string `json:"metrics" yaml:"metrics"`
+	Enabled  bool     `json:"enabled" yaml:"enabled"`
+	Endpoint string   `json:"endpoint" yaml:"endpoint"`
+	Interval int      `json:"interval" yaml:"interval"`
+	Metrics  []string `json:"metrics" yaml:"metrics"`
 }
 
 type LoggingConfig struct {
-	Enabled  bool   `json:"enabled" yaml:"enabled"`
-	Level    string `json:"level" yaml:"level"`
-	Format   string `json:"format" yaml:"format"`
-	Output   string `json:"output" yaml:"output"`
+	Enabled bool   `json:"enabled" yaml:"enabled"`
+	Level   string `json:"level" yaml:"level"`
+	Format  string `json:"format" yaml:"format"`
+	Output  string `json:"output" yaml:"output"`
 }
 
 type TracingConfig struct {
-	Enabled    bool   `json:"enabled" yaml:"enabled"`
-	Endpoint   string `json:"endpoint" yaml:"endpoint"`
+	Enabled    bool    `json:"enabled" yaml:"enabled"`
+	Endpoint   string  `json:"endpoint" yaml:"endpoint"`
 	SampleRate float64 `json:"sampleRate" yaml:"sampleRate"`
 }
 
 type AlertingConfig struct {
-	Enabled     bool            `json:"enabled" yaml:"enabled"`
-	Rules       []AlertRule     `json:"rules" yaml:"rules"`
-	Channels    []AlertChannel  `json:"channels" yaml:"channels"`
+	Enabled  bool           `json:"enabled" yaml:"enabled"`
+	Rules    []AlertRule    `json:"rules" yaml:"rules"`
+	Channels []AlertChannel `json:"channels" yaml:"channels"`
 }
 
 type AlertRule struct {
-	Name        string            `json:"name" yaml:"name"`
-	Condition   string            `json:"condition" yaml:"condition"`
-	Threshold   float64           `json:"threshold" yaml:"threshold"`
-	Duration    int               `json:"duration" yaml:"duration"`
-	Severity    string            `json:"severity" yaml:"severity"`
-	Labels      map[string]string `json:"labels" yaml:"labels"`
+	Name      string            `json:"name" yaml:"name"`
+	Condition string            `json:"condition" yaml:"condition"`
+	Threshold float64           `json:"threshold" yaml:"threshold"`
+	Duration  int               `json:"duration" yaml:"duration"`
+	Severity  string            `json:"severity" yaml:"severity"`
+	Labels    map[string]string `json:"labels" yaml:"labels"`
 }
 
 type AlertChannel struct {
-	Name       string            `json:"name" yaml:"name"`
-	Type       string            `json:"type" yaml:"type"`
-	Config     map[string]string `json:"config" yaml:"config"`
+	Name   string            `json:"name" yaml:"name"`
+	Type   string            `json:"type" yaml:"type"`
+	Config map[string]string `json:"config" yaml:"config"`
 }
 
 type HelmDependency struct {
@@ -901,13 +901,13 @@ type HelmDependency struct {
 
 // BlueprintMetrics contains Prometheus metrics for blueprint operations
 type BlueprintMetrics struct {
-	BlueprintGenerations prometheus.Counter
-	BlueprintErrors      prometheus.Counter
-	BlueprintDuration    prometheus.Histogram
-	TemplateCacheHits    prometheus.Counter
-	TemplateCacheMisses  prometheus.Counter
-	ValidationDuration   prometheus.Histogram
-	RenderingDuration    prometheus.Histogram
+	BlueprintGenerations    prometheus.Counter
+	BlueprintErrors         prometheus.Counter
+	BlueprintDuration       prometheus.Histogram
+	TemplateCacheHits       prometheus.Counter
+	TemplateCacheMisses     prometheus.Counter
+	ValidationDuration      prometheus.Histogram
+	RenderingDuration       prometheus.Histogram
 	ORANCompliantBlueprints prometheus.Counter
 }
 
@@ -956,11 +956,11 @@ func NewBlueprintMetrics() *BlueprintMetrics {
 type BlueprintConfig struct {
 	PorchEndpoint        string
 	TemplateRepository   string
-	CacheTTL            time.Duration
-	MaxConcurrentOps    int
-	EnableValidation    bool
+	CacheTTL             time.Duration
+	MaxConcurrentOps     int
+	EnableValidation     bool
 	EnableORANCompliance bool
-	DefaultNamespace    string
+	DefaultNamespace     string
 }
 
 // NewORANBlueprintManager creates a new O-RAN blueprint manager
@@ -974,11 +974,11 @@ func NewORANBlueprintManager(
 		config = &BlueprintConfig{
 			PorchEndpoint:        "http://porch-server.porch-system.svc.cluster.local:9080",
 			TemplateRepository:   "https://github.com/nephio-project/catalog.git",
-			CacheTTL:            15 * time.Minute,
-			MaxConcurrentOps:    10,
-			EnableValidation:    true,
+			CacheTTL:             15 * time.Minute,
+			MaxConcurrentOps:     10,
+			EnableValidation:     true,
 			EnableORANCompliance: true,
-			DefaultNamespace:    "default",
+			DefaultNamespace:     "default",
 		}
 	}
 
@@ -989,14 +989,14 @@ func NewORANBlueprintManager(
 	ctx, cancel := context.WithCancel(context.Background())
 
 	manager := &ORANBlueprintManager{
-		client:      client,
-		porchClient: porchClient,
-		logger:      logger,
-		metrics:     NewBlueprintMetrics(),
-		config:      config,
-		ctx:         ctx,
-		cancel:      cancel,
-		workerpool:  &sync.WaitGroup{},
+		client:         client,
+		porchClient:    porchClient,
+		logger:         logger,
+		metrics:        NewBlueprintMetrics(),
+		config:         config,
+		ctx:            ctx,
+		cancel:         cancel,
+		workerpool:     &sync.WaitGroup{},
 		operationQueue: make(chan *BlueprintOperation, config.MaxConcurrentOps*2),
 	}
 
@@ -1075,7 +1075,7 @@ func (obm *ORANBlueprintManager) startWorkers() {
 func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent *v1.NetworkIntent) (*porch.PackageRevision, error) {
 	startTime := time.Now()
 	obm.metrics.BlueprintGenerations.Inc()
-	
+
 	defer func() {
 		duration := time.Since(startTime)
 		obm.metrics.BlueprintDuration.Observe(duration.Seconds())

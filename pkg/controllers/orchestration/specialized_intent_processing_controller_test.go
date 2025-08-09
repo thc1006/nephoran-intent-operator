@@ -111,11 +111,11 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 	if m.shouldReturnError {
 		return "", fmt.Errorf("mock LLM error")
 	}
-	
+
 	if m.responseDelay > 0 {
 		time.Sleep(m.responseDelay)
 	}
-	
+
 	// Return specific response based on prompt content
 	if strings.Contains(prompt, "5g") || strings.Contains(prompt, "5G") {
 		return m.responses["5g-deployment"], nil
@@ -123,7 +123,7 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 	if strings.Contains(prompt, "low confidence") {
 		return m.responses["low-confidence"], nil
 	}
-	
+
 	return m.responses["default"], nil
 }
 
@@ -170,31 +170,31 @@ func (m *MockRAGService) Query(ctx context.Context, req *rag.QueryRequest) (*rag
 	if m.shouldReturnError {
 		return nil, fmt.Errorf("mock RAG error")
 	}
-	
+
 	if m.queryDelay > 0 {
 		time.Sleep(m.queryDelay)
 	}
-	
+
 	// Filter documents based on query
 	var filteredDocs []map[string]interface{}
 	avgSimilarity := 0.0
-	
+
 	for _, doc := range m.documents {
 		if similarity, ok := doc["similarity"].(float64); ok && similarity >= req.MinSimilarity {
 			filteredDocs = append(filteredDocs, doc)
 			avgSimilarity += similarity
 		}
 	}
-	
+
 	if len(filteredDocs) > 0 {
 		avgSimilarity /= float64(len(filteredDocs))
 	}
-	
+
 	// Limit results
 	if req.MaxResults > 0 && len(filteredDocs) > req.MaxResults {
 		filteredDocs = filteredDocs[:req.MaxResults]
 	}
-	
+
 	return &rag.QueryResponse{
 		Documents:     filteredDocs,
 		MaxSimilarity: m.maxSimilarity,
@@ -232,7 +232,7 @@ func (m *MockPromptEngine) BuildIntentProcessingPrompt(intent string, ragContext
 	if m.shouldReturnError {
 		return "", fmt.Errorf("mock prompt engine error")
 	}
-	
+
 	prompt := fmt.Sprintf(`
 Process the following telecommunications intent: %s
 
@@ -244,7 +244,7 @@ Please provide a JSON response with:
 - confidence: confidence score (0.0 to 1.0)
 - resources: resource requirements
 `, intent, ragContext)
-	
+
 	return prompt, nil
 }
 
@@ -271,16 +271,16 @@ func NewMockStreamingProcessor() *MockStreamingProcessor {
 func (m *MockStreamingProcessor) ProcessIntentStreaming(ctx context.Context, prompt string) (<-chan string, <-chan error) {
 	responseChan := make(chan string, len(m.chunks))
 	errorChan := make(chan error, 1)
-	
+
 	go func() {
 		defer close(responseChan)
 		defer close(errorChan)
-		
+
 		if m.shouldReturnError {
 			errorChan <- fmt.Errorf("mock streaming error")
 			return
 		}
-		
+
 		for _, chunk := range m.chunks {
 			select {
 			case responseChan <- chunk:
@@ -290,7 +290,7 @@ func (m *MockStreamingProcessor) ProcessIntentStreaming(ctx context.Context, pro
 			}
 		}
 	}()
-	
+
 	return responseChan, errorChan
 }
 
@@ -339,15 +339,15 @@ func NewMockCircuitBreaker() *MockCircuitBreaker {
 
 func (m *MockCircuitBreaker) Execute(fn func() (interface{}, error)) (interface{}, error) {
 	m.executionCount++
-	
+
 	if m.isOpen {
 		return nil, fmt.Errorf("circuit breaker is open")
 	}
-	
+
 	if m.shouldReturnError {
 		return nil, fmt.Errorf("mock circuit breaker error")
 	}
-	
+
 	return fn()
 }
 
@@ -372,37 +372,37 @@ func (m *MockCircuitBreaker) GetExecutionCount() int {
 
 var _ = Describe("SpecializedIntentProcessingController", func() {
 	var (
-		ctx             context.Context
-		controller      *SpecializedIntentProcessingController
-		fakeClient      client.Client
-		logger          logr.Logger
-		scheme          *runtime.Scheme
-		fakeRecorder    *record.FakeRecorder
-		networkIntent   *nephoranv1.NetworkIntent
-		mockLLMClient   *MockLLMClient
-		mockRAGService  *MockRAGService
-		mockPromptEngine *MockPromptEngine
-		mockStreamingProcessor *MockStreamingProcessor
+		ctx                      context.Context
+		controller               *SpecializedIntentProcessingController
+		fakeClient               client.Client
+		logger                   logr.Logger
+		scheme                   *runtime.Scheme
+		fakeRecorder             *record.FakeRecorder
+		networkIntent            *nephoranv1.NetworkIntent
+		mockLLMClient            *MockLLMClient
+		mockRAGService           *MockRAGService
+		mockPromptEngine         *MockPromptEngine
+		mockStreamingProcessor   *MockStreamingProcessor
 		mockPerformanceOptimizer *MockPerformanceOptimizer
-		mockCircuitBreaker *MockCircuitBreaker
-		config          IntentProcessingConfig
+		mockCircuitBreaker       *MockCircuitBreaker
+		config                   IntentProcessingConfig
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		logger = zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
-		
+
 		// Create scheme and add types
 		scheme = runtime.NewScheme()
 		Expect(corev1.AddToScheme(scheme)).To(Succeed())
 		Expect(nephoranv1.AddToScheme(scheme)).To(Succeed())
-		
+
 		// Create fake client and recorder
 		fakeClient = fake.NewClientBuilder().
 			WithScheme(scheme).
 			Build()
 		fakeRecorder = record.NewFakeRecorder(100)
-		
+
 		// Create mock services
 		mockLLMClient = NewMockLLMClient()
 		mockRAGService = NewMockRAGService()
@@ -410,58 +410,58 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 		mockStreamingProcessor = NewMockStreamingProcessor()
 		mockPerformanceOptimizer = NewMockPerformanceOptimizer()
 		mockCircuitBreaker = NewMockCircuitBreaker()
-		
+
 		// Create configuration
 		config = IntentProcessingConfig{
-			LLMEndpoint:              "http://mock-llm:8080",
-			LLMAPIKey:               "mock-api-key",
-			LLMModel:                "gpt-4o-mini",
-			MaxTokens:               1000,
-			Temperature:             0.7,
-			RAGEndpoint:             "http://mock-rag:8080",
-			MaxContextChunks:        5,
-			SimilarityThreshold:     0.7,
-			StreamingEnabled:        false,
-			CacheEnabled:            true,
-			CacheTTL:               30 * time.Minute,
-			MaxRetries:              3,
-			Timeout:                 30 * time.Second,
-			CircuitBreakerEnabled:   true,
-			FailureThreshold:        5,
-			RecoveryTimeout:         60 * time.Second,
+			LLMEndpoint:           "http://mock-llm:8080",
+			LLMAPIKey:             "mock-api-key",
+			LLMModel:              "gpt-4o-mini",
+			MaxTokens:             1000,
+			Temperature:           0.7,
+			RAGEndpoint:           "http://mock-rag:8080",
+			MaxContextChunks:      5,
+			SimilarityThreshold:   0.7,
+			StreamingEnabled:      false,
+			CacheEnabled:          true,
+			CacheTTL:              30 * time.Minute,
+			MaxRetries:            3,
+			Timeout:               30 * time.Second,
+			CircuitBreakerEnabled: true,
+			FailureThreshold:      5,
+			RecoveryTimeout:       60 * time.Second,
 		}
-		
+
 		// Create controller with mock dependencies
 		controller = &SpecializedIntentProcessingController{
-			Client:                  fakeClient,
-			Scheme:                  scheme,
-			Recorder:               fakeRecorder,
-			Logger:                  logger,
-			LLMClient:              mockLLMClient,
-			RAGService:             mockRAGService,
-			PromptEngine:           mockPromptEngine,
-			StreamingProcessor:     mockStreamingProcessor,
-			PerformanceOptimizer:   mockPerformanceOptimizer,
-			Config:                 config,
-			SupportedIntents:       []string{"5g-deployment", "network-slice", "cnf-deployment"},
-			ConfidenceThreshold:    0.7,
-			metrics:                NewIntentProcessingMetrics(),
-			circuitBreaker:         mockCircuitBreaker,
-			stopChan:               make(chan struct{}),
+			Client:               fakeClient,
+			Scheme:               scheme,
+			Recorder:             fakeRecorder,
+			Logger:               logger,
+			LLMClient:            mockLLMClient,
+			RAGService:           mockRAGService,
+			PromptEngine:         mockPromptEngine,
+			StreamingProcessor:   mockStreamingProcessor,
+			PerformanceOptimizer: mockPerformanceOptimizer,
+			Config:               config,
+			SupportedIntents:     []string{"5g-deployment", "network-slice", "cnf-deployment"},
+			ConfidenceThreshold:  0.7,
+			metrics:              NewIntentProcessingMetrics(),
+			circuitBreaker:       mockCircuitBreaker,
+			stopChan:             make(chan struct{}),
 			healthStatus: interfaces.HealthStatus{
 				Status:      "Healthy",
 				Message:     "Controller initialized for testing",
 				LastChecked: time.Now(),
 			},
 		}
-		
+
 		// Initialize cache
 		controller.cache = &IntentProcessingCache{
 			entries:    make(map[string]*CacheEntry),
 			ttl:        config.CacheTTL,
 			maxEntries: 1000,
 		}
-		
+
 		// Create test NetworkIntent
 		networkIntent = &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
@@ -510,7 +510,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 			err := controller.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controller.started).To(BeTrue())
-			
+
 			err = controller.Stop(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controller.started).To(BeFalse())
@@ -534,19 +534,19 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 			Expect(result).NotTo(BeNil())
 			Expect(result.Success).To(BeTrue())
 			Expect(result.NextPhase).To(Equal(interfaces.PhaseResourcePlanning))
-			
+
 			// Verify response data
 			Expect(result.Data).To(HaveKey("llmResponse"))
 			Expect(result.Data).To(HaveKey("ragContext"))
 			Expect(result.Data).To(HaveKey("confidence"))
 			Expect(result.Data).To(HaveKey("correlationId"))
-			
+
 			// Verify metrics
 			Expect(result.Metrics).To(HaveKey("processing_time_ms"))
 			Expect(result.Metrics).To(HaveKey("llm_latency_ms"))
 			Expect(result.Metrics).To(HaveKey("rag_latency_ms"))
 			Expect(result.Metrics).To(HaveKey("confidence"))
-			
+
 			// Verify confidence is above threshold
 			confidence := result.Data["confidence"].(float64)
 			Expect(confidence).To(BeNumerically(">=", controller.ConfidenceThreshold))
@@ -554,16 +554,16 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 
 		It("should process 5G deployment intent with multiple NFs", func() {
 			networkIntent.Spec.Intent = "Deploy complete 5G core with AMF, SMF, and UPF"
-			
+
 			result, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeTrue())
-			
+
 			// Verify LLM response contains multiple NFs
 			llmResponse := result.Data["llmResponse"].(map[string]interface{})
 			networkFunctions := llmResponse["network_functions"].([]interface{})
 			Expect(len(networkFunctions)).To(BeNumerically(">=", 3))
-			
+
 			// Verify confidence
 			confidence := result.Data["confidence"].(float64)
 			Expect(confidence).To(BeNumerically(">=", 0.9))
@@ -577,7 +577,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 				"confidence": 0.3
 			}`
 			mockLLMClient.SetResponse("default", lowConfidenceResponse)
-			
+
 			result, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeFalse())
@@ -587,24 +587,24 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 
 		It("should handle LLM service failure with circuit breaker", func() {
 			mockLLMClient.SetShouldReturnError(true)
-			
+
 			result, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeFalse())
 			Expect(result.ErrorCode).To(Equal("LLM_PROCESSING_ERROR"))
-			
+
 			// Verify circuit breaker was used
 			Expect(mockCircuitBreaker.GetExecutionCount()).To(BeNumerically(">=", 1))
 		})
 
 		It("should handle RAG service failure gracefully", func() {
 			mockRAGService.SetShouldReturnError(true)
-			
+
 			// Should continue processing without RAG context
 			result, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeTrue())
-			
+
 			// RAG context should be empty
 			ragContext := result.Data["ragContext"].(map[string]interface{})
 			Expect(len(ragContext)).To(Equal(0))
@@ -618,12 +618,12 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 					Intent: "",
 				},
 			}
-			
+
 			result, err := controller.ProcessIntent(ctx, emptyIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeFalse())
 			Expect(result.ErrorCode).To(Equal("VALIDATION_ERROR"))
-			
+
 			// Test very long intent
 			longIntent := strings.Repeat("a", 10001)
 			longIntentObj := &nephoranv1.NetworkIntent{
@@ -632,12 +632,12 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 					Intent: longIntent,
 				},
 			}
-			
+
 			result, err = controller.ProcessIntent(ctx, longIntentObj)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeFalse())
 			Expect(result.ErrorCode).To(Equal("VALIDATION_ERROR"))
-			
+
 			// Test non-telecom intent
 			nonTelecomIntent := &nephoranv1.NetworkIntent{
 				ObjectMeta: networkIntent.ObjectMeta,
@@ -645,7 +645,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 					Intent: "Make me a sandwich",
 				},
 			}
-			
+
 			result, err = controller.ProcessIntent(ctx, nonTelecomIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeFalse())
@@ -664,7 +664,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 			result, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeTrue())
-			
+
 			// Verify streaming was used (indicated by successful processing)
 			llmResponse := result.Data["llmResponse"].(map[string]interface{})
 			Expect(llmResponse).To(HaveKey("network_functions"))
@@ -673,7 +673,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 
 		It("should handle streaming errors", func() {
 			mockStreamingProcessor.SetShouldReturnError(true)
-			
+
 			result, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeFalse())
@@ -684,7 +684,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 			// Create context with short timeout
 			streamingCtx, cancel := context.WithTimeout(ctx, 1*time.Millisecond)
 			defer cancel()
-			
+
 			result, err := controller.ProcessIntent(streamingCtx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeFalse())
@@ -703,7 +703,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result1.Success).To(BeTrue())
 			Expect(result1.Metrics["cache_hit"]).To(Equal(float64(0)))
-			
+
 			// Second processing - should use cache
 			result2, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
@@ -714,15 +714,15 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 		It("should handle cache expiration", func() {
 			// Set very short cache TTL
 			controller.cache.ttl = 1 * time.Millisecond
-			
+
 			// First processing
 			result1, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result1.Success).To(BeTrue())
-			
+
 			// Wait for cache to expire
 			time.Sleep(5 * time.Millisecond)
-			
+
 			// Second processing - should not use cache
 			result2, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
@@ -733,21 +733,21 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 		It("should handle cache size limit", func() {
 			// Set small cache size limit
 			controller.cache.maxEntries = 1
-			
+
 			// Create first intent
 			result1, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result1.Success).To(BeTrue())
-			
+
 			// Create second intent with different text
 			networkIntent2 := networkIntent.DeepCopy()
 			networkIntent2.Name = "test-intent-2"
 			networkIntent2.Spec.Intent = "Different intent for cache testing"
-			
+
 			result2, err := controller.ProcessIntent(ctx, networkIntent2)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result2.Success).To(BeTrue())
-			
+
 			// Cache should be limited to 1 entry
 			Expect(len(controller.cache.entries)).To(Equal(1))
 		})
@@ -766,7 +766,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 			Expect(ragContext).To(HaveKey("relevant_documents"))
 			Expect(ragContext).To(HaveKey("chunk_count"))
 			Expect(ragContext).To(HaveKey("max_similarity"))
-			
+
 			// Verify documents were retrieved
 			documents := ragContext["relevant_documents"].([]map[string]interface{})
 			Expect(len(documents)).To(BeNumerically(">=", 1))
@@ -775,7 +775,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 		It("should handle empty RAG service gracefully", func() {
 			// Create controller without RAG service
 			controller.RAGService = nil
-			
+
 			ragContext, err := controller.EnhanceWithRAG(ctx, networkIntent.Spec.Intent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(ragContext)).To(Equal(0))
@@ -784,10 +784,10 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 		It("should filter documents by similarity threshold", func() {
 			// Set high similarity threshold
 			controller.Config.SimilarityThreshold = 0.95
-			
+
 			ragContext, err := controller.EnhanceWithRAG(ctx, networkIntent.Spec.Intent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			documents := ragContext["relevant_documents"].([]map[string]interface{})
 			// Should have fewer documents due to high threshold
 			Expect(len(documents)).To(BeNumerically("<=", 1))
@@ -859,25 +859,25 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 			initialMetrics, err := controller.GetMetrics(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			initialTotal := initialMetrics["total_processed"]
-			
+
 			// Process an intent
 			_, err = controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			updatedMetrics, err := controller.GetMetrics(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			updatedTotal := updatedMetrics["total_processed"]
-			
+
 			Expect(updatedTotal).To(Equal(initialTotal + 1))
 		})
 
 		It("should track session metrics", func() {
 			intentID := networkIntent.Name
-			
+
 			// Process intent to create session
 			_, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Get phase status (session should be cleaned up, but we can verify the pattern)
 			status, err := controller.GetPhaseStatus(ctx, intentID)
 			Expect(err).NotTo(HaveOccurred())
@@ -893,7 +893,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 
 		It("should handle prompt engine failure", func() {
 			mockPromptEngine.SetShouldReturnError(true)
-			
+
 			result, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeFalse())
@@ -902,7 +902,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 
 		It("should handle malformed LLM response", func() {
 			mockLLMClient.SetResponse("default", `{invalid json`)
-			
+
 			result, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeFalse())
@@ -911,7 +911,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 
 		It("should handle circuit breaker open state", func() {
 			mockCircuitBreaker.SetOpen(true)
-			
+
 			result, err := controller.ProcessIntent(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeFalse())
@@ -921,7 +921,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 		It("should handle phase error with retry logic", func() {
 			intentID := networkIntent.Name
 			testError := fmt.Errorf("test processing error")
-			
+
 			err := controller.HandlePhaseError(ctx, intentID, testError)
 			Expect(err).NotTo(HaveOccurred()) // Should return nil to indicate retry
 		})
@@ -929,14 +929,14 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 		It("should handle phase error with max retries exceeded", func() {
 			intentID := networkIntent.Name
 			testError := fmt.Errorf("test processing error")
-			
+
 			// Create a session with max retries already reached
 			session := &ProcessingSession{
 				IntentID:   intentID,
 				RetryCount: controller.Config.MaxRetries,
 			}
 			controller.activeProcessing.Store(intentID, session)
-			
+
 			err := controller.HandlePhaseError(ctx, intentID, testError)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("test processing error"))
@@ -953,7 +953,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 			numIntents := 10
 			results := make(chan *interfaces.ProcessingResult, numIntents)
 			errors := make(chan error, numIntents)
-			
+
 			// Process multiple intents concurrently
 			for i := 0; i < numIntents; i++ {
 				go func(index int) {
@@ -961,7 +961,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 					intent := networkIntent.DeepCopy()
 					intent.Name = fmt.Sprintf("concurrent-intent-%d", index)
 					intent.UID = fmt.Sprintf("uid-%d", index)
-					
+
 					result, err := controller.ProcessIntent(ctx, intent)
 					if err != nil {
 						errors <- err
@@ -970,12 +970,12 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 					}
 				}(i)
 			}
-			
+
 			// Collect results
 			successCount := 0
 			errorCount := 0
 			timeout := time.After(30 * time.Second)
-			
+
 			for i := 0; i < numIntents; i++ {
 				select {
 				case result := <-results:
@@ -988,7 +988,7 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 					Fail("Timeout waiting for concurrent processing to complete")
 				}
 			}
-			
+
 			// Verify all intents were processed
 			Expect(successCount + errorCount).To(Equal(numIntents))
 			// Most should succeed (allow for some failures due to test conditions)
@@ -998,13 +998,13 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 		It("should maintain thread safety under concurrent load", func() {
 			numGoroutines := 50
 			done := make(chan bool, numGoroutines)
-			
+
 			// Launch goroutines that access controller state
 			for i := 0; i < numGoroutines; i++ {
 				go func(index int) {
 					defer GinkgoRecover()
 					defer func() { done <- true }()
-					
+
 					// Mix of operations
 					switch index % 4 {
 					case 0:
@@ -1012,22 +1012,22 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 						intent := networkIntent.DeepCopy()
 						intent.Name = fmt.Sprintf("thread-safety-intent-%d", index)
 						controller.ProcessIntent(ctx, intent)
-						
+
 					case 1:
 						// Get health status
 						controller.GetHealthStatus(ctx)
-						
+
 					case 2:
 						// Get metrics
 						controller.GetMetrics(ctx)
-						
+
 					case 3:
 						// Get supported intent types
 						controller.GetSupportedIntentTypes()
 					}
 				}(i)
 			}
-			
+
 			// Wait for all goroutines to complete
 			for i := 0; i < numGoroutines; i++ {
 				Eventually(done).Should(Receive())
@@ -1043,21 +1043,21 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 
 		It("should perform background cleanup", func() {
 			intentID := "cleanup-test-intent"
-			
+
 			// Create an old session
 			oldSession := &ProcessingSession{
 				IntentID:  intentID,
 				StartTime: time.Now().Add(-2 * time.Hour),
 			}
 			controller.activeProcessing.Store(intentID, oldSession)
-			
+
 			// Verify session exists
 			_, exists := controller.activeProcessing.Load(intentID)
 			Expect(exists).To(BeTrue())
-			
+
 			// Trigger cleanup
 			controller.cleanupExpiredSessions()
-			
+
 			// Verify session was removed
 			_, exists = controller.activeProcessing.Load(intentID)
 			Expect(exists).To(BeFalse())
@@ -1069,23 +1069,23 @@ var _ = Describe("SpecializedIntentProcessingController", func() {
 			controller.cache.entries[expiredHash] = &CacheEntry{
 				Timestamp: time.Now().Add(-1 * time.Hour),
 			}
-			
+
 			// Verify entry exists
 			Expect(controller.cache.entries).To(HaveKey(expiredHash))
-			
+
 			// Trigger cache cleanup
 			controller.cleanupExpiredCache()
-			
+
 			// Verify expired entry was removed
 			Expect(controller.cache.entries).NotTo(HaveKey(expiredHash))
 		})
 
 		It("should perform health monitoring", func() {
 			initialHealth := controller.healthStatus
-			
+
 			// Trigger health check
 			controller.performHealthCheck()
-			
+
 			// Verify health status was updated
 			Expect(controller.healthStatus.LastChecked).To(BeTemporally(">", initialHealth.LastChecked))
 		})

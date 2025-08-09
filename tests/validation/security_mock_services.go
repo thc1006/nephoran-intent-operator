@@ -47,7 +47,7 @@ func NewOAuthMockService() *OAuthMockService {
 		tokenStore:  make(map[string]TokenInfo),
 		clientStore: make(map[string]ClientInfo),
 	}
-	
+
 	// Pre-populate with test client
 	oauth.clientStore["nephoran-test-client"] = ClientInfo{
 		ClientID:     "nephoran-test-client",
@@ -55,7 +55,7 @@ func NewOAuthMockService() *OAuthMockService {
 		RedirectURIs: []string{"http://localhost:8080/callback"},
 		Scopes:       []string{"read", "write", "admin"},
 	}
-	
+
 	oauth.setupMockServer()
 	return oauth
 }
@@ -63,11 +63,11 @@ func NewOAuthMockService() *OAuthMockService {
 // setupMockServer creates the OAuth2 mock endpoints
 func (o *OAuthMockService) setupMockServer() {
 	mux := http.NewServeMux()
-	
+
 	// OIDC Discovery endpoint
 	mux.HandleFunc("/.well-known/openid_configuration", func(w http.ResponseWriter, r *http.Request) {
 		ginkgo.By("Serving OIDC discovery endpoint")
-		
+
 		baseURL := o.server.URL
 		discovery := fmt.Sprintf(`{
 			"issuer": "%s",
@@ -81,36 +81,36 @@ func (o *OAuthMockService) setupMockServer() {
 			"token_endpoint_auth_methods_supported": ["client_secret_basic", "client_secret_post"],
 			"claims_supported": ["sub", "name", "email", "iat", "exp"]
 		}`, baseURL, baseURL, baseURL, baseURL, baseURL)
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(discovery))
 	})
-	
+
 	// Token endpoint
 	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
 		ginkgo.By("Processing token request")
-		
+
 		if r.Method != "POST" {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		
+
 		err := r.ParseForm()
 		if err != nil {
 			http.Error(w, "Invalid form data", http.StatusBadRequest)
 			return
 		}
-		
+
 		grantType := r.FormValue("grant_type")
 		clientID := r.FormValue("client_id")
-		
+
 		// Validate client
 		if _, exists := o.clientStore[clientID]; !exists {
 			http.Error(w, "Invalid client", http.StatusUnauthorized)
 			return
 		}
-		
+
 		// Generate token based on grant type
 		var token TokenInfo
 		switch grantType {
@@ -124,10 +124,10 @@ func (o *OAuthMockService) setupMockServer() {
 			http.Error(w, "Unsupported grant type", http.StatusBadRequest)
 			return
 		}
-		
+
 		// Store token
 		o.tokenStore[token.AccessToken] = token
-		
+
 		// Return token response
 		response := fmt.Sprintf(`{
 			"access_token": "%s",
@@ -136,45 +136,45 @@ func (o *OAuthMockService) setupMockServer() {
 			"refresh_token": "%s",
 			"scope": "%s"
 		}`, token.AccessToken, token.TokenType, 3600, token.RefreshToken, strings.Join(token.Scopes, " "))
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(response))
 	})
-	
+
 	// Token validation endpoint
 	mux.HandleFunc("/tokeninfo", func(w http.ResponseWriter, r *http.Request) {
 		ginkgo.By("Validating token")
-		
+
 		authHeader := r.Header.Get("Authorization")
 		if !strings.HasPrefix(authHeader, "Bearer ") {
 			http.Error(w, "Missing or invalid authorization header", http.StatusUnauthorized)
 			return
 		}
-		
+
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 		tokenInfo, exists := o.tokenStore[token]
 		if !exists || time.Now().After(tokenInfo.ExpiresAt) {
 			http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 			return
 		}
-		
+
 		response := fmt.Sprintf(`{
 			"active": true,
 			"client_id": "nephoran-test-client",
 			"exp": %d,
 			"scope": "%s"
 		}`, tokenInfo.ExpiresAt.Unix(), strings.Join(tokenInfo.Scopes, " "))
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(response))
 	})
-	
+
 	// JWKS endpoint
 	mux.HandleFunc("/.well-known/jwks.json", func(w http.ResponseWriter, r *http.Request) {
 		ginkgo.By("Serving JWKS endpoint")
-		
+
 		// Mock JWKS response
 		jwks := `{
 			"keys": [
@@ -187,22 +187,22 @@ func (o *OAuthMockService) setupMockServer() {
 				}
 			]
 		}`
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(jwks))
 	})
-	
+
 	o.server = httptest.NewServer(mux)
 }
 
 // SimulateOAuthValidation simulates OAuth2 validation for testing
 func (o *OAuthMockService) SimulateOAuthValidation() bool {
 	ginkgo.By("🔐 Simulating OAuth2/OIDC validation")
-	
+
 	// Test client credentials flow
 	client := &http.Client{Timeout: 5 * time.Second}
-	
+
 	// Test discovery endpoint
 	resp, err := client.Get(o.server.URL + "/.well-known/openid_configuration")
 	if err != nil {
@@ -210,12 +210,12 @@ func (o *OAuthMockService) SimulateOAuthValidation() bool {
 		return false
 	}
 	resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		ginkgo.By(fmt.Sprintf("❌ OIDC discovery returned status: %d", resp.StatusCode))
 		return false
 	}
-	
+
 	ginkgo.By("✅ OAuth2/OIDC mock validation successful")
 	return true
 }
@@ -290,20 +290,20 @@ func NewTLSMockService() *TLSMockService {
 // setupMockServer creates the TLS mock endpoints
 func (t *TLSMockService) setupMockServer() {
 	mux := http.NewServeMux()
-	
+
 	// Certificate download endpoint
 	mux.HandleFunc("/certs/ca.crt", func(w http.ResponseWriter, r *http.Request) {
 		ginkgo.By("Serving CA certificate")
-		
+
 		w.Header().Set("Content-Type", "application/x-pem-file")
 		w.WriteHeader(http.StatusOK)
 		w.Write(t.caCert)
 	})
-	
+
 	// Certificate validation endpoint
 	mux.HandleFunc("/validate-cert", func(w http.ResponseWriter, r *http.Request) {
 		ginkgo.By("Validating certificate")
-		
+
 		// Check for client certificate
 		if len(r.TLS.PeerCertificates) > 0 {
 			cert := r.TLS.PeerCertificates[0]
@@ -313,7 +313,7 @@ func (t *TLSMockService) setupMockServer() {
 				"issuer": "%s",
 				"expires": "%s"
 			}`, cert.Subject.String(), cert.Issuer.String(), cert.NotAfter.Format(time.RFC3339))
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(response))
@@ -321,38 +321,38 @@ func (t *TLSMockService) setupMockServer() {
 			http.Error(w, "No client certificate provided", http.StatusBadRequest)
 		}
 	})
-	
+
 	// TLS configuration info endpoint
 	mux.HandleFunc("/tls-info", func(w http.ResponseWriter, r *http.Request) {
 		ginkgo.By("Providing TLS configuration information")
-		
+
 		tlsInfo := fmt.Sprintf(`{
 			"tls_version": "%s",
 			"cipher_suite": "%s",
 			"server_name": "%s"
 		}`, "1.3", "TLS_AES_256_GCM_SHA384", r.Host)
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(tlsInfo))
 	})
-	
+
 	t.server = httptest.NewServer(mux)
 }
 
 // generateTestCertificates creates test certificates for TLS testing
 func (t *TLSMockService) generateTestCertificates() {
 	ginkgo.By("Generating test certificates for TLS validation")
-	
+
 	// Generate CA certificate
 	caCert, caKey := t.generateCertificate("Nephoran Test CA", nil, nil, true)
 	t.caCert = t.encodeCertificatePEM(caCert)
-	
+
 	// Generate server certificate
 	serverCert, serverKey := t.generateCertificate("localhost", caCert, caKey, false)
 	t.serverCert = t.encodeCertificatePEM(serverCert)
 	t.serverKey = t.encodeKeyPEM(serverKey)
-	
+
 	// Generate client certificate
 	clientCert, clientKey := t.generateCertificate("nephoran-client", caCert, caKey, false)
 	t.clientCert = t.encodeCertificatePEM(clientCert)
@@ -366,31 +366,31 @@ func (t *TLSMockService) generateCertificate(commonName string, caCert *x509.Cer
 	if err != nil {
 		panic(err)
 	}
-	
+
 	// Create certificate template
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
 		Subject: x509.Certificate{
 			CommonName: commonName,
 		}.Subject,
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
-		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1)},
-		DNSNames:     []string{"localhost"},
+		NotBefore:   time.Now(),
+		NotAfter:    time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageClientAuth},
+		IPAddresses: []net.IP{net.IPv4(127, 0, 0, 1)},
+		DNSNames:    []string{"localhost"},
 	}
-	
+
 	if isCA {
 		template.IsCA = true
 		template.KeyUsage |= x509.KeyUsageCertSign
 		template.BasicConstraintsValid = true
 	}
-	
+
 	// Sign certificate
 	var parent *x509.Certificate
 	var parentKey *rsa.PrivateKey
-	
+
 	if caCert == nil {
 		// Self-signed
 		parent = &template
@@ -400,17 +400,17 @@ func (t *TLSMockService) generateCertificate(commonName string, caCert *x509.Cer
 		parent = caCert
 		parentKey = caKey
 	}
-	
+
 	certDER, err := x509.CreateCertificate(rand.Reader, &template, parent, &privateKey.PublicKey, parentKey)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	cert, err := x509.ParseCertificate(certDER)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	return cert, privateKey
 }
 
@@ -433,7 +433,7 @@ func (t *TLSMockService) encodeKeyPEM(key *rsa.PrivateKey) []byte {
 // SimulateTLSValidation simulates TLS validation for testing
 func (t *TLSMockService) SimulateTLSValidation() bool {
 	ginkgo.By("🔒 Simulating TLS/mTLS validation")
-	
+
 	// Test server certificate validation
 	client := &http.Client{
 		Timeout: 5 * time.Second,
@@ -441,19 +441,19 @@ func (t *TLSMockService) SimulateTLSValidation() bool {
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		},
 	}
-	
+
 	resp, err := client.Get(t.server.URL + "/tls-info")
 	if err != nil {
 		ginkgo.By(fmt.Sprintf("❌ TLS validation failed: %v", err))
 		return false
 	}
 	resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		ginkgo.By(fmt.Sprintf("❌ TLS validation returned status: %d", resp.StatusCode))
 		return false
 	}
-	
+
 	ginkgo.By("✅ TLS mock validation successful")
 	return true
 }
@@ -461,11 +461,11 @@ func (t *TLSMockService) SimulateTLSValidation() bool {
 // SimulateMutualTLS simulates mutual TLS validation
 func (t *TLSMockService) SimulateMutualTLS() bool {
 	ginkgo.By("🔒 Simulating mutual TLS validation")
-	
+
 	// For testing purposes, we'll simulate successful mTLS
 	// In a real implementation, this would involve setting up client certificates
 	// and validating the full mTLS handshake
-	
+
 	ginkgo.By("✅ Mutual TLS mock validation successful")
 	return true
 }
@@ -490,28 +490,28 @@ type VulnerabilityScanMock struct {
 
 // ScanResult represents a vulnerability scan result
 type ScanResult struct {
-	ComponentName     string
-	Version          string
-	Vulnerabilities  []Vulnerability
-	RiskScore        int
-	LastScanned      time.Time
+	ComponentName   string
+	Version         string
+	Vulnerabilities []Vulnerability
+	RiskScore       int
+	LastScanned     time.Time
 }
 
 // Vulnerability represents a security vulnerability
 type Vulnerability struct {
-	CVE         string
-	Severity    string
-	Description string
+	CVE          string
+	Severity     string
+	Description  string
 	FixAvailable bool
-	CVSS        float64
+	CVSS         float64
 }
 
 // PolicyResult represents a security policy evaluation result
 type PolicyResult struct {
-	PolicyName   string
-	Passed       bool
-	Violations   []PolicyViolation
-	Score        int
+	PolicyName    string
+	Passed        bool
+	Violations    []PolicyViolation
+	Score         int
 	LastEvaluated time.Time
 }
 
@@ -529,7 +529,7 @@ func NewVulnerabilityScanMock() *VulnerabilityScanMock {
 		scanResults:   make(map[string]*ScanResult),
 		policyResults: make(map[string]*PolicyResult),
 	}
-	
+
 	// Pre-populate with test data
 	vsm.populateTestData()
 	return vsm
@@ -540,7 +540,7 @@ func (v *VulnerabilityScanMock) populateTestData() {
 	// Container scan results
 	v.scanResults["nephoran-operator:latest"] = &ScanResult{
 		ComponentName: "nephoran-operator",
-		Version:      "latest",
+		Version:       "latest",
 		Vulnerabilities: []Vulnerability{
 			{
 				CVE:          "CVE-2023-0001",
@@ -553,16 +553,16 @@ func (v *VulnerabilityScanMock) populateTestData() {
 		RiskScore:   15,
 		LastScanned: time.Now().Add(-1 * time.Hour),
 	}
-	
+
 	// Policy results
 	v.policyResults["container-security-policy"] = &PolicyResult{
-		PolicyName: "Container Security Policy",
-		Passed:     true,
-		Violations: []PolicyViolation{},
-		Score:      95,
+		PolicyName:    "Container Security Policy",
+		Passed:        true,
+		Violations:    []PolicyViolation{},
+		Score:         95,
 		LastEvaluated: time.Now().Add(-30 * time.Minute),
 	}
-	
+
 	v.policyResults["network-security-policy"] = &PolicyResult{
 		PolicyName: "Network Security Policy",
 		Passed:     false,
@@ -574,7 +574,7 @@ func (v *VulnerabilityScanMock) populateTestData() {
 				Resource:    "namespace/default",
 			},
 		},
-		Score:      75,
+		Score:         75,
 		LastEvaluated: time.Now().Add(-15 * time.Minute),
 	}
 }
@@ -582,27 +582,27 @@ func (v *VulnerabilityScanMock) populateTestData() {
 // SimulateContainerScan simulates container vulnerability scanning
 func (v *VulnerabilityScanMock) SimulateContainerScan() bool {
 	ginkgo.By("🔍 Simulating container vulnerability scan")
-	
+
 	// Simulate scanning process
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Check scan results
 	for imageName, result := range v.scanResults {
 		ginkgo.By(fmt.Sprintf("📊 Scan result for %s: Risk Score %d", imageName, result.RiskScore))
-		
+
 		criticalVulns := 0
 		for _, vuln := range result.Vulnerabilities {
 			if vuln.Severity == "CRITICAL" {
 				criticalVulns++
 			}
 		}
-		
+
 		if criticalVulns > 0 {
 			ginkgo.By(fmt.Sprintf("❌ Critical vulnerabilities found: %d", criticalVulns))
 			return false
 		}
 	}
-	
+
 	ginkgo.By("✅ Container vulnerability scan passed")
 	return true
 }
@@ -610,10 +610,10 @@ func (v *VulnerabilityScanMock) SimulateContainerScan() bool {
 // SimulateDependencyScan simulates dependency vulnerability scanning
 func (v *VulnerabilityScanMock) SimulateDependencyScan() bool {
 	ginkgo.By("🔍 Simulating dependency vulnerability scan")
-	
+
 	// Simulate scanning process
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Mock dependency scan results
 	dependencies := []string{
 		"k8s.io/client-go",
@@ -621,7 +621,7 @@ func (v *VulnerabilityScanMock) SimulateDependencyScan() bool {
 		"github.com/onsi/ginkgo/v2",
 		"github.com/onsi/gomega",
 	}
-	
+
 	vulnerableDeps := 0
 	for _, dep := range dependencies {
 		// Simulate 90% pass rate
@@ -630,12 +630,12 @@ func (v *VulnerabilityScanMock) SimulateDependencyScan() bool {
 			ginkgo.By(fmt.Sprintf("⚠️ Vulnerable dependency found: %s", dep))
 		}
 	}
-	
+
 	if vulnerableDeps > 2 {
 		ginkgo.By(fmt.Sprintf("❌ Too many vulnerable dependencies: %d", vulnerableDeps))
 		return false
 	}
-	
+
 	ginkgo.By("✅ Dependency vulnerability scan passed")
 	return true
 }
@@ -643,10 +643,10 @@ func (v *VulnerabilityScanMock) SimulateDependencyScan() bool {
 // SimulatePolicyEvaluation simulates security policy evaluation
 func (v *VulnerabilityScanMock) SimulatePolicyEvaluation() bool {
 	ginkgo.By("🔍 Simulating security policy evaluation")
-	
+
 	passedPolicies := 0
 	totalPolicies := len(v.policyResults)
-	
+
 	for policyName, result := range v.policyResults {
 		if result.Passed {
 			passedPolicies++
@@ -658,10 +658,10 @@ func (v *VulnerabilityScanMock) SimulatePolicyEvaluation() bool {
 			}
 		}
 	}
-	
+
 	passRate := float64(passedPolicies) / float64(totalPolicies)
 	ginkgo.By(fmt.Sprintf("📊 Policy evaluation: %.1f%% pass rate", passRate*100))
-	
+
 	return passRate >= 0.8
 }
 
@@ -705,7 +705,7 @@ func NewSecurityPolicyMock() *SecurityPolicyMock {
 		policies:   make(map[string]*SecurityPolicy),
 		violations: make([]PolicyViolation, 0),
 	}
-	
+
 	spm.populatePolicies()
 	return spm
 }
@@ -735,7 +735,7 @@ func (s *SecurityPolicyMock) populatePolicies() {
 		Enabled:     true,
 		LastUpdated: time.Now().Add(-24 * time.Hour),
 	}
-	
+
 	// Network Security Policy
 	s.policies["network-security-policy"] = &SecurityPolicy{
 		Name: "Network Security Policy",
@@ -764,18 +764,18 @@ func (s *SecurityPolicyMock) populatePolicies() {
 // ValidatePolicy validates a security policy
 func (s *SecurityPolicyMock) ValidatePolicy(policyName string) bool {
 	ginkgo.By(fmt.Sprintf("🔍 Validating security policy: %s", policyName))
-	
+
 	policy, exists := s.policies[policyName]
 	if !exists {
 		ginkgo.By(fmt.Sprintf("❌ Policy not found: %s", policyName))
 		return false
 	}
-	
+
 	if !policy.Enabled {
 		ginkgo.By(fmt.Sprintf("⚠️ Policy disabled: %s", policyName))
 		return false
 	}
-	
+
 	// Simulate policy validation
 	violations := 0
 	for _, rule := range policy.Rules {
@@ -790,12 +790,12 @@ func (s *SecurityPolicyMock) ValidatePolicy(policyName string) bool {
 			})
 		}
 	}
-	
+
 	if violations > 0 {
 		ginkgo.By(fmt.Sprintf("⚠️ Policy violations found: %d", violations))
 		return violations <= 1 // Allow minor violations
 	}
-	
+
 	ginkgo.By(fmt.Sprintf("✅ Policy validation passed: %s", policyName))
 	return true
 }
@@ -813,10 +813,10 @@ func (s *SecurityPolicyMock) GetViolations() []PolicyViolation {
 // SimulatePolicyEnforcement simulates security policy enforcement
 func (s *SecurityPolicyMock) SimulatePolicyEnforcement() bool {
 	ginkgo.By("🔍 Simulating security policy enforcement")
-	
+
 	enforcedPolicies := 0
 	totalPolicies := len(s.policies)
-	
+
 	for policyName, policy := range s.policies {
 		if s.ValidatePolicy(policyName) {
 			enforcedPolicies++
@@ -825,10 +825,10 @@ func (s *SecurityPolicyMock) SimulatePolicyEnforcement() bool {
 			ginkgo.By(fmt.Sprintf("❌ Policy enforcement failed: %s", policy.Name))
 		}
 	}
-	
+
 	enforcementRate := float64(enforcedPolicies) / float64(totalPolicies)
 	ginkgo.By(fmt.Sprintf("📊 Policy enforcement: %.1f%% success rate", enforcementRate*100))
-	
+
 	return enforcementRate >= 0.9
 }
 

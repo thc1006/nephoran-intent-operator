@@ -59,25 +59,25 @@ type PipelineConfig struct {
 	RetryDelay          time.Duration `json:"retryDelay" yaml:"retryDelay"`
 
 	// Error handling
-	ContinueOnError     bool   `json:"continueOnError" yaml:"continueOnError"`
-	RollbackOnFailure   bool   `json:"rollbackOnFailure" yaml:"rollbackOnFailure"`
-	ErrorThreshold      int    `json:"errorThreshold" yaml:"errorThreshold"`
-	FailureMode         string `json:"failureMode" yaml:"failureMode"` // fail-fast, continue, rollback
+	ContinueOnError   bool   `json:"continueOnError" yaml:"continueOnError"`
+	RollbackOnFailure bool   `json:"rollbackOnFailure" yaml:"rollbackOnFailure"`
+	ErrorThreshold    int    `json:"errorThreshold" yaml:"errorThreshold"`
+	FailureMode       string `json:"failureMode" yaml:"failureMode"` // fail-fast, continue, rollback
 
 	// State management
-	PersistentState     bool   `json:"persistentState" yaml:"persistentState"`
-	StateStorage        string `json:"stateStorage" yaml:"stateStorage"` // memory, file, database
-	CheckpointInterval  int    `json:"checkpointInterval" yaml:"checkpointInterval"`
+	PersistentState    bool   `json:"persistentState" yaml:"persistentState"`
+	StateStorage       string `json:"stateStorage" yaml:"stateStorage"` // memory, file, database
+	CheckpointInterval int    `json:"checkpointInterval" yaml:"checkpointInterval"`
 
 	// Performance optimization
-	EnableParallelism   bool `json:"enableParallelism" yaml:"enableParallelism"`
-	OptimizeExecution   bool `json:"optimizeExecution" yaml:"optimizeExecution"`
-	ResourcePooling     bool `json:"resourcePooling" yaml:"resourcePooling"`
+	EnableParallelism bool `json:"enableParallelism" yaml:"enableParallelism"`
+	OptimizeExecution bool `json:"optimizeExecution" yaml:"optimizeExecution"`
+	ResourcePooling   bool `json:"resourcePooling" yaml:"resourcePooling"`
 
 	// Observability
-	EnableMetrics       bool `json:"enableMetrics" yaml:"enableMetrics"`
-	EnableTracing       bool `json:"enableTracing" yaml:"enableTracing"`
-	DetailedLogging     bool `json:"detailedLogging" yaml:"detailedLogging"`
+	EnableMetrics   bool `json:"enableMetrics" yaml:"enableMetrics"`
+	EnableTracing   bool `json:"enableTracing" yaml:"enableTracing"`
+	DetailedLogging bool `json:"detailedLogging" yaml:"detailedLogging"`
 }
 
 // PipelineDefinition defines the structure of a KRM function pipeline
@@ -90,13 +90,13 @@ type PipelineDefinition struct {
 	Annotations map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
 
 	// Pipeline structure
-	Stages      []*PipelineStage    `json:"stages" yaml:"stages"`
-	Variables   map[string]Variable `json:"variables,omitempty" yaml:"variables,omitempty"`
-	Conditions  []*Condition        `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	Stages     []*PipelineStage    `json:"stages" yaml:"stages"`
+	Variables  map[string]Variable `json:"variables,omitempty" yaml:"variables,omitempty"`
+	Conditions []*Condition        `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 
 	// Execution settings
-	Execution   *ExecutionSettings  `json:"execution,omitempty" yaml:"execution,omitempty"`
-	Rollback    *RollbackSettings   `json:"rollback,omitempty" yaml:"rollback,omitempty"`
+	Execution *ExecutionSettings `json:"execution,omitempty" yaml:"execution,omitempty"`
+	Rollback  *RollbackSettings  `json:"rollback,omitempty" yaml:"rollback,omitempty"`
 
 	// O-RAN and telecom specific
 	TelecomProfile *TelecomProfile `json:"telecomProfile,omitempty" yaml:"telecomProfile,omitempty"`
@@ -105,43 +105,43 @@ type PipelineDefinition struct {
 // PipelineStage represents a stage in the pipeline
 type PipelineStage struct {
 	// Basic properties
-	Name        string            `json:"name" yaml:"name"`
-	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
-	Type        string            `json:"type" yaml:"type"` // function, parallel, sequential, conditional
-	
+	Name        string `json:"name" yaml:"name"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+	Type        string `json:"type" yaml:"type"` // function, parallel, sequential, conditional
+
 	// Execution properties
-	Functions   []*StageFunction  `json:"functions,omitempty" yaml:"functions,omitempty"`
-	Stages      []*PipelineStage  `json:"stages,omitempty" yaml:"stages,omitempty"` // For nested stages
-	Conditions  []*Condition      `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-	
+	Functions  []*StageFunction `json:"functions,omitempty" yaml:"functions,omitempty"`
+	Stages     []*PipelineStage `json:"stages,omitempty" yaml:"stages,omitempty"` // For nested stages
+	Conditions []*Condition     `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+
 	// Control flow
-	DependsOn   []string          `json:"dependsOn,omitempty" yaml:"dependsOn,omitempty"`
-	RunAfter    []string          `json:"runAfter,omitempty" yaml:"runAfter,omitempty"`
-	RunBefore   []string          `json:"runBefore,omitempty" yaml:"runBefore,omitempty"`
-	
+	DependsOn []string `json:"dependsOn,omitempty" yaml:"dependsOn,omitempty"`
+	RunAfter  []string `json:"runAfter,omitempty" yaml:"runAfter,omitempty"`
+	RunBefore []string `json:"runBefore,omitempty" yaml:"runBefore,omitempty"`
+
 	// Error handling
-	OnError     *ErrorHandler     `json:"onError,omitempty" yaml:"onError,omitempty"`
-	OnSuccess   *SuccessHandler   `json:"onSuccess,omitempty" yaml:"onSuccess,omitempty"`
-	
+	OnError   *ErrorHandler   `json:"onError,omitempty" yaml:"onError,omitempty"`
+	OnSuccess *SuccessHandler `json:"onSuccess,omitempty" yaml:"onSuccess,omitempty"`
+
 	// Timing
-	Timeout     *time.Duration    `json:"timeout,omitempty" yaml:"timeout,omitempty"`
-	Retry       *RetryPolicy      `json:"retry,omitempty" yaml:"retry,omitempty"`
-	
+	Timeout *time.Duration `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+	Retry   *RetryPolicy   `json:"retry,omitempty" yaml:"retry,omitempty"`
+
 	// Variables and state
-	Variables   map[string]Variable `json:"variables,omitempty" yaml:"variables,omitempty"`
-	Outputs     []string          `json:"outputs,omitempty" yaml:"outputs,omitempty"`
+	Variables map[string]Variable `json:"variables,omitempty" yaml:"variables,omitempty"`
+	Outputs   []string            `json:"outputs,omitempty" yaml:"outputs,omitempty"`
 }
 
 // StageFunction represents a function within a stage
 type StageFunction struct {
-	Name           string                 `json:"name" yaml:"name"`
-	Image          string                 `json:"image,omitempty" yaml:"image,omitempty"`
-	Config         map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
-	Selectors      []ResourceSelector     `json:"selectors,omitempty" yaml:"selectors,omitempty"`
-	InputMapping   map[string]string      `json:"inputMapping,omitempty" yaml:"inputMapping,omitempty"`
-	OutputMapping  map[string]string      `json:"outputMapping,omitempty" yaml:"outputMapping,omitempty"`
-	Conditions     []*Condition           `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-	Optional       bool                   `json:"optional,omitempty" yaml:"optional,omitempty"`
+	Name          string                 `json:"name" yaml:"name"`
+	Image         string                 `json:"image,omitempty" yaml:"image,omitempty"`
+	Config        map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
+	Selectors     []ResourceSelector     `json:"selectors,omitempty" yaml:"selectors,omitempty"`
+	InputMapping  map[string]string      `json:"inputMapping,omitempty" yaml:"inputMapping,omitempty"`
+	OutputMapping map[string]string      `json:"outputMapping,omitempty" yaml:"outputMapping,omitempty"`
+	Conditions    []*Condition           `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	Optional      bool                   `json:"optional,omitempty" yaml:"optional,omitempty"`
 }
 
 // ResourceSelector defines criteria for resource selection
@@ -166,11 +166,11 @@ type Variable struct {
 
 // Condition defines conditional execution logic
 type Condition struct {
-	Name        string                 `json:"name" yaml:"name"`
-	Type        string                 `json:"type" yaml:"type"` // expression, resource-exists, variable-equals
-	Expression  string                 `json:"expression,omitempty" yaml:"expression,omitempty"`
-	Parameters  map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
-	Negate      bool                   `json:"negate,omitempty" yaml:"negate,omitempty"`
+	Name       string                 `json:"name" yaml:"name"`
+	Type       string                 `json:"type" yaml:"type"` // expression, resource-exists, variable-equals
+	Expression string                 `json:"expression,omitempty" yaml:"expression,omitempty"`
+	Parameters map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Negate     bool                   `json:"negate,omitempty" yaml:"negate,omitempty"`
 }
 
 // ErrorHandler defines error handling behavior
@@ -191,38 +191,38 @@ type SuccessHandler struct {
 
 // RetryPolicy defines retry behavior
 type RetryPolicy struct {
-	MaxAttempts   int           `json:"maxAttempts" yaml:"maxAttempts"`
-	InitialDelay  time.Duration `json:"initialDelay" yaml:"initialDelay"`
-	MaxDelay      time.Duration `json:"maxDelay" yaml:"maxDelay"`
-	Multiplier    float64       `json:"multiplier" yaml:"multiplier"`
-	RetryOn       []string      `json:"retryOn,omitempty" yaml:"retryOn,omitempty"` // Error types to retry on
+	MaxAttempts  int           `json:"maxAttempts" yaml:"maxAttempts"`
+	InitialDelay time.Duration `json:"initialDelay" yaml:"initialDelay"`
+	MaxDelay     time.Duration `json:"maxDelay" yaml:"maxDelay"`
+	Multiplier   float64       `json:"multiplier" yaml:"multiplier"`
+	RetryOn      []string      `json:"retryOn,omitempty" yaml:"retryOn,omitempty"` // Error types to retry on
 }
 
 // ExecutionSettings defines execution configuration
 type ExecutionSettings struct {
-	Mode            string        `json:"mode" yaml:"mode"` // sequential, parallel, dag
-	MaxConcurrency  int           `json:"maxConcurrency,omitempty" yaml:"maxConcurrency,omitempty"`
-	Timeout         time.Duration `json:"timeout,omitempty" yaml:"timeout,omitempty"`
-	Priority        int           `json:"priority,omitempty" yaml:"priority,omitempty"`
-	ResourceLimits  *ResourceLimits `json:"resourceLimits,omitempty" yaml:"resourceLimits,omitempty"`
+	Mode           string          `json:"mode" yaml:"mode"` // sequential, parallel, dag
+	MaxConcurrency int             `json:"maxConcurrency,omitempty" yaml:"maxConcurrency,omitempty"`
+	Timeout        time.Duration   `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+	Priority       int             `json:"priority,omitempty" yaml:"priority,omitempty"`
+	ResourceLimits *ResourceLimits `json:"resourceLimits,omitempty" yaml:"resourceLimits,omitempty"`
 }
 
 // RollbackSettings defines rollback configuration
 type RollbackSettings struct {
-	Enabled     bool     `json:"enabled" yaml:"enabled"`
-	Strategy    string   `json:"strategy" yaml:"strategy"` // reverse-order, custom
-	OnFailure   bool     `json:"onFailure" yaml:"onFailure"`
-	OnCancel    bool     `json:"onCancel" yaml:"onCancel"`
+	Enabled      bool     `json:"enabled" yaml:"enabled"`
+	Strategy     string   `json:"strategy" yaml:"strategy"` // reverse-order, custom
+	OnFailure    bool     `json:"onFailure" yaml:"onFailure"`
+	OnCancel     bool     `json:"onCancel" yaml:"onCancel"`
 	CustomStages []string `json:"customStages,omitempty" yaml:"customStages,omitempty"`
 }
 
 // TelecomProfile defines telecom-specific pipeline settings
 type TelecomProfile struct {
-	Profile         string   `json:"profile" yaml:"profile"` // 5g-core, o-ran, edge
-	Standards       []string `json:"standards,omitempty" yaml:"standards,omitempty"`
-	Interfaces      []string `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
-	NetworkSlices   []string `json:"networkSlices,omitempty" yaml:"networkSlices,omitempty"`
-	Compliance      *ComplianceSettings `json:"compliance,omitempty" yaml:"compliance,omitempty"`
+	Profile       string              `json:"profile" yaml:"profile"` // 5g-core, o-ran, edge
+	Standards     []string            `json:"standards,omitempty" yaml:"standards,omitempty"`
+	Interfaces    []string            `json:"interfaces,omitempty" yaml:"interfaces,omitempty"`
+	NetworkSlices []string            `json:"networkSlices,omitempty" yaml:"networkSlices,omitempty"`
+	Compliance    *ComplianceSettings `json:"compliance,omitempty" yaml:"compliance,omitempty"`
 }
 
 // ComplianceSettings defines compliance requirements
@@ -236,61 +236,61 @@ type ComplianceSettings struct {
 // PipelineExecution represents an execution of a pipeline
 type PipelineExecution struct {
 	// Metadata
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Pipeline    *PipelineDefinition `json:"pipeline"`
-	
+	ID       string              `json:"id"`
+	Name     string              `json:"name"`
+	Pipeline *PipelineDefinition `json:"pipeline"`
+
 	// Execution state
-	Status      ExecutionStatus   `json:"status"`
-	StartTime   time.Time         `json:"startTime"`
-	EndTime     *time.Time        `json:"endTime,omitempty"`
-	Duration    time.Duration     `json:"duration"`
-	
+	Status    ExecutionStatus `json:"status"`
+	StartTime time.Time       `json:"startTime"`
+	EndTime   *time.Time      `json:"endTime,omitempty"`
+	Duration  time.Duration   `json:"duration"`
+
 	// Stage tracking
-	Stages      map[string]*StageExecution `json:"stages"`
-	CurrentStage string           `json:"currentStage,omitempty"`
-	
+	Stages       map[string]*StageExecution `json:"stages"`
+	CurrentStage string                     `json:"currentStage,omitempty"`
+
 	// Results
-	Resources   []porch.KRMResource `json:"resources"`
-	Results     []*ExecutionResult  `json:"results"`
-	Errors      []ExecutionError    `json:"errors"`
-	
+	Resources []porch.KRMResource `json:"resources"`
+	Results   []*ExecutionResult  `json:"results"`
+	Errors    []ExecutionError    `json:"errors"`
+
 	// State management
 	Variables   map[string]interface{} `json:"variables"`
 	Checkpoints []*ExecutionCheckpoint `json:"checkpoints"`
-	
+
 	// Context
-	Context     map[string]interface{} `json:"context"`
-	Metadata    map[string]string     `json:"metadata"`
+	Context  map[string]interface{} `json:"context"`
+	Metadata map[string]string      `json:"metadata"`
 }
 
 // StageExecution represents execution of a pipeline stage
 type StageExecution struct {
-	Name        string                   `json:"name"`
-	Status      ExecutionStatus          `json:"status"`
-	StartTime   time.Time                `json:"startTime"`
-	EndTime     *time.Time               `json:"endTime,omitempty"`
-	Duration    time.Duration            `json:"duration"`
-	Functions   map[string]*FunctionExecution `json:"functions"`
-	Error       *ExecutionError          `json:"error,omitempty"`
-	Retries     int                      `json:"retries"`
-	Output      map[string]interface{}   `json:"output"`
+	Name      string                        `json:"name"`
+	Status    ExecutionStatus               `json:"status"`
+	StartTime time.Time                     `json:"startTime"`
+	EndTime   *time.Time                    `json:"endTime,omitempty"`
+	Duration  time.Duration                 `json:"duration"`
+	Functions map[string]*FunctionExecution `json:"functions"`
+	Error     *ExecutionError               `json:"error,omitempty"`
+	Retries   int                           `json:"retries"`
+	Output    map[string]interface{}        `json:"output"`
 }
 
 // FunctionExecution represents execution of a function within a stage
 type FunctionExecution struct {
-	Name        string              `json:"name"`
-	Image       string              `json:"image"`
-	Status      ExecutionStatus     `json:"status"`
-	StartTime   time.Time           `json:"startTime"`
-	EndTime     *time.Time          `json:"endTime,omitempty"`
-	Duration    time.Duration       `json:"duration"`
-	Input       []porch.KRMResource `json:"input"`
-	Output      []porch.KRMResource `json:"output"`
-	Results     []*porch.FunctionResult `json:"results"`
-	Error       *ExecutionError     `json:"error,omitempty"`
-	Retries     int                 `json:"retries"`
-	Logs        []string            `json:"logs"`
+	Name      string                  `json:"name"`
+	Image     string                  `json:"image"`
+	Status    ExecutionStatus         `json:"status"`
+	StartTime time.Time               `json:"startTime"`
+	EndTime   *time.Time              `json:"endTime,omitempty"`
+	Duration  time.Duration           `json:"duration"`
+	Input     []porch.KRMResource     `json:"input"`
+	Output    []porch.KRMResource     `json:"output"`
+	Results   []*porch.FunctionResult `json:"results"`
+	Error     *ExecutionError         `json:"error,omitempty"`
+	Retries   int                     `json:"retries"`
+	Logs      []string                `json:"logs"`
 }
 
 // ExecutionStatus represents the status of execution
@@ -319,22 +319,22 @@ type ExecutionError struct {
 
 // ExecutionResult represents an execution result
 type ExecutionResult struct {
-	Stage       string                 `json:"stage"`
-	Function    string                 `json:"function,omitempty"`
-	Type        string                 `json:"type"`
-	Message     string                 `json:"message"`
-	Data        map[string]interface{} `json:"data,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
+	Stage     string                 `json:"stage"`
+	Function  string                 `json:"function,omitempty"`
+	Type      string                 `json:"type"`
+	Message   string                 `json:"message"`
+	Data      map[string]interface{} `json:"data,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
 }
 
 // ExecutionCheckpoint represents a pipeline checkpoint
 type ExecutionCheckpoint struct {
-	ID          string                 `json:"id"`
-	Stage       string                 `json:"stage"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Variables   map[string]interface{} `json:"variables"`
-	Resources   []porch.KRMResource    `json:"resources"`
-	Metadata    map[string]string      `json:"metadata"`
+	ID        string                 `json:"id"`
+	Stage     string                 `json:"stage"`
+	Timestamp time.Time              `json:"timestamp"`
+	Variables map[string]interface{} `json:"variables"`
+	Resources []porch.KRMResource    `json:"resources"`
+	Metadata  map[string]string      `json:"metadata"`
 }
 
 // StateManager manages pipeline execution state
@@ -385,12 +385,12 @@ type FunctionExecutionResult struct {
 
 // PipelineMetrics provides comprehensive metrics for pipeline execution
 type PipelineMetrics struct {
-	PipelineExecutions    prometheus.CounterVec
-	ExecutionDuration     prometheus.HistogramVec
-	StageExecutions       prometheus.CounterVec
-	StageDuration         prometheus.HistogramVec
-	FunctionExecutions    prometheus.CounterVec
-	FunctionDuration      prometheus.HistogramVec
+	PipelineExecutions   prometheus.CounterVec
+	ExecutionDuration    prometheus.HistogramVec
+	StageExecutions      prometheus.CounterVec
+	StageDuration        prometheus.HistogramVec
+	FunctionExecutions   prometheus.CounterVec
+	FunctionDuration     prometheus.HistogramVec
 	ErrorRate            prometheus.CounterVec
 	RetryCount           prometheus.CounterVec
 	QueueDepth           prometheus.Gauge
@@ -517,7 +517,7 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 	var storage StateStorage = &MemoryStateStorage{
 		data: make(map[string][]byte),
 	}
-	
+
 	stateManager := &StateManager{
 		storage:     storage,
 		checkpoints: make(map[string]*ExecutionCheckpoint),
@@ -586,7 +586,7 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 		"execution", execution.ID,
 	)
 
-	logger.Info("Starting pipeline execution", 
+	logger.Info("Starting pipeline execution",
 		"stages", len(definition.Stages),
 		"resources", len(resources),
 	)
@@ -720,14 +720,14 @@ func (p *Pipeline) ExecuteStage(ctx context.Context, execution *PipelineExecutio
 	if stageErr != nil {
 		span.RecordError(stageErr)
 		span.SetStatus(codes.Error, "stage execution failed")
-		
+
 		// Handle error based on stage configuration
 		if stage.OnError != nil {
 			if handledErr := p.handleStageError(stageCtx, execution, stage, stageExec, stageErr); handledErr == nil {
 				stageErr = nil // Error was handled successfully
 			}
 		}
-		
+
 		return stageExec, stageErr
 	}
 
@@ -798,7 +798,7 @@ func (p *Pipeline) executeStagesParallel(ctx context.Context, execution *Pipelin
 			defer func() { <-sem }()
 
 			stageExec, err := p.ExecuteStage(ctx, execution, s, execution.Resources)
-			
+
 			mu.Lock()
 			execution.Stages[s.Name] = stageExec
 			if err != nil {
@@ -837,7 +837,7 @@ func (p *Pipeline) executeStageSequential(ctx context.Context, execution *Pipeli
 
 		// Execute function
 		result, err := p.executeFunction(ctx, execution, stage, function, currentResources)
-		
+
 		funcExec.EndTime = &time.Time{}
 		*funcExec.EndTime = time.Now()
 		funcExec.Duration = funcExec.EndTime.Sub(funcExec.StartTime)
@@ -956,9 +956,9 @@ func (p *Pipeline) executeFunction(ctx context.Context, execution *PipelineExecu
 	// Create function request
 	request := &porch.FunctionRequest{
 		FunctionConfig: porch.FunctionConfig{
-			Image:      function.Image,
-			ConfigMap:  function.Config,
-			Selectors:  convertResourceSelectors(function.Selectors),
+			Image:     function.Image,
+			ConfigMap: function.Config,
+			Selectors: convertResourceSelectors(function.Selectors),
 		},
 		Resources: convertToPorchResources(selectedResources),
 		Context: &porch.FunctionContext{
@@ -968,10 +968,10 @@ func (p *Pipeline) executeFunction(ctx context.Context, execution *PipelineExecu
 				Revision:    execution.ID,
 			},
 			Environment: map[string]string{
-				"PIPELINE_NAME":    execution.Name,
-				"EXECUTION_ID":     execution.ID,
-				"STAGE_NAME":       stage.Name,
-				"FUNCTION_NAME":    function.Name,
+				"PIPELINE_NAME": execution.Name,
+				"EXECUTION_ID":  execution.ID,
+				"STAGE_NAME":    stage.Name,
+				"FUNCTION_NAME": function.Name,
 			},
 		},
 	}
@@ -1026,13 +1026,13 @@ func (p *Pipeline) retryStage(ctx context.Context, execution *PipelineExecution,
 		return fmt.Errorf("max retries exceeded for stage %s", stage.Name)
 	}
 
-	delay := time.Duration(float64(retryPolicy.InitialDelay) * 
+	delay := time.Duration(float64(retryPolicy.InitialDelay) *
 		math.Pow(retryPolicy.Multiplier, float64(stageExec.Retries)))
 	if delay > retryPolicy.MaxDelay {
 		delay = retryPolicy.MaxDelay
 	}
 
-	log.FromContext(ctx).Info("Retrying stage", 
+	log.FromContext(ctx).Info("Retrying stage",
 		"stage", stage.Name,
 		"attempt", stageExec.Retries+1,
 		"delay", delay,
@@ -1245,17 +1245,17 @@ func (p *Pipeline) evaluateCondition(condition *Condition, variables map[string]
 		apiVersion := condition.Parameters["apiVersion"].(string)
 		kind := condition.Parameters["kind"].(string)
 		name := condition.Parameters["name"].(string)
-		
+
 		for _, resource := range resources {
-			if resource.APIVersion == apiVersion && 
-			   resource.Kind == kind &&
-			   resource.Metadata["name"] == name {
+			if resource.APIVersion == apiVersion &&
+				resource.Kind == kind &&
+				resource.Metadata["name"] == name {
 				return !condition.Negate
 			}
 		}
 		return condition.Negate
 	}
-	
+
 	return true
 }
 

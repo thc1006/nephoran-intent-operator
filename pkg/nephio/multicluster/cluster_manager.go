@@ -13,9 +13,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
-// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
+	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
+	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
 )
 
 // ClusterManager manages cluster registration, discovery, and lifecycle
@@ -28,12 +27,12 @@ type ClusterManager struct {
 
 // ClusterInfo represents detailed information about a managed cluster
 type ClusterInfo struct {
-	Name               types.NamespacedName
-	Kubeconfig         *rest.Config
-	ClientSet          *kubernetes.Clientset
-	Capabilities       ClusterCapabilities
-	LastHealthCheck    time.Time
-	HealthStatus       ClusterHealthStatus
+	Name                types.NamespacedName
+	Kubeconfig          *rest.Config
+	ClientSet           *kubernetes.Clientset
+	Capabilities        ClusterCapabilities
+	LastHealthCheck     time.Time
+	HealthStatus        ClusterHealthStatus
 	ResourceUtilization ResourceUtilization
 }
 
@@ -59,29 +58,29 @@ type ClusterHealthStatus struct {
 
 // ResourceUtilization tracks cluster resource usage
 type ResourceUtilization struct {
-	CPUTotal      float64
-	CPUUsed       float64
-	MemoryTotal   int64
-	MemoryUsed    int64
-	StorageTotal  int64
-	StorageUsed   int64
-	PodCapacity   int
-	PodCount      int
+	CPUTotal     float64
+	CPUUsed      float64
+	MemoryTotal  int64
+	MemoryUsed   int64
+	StorageTotal int64
+	StorageUsed  int64
+	PodCapacity  int
+	PodCount     int
 }
 
 // ClusterSelectionCriteria defines requirements for cluster selection
 type ClusterSelectionCriteria struct {
-	MinCPU           float64
-	MinMemory        int64
-	StorageRequired  int64
-	RequiredRegions  []string
-	NetworkPlugins   []string
-	MaxPodCount      int
+	MinCPU          float64
+	MinMemory       int64
+	StorageRequired int64
+	RequiredRegions []string
+	NetworkPlugins  []string
+	MaxPodCount     int
 }
 
 // RegisterCluster adds a new cluster to management
 func (cm *ClusterManager) RegisterCluster(
-	ctx context.Context, 
+	ctx context.Context,
 	clusterConfig *rest.Config,
 	name types.NamespacedName,
 ) (*ClusterInfo, error) {
@@ -99,12 +98,12 @@ func (cm *ClusterManager) RegisterCluster(
 
 	// Create cluster info
 	clusterInfo := &ClusterInfo{
-		Name:               name,
-		Kubeconfig:         clusterConfig,
-		ClientSet:          clientSet,
-		Capabilities:       capabilities,
-		LastHealthCheck:    time.Now(),
-		HealthStatus:       cm.initialHealthCheck(ctx, clientSet),
+		Name:                name,
+		Kubeconfig:          clusterConfig,
+		ClientSet:           clientSet,
+		Capabilities:        capabilities,
+		LastHealthCheck:     time.Now(),
+		HealthStatus:        cm.initialHealthCheck(ctx, clientSet),
 		ResourceUtilization: cm.collectResourceUtilization(ctx, clientSet),
 	}
 
@@ -157,7 +156,7 @@ func (cm *ClusterManager) SelectTargetClusters(
 
 // clusterMatchesCriteria checks if a cluster meets deployment requirements
 func (cm *ClusterManager) clusterMatchesCriteria(
-	cluster *ClusterInfo, 
+	cluster *ClusterInfo,
 	criteria ClusterSelectionCriteria,
 ) bool {
 	// Check resource requirements
@@ -172,7 +171,7 @@ func (cm *ClusterManager) clusterMatchesCriteria(
 	}
 
 	// Check pod capacity
-	if criteria.MaxPodCount > 0 && 
+	if criteria.MaxPodCount > 0 &&
 		cluster.ResourceUtilization.PodCount > criteria.MaxPodCount {
 		return false
 	}
@@ -237,7 +236,7 @@ func (cm *ClusterManager) performClusterHealthCheck(ctx context.Context) {
 		wg.Add(1)
 		go func(name types.NamespacedName, cluster *ClusterInfo) {
 			defer wg.Done()
-			
+
 			healthStatus := cm.checkClusterHealth(ctx, cluster)
 			cluster.HealthStatus = healthStatus
 			cluster.LastHealthCheck = time.Now()
@@ -249,7 +248,7 @@ func (cm *ClusterManager) performClusterHealthCheck(ctx context.Context) {
 
 // Helper methods for cluster management
 func (cm *ClusterManager) discoverClusterCapabilities(
-	ctx context.Context, 
+	ctx context.Context,
 	clientSet *kubernetes.Clientset,
 ) (ClusterCapabilities, error) {
 	// Implement cluster capability discovery
@@ -257,7 +256,7 @@ func (cm *ClusterManager) discoverClusterCapabilities(
 }
 
 func (cm *ClusterManager) initialHealthCheck(
-	ctx context.Context, 
+	ctx context.Context,
 	clientSet *kubernetes.Clientset,
 ) ClusterHealthStatus {
 	// Implement initial health check
@@ -267,7 +266,7 @@ func (cm *ClusterManager) initialHealthCheck(
 }
 
 func (cm *ClusterManager) checkClusterHealth(
-	ctx context.Context, 
+	ctx context.Context,
 	cluster *ClusterInfo,
 ) ClusterHealthStatus {
 	// Implement comprehensive health check
@@ -277,7 +276,7 @@ func (cm *ClusterManager) checkClusterHealth(
 }
 
 func (cm *ClusterManager) collectResourceUtilization(
-	ctx context.Context, 
+	ctx context.Context,
 	clientSet *kubernetes.Clientset,
 ) ResourceUtilization {
 	// Implement resource utilization collection

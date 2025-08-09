@@ -30,17 +30,17 @@ type PerformanceAnalyzer struct {
 
 // HTTPPerformanceReport contains HTTP layer performance metrics
 type HTTPPerformanceReport struct {
-	RequestsPerSecond    float64
-	AverageLatency       time.Duration
-	P95Latency           time.Duration
-	P99Latency           time.Duration
+	RequestsPerSecond     float64
+	AverageLatency        time.Duration
+	P95Latency            time.Duration
+	P99Latency            time.Duration
 	ConnectionPoolHitRate float64
-	CompressionRatio     float64
-	HTTP2Usage           float64
-	TLSHandshakeTime     time.Duration
-	BufferPoolEfficiency float64
-	ErrorRate            float64
-	ImprovementRatio     float64
+	CompressionRatio      float64
+	HTTP2Usage            float64
+	TLSHandshakeTime      time.Duration
+	BufferPoolEfficiency  float64
+	ErrorRate             float64
+	ImprovementRatio      float64
 }
 
 // MemoryPerformanceReport contains memory optimization metrics
@@ -59,43 +59,43 @@ type MemoryPerformanceReport struct {
 
 // JSONPerformanceReport contains JSON processing metrics
 type JSONPerformanceReport struct {
-	MarshalOpsPerSec     float64
-	UnmarshalOpsPerSec   float64
-	AverageProcessTime   time.Duration
-	SchemaHitRate        float64
-	PoolEfficiency       float64
-	ConcurrencyLevel     int64
-	SIMDUtilization      float64
-	CompressionSavings   float64
-	ErrorRate            float64
-	ImprovementRatio     float64
+	MarshalOpsPerSec   float64
+	UnmarshalOpsPerSec float64
+	AverageProcessTime time.Duration
+	SchemaHitRate      float64
+	PoolEfficiency     float64
+	ConcurrencyLevel   int64
+	SIMDUtilization    float64
+	CompressionSavings float64
+	ErrorRate          float64
+	ImprovementRatio   float64
 }
 
 // GoroutinePerformanceReport contains goroutine pool metrics
 type GoroutinePerformanceReport struct {
-	TasksPerSecond       float64
-	AverageWaitTime      time.Duration
-	AverageProcessTime   time.Duration
-	WorkerUtilization    float64
+	TasksPerSecond         float64
+	AverageWaitTime        time.Duration
+	AverageProcessTime     time.Duration
+	WorkerUtilization      float64
 	WorkStealingEfficiency float64
-	ScalingResponsiveness float64
-	CPUAffinityBenefit   float64
-	PreemptionRate       float64
-	DeadlockFrequency    float64
-	ImprovementRatio     float64
+	ScalingResponsiveness  float64
+	CPUAffinityBenefit     float64
+	PreemptionRate         float64
+	DeadlockFrequency      float64
+	ImprovementRatio       float64
 }
 
 // CachePerformanceReport contains cache optimization metrics
 type CachePerformanceReport struct {
-	HitRate              float64
-	AverageAccessTime    time.Duration
-	EvictionEfficiency   float64
-	ShardDistribution    float64
-	MemoryEfficiency     float64
+	HitRate               float64
+	AverageAccessTime     time.Duration
+	EvictionEfficiency    float64
+	ShardDistribution     float64
+	MemoryEfficiency      float64
 	ConcurrentPerformance float64
-	TTLAccuracy          float64
-	WarmupTime           time.Duration
-	ImprovementRatio     float64
+	TTLAccuracy           float64
+	WarmupTime            time.Duration
+	ImprovementRatio      float64
 }
 
 // DatabasePerformanceReport contains database optimization metrics
@@ -114,15 +114,15 @@ type DatabasePerformanceReport struct {
 
 // OverallPerformanceReport contains system-wide metrics
 type OverallPerformanceReport struct {
-	TotalThroughput      float64
-	SystemLatency        time.Duration
-	ResourceUtilization  float64
-	ScalabilityFactor    float64
-	ReliabilityScore     float64
-	PerformanceGain      float64
-	EnergyEfficiency     float64
-	CostOptimization     float64
-	SLACompliance        float64
+	TotalThroughput     float64
+	SystemLatency       time.Duration
+	ResourceUtilization float64
+	ScalabilityFactor   float64
+	ReliabilityScore    float64
+	PerformanceGain     float64
+	EnergyEfficiency    float64
+	CostOptimization    float64
+	SLACompliance       float64
 }
 
 // BaselineMetrics stores baseline performance measurements
@@ -138,12 +138,12 @@ type BaselineMetrics struct {
 
 // PerformanceTarget defines target performance improvements
 type PerformanceTarget struct {
-	HTTPLatencyReduction    float64 // 20-25%
-	MemoryAllocationReduce  float64 // 30-35%
-	JSONSpeedImprovement    float64 // 25-30%
-	GoroutineEfficiency     float64 // 15-20%
-	DatabasePerformance     float64 // 25-30%
-	OverallImprovement      float64 // 22-28%
+	HTTPLatencyReduction   float64 // 20-25%
+	MemoryAllocationReduce float64 // 30-35%
+	JSONSpeedImprovement   float64 // 25-30%
+	GoroutineEfficiency    float64 // 15-20%
+	DatabasePerformance    float64 // 25-30%
+	OverallImprovement     float64 // 22-28%
 }
 
 // NewPerformanceAnalyzer creates a new performance analyzer
@@ -192,9 +192,9 @@ func (pa *PerformanceAnalyzer) EstablishBaseline() error {
 	// Measure JSON baseline
 	start = time.Now()
 	testData := map[string]interface{}{
-		"test": "data",
+		"test":   "data",
 		"number": 123,
-		"array": []string{"a", "b", "c"},
+		"array":  []string{"a", "b", "c"},
 	}
 	for i := 0; i < 1000; i++ {
 		// Standard JSON operations
@@ -474,16 +474,16 @@ func (pa *PerformanceAnalyzer) GeneratePerformanceReport() *PerformanceReport {
 	return &PerformanceReport{
 		Timestamp:        time.Now(),
 		AnalysisDuration: time.Since(pa.startTime),
-		Baseline:        *pa.baselineMetrics,
-		HTTP:            *pa.httpMetrics,
-		Memory:          *pa.memoryMetrics,
-		JSON:            *pa.jsonMetrics,
-		Goroutine:       *pa.goroutineMetrics,
-		Cache:           *pa.cacheMetrics,
-		Database:        *pa.dbMetrics,
-		Overall:         *pa.overallMetrics,
-		Targets:         GetPerformanceTargets(),
-		AchievedTargets: pa.checkTargetAchievement(),
+		Baseline:         *pa.baselineMetrics,
+		HTTP:             *pa.httpMetrics,
+		Memory:           *pa.memoryMetrics,
+		JSON:             *pa.jsonMetrics,
+		Goroutine:        *pa.goroutineMetrics,
+		Cache:            *pa.cacheMetrics,
+		Database:         *pa.dbMetrics,
+		Overall:          *pa.overallMetrics,
+		Targets:          GetPerformanceTargets(),
+		AchievedTargets:  pa.checkTargetAchievement(),
 	}
 }
 
@@ -534,14 +534,14 @@ func (pa *PerformanceAnalyzer) checkTargetAchievement() map[string]bool {
 func (pr *PerformanceReport) PrintPerformanceReport() {
 	fmt.Println("\n" + "="*80)
 	fmt.Println("NEPHORAN INTENT OPERATOR - GO 1.24+ PERFORMANCE OPTIMIZATION REPORT")
-	fmt.Println("="*80)
+	fmt.Println("=" * 80)
 	fmt.Printf("Report Generated: %s\n", pr.Timestamp.Format(time.RFC3339))
 	fmt.Printf("Analysis Duration: %v\n", pr.AnalysisDuration)
 	fmt.Println()
 
 	// Baseline metrics
 	fmt.Println("BASELINE METRICS (Pre-optimization)")
-	fmt.Println("-"*40)
+	fmt.Println("-" * 40)
 	fmt.Printf("HTTP Latency: %v\n", pr.Baseline.HTTPLatency)
 	fmt.Printf("Memory Usage: %d bytes\n", pr.Baseline.MemoryUsage)
 	fmt.Printf("JSON Process Time: %v\n", pr.Baseline.JSONProcessTime)
@@ -552,7 +552,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// HTTP Performance
 	fmt.Println("HTTP LAYER PERFORMANCE")
-	fmt.Println("-"*40)
+	fmt.Println("-" * 40)
 	fmt.Printf("Requests/sec: %.2f\n", pr.HTTP.RequestsPerSecond)
 	fmt.Printf("Average Latency: %v\n", pr.HTTP.AverageLatency)
 	fmt.Printf("Connection Pool Hit Rate: %.2f%%\n", pr.HTTP.ConnectionPoolHitRate*100)
@@ -565,7 +565,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Memory Performance
 	fmt.Println("MEMORY OPTIMIZATION PERFORMANCE")
-	fmt.Println("-"*40)
+	fmt.Println("-" * 40)
 	fmt.Printf("Heap Size: %d bytes\n", pr.Memory.HeapSize)
 	fmt.Printf("GC Pause Time: %v\n", pr.Memory.GCPauseTime)
 	fmt.Printf("GC Frequency: %.2f/hour\n", pr.Memory.GCFrequency)
@@ -578,7 +578,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// JSON Performance
 	fmt.Println("JSON PROCESSING PERFORMANCE")
-	fmt.Println("-"*40)
+	fmt.Println("-" * 40)
 	fmt.Printf("Marshal ops/sec: %.2f\n", pr.JSON.MarshalOpsPerSec)
 	fmt.Printf("Unmarshal ops/sec: %.2f\n", pr.JSON.UnmarshalOpsPerSec)
 	fmt.Printf("Average Process Time: %v\n", pr.JSON.AverageProcessTime)
@@ -592,7 +592,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Goroutine Performance
 	fmt.Println("GOROUTINE POOL PERFORMANCE")
-	fmt.Println("-"*40)
+	fmt.Println("-" * 40)
 	fmt.Printf("Tasks/sec: %.2f\n", pr.Goroutine.TasksPerSecond)
 	fmt.Printf("Average Wait Time: %v\n", pr.Goroutine.AverageWaitTime)
 	fmt.Printf("Average Process Time: %v\n", pr.Goroutine.AverageProcessTime)
@@ -604,7 +604,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Cache Performance
 	fmt.Println("CACHE OPTIMIZATION PERFORMANCE")
-	fmt.Println("-"*40)
+	fmt.Println("-" * 40)
 	fmt.Printf("Hit Rate: %.2f%%\n", pr.Cache.HitRate*100)
 	fmt.Printf("Average Access Time: %v\n", pr.Cache.AverageAccessTime)
 	fmt.Printf("Eviction Efficiency: %.2f%%\n", pr.Cache.EvictionEfficiency*100)
@@ -615,7 +615,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Database Performance
 	fmt.Println("DATABASE OPTIMIZATION PERFORMANCE")
-	fmt.Println("-"*40)
+	fmt.Println("-" * 40)
 	fmt.Printf("Queries/sec: %.2f\n", pr.Database.QueriesPerSecond)
 	fmt.Printf("Average Query Time: %v\n", pr.Database.AverageQueryTime)
 	fmt.Printf("Connection Utilization: %.2f%%\n", pr.Database.ConnectionUtilization*100)
@@ -628,7 +628,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Overall Performance
 	fmt.Println("OVERALL SYSTEM PERFORMANCE")
-	fmt.Println("-"*40)
+	fmt.Println("-" * 40)
 	fmt.Printf("Total Throughput: %.2f ops/sec\n", pr.Overall.TotalThroughput)
 	fmt.Printf("System Latency: %v\n", pr.Overall.SystemLatency)
 	fmt.Printf("Resource Utilization: %.2f%%\n", pr.Overall.ResourceUtilization*100)
@@ -640,7 +640,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Target Achievement
 	fmt.Println("PERFORMANCE TARGET ACHIEVEMENT")
-	fmt.Println("-"*40)
+	fmt.Println("-" * 40)
 	for target, achieved := range pr.AchievedTargets {
 		status := "❌ MISSED"
 		if achieved {
@@ -652,7 +652,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Summary
 	fmt.Println("PERFORMANCE OPTIMIZATION SUMMARY")
-	fmt.Println("="*40)
+	fmt.Println("=" * 40)
 	achievedCount := 0
 	for _, achieved := range pr.AchievedTargets {
 		if achieved {

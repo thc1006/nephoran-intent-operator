@@ -47,7 +47,7 @@ func CreateTestE2NodeSet(name, namespace string, replicas int32) *nephoranv1.E2N
 			Namespace: namespace,
 		},
 		Spec: nephoranv1.E2NodeSetSpec{
-			Replicas: replicas,
+			Replicas:    replicas,
 			RicEndpoint: "http://localhost:38080",
 		},
 	}
@@ -61,7 +61,7 @@ func CreateTestNetworkIntent(name, namespace string) *nephoranv1.NetworkIntent {
 			Namespace: namespace,
 		},
 		Spec: nephoranv1.NetworkIntentSpec{
-			Intent: "Configure QoS with 100Mbps bandwidth and 10ms latency",
+			Intent:     "Configure QoS with 100Mbps bandwidth and 10ms latency",
 			IntentType: "qos",
 			ParametersMap: map[string]string{
 				"bandwidth": "100Mbps",

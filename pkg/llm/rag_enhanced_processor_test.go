@@ -20,14 +20,14 @@ func TestRAGEnhancedProcessor_ProcessIntent(t *testing.T) {
 		TelecomKeywords: []string{
 			"5G", "AMF", "SMF", "UPF", "O-RAN",
 		},
-		LLMEndpoint:     "http://localhost:8080/v1/chat/completions",
-		LLMAPIKey:       "",
-		LLMModelName:    "gpt-4o-mini",
-		MaxTokens:       2048,
-		Temperature:     0.0,
-		EnableCaching:   true,
-		CacheTTL:        5 * time.Minute,
-		MaxRetries:      3,
+		LLMEndpoint:   "http://localhost:8080/v1/chat/completions",
+		LLMAPIKey:     "",
+		LLMModelName:  "gpt-4o-mini",
+		MaxTokens:     2048,
+		Temperature:   0.0,
+		EnableCaching: true,
+		CacheTTL:      5 * time.Minute,
+		MaxRetries:    3,
 	}
 
 	// Disable RAG for base functionality test
@@ -231,7 +231,7 @@ func TestRAGEnhancedProcessor_QueryVectorDatabase(t *testing.T) {
 	// Since we're using mock data in the implementation, we can test that path
 	config.EnableRAG = true
 	processor2 := NewRAGEnhancedProcessorWithConfig(config)
-	
+
 	// Force weaviate pool to be available but use mock data
 	if processor2.weaviatePool != nil {
 		results, err := processor2.queryVectorDatabase(ctx, query)

@@ -29,7 +29,7 @@ func (rsl *RequestSizeLimiter) Middleware(next http.Handler) http.Handler {
 			// Wrap the request body with MaxBytesReader
 			r.Body = http.MaxBytesReader(w, r.Body, rsl.maxSize)
 		}
-		
+
 		// Continue to the next handler
 		next.ServeHTTP(w, r)
 	})
@@ -43,14 +43,14 @@ func (rsl *RequestSizeLimiter) Handler(handler http.HandlerFunc) http.HandlerFun
 			// Wrap the request body with MaxBytesReader
 			originalBody := r.Body
 			r.Body = http.MaxBytesReader(w, r.Body, rsl.maxSize)
-			
+
 			// Log size limit enforcement
 			rsl.logger.Debug("Request size limit enforced",
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
 				slog.Int64("max_size_bytes", rsl.maxSize),
 			)
-			
+
 			// Defer cleanup (though MaxBytesReader handles this)
 			defer func() {
 				if originalBody != nil {
@@ -58,7 +58,7 @@ func (rsl *RequestSizeLimiter) Handler(handler http.HandlerFunc) http.HandlerFun
 				}
 			}()
 		}
-		
+
 		// Call the wrapped handler
 		handler(w, r)
 	}
@@ -68,18 +68,18 @@ func (rsl *RequestSizeLimiter) Handler(handler http.HandlerFunc) http.HandlerFun
 func writePayloadTooLargeResponse(w http.ResponseWriter, logger *slog.Logger, maxSize int64) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusRequestEntityTooLarge)
-	
+
 	response := fmt.Sprintf(`{
 		"error": "Request payload too large",
 		"message": "Request body exceeds maximum allowed size of %d bytes",
 		"status": "error",
 		"code": 413
 	}`, maxSize)
-	
+
 	if _, err := w.Write([]byte(response)); err != nil {
 		logger.Error("Failed to write payload too large response", slog.String("error", err.Error()))
 	}
-	
+
 	logger.Warn("Request rejected due to size limit",
 		slog.Int64("max_size_bytes", maxSize),
 		slog.Int("status_code", http.StatusRequestEntityTooLarge),
@@ -100,10 +100,10 @@ func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFun
 				writePayloadTooLargeResponse(w, logger, maxSize)
 				return
 			}
-			
+
 			// Wrap the request body with MaxBytesReader
 			r.Body = http.MaxBytesReader(w, r.Body, maxSize)
-			
+
 			logger.Debug("Request size limit applied",
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
@@ -111,7 +111,7 @@ func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFun
 				slog.Int64("content_length", r.ContentLength),
 			)
 		}
-		
+
 		// Call the handler and catch MaxBytesReader errors
 		defer func() {
 			if err := recover(); err != nil {
@@ -124,14 +124,14 @@ func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFun
 					writePayloadTooLargeResponse(w, logger, maxSize)
 					return
 				}
-				
+
 				// Check for string-based panic from http.MaxBytesReader
 				// Using multiple detection patterns to be resilient to standard library changes
 				if errStr, ok := err.(string); ok {
 					// Check for various patterns that indicate body size exceeded
 					lowerErr := strings.ToLower(errStr)
 					isSizeError := false
-					
+
 					// Current known pattern
 					if errStr == "http: request body too large" {
 						isSizeError = true
@@ -145,7 +145,7 @@ func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFun
 						// Pattern that might appear in future versions
 						isSizeError = true
 					}
-					
+
 					if isSizeError {
 						logger.Warn("Request body size limit exceeded (string panic)",
 							slog.Int64("max_size_bytes", maxSize),
@@ -156,18 +156,18 @@ func MaxBytesHandler(maxSize int64, logger *slog.Logger, handler http.HandlerFun
 						return
 					}
 				}
-				
+
 				// Log unexpected panic before re-panicking
 				logger.Error("Unexpected panic in request size handler",
 					slog.Any("error", err),
 					slog.String("path", r.URL.Path),
 				)
-				
+
 				// Re-panic if it's not a known MaxBytesReader error
 				panic(err)
 			}
 		}()
-		
+
 		handler(w, r)
 	}
 }

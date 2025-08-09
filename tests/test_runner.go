@@ -57,7 +57,7 @@ func NewTestSuite(config *TestConfig) *TestSuite {
 	if config == nil {
 		config = DefaultTestConfig()
 	}
-	
+
 	return &TestSuite{
 		Config: config,
 	}
@@ -66,9 +66,9 @@ func NewTestSuite(config *TestConfig) *TestSuite {
 // Setup initializes the test environment
 func (ts *TestSuite) Setup() error {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-	
+
 	ts.ctx, ts.cancel = context.WithTimeout(context.Background(), ts.Config.TestTimeout)
-	
+
 	By("bootstrapping test environment")
 	ts.TestEnv = &envtest.Environment{
 		CRDDirectoryPaths:     ts.Config.CRDDirectoryPaths,
@@ -76,30 +76,30 @@ func (ts *TestSuite) Setup() error {
 		WebhookInstallOptions: ts.Config.WebhookInstallOptions,
 		UseExistingCluster:    &ts.Config.UseExistingCluster,
 	}
-	
+
 	if ts.Config.AttachControlPlaneOutput {
 		ts.TestEnv.ControlPlane.GetAPIServer().Out = os.Stdout
 		ts.TestEnv.ControlPlane.GetAPIServer().Err = os.Stderr
 		ts.TestEnv.ControlPlane.GetEtcd().Out = os.Stdout
 		ts.TestEnv.ControlPlane.GetEtcd().Err = os.Stderr
 	}
-	
+
 	var err error
 	ts.RestConfig, err = ts.TestEnv.Start()
 	if err != nil {
 		return fmt.Errorf("failed to start test environment: %v", err)
 	}
-	
+
 	err = nephoranv1.AddToScheme(scheme.Scheme)
 	if err != nil {
 		return fmt.Errorf("failed to add scheme: %v", err)
 	}
-	
+
 	ts.K8sClient, err = client.New(ts.RestConfig, client.Options{Scheme: scheme.Scheme})
 	if err != nil {
 		return fmt.Errorf("failed to create k8s client: %v", err)
 	}
-	
+
 	return nil
 }
 
@@ -108,7 +108,7 @@ func (ts *TestSuite) Teardown() error {
 	if ts.cancel != nil {
 		ts.cancel()
 	}
-	
+
 	By("tearing down the test environment")
 	if ts.TestEnv != nil {
 		err := ts.TestEnv.Stop()
@@ -116,7 +116,7 @@ func (ts *TestSuite) Teardown() error {
 			return fmt.Errorf("failed to stop test environment: %v", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -124,7 +124,7 @@ func (ts *TestSuite) Teardown() error {
 func RunAllTests(t *testing.T) {
 	// Register global fail handler
 	RegisterFailHandler(Fail)
-	
+
 	// Run test suites in order
 	RunSpecs(t, "Nephoran Intent Operator Comprehensive Test Suite")
 }
@@ -160,13 +160,13 @@ func (jr *JUnitReporter) AfterTest(testName string, passed bool, duration time.D
 
 // TestMetrics collects metrics during test execution
 type TestMetrics struct {
-	TotalTests       int
-	PassedTests      int
-	FailedTests      int
-	SkippedTests     int
-	TotalDuration    time.Duration
-	AverageDuration  time.Duration
-	CoveragePercent  float64
+	TotalTests      int
+	PassedTests     int
+	FailedTests     int
+	SkippedTests    int
+	TotalDuration   time.Duration
+	AverageDuration time.Duration
+	CoveragePercent float64
 }
 
 func (tm *TestMetrics) Calculate() {
@@ -211,22 +211,22 @@ func (te *TestExecutor) Execute() error {
 	for _, reporter := range te.Reporters {
 		reporter.BeforeSuite()
 	}
-	
+
 	startTime := time.Now()
-	
+
 	// Execute tests (this would integrate with the actual test execution)
 	// For now, this is a placeholder for the test execution logic
-	
+
 	te.Metrics.TotalDuration = time.Since(startTime)
 	te.Metrics.Calculate()
-	
+
 	// Notify reporters
 	for _, reporter := range te.Reporters {
 		reporter.AfterSuite()
 	}
-	
+
 	te.Metrics.Print()
-	
+
 	return nil
 }
 
@@ -240,10 +240,10 @@ func AnalyzeCoverage(coverageFile string) (float64, error) {
 // Performance benchmark helpers
 func RunPerformanceBenchmarks() error {
 	log.Println("Running performance benchmarks...")
-	
+
 	// This would execute the performance tests and collect metrics
 	// The actual implementation would call the load test suites
-	
+
 	return nil
 }
 
@@ -251,7 +251,7 @@ func RunPerformanceBenchmarks() error {
 func GenerateTestReport(metrics *TestMetrics, outputDir string) error {
 	// Generate various test reports (HTML, XML, JSON)
 	// This would create files in the output directory
-	
+
 	return nil
 }
 
@@ -262,20 +262,20 @@ func ValidateTestEnvironment() error {
 	// - Required dependencies
 	// - Available resources (memory, disk)
 	// - Network connectivity (for integration tests)
-	
+
 	return nil
 }
 
 // Main test runner function
 func RunTestSuite(testType string, verbose bool) error {
 	config := DefaultTestConfig()
-	
+
 	if verbose {
 		config.AttachControlPlaneOutput = true
 	}
-	
+
 	executor := NewTestExecutor(config)
-	
+
 	// Add JUnit reporter for CI/CD integration
 	if os.Getenv("CI") == "true" {
 		junit := &JUnitReporter{
@@ -283,12 +283,12 @@ func RunTestSuite(testType string, verbose bool) error {
 		}
 		executor.AddReporter(junit)
 	}
-	
+
 	// Validate environment before running tests
 	if err := ValidateTestEnvironment(); err != nil {
 		return fmt.Errorf("test environment validation failed: %v", err)
 	}
-	
+
 	// Execute tests based on type
 	switch testType {
 	case "unit":

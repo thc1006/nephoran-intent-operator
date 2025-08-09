@@ -28,24 +28,24 @@ import (
 
 // TestContext provides a complete testing environment for auth tests
 type TestContext struct {
-	T             *testing.T
-	Ctx           context.Context
-	Logger        *slog.Logger
-	
+	T      *testing.T
+	Ctx    context.Context
+	Logger *slog.Logger
+
 	// Keys for testing
-	PrivateKey    *rsa.PrivateKey
-	PublicKey     *rsa.PublicKey
-	KeyID         string
-	
+	PrivateKey *rsa.PrivateKey
+	PublicKey  *rsa.PublicKey
+	KeyID      string
+
 	// Test servers
-	OAuthServer   *httptest.Server
-	LDAPServer    *MockLDAPServer
-	
+	OAuthServer *httptest.Server
+	LDAPServer  *MockLDAPServer
+
 	// Managers under test
-	JWTManager    *auth.JWTManager
-	RBACManager   *auth.RBACManager
+	JWTManager     *auth.JWTManager
+	RBACManager    *auth.RBACManager
 	SessionManager *auth.SessionManager
-	
+
 	// Cleanup functions
 	cleanupFuncs []func()
 	mutex        sync.Mutex
@@ -61,7 +61,7 @@ func NewTestContext(t *testing.T) *TestContext {
 	// Generate test RSA key pair
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(t, err)
-	
+
 	publicKey := &privateKey.PublicKey
 	keyID := "test-key-id"
 
@@ -94,7 +94,7 @@ func (tc *TestContext) SetupJWTManager() *auth.JWTManager {
 	}
 
 	jwtManager := auth.NewJWTManager(config, tc.Logger)
-	
+
 	// Set test keys
 	err := jwtManager.SetSigningKey(tc.PrivateKey, tc.KeyID)
 	require.NoError(tc.T, err)
@@ -159,27 +159,27 @@ func (tc *TestContext) SetupOAuthServer() *httptest.Server {
 	}
 
 	mux := http.NewServeMux()
-	
+
 	// Authorization endpoint
 	mux.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
 		tc.handleOAuthAuth(w, r)
 	})
-	
+
 	// Token endpoint
 	mux.HandleFunc("/token", func(w http.ResponseWriter, r *http.Request) {
 		tc.handleOAuthToken(w, r)
 	})
-	
+
 	// User info endpoint
 	mux.HandleFunc("/userinfo", func(w http.ResponseWriter, r *http.Request) {
 		tc.handleOAuthUserInfo(w, r)
 	})
-	
+
 	// JWKS endpoint
 	mux.HandleFunc("/.well-known/jwks.json", func(w http.ResponseWriter, r *http.Request) {
 		tc.handleJWKS(w, r)
 	})
-	
+
 	// OIDC discovery endpoint
 	mux.HandleFunc("/.well-known/openid_configuration", func(w http.ResponseWriter, r *http.Request) {
 		tc.handleOIDCDiscovery(w, r)
@@ -274,7 +274,7 @@ func (tc *TestContext) AddCleanup(cleanup func()) {
 func (tc *TestContext) Cleanup() {
 	tc.mutex.Lock()
 	defer tc.mutex.Unlock()
-	
+
 	// Run cleanup functions in reverse order
 	for i := len(tc.cleanupFuncs) - 1; i >= 0; i-- {
 		tc.cleanupFuncs[i]()
@@ -391,13 +391,13 @@ func (tc *TestContext) handleJWKS(w http.ResponseWriter, r *http.Request) {
 
 func (tc *TestContext) handleOIDCDiscovery(w http.ResponseWriter, r *http.Request) {
 	baseURL := tc.OAuthServer.URL
-	
+
 	config := map[string]interface{}{
 		"issuer":                 baseURL,
 		"authorization_endpoint": baseURL + "/auth",
 		"token_endpoint":         baseURL + "/token",
 		"userinfo_endpoint":      baseURL + "/userinfo",
-		"jwks_uri":              baseURL + "/.well-known/jwks.json",
+		"jwks_uri":               baseURL + "/.well-known/jwks.json",
 		"scopes_supported": []string{
 			"openid", "email", "profile",
 		},

@@ -3,8 +3,10 @@ package api
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -44,18 +46,18 @@ func TestEndpointRateLimiting(t *testing.T) {
 		rps   int // requests per second
 		burst int // burst capacity
 	}{
-		"/api/v1/intent/process":     {rps: 10, burst: 20},  // LLM processing endpoint
-		"/api/v1/rag/search":          {rps: 50, burst: 100}, // RAG search endpoint
-		"/api/v1/nephio/packages":     {rps: 20, burst: 40},  // Nephio packages endpoint
-		"/api/v1/oran/a1/policies":    {rps: 30, burst: 60},  // O-RAN A1 policies endpoint
-		"/api/v1/health":              {rps: 100, burst: 200}, // Health check endpoint (higher limit)
-		"/api/v1/metrics":             {rps: 100, burst: 200}, // Metrics endpoint
+		"/api/v1/intent/process":   {rps: 10, burst: 20},   // LLM processing endpoint
+		"/api/v1/rag/search":       {rps: 50, burst: 100},  // RAG search endpoint
+		"/api/v1/nephio/packages":  {rps: 20, burst: 40},   // Nephio packages endpoint
+		"/api/v1/oran/a1/policies": {rps: 30, burst: 60},   // O-RAN A1 policies endpoint
+		"/api/v1/health":           {rps: 100, burst: 200}, // Health check endpoint (higher limit)
+		"/api/v1/metrics":          {rps: 100, burst: 200}, // Metrics endpoint
 	}
 
 	for endpoint, limits := range endpointLimits {
 		t.Run(fmt.Sprintf("Endpoint_%s", endpoint), func(t *testing.T) {
 			limiter := rate.NewLimiter(rate.Limit(limits.rps), limits.burst)
-			
+
 			// Test within limits
 			successCount := 0
 			for i := 0; i < limits.burst; i++ {
@@ -116,11 +118,11 @@ func TestPerUserRateLimiting(t *testing.T) {
 	}
 
 	testCases := []struct {
-		userID         string
-		requests       int
-		expectedAllow  int
-		expectedDeny   int
-		description    string
+		userID        string
+		requests      int
+		expectedAllow int
+		expectedDeny  int
+		description   string
 	}{
 		{
 			userID:        "premium-user",
@@ -148,10 +150,10 @@ func TestPerUserRateLimiting(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.userID, func(t *testing.T) {
 			limiter := getUserLimiter(tc.userID)
-			
+
 			allowed := 0
 			denied := 0
-			
+
 			for i := 0; i < tc.requests; i++ {
 				if limiter.Allow() {
 					allowed++
@@ -159,7 +161,7 @@ func TestPerUserRateLimiting(t *testing.T) {
 					denied++
 				}
 			}
-			
+
 			assert.Equal(t, tc.expectedAllow, allowed, tc.description)
 			assert.Equal(t, tc.expectedDeny, denied, tc.description)
 		})
@@ -172,11 +174,11 @@ func TestDistributedRateLimiting(t *testing.T) {
 
 	// Simulate distributed rate limiter with shared state
 	type DistributedLimiter struct {
-		mu          sync.Mutex
-		tokens      int64
-		maxTokens   int64
-		refillRate  int64 // tokens per second
-		lastRefill  time.Time
+		mu         sync.Mutex
+		tokens     int64
+		maxTokens  int64
+		refillRate int64 // tokens per second
+		lastRefill time.Time
 	}
 
 	newDistributedLimiter := func(maxTokens, refillRate int64) *DistributedLimiter {
@@ -196,7 +198,7 @@ func TestDistributedRateLimiting(t *testing.T) {
 		now := time.Now()
 		elapsed := now.Sub(dl.lastRefill).Seconds()
 		tokensToAdd := int64(elapsed * float64(dl.refillRate))
-		
+
 		dl.tokens = dl.tokens + tokensToAdd
 		if dl.tokens > dl.maxTokens {
 			dl.tokens = dl.maxTokens
@@ -213,7 +215,7 @@ func TestDistributedRateLimiting(t *testing.T) {
 
 	// Test with multiple concurrent instances
 	globalLimiter := newDistributedLimiter(100, 50) // 100 token bucket, 50 tokens/sec refill
-	
+
 	instances := 5
 	requestsPerInstance := 50
 	var wg sync.WaitGroup
@@ -223,7 +225,7 @@ func TestDistributedRateLimiting(t *testing.T) {
 		wg.Add(1)
 		go func(instanceID int) {
 			defer wg.Done()
-			
+
 			for j := 0; j < requestsPerInstance; j++ {
 				if allow(globalLimiter, 1) {
 					atomic.AddInt64(&totalAllowed, 1)
@@ -239,10 +241,10 @@ func TestDistributedRateLimiting(t *testing.T) {
 	// we should get 100 initial + ~125 refilled tokens = ~225 allowed requests
 	expectedMin := int64(100) // At least initial bucket
 	expectedMax := int64(250) // Maximum possible if no rate limiting
-	
+
 	assert.GreaterOrEqual(t, totalAllowed, expectedMin, "Should allow at least initial bucket size")
 	assert.Less(t, totalAllowed, expectedMax, "Should not allow all requests (rate limiting working)")
-	
+
 	t.Logf("Distributed rate limiting: %d/%d requests allowed", totalAllowed, instances*requestsPerInstance)
 }
 
@@ -252,18 +254,18 @@ func TestRateLimitHeaders(t *testing.T) {
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		limiter := suite.limiter
-		
+
 		// Set rate limit headers
 		w.Header().Set("X-RateLimit-Limit", "10")
 		w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", limiter.Burst()))
 		w.Header().Set("X-RateLimit-Reset", fmt.Sprintf("%d", time.Now().Add(time.Second).Unix()))
-		
+
 		if !limiter.Allow() {
 			w.Header().Set("Retry-After", "1")
 			w.WriteHeader(http.StatusTooManyRequests)
 			return
 		}
-		
+
 		w.WriteHeader(http.StatusOK)
 	})
 
@@ -271,14 +273,14 @@ func TestRateLimitHeaders(t *testing.T) {
 	for i := 0; i < 15; i++ {
 		req := httptest.NewRequest("GET", "/api/v1/test", nil)
 		w := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(w, req)
-		
+
 		// Check rate limit headers are present
 		assert.NotEmpty(t, w.Header().Get("X-RateLimit-Limit"))
 		assert.NotEmpty(t, w.Header().Get("X-RateLimit-Remaining"))
 		assert.NotEmpty(t, w.Header().Get("X-RateLimit-Reset"))
-		
+
 		if w.Code == http.StatusTooManyRequests {
 			// Check Retry-After header when rate limited
 			assert.NotEmpty(t, w.Header().Get("Retry-After"))
@@ -295,18 +297,18 @@ func TestDDoSProtection(t *testing.T) {
 		// Simulate SYN flood detection
 		connectionAttempts := make(map[string]int)
 		maxHalfOpenConnections := 100
-		
+
 		// Simulate connection attempts from multiple IPs
 		for i := 0; i < 200; i++ {
 			ip := fmt.Sprintf("192.168.1.%d", i%50) // 50 unique IPs
 			connectionAttempts[ip]++
-			
+
 			// Check if we should block this IP
 			if connectionAttempts[ip] > 5 {
 				assert.Greater(t, connectionAttempts[ip], 5, "IP should be flagged for too many half-open connections")
 			}
 		}
-		
+
 		// Count IPs with excessive connections
 		suspiciousIPs := 0
 		for _, count := range connectionAttempts {
@@ -314,7 +316,7 @@ func TestDDoSProtection(t *testing.T) {
 				suspiciousIPs++
 			}
 		}
-		
+
 		assert.Greater(t, suspiciousIPs, 0, "Should detect suspicious IPs")
 	})
 
@@ -324,17 +326,17 @@ func TestDDoSProtection(t *testing.T) {
 			mu       sync.Mutex
 			requests map[string][]time.Time
 		}
-		
+
 		tracker := &RequestTracker{
 			requests: make(map[string][]time.Time),
 		}
-		
+
 		isFlooding := func(ip string, windowSize time.Duration, threshold int) bool {
 			tracker.mu.Lock()
 			defer tracker.mu.Unlock()
-			
+
 			now := time.Now()
-			
+
 			// Clean old requests
 			if reqs, exists := tracker.requests[ip]; exists {
 				var validReqs []time.Time
@@ -345,24 +347,24 @@ func TestDDoSProtection(t *testing.T) {
 				}
 				tracker.requests[ip] = validReqs
 			}
-			
+
 			// Add current request
 			tracker.requests[ip] = append(tracker.requests[ip], now)
-			
+
 			// Check if flooding
 			return len(tracker.requests[ip]) > threshold
 		}
-		
+
 		// Simulate requests from multiple IPs
 		blockedIPs := 0
 		for i := 0; i < 1000; i++ {
 			ip := fmt.Sprintf("10.0.0.%d", i%10) // 10 unique IPs
-			
+
 			if isFlooding(ip, 1*time.Second, 50) {
 				blockedIPs++
 			}
 		}
-		
+
 		assert.Greater(t, blockedIPs, 0, "Should block IPs that are flooding")
 	})
 
@@ -373,26 +375,26 @@ func TestDDoSProtection(t *testing.T) {
 			startTime     time.Time
 			bytesReceived int
 		}
-		
+
 		connections := make(map[string]*SlowConnection)
 		maxConnectionDuration := 30 * time.Second
 		minBytesPerSecond := 100
-		
+
 		// Check for slow connections
 		checkSlowConnection := func(conn *SlowConnection) bool {
 			duration := time.Since(conn.startTime)
 			if duration > maxConnectionDuration {
 				return true // Connection too long
 			}
-			
+
 			bytesPerSecond := float64(conn.bytesReceived) / duration.Seconds()
 			if bytesPerSecond < float64(minBytesPerSecond) && duration > 5*time.Second {
 				return true // Too slow after 5 seconds
 			}
-			
+
 			return false
 		}
-		
+
 		// Simulate connections
 		for i := 0; i < 100; i++ {
 			ip := fmt.Sprintf("172.16.0.%d", i)
@@ -403,7 +405,7 @@ func TestDDoSProtection(t *testing.T) {
 			}
 			connections[ip] = conn
 		}
-		
+
 		// Identify slow connections
 		slowConnections := 0
 		for _, conn := range connections {
@@ -411,7 +413,7 @@ func TestDDoSProtection(t *testing.T) {
 				slowConnections++
 			}
 		}
-		
+
 		assert.Greater(t, slowConnections, 0, "Should detect slow connections")
 	})
 
@@ -421,7 +423,7 @@ func TestDDoSProtection(t *testing.T) {
 			requestSize  int
 			responseSize int
 		}
-		
+
 		// Check for amplification
 		isAmplification := func(rr RequestResponse, threshold float64) bool {
 			if rr.requestSize == 0 {
@@ -430,23 +432,23 @@ func TestDDoSProtection(t *testing.T) {
 			ratio := float64(rr.responseSize) / float64(rr.requestSize)
 			return ratio > threshold
 		}
-		
+
 		testCases := []RequestResponse{
-			{requestSize: 100, responseSize: 10000},   // 100x amplification
-			{requestSize: 1000, responseSize: 2000},   // 2x amplification
-			{requestSize: 500, responseSize: 500},     // No amplification
-			{requestSize: 50, responseSize: 100000},   // 2000x amplification
+			{requestSize: 100, responseSize: 10000}, // 100x amplification
+			{requestSize: 1000, responseSize: 2000}, // 2x amplification
+			{requestSize: 500, responseSize: 500},   // No amplification
+			{requestSize: 50, responseSize: 100000}, // 2000x amplification
 		}
-		
+
 		amplificationThreshold := 10.0
 		detectedAmplifications := 0
-		
+
 		for _, tc := range testCases {
 			if isAmplification(tc, amplificationThreshold) {
 				detectedAmplifications++
 			}
 		}
-		
+
 		assert.Equal(t, 2, detectedAmplifications, "Should detect amplification attacks")
 	})
 }
@@ -464,7 +466,7 @@ func TestBurstHandling(t *testing.T) {
 			refillRate float64 // tokens per second
 			lastRefill time.Time
 		}
-		
+
 		newTokenBucket := func(maxTokens, refillRate float64) *TokenBucket {
 			return &TokenBucket{
 				tokens:     maxTokens,
@@ -473,11 +475,11 @@ func TestBurstHandling(t *testing.T) {
 				lastRefill: time.Now(),
 			}
 		}
-		
+
 		consume := func(tb *TokenBucket, tokens float64) bool {
 			tb.mu.Lock()
 			defer tb.mu.Unlock()
-			
+
 			// Refill tokens
 			now := time.Now()
 			elapsed := now.Sub(tb.lastRefill).Seconds()
@@ -486,7 +488,7 @@ func TestBurstHandling(t *testing.T) {
 				tb.tokens = tb.maxTokens
 			}
 			tb.lastRefill = now
-			
+
 			// Try to consume tokens
 			if tb.tokens >= tokens {
 				tb.tokens -= tokens
@@ -494,9 +496,9 @@ func TestBurstHandling(t *testing.T) {
 			}
 			return false
 		}
-		
+
 		bucket := newTokenBucket(10, 5) // 10 token capacity, 5 tokens/sec refill
-		
+
 		// Test burst consumption
 		burstSuccess := 0
 		for i := 0; i < 15; i++ {
@@ -505,10 +507,10 @@ func TestBurstHandling(t *testing.T) {
 			}
 		}
 		assert.Equal(t, 10, burstSuccess, "Should allow burst up to bucket capacity")
-		
+
 		// Wait for refill
 		time.Sleep(2 * time.Second)
-		
+
 		// Test after refill
 		refillSuccess := 0
 		for i := 0; i < 15; i++ {
@@ -522,13 +524,13 @@ func TestBurstHandling(t *testing.T) {
 	t.Run("Leaky_Bucket_Algorithm", func(t *testing.T) {
 		// Implement leaky bucket
 		type LeakyBucket struct {
-			mu         sync.Mutex
-			queue      []time.Time
-			capacity   int
-			leakRate   time.Duration // time between leaks
-			lastLeak   time.Time
+			mu       sync.Mutex
+			queue    []time.Time
+			capacity int
+			leakRate time.Duration // time between leaks
+			lastLeak time.Time
 		}
-		
+
 		newLeakyBucket := func(capacity int, leakRate time.Duration) *LeakyBucket {
 			return &LeakyBucket{
 				queue:    make([]time.Time, 0, capacity),
@@ -537,17 +539,17 @@ func TestBurstHandling(t *testing.T) {
 				lastLeak: time.Now(),
 			}
 		}
-		
+
 		addDrop := func(lb *LeakyBucket) bool {
 			lb.mu.Lock()
 			defer lb.mu.Unlock()
-			
+
 			now := time.Now()
-			
+
 			// Leak drops based on time elapsed
 			elapsed := now.Sub(lb.lastLeak)
 			dropsToLeak := int(elapsed / lb.leakRate)
-			
+
 			if dropsToLeak > 0 {
 				if dropsToLeak >= len(lb.queue) {
 					lb.queue = lb.queue[:0]
@@ -556,7 +558,7 @@ func TestBurstHandling(t *testing.T) {
 				}
 				lb.lastLeak = now
 			}
-			
+
 			// Try to add new drop
 			if len(lb.queue) < lb.capacity {
 				lb.queue = append(lb.queue, now)
@@ -564,13 +566,13 @@ func TestBurstHandling(t *testing.T) {
 			}
 			return false
 		}
-		
+
 		bucket := newLeakyBucket(10, 100*time.Millisecond) // 10 capacity, leak every 100ms
-		
+
 		// Test filling bucket
 		accepted := 0
 		rejected := 0
-		
+
 		for i := 0; i < 20; i++ {
 			if addDrop(bucket) {
 				accepted++
@@ -578,13 +580,13 @@ func TestBurstHandling(t *testing.T) {
 				rejected++
 			}
 		}
-		
+
 		assert.Equal(t, 10, accepted, "Should accept up to bucket capacity")
 		assert.Equal(t, 10, rejected, "Should reject when bucket is full")
-		
+
 		// Wait for bucket to leak
 		time.Sleep(500 * time.Millisecond)
-		
+
 		// Test after leaking
 		acceptedAfterLeak := 0
 		for i := 0; i < 5; i++ {
@@ -592,7 +594,7 @@ func TestBurstHandling(t *testing.T) {
 				acceptedAfterLeak++
 			}
 		}
-		
+
 		assert.GreaterOrEqual(t, acceptedAfterLeak, 4, "Should accept requests after leaking")
 	})
 
@@ -605,7 +607,7 @@ func TestBurstHandling(t *testing.T) {
 			cpuThreshold    float64
 			memoryThreshold float64
 		}
-		
+
 		newAdaptiveLimiter := func(baseRate float64) *AdaptiveLimiter {
 			return &AdaptiveLimiter{
 				baseRate:        baseRate,
@@ -614,11 +616,11 @@ func TestBurstHandling(t *testing.T) {
 				memoryThreshold: 80.0, // 80% memory
 			}
 		}
-		
+
 		adjustRate := func(al *AdaptiveLimiter, cpuUsage, memoryUsage float64) {
 			al.mu.Lock()
 			defer al.mu.Unlock()
-			
+
 			if cpuUsage > al.cpuThreshold || memoryUsage > al.memoryThreshold {
 				// Reduce rate when system is under load
 				al.currentRate = al.baseRate * 0.5
@@ -630,9 +632,9 @@ func TestBurstHandling(t *testing.T) {
 				al.currentRate = al.baseRate
 			}
 		}
-		
+
 		limiter := newAdaptiveLimiter(100.0) // Base rate of 100 rps
-		
+
 		// Test different load scenarios
 		scenarios := []struct {
 			cpu      float64
@@ -644,7 +646,7 @@ func TestBurstHandling(t *testing.T) {
 			{cpu: 40.0, memory: 40.0, expected: 150.0}, // Low load
 			{cpu: 60.0, memory: 60.0, expected: 100.0}, // Normal load
 		}
-		
+
 		for _, scenario := range scenarios {
 			adjustRate(limiter, scenario.cpu, scenario.memory)
 			assert.Equal(t, scenario.expected, limiter.currentRate,
@@ -663,7 +665,7 @@ func TestGracefulDegradation(t *testing.T) {
 		type PriorityLimiter struct {
 			limiters map[string]*rate.Limiter
 		}
-		
+
 		newPriorityLimiter := func() *PriorityLimiter {
 			return &PriorityLimiter{
 				limiters: map[string]*rate.Limiter{
@@ -674,20 +676,20 @@ func TestGracefulDegradation(t *testing.T) {
 				},
 			}
 		}
-		
+
 		allow := func(pl *PriorityLimiter, priority string) bool {
 			if limiter, exists := pl.limiters[priority]; exists {
 				return limiter.Allow()
 			}
 			return false
 		}
-		
+
 		priorityLimiter := newPriorityLimiter()
-		
+
 		// Test different priorities
 		priorities := []string{"critical", "high", "normal", "low"}
 		results := make(map[string]int)
-		
+
 		for _, priority := range priorities {
 			allowed := 0
 			for i := 0; i < 100; i++ {
@@ -697,7 +699,7 @@ func TestGracefulDegradation(t *testing.T) {
 			}
 			results[priority] = allowed
 		}
-		
+
 		// Verify priority-based limiting
 		assert.Greater(t, results["critical"], results["high"], "Critical should allow more than high")
 		assert.Greater(t, results["high"], results["normal"], "High should allow more than normal")
@@ -707,16 +709,16 @@ func TestGracefulDegradation(t *testing.T) {
 	t.Run("Circuit_Breaker_Integration", func(t *testing.T) {
 		// Circuit breaker with rate limiting
 		type CircuitBreaker struct {
-			mu              sync.Mutex
-			state           string // "closed", "open", "half-open"
-			failures        int
-			successCount    int
+			mu               sync.Mutex
+			state            string // "closed", "open", "half-open"
+			failures         int
+			successCount     int
 			failureThreshold int
 			successThreshold int
 			lastStateChange  time.Time
 			timeout          time.Duration
 		}
-		
+
 		newCircuitBreaker := func() *CircuitBreaker {
 			return &CircuitBreaker{
 				state:            "closed",
@@ -726,25 +728,25 @@ func TestGracefulDegradation(t *testing.T) {
 				lastStateChange:  time.Now(),
 			}
 		}
-		
+
 		call := func(cb *CircuitBreaker, fn func() error) error {
 			cb.mu.Lock()
 			defer cb.mu.Unlock()
-			
+
 			// Check if circuit breaker should transition to half-open
 			if cb.state == "open" && time.Since(cb.lastStateChange) > cb.timeout {
 				cb.state = "half-open"
 				cb.successCount = 0
 			}
-			
+
 			// Check state
 			if cb.state == "open" {
 				return fmt.Errorf("circuit breaker is open")
 			}
-			
+
 			// Execute function
 			err := fn()
-			
+
 			if err != nil {
 				cb.failures++
 				if cb.state == "half-open" {
@@ -756,7 +758,7 @@ func TestGracefulDegradation(t *testing.T) {
 				}
 				return err
 			}
-			
+
 			// Success
 			if cb.state == "half-open" {
 				cb.successCount++
@@ -768,57 +770,57 @@ func TestGracefulDegradation(t *testing.T) {
 			} else {
 				cb.failures = 0
 			}
-			
+
 			return nil
 		}
-		
+
 		cb := newCircuitBreaker()
-		
+
 		// Simulate failures to open circuit
 		for i := 0; i < 6; i++ {
 			call(cb, func() error {
 				return fmt.Errorf("service error")
 			})
 		}
-		
+
 		assert.Equal(t, "open", cb.state, "Circuit should be open after failures")
-		
+
 		// Try to call when open
 		err := call(cb, func() error { return nil })
 		assert.Error(t, err, "Should reject calls when circuit is open")
-		
+
 		// Wait for timeout
 		time.Sleep(11 * time.Second)
-		
+
 		// Circuit should allow test call (half-open)
 		for i := 0; i < 3; i++ {
 			call(cb, func() error { return nil })
 		}
-		
+
 		assert.Equal(t, "closed", cb.state, "Circuit should close after successful calls")
 	})
 
 	t.Run("Load_Shedding", func(t *testing.T) {
 		// Implement load shedding when system is overloaded
 		type LoadShedder struct {
-			mu               sync.Mutex
-			currentLoad      int64
-			maxLoad          int64
-			shedProbability  float64
+			mu              sync.Mutex
+			currentLoad     int64
+			maxLoad         int64
+			shedProbability float64
 		}
-		
+
 		newLoadShedder := func(maxLoad int64) *LoadShedder {
 			return &LoadShedder{
 				maxLoad: maxLoad,
 			}
 		}
-		
+
 		shouldAccept := func(ls *LoadShedder) bool {
 			ls.mu.Lock()
 			defer ls.mu.Unlock()
-			
+
 			loadRatio := float64(ls.currentLoad) / float64(ls.maxLoad)
-			
+
 			if loadRatio < 0.7 {
 				// Accept all requests when load is low
 				return true
@@ -829,38 +831,38 @@ func TestGracefulDegradation(t *testing.T) {
 				// Aggressive shedding when near capacity
 				ls.shedProbability = 0.5 + (loadRatio-0.9)/0.1*0.5 // 50% to 100% shed
 			}
-			
+
 			// Random shedding based on probability
 			return rand.Float64() > ls.shedProbability
 		}
-		
+
 		shedder := newLoadShedder(1000)
-		
+
 		// Test different load levels
 		loadLevels := []struct {
-			load            int64
-			expectedAccept  bool
-			description     string
+			load           int64
+			expectedAccept bool
+			description    string
 		}{
 			{load: 500, expectedAccept: true, description: "Low load"},
 			{load: 800, expectedAccept: true, description: "Moderate load with some shedding"},
 			{load: 950, expectedAccept: false, description: "High load with aggressive shedding"},
 		}
-		
+
 		for _, level := range loadLevels {
 			shedder.currentLoad = level.load
-			
+
 			accepted := 0
 			total := 100
-			
+
 			for i := 0; i < total; i++ {
 				if shouldAccept(shedder) {
 					accepted++
 				}
 			}
-			
+
 			acceptRate := float64(accepted) / float64(total)
-			
+
 			if level.load < 700 {
 				assert.Equal(t, 1.0, acceptRate, level.description)
 			} else if level.load > 900 {
@@ -942,8 +944,8 @@ func TestIPBasedRateLimiting(t *testing.T) {
 
 	t.Run("IP_Whitelist", func(t *testing.T) {
 		whitelist := map[string]bool{
-			"127.0.0.1":    true,
-			"192.168.1.1":  true,
+			"127.0.0.1":   true,
+			"192.168.1.1": true,
 		}
 
 		for ip := range whitelist {
@@ -959,14 +961,14 @@ func TestRateLimitingMetrics(t *testing.T) {
 	suite := NewRateLimitTestSuite(t)
 
 	type RateLimitMetrics struct {
-		mu               sync.RWMutex
-		totalRequests    int64
-		allowedRequests  int64
-		deniedRequests   int64
-		avgResponseTime  time.Duration
-		p95ResponseTime  time.Duration
-		p99ResponseTime  time.Duration
-		responseTimes    []time.Duration
+		mu              sync.RWMutex
+		totalRequests   int64
+		allowedRequests int64
+		deniedRequests  int64
+		avgResponseTime time.Duration
+		p95ResponseTime time.Duration
+		p99ResponseTime time.Duration
+		responseTimes   []time.Duration
 	}
 
 	metrics := &RateLimitMetrics{
@@ -1020,12 +1022,12 @@ func TestRateLimitingMetrics(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		start := time.Now()
 		allowed := limiter.Allow()
-		
+
 		// Simulate processing time
 		if allowed {
 			time.Sleep(time.Duration(rand.Intn(50)) * time.Millisecond)
 		}
-		
+
 		responseTime := time.Since(start)
 		recordRequest(metrics, allowed, responseTime)
 	}
@@ -1052,9 +1054,3 @@ func TestRateLimitingMetrics(t *testing.T) {
 	t.Logf("  P95 Response Time: %v", metrics.p95ResponseTime)
 	t.Logf("  P99 Response Time: %v", metrics.p99ResponseTime)
 }
-
-// Missing imports
-import (
-	"math/rand"
-	"sort"
-)

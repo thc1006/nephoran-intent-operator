@@ -29,15 +29,15 @@ var _ = Describe("Security Compliance Tests", func() {
 		It("should not contain hardcoded secrets or credentials", func() {
 			// Scan for common secret patterns in source code
 			secretPatterns := map[string]*regexp.Regexp{
-				"AWS Access Key":      regexp.MustCompile(`AKIA[0-9A-Z]{16}`),
-				"AWS Secret Key":      regexp.MustCompile(`[0-9a-zA-Z/+=]{40}`),
-				"GitHub Token":        regexp.MustCompile(`ghp_[a-zA-Z0-9]{36}`),
-				"Generic API Key":     regexp.MustCompile(`(?i)api[_-]?key['"\s]*[:=]['"\s]*[a-zA-Z0-9]{16,}`),
-				"Generic Password":    regexp.MustCompile(`(?i)password['"\s]*[:=]['"\s]*[a-zA-Z0-9]{8,}`),
-				"Generic Token":       regexp.MustCompile(`(?i)token['"\s]*[:=]['"\s]*[a-zA-Z0-9]{16,}`),
-				"Private Key Header":  regexp.MustCompile(`-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----`),
-				"Database URL":        regexp.MustCompile(`(?i)(mysql|postgres|mongodb)://[^\s"']+:[^\s"']+@[^\s"']+`),
-				"Docker Registry":     regexp.MustCompile(`(?i)docker[_-]?(password|token)['"\s]*[:=]['"\s]*[^\s"']{8,}`),
+				"AWS Access Key":     regexp.MustCompile(`AKIA[0-9A-Z]{16}`),
+				"AWS Secret Key":     regexp.MustCompile(`[0-9a-zA-Z/+=]{40}`),
+				"GitHub Token":       regexp.MustCompile(`ghp_[a-zA-Z0-9]{36}`),
+				"Generic API Key":    regexp.MustCompile(`(?i)api[_-]?key['"\s]*[:=]['"\s]*[a-zA-Z0-9]{16,}`),
+				"Generic Password":   regexp.MustCompile(`(?i)password['"\s]*[:=]['"\s]*[a-zA-Z0-9]{8,}`),
+				"Generic Token":      regexp.MustCompile(`(?i)token['"\s]*[:=]['"\s]*[a-zA-Z0-9]{16,}`),
+				"Private Key Header": regexp.MustCompile(`-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----`),
+				"Database URL":       regexp.MustCompile(`(?i)(mysql|postgres|mongodb)://[^\s"']+:[^\s"']+@[^\s"']+`),
+				"Docker Registry":    regexp.MustCompile(`(?i)docker[_-]?(password|token)['"\s]*[:=]['"\s]*[^\s"']{8,}`),
 			}
 
 			excludePatterns := []*regexp.Regexp{
@@ -58,11 +58,11 @@ var _ = Describe("Security Compliance Tests", func() {
 				}
 
 				// Skip binary files and certain directories
-				if info.IsDir() || 
-				   strings.HasSuffix(info.Name(), ".exe") ||
-				   strings.HasSuffix(info.Name(), ".bin") ||
-				   strings.HasSuffix(info.Name(), ".so") ||
-				   strings.HasSuffix(info.Name(), ".dll") {
+				if info.IsDir() ||
+					strings.HasSuffix(info.Name(), ".exe") ||
+					strings.HasSuffix(info.Name(), ".bin") ||
+					strings.HasSuffix(info.Name(), ".so") ||
+					strings.HasSuffix(info.Name(), ".dll") {
 					return nil
 				}
 
@@ -98,7 +98,7 @@ var _ = Describe("Security Compliance Tests", func() {
 						isTestContext := false
 						for _, excludePattern := range excludePatterns {
 							if excludePattern.MatchString(strings.ToLower(path)) ||
-							   excludePattern.MatchString(strings.ToLower(match)) {
+								excludePattern.MatchString(strings.ToLower(match)) {
 								isTestContext = true
 								break
 							}
@@ -119,15 +119,15 @@ var _ = Describe("Security Compliance Tests", func() {
 
 		It("should not use weak cryptographic algorithms", func() {
 			weakCryptoPatterns := map[string]*regexp.Regexp{
-				"MD5 Hash":           regexp.MustCompile(`(?i)\bmd5\b`),
-				"SHA1 Hash":          regexp.MustCompile(`(?i)\bsha1\b`),
-				"DES Encryption":     regexp.MustCompile(`(?i)\bdes\b`),
-				"3DES Encryption":    regexp.MustCompile(`(?i)\b3des\b`),
-				"RC4 Encryption":     regexp.MustCompile(`(?i)\brc4\b`),
-				"Weak RSA Key":       regexp.MustCompile(`(?i)rsa.*?(512|1024)\b`),
-				"HTTP URLs":          regexp.MustCompile(`http://[^\s"'\)]+`),
-				"Insecure TLS":       regexp.MustCompile(`(?i)tls.*?(1\.0|1\.1)\b`),
-				"SSL v2/v3":          regexp.MustCompile(`(?i)ssl.*?([23]\.0)\b`),
+				"MD5 Hash":        regexp.MustCompile(`(?i)\bmd5\b`),
+				"SHA1 Hash":       regexp.MustCompile(`(?i)\bsha1\b`),
+				"DES Encryption":  regexp.MustCompile(`(?i)\bdes\b`),
+				"3DES Encryption": regexp.MustCompile(`(?i)\b3des\b`),
+				"RC4 Encryption":  regexp.MustCompile(`(?i)\brc4\b`),
+				"Weak RSA Key":    regexp.MustCompile(`(?i)rsa.*?(512|1024)\b`),
+				"HTTP URLs":       regexp.MustCompile(`http://[^\s"'\)]+`),
+				"Insecure TLS":    regexp.MustCompile(`(?i)tls.*?(1\.0|1\.1)\b`),
+				"SSL v2/v3":       regexp.MustCompile(`(?i)ssl.*?([23]\.0)\b`),
 			}
 
 			allowedContexts := []*regexp.Regexp{
@@ -176,7 +176,7 @@ var _ = Describe("Security Compliance Tests", func() {
 						isAllowed := false
 						for _, allowedPattern := range allowedContexts {
 							if allowedPattern.MatchString(strings.ToLower(lineContent)) ||
-							   allowedPattern.MatchString(strings.ToLower(goFile)) {
+								allowedPattern.MatchString(strings.ToLower(goFile)) {
 								isAllowed = true
 								break
 							}
@@ -218,9 +218,9 @@ var _ = Describe("Security Compliance Tests", func() {
 					return err
 				}
 
-				if strings.HasSuffix(info.Name(), ".go") && 
-				   !strings.Contains(path, "vendor/") && 
-				   !strings.Contains(path, "_test.go") {
+				if strings.HasSuffix(info.Name(), ".go") &&
+					!strings.Contains(path, "vendor/") &&
+					!strings.Contains(path, "_test.go") {
 					goFiles = append(goFiles, path)
 				}
 				return nil
@@ -265,7 +265,7 @@ var _ = Describe("Security Compliance Tests", func() {
 	Describe("Container Security", func() {
 		It("should use secure base images", func() {
 			dockerfiles := []string{}
-			
+
 			// Find Dockerfile patterns
 			err := filepath.Walk(projectRoot, func(path string, info os.FileInfo, err error) error {
 				if err != nil {
@@ -273,7 +273,7 @@ var _ = Describe("Security Compliance Tests", func() {
 				}
 
 				if strings.Contains(strings.ToLower(info.Name()), "dockerfile") ||
-				   info.Name() == "Dockerfile" {
+					info.Name() == "Dockerfile" {
 					dockerfiles = append(dockerfiles, path)
 				}
 				return nil
@@ -313,7 +313,7 @@ var _ = Describe("Security Compliance Tests", func() {
 						for _, insecureImage := range insecureBaseImages {
 							if strings.Contains(fromImage, insecureImage) {
 								if insecureImage != "scratch" || !strings.Contains(dockerfileContent, "USER") {
-									securityIssues = append(securityIssues, 
+									securityIssues = append(securityIssues,
 										fmt.Sprintf("Potentially insecure base image '%s' at %s:%d", fromImage, dockerfile, lineNum+1))
 								}
 							}
@@ -321,7 +321,7 @@ var _ = Describe("Security Compliance Tests", func() {
 
 						// Check if using latest tag
 						if strings.HasSuffix(fromImage, ":latest") || !strings.Contains(fromImage, ":") {
-							securityIssues = append(securityIssues, 
+							securityIssues = append(securityIssues,
 								fmt.Sprintf("Base image should use specific version tag instead of 'latest': %s at %s:%d", fromImage, dockerfile, lineNum+1))
 						}
 					}
@@ -330,7 +330,7 @@ var _ = Describe("Security Compliance Tests", func() {
 					if strings.HasPrefix(strings.ToUpper(line), "USER ") {
 						user := strings.Fields(line)[1]
 						if user == "root" || user == "0" {
-							securityIssues = append(securityIssues, 
+							securityIssues = append(securityIssues,
 								fmt.Sprintf("Container should not run as root user at %s:%d", dockerfile, lineNum+1))
 						}
 					}
@@ -338,7 +338,7 @@ var _ = Describe("Security Compliance Tests", func() {
 
 				// Check if USER directive is present
 				if !strings.Contains(strings.ToUpper(dockerfileContent), "USER ") {
-					securityIssues = append(securityIssues, 
+					securityIssues = append(securityIssues,
 						fmt.Sprintf("Dockerfile should specify non-root USER: %s", dockerfile))
 				}
 			}
@@ -376,8 +376,8 @@ var _ = Describe("Security Compliance Tests", func() {
 
 							fileContent := string(content)
 							if strings.Contains(fileContent, "ClusterRole") ||
-							   strings.Contains(fileContent, "Role") ||
-							   strings.Contains(fileContent, "ServiceAccount") {
+								strings.Contains(fileContent, "Role") ||
+								strings.Contains(fileContent, "ServiceAccount") {
 								rbacFiles = append(rbacFiles, path)
 							}
 						}
@@ -401,7 +401,7 @@ var _ = Describe("Security Compliance Tests", func() {
 
 			sensitiveResources := []string{
 				"secrets",
-				"configmaps", 
+				"configmaps",
 				"serviceaccounts",
 				"clusterroles",
 				"clusterrolebindings",
@@ -454,7 +454,7 @@ var _ = Describe("Security Compliance Tests", func() {
 
 									for _, excessive := range excessivePermissions {
 										if verbStr == excessive {
-											rbacIssues = append(rbacIssues, 
+											rbacIssues = append(rbacIssues,
 												fmt.Sprintf("Potentially excessive permission '%s' in %s", verbStr, rbacFile))
 										}
 									}
@@ -471,7 +471,7 @@ var _ = Describe("Security Compliance Tests", func() {
 									}
 
 									if resourceStr == "*" {
-										rbacIssues = append(rbacIssues, 
+										rbacIssues = append(rbacIssues,
 											fmt.Sprintf("Wildcard resource permission in %s", rbacFile))
 									}
 
@@ -482,7 +482,7 @@ var _ = Describe("Security Compliance Tests", func() {
 												for _, verb := range verbs {
 													verbStr, ok := verb.(string)
 													if ok && (verbStr == "*" || verbStr == "delete" || verbStr == "create") {
-														rbacIssues = append(rbacIssues, 
+														rbacIssues = append(rbacIssues,
 															fmt.Sprintf("High privilege access to '%s' with '%s' verb in %s", resourceStr, verbStr, rbacFile))
 													}
 												}
@@ -530,8 +530,8 @@ var _ = Describe("Security Compliance Tests", func() {
 
 							fileContent := string(content)
 							if strings.Contains(fileContent, "Deployment") ||
-							   strings.Contains(fileContent, "StatefulSet") ||
-							   strings.Contains(fileContent, "DaemonSet") {
+								strings.Contains(fileContent, "StatefulSet") ||
+								strings.Contains(fileContent, "DaemonSet") {
 								deploymentFiles = append(deploymentFiles, path)
 							}
 						}
@@ -588,7 +588,7 @@ var _ = Describe("Security Compliance Tests", func() {
 						} else {
 							// Validate security context settings
 							securityContext := podSpec["securityContext"].(map[string]interface{})
-							
+
 							// Check for non-root user
 							if runAsUser, ok := securityContext["runAsUser"]; ok {
 								if user, ok := runAsUser.(float64); ok && user == 0 {
@@ -709,10 +709,10 @@ var _ = Describe("Security Compliance Tests", func() {
 					Expect(err).NotTo(HaveOccurred(), "NetworkPolicy should be valid YAML: %s", policyFile)
 
 					Expect(policyData["kind"]).To(Equal("NetworkPolicy"), "Should be NetworkPolicy kind: %s", policyFile)
-					
+
 					spec, ok := policyData["spec"].(map[string]interface{})
 					Expect(ok).To(BeTrue(), "NetworkPolicy should have spec: %s", policyFile)
-					
+
 					Expect(spec["podSelector"]).ToNot(BeNil(), "NetworkPolicy should have podSelector: %s", policyFile)
 				}
 			}
@@ -729,14 +729,14 @@ var _ = Describe("Security Compliance Tests", func() {
 			// Try to run govulncheck if available
 			if _, err := exec.LookPath("govulncheck"); err == nil {
 				GinkgoWriter.Printf("Running govulncheck for vulnerability scanning...\n")
-				
+
 				cmd := exec.Command("govulncheck", "./...")
 				cmd.Dir = projectRoot
 				output, err := cmd.CombinedOutput()
-				
+
 				if err != nil {
 					GinkgoWriter.Printf("govulncheck output:\n%s\n", string(output))
-					
+
 					// Parse output for vulnerabilities
 					outputStr := string(output)
 					if strings.Contains(outputStr, "Vulnerability") || strings.Contains(outputStr, "vulnerability") {
@@ -747,16 +747,16 @@ var _ = Describe("Security Compliance Tests", func() {
 				}
 			} else {
 				GinkgoWriter.Printf("govulncheck not available, skipping automated vulnerability scan\n")
-				
+
 				// Alternative: check for obviously outdated dependencies
 				content, err := ioutil.ReadFile(goModPath)
 				Expect(err).NotTo(HaveOccurred())
 
 				goModContent := string(content)
-				
+
 				// Look for very old versions of common dependencies
 				oldVersionPatterns := []string{
-					"kubernetes.*v0\\.[0-9]+\\.",  // Very old Kubernetes client
+					"kubernetes.*v0\\.[0-9]+\\.",              // Very old Kubernetes client
 					"github.com/gin-gonic/gin.*v1\\.[0-4]\\.", // Old Gin versions
 					"github.com/gorilla/mux.*v1\\.[0-6]\\.",   // Old Gorilla Mux
 				}
@@ -764,7 +764,7 @@ var _ = Describe("Security Compliance Tests", func() {
 				for _, pattern := range oldVersionPatterns {
 					matched, err := regexp.MatchString(pattern, goModContent)
 					Expect(err).NotTo(HaveOccurred())
-					
+
 					if matched {
 						GinkgoWriter.Printf("Warning: Potentially outdated dependency found matching pattern: %s\n", pattern)
 					}
@@ -780,20 +780,20 @@ var _ = Describe("Security Compliance Tests", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				goModContent := string(content)
-				
+
 				// Check for replace directives pointing to local paths (potential supply chain issues)
 				replaceRegex := regexp.MustCompile(`(?m)^replace\s+([^\s]+)\s+=>\s+([^\s]+)`)
 				replaces := replaceRegex.FindAllStringSubmatch(goModContent, -1)
-				
+
 				for _, replace := range replaces {
 					oldModule := replace[1]
 					newPath := replace[2]
-					
+
 					// Local path replacements should be reviewed
 					if strings.HasPrefix(newPath, "./") || strings.HasPrefix(newPath, "../") {
 						GinkgoWriter.Printf("Warning: Local path replacement found: %s => %s\n", oldModule, newPath)
 					}
-					
+
 					// HTTP replacements are potentially insecure
 					if strings.HasPrefix(newPath, "http://") {
 						Fail(fmt.Sprintf("Insecure HTTP replacement found: %s => %s", oldModule, newPath))
@@ -847,9 +847,9 @@ var _ = Describe("Security Compliance Tests", func() {
 						"input_validation_issues": 2,
 					},
 					"container_security": map[string]interface{}{
-						"secure_base_images":    true,
-						"non_root_user":         true,
-						"security_context_set":  true,
+						"secure_base_images":   true,
+						"non_root_user":        true,
+						"security_context_set": true,
 					},
 					"kubernetes_security": map[string]interface{}{
 						"rbac_configured":        true,

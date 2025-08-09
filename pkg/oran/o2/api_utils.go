@@ -67,7 +67,7 @@ func (s *O2APIServer) writeErrorResponse(w http.ResponseWriter, r *http.Request,
 
 	w.Header().Set("Content-Type", ContentTypeProblemJSON)
 	w.WriteHeader(statusCode)
-	
+
 	if encodeErr := json.NewEncoder(w).Encode(problem); encodeErr != nil {
 		s.logger.Error("failed to encode error response",
 			"error", encodeErr,
@@ -90,7 +90,7 @@ func (s *O2APIServer) decodeJSONRequest(r *http.Request, target interface{}) err
 
 	// Decode JSON
 	decoder := json.NewDecoder(r.Body)
-	if s.config.SecurityConfig != nil && s.config.SecurityConfig.InputValidation != nil && 
+	if s.config.SecurityConfig != nil && s.config.SecurityConfig.InputValidation != nil &&
 		s.config.SecurityConfig.InputValidation.StrictValidation {
 		decoder.DisallowUnknownFields()
 	}
@@ -147,10 +147,10 @@ func (s *O2APIServer) setSecurityHeaders(w http.ResponseWriter) {
 	w.Header().Set("X-Frame-Options", "DENY")
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
 	w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-	
+
 	// Content Security Policy
 	w.Header().Set("Content-Security-Policy", "default-src 'self'")
-	
+
 	// Cache control for sensitive data
 	if strings.Contains(w.Header().Get("Content-Type"), "json") {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -181,7 +181,7 @@ func (s *O2APIServer) handlePreflight(w http.ResponseWriter, r *http.Request) {
 		// The CORS middleware will handle this
 		return
 	}
-	
+
 	// Basic preflight response if no CORS middleware
 	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
@@ -239,10 +239,10 @@ func (s *O2APIServer) validateResourceID(resourceID string) error {
 
 	// Check for invalid characters
 	for _, char := range resourceID {
-		if !((char >= 'a' && char <= 'z') || 
-			 (char >= 'A' && char <= 'Z') || 
-			 (char >= '0' && char <= '9') || 
-			 char == '-' || char == '_' || char == '.') {
+		if !((char >= 'a' && char <= 'z') ||
+			(char >= 'A' && char <= 'Z') ||
+			(char >= '0' && char <= '9') ||
+			char == '-' || char == '_' || char == '.') {
 			return fmt.Errorf("resource ID contains invalid character: %c", char)
 		}
 	}
@@ -298,22 +298,22 @@ func (s *O2APIServer) getRequiredRoles(operation string, resource string) []stri
 	// Simple role mapping - would be configurable in production
 	roleMap := map[string]map[string][]string{
 		"create": {
-			"resource_pool":         {"admin", "operator"},
-			"resource":              {"admin", "operator"},
-			"deployment":            {"admin", "operator"},
-			"deployment_template":   {"admin"},
+			"resource_pool":       {"admin", "operator"},
+			"resource":            {"admin", "operator"},
+			"deployment":          {"admin", "operator"},
+			"deployment_template": {"admin"},
 		},
 		"update": {
-			"resource_pool":         {"admin", "operator"},
-			"resource":              {"admin", "operator"},
-			"deployment":            {"admin", "operator"},
-			"deployment_template":   {"admin"},
+			"resource_pool":       {"admin", "operator"},
+			"resource":            {"admin", "operator"},
+			"deployment":          {"admin", "operator"},
+			"deployment_template": {"admin"},
 		},
 		"delete": {
-			"resource_pool":         {"admin"},
-			"resource":              {"admin", "operator"},
-			"deployment":            {"admin", "operator"},
-			"deployment_template":   {"admin"},
+			"resource_pool":       {"admin"},
+			"resource":            {"admin", "operator"},
+			"deployment":          {"admin", "operator"},
+			"deployment_template": {"admin"},
 		},
 		"read": {
 			"*": {"admin", "operator", "viewer"},
@@ -352,13 +352,13 @@ type AssetFilter struct {
 
 // Asset represents an inventory asset
 type Asset struct {
-	AssetID     string                 `json:"asset_id"`
-	Type        string                 `json:"type"`
-	Provider    string                 `json:"provider"`
-	Status      string                 `json:"status"`
-	Properties  map[string]interface{} `json:"properties"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	AssetID    string                 `json:"asset_id"`
+	Type       string                 `json:"type"`
+	Provider   string                 `json:"provider"`
+	Status     string                 `json:"status"`
+	Properties map[string]interface{} `json:"properties"`
+	CreatedAt  time.Time              `json:"created_at"`
+	UpdatedAt  time.Time              `json:"updated_at"`
 }
 
 // AlarmFilter represents a filter for alarm queries

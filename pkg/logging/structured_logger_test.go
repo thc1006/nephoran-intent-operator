@@ -44,16 +44,16 @@ func (suite *StructuredLoggerTestSuite) SetupSuite() {
 func (suite *StructuredLoggerTestSuite) SetupTest() {
 	suite.buffer = &bytes.Buffer{}
 	suite.logLines = nil
-	
+
 	// Create logger with custom handler to capture output
 	opts := &slog.HandlerOptions{
 		Level:     parseLevel(suite.config.Level),
 		AddSource: suite.config.AddSource,
 	}
-	
+
 	handler := slog.NewJSONHandler(suite.buffer, opts)
 	baseLogger := slog.New(handler)
-	
+
 	suite.logger = &StructuredLogger{
 		Logger:         baseLogger,
 		serviceName:    suite.config.ServiceName,
@@ -68,7 +68,7 @@ func (suite *StructuredLoggerTestSuite) TearDownTest() {
 	if suite.buffer.Len() > 0 {
 		lines := strings.Split(strings.TrimSpace(suite.buffer.String()), "\n")
 		suite.logLines = make([]map[string]interface{}, 0, len(lines))
-		
+
 		for _, line := range lines {
 			if strings.TrimSpace(line) == "" {
 				continue
@@ -83,7 +83,7 @@ func (suite *StructuredLoggerTestSuite) TearDownTest() {
 
 func (suite *StructuredLoggerTestSuite) TestNewStructuredLogger() {
 	logger := NewStructuredLogger(suite.config)
-	
+
 	assert.NotNil(suite.T(), logger)
 	assert.NotNil(suite.T(), logger.Logger)
 	assert.Equal(suite.T(), suite.config.ServiceName, logger.serviceName)
@@ -95,9 +95,9 @@ func (suite *StructuredLoggerTestSuite) TestNewStructuredLogger() {
 func (suite *StructuredLoggerTestSuite) TestNewStructuredLogger_TextFormat() {
 	config := suite.config
 	config.Format = "text"
-	
+
 	logger := NewStructuredLogger(config)
-	
+
 	assert.NotNil(suite.T(), logger)
 	assert.Equal(suite.T(), suite.config.ServiceName, logger.serviceName)
 }
@@ -113,12 +113,12 @@ func (suite *StructuredLoggerTestSuite) TestNewStructuredLogger_DifferentLevels(
 		{LevelError, slog.LevelError},
 		{"unknown", slog.LevelInfo}, // Default to info
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(string(tc.level), func() {
 			config := suite.config
 			config.Level = tc.level
-			
+
 			logger := NewStructuredLogger(config)
 			assert.NotNil(suite.T(), logger)
 		})
@@ -128,13 +128,13 @@ func (suite *StructuredLoggerTestSuite) TestNewStructuredLogger_DifferentLevels(
 func (suite *StructuredLoggerTestSuite) TestWithComponent() {
 	newComponent := "new-component"
 	newLogger := suite.logger.WithComponent(newComponent)
-	
+
 	assert.NotNil(suite.T(), newLogger)
 	assert.Equal(suite.T(), newComponent, newLogger.component)
 	assert.Equal(suite.T(), suite.logger.serviceName, newLogger.serviceName)
 	assert.Equal(suite.T(), suite.logger.serviceVersion, newLogger.serviceVersion)
 	assert.Equal(suite.T(), suite.logger.environment, newLogger.environment)
-	
+
 	// Original logger should be unchanged
 	assert.Equal(suite.T(), suite.config.Component, suite.logger.component)
 }
@@ -150,9 +150,9 @@ func (suite *StructuredLoggerTestSuite) TestWithRequest() {
 		IP:        "192.168.1.1",
 		UserAgent: "test-agent/1.0",
 	}
-	
+
 	newLogger := suite.logger.WithRequest(requestCtx)
-	
+
 	assert.NotNil(suite.T(), newLogger)
 	assert.Equal(suite.T(), requestCtx.RequestID, newLogger.requestID)
 	assert.Equal(suite.T(), suite.logger.serviceName, newLogger.serviceName)
@@ -163,10 +163,10 @@ func (suite *StructuredLoggerTestSuite) TestWithRequest() {
 
 func (suite *StructuredLoggerTestSuite) TestInfoWithContext() {
 	suite.logger.InfoWithContext("Test info message", "key1", "value1", "key2", 42)
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "INFO", logEntry["level"])
 	assert.Equal(suite.T(), "Test info message", logEntry["msg"])
 	assert.Equal(suite.T(), suite.config.ServiceName, logEntry["service"])
@@ -179,12 +179,12 @@ func (suite *StructuredLoggerTestSuite) TestInfoWithContext() {
 
 func (suite *StructuredLoggerTestSuite) TestErrorWithContext() {
 	testError := errors.New("test error")
-	
+
 	suite.logger.ErrorWithContext("Test error message", testError, "context", "error_context")
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "ERROR", logEntry["level"])
 	assert.Equal(suite.T(), "Test error message", logEntry["msg"])
 	assert.Equal(suite.T(), "test error", logEntry["error"])
@@ -194,10 +194,10 @@ func (suite *StructuredLoggerTestSuite) TestErrorWithContext() {
 
 func (suite *StructuredLoggerTestSuite) TestErrorWithContext_NilError() {
 	suite.logger.ErrorWithContext("Test error message without error", nil, "context", "no_error")
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "ERROR", logEntry["level"])
 	assert.Equal(suite.T(), "Test error message without error", logEntry["msg"])
 	assert.NotContains(suite.T(), logEntry, "error")
@@ -207,10 +207,10 @@ func (suite *StructuredLoggerTestSuite) TestErrorWithContext_NilError() {
 
 func (suite *StructuredLoggerTestSuite) TestWarnWithContext() {
 	suite.logger.WarnWithContext("Test warning message", "severity", "medium")
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "WARN", logEntry["level"])
 	assert.Equal(suite.T(), "Test warning message", logEntry["msg"])
 	assert.Equal(suite.T(), "medium", logEntry["severity"])
@@ -222,12 +222,12 @@ func (suite *StructuredLoggerTestSuite) TestDebugWithContext() {
 	config := suite.config
 	config.Level = LevelDebug
 	suite.logger = NewStructuredLoggerWithBuffer(config, suite.buffer)
-	
+
 	suite.logger.DebugWithContext("Test debug message", "debug_info", "detailed")
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "DEBUG", logEntry["level"])
 	assert.Equal(suite.T(), "Test debug message", logEntry["msg"])
 	assert.Equal(suite.T(), "detailed", logEntry["debug_info"])
@@ -235,24 +235,24 @@ func (suite *StructuredLoggerTestSuite) TestDebugWithContext() {
 
 func (suite *StructuredLoggerTestSuite) TestLogOperation_Success() {
 	operationName := "test_operation"
-	
+
 	err := suite.logger.LogOperation(operationName, func() error {
 		time.Sleep(10 * time.Millisecond) // Simulate work
 		return nil
 	})
-	
+
 	assert.NoError(suite.T(), err)
 	require.Len(suite.T(), suite.logLines, 2) // Start and completion logs
-	
+
 	startLog := suite.logLines[0]
 	completionLog := suite.logLines[1]
-	
+
 	// Check start log
 	assert.Equal(suite.T(), "INFO", startLog["level"])
 	assert.Equal(suite.T(), "Operation started", startLog["msg"])
 	assert.Equal(suite.T(), operationName, startLog["operation"])
 	assert.Contains(suite.T(), startLog, "start_time")
-	
+
 	// Check completion log
 	assert.Equal(suite.T(), "INFO", completionLog["level"])
 	assert.Equal(suite.T(), "Operation completed", completionLog["msg"])
@@ -264,17 +264,17 @@ func (suite *StructuredLoggerTestSuite) TestLogOperation_Success() {
 func (suite *StructuredLoggerTestSuite) TestLogOperation_Failure() {
 	operationName := "failing_operation"
 	expectedError := errors.New("operation failed")
-	
+
 	err := suite.logger.LogOperation(operationName, func() error {
 		time.Sleep(5 * time.Millisecond)
 		return expectedError
 	})
-	
+
 	assert.Equal(suite.T(), expectedError, err)
 	require.Len(suite.T(), suite.logLines, 2) // Start and failure logs
-	
+
 	failureLog := suite.logLines[1]
-	
+
 	assert.Equal(suite.T(), "ERROR", failureLog["level"])
 	assert.Equal(suite.T(), "Operation failed", failureLog["msg"])
 	assert.Equal(suite.T(), operationName, failureLog["operation"])
@@ -288,15 +288,15 @@ func (suite *StructuredLoggerTestSuite) TestLogPerformance() {
 	duration := 150 * time.Millisecond
 	metadata := map[string]interface{}{
 		"operations_count": 100,
-		"throughput":      666.67,
-		"memory_used":     "64MB",
+		"throughput":       666.67,
+		"memory_used":      "64MB",
 	}
-	
+
 	suite.logger.LogPerformance(operationName, duration, metadata)
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "INFO", logEntry["level"])
 	assert.Equal(suite.T(), "Performance metrics", logEntry["msg"])
 	assert.Equal(suite.T(), operationName, logEntry["operation"])
@@ -310,10 +310,10 @@ func (suite *StructuredLoggerTestSuite) TestLogPerformance() {
 
 func (suite *StructuredLoggerTestSuite) TestLogHTTPRequest_Success() {
 	suite.logger.LogHTTPRequest("GET", "/api/health", 200, 50*time.Millisecond, 1024)
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "INFO", logEntry["level"])
 	assert.Equal(suite.T(), "HTTP request processed", logEntry["msg"])
 	assert.Equal(suite.T(), "GET", logEntry["http_method"])
@@ -326,76 +326,76 @@ func (suite *StructuredLoggerTestSuite) TestLogHTTPRequest_Success() {
 
 func (suite *StructuredLoggerTestSuite) TestLogHTTPRequest_ClientError() {
 	suite.logger.LogHTTPRequest("POST", "/api/invalid", 400, 25*time.Millisecond, 512)
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "WARN", logEntry["level"]) // 4xx should be WARN
 	assert.Equal(suite.T(), float64(400), logEntry["http_status"])
 }
 
 func (suite *StructuredLoggerTestSuite) TestLogHTTPRequest_ServerError() {
 	suite.logger.LogHTTPRequest("POST", "/api/error", 500, 100*time.Millisecond, 256)
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "ERROR", logEntry["level"]) // 5xx should be ERROR
 	assert.Equal(suite.T(), float64(500), logEntry["http_status"])
 }
 
 func (suite *StructuredLoggerTestSuite) TestLogSecurityEvent() {
 	testCases := []struct {
-		name         string
-		eventType    string
-		description  string
-		severity     string
+		name          string
+		eventType     string
+		description   string
+		severity      string
 		expectedLevel string
 	}{
 		{
-			name:         "Critical security event",
-			eventType:    "authentication_failure",
-			description:  "Multiple failed login attempts",
-			severity:     "critical",
+			name:          "Critical security event",
+			eventType:     "authentication_failure",
+			description:   "Multiple failed login attempts",
+			severity:      "critical",
 			expectedLevel: "ERROR",
 		},
 		{
-			name:         "High security event",
-			eventType:    "suspicious_activity",
-			description:  "Unusual access pattern detected",
-			severity:     "high",
+			name:          "High security event",
+			eventType:     "suspicious_activity",
+			description:   "Unusual access pattern detected",
+			severity:      "high",
 			expectedLevel: "ERROR",
 		},
 		{
-			name:         "Medium security event",
-			eventType:    "rate_limit_exceeded",
-			description:  "API rate limit exceeded",
-			severity:     "medium",
+			name:          "Medium security event",
+			eventType:     "rate_limit_exceeded",
+			description:   "API rate limit exceeded",
+			severity:      "medium",
 			expectedLevel: "WARN",
 		},
 		{
-			name:         "Low security event",
-			eventType:    "session_created",
-			description:  "User session created",
-			severity:     "low",
+			name:          "Low security event",
+			eventType:     "session_created",
+			description:   "User session created",
+			severity:      "low",
 			expectedLevel: "INFO",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			suite.SetupTest() // Reset buffer for each test
-			
+
 			metadata := map[string]interface{}{
 				"user_id": "test-user",
 				"ip":      "192.168.1.1",
 			}
-			
+
 			suite.logger.LogSecurityEvent(tc.eventType, tc.description, tc.severity, metadata)
-			
+
 			require.Len(suite.T(), suite.logLines, 1)
 			logEntry := suite.logLines[0]
-			
+
 			assert.Equal(suite.T(), tc.expectedLevel, logEntry["level"])
 			assert.Equal(suite.T(), "Security event", logEntry["msg"])
 			assert.Equal(suite.T(), true, logEntry["security_event"])
@@ -417,12 +417,12 @@ func (suite *StructuredLoggerTestSuite) TestLogAuditEvent() {
 		"resource_id": "intent-123",
 		"namespace":   "default",
 	}
-	
+
 	suite.logger.LogAuditEvent(action, resource, userID, metadata)
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "INFO", logEntry["level"])
 	assert.Equal(suite.T(), "Audit event", logEntry["msg"])
 	assert.Equal(suite.T(), true, logEntry["audit_event"])
@@ -439,14 +439,14 @@ func (suite *StructuredLoggerTestSuite) TestLogBusinessEvent() {
 	metadata := map[string]interface{}{
 		"intent_type":     "network_deployment",
 		"processing_time": 1.5,
-		"success":        true,
+		"success":         true,
 	}
-	
+
 	suite.logger.LogBusinessEvent(eventType, metadata)
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "INFO", logEntry["level"])
 	assert.Equal(suite.T(), "Business event", logEntry["msg"])
 	assert.Equal(suite.T(), true, logEntry["business_event"])
@@ -464,12 +464,12 @@ func (suite *StructuredLoggerTestSuite) TestLogAPIUsage() {
 	requestSize := int64(2048)
 	responseSize := int64(1024)
 	duration := 200 * time.Millisecond
-	
+
 	suite.logger.LogAPIUsage(endpoint, method, userID, requestSize, responseSize, duration)
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "INFO", logEntry["level"])
 	assert.Equal(suite.T(), "API usage", logEntry["msg"])
 	assert.Equal(suite.T(), endpoint, logEntry["api_endpoint"])
@@ -484,18 +484,18 @@ func (suite *StructuredLoggerTestSuite) TestLogAPIUsage() {
 
 func (suite *StructuredLoggerTestSuite) TestLogSystemMetrics() {
 	metrics := map[string]interface{}{
-		"cpu_usage":      75.5,
-		"memory_usage":   80.2,
-		"disk_usage":     45.0,
+		"cpu_usage":          75.5,
+		"memory_usage":       80.2,
+		"disk_usage":         45.0,
 		"active_connections": 150,
-		"queue_size":     25,
+		"queue_size":         25,
 	}
-	
+
 	suite.logger.LogSystemMetrics(metrics)
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "INFO", logEntry["level"])
 	assert.Equal(suite.T(), "System metrics", logEntry["msg"])
 	assert.Equal(suite.T(), true, logEntry["system_metrics"])
@@ -511,12 +511,12 @@ func (suite *StructuredLoggerTestSuite) TestLogResourceUsage() {
 	cpuPercent := 65.8
 	memoryMB := 2048.5
 	diskUsagePercent := 78.3
-	
+
 	suite.logger.LogResourceUsage(cpuPercent, memoryMB, diskUsagePercent)
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "INFO", logEntry["level"])
 	assert.Equal(suite.T(), "Resource usage", logEntry["msg"])
 	assert.Equal(suite.T(), cpuPercent, logEntry["cpu_percent"])
@@ -527,22 +527,22 @@ func (suite *StructuredLoggerTestSuite) TestLogResourceUsage() {
 
 func (suite *StructuredLoggerTestSuite) TestLogFormat() {
 	testObject := map[string]interface{}{
-		"name":    "test-object",
-		"value":   42,
+		"name":  "test-object",
+		"value": 42,
 		"nested": map[string]interface{}{
 			"field": "nested-value",
 		},
 	}
-	
+
 	suite.logger.LogFormat(LevelInfo, "Test formatted object", testObject)
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "INFO", logEntry["level"])
 	assert.Equal(suite.T(), "Test formatted object", logEntry["msg"])
 	assert.Contains(suite.T(), logEntry, "formatted_data")
-	
+
 	// Verify the formatted data is valid JSON
 	formattedData := logEntry["formatted_data"].(string)
 	var parsedObj map[string]interface{}
@@ -555,12 +555,12 @@ func (suite *StructuredLoggerTestSuite) TestLogFormat() {
 func (suite *StructuredLoggerTestSuite) TestLogFormat_MarshalError() {
 	// Create an object that cannot be marshaled (contains channel)
 	invalidObject := make(chan int)
-	
+
 	suite.logger.LogFormat(LevelInfo, "Test invalid object", invalidObject)
-	
+
 	require.Len(suite.T(), suite.logLines, 1)
 	logEntry := suite.logLines[0]
-	
+
 	assert.Equal(suite.T(), "ERROR", logEntry["level"])
 	assert.Contains(suite.T(), logEntry["msg"], "Failed to marshal object")
 	assert.Equal(suite.T(), "Test invalid object", logEntry["original_message"])
@@ -579,19 +579,19 @@ func (suite *StructuredLoggerTestSuite) TestLoggingLevels_TableDriven() {
 		{LevelInfo, suite.logger.InfoWithContext, "Info message", "INFO"},
 		{LevelWarn, suite.logger.WarnWithContext, "Warn message", "WARN"},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(string(tc.level), func() {
 			// Set logger to debug level to capture all logs
 			config := suite.config
 			config.Level = LevelDebug
 			suite.logger = NewStructuredLoggerWithBuffer(config, suite.buffer)
-			
+
 			tc.logFunc(tc.message, "test_key", "test_value")
-			
+
 			require.Len(suite.T(), suite.logLines, 1)
 			logEntry := suite.logLines[0]
-			
+
 			assert.Equal(suite.T(), tc.expected, logEntry["level"])
 			assert.Equal(suite.T(), tc.message, logEntry["msg"])
 			assert.Equal(suite.T(), "test_value", logEntry["test_key"])
@@ -601,7 +601,7 @@ func (suite *StructuredLoggerTestSuite) TestLoggingLevels_TableDriven() {
 
 func (suite *StructuredLoggerTestSuite) TestWithServiceContext() {
 	attrs := suite.logger.withServiceContext("key1", "value1", "key2", 42)
-	
+
 	// Convert to map for easier testing
 	attrMap := make(map[string]interface{})
 	for i := 0; i < len(attrs); i += 2 {
@@ -609,7 +609,7 @@ func (suite *StructuredLoggerTestSuite) TestWithServiceContext() {
 		value := attrs[i+1]
 		attrMap[key] = value
 	}
-	
+
 	assert.Equal(suite.T(), suite.config.ServiceName, attrMap["service"])
 	assert.Equal(suite.T(), suite.config.Version, attrMap["version"])
 	assert.Equal(suite.T(), suite.config.Environment, attrMap["environment"])
@@ -620,9 +620,9 @@ func (suite *StructuredLoggerTestSuite) TestWithServiceContext() {
 
 func (suite *StructuredLoggerTestSuite) TestWithServiceContext_WithRequestID() {
 	suite.logger.requestID = "req-test-123"
-	
+
 	attrs := suite.logger.withServiceContext("key1", "value1")
-	
+
 	// Convert to map for easier testing
 	attrMap := make(map[string]interface{})
 	for i := 0; i < len(attrs); i += 2 {
@@ -630,7 +630,7 @@ func (suite *StructuredLoggerTestSuite) TestWithServiceContext_WithRequestID() {
 		value := attrs[i+1]
 		attrMap[key] = value
 	}
-	
+
 	assert.Equal(suite.T(), "req-test-123", attrMap["request_id"])
 }
 
@@ -647,7 +647,7 @@ func (suite *StructuredLoggerTestSuite) TestParseLevel() {
 		{"unknown", slog.LevelInfo}, // Default
 		{"", slog.LevelInfo},        // Empty default
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(string(tc.input), func() {
 			level := parseLevel(tc.input)
@@ -658,7 +658,7 @@ func (suite *StructuredLoggerTestSuite) TestParseLevel() {
 
 func (suite *StructuredLoggerTestSuite) TestGetCallerInfo() {
 	file, line, funcName := GetCallerInfo(0)
-	
+
 	assert.NotEmpty(suite.T(), file)
 	assert.Greater(suite.T(), line, 0)
 	assert.Contains(suite.T(), funcName, "TestGetCallerInfo")
@@ -668,9 +668,9 @@ func (suite *StructuredLoggerTestSuite) TestDefaultConfig() {
 	serviceName := "test-service"
 	version := "2.0.0"
 	environment := "production"
-	
+
 	config := DefaultConfig(serviceName, version, environment)
-	
+
 	assert.Equal(suite.T(), LevelInfo, config.Level)
 	assert.Equal(suite.T(), "json", config.Format)
 	assert.Equal(suite.T(), serviceName, config.ServiceName)
@@ -691,9 +691,9 @@ func (suite *StructuredLoggerTestSuite) TestIntegrationFlow() {
 		Path:      "/api/test",
 		IP:        "127.0.0.1",
 	}
-	
+
 	requestLogger := suite.logger.WithRequest(requestCtx)
-	
+
 	// Log operation with context
 	err := requestLogger.LogOperation("integration_test", func() error {
 		requestLogger.InfoWithContext("Processing request", "step", "validation")
@@ -701,10 +701,10 @@ func (suite *StructuredLoggerTestSuite) TestIntegrationFlow() {
 		requestLogger.InfoWithContext("Processing request", "step", "execution")
 		return nil
 	})
-	
+
 	assert.NoError(suite.T(), err)
 	require.Len(suite.T(), suite.logLines, 4) // 2 operation logs + 2 step logs
-	
+
 	// All logs should contain request context
 	for _, logEntry := range suite.logLines {
 		assert.Equal(suite.T(), requestCtx.RequestID, logEntry["request_id"])
@@ -719,11 +719,11 @@ func (suite *StructuredLoggerTestSuite) TestConcurrentLogging() {
 	// Test concurrent logging operations
 	numGoroutines := 10
 	done := make(chan bool, numGoroutines)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			defer func() { done <- true }()
-			
+
 			componentLogger := suite.logger.WithComponent(fmt.Sprintf("component-%d", id))
 			componentLogger.InfoWithContext("Concurrent log message",
 				"goroutine_id", id,
@@ -731,15 +731,15 @@ func (suite *StructuredLoggerTestSuite) TestConcurrentLogging() {
 			)
 		}(i)
 	}
-	
+
 	// Wait for all goroutines to complete
 	for i := 0; i < numGoroutines; i++ {
 		<-done
 	}
-	
+
 	// Should have exactly numGoroutines log entries
 	require.Len(suite.T(), suite.logLines, numGoroutines)
-	
+
 	// Verify all entries are present with correct data
 	componentCounts := make(map[string]int)
 	for _, logEntry := range suite.logLines {
@@ -748,7 +748,7 @@ func (suite *StructuredLoggerTestSuite) TestConcurrentLogging() {
 		assert.Equal(suite.T(), "Concurrent log message", logEntry["msg"])
 		assert.Contains(suite.T(), logEntry, "goroutine_id")
 	}
-	
+
 	// Each component should appear exactly once
 	for component, count := range componentCounts {
 		assert.Equal(suite.T(), 1, count, "Component %s should appear exactly once", component)
@@ -797,7 +797,7 @@ func (suite *StructuredLoggerTestSuite) TestEdgeCases() {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			suite.SetupTest() // Reset buffer for each test
@@ -810,12 +810,12 @@ func (suite *StructuredLoggerTestSuite) TestEdgeCases() {
 
 func NewStructuredLoggerWithBuffer(config Config, buffer *bytes.Buffer) *StructuredLogger {
 	level := parseLevel(config.Level)
-	
+
 	opts := &slog.HandlerOptions{
 		Level:     level,
 		AddSource: config.AddSource,
 	}
-	
+
 	if config.TimeFormat != "" {
 		opts.ReplaceAttr = func(groups []string, a slog.Attr) slog.Attr {
 			if a.Key == slog.TimeKey {
@@ -827,7 +827,7 @@ func NewStructuredLoggerWithBuffer(config Config, buffer *bytes.Buffer) *Structu
 			return a
 		}
 	}
-	
+
 	var handler slog.Handler
 	switch strings.ToLower(config.Format) {
 	case "json":
@@ -835,9 +835,9 @@ func NewStructuredLoggerWithBuffer(config Config, buffer *bytes.Buffer) *Structu
 	default:
 		handler = slog.NewTextHandler(buffer, opts)
 	}
-	
+
 	logger := slog.New(handler)
-	
+
 	return &StructuredLogger{
 		Logger:         logger,
 		serviceName:    config.ServiceName,
@@ -852,9 +852,9 @@ func NewStructuredLoggerWithBuffer(config Config, buffer *bytes.Buffer) *Structu
 func BenchmarkInfoWithContext(b *testing.B) {
 	config := DefaultConfig("benchmark-service", "1.0.0", "test")
 	config.Level = LevelInfo
-	
+
 	logger := NewStructuredLogger(config)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		logger.InfoWithContext("Benchmark log message",
@@ -868,7 +868,7 @@ func BenchmarkInfoWithContext(b *testing.B) {
 func BenchmarkLogOperation(b *testing.B) {
 	config := DefaultConfig("benchmark-service", "1.0.0", "test")
 	logger := NewStructuredLogger(config)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		logger.LogOperation("benchmark_operation", func() error {
@@ -880,7 +880,7 @@ func BenchmarkLogOperation(b *testing.B) {
 func BenchmarkConcurrentLogging(b *testing.B) {
 	config := DefaultConfig("benchmark-service", "1.0.0", "test")
 	logger := NewStructuredLogger(config)
-	
+
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

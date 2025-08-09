@@ -18,16 +18,16 @@ type LDAPConnectionPool struct {
 	connections chan *ldap.Conn
 	mu          sync.RWMutex
 	closed      bool
-	
+
 	// Connection management
 	activeConnections int
 	maxConnections    int
 	minConnections    int
-	
+
 	// Health monitoring
 	healthChecker   *LDAPHealthChecker
 	lastHealthCheck time.Time
-	
+
 	// Statistics
 	stats *LDAPPoolStats
 }
@@ -35,15 +35,15 @@ type LDAPConnectionPool struct {
 // LDAPPoolStats tracks connection pool statistics
 type LDAPPoolStats struct {
 	mu                 sync.RWMutex
-	TotalConnections   int64     `json:"total_connections"`
-	ActiveConnections  int       `json:"active_connections"`
-	IdleConnections    int       `json:"idle_connections"`
-	ConnectionsCreated int64     `json:"connections_created"`
-	ConnectionsReused  int64     `json:"connections_reused"`
-	ConnectionsFailed  int64     `json:"connections_failed"`
-	HealthChecksPassed int64     `json:"health_checks_passed"`
-	HealthChecksFailed int64     `json:"health_checks_failed"`
-	LastHealthCheck    time.Time `json:"last_health_check"`
+	TotalConnections   int64         `json:"total_connections"`
+	ActiveConnections  int           `json:"active_connections"`
+	IdleConnections    int           `json:"idle_connections"`
+	ConnectionsCreated int64         `json:"connections_created"`
+	ConnectionsReused  int64         `json:"connections_reused"`
+	ConnectionsFailed  int64         `json:"connections_failed"`
+	HealthChecksPassed int64         `json:"health_checks_passed"`
+	HealthChecksFailed int64         `json:"health_checks_failed"`
+	LastHealthCheck    time.Time     `json:"last_health_check"`
 	AverageCheckTime   time.Duration `json:"average_check_time"`
 }
 
@@ -63,12 +63,12 @@ func NewLDAPConnectionPool(config *LDAPConfig, logger *slog.Logger) *LDAPConnect
 	if config.MaxConnections == 0 {
 		config.MaxConnections = 10
 	}
-	
+
 	minConnections := config.MaxConnections / 4
 	if minConnections < 1 {
 		minConnections = 1
 	}
-	
+
 	pool := &LDAPConnectionPool{
 		config:         config,
 		logger:         logger.With("component", "ldap_pool"),
@@ -79,16 +79,16 @@ func NewLDAPConnectionPool(config *LDAPConfig, logger *slog.Logger) *LDAPConnect
 			LastHealthCheck: time.Now(),
 		},
 	}
-	
+
 	// Create health checker
 	pool.healthChecker = NewLDAPHealthChecker(config, logger)
-	
+
 	// Initialize minimum connections
 	pool.initializeConnections()
-	
+
 	// Start background maintenance
 	go pool.maintainConnections()
-	
+
 	return pool
 }
 
@@ -100,7 +100,7 @@ func (p *LDAPConnectionPool) GetConnection(ctx context.Context) (*ldap.Conn, err
 		return nil, fmt.Errorf("connection pool is closed")
 	}
 	p.mu.RUnlock()
-	
+
 	// Try to get existing connection from pool
 	select {
 	case conn := <-p.connections:
@@ -109,7 +109,7 @@ func (p *LDAPConnectionPool) GetConnection(ctx context.Context) (*ldap.Conn, err
 			p.stats.ConnectionsReused++
 			p.stats.ActiveConnections++
 			p.stats.mu.Unlock()
-			
+
 			return conn, nil
 		}
 		// Connection is invalid, close it and create new one
@@ -117,14 +117,14 @@ func (p *LDAPConnectionPool) GetConnection(ctx context.Context) (*ldap.Conn, err
 		p.stats.mu.Lock()
 		p.stats.ConnectionsFailed++
 		p.stats.mu.Unlock()
-		
+
 	case <-ctx.Done():
 		return nil, ctx.Err()
-		
+
 	default:
 		// No connections available, try to create new one
 	}
-	
+
 	// Create new connection if under limit
 	p.mu.Lock()
 	canCreate := p.activeConnections < p.maxConnections
@@ -132,7 +132,7 @@ func (p *LDAPConnectionPool) GetConnection(ctx context.Context) (*ldap.Conn, err
 		p.activeConnections++
 	}
 	p.mu.Unlock()
-	
+
 	if !canCreate {
 		// Wait for available connection
 		select {
@@ -145,32 +145,32 @@ func (p *LDAPConnectionPool) GetConnection(ctx context.Context) (*ldap.Conn, err
 				return conn, nil
 			}
 			conn.Close()
-			
+
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		}
 	}
-	
+
 	// Create new connection
 	conn, err := p.createConnection(ctx)
 	if err != nil {
 		p.mu.Lock()
 		p.activeConnections--
 		p.mu.Unlock()
-		
+
 		p.stats.mu.Lock()
 		p.stats.ConnectionsFailed++
 		p.stats.mu.Unlock()
-		
+
 		return nil, fmt.Errorf("failed to create LDAP connection: %w", err)
 	}
-	
+
 	p.stats.mu.Lock()
 	p.stats.ConnectionsCreated++
 	p.stats.ActiveConnections++
 	p.stats.TotalConnections++
 	p.stats.mu.Unlock()
-	
+
 	return conn, nil
 }
 
@@ -179,16 +179,16 @@ func (p *LDAPConnectionPool) ReturnConnection(conn *ldap.Conn) {
 	if conn == nil {
 		return
 	}
-	
+
 	p.mu.RLock()
 	closed := p.closed
 	p.mu.RUnlock()
-	
+
 	if closed {
 		conn.Close()
 		return
 	}
-	
+
 	// Validate connection before returning to pool
 	if !p.validateConnection(conn) {
 		conn.Close()
@@ -197,7 +197,7 @@ func (p *LDAPConnectionPool) ReturnConnection(conn *ldap.Conn) {
 		p.mu.Unlock()
 		return
 	}
-	
+
 	// Try to return to pool
 	select {
 	case p.connections <- conn:
@@ -205,7 +205,7 @@ func (p *LDAPConnectionPool) ReturnConnection(conn *ldap.Conn) {
 		p.stats.ActiveConnections--
 		p.stats.IdleConnections++
 		p.stats.mu.Unlock()
-		
+
 	default:
 		// Pool is full, close connection
 		conn.Close()
@@ -224,12 +224,12 @@ func (p *LDAPConnectionPool) Close() error {
 	}
 	p.closed = true
 	p.mu.Unlock()
-	
+
 	// Stop health checker
 	if p.healthChecker != nil {
 		p.healthChecker.Stop()
 	}
-	
+
 	// Close all connections
 	close(p.connections)
 	for conn := range p.connections {
@@ -237,7 +237,7 @@ func (p *LDAPConnectionPool) Close() error {
 			conn.Close()
 		}
 	}
-	
+
 	p.logger.Info("LDAP connection pool closed")
 	return nil
 }
@@ -246,16 +246,16 @@ func (p *LDAPConnectionPool) Close() error {
 func (p *LDAPConnectionPool) GetStats() *LDAPPoolStats {
 	p.stats.mu.RLock()
 	defer p.stats.mu.RUnlock()
-	
+
 	// Create a copy to avoid race conditions
 	stats := &LDAPPoolStats{}
 	*stats = *p.stats
-	
+
 	p.mu.RLock()
 	stats.ActiveConnections = p.activeConnections
 	stats.IdleConnections = len(p.connections)
 	p.mu.RUnlock()
-	
+
 	return stats
 }
 
@@ -274,7 +274,7 @@ func (p *LDAPConnectionPool) TestConnection(ctx context.Context) error {
 		return err
 	}
 	defer p.ReturnConnection(conn)
-	
+
 	// Perform basic search test
 	searchRequest := ldap.NewSearchRequest(
 		p.config.BaseDN,
@@ -285,7 +285,7 @@ func (p *LDAPConnectionPool) TestConnection(ctx context.Context) error {
 		[]string{"dn"},
 		nil,
 	)
-	
+
 	_, err = conn.Search(searchRequest)
 	return err
 }
@@ -295,14 +295,14 @@ func (p *LDAPConnectionPool) TestConnection(ctx context.Context) error {
 func (p *LDAPConnectionPool) initializeConnections() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	for i := 0; i < p.minConnections; i++ {
 		conn, err := p.createConnection(ctx)
 		if err != nil {
 			p.logger.Warn("Failed to create initial connection", "error", err, "attempt", i+1)
 			continue
 		}
-		
+
 		select {
 		case p.connections <- conn:
 			p.stats.mu.Lock()
@@ -310,12 +310,12 @@ func (p *LDAPConnectionPool) initializeConnections() {
 			p.stats.TotalConnections++
 			p.stats.IdleConnections++
 			p.stats.mu.Unlock()
-			
+
 		default:
 			conn.Close()
 		}
 	}
-	
+
 	p.logger.Info("LDAP connection pool initialized",
 		"min_connections", p.minConnections,
 		"max_connections", p.maxConnections,
@@ -324,10 +324,10 @@ func (p *LDAPConnectionPool) initializeConnections() {
 
 func (p *LDAPConnectionPool) createConnection(ctx context.Context) (*ldap.Conn, error) {
 	address := fmt.Sprintf("%s:%d", p.config.Host, p.config.Port)
-	
+
 	var conn *ldap.Conn
 	var err error
-	
+
 	// Create connection with timeout using correct LDAP v3 API
 	if p.config.UseSSL {
 		tlsConfig := &tls.Config{
@@ -336,7 +336,7 @@ func (p *LDAPConnectionPool) createConnection(ctx context.Context) (*ldap.Conn, 
 		conn, err = ldap.DialURL(fmt.Sprintf("ldaps://%s", address), ldap.DialWithTLSConfig(tlsConfig))
 	} else {
 		conn, err = ldap.DialURL(fmt.Sprintf("ldap://%s", address))
-		
+
 		if err == nil && p.config.UseTLS {
 			err = conn.StartTLS(&tls.Config{
 				ServerName:         p.config.Host,
@@ -344,14 +344,14 @@ func (p *LDAPConnectionPool) createConnection(ctx context.Context) (*ldap.Conn, 
 			})
 		}
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial LDAP server: %w", err)
 	}
-	
+
 	// Set connection timeout
 	conn.SetTimeout(p.config.Timeout)
-	
+
 	// Bind with service account if configured
 	if p.config.BindDN != "" && p.config.BindPassword != "" {
 		if err := conn.Bind(p.config.BindDN, p.config.BindPassword); err != nil {
@@ -359,7 +359,7 @@ func (p *LDAPConnectionPool) createConnection(ctx context.Context) (*ldap.Conn, 
 			return nil, fmt.Errorf("failed to bind to LDAP server: %w", err)
 		}
 	}
-	
+
 	return conn, nil
 }
 
@@ -367,20 +367,20 @@ func (p *LDAPConnectionPool) validateConnection(conn *ldap.Conn) bool {
 	if conn == nil {
 		return false
 	}
-	
+
 	// Try a simple bind test
 	if p.config.BindDN != "" && p.config.BindPassword != "" {
 		err := conn.Bind(p.config.BindDN, p.config.BindPassword)
 		return err == nil
 	}
-	
+
 	return true
 }
 
 func (p *LDAPConnectionPool) maintainConnections() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	
+
 	for range ticker.C {
 		p.mu.RLock()
 		if p.closed {
@@ -388,10 +388,10 @@ func (p *LDAPConnectionPool) maintainConnections() {
 			return
 		}
 		p.mu.RUnlock()
-		
+
 		p.cleanupConnections()
 		p.ensureMinimumConnections()
-		
+
 		// Update health check
 		if p.healthChecker != nil {
 			p.healthChecker.RunHealthCheck()
@@ -401,7 +401,7 @@ func (p *LDAPConnectionPool) maintainConnections() {
 
 func (p *LDAPConnectionPool) cleanupConnections() {
 	var validConnections []*ldap.Conn
-	
+
 	// Drain current connections and validate them
 	for {
 		select {
@@ -419,7 +419,7 @@ func (p *LDAPConnectionPool) cleanupConnections() {
 			goto returnConnections
 		}
 	}
-	
+
 returnConnections:
 	// Return valid connections to pool
 	for _, conn := range validConnections {
@@ -440,25 +440,25 @@ func (p *LDAPConnectionPool) ensureMinimumConnections() {
 	if currentIdle >= p.minConnections {
 		return
 	}
-	
+
 	needed := p.minConnections - currentIdle
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	for i := 0; i < needed; i++ {
 		conn, err := p.createConnection(ctx)
 		if err != nil {
 			p.logger.Debug("Failed to create maintenance connection", "error", err)
 			continue
 		}
-		
+
 		select {
 		case p.connections <- conn:
 			p.stats.mu.Lock()
 			p.stats.ConnectionsCreated++
 			p.stats.TotalConnections++
 			p.stats.mu.Unlock()
-			
+
 		default:
 			conn.Close()
 		}
@@ -498,29 +498,29 @@ func (h *LDAPHealthChecker) IsHealthy() bool {
 func (h *LDAPHealthChecker) RunHealthCheck() bool {
 	ctx, cancel := context.WithTimeout(context.Background(), h.timeout)
 	defer cancel()
-	
+
 	start := time.Now()
 	healthy := h.performHealthCheck(ctx)
 	duration := time.Since(start)
-	
+
 	h.mu.Lock()
 	h.healthy = healthy
 	h.lastCheck = time.Now()
 	h.mu.Unlock()
-	
+
 	if healthy {
 		h.logger.Debug("LDAP health check passed", "duration", duration)
 	} else {
 		h.logger.Warn("LDAP health check failed", "duration", duration)
 	}
-	
+
 	return healthy
 }
 
 func (h *LDAPHealthChecker) healthCheckLoop() {
 	ticker := time.NewTicker(h.interval)
 	defer ticker.Stop()
-	
+
 	for range ticker.C {
 		h.RunHealthCheck()
 	}
@@ -529,10 +529,10 @@ func (h *LDAPHealthChecker) healthCheckLoop() {
 func (h *LDAPHealthChecker) performHealthCheck(ctx context.Context) bool {
 	// Create a temporary connection for health check
 	address := fmt.Sprintf("%s:%d", h.config.Host, h.config.Port)
-	
+
 	var conn *ldap.Conn
 	var err error
-	
+
 	if h.config.UseSSL {
 		tlsConfig := &tls.Config{
 			InsecureSkipVerify: h.config.SkipVerify,
@@ -547,19 +547,19 @@ func (h *LDAPHealthChecker) performHealthCheck(ctx context.Context) bool {
 			})
 		}
 	}
-	
+
 	if err != nil {
 		return false
 	}
 	defer conn.Close()
-	
+
 	// Test bind
 	if h.config.BindDN != "" && h.config.BindPassword != "" {
 		if err := conn.Bind(h.config.BindDN, h.config.BindPassword); err != nil {
 			return false
 		}
 	}
-	
+
 	// Test basic search
 	searchRequest := ldap.NewSearchRequest(
 		h.config.BaseDN,
@@ -570,7 +570,7 @@ func (h *LDAPHealthChecker) performHealthCheck(ctx context.Context) bool {
 		[]string{"dn"},
 		nil,
 	)
-	
+
 	_, err = conn.Search(searchRequest)
 	return err == nil
 }
@@ -585,13 +585,13 @@ type EnhancedLDAPProvider struct {
 func NewEnhancedLDAPProvider(config *LDAPConfig, logger *slog.Logger) *EnhancedLDAPProvider {
 	// Create base provider
 	baseProvider := NewLDAPClient(config, logger)
-	
+
 	// Create connection pool
 	pool := NewLDAPConnectionPool(config, logger)
-	
+
 	return &EnhancedLDAPProvider{
 		LDAPClient: baseProvider,
-		pool:         pool,
+		pool:       pool,
 	}
 }
 
@@ -602,7 +602,7 @@ func (p *EnhancedLDAPProvider) Authenticate(ctx context.Context, username, passw
 		return nil, fmt.Errorf("failed to get connection from pool: %w", err)
 	}
 	defer p.pool.ReturnConnection(conn)
-	
+
 	// Use the pooled connection for authentication
 	return p.authenticateWithConnection(ctx, conn, username, password)
 }
@@ -614,7 +614,7 @@ func (p *EnhancedLDAPProvider) SearchUser(ctx context.Context, username string) 
 		return nil, fmt.Errorf("failed to get connection from pool: %w", err)
 	}
 	defer p.pool.ReturnConnection(conn)
-	
+
 	// Use the pooled connection for search
 	return p.searchUserWithConnection(ctx, conn, username)
 }
@@ -644,34 +644,34 @@ func (p *EnhancedLDAPProvider) TestConnection(ctx context.Context) error {
 func (p *EnhancedLDAPProvider) authenticateWithConnection(ctx context.Context, conn *ldap.Conn, username, password string) (*UserInfo, error) {
 	// Implementation would mirror the original Authenticate method but use the provided connection
 	// This is a simplified version - the full implementation would use the same logic as the original
-	
+
 	// Search for user
 	userDN, ldapUser, err := p.findUserWithConnection(conn, username)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
-	
+
 	// Try to bind with user credentials
 	testConn, err := p.pool.GetConnection(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get test connection: %w", err)
 	}
 	defer p.pool.ReturnConnection(testConn)
-	
+
 	err = testConn.Bind(userDN, password)
 	if err != nil {
 		return nil, fmt.Errorf("authentication failed: invalid credentials")
 	}
-	
+
 	// Get user groups
 	groups, err := p.getUserGroupsWithConnection(ctx, conn, username)
 	if err != nil {
 		groups = []string{} // Continue without groups
 	}
-	
+
 	// Get user roles from group mappings
 	roles := p.mapGroupsToRoles(groups)
-	
+
 	// Convert to standard UserInfo
 	userInfo := &UserInfo{
 		Subject:       ldapUser.Username,
@@ -686,15 +686,15 @@ func (p *EnhancedLDAPProvider) authenticateWithConnection(ctx context.Context, c
 		Provider:      "ldap",
 		ProviderID:    userDN,
 		Attributes: map[string]interface{}{
-			"ldap_dn":     ldapUser.DN,
-			"title":       ldapUser.Title,
-			"department":  ldapUser.Department,
-			"phone":       ldapUser.Phone,
-			"manager":     ldapUser.Manager,
-			"active":      ldapUser.Active,
+			"ldap_dn":    ldapUser.DN,
+			"title":      ldapUser.Title,
+			"department": ldapUser.Department,
+			"phone":      ldapUser.Phone,
+			"manager":    ldapUser.Manager,
+			"active":     ldapUser.Active,
 		},
 	}
-	
+
 	return userInfo, nil
 }
 
@@ -704,14 +704,14 @@ func (p *EnhancedLDAPProvider) searchUserWithConnection(ctx context.Context, con
 	if err != nil {
 		return nil, err
 	}
-	
+
 	groups, err := p.getUserGroupsWithConnection(ctx, conn, username)
 	if err != nil {
 		groups = []string{}
 	}
-	
+
 	roles := p.mapGroupsToRoles(groups)
-	
+
 	userInfo := &UserInfo{
 		Subject:       ldapUser.Username,
 		Email:         ldapUser.Email,
@@ -725,15 +725,15 @@ func (p *EnhancedLDAPProvider) searchUserWithConnection(ctx context.Context, con
 		Provider:      "ldap",
 		ProviderID:    userDN,
 		Attributes: map[string]interface{}{
-			"ldap_dn":     ldapUser.DN,
-			"title":       ldapUser.Title,
-			"department":  ldapUser.Department,
-			"phone":       ldapUser.Phone,
-			"manager":     ldapUser.Manager,
-			"active":      ldapUser.Active,
+			"ldap_dn":    ldapUser.DN,
+			"title":      ldapUser.Title,
+			"department": ldapUser.Department,
+			"phone":      ldapUser.Phone,
+			"manager":    ldapUser.Manager,
+			"active":     ldapUser.Active,
 		},
 	}
-	
+
 	return userInfo, nil
 }
 

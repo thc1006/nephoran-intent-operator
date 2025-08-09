@@ -24,44 +24,44 @@ type ResourceLifecycleManager struct {
 	storage          O2IMSStorage
 
 	// Resource tracking and state management
-	resourceStates   map[string]*ResourceState
-	stateMutex       sync.RWMutex
-	
+	resourceStates map[string]*ResourceState
+	stateMutex     sync.RWMutex
+
 	// Operation queues and workers
-	operationQueue   chan *ResourceOperation
-	workers          int
-	stopCh           chan struct{}
-	
+	operationQueue chan *ResourceOperation
+	workers        int
+	stopCh         chan struct{}
+
 	// Event handling
-	eventBus         *ResourceEventBus
-	
+	eventBus *ResourceEventBus
+
 	// Metrics and monitoring
-	metrics          *ResourceLifecycleMetrics
-	
+	metrics *ResourceLifecycleMetrics
+
 	// Configuration and policy
-	policies         *ResourcePolicies
-	
+	policies *ResourcePolicies
+
 	// Background services
-	ctx              context.Context
-	cancel           context.CancelFunc
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // ResourceState represents the current state of a resource
 type ResourceState struct {
-	ResourceID       string                 `json:"resource_id"`
-	CurrentStatus    string                 `json:"current_status"`
-	DesiredStatus    string                 `json:"desired_status"`
-	LastOperation    string                 `json:"last_operation"`
-	OperationStatus  string                 `json:"operation_status"`
-	Provider         string                 `json:"provider"`
-	ResourceType     string                 `json:"resource_type"`
-	Configuration    *runtime.RawExtension  `json:"configuration"`
-	Metadata         map[string]interface{} `json:"metadata"`
-	LastUpdated      time.Time              `json:"last_updated"`
-	HealthStatus     string                 `json:"health_status"`
-	ErrorMessage     string                 `json:"error_message,omitempty"`
-	RetryCount       int                    `json:"retry_count"`
-	NextRetry        time.Time              `json:"next_retry,omitempty"`
+	ResourceID      string                 `json:"resource_id"`
+	CurrentStatus   string                 `json:"current_status"`
+	DesiredStatus   string                 `json:"desired_status"`
+	LastOperation   string                 `json:"last_operation"`
+	OperationStatus string                 `json:"operation_status"`
+	Provider        string                 `json:"provider"`
+	ResourceType    string                 `json:"resource_type"`
+	Configuration   *runtime.RawExtension  `json:"configuration"`
+	Metadata        map[string]interface{} `json:"metadata"`
+	LastUpdated     time.Time              `json:"last_updated"`
+	HealthStatus    string                 `json:"health_status"`
+	ErrorMessage    string                 `json:"error_message,omitempty"`
+	RetryCount      int                    `json:"retry_count"`
+	NextRetry       time.Time              `json:"next_retry,omitempty"`
 }
 
 // ResourceOperation represents a lifecycle operation to be performed
@@ -107,15 +107,15 @@ type EventSubscriber func(ctx context.Context, event *ResourceLifecycleEvent)
 
 // ResourceLifecycleEvent represents a resource lifecycle event
 type ResourceLifecycleEvent struct {
-	EventID      string                 `json:"event_id"`
-	EventType    string                 `json:"event_type"`
-	ResourceID   string                 `json:"resource_id"`
-	Operation    string                 `json:"operation"`
-	Status       string                 `json:"status"`
-	Timestamp    time.Time              `json:"timestamp"`
-	Source       string                 `json:"source"`
-	Metadata     map[string]interface{} `json:"metadata"`
-	Error        string                 `json:"error,omitempty"`
+	EventID    string                 `json:"event_id"`
+	EventType  string                 `json:"event_type"`
+	ResourceID string                 `json:"resource_id"`
+	Operation  string                 `json:"operation"`
+	Status     string                 `json:"status"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Source     string                 `json:"source"`
+	Metadata   map[string]interface{} `json:"metadata"`
+	Error      string                 `json:"error,omitempty"`
 }
 
 // ResourceLifecycleMetrics tracks resource lifecycle metrics
@@ -131,21 +131,21 @@ type ResourceLifecycleMetrics struct {
 
 // ResourcePolicies defines policies for resource lifecycle management
 type ResourcePolicies struct {
-	RetryPolicy              *RetryPolicy              `json:"retry_policy"`
-	TimeoutPolicy            *TimeoutPolicy            `json:"timeout_policy"`
-	ScalingPolicy            *ScalingPolicy            `json:"scaling_policy"`
-	BackupPolicy             *BackupPolicy             `json:"backup_policy"`
-	MonitoringPolicy         *MonitoringPolicy         `json:"monitoring_policy"`
-	CompliancePolicy         *CompliancePolicy         `json:"compliance_policy"`
-	ResourceQuotaPolicy      *ResourceQuotaPolicy      `json:"resource_quota_policy"`
+	RetryPolicy         *RetryPolicy         `json:"retry_policy"`
+	TimeoutPolicy       *TimeoutPolicy       `json:"timeout_policy"`
+	ScalingPolicy       *ScalingPolicy       `json:"scaling_policy"`
+	BackupPolicy        *BackupPolicy        `json:"backup_policy"`
+	MonitoringPolicy    *MonitoringPolicy    `json:"monitoring_policy"`
+	CompliancePolicy    *CompliancePolicy    `json:"compliance_policy"`
+	ResourceQuotaPolicy *ResourceQuotaPolicy `json:"resource_quota_policy"`
 }
 
 // RetryPolicy defines retry behavior for failed operations
 type RetryPolicy struct {
-	MaxRetries     int           `json:"max_retries"`
-	RetryInterval  time.Duration `json:"retry_interval"`
-	BackoffFactor  float64       `json:"backoff_factor"`
-	MaxRetryDelay  time.Duration `json:"max_retry_delay"`
+	MaxRetries      int           `json:"max_retries"`
+	RetryInterval   time.Duration `json:"retry_interval"`
+	BackoffFactor   float64       `json:"backoff_factor"`
+	MaxRetryDelay   time.Duration `json:"max_retry_delay"`
 	RetriableErrors []string      `json:"retriable_errors"`
 }
 
@@ -157,45 +157,45 @@ type TimeoutPolicy struct {
 
 // ScalingPolicy defines automatic scaling behavior
 type ScalingPolicy struct {
-	AutoScalingEnabled     bool              `json:"auto_scaling_enabled"`
-	ScaleUpThreshold       float64           `json:"scale_up_threshold"`
-	ScaleDownThreshold     float64           `json:"scale_down_threshold"`
-	ScaleCooldownPeriod    time.Duration     `json:"scale_cooldown_period"`
-	MinReplicas            int32             `json:"min_replicas"`
-	MaxReplicas            int32             `json:"max_replicas"`
-	ScalingMetrics         []string          `json:"scaling_metrics"`
+	AutoScalingEnabled  bool          `json:"auto_scaling_enabled"`
+	ScaleUpThreshold    float64       `json:"scale_up_threshold"`
+	ScaleDownThreshold  float64       `json:"scale_down_threshold"`
+	ScaleCooldownPeriod time.Duration `json:"scale_cooldown_period"`
+	MinReplicas         int32         `json:"min_replicas"`
+	MaxReplicas         int32         `json:"max_replicas"`
+	ScalingMetrics      []string      `json:"scaling_metrics"`
 }
 
 // BackupPolicy defines backup behavior for resources
 type BackupPolicy struct {
-	AutoBackupEnabled      bool          `json:"auto_backup_enabled"`
-	BackupInterval         time.Duration `json:"backup_interval"`
-	RetentionPeriod        time.Duration `json:"retention_period"`
-	BackupStorageLocation  string        `json:"backup_storage_location"`
-	BackupEncryption       bool          `json:"backup_encryption"`
+	AutoBackupEnabled     bool          `json:"auto_backup_enabled"`
+	BackupInterval        time.Duration `json:"backup_interval"`
+	RetentionPeriod       time.Duration `json:"retention_period"`
+	BackupStorageLocation string        `json:"backup_storage_location"`
+	BackupEncryption      bool          `json:"backup_encryption"`
 }
 
 // MonitoringPolicy defines monitoring behavior
 type MonitoringPolicy struct {
-	HealthCheckInterval    time.Duration `json:"health_check_interval"`
-	MetricsCollectionInterval time.Duration `json:"metrics_collection_interval"`
-	AlarmingEnabled        bool          `json:"alarming_enabled"`
-	AlarmThresholds        map[string]float64 `json:"alarm_thresholds"`
+	HealthCheckInterval       time.Duration      `json:"health_check_interval"`
+	MetricsCollectionInterval time.Duration      `json:"metrics_collection_interval"`
+	AlarmingEnabled           bool               `json:"alarming_enabled"`
+	AlarmThresholds           map[string]float64 `json:"alarm_thresholds"`
 }
 
 // CompliancePolicy defines compliance requirements
 type CompliancePolicy struct {
-	RequiredLabels         map[string]string `json:"required_labels"`
-	RequiredAnnotations    map[string]string `json:"required_annotations"`
-	SecurityPolicies       []string          `json:"security_policies"`
-	DataClassification     string            `json:"data_classification"`
+	RequiredLabels      map[string]string `json:"required_labels"`
+	RequiredAnnotations map[string]string `json:"required_annotations"`
+	SecurityPolicies    []string          `json:"security_policies"`
+	DataClassification  string            `json:"data_classification"`
 }
 
 // ResourceQuotaPolicy defines resource quota constraints
 type ResourceQuotaPolicy struct {
-	MaxResourcesPerProvider map[string]int `json:"max_resources_per_provider"`
-	MaxResourcesPerType     map[string]int `json:"max_resources_per_type"`
-	MaxTotalResources       int            `json:"max_total_resources"`
+	MaxResourcesPerProvider map[string]int    `json:"max_resources_per_provider"`
+	MaxResourcesPerType     map[string]int    `json:"max_resources_per_type"`
+	MaxTotalResources       int               `json:"max_total_resources"`
 	ResourceLimits          map[string]string `json:"resource_limits"`
 }
 
@@ -244,8 +244,8 @@ func NewResourceLifecycleManager(config *O2IMSConfig, storage O2IMSStorage, prov
 // ProvisionResource provisions a new infrastructure resource
 func (rlm *ResourceLifecycleManager) ProvisionResource(ctx context.Context, req *ProvisionResourceRequest) (*models.Resource, error) {
 	logger := log.FromContext(ctx)
-	logger.Info("provisioning resource", 
-		"resource_type", req.ResourceType, 
+	logger.Info("provisioning resource",
+		"resource_type", req.ResourceType,
 		"provider", req.Provider,
 		"name", req.Name)
 
@@ -391,8 +391,8 @@ func (rlm *ResourceLifecycleManager) ConfigureResource(ctx context.Context, reso
 // ScaleResource scales a resource horizontally or vertically
 func (rlm *ResourceLifecycleManager) ScaleResource(ctx context.Context, resourceID string, req *ScaleResourceRequest) error {
 	logger := log.FromContext(ctx)
-	logger.Info("scaling resource", 
-		"resource_id", resourceID, 
+	logger.Info("scaling resource",
+		"resource_id", resourceID,
 		"scale_type", req.ScaleType,
 		"target_replicas", req.TargetReplicas)
 
@@ -453,7 +453,7 @@ func (rlm *ResourceLifecycleManager) ScaleResource(ctx context.Context, resource
 // MigrateResource migrates a resource between providers or locations
 func (rlm *ResourceLifecycleManager) MigrateResource(ctx context.Context, resourceID string, req *MigrateResourceRequest) error {
 	logger := log.FromContext(ctx)
-	logger.Info("migrating resource", 
+	logger.Info("migrating resource",
 		"resource_id", resourceID,
 		"source_provider", req.SourceProvider,
 		"target_provider", req.TargetProvider)
@@ -704,7 +704,7 @@ func (rlm *ResourceLifecycleManager) DiscoverResources(ctx context.Context, prov
 		}
 	}
 
-	rlm.logger.Info("resource discovery completed", 
+	rlm.logger.Info("resource discovery completed",
 		"provider_id", providerID,
 		"resources_discovered", len(resources))
 

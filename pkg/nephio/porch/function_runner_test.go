@@ -292,7 +292,7 @@ func createTestFunctionRunner(client *Client) *functionRunner {
 		semaphore:        make(chan struct{}, 5),
 		metrics:          initFunctionRunnerMetrics(),
 	}
-	
+
 	// Set up mocks with default behaviors
 	mockRegistry := &MockFunctionRegistry{}
 	mockEngine := &MockExecutionEngine{}
@@ -301,7 +301,7 @@ func createTestFunctionRunner(client *Client) *functionRunner {
 	mockPipelineOrchestrator := &MockPipelineOrchestrator{}
 	mockORANValidator := &MockORANComplianceValidator{}
 	mockCache := &MockFunctionCache{}
-	
+
 	// Configure default mock behaviors
 	mockRegistry.On("ValidateFunction", mock.Anything, mock.Anything).Return(&FunctionValidation{Valid: true}, nil)
 	mockRegistry.On("ListFunctions", mock.Anything).Return([]*FunctionInfo{
@@ -312,7 +312,7 @@ func createTestFunctionRunner(client *Client) *functionRunner {
 		},
 	}, nil)
 	mockRegistry.On("GetFunctionSchema", mock.Anything, mock.Anything).Return(&FunctionSchema{}, nil)
-	
+
 	mockEngine.On("ExecuteFunction", mock.Anything, mock.Anything).Return(&FunctionExecutionResult{
 		FunctionResponse: &FunctionResponse{
 			Resources: []KRMResource{},
@@ -330,28 +330,28 @@ func createTestFunctionRunner(client *Client) *functionRunner {
 		CPU:    "1000m",
 		Memory: "1Gi",
 	})
-	
+
 	mockQuotaManager.On("CheckQuota", mock.Anything, mock.Anything).Return(nil)
 	mockQuotaManager.On("ReserveResources", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 	mockQuotaManager.On("ReleaseResources", mock.Anything, mock.Anything).Return(nil)
-	
+
 	mockSecurityValidator.On("ValidateFunction", mock.Anything, mock.Anything).Return(nil)
-	
+
 	mockPipelineOrchestrator.On("ValidatePipeline", mock.Anything, mock.Anything).Return(nil)
 	mockPipelineOrchestrator.On("ExecutePipeline", mock.Anything, mock.Anything).Return(&PipelineResponse{
 		Resources: []KRMResource{},
 		Results:   []*FunctionResult{},
 	}, nil)
-	
+
 	mockORANValidator.On("ValidateCompliance", mock.Anything, mock.Anything).Return(&ComplianceResult{
 		Compliant:  true,
 		Violations: []ComplianceViolation{},
 		Score:      100,
 	}, nil)
-	
+
 	mockCache.On("Get", mock.Anything, mock.Anything).Return((*FunctionResponse)(nil), false)
 	mockCache.On("Set", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-	
+
 	fr.SetFunctionRegistry(mockRegistry)
 	fr.SetExecutionEngine(mockEngine)
 	fr.SetQuotaManager(mockQuotaManager)
@@ -359,7 +359,7 @@ func createTestFunctionRunner(client *Client) *functionRunner {
 	fr.SetPipelineOrchestrator(mockPipelineOrchestrator)
 	fr.SetORANValidator(mockORANValidator)
 	fr.SetFunctionCache(mockCache)
-	
+
 	return fr
 }
 
@@ -368,10 +368,10 @@ func createTestFunctionRunner(client *Client) *functionRunner {
 func TestNewFunctionRunner(t *testing.T) {
 	client := createTestClient()
 	fr := NewFunctionRunner(client)
-	
+
 	assert.NotNil(t, fr)
 	assert.IsType(t, &functionRunner{}, fr)
-	
+
 	frImpl := fr.(*functionRunner)
 	assert.Equal(t, client, frImpl.client)
 	assert.NotNil(t, frImpl.activeExecutions)
@@ -425,18 +425,18 @@ func TestFunctionRunnerExecuteFunction(t *testing.T) {
 			expectError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := createTestClient()
 			fr := createTestFunctionRunner(client)
-			
+
 			if tt.setupMocks != nil {
 				tt.setupMocks(fr)
 			}
-			
+
 			response, err := fr.ExecuteFunction(context.Background(), tt.request)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, response)
@@ -451,34 +451,34 @@ func TestFunctionRunnerExecuteFunction(t *testing.T) {
 func TestFunctionRunnerExecutePipeline(t *testing.T) {
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	t.Run("ValidPipelineExecution", func(t *testing.T) {
 		request := createTestPipelineRequest()
-		
+
 		response, err := fr.ExecutePipeline(context.Background(), request)
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
 	})
-	
+
 	t.Run("PipelineValidationFailure", func(t *testing.T) {
 		request := createTestPipelineRequest()
-		
+
 		mockOrchestrator := fr.pipelineOrchestrator.(*MockPipelineOrchestrator)
 		mockOrchestrator.ExpectedCalls = nil
 		mockOrchestrator.On("ValidatePipeline", mock.Anything, mock.Anything).Return(fmt.Errorf("pipeline validation failed"))
-		
+
 		response, err := fr.ExecutePipeline(context.Background(), request)
 		assert.Error(t, err)
 		assert.Nil(t, response)
 	})
-	
+
 	t.Run("SequentialPipelineExecution", func(t *testing.T) {
 		// Test fallback to sequential execution when orchestrator is not available
 		request := createTestPipelineRequest()
-		
+
 		// Remove orchestrator to trigger sequential execution
 		fr.pipelineOrchestrator = nil
-		
+
 		response, err := fr.ExecutePipeline(context.Background(), request)
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
@@ -488,14 +488,14 @@ func TestFunctionRunnerExecutePipeline(t *testing.T) {
 func TestFunctionRunnerValidateFunction(t *testing.T) {
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	t.Run("ValidFunction", func(t *testing.T) {
 		validation, err := fr.ValidateFunction(context.Background(), "gcr.io/kpt-fn/apply-setters:v0.1.1")
 		assert.NoError(t, err)
 		assert.NotNil(t, validation)
 		assert.True(t, validation.Valid)
 	})
-	
+
 	t.Run("InvalidFunctionImage", func(t *testing.T) {
 		validation, err := fr.ValidateFunction(context.Background(), "invalid-function")
 		assert.NoError(t, err)
@@ -503,7 +503,7 @@ func TestFunctionRunnerValidateFunction(t *testing.T) {
 		assert.False(t, validation.Valid)
 		assert.NotEmpty(t, validation.Errors)
 	})
-	
+
 	t.Run("FunctionWithoutTag", func(t *testing.T) {
 		validation, err := fr.ValidateFunction(context.Background(), "gcr.io/kpt-fn/apply-setters")
 		assert.NoError(t, err)
@@ -516,7 +516,7 @@ func TestFunctionRunnerValidateFunction(t *testing.T) {
 func TestFunctionRunnerListFunctions(t *testing.T) {
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	functions, err := fr.ListFunctions(context.Background())
 	assert.NoError(t, err)
 	assert.NotNil(t, functions)
@@ -526,7 +526,7 @@ func TestFunctionRunnerListFunctions(t *testing.T) {
 func TestFunctionRunnerGetFunctionSchema(t *testing.T) {
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	schema, err := fr.GetFunctionSchema(context.Background(), "gcr.io/kpt-fn/apply-setters:v0.1.1")
 	assert.NoError(t, err)
 	assert.NotNil(t, schema)
@@ -535,16 +535,16 @@ func TestFunctionRunnerGetFunctionSchema(t *testing.T) {
 func TestFunctionRunnerRegisterFunction(t *testing.T) {
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	info := &FunctionInfo{
 		Name:        "custom-function",
 		Description: "Custom test function",
 		Types:       []string{"mutator"},
 	}
-	
+
 	mockRegistry := fr.registry.(*MockFunctionRegistry)
 	mockRegistry.On("RegisterFunction", mock.Anything, info).Return(nil)
-	
+
 	err := fr.RegisterFunction(context.Background(), info)
 	assert.NoError(t, err)
 }
@@ -552,31 +552,31 @@ func TestFunctionRunnerRegisterFunction(t *testing.T) {
 func TestFunctionRunnerCaching(t *testing.T) {
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	request := createTestFunctionRequest()
-	
+
 	t.Run("CacheHit", func(t *testing.T) {
 		mockCache := fr.cache.(*MockFunctionCache)
 		cachedResponse := &FunctionResponse{
 			Resources: []KRMResource{},
 			Results:   []*FunctionResult{},
 		}
-		
+
 		mockCache.ExpectedCalls = nil
 		mockCache.On("Get", mock.Anything, mock.Anything).Return(cachedResponse, true)
-		
+
 		response, err := fr.ExecuteFunction(context.Background(), request)
 		assert.NoError(t, err)
 		assert.Equal(t, cachedResponse, response)
 	})
-	
+
 	t.Run("CacheMiss", func(t *testing.T) {
 		mockCache := fr.cache.(*MockFunctionCache)
-		
+
 		mockCache.ExpectedCalls = nil
 		mockCache.On("Get", mock.Anything, mock.Anything).Return((*FunctionResponse)(nil), false)
 		mockCache.On("Set", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-		
+
 		response, err := fr.ExecuteFunction(context.Background(), request)
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
@@ -586,46 +586,46 @@ func TestFunctionRunnerCaching(t *testing.T) {
 func TestFunctionRunnerActiveExecutions(t *testing.T) {
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	t.Run("TrackActiveExecutions", func(t *testing.T) {
 		// Start function execution in background
 		var wg sync.WaitGroup
 		wg.Add(1)
-		
+
 		go func() {
 			defer wg.Done()
 			request := createTestFunctionRequest()
 			fr.ExecuteFunction(context.Background(), request)
 		}()
-		
+
 		// Brief wait to ensure execution starts
 		time.Sleep(10 * time.Millisecond)
-		
+
 		executions := fr.GetActiveExecutions()
 		assert.GreaterOrEqual(t, len(executions), 0) // May be 0 if execution completes very quickly
-		
+
 		wg.Wait()
 	})
-	
+
 	t.Run("CancelExecution", func(t *testing.T) {
 		// This test is tricky because we need to simulate a long-running execution
 		// For simplicity, we'll test the cancel functionality directly
-		
+
 		execCtx := &executionContext{
 			id:           "test-execution-id",
 			functionName: "test-function",
 			startTime:    time.Now(),
 			status:       ExecutionStatusRunning,
 		}
-		
+
 		ctx, cancel := context.WithCancel(context.Background())
 		execCtx.cancel = cancel
-		
+
 		fr.activeExecutions["test-execution-id"] = execCtx
-		
+
 		err := fr.CancelExecution("test-execution-id")
 		assert.NoError(t, err)
-		
+
 		assert.Equal(t, ExecutionStatusCancelled, execCtx.status)
 	})
 }
@@ -633,10 +633,10 @@ func TestFunctionRunnerActiveExecutions(t *testing.T) {
 func TestFunctionRunnerClose(t *testing.T) {
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	err := fr.Close()
 	assert.NoError(t, err)
-	
+
 	// Verify cleanup
 	assert.Empty(t, fr.activeExecutions)
 }
@@ -647,37 +647,37 @@ func TestFunctionRunnerPerformance(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance tests in short mode")
 	}
-	
+
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	t.Run("FunctionExecutionLatency", func(t *testing.T) {
 		request := createTestFunctionRequest()
-		
+
 		start := time.Now()
 		_, err := fr.ExecuteFunction(context.Background(), request)
 		duration := time.Since(start)
-		
+
 		assert.NoError(t, err)
 		assert.Less(t, duration, 500*time.Millisecond, "Function execution should complete in <500ms")
 	})
-	
+
 	t.Run("PipelineExecutionLatency", func(t *testing.T) {
 		request := createTestPipelineRequest()
-		
+
 		start := time.Now()
 		_, err := fr.ExecutePipeline(context.Background(), request)
 		duration := time.Since(start)
-		
+
 		assert.NoError(t, err)
 		assert.Less(t, duration, 1*time.Second, "Pipeline execution should complete in <1s")
 	})
-	
+
 	t.Run("FunctionValidationLatency", func(t *testing.T) {
 		start := time.Now()
 		_, err := fr.ValidateFunction(context.Background(), "gcr.io/kpt-fn/apply-setters:v0.1.1")
 		duration := time.Since(start)
-		
+
 		assert.NoError(t, err)
 		assert.Less(t, duration, 100*time.Millisecond, "Function validation should complete in <100ms")
 	})
@@ -687,62 +687,62 @@ func TestFunctionRunnerConcurrency(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping concurrency tests in short mode")
 	}
-	
+
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
 	concurrency := 50
-	
+
 	t.Run("ConcurrentFunctionExecution", func(t *testing.T) {
 		var wg sync.WaitGroup
 		results := make([]error, concurrency)
-		
+
 		start := time.Now()
-		
+
 		for i := 0; i < concurrency; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
-				
+
 				request := createTestFunctionRequest()
 				request.FunctionConfig.ConfigMap = map[string]string{
 					"execution_id": fmt.Sprintf("exec-%d", index),
 				}
-				
+
 				_, err := fr.ExecuteFunction(context.Background(), request)
 				results[index] = err
 			}(i)
 		}
-		
+
 		wg.Wait()
 		duration := time.Since(start)
-		
+
 		// Check all operations succeeded
 		for i, err := range results {
 			assert.NoError(t, err, "Operation %d should succeed", i)
 		}
-		
+
 		// Check throughput
 		opsPerSecond := float64(concurrency) / duration.Seconds()
 		assert.Greater(t, opsPerSecond, 5.0, "Should handle >5 function executions per second")
 	})
-	
+
 	t.Run("ConcurrentPipelineExecution", func(t *testing.T) {
 		var wg sync.WaitGroup
 		results := make([]error, concurrency/2) // Fewer pipeline executions as they're more expensive
-		
+
 		for i := 0; i < len(results); i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
-				
+
 				request := createTestPipelineRequest()
 				_, err := fr.ExecutePipeline(context.Background(), request)
 				results[index] = err
 			}(i)
 		}
-		
+
 		wg.Wait()
-		
+
 		// Check all operations succeeded
 		for i, err := range results {
 			assert.NoError(t, err, "Pipeline %d should succeed", i)
@@ -754,44 +754,44 @@ func TestFunctionRunnerMemoryUsage(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping memory tests in short mode")
 	}
-	
+
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	// Force garbage collection before measuring
 	runtime.GC()
 	runtime.GC()
-	
+
 	var m1 runtime.MemStats
 	runtime.ReadMemStats(&m1)
-	
+
 	// Perform a series of operations
 	for i := 0; i < 100; i++ {
 		request := createTestFunctionRequest()
 		request.FunctionConfig.ConfigMap = map[string]string{
 			"iteration": fmt.Sprintf("%d", i),
 		}
-		
+
 		_, err := fr.ExecuteFunction(context.Background(), request)
 		require.NoError(t, err)
-		
+
 		if i%10 == 0 {
 			pipelineRequest := createTestPipelineRequest()
 			_, err = fr.ExecutePipeline(context.Background(), pipelineRequest)
 			require.NoError(t, err)
 		}
 	}
-	
+
 	// Force garbage collection after operations
 	runtime.GC()
 	runtime.GC()
-	
+
 	var m2 runtime.MemStats
 	runtime.ReadMemStats(&m2)
-	
+
 	memoryUsed := m2.Alloc - m1.Alloc
 	memoryUsedMB := float64(memoryUsed) / (1024 * 1024)
-	
+
 	assert.Less(t, memoryUsedMB, 50.0, "Memory usage should be <50MB for 110 operations")
 }
 
@@ -800,10 +800,10 @@ func TestFunctionRunnerMemoryUsage(t *testing.T) {
 func BenchmarkFunctionRunnerOperations(b *testing.B) {
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	b.Run("ExecuteFunction", func(b *testing.B) {
 		request := createTestFunctionRequest()
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_, err := fr.ExecuteFunction(context.Background(), request)
@@ -812,7 +812,7 @@ func BenchmarkFunctionRunnerOperations(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("ValidateFunction", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -822,10 +822,10 @@ func BenchmarkFunctionRunnerOperations(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("ExecutePipeline", func(b *testing.B) {
 		request := createTestPipelineRequest()
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_, err := fr.ExecutePipeline(context.Background(), request)
@@ -834,7 +834,7 @@ func BenchmarkFunctionRunnerOperations(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("ListFunctions", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -851,34 +851,34 @@ func BenchmarkFunctionRunnerOperations(b *testing.B) {
 func TestFunctionRunnerErrorHandling(t *testing.T) {
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	t.Run("NonexistentFunction", func(t *testing.T) {
 		request := createTestFunctionRequest()
 		request.FunctionConfig.Image = "nonexistent/function:latest"
-		
+
 		// Mock the execution engine to return an error
 		mockEngine := fr.executionEngine.(*MockExecutionEngine)
 		mockEngine.ExpectedCalls = nil
 		mockEngine.On("ExecuteFunction", mock.Anything, mock.Anything).Return(
-			(*FunctionExecutionResult)(nil), 
+			(*FunctionExecutionResult)(nil),
 			fmt.Errorf("function image not found"),
 		)
-		
+
 		_, err := fr.ExecuteFunction(context.Background(), request)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "function execution failed")
 	})
-	
+
 	t.Run("InvalidPipeline", func(t *testing.T) {
 		request := createTestPipelineRequest()
 		request.Pipeline.Mutators = []FunctionConfig{} // Empty pipeline
 		request.Pipeline.Validators = []FunctionConfig{}
-		
+
 		response, err := fr.ExecutePipeline(context.Background(), request)
 		assert.NoError(t, err) // Empty pipeline should succeed
 		assert.NotNil(t, response)
 	})
-	
+
 	t.Run("RegisterFunctionWithoutRegistry", func(t *testing.T) {
 		// Create function runner without registry
 		frWithoutRegistry := &functionRunner{
@@ -886,11 +886,11 @@ func TestFunctionRunnerErrorHandling(t *testing.T) {
 			activeExecutions: make(map[string]*executionContext),
 			semaphore:        make(chan struct{}, 5),
 		}
-		
+
 		info := &FunctionInfo{
 			Name: "test-function",
 		}
-		
+
 		err := frWithoutRegistry.RegisterFunction(context.Background(), info)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "function registry not available")
@@ -902,23 +902,23 @@ func TestFunctionRunnerErrorHandling(t *testing.T) {
 func TestFunctionRunnerContextCancellation(t *testing.T) {
 	client := createTestClient()
 	fr := createTestFunctionRunner(client)
-	
+
 	t.Run("CancelledContext", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
-		
+
 		request := createTestFunctionRequest()
 		_, err := fr.ExecuteFunction(ctx, request)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "context canceled")
 	})
-	
+
 	t.Run("TimeoutContext", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 		defer cancel()
-		
+
 		time.Sleep(1 * time.Millisecond) // Ensure timeout
-		
+
 		request := createTestFunctionRequest()
 		_, err := fr.ExecuteFunction(ctx, request)
 		assert.Error(t, err)

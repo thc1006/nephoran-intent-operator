@@ -16,24 +16,24 @@ import (
 
 // KMPAnalyticsXApp demonstrates KMP (Key Performance Measurement) analytics using the xApp SDK
 type KMPAnalyticsXApp struct {
-	sdk            *e2.XAppSDK
-	analytics      *KMPAnalytics
+	sdk             *e2.XAppSDK
+	analytics       *KMPAnalytics
 	alertThresholds map[string]float64
 }
 
 // KMPAnalytics processes KMP measurement data
 type KMPAnalytics struct {
-	measurements     map[string]*MeasurementHistory
+	measurements    map[string]*MeasurementHistory
 	alerts          []PerformanceAlert
 	analysisResults []AnalysisResult
 }
 
 // MeasurementHistory stores historical measurement data
 type MeasurementHistory struct {
-	MetricName   string                 `json:"metric_name"`
-	Values       []MeasurementValue     `json:"values"`
-	Statistics   MeasurementStatistics  `json:"statistics"`
-	LastUpdated  time.Time              `json:"last_updated"`
+	MetricName  string                `json:"metric_name"`
+	Values      []MeasurementValue    `json:"values"`
+	Statistics  MeasurementStatistics `json:"statistics"`
+	LastUpdated time.Time             `json:"last_updated"`
 }
 
 // MeasurementValue represents a single measurement
@@ -45,11 +45,11 @@ type MeasurementValue struct {
 
 // MeasurementStatistics contains statistical analysis
 type MeasurementStatistics struct {
-	Mean     float64 `json:"mean"`
-	Min      float64 `json:"min"`
-	Max      float64 `json:"max"`
-	StdDev   float64 `json:"std_dev"`
-	Count    int     `json:"count"`
+	Mean   float64 `json:"mean"`
+	Min    float64 `json:"min"`
+	Max    float64 `json:"max"`
+	StdDev float64 `json:"std_dev"`
+	Count  int     `json:"count"`
 }
 
 // PerformanceAlert represents a performance threshold alert
@@ -112,7 +112,7 @@ func NewKMPAnalyticsXApp() (*KMPAnalyticsXApp, error) {
 
 	// Create analytics engine
 	analytics := &KMPAnalytics{
-		measurements:     make(map[string]*MeasurementHistory),
+		measurements:    make(map[string]*MeasurementHistory),
 		alerts:          make([]PerformanceAlert, 0),
 		analysisResults: make([]AnalysisResult, 0),
 	}
@@ -121,11 +121,11 @@ func NewKMPAnalyticsXApp() (*KMPAnalyticsXApp, error) {
 		sdk:       sdk,
 		analytics: analytics,
 		alertThresholds: map[string]float64{
-			"DRB.UEThpDl":    100.0, // Mbps threshold
-			"DRB.UEThpUl":    50.0,  // Mbps threshold
-			"RRU.PrbUsedDl":  0.8,   // 80% PRB utilization
-			"RRU.PrbUsedUl":  0.8,   // 80% PRB utilization
-			"DRB.RlcSduDelayDl": 20.0, // 20ms delay threshold
+			"DRB.UEThpDl":       100.0, // Mbps threshold
+			"DRB.UEThpUl":       50.0,  // Mbps threshold
+			"RRU.PrbUsedDl":     0.8,   // 80% PRB utilization
+			"RRU.PrbUsedUl":     0.8,   // 80% PRB utilization
+			"DRB.RlcSduDelayDl": 20.0,  // 20ms delay threshold
 		},
 	}
 
@@ -155,14 +155,14 @@ func (x *KMPAnalyticsXApp) Start(ctx context.Context) error {
 				TriggerType: "periodic",
 				Conditions: map[string]interface{}{
 					"measurement_types": []string{
-						"DRB.UEThpDl",         // Downlink UE throughput
-						"DRB.UEThpUl",         // Uplink UE throughput
-						"RRU.PrbUsedDl",       // Downlink PRB utilization
-						"RRU.PrbUsedUl",       // Uplink PRB utilization
-						"DRB.RlcSduDelayDl",   // Downlink RLC SDU delay
-						"DRB.RlcSduDelayUl",   // Uplink RLC SDU delay
-						"TB.ErrTotNbrDl",      // Downlink transport block errors
-						"TB.ErrTotNbrUl",      // Uplink transport block errors
+						"DRB.UEThpDl",       // Downlink UE throughput
+						"DRB.UEThpUl",       // Uplink UE throughput
+						"RRU.PrbUsedDl",     // Downlink PRB utilization
+						"RRU.PrbUsedUl",     // Uplink PRB utilization
+						"DRB.RlcSduDelayDl", // Downlink RLC SDU delay
+						"DRB.RlcSduDelayUl", // Uplink RLC SDU delay
+						"TB.ErrTotNbrDl",    // Downlink transport block errors
+						"TB.ErrTotNbrUl",    // Uplink transport block errors
 					},
 					"granularity_period":    "1000ms",
 					"collection_start_time": time.Now().Format(time.RFC3339),
@@ -176,7 +176,7 @@ func (x *KMPAnalyticsXApp) Start(ctx context.Context) error {
 				ActionID:   1,
 				ActionType: "report",
 				ActionDefinition: map[string]interface{}{
-					"format": "json",
+					"format":      "json",
 					"compression": false,
 				},
 			},
@@ -257,7 +257,7 @@ func (x *KMPAnalyticsXApp) processMeasurement(metricName string, value float64, 
 		Timestamp: timestamp,
 		CellID:    cellID,
 	}
-	
+
 	history.Values = append(history.Values, measurement)
 	history.LastUpdated = timestamp
 
@@ -441,7 +441,7 @@ func (x *KMPAnalyticsXApp) analyzeTrends() map[string]interface{} {
 
 		// Simple trend analysis - check if recent values are increasing/decreasing
 		recentValues := history.Values[len(history.Values)-10:]
-		
+
 		var increasing, decreasing int
 		for i := 1; i < len(recentValues); i++ {
 			if recentValues[i].Value > recentValues[i-1].Value {
@@ -484,7 +484,7 @@ func (x *KMPAnalyticsXApp) analyzeCorrelations() map[string]interface{} {
 		results["throughput_prb_correlation"] = map[string]interface{}{
 			"correlation_coefficient": correlation,
 			"interpretation":          x.interpretCorrelation(correlation),
-			"metric_pair":            "DRB.UEThpDl vs RRU.PrbUsedDl",
+			"metric_pair":             "DRB.UEThpDl vs RRU.PrbUsedDl",
 		}
 	}
 
@@ -495,7 +495,7 @@ func (x *KMPAnalyticsXApp) analyzeCorrelations() map[string]interface{} {
 func (x *KMPAnalyticsXApp) calculateCorrelation(values1, values2 []MeasurementValue) float64 {
 	// Simplified correlation calculation
 	// In a real implementation, this would use proper statistical correlation algorithms
-	
+
 	if len(values1) != len(values2) || len(values1) < 2 {
 		return 0.0
 	}
@@ -565,7 +565,7 @@ func calculateAverage(values []MeasurementValue) float64 {
 	if len(values) == 0 {
 		return 0.0
 	}
-	
+
 	var sum float64
 	for _, value := range values {
 		sum += value.Value

@@ -26,7 +26,7 @@ func TestRequestSizeLimiter(t *testing.T) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		response := map[string]interface{}{
 			"status":    "success",
@@ -113,7 +113,7 @@ func TestMaxBytesHandler(t *testing.T) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		
+
 		fmt.Fprintf(w, "OK: received %d bytes", len(body))
 	})
 
@@ -301,10 +301,10 @@ func TestMaxBytesHandlerPanicRecovery(t *testing.T) {
 	testMaxSize := int64(100)
 
 	tests := []struct {
-		name                string
-		handler             http.HandlerFunc
-		expectedStatus      int
-		expectPanicRethrow  bool
+		name               string
+		handler            http.HandlerFunc
+		expectedStatus     int
+		expectPanicRethrow bool
 	}{
 		{
 			name: "MaxBytesError panic recovery",

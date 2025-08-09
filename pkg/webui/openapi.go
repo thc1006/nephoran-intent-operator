@@ -24,12 +24,12 @@ import (
 // OpenAPISpec represents the OpenAPI 3.0 specification
 type OpenAPISpec struct {
 	OpenAPI    string                  `json:"openapi"`
-	Info       *OpenAPIInfo           `json:"info"`
-	Servers    []*OpenAPIServer       `json:"servers,omitempty"`
+	Info       *OpenAPIInfo            `json:"info"`
+	Servers    []*OpenAPIServer        `json:"servers,omitempty"`
 	Paths      map[string]*OpenAPIPath `json:"paths"`
-	Components *OpenAPIComponents     `json:"components,omitempty"`
-	Security   []map[string][]string  `json:"security,omitempty"`
-	Tags       []*OpenAPITag          `json:"tags,omitempty"`
+	Components *OpenAPIComponents      `json:"components,omitempty"`
+	Security   []map[string][]string   `json:"security,omitempty"`
+	Tags       []*OpenAPITag           `json:"tags,omitempty"`
 }
 
 // OpenAPIInfo represents the API information
@@ -80,15 +80,15 @@ type OpenAPIPath struct {
 
 // OpenAPIOperation represents an operation
 type OpenAPIOperation struct {
-	Tags         []string                      `json:"tags,omitempty"`
-	Summary      string                        `json:"summary,omitempty"`
-	Description  string                        `json:"description,omitempty"`
-	OperationID  string                        `json:"operationId,omitempty"`
-	Parameters   []*OpenAPIParameter           `json:"parameters,omitempty"`
-	RequestBody  *OpenAPIRequestBody           `json:"requestBody,omitempty"`
-	Responses    map[string]*OpenAPIResponse   `json:"responses"`
-	Security     []map[string][]string         `json:"security,omitempty"`
-	Deprecated   bool                          `json:"deprecated,omitempty"`
+	Tags        []string                    `json:"tags,omitempty"`
+	Summary     string                      `json:"summary,omitempty"`
+	Description string                      `json:"description,omitempty"`
+	OperationID string                      `json:"operationId,omitempty"`
+	Parameters  []*OpenAPIParameter         `json:"parameters,omitempty"`
+	RequestBody *OpenAPIRequestBody         `json:"requestBody,omitempty"`
+	Responses   map[string]*OpenAPIResponse `json:"responses"`
+	Security    []map[string][]string       `json:"security,omitempty"`
+	Deprecated  bool                        `json:"deprecated,omitempty"`
 }
 
 // OpenAPIParameter represents a parameter
@@ -103,22 +103,22 @@ type OpenAPIParameter struct {
 
 // OpenAPIRequestBody represents a request body
 type OpenAPIRequestBody struct {
-	Description string                      `json:"description,omitempty"`
-	Content     map[string]*OpenAPIContent  `json:"content"`
-	Required    bool                        `json:"required,omitempty"`
+	Description string                     `json:"description,omitempty"`
+	Content     map[string]*OpenAPIContent `json:"content"`
+	Required    bool                       `json:"required,omitempty"`
 }
 
 // OpenAPIResponse represents a response
 type OpenAPIResponse struct {
-	Description string                      `json:"description"`
-	Headers     map[string]*OpenAPIHeader   `json:"headers,omitempty"`
-	Content     map[string]*OpenAPIContent  `json:"content,omitempty"`
+	Description string                     `json:"description"`
+	Headers     map[string]*OpenAPIHeader  `json:"headers,omitempty"`
+	Content     map[string]*OpenAPIContent `json:"content,omitempty"`
 }
 
 // OpenAPIContent represents content
 type OpenAPIContent struct {
-	Schema   *OpenAPISchema  `json:"schema,omitempty"`
-	Example  interface{}     `json:"example,omitempty"`
+	Schema   *OpenAPISchema             `json:"schema,omitempty"`
+	Example  interface{}                `json:"example,omitempty"`
 	Examples map[string]*OpenAPIExample `json:"examples,omitempty"`
 }
 
@@ -163,24 +163,24 @@ type OpenAPISchema struct {
 
 // OpenAPIComponents represents components
 type OpenAPIComponents struct {
-	Schemas         map[string]*OpenAPISchema        `json:"schemas,omitempty"`
-	Responses       map[string]*OpenAPIResponse      `json:"responses,omitempty"`
-	Parameters      map[string]*OpenAPIParameter     `json:"parameters,omitempty"`
-	RequestBodies   map[string]*OpenAPIRequestBody   `json:"requestBodies,omitempty"`
-	Headers         map[string]*OpenAPIHeader        `json:"headers,omitempty"`
+	Schemas         map[string]*OpenAPISchema         `json:"schemas,omitempty"`
+	Responses       map[string]*OpenAPIResponse       `json:"responses,omitempty"`
+	Parameters      map[string]*OpenAPIParameter      `json:"parameters,omitempty"`
+	RequestBodies   map[string]*OpenAPIRequestBody    `json:"requestBodies,omitempty"`
+	Headers         map[string]*OpenAPIHeader         `json:"headers,omitempty"`
 	SecuritySchemes map[string]*OpenAPISecurityScheme `json:"securitySchemes,omitempty"`
 }
 
 // OpenAPISecurityScheme represents a security scheme
 type OpenAPISecurityScheme struct {
-	Type             string            `json:"type"`
-	Description      string            `json:"description,omitempty"`
-	Name             string            `json:"name,omitempty"`
-	In               string            `json:"in,omitempty"`
-	Scheme           string            `json:"scheme,omitempty"`
-	BearerFormat     string            `json:"bearerFormat,omitempty"`
+	Type             string             `json:"type"`
+	Description      string             `json:"description,omitempty"`
+	Name             string             `json:"name,omitempty"`
+	In               string             `json:"in,omitempty"`
+	Scheme           string             `json:"scheme,omitempty"`
+	BearerFormat     string             `json:"bearerFormat,omitempty"`
 	Flows            *OpenAPIOAuthFlows `json:"flows,omitempty"`
-	OpenIDConnectURL string            `json:"openIdConnectUrl,omitempty"`
+	OpenIDConnectURL string             `json:"openIdConnectUrl,omitempty"`
 }
 
 // OpenAPIOAuthFlows represents OAuth flows
@@ -201,9 +201,9 @@ type OpenAPIOAuthFlow struct {
 
 // OpenAPITag represents a tag
 type OpenAPITag struct {
-	Name         string                `json:"name"`
-	Description  string                `json:"description,omitempty"`
-	ExternalDocs *OpenAPIExternalDocs  `json:"externalDocs,omitempty"`
+	Name         string               `json:"name"`
+	Description  string               `json:"description,omitempty"`
+	ExternalDocs *OpenAPIExternalDocs `json:"externalDocs,omitempty"`
 }
 
 // OpenAPIExternalDocs represents external documentation

@@ -121,22 +121,22 @@ func (m *MockStatusWriter) Patch(ctx context.Context, obj client.Object, patch c
 // Test helper functions
 func createTestEdgeController() *EdgeController {
 	config := &EdgeControllerConfig{
-		NodeDiscoveryEnabled:      true,
-		DiscoveryInterval:         30 * time.Second,
-		NodeHealthCheckInterval:   10 * time.Second,
-		AutoZoneCreation:          true,
-		MaxNodesPerZone:           10,
-		ZoneRedundancyFactor:      2,
-		EnableLocalRIC:            true,
-		EnableEdgeML:              true,
-		EnableCaching:             true,
-		LocalProcessingEnabled:    true,
-		MaxLatencyMs:              5,
-		MinBandwidthMbps:          100,
-		EdgeResourceThreshold:     0.8,
-		EdgeFailoverEnabled:       true,
-		BackhaulFailoverEnabled:   true,
-		LocalAutonomy:             true,
+		NodeDiscoveryEnabled:    true,
+		DiscoveryInterval:       30 * time.Second,
+		NodeHealthCheckInterval: 10 * time.Second,
+		AutoZoneCreation:        true,
+		MaxNodesPerZone:         10,
+		ZoneRedundancyFactor:    2,
+		EnableLocalRIC:          true,
+		EnableEdgeML:            true,
+		EnableCaching:           true,
+		LocalProcessingEnabled:  true,
+		MaxLatencyMs:            5,
+		MinBandwidthMbps:        100,
+		EdgeResourceThreshold:   0.8,
+		EdgeFailoverEnabled:     true,
+		BackhaulFailoverEnabled: true,
+		LocalAutonomy:           true,
 	}
 
 	kubeClient := kubefake.NewSimpleClientset()
@@ -162,9 +162,9 @@ func TestNewEdgeController(t *testing.T) {
 	scheme := runtime.NewScheme()
 
 	config := &EdgeControllerConfig{
-		NodeDiscoveryEnabled:     true,
-		DiscoveryInterval:        30 * time.Second,
-		NodeHealthCheckInterval:  10 * time.Second,
+		NodeDiscoveryEnabled:    true,
+		DiscoveryInterval:       30 * time.Second,
+		NodeHealthCheckInterval: 10 * time.Second,
 		AutoZoneCreation:        true,
 		MaxNodesPerZone:         10,
 		ZoneRedundancyFactor:    2,
@@ -222,10 +222,10 @@ func TestEdgeController_Reconcile(t *testing.T) {
 						Namespace: "default",
 					},
 					Spec: nephoran.NetworkIntentSpec{
-						Intent: "Deploy edge processing for low latency",
+						Intent:     "Deploy edge processing for low latency",
 						IntentType: "edge-optimization",
 						ParametersMap: map[string]string{
-							"edge": "true",
+							"edge":    "true",
 							"latency": "5ms",
 						},
 					},
@@ -257,7 +257,7 @@ func TestEdgeController_Reconcile(t *testing.T) {
 						Namespace: "default",
 					},
 					Spec: nephoran.NetworkIntentSpec{
-						Intent: "Deploy standard network service",
+						Intent:     "Deploy standard network service",
 						IntentType: "standard",
 						ParametersMap: map[string]string{
 							"type": "standard",
@@ -313,7 +313,7 @@ func TestEdgeController_Reconcile(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockClient := new(MockClient)
 			mockStatusWriter := new(MockStatusWriter)
-			
+
 			controller := createTestEdgeController()
 			controller.Client = mockClient
 
@@ -351,8 +351,8 @@ func TestEdgeController_NodeManagement(t *testing.T) {
 				GPUEnabled:   true,
 			},
 			Resources: EdgeResources{
-				CPUUtilization:    0.5,
-				MemoryUtilization: 0.6,
+				CPUUtilization:     0.5,
+				MemoryUtilization:  0.6,
 				StorageUtilization: 0.3,
 			},
 			LastSeen: time.Now(),
@@ -368,7 +368,7 @@ func TestEdgeController_NodeManagement(t *testing.T) {
 		status := EdgeNodeDegraded
 		err := controller.UpdateNodeStatus("node-1", status)
 		assert.NoError(t, err)
-		
+
 		node := controller.edgeNodes["node-1"]
 		assert.Equal(t, status, node.Status)
 	})
@@ -406,8 +406,8 @@ func TestEdgeController_ZoneManagement(t *testing.T) {
 			ServiceLevel:    ServiceLevelPremium,
 			RedundancyLevel: 2,
 			TotalCapacity: EdgeResources{
-				CPUUtilization:    0.0,
-				MemoryUtilization: 0.0,
+				CPUUtilization:     0.0,
+				MemoryUtilization:  0.0,
 				StorageUtilization: 0.0,
 			},
 		}
@@ -422,14 +422,14 @@ func TestEdgeController_ZoneManagement(t *testing.T) {
 		zone := controller.edgeZones["zone-1"]
 		zone.ConnectedUsers = 100
 		zone.UtilizedCapacity = EdgeResources{
-			CPUUtilization:    0.7,
-			MemoryUtilization: 0.5,
+			CPUUtilization:     0.7,
+			MemoryUtilization:  0.5,
 			StorageUtilization: 0.3,
 		}
 
 		err := controller.UpdateZone(zone)
 		assert.NoError(t, err)
-		
+
 		updatedZone := controller.edgeZones["zone-1"]
 		assert.Equal(t, 100, updatedZone.ConnectedUsers)
 		assert.Equal(t, 0.7, updatedZone.UtilizedCapacity.CPUUtilization)
@@ -466,8 +466,8 @@ func TestEdgeController_ProcessNetworkIntent(t *testing.T) {
 			GPUEnabled:   true,
 		},
 		Resources: EdgeResources{
-			CPUUtilization:    0.3,
-			MemoryUtilization: 0.4,
+			CPUUtilization:     0.3,
+			MemoryUtilization:  0.4,
 			StorageUtilization: 0.2,
 		},
 	}
@@ -483,12 +483,12 @@ func TestEdgeController_ProcessNetworkIntent(t *testing.T) {
 			GPUEnabled:   false,
 		},
 		Resources: EdgeResources{
-			CPUUtilization:    0.8,
-			MemoryUtilization: 0.7,
+			CPUUtilization:     0.8,
+			MemoryUtilization:  0.7,
 			StorageUtilization: 0.5,
 		},
 	}
-	
+
 	controller.RegisterNode(node1)
 	controller.RegisterNode(node2)
 
@@ -503,7 +503,7 @@ func TestEdgeController_ProcessNetworkIntent(t *testing.T) {
 				Spec: nephoran.NetworkIntentSpec{
 					IntentType: "low-latency",
 					ParametersMap: map[string]string{
-						"maxLatency": "5ms",
+						"maxLatency":   "5ms",
 						"minBandwidth": "100Mbps",
 					},
 				},
@@ -567,13 +567,13 @@ func TestEdgeController_HealthMonitoring(t *testing.T) {
 		Status:   EdgeNodeActive,
 		LastSeen: time.Now(),
 		HealthMetrics: EdgeHealthMetrics{
-			Latency:           3,
-			PacketLoss:        0.01,
-			Jitter:            1,
-			Availability:      0.999,
-			ErrorRate:         0.001,
-			ConnectionCount:   100,
-			ActiveSessions:    50,
+			Latency:         3,
+			PacketLoss:      0.01,
+			Jitter:          1,
+			Availability:    0.999,
+			ErrorRate:       0.001,
+			ConnectionCount: 100,
+			ActiveSessions:  50,
 		},
 	}
 	controller.RegisterNode(node)
@@ -588,13 +588,13 @@ func TestEdgeController_HealthMonitoring(t *testing.T) {
 
 	t.Run("UpdateHealthMetrics", func(t *testing.T) {
 		metrics := EdgeHealthMetrics{
-			Latency:           10, // Degraded
-			PacketLoss:        0.05,
-			Jitter:            5,
-			Availability:      0.95,
-			ErrorRate:         0.05,
-			ConnectionCount:   150,
-			ActiveSessions:    80,
+			Latency:         10, // Degraded
+			PacketLoss:      0.05,
+			Jitter:          5,
+			Availability:    0.95,
+			ErrorRate:       0.05,
+			ConnectionCount: 150,
+			ActiveSessions:  80,
 		}
 
 		err := controller.UpdateHealthMetrics("node-1", metrics)
@@ -632,8 +632,8 @@ func TestEdgeController_ResourceAllocation(t *testing.T) {
 		Name:   "edge-node-1",
 		Status: EdgeNodeActive,
 		Resources: EdgeResources{
-			CPUUtilization:    0.2,
-			MemoryUtilization: 0.3,
+			CPUUtilization:     0.2,
+			MemoryUtilization:  0.3,
 			StorageUtilization: 0.1,
 		},
 		Capabilities: EdgeCapabilities{
@@ -647,8 +647,8 @@ func TestEdgeController_ResourceAllocation(t *testing.T) {
 		Name:   "edge-node-2",
 		Status: EdgeNodeActive,
 		Resources: EdgeResources{
-			CPUUtilization:    0.7,
-			MemoryUtilization: 0.8,
+			CPUUtilization:     0.7,
+			MemoryUtilization:  0.8,
 			StorageUtilization: 0.6,
 		},
 		Capabilities: EdgeCapabilities{
@@ -730,8 +730,8 @@ func TestEdgeController_Failover(t *testing.T) {
 			StorageGB:    500,
 		},
 		Resources: EdgeResources{
-			CPUUtilization:    0.3,
-			MemoryUtilization: 0.4,
+			CPUUtilization:     0.3,
+			MemoryUtilization:  0.4,
 			StorageUtilization: 0.2,
 		},
 	}
@@ -874,11 +874,11 @@ func TestEdgeController_Caching(t *testing.T) {
 
 	t.Run("CacheContent", func(t *testing.T) {
 		content := &CacheContent{
-			ID:          "content-1",
-			Type:        "video",
-			SizeMB:      500,
-			Popularity:  0.8,
-			LastAccess:  time.Now(),
+			ID:         "content-1",
+			Type:       "video",
+			SizeMB:     500,
+			Popularity: 0.8,
+			LastAccess: time.Now(),
 		}
 
 		err := controller.CacheContent("cache-node", content)
@@ -900,13 +900,13 @@ func TestEdgeController_Analytics(t *testing.T) {
 
 	// Create zone first
 	zone := &EdgeZone{
-		ID:              "zone-1",
-		Name:            "Test Zone 1",
-		Region:          "us-east",
-		Nodes:           []string{"node-0", "node-1", "node-2"},
-		ServiceLevel:    ServiceLevelStandard,
-		RedundancyLevel: 2,
-		TotalCapacity:   EdgeResources{},
+		ID:               "zone-1",
+		Name:             "Test Zone 1",
+		Region:           "us-east",
+		Nodes:            []string{"node-0", "node-1", "node-2"},
+		ServiceLevel:     ServiceLevelStandard,
+		RedundancyLevel:  2,
+		TotalCapacity:    EdgeResources{},
 		UtilizedCapacity: EdgeResources{},
 	}
 	controller.CreateZone(zone)
@@ -919,10 +919,10 @@ func TestEdgeController_Analytics(t *testing.T) {
 			Zone:   "zone-1",
 			Status: EdgeNodeActive,
 			HealthMetrics: EdgeHealthMetrics{
-				Latency:          float64(i + 3),
-				PacketLoss:       float64(i) * 0.01,
-				ConnectionCount:  100 * (i + 1),
-				ActiveSessions:   50 * (i + 1),
+				Latency:         float64(i + 3),
+				PacketLoss:      float64(i) * 0.01,
+				ConnectionCount: 100 * (i + 1),
+				ActiveSessions:  50 * (i + 1),
 			},
 		}
 		controller.RegisterNode(node)

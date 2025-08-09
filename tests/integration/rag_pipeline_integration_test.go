@@ -13,28 +13,28 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"k8s.io/client-go/kubernetes"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
-	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // RAGPipelineIntegrationTestSuite provides comprehensive integration testing for the RAG pipeline
 type RAGPipelineIntegrationTestSuite struct {
 	suite.Suite
-	
+
 	// Test environment
-	testEnv        *envtest.Environment
-	k8sClient      client.Client
-	k8sClientset   kubernetes.Interface
-	ctx            context.Context
-	cancel         context.CancelFunc
-	
+	testEnv      *envtest.Environment
+	k8sClient    client.Client
+	k8sClientset kubernetes.Interface
+	ctx          context.Context
+	cancel       context.CancelFunc
+
 	// Test components
 	ragService       *rag.RAGService
 	embeddingService *rag.EmbeddingService
@@ -43,58 +43,58 @@ type RAGPipelineIntegrationTestSuite struct {
 	redisCache       *rag.RedisCache
 	tracingManager   *rag.TracingManager
 	metricsCollector *monitoring.MetricsCollector
-	
+
 	// Test data
-	testDocuments    []rag.Document
-	testQueries      []TestQuery
-	testIntents      []TestNetworkIntent
-	
+	testDocuments []rag.Document
+	testQueries   []TestQuery
+	testIntents   []TestNetworkIntent
+
 	// Mock services
-	mockLLMService   *MockLLMService
-	mockWeaviate     *MockWeaviateService
-	mockRedis        *MockRedisService
+	mockLLMService *MockLLMService
+	mockWeaviate   *MockWeaviateService
+	mockRedis      *MockRedisService
 }
 
 // TestQuery represents a test query with expected results
 type TestQuery struct {
-	Query           string                   `json:"query"`
-	IntentType      string                   `json:"intent_type"`
-	ExpectedSources int                      `json:"expected_sources"`
-	ExpectedKeywords []string                `json:"expected_keywords"`
-	MinConfidence   float64                  `json:"min_confidence"`
-	Context         map[string]interface{}   `json:"context"`
+	Query            string                 `json:"query"`
+	IntentType       string                 `json:"intent_type"`
+	ExpectedSources  int                    `json:"expected_sources"`
+	ExpectedKeywords []string               `json:"expected_keywords"`
+	MinConfidence    float64                `json:"min_confidence"`
+	Context          map[string]interface{} `json:"context"`
 }
 
 // TestNetworkIntent represents a test network intent
 type TestNetworkIntent struct {
-	Name        string                     `json:"name"`
-	Spec        nephoran.NetworkIntentSpec `json:"spec"`
-	Expected    TestExpectedResult         `json:"expected"`
+	Name     string                     `json:"name"`
+	Spec     nephoran.NetworkIntentSpec `json:"spec"`
+	Expected TestExpectedResult         `json:"expected"`
 }
 
 // TestExpectedResult represents expected test results
 type TestExpectedResult struct {
-	Status        string            `json:"status"`
-	RAGQueries    int               `json:"rag_queries"`
-	LLMCalls      int               `json:"llm_calls"`
-	Errors        []string          `json:"errors"`
-	Latency       time.Duration     `json:"latency"`
-	Metrics       map[string]float64 `json:"metrics"`
+	Status     string             `json:"status"`
+	RAGQueries int                `json:"rag_queries"`
+	LLMCalls   int                `json:"llm_calls"`
+	Errors     []string           `json:"errors"`
+	Latency    time.Duration      `json:"latency"`
+	Metrics    map[string]float64 `json:"metrics"`
 }
 
 // SetupSuite initializes the test suite
 func (suite *RAGPipelineIntegrationTestSuite) SetupSuite() {
 	suite.ctx, suite.cancel = context.WithCancel(context.Background())
-	
+
 	// Setup test environment
 	suite.setupTestEnvironment()
-	
+
 	// Initialize test data
 	suite.initializeTestData()
-	
+
 	// Setup mock services
 	suite.setupMockServices()
-	
+
 	// Initialize RAG components
 	suite.initializeRAGComponents()
 }
@@ -102,12 +102,12 @@ func (suite *RAGPipelineIntegrationTestSuite) SetupSuite() {
 // TearDownSuite cleans up the test suite
 func (suite *RAGPipelineIntegrationTestSuite) TearDownSuite() {
 	suite.cancel()
-	
+
 	if suite.testEnv != nil {
 		err := suite.testEnv.Stop()
 		suite.NoError(err)
 	}
-	
+
 	// Cleanup tracing
 	if suite.tracingManager != nil {
 		err := suite.tracingManager.Shutdown(suite.ctx)
@@ -139,11 +139,11 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 	// Load test documents
 	suite.testDocuments = []rag.Document{
 		{
-			ID:       "doc1",
-			Title:    "5G Network Slicing Configuration",
-			Content:  "Network slicing enables multiple virtual networks on a single physical infrastructure...",
-			Type:     "technical_specification",
-			Source:   "3GPP TS 23.501",
+			ID:      "doc1",
+			Title:   "5G Network Slicing Configuration",
+			Content: "Network slicing enables multiple virtual networks on a single physical infrastructure...",
+			Type:    "technical_specification",
+			Source:  "3GPP TS 23.501",
 			Metadata: map[string]interface{}{
 				"category": "5g_core",
 				"version":  "17.0.0",
@@ -196,7 +196,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 			ExpectedKeywords: []string{"O-RAN", "E2", "interface", "RIC"},
 			MinConfidence:    0.75,
 			Context: map[string]interface{}{
-				"standard": "oran",
+				"standard":  "oran",
 				"component": "e2_interface",
 			},
 		},
@@ -218,7 +218,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 		{
 			Name: "test-5g-slice",
 			Spec: nephoran.NetworkIntentSpec{
-				IntentType: "network_slice_creation",
+				IntentType:  "network_slice_creation",
 				Description: "Create a network slice for enhanced mobile broadband",
 				Requirements: map[string]interface{}{
 					"slice_type": "eMBB",
@@ -232,7 +232,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeTestData() {
 				LLMCalls:   2,
 				Latency:    5 * time.Second,
 				Metrics: map[string]float64{
-					"rag_confidence": 0.85,
+					"rag_confidence":  0.85,
 					"processing_time": 4.5,
 				},
 			},
@@ -255,7 +255,7 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeRAGComponents() {
 	tracingConfig := rag.GetDefaultTracingConfig()
 	tracingConfig.ServiceName = "test-rag-service"
 	tracingConfig.EnableTracing = false // Disable for tests
-	
+
 	suite.tracingManager, err = rag.NewTracingManager(tracingConfig)
 	suite.Require().NoError(err)
 
@@ -288,25 +288,25 @@ func (suite *RAGPipelineIntegrationTestSuite) initializeRAGComponents() {
 
 	// Initialize retrieval service
 	suite.retrievalService = rag.NewEnhancedRetrievalService(&rag.RetrievalConfig{
-		MaxResults:        10,
-		MinScore:          0.5,
-		RerankingEnabled:  true,
-		SemanticSearch:    true,
-		HybridSearch:      true,
-		MockMode:          true,
+		MaxResults:       10,
+		MinScore:         0.5,
+		RerankingEnabled: true,
+		SemanticSearch:   true,
+		HybridSearch:     true,
+		MockMode:         true,
 	})
 
 	// Initialize RAG service
 	suite.ragService = rag.NewRAGService(&rag.RAGConfig{
-		EmbeddingService:  suite.embeddingService,
-		RetrievalService:  suite.retrievalService,
-		WeaviateClient:    suite.weaviateClient,
-		RedisCache:        suite.redisCache,
-		TracingManager:    suite.tracingManager,
-		MetricsCollector:  suite.metricsCollector,
-		MaxContextLength:  4000,
-		EnableCaching:     true,
-		EnableTracing:     false,
+		EmbeddingService: suite.embeddingService,
+		RetrievalService: suite.retrievalService,
+		WeaviateClient:   suite.weaviateClient,
+		RedisCache:       suite.redisCache,
+		TracingManager:   suite.tracingManager,
+		MetricsCollector: suite.metricsCollector,
+		MaxContextLength: 4000,
+		EnableCaching:    true,
+		EnableTracing:    false,
 	})
 
 	// Populate test data
@@ -345,7 +345,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestEndToEndRAGPipeline() {
 
 			// Validate sources
 			suite.LessOrEqual(len(response.Sources), testQuery.ExpectedSources+2) // Allow some variance
-			
+
 			// Validate keywords presence
 			responseText := strings.ToLower(response.GeneratedText)
 			for _, keyword := range testQuery.ExpectedKeywords {
@@ -386,14 +386,14 @@ func (suite *RAGPipelineIntegrationTestSuite) TestDocumentProcessingPipeline() {
 	// Test document chunking
 	suite.Run("DocumentChunking", func() {
 		chunks, err := suite.ragService.ChunkDocument(suite.ctx, testDoc, &rag.ChunkingConfig{
-			Strategy:    "sentence",
+			Strategy:     "sentence",
 			MaxChunkSize: 200,
-			Overlap:     20,
+			Overlap:      20,
 		})
-		
+
 		suite.NoError(err)
 		suite.GreaterOrEqual(len(chunks), 1)
-		
+
 		for _, chunk := range chunks {
 			suite.LessOrEqual(len(chunk.Content), 220) // Max size + overlap
 			suite.NotEmpty(chunk.Content)
@@ -404,7 +404,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestDocumentProcessingPipeline() {
 	// Test embedding generation
 	suite.Run("EmbeddingGeneration", func() {
 		embeddings, err := suite.embeddingService.GenerateEmbeddings(suite.ctx, []string{testDoc.Content})
-		
+
 		suite.NoError(err)
 		suite.Len(embeddings, 1)
 		suite.Greater(len(embeddings[0]), 0)
@@ -414,7 +414,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestDocumentProcessingPipeline() {
 	suite.Run("VectorStorage", func() {
 		err := suite.weaviateClient.StoreDocument(suite.ctx, testDoc)
 		suite.NoError(err)
-		
+
 		// Verify storage
 		stored, err := suite.weaviateClient.GetDocument(suite.ctx, testDoc.ID)
 		suite.NoError(err)
@@ -426,10 +426,10 @@ func (suite *RAGPipelineIntegrationTestSuite) TestDocumentProcessingPipeline() {
 // TestRetrievalAccuracy tests retrieval system accuracy
 func (suite *RAGPipelineIntegrationTestSuite) TestRetrievalAccuracy() {
 	testCases := []struct {
-		query           string
-		expectedDocIDs  []string
-		minScore        float64
-		searchType      string
+		query          string
+		expectedDocIDs []string
+		minScore       float64
+		searchType     string
 	}{
 		{
 			query:          "network slicing 5G",
@@ -480,7 +480,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestRetrievalAccuracy() {
 // TestCachePerformance tests caching system performance
 func (suite *RAGPipelineIntegrationTestSuite) TestCachePerformance() {
 	testQuery := "test cache performance query"
-	
+
 	// First query (cache miss)
 	start1 := time.Now()
 	response1, err := suite.ragService.ProcessQuery(suite.ctx, &rag.QueryRequest{
@@ -488,7 +488,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestCachePerformance() {
 		IntentType: "test_query",
 	})
 	duration1 := time.Since(start1)
-	
+
 	suite.NoError(err)
 	suite.NotNil(response1)
 
@@ -499,7 +499,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestCachePerformance() {
 		IntentType: "test_query",
 	})
 	duration2 := time.Since(start2)
-	
+
 	suite.NoError(err)
 	suite.NotNil(response2)
 
@@ -519,7 +519,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestErrorHandling() {
 			Query:      "",
 			IntentType: "invalid",
 		})
-		
+
 		suite.Error(err)
 		suite.Nil(response)
 	})
@@ -528,12 +528,12 @@ func (suite *RAGPipelineIntegrationTestSuite) TestErrorHandling() {
 	suite.Run("ServiceUnavailable", func() {
 		// Simulate service failure
 		suite.mockWeaviate.SetError("service unavailable")
-		
+
 		response, err := suite.ragService.ProcessQuery(suite.ctx, &rag.QueryRequest{
 			Query:      "test query",
 			IntentType: "test",
 		})
-		
+
 		// Should handle gracefully or return appropriate error
 		if err != nil {
 			suite.Contains(err.Error(), "service unavailable")
@@ -541,7 +541,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestErrorHandling() {
 			suite.NotNil(response)
 			suite.Less(response.ConfidenceScore, 0.5) // Degraded confidence
 		}
-		
+
 		// Reset mock
 		suite.mockWeaviate.ClearError()
 	})
@@ -551,22 +551,22 @@ func (suite *RAGPipelineIntegrationTestSuite) TestErrorHandling() {
 func (suite *RAGPipelineIntegrationTestSuite) TestScalabilityAndPerformance() {
 	concurrentQueries := 10
 	queriesPerRoutine := 5
-	
+
 	results := make(chan TestResult, concurrentQueries*queriesPerRoutine)
-	
+
 	// Launch concurrent queries
 	for i := 0; i < concurrentQueries; i++ {
 		go func(routineID int) {
 			for j := 0; j < queriesPerRoutine; j++ {
 				start := time.Now()
-				
+
 				response, err := suite.ragService.ProcessQuery(suite.ctx, &rag.QueryRequest{
 					Query:      fmt.Sprintf("test query %d-%d", routineID, j),
 					IntentType: "load_test",
 				})
-				
+
 				duration := time.Since(start)
-				
+
 				results <- TestResult{
 					RoutineID: routineID,
 					QueryID:   j,
@@ -582,10 +582,10 @@ func (suite *RAGPipelineIntegrationTestSuite) TestScalabilityAndPerformance() {
 	var totalDuration time.Duration
 	var successCount int
 	var maxDuration time.Duration
-	
+
 	for i := 0; i < concurrentQueries*queriesPerRoutine; i++ {
 		result := <-results
-		
+
 		totalDuration += result.Duration
 		if result.Success {
 			successCount++
@@ -593,7 +593,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestScalabilityAndPerformance() {
 		if result.Duration > maxDuration {
 			maxDuration = result.Duration
 		}
-		
+
 		if result.Error != nil {
 			suite.T().Logf("Query failed (routine %d, query %d): %v", result.RoutineID, result.QueryID, result.Error)
 		}
@@ -602,12 +602,12 @@ func (suite *RAGPipelineIntegrationTestSuite) TestScalabilityAndPerformance() {
 	// Validate performance metrics
 	avgDuration := totalDuration / time.Duration(concurrentQueries*queriesPerRoutine)
 	successRate := float64(successCount) / float64(concurrentQueries*queriesPerRoutine)
-	
+
 	suite.Greater(successRate, 0.95, "Success rate should be > 95%")
 	suite.Less(avgDuration, 5*time.Second, "Average response time should be < 5s")
 	suite.Less(maxDuration, 15*time.Second, "Max response time should be < 15s")
-	
-	suite.T().Logf("Performance results: avg=%v, max=%v, success_rate=%.2f%%", 
+
+	suite.T().Logf("Performance results: avg=%v, max=%v, success_rate=%.2f%%",
 		avgDuration, maxDuration, successRate*100)
 }
 
@@ -620,7 +620,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestNetworkIntentIntegration() {
 				ObjectMeta: suite.createObjectMeta(testIntent.Name),
 				Spec:       testIntent.Spec,
 			}
-			
+
 			err := suite.k8sClient.Create(suite.ctx, intent)
 			suite.NoError(err)
 

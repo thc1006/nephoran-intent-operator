@@ -326,7 +326,7 @@ func TestRemediationStrategy_Structure(t *testing.T) {
 				Type:     "SCALE",
 				Template: "scale-deployment",
 				Parameters: map[string]interface{}{
-					"replicas": 5,
+					"replicas":     5,
 					"max_replicas": 10,
 				},
 				Timeout: 10 * time.Minute,
@@ -342,7 +342,7 @@ func TestRemediationStrategy_Structure(t *testing.T) {
 				Template: "restart-deployment",
 				Parameters: map[string]interface{}{
 					"graceful": true,
-					"timeout": "60s",
+					"timeout":  "60s",
 				},
 				Timeout: 5 * time.Minute,
 			},

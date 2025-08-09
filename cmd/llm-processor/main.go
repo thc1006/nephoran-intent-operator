@@ -350,7 +350,7 @@ func setupHTTPServer() *http.Server {
 		RequireAuth:      cfg.RequireAuth,
 		StreamingEnabled: cfg.StreamingEnabled,
 		MaxRequestSize:   cfg.MaxRequestSize,
-		
+
 		// Public route configuration
 		ExposeMetricsPublicly:  cfg.ExposeMetricsPublicly,
 		MetricsAllowedCIDRs:    cfg.MetricsAllowedCIDRs,
@@ -366,10 +366,10 @@ func setupHTTPServer() *http.Server {
 	// Apply middlewares in the correct order:
 	// 1. Redact Logger (first, to log all requests)
 	router.Use(redactLogger.Middleware)
-	
+
 	// 2. Security Headers (early, to set headers on all responses)
 	router.Use(securityHeaders.Middleware)
-	
+
 	// 3. CORS (existing, after security headers)
 	if corsMiddleware != nil {
 		router.Use(corsMiddleware.Middleware)

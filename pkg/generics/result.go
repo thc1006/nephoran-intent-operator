@@ -246,7 +246,7 @@ func Recovery[T, E any](fn func() T, recoverFn func(any) E) Result[T, E] {
 			// This will be handled by the outer function
 		}
 	}()
-	
+
 	var result Result[T, E]
 	func() {
 		defer func() {
@@ -256,7 +256,7 @@ func Recovery[T, E any](fn func() T, recoverFn func(any) E) Result[T, E] {
 		}()
 		result = Ok[T, E](fn())
 	}()
-	
+
 	return result
 }
 
@@ -306,7 +306,7 @@ func Collect[T, U, E any](items []T, fn func(T) Result[U, E]) Result[[]U, E] {
 func Partition[T, E any](results []Result[T, E]) ([]T, []E) {
 	var values []T
 	var errors []E
-	
+
 	for _, r := range results {
 		if r.ok {
 			values = append(values, r.value)
@@ -314,6 +314,6 @@ func Partition[T, E any](results []Result[T, E]) ([]T, []E) {
 			errors = append(errors, r.err)
 		}
 	}
-	
+
 	return values, errors
 }

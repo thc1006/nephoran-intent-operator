@@ -11,7 +11,7 @@ import (
 func TestNewContextMatcher(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	assert.True(t, cm.IsInitialized())
 	assert.NotNil(t, cm.knowledgeBase)
 	assert.NotEmpty(t, cm.patterns)
@@ -22,16 +22,16 @@ func TestNewContextMatcher(t *testing.T) {
 func TestGetRelevantContextAMF(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	intent := "Deploy AMF with high availability for production environment"
 	result, err := cm.GetRelevantContext(intent)
-	
+
 	require.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, intent, result.Intent)
 	assert.NotEmpty(t, result.NetworkFunctions)
 	assert.Greater(t, result.Confidence, 0.0)
-	
+
 	// Should match AMF with high confidence
 	foundAMF := false
 	for _, nfMatch := range result.NetworkFunctions {
@@ -43,7 +43,7 @@ func TestGetRelevantContextAMF(t *testing.T) {
 		}
 	}
 	assert.True(t, foundAMF)
-	
+
 	// Should have 3GPP context
 	assert.NotNil(t, result.Context3GPP)
 	assert.NotEmpty(t, result.Context3GPP.Specifications)
@@ -53,13 +53,13 @@ func TestGetRelevantContextAMF(t *testing.T) {
 func TestGetRelevantContextSlicing(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	intent := "Create URLLC network slice for industrial automation with 1ms latency"
 	result, err := cm.GetRelevantContext(intent)
-	
+
 	require.NoError(t, err)
 	assert.NotEmpty(t, result.SliceTypes)
-	
+
 	// Should match URLLC slice
 	foundURLLC := false
 	for _, sliceMatch := range result.SliceTypes {
@@ -70,7 +70,7 @@ func TestGetRelevantContextSlicing(t *testing.T) {
 		}
 	}
 	assert.True(t, foundURLLC)
-	
+
 	// Should extract latency requirement
 	assert.NotNil(t, result.Requirements)
 	assert.NotNil(t, result.Requirements.Latency)
@@ -81,13 +81,13 @@ func TestGetRelevantContextSlicing(t *testing.T) {
 func TestGetRelevantContextInterfaces(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	intent := "Configure N2 interface between gNB and AMF with NGAP protocol"
 	result, err := cm.GetRelevantContext(intent)
-	
+
 	require.NoError(t, err)
 	assert.NotEmpty(t, result.Interfaces)
-	
+
 	// Should match N2 interface
 	foundN2 := false
 	for _, ifaceMatch := range result.Interfaces {
@@ -99,7 +99,7 @@ func TestGetRelevantContextInterfaces(t *testing.T) {
 		}
 	}
 	assert.True(t, foundN2)
-	
+
 	// Should also match AMF and gNB
 	foundAMF := false
 	foundGNB := false
@@ -118,13 +118,13 @@ func TestGetRelevantContextInterfaces(t *testing.T) {
 func TestGetRelevantContextQoS(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	intent := "Setup QCI 1 for voice calls with guaranteed bit rate"
 	result, err := cm.GetRelevantContext(intent)
-	
+
 	require.NoError(t, err)
 	assert.NotEmpty(t, result.QosProfiles)
-	
+
 	// Should match QCI 1 profile
 	foundQCI1 := false
 	for _, qosMatch := range result.QosProfiles {
@@ -141,13 +141,13 @@ func TestGetRelevantContextQoS(t *testing.T) {
 func TestGetRelevantContextDeployment(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	intent := "Deploy with high availability and multi-region redundancy for production"
 	result, err := cm.GetRelevantContext(intent)
-	
+
 	require.NoError(t, err)
 	assert.NotEmpty(t, result.DeploymentPatterns)
-	
+
 	// Should match high availability pattern
 	foundHA := false
 	for _, depMatch := range result.DeploymentPatterns {
@@ -163,7 +163,7 @@ func TestGetRelevantContextDeployment(t *testing.T) {
 func TestExtractLatencyRequirement(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	testCases := []struct {
 		intent   string
 		expected *LatencyRequirement
@@ -193,7 +193,7 @@ func TestExtractLatencyRequirement(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.intent, func(t *testing.T) {
 			result := cm.extractLatencyRequirement(strings.ToLower(tc.intent))
@@ -212,7 +212,7 @@ func TestExtractLatencyRequirement(t *testing.T) {
 func TestExtractThroughputRequirement(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	testCases := []struct {
 		intent   string
 		expected *ThroughputRequirement
@@ -242,7 +242,7 @@ func TestExtractThroughputRequirement(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.intent, func(t *testing.T) {
 			result := cm.extractThroughputRequirement(strings.ToLower(tc.intent))
@@ -261,7 +261,7 @@ func TestExtractThroughputRequirement(t *testing.T) {
 func TestExtractReliabilityRequirement(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	testCases := []struct {
 		intent   string
 		expected *ReliabilityRequirement
@@ -291,7 +291,7 @@ func TestExtractReliabilityRequirement(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.intent, func(t *testing.T) {
 			result := cm.extractReliabilityRequirement(strings.ToLower(tc.intent))
@@ -310,7 +310,7 @@ func TestExtractReliabilityRequirement(t *testing.T) {
 func TestExtractScalabilityRequirement(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	testCases := []struct {
 		intent   string
 		expected *ScalabilityRequirement
@@ -337,7 +337,7 @@ func TestExtractScalabilityRequirement(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.intent, func(t *testing.T) {
 			result := cm.extractScalabilityRequirement(strings.ToLower(tc.intent))
@@ -360,7 +360,7 @@ func TestExtractScalabilityRequirement(t *testing.T) {
 func TestExtractSecurityRequirement(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	testCases := []struct {
 		intent   string
 		expected *SecurityRequirement
@@ -389,7 +389,7 @@ func TestExtractSecurityRequirement(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.intent, func(t *testing.T) {
 			result := cm.extractSecurityRequirement(strings.ToLower(tc.intent))
@@ -398,12 +398,12 @@ func TestExtractSecurityRequirement(t *testing.T) {
 			} else {
 				require.NotNil(t, result)
 				assert.Equal(t, tc.expected.Level, result.Level)
-				
+
 				// Check that expected features are present
 				for _, expectedFeature := range tc.expected.Features {
 					assert.Contains(t, result.Features, expectedFeature)
 				}
-				
+
 				// Check certificates if expected
 				if len(tc.expected.Certificates) > 0 {
 					for _, expectedCert := range tc.expected.Certificates {
@@ -418,7 +418,7 @@ func TestExtractSecurityRequirement(t *testing.T) {
 func TestNormalizeIntent(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	testCases := []struct {
 		input    string
 		expected string
@@ -436,7 +436,7 @@ func TestNormalizeIntent(t *testing.T) {
 			expected: "configure radio access network optimization",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
 			result := cm.normalizeIntent(tc.input)
@@ -448,13 +448,13 @@ func TestNormalizeIntent(t *testing.T) {
 func TestMatchUseCasePatterns(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	// Get AMF function for testing
 	amf, _ := kb.GetNetworkFunction("amf")
-	
+
 	testCases := []struct {
-		intent              string
-		expectedConfidence  float64
+		intent             string
+		expectedConfidence float64
 	}{
 		{
 			intent:             "setup user registration and authentication",
@@ -469,7 +469,7 @@ func TestMatchUseCasePatterns(t *testing.T) {
 			expectedConfidence: 0.0, // No matches
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.intent, func(t *testing.T) {
 			result := cm.matchUseCasePatterns(tc.intent, amf)
@@ -481,11 +481,11 @@ func TestMatchUseCasePatterns(t *testing.T) {
 func TestBuild3GPPContext(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	// Create a mock result with AMF match
 	amf, _ := kb.GetNetworkFunction("amf")
 	n2, _ := kb.GetInterface("n2")
-	
+
 	result := &MatchResult{
 		NetworkFunctions: []*NetworkFunctionMatch{
 			{Function: amf, Confidence: 0.9},
@@ -494,9 +494,9 @@ func TestBuild3GPPContext(t *testing.T) {
 			{Interface: n2, Confidence: 0.8},
 		},
 	}
-	
+
 	context := cm.build3GPPContext(result)
-	
+
 	assert.NotNil(t, context)
 	assert.NotEmpty(t, context.Specifications)
 	assert.Contains(t, context.Specifications, "TS 23.501")
@@ -508,23 +508,23 @@ func TestBuild3GPPContext(t *testing.T) {
 func TestCachefunctionality(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	intent := "Deploy AMF for 5G network"
-	
+
 	// First call should populate cache
 	result1, err1 := cm.GetRelevantContext(intent)
 	require.NoError(t, err1)
 	assert.Equal(t, 1, cm.GetCacheSize())
-	
+
 	// Second call should use cache
 	result2, err2 := cm.GetRelevantContext(intent)
 	require.NoError(t, err2)
 	assert.Equal(t, 1, cm.GetCacheSize()) // Still 1 entry
-	
+
 	// Results should be equivalent (same pointer due to cache)
 	assert.Equal(t, result1.Intent, result2.Intent)
 	assert.Equal(t, len(result1.NetworkFunctions), len(result2.NetworkFunctions))
-	
+
 	// Clear cache
 	cm.ClearCache()
 	assert.Equal(t, 0, cm.GetCacheSize())
@@ -533,7 +533,7 @@ func TestCachefunctionality(t *testing.T) {
 func TestAbbreviationExpansion(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	testCases := []struct {
 		input    string
 		contains string // What the normalized string should contain
@@ -551,7 +551,7 @@ func TestAbbreviationExpansion(t *testing.T) {
 			contains: "virtual network function",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
 			normalized := cm.normalizeIntent(tc.input)
@@ -563,37 +563,37 @@ func TestAbbreviationExpansion(t *testing.T) {
 func TestComplexIntentScenarios(t *testing.T) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
-	
+
 	complexIntents := []struct {
-		intent               string
-		expectedNFs          []string
-		expectedSliceTypes   []int    // SST values
-		minConfidence       float64
+		intent             string
+		expectedNFs        []string
+		expectedSliceTypes []int // SST values
+		minConfidence      float64
 	}{
 		{
-			intent: "Deploy eMBB slice with AMF, SMF, and UPF for mobile broadband services with 100Mbps throughput",
-			expectedNFs: []string{"AMF", "SMF", "UPF"},
+			intent:             "Deploy eMBB slice with AMF, SMF, and UPF for mobile broadband services with 100Mbps throughput",
+			expectedNFs:        []string{"AMF", "SMF", "UPF"},
 			expectedSliceTypes: []int{1}, // eMBB SST
-			minConfidence: 0.5,
+			minConfidence:      0.5,
 		},
 		{
-			intent: "Setup URLLC network slice for industrial automation with 1ms latency and 99.999% reliability",
+			intent:             "Setup URLLC network slice for industrial automation with 1ms latency and 99.999% reliability",
 			expectedSliceTypes: []int{2}, // URLLC SST
-			minConfidence: 0.4,
+			minConfidence:      0.4,
 		},
 		{
-			intent: "Configure N4 interface between SMF and UPF with PFCP protocol for session management",
-			expectedNFs: []string{"SMF", "UPF"},
+			intent:        "Configure N4 interface between SMF and UPF with PFCP protocol for session management",
+			expectedNFs:   []string{"SMF", "UPF"},
 			minConfidence: 0.6,
 		},
 	}
-	
+
 	for _, scenario := range complexIntents {
 		t.Run(scenario.intent, func(t *testing.T) {
 			result, err := cm.GetRelevantContext(scenario.intent)
 			require.NoError(t, err)
 			assert.GreaterOrEqual(t, result.Confidence, scenario.minConfidence)
-			
+
 			// Check expected network functions
 			if len(scenario.expectedNFs) > 0 {
 				assert.NotEmpty(t, result.NetworkFunctions)
@@ -601,12 +601,12 @@ func TestComplexIntentScenarios(t *testing.T) {
 				for _, nfMatch := range result.NetworkFunctions {
 					foundNFs[nfMatch.Function.Name] = true
 				}
-				
+
 				for _, expectedNF := range scenario.expectedNFs {
 					assert.True(t, foundNFs[expectedNF], "Expected to find NF: %s", expectedNF)
 				}
 			}
-			
+
 			// Check expected slice types
 			if len(scenario.expectedSliceTypes) > 0 {
 				assert.NotEmpty(t, result.SliceTypes)
@@ -614,7 +614,7 @@ func TestComplexIntentScenarios(t *testing.T) {
 				for _, sliceMatch := range result.SliceTypes {
 					foundSSTs[sliceMatch.SliceType.SST] = true
 				}
-				
+
 				for _, expectedSST := range scenario.expectedSliceTypes {
 					assert.True(t, foundSSTs[expectedSST], "Expected to find slice SST: %d", expectedSST)
 				}
@@ -628,7 +628,7 @@ func BenchmarkGetRelevantContext(b *testing.B) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
 	intent := "Deploy AMF with high availability for production environment"
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		cm.GetRelevantContext(intent)
@@ -639,10 +639,10 @@ func BenchmarkGetRelevantContextCached(b *testing.B) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
 	intent := "Deploy AMF with high availability for production environment"
-	
+
 	// Prime the cache
 	cm.GetRelevantContext(intent)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		cm.GetRelevantContext(intent)
@@ -653,7 +653,7 @@ func BenchmarkNormalizeIntent(b *testing.B) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
 	intent := "Deploy 5GC AMF with high availability and QoS configuration"
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		cm.normalizeIntent(intent)
@@ -664,7 +664,7 @@ func BenchmarkExtractRequirements(b *testing.B) {
 	kb := NewTelecomKnowledgeBase()
 	cm := NewContextMatcher(kb)
 	intent := "deploy with 5ms latency, 1gbps throughput, 99.99% availability and auto-scaling from 3 to 10 replicas"
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		cm.extractRequirements(intent)

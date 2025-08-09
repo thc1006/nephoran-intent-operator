@@ -26,15 +26,15 @@ type KMPMonitorXApp struct {
 
 // CellMetrics stores aggregated metrics for a cell
 type CellMetrics struct {
-	CellID           string                 `json:"cell_id"`
-	LastUpdate       time.Time              `json:"last_update"`
-	ActiveUEs        int                    `json:"active_ues"`
-	ConnectionSuccess float64               `json:"connection_success_rate"`
-	PRBUtilizationDL float64               `json:"prb_utilization_dl"`
-	PRBUtilizationUL float64               `json:"prb_utilization_ul"`
-	ThroughputDL     float64               `json:"throughput_dl_mbps"`
-	ThroughputUL     float64               `json:"throughput_ul_mbps"`
-	Measurements     map[string]float64    `json:"raw_measurements"`
+	CellID            string             `json:"cell_id"`
+	LastUpdate        time.Time          `json:"last_update"`
+	ActiveUEs         int                `json:"active_ues"`
+	ConnectionSuccess float64            `json:"connection_success_rate"`
+	PRBUtilizationDL  float64            `json:"prb_utilization_dl"`
+	PRBUtilizationUL  float64            `json:"prb_utilization_ul"`
+	ThroughputDL      float64            `json:"throughput_dl_mbps"`
+	ThroughputUL      float64            `json:"throughput_ul_mbps"`
+	Measurements      map[string]float64 `json:"raw_measurements"`
 }
 
 func main() {
@@ -181,12 +181,12 @@ func (x *KMPMonitorXApp) createKMPSubscriptions(ctx context.Context, cells []str
 
 		// Subscribe through SDK
 		_, err = x.sdk.Subscribe(ctx, &e2.E2SubscriptionRequest{
-			SubscriptionID: subscription.SubscriptionID,
-			RequestorID:    x.sdk.GetConfig().XAppName,
-			NodeID:         x.sdk.GetConfig().E2NodeID,
-			RanFunctionID:  subscription.RanFunctionID,
-			EventTriggers:  subscription.EventTriggers,
-			Actions:        subscription.Actions,
+			SubscriptionID:  subscription.SubscriptionID,
+			RequestorID:     x.sdk.GetConfig().XAppName,
+			NodeID:          x.sdk.GetConfig().E2NodeID,
+			RanFunctionID:   subscription.RanFunctionID,
+			EventTriggers:   subscription.EventTriggers,
+			Actions:         subscription.Actions,
 			ReportingPeriod: subscription.ReportingPeriod,
 		})
 		if err != nil {
@@ -317,9 +317,9 @@ func (x *KMPMonitorXApp) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"status":    string(state),
 		"timestamp": time.Now().UTC(),
 		"sdk_metrics": map[string]interface{}{
-			"subscriptions_active":   metrics.SubscriptionsActive,
-			"indications_received":   metrics.IndicationsReceived,
-			"control_requests_sent":  metrics.ControlRequestsSent,
+			"subscriptions_active":  metrics.SubscriptionsActive,
+			"indications_received":  metrics.IndicationsReceived,
+			"control_requests_sent": metrics.ControlRequestsSent,
 			"error_count":           metrics.ErrorCount,
 			"throughput_per_second": metrics.ThroughputPerSecond,
 		},
@@ -361,14 +361,14 @@ func (x *KMPMonitorXApp) handleCellMetrics(w http.ResponseWriter, r *http.Reques
 func (x *KMPMonitorXApp) handleInfo(w http.ResponseWriter, r *http.Request) {
 	config := x.sdk.GetConfig()
 	info := map[string]interface{}{
-		"name":         config.XAppName,
-		"version":      config.XAppVersion,
-		"description":  config.XAppDescription,
-		"e2_node_id":   config.E2NodeID,
-		"ric_url":      config.NearRTRICURL,
+		"name":           config.XAppName,
+		"version":        config.XAppVersion,
+		"description":    config.XAppDescription,
+		"e2_node_id":     config.E2NodeID,
+		"ric_url":        config.NearRTRICURL,
 		"service_models": config.ServiceModels,
-		"state":        string(x.sdk.GetState()),
-		"cells":        len(x.metrics),
+		"state":          string(x.sdk.GetState()),
+		"cells":          len(x.metrics),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

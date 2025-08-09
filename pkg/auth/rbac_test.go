@@ -12,7 +12,7 @@ import (
 
 func TestNewRBACManager(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
-	
+
 	// Test with default config
 	manager := NewRBACManager(nil, logger)
 	if manager == nil {
@@ -237,17 +237,17 @@ func TestPermissionCaching(t *testing.T) {
 
 	// First call - should cache
 	permissions1 := manager.GetUserPermissions(ctx, userID)
-	
+
 	// Second call - should use cache
 	permissions2 := manager.GetUserPermissions(ctx, userID)
-	
+
 	if len(permissions1) != len(permissions2) {
 		t.Error("Cache inconsistency detected")
 	}
 
 	// Wait for cache to expire
 	time.Sleep(150 * time.Millisecond)
-	
+
 	// Grant additional role
 	err = manager.GrantRoleToUser(ctx, userID, "read-only")
 	if err != nil {
@@ -295,9 +295,9 @@ func TestRBACStatus(t *testing.T) {
 	ctx := context.Background()
 
 	status := manager.GetRBACStatus(ctx)
-	
+
 	expectedKeys := []string{
-		"roles_count", "permissions_count", "users_count", 
+		"roles_count", "permissions_count", "users_count",
 		"policies_count", "cache_ttl", "cache_entries", "last_cache_update",
 	}
 

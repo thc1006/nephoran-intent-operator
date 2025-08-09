@@ -27,23 +27,23 @@ const (
 
 // OpenTelemetryConfig holds OpenTelemetry configuration
 type OpenTelemetryConfig struct {
-	ServiceName     string
-	ServiceVersion  string
-	Environment     string
-	JaegerEndpoint  string
-	SamplingRate    float64
-	EnableMetrics   bool
-	EnableTracing   bool
-	EnableLogging   bool
+	ServiceName    string
+	ServiceVersion string
+	Environment    string
+	JaegerEndpoint string
+	SamplingRate   float64
+	EnableMetrics  bool
+	EnableTracing  bool
+	EnableLogging  bool
 }
 
 // OpenTelemetryProvider manages OpenTelemetry setup
 type OpenTelemetryProvider struct {
-	config          *OpenTelemetryConfig
-	tracerProvider  *sdktrace.TracerProvider
-	tracer          trace.Tracer
-	meter           metric.Meter
-	shutdownFuncs   []func(context.Context) error
+	config         *OpenTelemetryConfig
+	tracerProvider *sdktrace.TracerProvider
+	tracer         trace.Tracer
+	meter          metric.Meter
+	shutdownFuncs  []func(context.Context) error
 }
 
 // NewOpenTelemetryProvider creates a new OpenTelemetry provider
@@ -92,14 +92,14 @@ func NewOpenTelemetryProvider(config *OpenTelemetryConfig) (*OpenTelemetryProvid
 // DefaultOpenTelemetryConfig returns default OpenTelemetry configuration
 func DefaultOpenTelemetryConfig() *OpenTelemetryConfig {
 	return &OpenTelemetryConfig{
-		ServiceName:     ServiceName,
-		ServiceVersion:  ServiceVersion,
-		Environment:     config.GetEnvOrDefault("NEPHORAN_ENVIRONMENT", "production"),
-		JaegerEndpoint:  config.GetEnvOrDefault("JAEGER_ENDPOINT", "http://jaeger-collector:14268/api/traces"),
-		SamplingRate:    0.1, // 10% sampling rate
-		EnableMetrics:   true,
-		EnableTracing:   true,
-		EnableLogging:   true,
+		ServiceName:    ServiceName,
+		ServiceVersion: ServiceVersion,
+		Environment:    config.GetEnvOrDefault("NEPHORAN_ENVIRONMENT", "production"),
+		JaegerEndpoint: config.GetEnvOrDefault("JAEGER_ENDPOINT", "http://jaeger-collector:14268/api/traces"),
+		SamplingRate:   0.1, // 10% sampling rate
+		EnableMetrics:  true,
+		EnableTracing:  true,
+		EnableLogging:  true,
 	}
 }
 
@@ -338,10 +338,10 @@ type MetricsInstrumentation struct {
 	intentProcessingDuration metric.Float64Histogram
 	intentProcessingCounter  metric.Int64Counter
 	llmRequestDuration       metric.Float64Histogram
-	llmTokensUsed           metric.Int64Counter
-	oranRequestDuration     metric.Float64Histogram
-	oranRequestCounter      metric.Int64Counter
-	systemResourceUsage     metric.Float64Gauge
+	llmTokensUsed            metric.Int64Counter
+	oranRequestDuration      metric.Float64Histogram
+	oranRequestCounter       metric.Int64Counter
+	systemResourceUsage      metric.Float64Gauge
 }
 
 // NewMetricsInstrumentation creates a new metrics instrumentation

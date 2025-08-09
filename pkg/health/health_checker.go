@@ -23,15 +23,15 @@ const (
 
 // Check represents a single health check
 type Check struct {
-	Name        string        `json:"name"`
-	Status      Status        `json:"status"`
-	Message     string        `json:"message,omitempty"`
-	Error       string        `json:"error,omitempty"`
-	Duration    time.Duration `json:"duration"`
-	Timestamp   time.Time     `json:"timestamp"`
-	Component   string        `json:"component"`
-	Version     string        `json:"version,omitempty"`
-	Metadata    interface{}   `json:"metadata,omitempty"`
+	Name      string        `json:"name"`
+	Status    Status        `json:"status"`
+	Message   string        `json:"message,omitempty"`
+	Error     string        `json:"error,omitempty"`
+	Duration  time.Duration `json:"duration"`
+	Timestamp time.Time     `json:"timestamp"`
+	Component string        `json:"component"`
+	Version   string        `json:"version,omitempty"`
+	Metadata  interface{}   `json:"metadata,omitempty"`
 }
 
 // CheckFunc is a function that performs a health check
@@ -39,40 +39,40 @@ type CheckFunc func(ctx context.Context) *Check
 
 // HealthChecker manages and executes health checks
 type HealthChecker struct {
-	serviceName     string
-	serviceVersion  string
-	startTime       time.Time
-	checks          map[string]CheckFunc
-	dependencies    map[string]CheckFunc
-	mu              sync.RWMutex
-	logger          *slog.Logger
-	timeout         time.Duration
-	gracePeriod     time.Duration
-	healthyState    bool
-	readyState      bool
-	stateMu         sync.RWMutex
+	serviceName    string
+	serviceVersion string
+	startTime      time.Time
+	checks         map[string]CheckFunc
+	dependencies   map[string]CheckFunc
+	mu             sync.RWMutex
+	logger         *slog.Logger
+	timeout        time.Duration
+	gracePeriod    time.Duration
+	healthyState   bool
+	readyState     bool
+	stateMu        sync.RWMutex
 }
 
 // HealthResponse represents the complete health check response
 type HealthResponse struct {
-	Service     string            `json:"service"`
-	Version     string            `json:"version"`
-	Status      Status            `json:"status"`
-	Uptime      string            `json:"uptime"`
-	Timestamp   time.Time         `json:"timestamp"`
-	Checks      []Check           `json:"checks"`
-	Dependencies []Check          `json:"dependencies"`
-	Summary     HealthSummary     `json:"summary"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Service      string                 `json:"service"`
+	Version      string                 `json:"version"`
+	Status       Status                 `json:"status"`
+	Uptime       string                 `json:"uptime"`
+	Timestamp    time.Time              `json:"timestamp"`
+	Checks       []Check                `json:"checks"`
+	Dependencies []Check                `json:"dependencies"`
+	Summary      HealthSummary          `json:"summary"`
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // HealthSummary provides aggregated health information
 type HealthSummary struct {
-	Total      int `json:"total"`
-	Healthy    int `json:"healthy"`
-	Unhealthy  int `json:"unhealthy"`
-	Degraded   int `json:"degraded"`
-	Unknown    int `json:"unknown"`
+	Total     int `json:"total"`
+	Healthy   int `json:"healthy"`
+	Unhealthy int `json:"unhealthy"`
+	Degraded  int `json:"degraded"`
+	Unknown   int `json:"unknown"`
 }
 
 // NewHealthChecker creates a new health checker instance
@@ -143,16 +143,16 @@ func (hc *HealthChecker) Check(ctx context.Context) *HealthResponse {
 	defer cancel()
 
 	response := &HealthResponse{
-		Service:   hc.serviceName,
-		Version:   hc.serviceVersion,
-		Uptime:    time.Since(hc.startTime).String(),
-		Timestamp: time.Now(),
-		Checks:    []Check{},
+		Service:      hc.serviceName,
+		Version:      hc.serviceVersion,
+		Uptime:       time.Since(hc.startTime).String(),
+		Timestamp:    time.Now(),
+		Checks:       []Check{},
 		Dependencies: []Check{},
 		Metadata: map[string]interface{}{
 			"grace_period_remaining": hc.getGracePeriodRemaining(),
-			"checks_count":          len(hc.checks),
-			"dependencies_count":    len(hc.dependencies),
+			"checks_count":           len(hc.checks),
+			"dependencies_count":     len(hc.dependencies),
 		},
 	}
 
@@ -272,7 +272,7 @@ func (hc *HealthChecker) HealthzHandler(w http.ResponseWriter, r *http.Request) 
 	response := hc.Check(ctx)
 
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	// During grace period, always return healthy
 	if hc.isInGracePeriod() {
 		response.Status = StatusHealthy
@@ -298,7 +298,7 @@ func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Readiness includes dependency checks and internal ready state
 	isReady := hc.IsReady() && (response.Status == StatusHealthy || response.Status == StatusDegraded)
-	
+
 	// Check critical dependencies
 	for _, dep := range response.Dependencies {
 		if dep.Status == StatusUnhealthy {
@@ -308,7 +308,7 @@ func (hc *HealthChecker) ReadyzHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	if isReady {
 		response.Status = StatusHealthy
 		w.WriteHeader(http.StatusOK)

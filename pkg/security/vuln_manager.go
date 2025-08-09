@@ -15,23 +15,23 @@ import (
 
 // VulnerabilityManager manages security vulnerabilities and automated remediation
 type VulnerabilityManager struct {
-	config     *VulnManagerConfig
-	logger     *slog.Logger
-	scanner    *SecurityScanner
-	database   *VulnDatabase
+	config      *VulnManagerConfig
+	logger      *slog.Logger
+	scanner     *SecurityScanner
+	database    *VulnDatabase
 	remediation *RemediationEngine
-	metrics    *VulnMetrics
-	mutex      sync.RWMutex
+	metrics     *VulnMetrics
+	mutex       sync.RWMutex
 }
 
 // VulnManagerConfig holds vulnerability manager configuration
 type VulnManagerConfig struct {
-	EnableCVEScanning      bool          `json:"enable_cve_scanning"`
-	EnableDependencyCheck  bool          `json:"enable_dependency_check"`
-	EnableImageScanning    bool          `json:"enable_image_scanning"`
-	EnableCodeScanning     bool          `json:"enable_code_scanning"`
-	ScanInterval           time.Duration `json:"scan_interval"`
-	CVEDatabaseURL         string        `json:"cve_database_url"`
+	EnableCVEScanning     bool          `json:"enable_cve_scanning"`
+	EnableDependencyCheck bool          `json:"enable_dependency_check"`
+	EnableImageScanning   bool          `json:"enable_image_scanning"`
+	EnableCodeScanning    bool          `json:"enable_code_scanning"`
+	ScanInterval          time.Duration `json:"scan_interval"`
+	CVEDatabaseURL        string        `json:"cve_database_url"`
 	NVDAPIKey             string        `json:"nvd_api_key"`
 	AutoRemediation       bool          `json:"auto_remediation"`
 	MaxCVSSForAuto        float64       `json:"max_cvss_for_auto"`
@@ -41,18 +41,18 @@ type VulnManagerConfig struct {
 
 // AlertConfig holds alerting configuration
 type AlertConfig struct {
-	CriticalThreshold  int     `json:"critical_threshold"`  // Number of critical vulns to trigger alert
-	HighThreshold      int     `json:"high_threshold"`      // Number of high vulns to trigger alert
-	CVSSThreshold      float64 `json:"cvss_threshold"`      // CVSS score to trigger alert
-	TimeToRemediate    time.Duration `json:"time_to_remediate"` // SLA for remediation
+	CriticalThreshold int           `json:"critical_threshold"` // Number of critical vulns to trigger alert
+	HighThreshold     int           `json:"high_threshold"`     // Number of high vulns to trigger alert
+	CVSSThreshold     float64       `json:"cvss_threshold"`     // CVSS score to trigger alert
+	TimeToRemediate   time.Duration `json:"time_to_remediate"`  // SLA for remediation
 }
 
 // Integrations holds external service integrations
 type Integrations struct {
-	Jira     *JiraConfig     `json:"jira,omitempty"`
-	Slack    *SlackConfig    `json:"slack,omitempty"`
-	Email    *EmailConfig    `json:"email,omitempty"`
-	Webhook  *WebhookConfig  `json:"webhook,omitempty"`
+	Jira    *JiraConfig    `json:"jira,omitempty"`
+	Slack   *SlackConfig   `json:"slack,omitempty"`
+	Email   *EmailConfig   `json:"email,omitempty"`
+	Webhook *WebhookConfig `json:"webhook,omitempty"`
 }
 
 // JiraConfig holds Jira integration configuration
@@ -92,27 +92,27 @@ type WebhookConfig struct {
 
 // VulnDatabase represents the vulnerability database
 type VulnDatabase struct {
-	CVEs           map[string]*CVERecord    `json:"cves"`
-	Dependencies   map[string]*Dependency   `json:"dependencies"`
-	Images         map[string]*ImageVuln    `json:"images"`
-	CodeIssues     map[string]*CodeIssue    `json:"code_issues"`
-	LastUpdated    time.Time                `json:"last_updated"`
-	mutex          sync.RWMutex
+	CVEs         map[string]*CVERecord  `json:"cves"`
+	Dependencies map[string]*Dependency `json:"dependencies"`
+	Images       map[string]*ImageVuln  `json:"images"`
+	CodeIssues   map[string]*CodeIssue  `json:"code_issues"`
+	LastUpdated  time.Time              `json:"last_updated"`
+	mutex        sync.RWMutex
 }
 
 // CVERecord represents a CVE record
 type CVERecord struct {
-	ID            string    `json:"id"`
-	Summary       string    `json:"summary"`
-	Description   string    `json:"description"`
-	CVSS          float64   `json:"cvss"`
-	Severity      string    `json:"severity"`
-	PublishedDate time.Time `json:"published_date"`
-	ModifiedDate  time.Time `json:"modified_date"`
-	References    []string  `json:"references"`
-	CWE           []string  `json:"cwe"`
-	AffectedProducts []Product `json:"affected_products"`
-	Remediation   *Remediation `json:"remediation,omitempty"`
+	ID               string       `json:"id"`
+	Summary          string       `json:"summary"`
+	Description      string       `json:"description"`
+	CVSS             float64      `json:"cvss"`
+	Severity         string       `json:"severity"`
+	PublishedDate    time.Time    `json:"published_date"`
+	ModifiedDate     time.Time    `json:"modified_date"`
+	References       []string     `json:"references"`
+	CWE              []string     `json:"cwe"`
+	AffectedProducts []Product    `json:"affected_products"`
+	Remediation      *Remediation `json:"remediation,omitempty"`
 }
 
 // Product represents an affected product
@@ -125,12 +125,12 @@ type Product struct {
 
 // Dependency represents a software dependency
 type Dependency struct {
-	Name            string       `json:"name"`
-	Version         string       `json:"version"`
-	Type            string       `json:"type"` // go, npm, pip, maven, etc.
-	Vulnerabilities []string     `json:"vulnerabilities"` // CVE IDs
+	Name            string         `json:"name"`
+	Version         string         `json:"version"`
+	Type            string         `json:"type"`            // go, npm, pip, maven, etc.
+	Vulnerabilities []string       `json:"vulnerabilities"` // CVE IDs
 	LicenseIssues   []LicenseIssue `json:"license_issues"`
-	LastChecked     time.Time    `json:"last_checked"`
+	LastChecked     time.Time      `json:"last_checked"`
 }
 
 // LicenseIssue represents a licensing issue
@@ -164,20 +164,20 @@ type CodeIssue struct {
 
 // Remediation represents remediation information
 type Remediation struct {
-	Type        string    `json:"type"` // update, patch, config, workaround
-	Description string    `json:"description"`
-	Steps       []string  `json:"steps"`
-	Automated   bool      `json:"automated"`
-	Priority    string    `json:"priority"`
+	Type        string        `json:"type"` // update, patch, config, workaround
+	Description string        `json:"description"`
+	Steps       []string      `json:"steps"`
+	Automated   bool          `json:"automated"`
+	Priority    string        `json:"priority"`
 	ETA         time.Duration `json:"eta"`
 }
 
 // RemediationEngine handles automated remediation
 type RemediationEngine struct {
-	config      *VulnManagerConfig
-	logger      *slog.Logger
-	actions     map[string]RemediationAction
-	mutex       sync.RWMutex
+	config  *VulnManagerConfig
+	logger  *slog.Logger
+	actions map[string]RemediationAction
+	mutex   sync.RWMutex
 }
 
 // RemediationAction represents an automated remediation action
@@ -190,17 +190,17 @@ type RemediationAction interface {
 
 // VulnMetrics tracks vulnerability metrics
 type VulnMetrics struct {
-	TotalVulnerabilities    int64             `json:"total_vulnerabilities"`
-	CriticalVulnerabilities int64             `json:"critical_vulnerabilities"`
-	HighVulnerabilities     int64             `json:"high_vulnerabilities"`
-	MediumVulnerabilities   int64             `json:"medium_vulnerabilities"`
-	LowVulnerabilities      int64             `json:"low_vulnerabilities"`
-	RemediatedVulnerabilities int64           `json:"remediated_vulnerabilities"`
-	VulnsByType             map[string]int64  `json:"vulns_by_type"`
-	MTTRemediation          time.Duration     `json:"mtt_remediation"`
-	LastScanTime            time.Time         `json:"last_scan_time"`
-	ScanDuration            time.Duration     `json:"scan_duration"`
-	mutex                   sync.RWMutex
+	TotalVulnerabilities      int64            `json:"total_vulnerabilities"`
+	CriticalVulnerabilities   int64            `json:"critical_vulnerabilities"`
+	HighVulnerabilities       int64            `json:"high_vulnerabilities"`
+	MediumVulnerabilities     int64            `json:"medium_vulnerabilities"`
+	LowVulnerabilities        int64            `json:"low_vulnerabilities"`
+	RemediatedVulnerabilities int64            `json:"remediated_vulnerabilities"`
+	VulnsByType               map[string]int64 `json:"vulns_by_type"`
+	MTTRemediation            time.Duration    `json:"mtt_remediation"`
+	LastScanTime              time.Time        `json:"last_scan_time"`
+	ScanDuration              time.Duration    `json:"scan_duration"`
+	mutex                     sync.RWMutex
 }
 
 // NewVulnerabilityManager creates a new vulnerability manager
@@ -389,11 +389,11 @@ func (vm *VulnerabilityManager) scanImages(ctx context.Context, results *VulnSca
 		vulns := vm.scanContainerImage(ctx, image)
 		for _, vuln := range vulns {
 			finding := &VulnFinding{
-				ID:          vuln,
-				Type:        "Container",
-				Title:       fmt.Sprintf("Container vulnerability in %s", image),
-				Component:   image,
-				FoundAt:     time.Now(),
+				ID:        vuln,
+				Type:      "Container",
+				Title:     fmt.Sprintf("Container vulnerability in %s", image),
+				Component: image,
+				FoundAt:   time.Now(),
 			}
 
 			results.mutex.Lock()
@@ -428,10 +428,10 @@ func (vm *VulnerabilityManager) scanCode(ctx context.Context, results *VulnScanR
 
 // VulnScanResults holds vulnerability scan results
 type VulnScanResults struct {
-	ScanID      string                    `json:"scan_id"`
-	StartTime   time.Time                 `json:"start_time"`
-	EndTime     time.Time                 `json:"end_time"`
-	Duration    time.Duration             `json:"duration"`
+	ScanID      string                   `json:"scan_id"`
+	StartTime   time.Time                `json:"start_time"`
+	EndTime     time.Time                `json:"end_time"`
+	Duration    time.Duration            `json:"duration"`
 	Findings    []*VulnFinding           `json:"findings"`
 	Remediation []*RemediationSuggestion `json:"remediation"`
 	mutex       sync.RWMutex
@@ -544,25 +544,25 @@ func (vm *VulnerabilityManager) checkSemverRange(version, rangeStr string) bool 
 	if !strings.HasPrefix(version, "v") {
 		version = "v" + version
 	}
-	
+
 	// Handle different range formats
 	if strings.Contains(rangeStr, ">=") && strings.Contains(rangeStr, "<") {
 		parts := strings.Split(rangeStr, ",")
 		if len(parts) == 2 {
 			minVersion := strings.TrimPrefix(strings.TrimSpace(parts[0]), ">=")
 			maxVersion := strings.TrimPrefix(strings.TrimSpace(parts[1]), "<")
-			
+
 			if !strings.HasPrefix(minVersion, "v") {
 				minVersion = "v" + minVersion
 			}
 			if !strings.HasPrefix(maxVersion, "v") {
 				maxVersion = "v" + maxVersion
 			}
-			
+
 			return semver.Compare(version, minVersion) >= 0 && semver.Compare(version, maxVersion) < 0
 		}
 	}
-	
+
 	return false
 }
 
@@ -610,7 +610,7 @@ func (vm *VulnerabilityManager) performStaticAnalysis() []*CodeIssue {
 			FoundAt:     time.Now(),
 		},
 	}
-	
+
 	return issues
 }
 
@@ -623,8 +623,8 @@ func (vm *VulnerabilityManager) processResults(ctx context.Context, results *Vul
 
 	// Sort findings by severity and CVSS
 	sort.Slice(results.Findings, func(i, j int) bool {
-		return vm.getSeverityWeight(results.Findings[i].Severity) > 
-			   vm.getSeverityWeight(results.Findings[j].Severity)
+		return vm.getSeverityWeight(results.Findings[i].Severity) >
+			vm.getSeverityWeight(results.Findings[j].Severity)
 	})
 }
 
@@ -700,7 +700,7 @@ func (vm *VulnerabilityManager) getRiskLevel(cvss float64) string {
 func (vm *VulnerabilityManager) getCodeIssuePriority(severity string) string {
 	priorityMap := map[string]string{
 		"Critical": "Critical",
-		"High":     "High", 
+		"High":     "High",
 		"Medium":   "Medium",
 		"Low":      "Low",
 	}
@@ -848,7 +848,7 @@ func (vm *VulnerabilityManager) startPeriodicScanning() {
 func (vm *VulnerabilityManager) GetMetrics() *VulnMetrics {
 	vm.metrics.mutex.RLock()
 	defer vm.metrics.mutex.RUnlock()
-	
+
 	metrics := *vm.metrics
 	return &metrics
 }
@@ -857,7 +857,7 @@ func (vm *VulnerabilityManager) GetMetrics() *VulnMetrics {
 func (vm *VulnerabilityManager) GetVulnerabilityDatabase() *VulnDatabase {
 	vm.database.mutex.RLock()
 	defer vm.database.mutex.RUnlock()
-	
+
 	return vm.database
 }
 
@@ -869,17 +869,17 @@ func (vm *VulnerabilityManager) UpdateCVEDatabase(ctx context.Context) error {
 	// For now, add some sample CVEs
 	sampleCVEs := []*CVERecord{
 		{
-			ID:          "CVE-2023-12345",
-			Summary:     "Remote code execution in example service",
-			Description: "A vulnerability allows remote code execution",
-			CVSS:        9.8,
-			Severity:    "Critical",
+			ID:            "CVE-2023-12345",
+			Summary:       "Remote code execution in example service",
+			Description:   "A vulnerability allows remote code execution",
+			CVSS:          9.8,
+			Severity:      "Critical",
 			PublishedDate: time.Now().Add(-30 * 24 * time.Hour),
 			AffectedProducts: []Product{
 				{
-					Vendor:   "example",
-					Product:  "service",
-					Versions: []string{">=1.0.0,<1.2.0"},
+					Vendor:      "example",
+					Product:     "service",
+					Versions:    []string{">=1.0.0,<1.2.0"},
 					VersionType: "range",
 				},
 			},
@@ -917,7 +917,7 @@ func (re *RemediationEngine) RegisterAction(name string, action RemediationActio
 func (re *RemediationEngine) GetAvailableActions() []string {
 	re.mutex.RLock()
 	defer re.mutex.RUnlock()
-	
+
 	actions := make([]string, 0, len(re.actions))
 	for name := range re.actions {
 		actions = append(actions, name)

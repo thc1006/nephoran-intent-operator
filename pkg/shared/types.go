@@ -30,12 +30,12 @@ type StreamingChunk struct {
 
 // ModelCapabilities describes what a model can do
 type ModelCapabilities struct {
-	MaxTokens        int                    `json:"max_tokens"`
-	SupportsChat     bool                   `json:"supports_chat"`
-	SupportsFunction bool                   `json:"supports_function"`
-	SupportsStreaming bool                  `json:"supports_streaming"`
-	CostPerToken     float64                `json:"cost_per_token"`
-	Features         map[string]interface{} `json:"features"`
+	MaxTokens         int                    `json:"max_tokens"`
+	SupportsChat      bool                   `json:"supports_chat"`
+	SupportsFunction  bool                   `json:"supports_function"`
+	SupportsStreaming bool                   `json:"supports_streaming"`
+	CostPerToken      float64                `json:"cost_per_token"`
+	Features          map[string]interface{} `json:"features"`
 }
 
 // TelecomDocument represents a document in the telecom knowledge base
@@ -60,9 +60,9 @@ type TelecomDocument struct {
 
 // SearchResult represents a search result from the vector database
 type SearchResult struct {
-	Document *TelecomDocument `json:"document"`
-	Score    float32          `json:"score"`
-	Distance float32          `json:"distance"`
+	Document *TelecomDocument       `json:"document"`
+	Score    float32                `json:"score"`
+	Distance float32                `json:"distance"`
 	Metadata map[string]interface{} `json:"metadata"`
 }
 
@@ -89,44 +89,44 @@ type SearchResponse struct {
 type ComponentType string
 
 const (
-	ComponentTypeLLMProcessor        ComponentType = "llm-processor"
-	ComponentTypeResourcePlanner     ComponentType = "resource-planner"
-	ComponentTypeManifestGenerator   ComponentType = "manifest-generator"
-	ComponentTypeGitOpsController    ComponentType = "gitops-controller"
-	ComponentTypeDeploymentVerifier  ComponentType = "deployment-verifier"
+	ComponentTypeLLMProcessor       ComponentType = "llm-processor"
+	ComponentTypeResourcePlanner    ComponentType = "resource-planner"
+	ComponentTypeManifestGenerator  ComponentType = "manifest-generator"
+	ComponentTypeGitOpsController   ComponentType = "gitops-controller"
+	ComponentTypeDeploymentVerifier ComponentType = "deployment-verifier"
 )
 
 // ComponentStatus represents the status of a component
 type ComponentStatus struct {
-	Type        ComponentType          `json:"type"`
-	Name        string                 `json:"name"`
-	Status      string                 `json:"status"`
-	Healthy     bool                   `json:"healthy"`
-	LastUpdate  time.Time              `json:"lastUpdate"`
-	Version     string                 `json:"version,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-	Metrics     map[string]float64     `json:"metrics,omitempty"`
-	Errors      []string               `json:"errors,omitempty"`
+	Type       ComponentType          `json:"type"`
+	Name       string                 `json:"name"`
+	Status     string                 `json:"status"`
+	Healthy    bool                   `json:"healthy"`
+	LastUpdate time.Time              `json:"lastUpdate"`
+	Version    string                 `json:"version,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Metrics    map[string]float64     `json:"metrics,omitempty"`
+	Errors     []string               `json:"errors,omitempty"`
 }
 
 // SystemHealth represents the overall health of the system
 type SystemHealth struct {
-	OverallStatus   string                      `json:"overallStatus"`
-	Healthy         bool                        `json:"healthy"`
-	Components      map[string]*ComponentStatus `json:"components"`
-	LastUpdate      time.Time                   `json:"lastUpdate"`
-	ActiveIntents   int                         `json:"activeIntents"`
-	ProcessingRate  float64                     `json:"processingRate"`
-	ErrorRate       float64                     `json:"errorRate"`
-	ResourceUsage   ResourceUsage               `json:"resourceUsage"`
+	OverallStatus  string                      `json:"overallStatus"`
+	Healthy        bool                        `json:"healthy"`
+	Components     map[string]*ComponentStatus `json:"components"`
+	LastUpdate     time.Time                   `json:"lastUpdate"`
+	ActiveIntents  int                         `json:"activeIntents"`
+	ProcessingRate float64                     `json:"processingRate"`
+	ErrorRate      float64                     `json:"errorRate"`
+	ResourceUsage  ResourceUsage               `json:"resourceUsage"`
 }
 
 // ResourceUsage represents resource utilization
 type ResourceUsage struct {
-	CPUPercent      float64 `json:"cpuPercent"`
-	MemoryPercent   float64 `json:"memoryPercent"`
-	DiskPercent     float64 `json:"diskPercent"`
-	NetworkInMBps   float64 `json:"networkInMBps"`
-	NetworkOutMBps  float64 `json:"networkOutMBps"`
-	ActiveConnections int   `json:"activeConnections"`
+	CPUPercent        float64 `json:"cpuPercent"`
+	MemoryPercent     float64 `json:"memoryPercent"`
+	DiskPercent       float64 `json:"diskPercent"`
+	NetworkInMBps     float64 `json:"networkInMBps"`
+	NetworkOutMBps    float64 `json:"networkOutMBps"`
+	ActiveConnections int     `json:"activeConnections"`
 }

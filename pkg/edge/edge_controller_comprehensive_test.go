@@ -16,21 +16,20 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-
 func TestEdgeController_NodeDiscovery(t *testing.T) {
 	testCases := []struct {
-		name               string
-		initialNodes       map[string]*EdgeNode
-		expectedNodeCount  int
-		expectedZoneCount  int
-		description        string
+		name              string
+		initialNodes      map[string]*EdgeNode
+		expectedNodeCount int
+		expectedZoneCount int
+		description       string
 	}{
 		{
-			name:               "discover_initial_nodes",
-			initialNodes:       map[string]*EdgeNode{},
-			expectedNodeCount:  2, // Based on simulateEdgeNodeDiscovery
-			expectedZoneCount:  2,
-			description:        "Should discover initial edge nodes and create zones",
+			name:              "discover_initial_nodes",
+			initialNodes:      map[string]*EdgeNode{},
+			expectedNodeCount: 2, // Based on simulateEdgeNodeDiscovery
+			expectedZoneCount: 2,
+			description:       "Should discover initial edge nodes and create zones",
 		},
 		{
 			name: "update_existing_nodes",
@@ -420,7 +419,7 @@ func TestEdgeController_NodeScoring(t *testing.T) {
 			node: &EdgeNode{
 				ID: "optimal-node",
 				HealthMetrics: EdgeHealthMetrics{
-					AverageLatency: 1.0,  // Low latency
+					AverageLatency: 1.0,   // Low latency
 					UptimePercent:  99.99, // High uptime
 				},
 				Resources: EdgeResources{
@@ -532,7 +531,6 @@ func TestEdgeController_HealthChecks(t *testing.T) {
 	assert.Equal(t, EdgeNodeActive, nodes["test-node-1"].Status, "Node 1 should remain active")
 	assert.Equal(t, EdgeNodeDegraded, nodes["test-node-2"].Status, "Node 2 should become degraded due to high latency")
 }
-
 
 // Helper function to check if a string contains any of the given substrings
 func containsAny(s string, substrings []string) bool {

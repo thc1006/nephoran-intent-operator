@@ -11,22 +11,22 @@ package tools
 
 import (
 	// Code generation and build tools
+	_ "github.com/golang/mock/mockgen"
 	_ "k8s.io/code-generator/cmd/client-gen"
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 	_ "k8s.io/code-generator/cmd/informer-gen"
 	_ "k8s.io/code-generator/cmd/lister-gen"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
-	_ "github.com/golang/mock/mockgen"
-	
+
 	// Security and vulnerability tools
 	_ "golang.org/x/vuln/cmd/govulncheck"
-	
+
 	// SBOM generation tools
 	_ "github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod"
-	
+
 	// Testing and quality tools
 	_ "github.com/onsi/ginkgo/v2/ginkgo"
-	
+
 	// Documentation and API tools
 	_ "github.com/swaggo/swag/cmd/swag"
 )
@@ -36,23 +36,23 @@ const (
 	// Core Kubernetes toolchain
 	ControllerToolsVersion = "v0.16.5"
 	CodeGeneratorVersion   = "v0.32.0"
-	
+
 	// Security toolchain
-	GovulncheckVersion = "v1.1.4"
+	GovulncheckVersion  = "v1.1.4"
 	GolangciLintVersion = "v1.63.4"
-	
+
 	// Testing toolchain
-	GinkgoVersion = "v2.22.0"
+	GinkgoVersion  = "v2.22.0"
 	MockgenVersion = "v1.7.0-rc.1"
 	MockeryVersion = "v2.50.2"
-	
+
 	// SBOM and compliance
 	CycloneDXVersion = "v1.6.0"
-	
+
 	// Build and deployment
 	HelmVersion = "v3.16.4"
 	KoVersion   = "v0.17.2"
-	
+
 	// Documentation
 	SwagVersion = "v1.16.4"
 )
@@ -78,17 +78,17 @@ const (
 
 // Tool installation verification
 var toolVersions = map[string]string{
-	"controller-gen": ControllerToolsVersion,
-	"deepcopy-gen":   CodeGeneratorVersion,
-	"mockgen":        MockgenVersion,
-	"govulncheck":    GovulncheckVersion,
-	"golangci-lint":  GolangciLintVersion,
-	"ginkgo":         GinkgoVersion,
-	"mockery":        MockeryVersion,
+	"controller-gen":  ControllerToolsVersion,
+	"deepcopy-gen":    CodeGeneratorVersion,
+	"mockgen":         MockgenVersion,
+	"govulncheck":     GovulncheckVersion,
+	"golangci-lint":   GolangciLintVersion,
+	"ginkgo":          GinkgoVersion,
+	"mockery":         MockeryVersion,
 	"cyclonedx-gomod": CycloneDXVersion,
-	"helm":           HelmVersion,
-	"ko":             KoVersion,
-	"swag":           SwagVersion,
+	"helm":            HelmVersion,
+	"ko":              KoVersion,
+	"swag":            SwagVersion,
 }
 
 // GetToolVersion returns the expected version for a given tool

@@ -15,8 +15,8 @@ type MockTokenManager struct {
 	estimatedTokens      int
 	supportsSystemPrompt bool
 	supportsChatFormat   bool
-	maxTokens           int
-	truncatedText       string
+	maxTokens            int
+	truncatedText        string
 }
 
 func (m *MockTokenManager) EstimateTokensForModel(text, modelName string) int {
@@ -75,29 +75,29 @@ func TestRAGAwarePromptBuilder_BuildPrompt(t *testing.T) {
 				RAGContext: []*shared.SearchResult{
 					{
 						Document: &shared.TelecomDocument{
-							ID:       "amf_ha_guide",
-							Title:    "5G AMF High Availability Deployment",
-							Content:  "This guide covers deploying AMF with redundancy, load balancing, and failover mechanisms in 5G standalone core networks.",
-							Source:   "3GPP TS 23.501 v17.0.0",
-							Category: "configuration",
-							Version:  "v17.0.0",
-							Keywords: []string{"AMF", "5G", "HA", "deployment"},
+							ID:              "amf_ha_guide",
+							Title:           "5G AMF High Availability Deployment",
+							Content:         "This guide covers deploying AMF with redundancy, load balancing, and failover mechanisms in 5G standalone core networks.",
+							Source:          "3GPP TS 23.501 v17.0.0",
+							Category:        "configuration",
+							Version:         "v17.0.0",
+							Keywords:        []string{"AMF", "5G", "HA", "deployment"},
 							NetworkFunction: []string{"AMF"},
-							Technology: []string{"5G", "5GC"},
-							Confidence: 0.95,
+							Technology:      []string{"5G", "5GC"},
+							Confidence:      0.95,
 						},
 						Score: 0.92,
 					},
 					{
 						Document: &shared.TelecomDocument{
-							ID:      "amf_scaling",
-							Title:   "AMF Auto-scaling Configuration",
-							Content: "Configuration procedures for AMF horizontal and vertical scaling based on traffic patterns and resource utilization.",
-							Source:  "O-RAN.SC.RICAPP-v03.00",
-							Category: "configuration",
+							ID:              "amf_scaling",
+							Title:           "AMF Auto-scaling Configuration",
+							Content:         "Configuration procedures for AMF horizontal and vertical scaling based on traffic patterns and resource utilization.",
+							Source:          "O-RAN.SC.RICAPP-v03.00",
+							Category:        "configuration",
 							NetworkFunction: []string{"AMF"},
-							Technology: []string{"5G", "O-RAN"},
-							Confidence: 0.88,
+							Technology:      []string{"5G", "O-RAN"},
+							Confidence:      0.88,
 						},
 						Score: 0.89,
 					},
@@ -109,7 +109,7 @@ func TestRAGAwarePromptBuilder_BuildPrompt(t *testing.T) {
 			tokenManager: &MockTokenManager{
 				supportsSystemPrompt: true,
 				supportsChatFormat:   true,
-				maxTokens:           4096,
+				maxTokens:            4096,
 			},
 			minPromptLength: 500,
 			maxPromptLength: 8000,
@@ -146,20 +146,20 @@ func TestRAGAwarePromptBuilder_BuildPrompt(t *testing.T) {
 				RAGContext: []*shared.SearchResult{
 					{
 						Document: &shared.TelecomDocument{
-							ID:      "oran_handover_troubleshooting",
-							Title:   "O-RAN Handover Troubleshooting Guide",
-							Content: "Common handover failure scenarios in O-RAN networks including X2/Xn interface issues, RIC policy conflicts, and timing problems.",
-							Source:  "O-RAN.WG3.HO-v02.00",
-							Category: "troubleshooting",
+							ID:              "oran_handover_troubleshooting",
+							Title:           "O-RAN Handover Troubleshooting Guide",
+							Content:         "Common handover failure scenarios in O-RAN networks including X2/Xn interface issues, RIC policy conflicts, and timing problems.",
+							Source:          "O-RAN.WG3.HO-v02.00",
+							Category:        "troubleshooting",
 							NetworkFunction: []string{"O-CU", "O-DU", "RIC"},
-							Technology: []string{"O-RAN", "5G"},
-							Confidence: 0.91,
+							Technology:      []string{"O-RAN", "5G"},
+							Confidence:      0.91,
 						},
 						Score: 0.87,
 					},
 				},
-				Domain:         "RAN",
-				IncludeFewShot: true,
+				Domain:             "RAN",
+				IncludeFewShot:     true,
 				CustomInstructions: "Focus on systematic diagnostic procedures and root cause analysis",
 			},
 			tokenManager: &MockTokenManager{
@@ -199,7 +199,7 @@ func TestRAGAwarePromptBuilder_BuildPrompt(t *testing.T) {
 			tokenManager: &MockTokenManager{
 				supportsSystemPrompt: true,
 				supportsChatFormat:   true,
-				estimatedTokens:     2500, // Over budget to trigger optimization
+				estimatedTokens:      2500, // Over budget to trigger optimization
 			},
 			minPromptLength: 300,
 			maxPromptLength: 4000,
@@ -253,14 +253,14 @@ func TestRAGAwarePromptBuilder_BuildPrompt(t *testing.T) {
 				RAGContext: []*shared.SearchResult{
 					{
 						Document: &shared.TelecomDocument{
-							ID:      "upf_edge_deployment",
-							Title:   "UPF Edge Deployment Guide",
-							Content: "User Plane Function deployment at edge locations for low-latency applications.",
-							Source:  "Edge Computing Guide v1.0",
-							Category: "configuration",
+							ID:              "upf_edge_deployment",
+							Title:           "UPF Edge Deployment Guide",
+							Content:         "User Plane Function deployment at edge locations for low-latency applications.",
+							Source:          "Edge Computing Guide v1.0",
+							Category:        "configuration",
 							NetworkFunction: []string{"UPF"},
-							Technology: []string{"5G", "Edge"},
-							Confidence: 0.85,
+							Technology:      []string{"5G", "Edge"},
+							Confidence:      0.85,
 						},
 						Score: 0.82,
 					},
@@ -305,7 +305,7 @@ func TestRAGAwarePromptBuilder_BuildPrompt(t *testing.T) {
 			errorContains: "model name cannot be empty",
 		},
 		{
-			name: "nil request error",
+			name:          "nil request error",
 			request:       nil,
 			tokenManager:  &MockTokenManager{},
 			expectedError: true,
@@ -393,12 +393,12 @@ func TestRAGAwarePromptBuilder_BuildPrompt(t *testing.T) {
 				RAGContext: []*shared.SearchResult{
 					{
 						Document: &shared.TelecomDocument{
-							ID:       "multilang_doc",
-							Title:    "Deployment Guide - International",
-							Content:  "Network function deployment with support for múltiples idiomas, 多言語対応, и международная поддержка",
-							Source:   "International Guide v1.0",
-							Language: "multi",
-							Category: "configuration",
+							ID:         "multilang_doc",
+							Title:      "Deployment Guide - International",
+							Content:    "Network function deployment with support for múltiples idiomas, 多言語対応, и международная поддержка",
+							Source:     "International Guide v1.0",
+							Language:   "multi",
+							Category:   "configuration",
 							Confidence: 0.75,
 						},
 						Score: 0.70,
@@ -430,7 +430,7 @@ func TestRAGAwarePromptBuilder_BuildPrompt(t *testing.T) {
 			tokenManager: &MockTokenManager{
 				supportsSystemPrompt: true,
 				supportsChatFormat:   true,
-				estimatedTokens:     2200, // Over budget
+				estimatedTokens:      2200, // Over budget
 			},
 			minPromptLength: 500,
 			maxPromptLength: 3000,
@@ -456,25 +456,25 @@ func TestRAGAwarePromptBuilder_BuildPrompt(t *testing.T) {
 					// High relevance
 					{
 						Document: &shared.TelecomDocument{
-							ID:      "5g_core_deploy",
-							Title:   "5G Core Network Deployment",
-							Content: "Comprehensive 5G core deployment including AMF, SMF, UPF configuration and integration procedures.",
-							Source:  "5G Deployment Guide v2.0",
-							Category: "configuration",
+							ID:              "5g_core_deploy",
+							Title:           "5G Core Network Deployment",
+							Content:         "Comprehensive 5G core deployment including AMF, SMF, UPF configuration and integration procedures.",
+							Source:          "5G Deployment Guide v2.0",
+							Category:        "configuration",
 							NetworkFunction: []string{"AMF", "SMF", "UPF"},
-							Technology: []string{"5G"},
-							Confidence: 0.95,
+							Technology:      []string{"5G"},
+							Confidence:      0.95,
 						},
 						Score: 0.92, // High relevance
 					},
 					// Low relevance - should be filtered
 					{
 						Document: &shared.TelecomDocument{
-							ID:      "2g_legacy",
-							Title:   "2G Network Maintenance",
-							Content: "Legacy 2G network maintenance procedures for GSM networks.",
-							Source:  "Legacy Systems Guide",
-							Category: "maintenance",
+							ID:         "2g_legacy",
+							Title:      "2G Network Maintenance",
+							Content:    "Legacy 2G network maintenance procedures for GSM networks.",
+							Source:     "Legacy Systems Guide",
+							Category:   "maintenance",
 							Technology: []string{"2G", "GSM"},
 							Confidence: 0.30,
 						},
@@ -583,10 +583,10 @@ func TestRAGAwarePromptBuilder_Performance(t *testing.T) {
 	promptBuilder := NewRAGAwarePromptBuilder(tokenManager, getDefaultPromptBuilderConfig())
 
 	request := &PromptRequest{
-		Query:      "Deploy AMF network function for high availability 5G deployment",
-		IntentType: "configuration",
-		ModelName:  "gpt-4",
-		RAGContext: generateLargeRAGContext(10),
+		Query:          "Deploy AMF network function for high availability 5G deployment",
+		IntentType:     "configuration",
+		ModelName:      "gpt-4",
+		RAGContext:     generateLargeRAGContext(10),
 		IncludeFewShot: true,
 	}
 
@@ -665,32 +665,32 @@ func TestRAGAwarePromptBuilder_ConcurrentAccess(t *testing.T) {
 
 func TestRAGAwarePromptBuilder_TokenOptimization(t *testing.T) {
 	tests := []struct {
-		name         string
-		maxTokens    int
-		ragContext   []*shared.SearchResult
-		tokenManager *MockTokenManager
+		name             string
+		maxTokens        int
+		ragContext       []*shared.SearchResult
+		tokenManager     *MockTokenManager
 		expectTruncation bool
 	}{
 		{
-			name:      "within token budget",
-			maxTokens: 4000,
+			name:       "within token budget",
+			maxTokens:  4000,
 			ragContext: generateLargeRAGContext(2),
 			tokenManager: &MockTokenManager{
-				estimatedTokens:     2000, // Under budget
+				estimatedTokens:      2000, // Under budget
 				supportsSystemPrompt: true,
 				supportsChatFormat:   true,
 			},
 			expectTruncation: false,
 		},
 		{
-			name:      "over token budget requires truncation",
-			maxTokens: 1000,
+			name:       "over token budget requires truncation",
+			maxTokens:  1000,
 			ragContext: generateLargeRAGContext(5),
 			tokenManager: &MockTokenManager{
-				estimatedTokens:     1500, // Over budget
+				estimatedTokens:      1500, // Over budget
 				supportsSystemPrompt: true,
 				supportsChatFormat:   true,
-				truncatedText:      "Truncated content for testing...",
+				truncatedText:        "Truncated content for testing...",
 			},
 			expectTruncation: true,
 		},
@@ -799,28 +799,28 @@ func TestRAGAwarePromptBuilder_BuildLegacyMethod(t *testing.T) {
 
 func generateLargeRAGContext(count int) []*shared.SearchResult {
 	results := make([]*shared.SearchResult, count)
-	
+
 	for i := 0; i < count; i++ {
 		results[i] = &shared.SearchResult{
 			Document: &shared.TelecomDocument{
-				ID:      fmt.Sprintf("doc_%d", i),
-				Title:   fmt.Sprintf("Telecommunications Document %d", i),
-				Content: generateLongTelecomContent(i),
-				Source:  fmt.Sprintf("3GPP TS %d.%03d", 23+i%15, 500+i),
-				Category: []string{"configuration", "troubleshooting", "optimization"}[i%3],
-				Version:  fmt.Sprintf("v%d.%d.0", 15+i%3, i%10),
-				Keywords: []string{"5G", "AMF", "SMF", "UPF", "O-RAN", "gNB"}[i%6:i%6+1],
-				NetworkFunction: []string{"AMF", "SMF", "UPF", "gNB", "RIC"}[i%5:i%5+1],
-				Technology: []string{"5G", "O-RAN", "NFV", "SDN"},
-				Confidence: 0.7 + float32(i%3)*0.1,
-				CreatedAt: time.Now().Add(-time.Duration(i*24) * time.Hour),
-				UpdatedAt: time.Now().Add(-time.Duration(i*12) * time.Hour),
+				ID:              fmt.Sprintf("doc_%d", i),
+				Title:           fmt.Sprintf("Telecommunications Document %d", i),
+				Content:         generateLongTelecomContent(i),
+				Source:          fmt.Sprintf("3GPP TS %d.%03d", 23+i%15, 500+i),
+				Category:        []string{"configuration", "troubleshooting", "optimization"}[i%3],
+				Version:         fmt.Sprintf("v%d.%d.0", 15+i%3, i%10),
+				Keywords:        []string{"5G", "AMF", "SMF", "UPF", "O-RAN", "gNB"}[i%6 : i%6+1],
+				NetworkFunction: []string{"AMF", "SMF", "UPF", "gNB", "RIC"}[i%5 : i%5+1],
+				Technology:      []string{"5G", "O-RAN", "NFV", "SDN"},
+				Confidence:      0.7 + float32(i%3)*0.1,
+				CreatedAt:       time.Now().Add(-time.Duration(i*24) * time.Hour),
+				UpdatedAt:       time.Now().Add(-time.Duration(i*12) * time.Hour),
 			},
-			Score: 0.9 - float32(i)*0.05,
+			Score:    0.9 - float32(i)*0.05,
 			Distance: float32(i) * 0.05,
 		}
 	}
-	
+
 	return results
 }
 
@@ -831,12 +831,12 @@ func generateLongTelecomContent(seed int) string {
 		"Optimization procedures for %s focusing on performance tuning, resource allocation, and scalability enhancements. Covers monitoring strategies, key performance indicators, and automated optimization techniques for telecommunications networks.",
 		"Security considerations for %s deployment including authentication mechanisms, encryption protocols, and access control policies. Addresses both network-level and application-level security requirements for enterprise telecommunications environments.",
 	}
-	
+
 	functions := []string{"AMF", "SMF", "UPF", "gNB", "RIC", "O-CU", "O-DU", "NSSF", "AUSF", "UDM"}
-	
+
 	template := templates[seed%len(templates)]
 	function := functions[seed%len(functions)]
-	
+
 	return fmt.Sprintf(template, function)
 }
 
@@ -849,12 +849,12 @@ func generateVeryLongQuery(wordCount int) string {
 		"security", "authentication", "encryption", "policy", "procedure",
 		"interface", "protocol", "standard", "specification", "compliance",
 	}
-	
+
 	query := make([]string, wordCount)
 	for i := 0; i < wordCount; i++ {
 		query[i] = words[i%len(words)]
 	}
-	
+
 	return strings.Join(query, " ")
 }
 

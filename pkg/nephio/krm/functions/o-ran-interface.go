@@ -43,868 +43,868 @@ type ORANInterfaceConfigFunction struct {
 // ORANInterfaceConfig defines the configuration structure for O-RAN interfaces
 type ORANInterfaceConfig struct {
 	// Interface specifications
-	Interfaces        []*ORANInterface     `json:"interfaces" yaml:"interfaces"`
-	
+	Interfaces []*ORANInterface `json:"interfaces" yaml:"interfaces"`
+
 	// Global settings
-	Compliance        *ComplianceConfig    `json:"compliance,omitempty" yaml:"compliance,omitempty"`
-	Security          *InterfaceSecurityConfig `json:"security,omitempty" yaml:"security,omitempty"`
-	Monitoring        *InterfaceMonitoringConfig `json:"monitoring,omitempty" yaml:"monitoring,omitempty"`
-	
+	Compliance *ComplianceConfig          `json:"compliance,omitempty" yaml:"compliance,omitempty"`
+	Security   *InterfaceSecurityConfig   `json:"security,omitempty" yaml:"security,omitempty"`
+	Monitoring *InterfaceMonitoringConfig `json:"monitoring,omitempty" yaml:"monitoring,omitempty"`
+
 	// RIC configuration
-	RICConfig         *RICConfiguration    `json:"ricConfig,omitempty" yaml:"ricConfig,omitempty"`
-	
+	RICConfig *RICConfiguration `json:"ricConfig,omitempty" yaml:"ricConfig,omitempty"`
+
 	// Service Model Registry
-	ServiceModels     []*ServiceModelConfig `json:"serviceModels,omitempty" yaml:"serviceModels,omitempty"`
-	
+	ServiceModels []*ServiceModelConfig `json:"serviceModels,omitempty" yaml:"serviceModels,omitempty"`
+
 	// xApp configurations
-	XAppConfigs       []*XAppConfiguration `json:"xappConfigs,omitempty" yaml:"xappConfigs,omitempty"`
+	XAppConfigs []*XAppConfiguration `json:"xappConfigs,omitempty" yaml:"xappConfigs,omitempty"`
 }
 
 // ORANInterface defines a single O-RAN interface configuration
 type ORANInterface struct {
 	// Basic properties
-	Name              string               `json:"name" yaml:"name"`
-	Type              string               `json:"type" yaml:"type"`     // A1, O1, O2, E2
-	Version           string               `json:"version" yaml:"version"`
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	Description       string               `json:"description,omitempty" yaml:"description,omitempty"`
-	
+	Name        string `json:"name" yaml:"name"`
+	Type        string `json:"type" yaml:"type"` // A1, O1, O2, E2
+	Version     string `json:"version" yaml:"version"`
+	Enabled     bool   `json:"enabled" yaml:"enabled"`
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+
 	// Endpoint configuration
-	Endpoint          *EndpointConfig      `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
-	
+	Endpoint *EndpointConfig `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+
 	// Protocol configuration
-	Protocol          *ProtocolConfig      `json:"protocol,omitempty" yaml:"protocol,omitempty"`
-	
+	Protocol *ProtocolConfig `json:"protocol,omitempty" yaml:"protocol,omitempty"`
+
 	// Security configuration
-	Security          *InterfaceSecurity   `json:"security,omitempty" yaml:"security,omitempty"`
-	
+	Security *InterfaceSecurity `json:"security,omitempty" yaml:"security,omitempty"`
+
 	// Interface-specific configuration
-	A1Config          *A1InterfaceConfig   `json:"a1Config,omitempty" yaml:"a1Config,omitempty"`
-	O1Config          *O1InterfaceConfig   `json:"o1Config,omitempty" yaml:"o1Config,omitempty"`
-	O2Config          *O2InterfaceConfig   `json:"o2Config,omitempty" yaml:"o2Config,omitempty"`
-	E2Config          *E2InterfaceConfig   `json:"e2Config,omitempty" yaml:"e2Config,omitempty"`
-	
+	A1Config *A1InterfaceConfig `json:"a1Config,omitempty" yaml:"a1Config,omitempty"`
+	O1Config *O1InterfaceConfig `json:"o1Config,omitempty" yaml:"o1Config,omitempty"`
+	O2Config *O2InterfaceConfig `json:"o2Config,omitempty" yaml:"o2Config,omitempty"`
+	E2Config *E2InterfaceConfig `json:"e2Config,omitempty" yaml:"e2Config,omitempty"`
+
 	// Quality of Service
-	QoS               *InterfaceQoSConfig  `json:"qos,omitempty" yaml:"qos,omitempty"`
-	
+	QoS *InterfaceQoSConfig `json:"qos,omitempty" yaml:"qos,omitempty"`
+
 	// Monitoring and observability
-	Observability     *InterfaceObservability `json:"observability,omitempty" yaml:"observability,omitempty"`
+	Observability *InterfaceObservability `json:"observability,omitempty" yaml:"observability,omitempty"`
 }
 
 // EndpointConfig defines endpoint configuration
 type EndpointConfig struct {
-	URL               string               `json:"url" yaml:"url"`
-	Port              int32                `json:"port,omitempty" yaml:"port,omitempty"`
-	Path              string               `json:"path,omitempty" yaml:"path,omitempty"`
-	Host              string               `json:"host,omitempty" yaml:"host,omitempty"`
-	LoadBalancer      *LoadBalancerConfig  `json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
-	HealthCheck       *HealthCheckConfig   `json:"healthCheck,omitempty" yaml:"healthCheck,omitempty"`
+	URL          string              `json:"url" yaml:"url"`
+	Port         int32               `json:"port,omitempty" yaml:"port,omitempty"`
+	Path         string              `json:"path,omitempty" yaml:"path,omitempty"`
+	Host         string              `json:"host,omitempty" yaml:"host,omitempty"`
+	LoadBalancer *LoadBalancerConfig `json:"loadBalancer,omitempty" yaml:"loadBalancer,omitempty"`
+	HealthCheck  *HealthCheckConfig  `json:"healthCheck,omitempty" yaml:"healthCheck,omitempty"`
 }
 
 // LoadBalancerConfig defines load balancer configuration
 type LoadBalancerConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	Algorithm         string               `json:"algorithm,omitempty" yaml:"algorithm,omitempty"` // round-robin, least-connections, ip-hash
-	HealthCheck       bool                 `json:"healthCheck,omitempty" yaml:"healthCheck,omitempty"`
-	StickySession     bool                 `json:"stickySession,omitempty" yaml:"stickySession,omitempty"`
-	Backends          []BackendConfig      `json:"backends,omitempty" yaml:"backends,omitempty"`
+	Enabled       bool            `json:"enabled" yaml:"enabled"`
+	Algorithm     string          `json:"algorithm,omitempty" yaml:"algorithm,omitempty"` // round-robin, least-connections, ip-hash
+	HealthCheck   bool            `json:"healthCheck,omitempty" yaml:"healthCheck,omitempty"`
+	StickySession bool            `json:"stickySession,omitempty" yaml:"stickySession,omitempty"`
+	Backends      []BackendConfig `json:"backends,omitempty" yaml:"backends,omitempty"`
 }
 
 // BackendConfig defines backend server configuration
 type BackendConfig struct {
-	Host              string               `json:"host" yaml:"host"`
-	Port              int32                `json:"port" yaml:"port"`
-	Weight            int32                `json:"weight,omitempty" yaml:"weight,omitempty"`
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
+	Host    string `json:"host" yaml:"host"`
+	Port    int32  `json:"port" yaml:"port"`
+	Weight  int32  `json:"weight,omitempty" yaml:"weight,omitempty"`
+	Enabled bool   `json:"enabled" yaml:"enabled"`
 }
 
 // HealthCheckConfig defines health check configuration
 type HealthCheckConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	Path              string               `json:"path,omitempty" yaml:"path,omitempty"`
-	Interval          string               `json:"interval,omitempty" yaml:"interval,omitempty"`
-	Timeout           string               `json:"timeout,omitempty" yaml:"timeout,omitempty"`
-	Retries           int32                `json:"retries,omitempty" yaml:"retries,omitempty"`
-	SuccessThreshold  int32                `json:"successThreshold,omitempty" yaml:"successThreshold,omitempty"`
-	FailureThreshold  int32                `json:"failureThreshold,omitempty" yaml:"failureThreshold,omitempty"`
+	Enabled          bool   `json:"enabled" yaml:"enabled"`
+	Path             string `json:"path,omitempty" yaml:"path,omitempty"`
+	Interval         string `json:"interval,omitempty" yaml:"interval,omitempty"`
+	Timeout          string `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+	Retries          int32  `json:"retries,omitempty" yaml:"retries,omitempty"`
+	SuccessThreshold int32  `json:"successThreshold,omitempty" yaml:"successThreshold,omitempty"`
+	FailureThreshold int32  `json:"failureThreshold,omitempty" yaml:"failureThreshold,omitempty"`
 }
 
 // ProtocolConfig defines protocol configuration
 type ProtocolConfig struct {
-	Type              string               `json:"type" yaml:"type"`     // HTTP, HTTPS, gRPC, SCTP
-	Version           string               `json:"version,omitempty" yaml:"version,omitempty"`
-	Parameters        map[string]string    `json:"parameters,omitempty" yaml:"parameters,omitempty"`
-	Compression       *CompressionConfig   `json:"compression,omitempty" yaml:"compression,omitempty"`
-	Timeout           *TimeoutConfig       `json:"timeout,omitempty" yaml:"timeout,omitempty"`
+	Type        string             `json:"type" yaml:"type"` // HTTP, HTTPS, gRPC, SCTP
+	Version     string             `json:"version,omitempty" yaml:"version,omitempty"`
+	Parameters  map[string]string  `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Compression *CompressionConfig `json:"compression,omitempty" yaml:"compression,omitempty"`
+	Timeout     *TimeoutConfig     `json:"timeout,omitempty" yaml:"timeout,omitempty"`
 }
 
 // CompressionConfig defines compression settings
 type CompressionConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	Algorithm         string               `json:"algorithm,omitempty" yaml:"algorithm,omitempty"` // gzip, deflate, lz4
-	Level             int32                `json:"level,omitempty" yaml:"level,omitempty"`
-	MinSize           int32                `json:"minSize,omitempty" yaml:"minSize,omitempty"`
+	Enabled   bool   `json:"enabled" yaml:"enabled"`
+	Algorithm string `json:"algorithm,omitempty" yaml:"algorithm,omitempty"` // gzip, deflate, lz4
+	Level     int32  `json:"level,omitempty" yaml:"level,omitempty"`
+	MinSize   int32  `json:"minSize,omitempty" yaml:"minSize,omitempty"`
 }
 
 // TimeoutConfig defines timeout settings
 type TimeoutConfig struct {
-	Connect           string               `json:"connect,omitempty" yaml:"connect,omitempty"`
-	Read              string               `json:"read,omitempty" yaml:"read,omitempty"`
-	Write             string               `json:"write,omitempty" yaml:"write,omitempty"`
-	Idle              string               `json:"idle,omitempty" yaml:"idle,omitempty"`
+	Connect string `json:"connect,omitempty" yaml:"connect,omitempty"`
+	Read    string `json:"read,omitempty" yaml:"read,omitempty"`
+	Write   string `json:"write,omitempty" yaml:"write,omitempty"`
+	Idle    string `json:"idle,omitempty" yaml:"idle,omitempty"`
 }
 
 // InterfaceSecurity defines security configuration for an interface
 type InterfaceSecurity struct {
-	TLS               *TLSConfig           `json:"tls,omitempty" yaml:"tls,omitempty"`
-	Authentication    *AuthenticationConfig `json:"authentication,omitempty" yaml:"authentication,omitempty"`
-	Authorization     *AuthorizationConfig `json:"authorization,omitempty" yaml:"authorization,omitempty"`
-	Encryption        *EncryptionConfig    `json:"encryption,omitempty" yaml:"encryption,omitempty"`
+	TLS            *TLSConfig            `json:"tls,omitempty" yaml:"tls,omitempty"`
+	Authentication *AuthenticationConfig `json:"authentication,omitempty" yaml:"authentication,omitempty"`
+	Authorization  *AuthorizationConfig  `json:"authorization,omitempty" yaml:"authorization,omitempty"`
+	Encryption     *EncryptionConfig     `json:"encryption,omitempty" yaml:"encryption,omitempty"`
 }
 
 // TLSConfig defines TLS configuration
 type TLSConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	Version           string               `json:"version,omitempty" yaml:"version,omitempty"`
-	CipherSuites      []string             `json:"cipherSuites,omitempty" yaml:"cipherSuites,omitempty"`
-	CertificateRef    string               `json:"certificateRef,omitempty" yaml:"certificateRef,omitempty"`
-	KeyRef            string               `json:"keyRef,omitempty" yaml:"keyRef,omitempty"`
-	CARef             string               `json:"caRef,omitempty" yaml:"caRef,omitempty"`
-	ClientAuth        bool                 `json:"clientAuth,omitempty" yaml:"clientAuth,omitempty"`
+	Enabled        bool     `json:"enabled" yaml:"enabled"`
+	Version        string   `json:"version,omitempty" yaml:"version,omitempty"`
+	CipherSuites   []string `json:"cipherSuites,omitempty" yaml:"cipherSuites,omitempty"`
+	CertificateRef string   `json:"certificateRef,omitempty" yaml:"certificateRef,omitempty"`
+	KeyRef         string   `json:"keyRef,omitempty" yaml:"keyRef,omitempty"`
+	CARef          string   `json:"caRef,omitempty" yaml:"caRef,omitempty"`
+	ClientAuth     bool     `json:"clientAuth,omitempty" yaml:"clientAuth,omitempty"`
 }
 
 // AuthenticationConfig defines authentication configuration
 type AuthenticationConfig struct {
-	Method            string               `json:"method" yaml:"method"`   // oauth2, jwt, basic, certificate
-	Parameters        map[string]string    `json:"parameters,omitempty" yaml:"parameters,omitempty"`
-	TokenEndpoint     string               `json:"tokenEndpoint,omitempty" yaml:"tokenEndpoint,omitempty"`
-	Scopes            []string             `json:"scopes,omitempty" yaml:"scopes,omitempty"`
+	Method        string            `json:"method" yaml:"method"` // oauth2, jwt, basic, certificate
+	Parameters    map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	TokenEndpoint string            `json:"tokenEndpoint,omitempty" yaml:"tokenEndpoint,omitempty"`
+	Scopes        []string          `json:"scopes,omitempty" yaml:"scopes,omitempty"`
 }
 
 // AuthorizationConfig defines authorization configuration
 type AuthorizationConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	Policies          []AuthPolicy         `json:"policies,omitempty" yaml:"policies,omitempty"`
-	DefaultAction     string               `json:"defaultAction,omitempty" yaml:"defaultAction,omitempty"` // allow, deny
+	Enabled       bool         `json:"enabled" yaml:"enabled"`
+	Policies      []AuthPolicy `json:"policies,omitempty" yaml:"policies,omitempty"`
+	DefaultAction string       `json:"defaultAction,omitempty" yaml:"defaultAction,omitempty"` // allow, deny
 }
 
 // AuthPolicy defines an authorization policy
 type AuthPolicy struct {
-	Name              string               `json:"name" yaml:"name"`
-	Rules             []AuthRule           `json:"rules,omitempty" yaml:"rules,omitempty"`
-	Effect            string               `json:"effect" yaml:"effect"`     // allow, deny
+	Name   string     `json:"name" yaml:"name"`
+	Rules  []AuthRule `json:"rules,omitempty" yaml:"rules,omitempty"`
+	Effect string     `json:"effect" yaml:"effect"` // allow, deny
 }
 
 // AuthRule defines an authorization rule
 type AuthRule struct {
-	Resource          string               `json:"resource,omitempty" yaml:"resource,omitempty"`
-	Action            string               `json:"action,omitempty" yaml:"action,omitempty"`
-	Subject           string               `json:"subject,omitempty" yaml:"subject,omitempty"`
-	Condition         string               `json:"condition,omitempty" yaml:"condition,omitempty"`
+	Resource  string `json:"resource,omitempty" yaml:"resource,omitempty"`
+	Action    string `json:"action,omitempty" yaml:"action,omitempty"`
+	Subject   string `json:"subject,omitempty" yaml:"subject,omitempty"`
+	Condition string `json:"condition,omitempty" yaml:"condition,omitempty"`
 }
 
 // EncryptionConfig defines encryption configuration
 type EncryptionConfig struct {
-	AtRest            bool                 `json:"atRest,omitempty" yaml:"atRest,omitempty"`
-	InTransit         bool                 `json:"inTransit,omitempty" yaml:"inTransit,omitempty"`
-	Algorithm         string               `json:"algorithm,omitempty" yaml:"algorithm,omitempty"`
-	KeySize           int32                `json:"keySize,omitempty" yaml:"keySize,omitempty"`
+	AtRest    bool   `json:"atRest,omitempty" yaml:"atRest,omitempty"`
+	InTransit bool   `json:"inTransit,omitempty" yaml:"inTransit,omitempty"`
+	Algorithm string `json:"algorithm,omitempty" yaml:"algorithm,omitempty"`
+	KeySize   int32  `json:"keySize,omitempty" yaml:"keySize,omitempty"`
 }
 
 // A1InterfaceConfig defines A1 interface specific configuration
 type A1InterfaceConfig struct {
 	// Policy Type Management
-	PolicyTypes       []*PolicyTypeConfig  `json:"policyTypes,omitempty" yaml:"policyTypes,omitempty"`
-	
+	PolicyTypes []*PolicyTypeConfig `json:"policyTypes,omitempty" yaml:"policyTypes,omitempty"`
+
 	// Policy Instance Management
-	PolicyInstances   []*PolicyInstanceConfig `json:"policyInstances,omitempty" yaml:"policyInstances,omitempty"`
-	
+	PolicyInstances []*PolicyInstanceConfig `json:"policyInstances,omitempty" yaml:"policyInstances,omitempty"`
+
 	// Enrichment Information
-	EITypes           []*EITypeConfig      `json:"eiTypes,omitempty" yaml:"eiTypes,omitempty"`
-	
+	EITypes []*EITypeConfig `json:"eiTypes,omitempty" yaml:"eiTypes,omitempty"`
+
 	// Near-RT RIC configuration
-	NearRTRIC         *NearRTRICConfig     `json:"nearRtRic,omitempty" yaml:"nearRtRic,omitempty"`
-	
+	NearRTRIC *NearRTRICConfig `json:"nearRtRic,omitempty" yaml:"nearRtRic,omitempty"`
+
 	// Consumer configuration
-	Consumers         []*A1ConsumerConfig  `json:"consumers,omitempty" yaml:"consumers,omitempty"`
+	Consumers []*A1ConsumerConfig `json:"consumers,omitempty" yaml:"consumers,omitempty"`
 }
 
 // PolicyTypeConfig defines policy type configuration
 type PolicyTypeConfig struct {
-	PolicyTypeID      int32                `json:"policyTypeId" yaml:"policyTypeId"`
-	PolicyTypeName    string               `json:"policyTypeName" yaml:"policyTypeName"`
-	Description       string               `json:"description,omitempty" yaml:"description,omitempty"`
-	CreateSchema      map[string]interface{} `json:"createSchema" yaml:"createSchema"`
-	PolicySchema      map[string]interface{} `json:"policySchema,omitempty" yaml:"policySchema,omitempty"`
+	PolicyTypeID   int32                  `json:"policyTypeId" yaml:"policyTypeId"`
+	PolicyTypeName string                 `json:"policyTypeName" yaml:"policyTypeName"`
+	Description    string                 `json:"description,omitempty" yaml:"description,omitempty"`
+	CreateSchema   map[string]interface{} `json:"createSchema" yaml:"createSchema"`
+	PolicySchema   map[string]interface{} `json:"policySchema,omitempty" yaml:"policySchema,omitempty"`
 }
 
 // PolicyInstanceConfig defines policy instance configuration
 type PolicyInstanceConfig struct {
-	PolicyID          string               `json:"policyId" yaml:"policyId"`
-	PolicyTypeID      int32                `json:"policyTypeId" yaml:"policyTypeId"`
-	ServiceID         string               `json:"serviceId,omitempty" yaml:"serviceId,omitempty"`
-	PolicyData        map[string]interface{} `json:"policyData" yaml:"policyData"`
-	StatusNotificationURI string           `json:"statusNotificationUri,omitempty" yaml:"statusNotificationUri,omitempty"`
+	PolicyID              string                 `json:"policyId" yaml:"policyId"`
+	PolicyTypeID          int32                  `json:"policyTypeId" yaml:"policyTypeId"`
+	ServiceID             string                 `json:"serviceId,omitempty" yaml:"serviceId,omitempty"`
+	PolicyData            map[string]interface{} `json:"policyData" yaml:"policyData"`
+	StatusNotificationURI string                 `json:"statusNotificationUri,omitempty" yaml:"statusNotificationUri,omitempty"`
 }
 
 // EITypeConfig defines Enrichment Information type configuration
 type EITypeConfig struct {
-	EITypeID          string               `json:"eiTypeId" yaml:"eiTypeId"`
-	EITypeName        string               `json:"eiTypeName" yaml:"eiTypeName"`
-	Description       string               `json:"description,omitempty" yaml:"description,omitempty"`
-	EIJobDataSchema   map[string]interface{} `json:"eiJobDataSchema" yaml:"eiJobDataSchema"`
+	EITypeID        string                 `json:"eiTypeId" yaml:"eiTypeId"`
+	EITypeName      string                 `json:"eiTypeName" yaml:"eiTypeName"`
+	Description     string                 `json:"description,omitempty" yaml:"description,omitempty"`
+	EIJobDataSchema map[string]interface{} `json:"eiJobDataSchema" yaml:"eiJobDataSchema"`
 }
 
 // NearRTRICConfig defines Near-RT RIC configuration
 type NearRTRICConfig struct {
-	RICID             string               `json:"ricId" yaml:"ricId"`
-	ManagedElementIDs []string             `json:"managedElementIds,omitempty" yaml:"managedElementIds,omitempty"`
-	RICState          string               `json:"ricState,omitempty" yaml:"ricState,omitempty"`
-	PLMNs             []PLMN               `json:"plmns,omitempty" yaml:"plmns,omitempty"`
+	RICID             string   `json:"ricId" yaml:"ricId"`
+	ManagedElementIDs []string `json:"managedElementIds,omitempty" yaml:"managedElementIds,omitempty"`
+	RICState          string   `json:"ricState,omitempty" yaml:"ricState,omitempty"`
+	PLMNs             []PLMN   `json:"plmns,omitempty" yaml:"plmns,omitempty"`
 }
 
 // PLMN defines Public Land Mobile Network
 type PLMN struct {
-	MCC               string               `json:"mcc" yaml:"mcc"`
-	MNC               string               `json:"mnc" yaml:"mnc"`
+	MCC string `json:"mcc" yaml:"mcc"`
+	MNC string `json:"mnc" yaml:"mnc"`
 }
 
 // A1ConsumerConfig defines A1 consumer configuration
 type A1ConsumerConfig struct {
-	ConsumerID        string               `json:"consumerId" yaml:"consumerId"`
-	ConsumerName      string               `json:"consumerName" yaml:"consumerName"`
-	CallbackURL       string               `json:"callbackUrl" yaml:"callbackUrl"`
-	SubscribedServices []string             `json:"subscribedServices,omitempty" yaml:"subscribedServices,omitempty"`
+	ConsumerID         string   `json:"consumerId" yaml:"consumerId"`
+	ConsumerName       string   `json:"consumerName" yaml:"consumerName"`
+	CallbackURL        string   `json:"callbackUrl" yaml:"callbackUrl"`
+	SubscribedServices []string `json:"subscribedServices,omitempty" yaml:"subscribedServices,omitempty"`
 }
 
 // O1InterfaceConfig defines O1 interface specific configuration
 type O1InterfaceConfig struct {
 	// FCAPS Management
-	FaultManagement   *FaultManagementConfig `json:"faultManagement,omitempty" yaml:"faultManagement,omitempty"`
-	ConfigManagement  *ConfigManagementConfig `json:"configManagement,omitempty" yaml:"configManagement,omitempty"`
-	AccountingManagement *AccountingManagementConfig `json:"accountingManagement,omitempty" yaml:"accountingManagement,omitempty"`
+	FaultManagement       *FaultManagementConfig       `json:"faultManagement,omitempty" yaml:"faultManagement,omitempty"`
+	ConfigManagement      *ConfigManagementConfig      `json:"configManagement,omitempty" yaml:"configManagement,omitempty"`
+	AccountingManagement  *AccountingManagementConfig  `json:"accountingManagement,omitempty" yaml:"accountingManagement,omitempty"`
 	PerformanceManagement *PerformanceManagementConfig `json:"performanceManagement,omitempty" yaml:"performanceManagement,omitempty"`
-	SecurityManagement *SecurityManagementConfig `json:"securityManagement,omitempty" yaml:"securityManagement,omitempty"`
-	
+	SecurityManagement    *SecurityManagementConfig    `json:"securityManagement,omitempty" yaml:"securityManagement,omitempty"`
+
 	// NETCONF/YANG configuration
-	NETCONF           *NETCONFConfig       `json:"netconf,omitempty" yaml:"netconf,omitempty"`
-	YANGModels        []*YANGModelConfig   `json:"yangModels,omitempty" yaml:"yangModels,omitempty"`
+	NETCONF    *NETCONFConfig     `json:"netconf,omitempty" yaml:"netconf,omitempty"`
+	YANGModels []*YANGModelConfig `json:"yangModels,omitempty" yaml:"yangModels,omitempty"`
 }
 
 // FaultManagementConfig defines fault management configuration
 type FaultManagementConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	AlarmList         []AlarmConfig        `json:"alarmList,omitempty" yaml:"alarmList,omitempty"`
-	NotificationURL   string               `json:"notificationUrl,omitempty" yaml:"notificationUrl,omitempty"`
-	CorrelationRules  []CorrelationRule    `json:"correlationRules,omitempty" yaml:"correlationRules,omitempty"`
+	Enabled          bool              `json:"enabled" yaml:"enabled"`
+	AlarmList        []AlarmConfig     `json:"alarmList,omitempty" yaml:"alarmList,omitempty"`
+	NotificationURL  string            `json:"notificationUrl,omitempty" yaml:"notificationUrl,omitempty"`
+	CorrelationRules []CorrelationRule `json:"correlationRules,omitempty" yaml:"correlationRules,omitempty"`
 }
 
 // AlarmConfig defines alarm configuration
 type AlarmConfig struct {
-	AlarmID           string               `json:"alarmId" yaml:"alarmId"`
-	AlarmText         string               `json:"alarmText" yaml:"alarmText"`
-	Severity          string               `json:"severity" yaml:"severity"`
-	ProbableCause     string               `json:"probableCause,omitempty" yaml:"probableCause,omitempty"`
-	ProposedRepairAction string            `json:"proposedRepairAction,omitempty" yaml:"proposedRepairAction,omitempty"`
+	AlarmID              string `json:"alarmId" yaml:"alarmId"`
+	AlarmText            string `json:"alarmText" yaml:"alarmText"`
+	Severity             string `json:"severity" yaml:"severity"`
+	ProbableCause        string `json:"probableCause,omitempty" yaml:"probableCause,omitempty"`
+	ProposedRepairAction string `json:"proposedRepairAction,omitempty" yaml:"proposedRepairAction,omitempty"`
 }
 
 // CorrelationRule defines alarm correlation rule
 type CorrelationRule struct {
-	RuleID            string               `json:"ruleId" yaml:"ruleId"`
-	Condition         string               `json:"condition" yaml:"condition"`
-	Action            string               `json:"action" yaml:"action"`
-	TimeWindow        string               `json:"timeWindow,omitempty" yaml:"timeWindow,omitempty"`
+	RuleID     string `json:"ruleId" yaml:"ruleId"`
+	Condition  string `json:"condition" yaml:"condition"`
+	Action     string `json:"action" yaml:"action"`
+	TimeWindow string `json:"timeWindow,omitempty" yaml:"timeWindow,omitempty"`
 }
 
 // ConfigManagementConfig defines configuration management
 type ConfigManagementConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	ConfigDatastores  []ConfigDatastore    `json:"configDatastores,omitempty" yaml:"configDatastores,omitempty"`
-	BackupSchedule    string               `json:"backupSchedule,omitempty" yaml:"backupSchedule,omitempty"`
-	ValidationEnabled bool                 `json:"validationEnabled,omitempty" yaml:"validationEnabled,omitempty"`
+	Enabled           bool              `json:"enabled" yaml:"enabled"`
+	ConfigDatastores  []ConfigDatastore `json:"configDatastores,omitempty" yaml:"configDatastores,omitempty"`
+	BackupSchedule    string            `json:"backupSchedule,omitempty" yaml:"backupSchedule,omitempty"`
+	ValidationEnabled bool              `json:"validationEnabled,omitempty" yaml:"validationEnabled,omitempty"`
 }
 
 // ConfigDatastore defines configuration datastore
 type ConfigDatastore struct {
-	Name              string               `json:"name" yaml:"name"`
-	Type              string               `json:"type" yaml:"type"`     // running, candidate, startup
-	URL               string               `json:"url,omitempty" yaml:"url,omitempty"`
-	Capabilities      []string             `json:"capabilities,omitempty" yaml:"capabilities,omitempty"`
+	Name         string   `json:"name" yaml:"name"`
+	Type         string   `json:"type" yaml:"type"` // running, candidate, startup
+	URL          string   `json:"url,omitempty" yaml:"url,omitempty"`
+	Capabilities []string `json:"capabilities,omitempty" yaml:"capabilities,omitempty"`
 }
 
 // AccountingManagementConfig defines accounting management
 type AccountingManagementConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	UsageReporting    *UsageReportingConfig `json:"usageReporting,omitempty" yaml:"usageReporting,omitempty"`
+	Enabled            bool                      `json:"enabled" yaml:"enabled"`
+	UsageReporting     *UsageReportingConfig     `json:"usageReporting,omitempty" yaml:"usageReporting,omitempty"`
 	BillingIntegration *BillingIntegrationConfig `json:"billingIntegration,omitempty" yaml:"billingIntegration,omitempty"`
 }
 
 // UsageReportingConfig defines usage reporting configuration
 type UsageReportingConfig struct {
-	ReportingInterval string               `json:"reportingInterval" yaml:"reportingInterval"`
-	Metrics           []string             `json:"metrics,omitempty" yaml:"metrics,omitempty"`
-	DestinationURL    string               `json:"destinationUrl" yaml:"destinationUrl"`
+	ReportingInterval string   `json:"reportingInterval" yaml:"reportingInterval"`
+	Metrics           []string `json:"metrics,omitempty" yaml:"metrics,omitempty"`
+	DestinationURL    string   `json:"destinationUrl" yaml:"destinationUrl"`
 }
 
 // BillingIntegrationConfig defines billing system integration
 type BillingIntegrationConfig struct {
-	Provider          string               `json:"provider" yaml:"provider"`
-	APIEndpoint       string               `json:"apiEndpoint" yaml:"apiEndpoint"`
-	Credentials       map[string]string    `json:"credentials,omitempty" yaml:"credentials,omitempty"`
+	Provider    string            `json:"provider" yaml:"provider"`
+	APIEndpoint string            `json:"apiEndpoint" yaml:"apiEndpoint"`
+	Credentials map[string]string `json:"credentials,omitempty" yaml:"credentials,omitempty"`
 }
 
 // PerformanceManagementConfig defines performance management
 type PerformanceManagementConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	KPIs              []KPIDefinition      `json:"kpis,omitempty" yaml:"kpis,omitempty"`
-	CollectionInterval string              `json:"collectionInterval,omitempty" yaml:"collectionInterval,omitempty"`
+	Enabled             bool                       `json:"enabled" yaml:"enabled"`
+	KPIs                []KPIDefinition            `json:"kpis,omitempty" yaml:"kpis,omitempty"`
+	CollectionInterval  string                     `json:"collectionInterval,omitempty" yaml:"collectionInterval,omitempty"`
 	ThresholdMonitoring *ThresholdMonitoringConfig `json:"thresholdMonitoring,omitempty" yaml:"thresholdMonitoring,omitempty"`
 }
 
 // KPIDefinition defines KPI configuration
 type KPIDefinition struct {
-	Name              string               `json:"name" yaml:"name"`
-	Description       string               `json:"description,omitempty" yaml:"description,omitempty"`
-	Unit              string               `json:"unit,omitempty" yaml:"unit,omitempty"`
-	MeasurementType   string               `json:"measurementType" yaml:"measurementType"`
-	Formula           string               `json:"formula,omitempty" yaml:"formula,omitempty"`
+	Name            string `json:"name" yaml:"name"`
+	Description     string `json:"description,omitempty" yaml:"description,omitempty"`
+	Unit            string `json:"unit,omitempty" yaml:"unit,omitempty"`
+	MeasurementType string `json:"measurementType" yaml:"measurementType"`
+	Formula         string `json:"formula,omitempty" yaml:"formula,omitempty"`
 }
 
 // ThresholdMonitoringConfig defines threshold monitoring
 type ThresholdMonitoringConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	Thresholds        []ThresholdConfig    `json:"thresholds,omitempty" yaml:"thresholds,omitempty"`
-	CrossingAlert     bool                 `json:"crossingAlert,omitempty" yaml:"crossingAlert,omitempty"`
+	Enabled       bool              `json:"enabled" yaml:"enabled"`
+	Thresholds    []ThresholdConfig `json:"thresholds,omitempty" yaml:"thresholds,omitempty"`
+	CrossingAlert bool              `json:"crossingAlert,omitempty" yaml:"crossingAlert,omitempty"`
 }
 
 // ThresholdConfig defines threshold configuration
 type ThresholdConfig struct {
-	KPIName           string               `json:"kpiName" yaml:"kpiName"`
-	WarningThreshold  float64              `json:"warningThreshold,omitempty" yaml:"warningThreshold,omitempty"`
-	CriticalThreshold float64              `json:"criticalThreshold,omitempty" yaml:"criticalThreshold,omitempty"`
-	Direction         string               `json:"direction,omitempty" yaml:"direction,omitempty"` // up, down
+	KPIName           string  `json:"kpiName" yaml:"kpiName"`
+	WarningThreshold  float64 `json:"warningThreshold,omitempty" yaml:"warningThreshold,omitempty"`
+	CriticalThreshold float64 `json:"criticalThreshold,omitempty" yaml:"criticalThreshold,omitempty"`
+	Direction         string  `json:"direction,omitempty" yaml:"direction,omitempty"` // up, down
 }
 
 // SecurityManagementConfig defines security management
 type SecurityManagementConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	Certificates      []CertificateConfig  `json:"certificates,omitempty" yaml:"certificates,omitempty"`
-	AccessControl     []AccessControlRule  `json:"accessControl,omitempty" yaml:"accessControl,omitempty"`
-	AuditLogging      *AuditLoggingConfig  `json:"auditLogging,omitempty" yaml:"auditLogging,omitempty"`
+	Enabled       bool                `json:"enabled" yaml:"enabled"`
+	Certificates  []CertificateConfig `json:"certificates,omitempty" yaml:"certificates,omitempty"`
+	AccessControl []AccessControlRule `json:"accessControl,omitempty" yaml:"accessControl,omitempty"`
+	AuditLogging  *AuditLoggingConfig `json:"auditLogging,omitempty" yaml:"auditLogging,omitempty"`
 }
 
 // CertificateConfig defines certificate configuration
 type CertificateConfig struct {
-	Name              string               `json:"name" yaml:"name"`
-	Type              string               `json:"type" yaml:"type"`
-	CertData          string               `json:"certData,omitempty" yaml:"certData,omitempty"`
-	KeyData           string               `json:"keyData,omitempty" yaml:"keyData,omitempty"`
-	ExpiryDate        *time.Time           `json:"expiryDate,omitempty" yaml:"expiryDate,omitempty"`
+	Name       string     `json:"name" yaml:"name"`
+	Type       string     `json:"type" yaml:"type"`
+	CertData   string     `json:"certData,omitempty" yaml:"certData,omitempty"`
+	KeyData    string     `json:"keyData,omitempty" yaml:"keyData,omitempty"`
+	ExpiryDate *time.Time `json:"expiryDate,omitempty" yaml:"expiryDate,omitempty"`
 }
 
 // AccessControlRule defines access control rule
 type AccessControlRule struct {
-	RuleID            string               `json:"ruleId" yaml:"ruleId"`
-	Subject           string               `json:"subject" yaml:"subject"`
-	Resource          string               `json:"resource" yaml:"resource"`
-	Action            string               `json:"action" yaml:"action"`
-	Permission        string               `json:"permission" yaml:"permission"` // allow, deny
+	RuleID     string `json:"ruleId" yaml:"ruleId"`
+	Subject    string `json:"subject" yaml:"subject"`
+	Resource   string `json:"resource" yaml:"resource"`
+	Action     string `json:"action" yaml:"action"`
+	Permission string `json:"permission" yaml:"permission"` // allow, deny
 }
 
 // AuditLoggingConfig defines audit logging configuration
 type AuditLoggingConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	LogLevel          string               `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
-	RetentionPeriod   string               `json:"retentionPeriod,omitempty" yaml:"retentionPeriod,omitempty"`
-	DestinationURL    string               `json:"destinationUrl,omitempty" yaml:"destinationUrl,omitempty"`
+	Enabled         bool   `json:"enabled" yaml:"enabled"`
+	LogLevel        string `json:"logLevel,omitempty" yaml:"logLevel,omitempty"`
+	RetentionPeriod string `json:"retentionPeriod,omitempty" yaml:"retentionPeriod,omitempty"`
+	DestinationURL  string `json:"destinationUrl,omitempty" yaml:"destinationUrl,omitempty"`
 }
 
 // NETCONFConfig defines NETCONF configuration
 type NETCONFConfig struct {
-	Port              int32                `json:"port" yaml:"port"`
-	CallHome          bool                 `json:"callHome,omitempty" yaml:"callHome,omitempty"`
-	Capabilities      []string             `json:"capabilities,omitempty" yaml:"capabilities,omitempty"`
-	SessionTimeout    string               `json:"sessionTimeout,omitempty" yaml:"sessionTimeout,omitempty"`
+	Port           int32    `json:"port" yaml:"port"`
+	CallHome       bool     `json:"callHome,omitempty" yaml:"callHome,omitempty"`
+	Capabilities   []string `json:"capabilities,omitempty" yaml:"capabilities,omitempty"`
+	SessionTimeout string   `json:"sessionTimeout,omitempty" yaml:"sessionTimeout,omitempty"`
 }
 
 // YANGModelConfig defines YANG model configuration
 type YANGModelConfig struct {
-	Name              string               `json:"name" yaml:"name"`
-	Version           string               `json:"version" yaml:"version"`
-	Namespace         string               `json:"namespace" yaml:"namespace"`
-	Prefix            string               `json:"prefix" yaml:"prefix"`
-	ModelData         string               `json:"modelData,omitempty" yaml:"modelData,omitempty"`
+	Name      string `json:"name" yaml:"name"`
+	Version   string `json:"version" yaml:"version"`
+	Namespace string `json:"namespace" yaml:"namespace"`
+	Prefix    string `json:"prefix" yaml:"prefix"`
+	ModelData string `json:"modelData,omitempty" yaml:"modelData,omitempty"`
 }
 
 // O2InterfaceConfig defines O2 interface specific configuration
 type O2InterfaceConfig struct {
 	// Infrastructure Management Service
-	IMS               *IMSConfig           `json:"ims,omitempty" yaml:"ims,omitempty"`
-	
+	IMS *IMSConfig `json:"ims,omitempty" yaml:"ims,omitempty"`
+
 	// Deployment Management Service
-	DMS               *DMSConfig           `json:"dms,omitempty" yaml:"dms,omitempty"`
-	
+	DMS *DMSConfig `json:"dms,omitempty" yaml:"dms,omitempty"`
+
 	// Resource lifecycle management
-	ResourceTypes     []*ResourceTypeConfig `json:"resourceTypes,omitempty" yaml:"resourceTypes,omitempty"`
-	
+	ResourceTypes []*ResourceTypeConfig `json:"resourceTypes,omitempty" yaml:"resourceTypes,omitempty"`
+
 	// Cloud providers
-	CloudProviders    []*CloudProviderConfig `json:"cloudProviders,omitempty" yaml:"cloudProviders,omitempty"`
+	CloudProviders []*CloudProviderConfig `json:"cloudProviders,omitempty" yaml:"cloudProviders,omitempty"`
 }
 
 // IMSConfig defines Infrastructure Management Service configuration
 type IMSConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	InventoryURL      string               `json:"inventoryUrl" yaml:"inventoryUrl"`
-	ResourcePools     []*ResourcePoolConfig `json:"resourcePools,omitempty" yaml:"resourcePools,omitempty"`
-	SubscriptionURL   string               `json:"subscriptionUrl,omitempty" yaml:"subscriptionUrl,omitempty"`
+	Enabled         bool                  `json:"enabled" yaml:"enabled"`
+	InventoryURL    string                `json:"inventoryUrl" yaml:"inventoryUrl"`
+	ResourcePools   []*ResourcePoolConfig `json:"resourcePools,omitempty" yaml:"resourcePools,omitempty"`
+	SubscriptionURL string                `json:"subscriptionUrl,omitempty" yaml:"subscriptionUrl,omitempty"`
 }
 
 // ResourcePoolConfig defines resource pool configuration
 type ResourcePoolConfig struct {
-	PoolID            string               `json:"poolId" yaml:"poolId"`
-	PoolName          string               `json:"poolName" yaml:"poolName"`
-	ResourceTypeID    string               `json:"resourceTypeId" yaml:"resourceTypeId"`
-	Location          string               `json:"location,omitempty" yaml:"location,omitempty"`
-	Capabilities      []string             `json:"capabilities,omitempty" yaml:"capabilities,omitempty"`
+	PoolID         string   `json:"poolId" yaml:"poolId"`
+	PoolName       string   `json:"poolName" yaml:"poolName"`
+	ResourceTypeID string   `json:"resourceTypeId" yaml:"resourceTypeId"`
+	Location       string   `json:"location,omitempty" yaml:"location,omitempty"`
+	Capabilities   []string `json:"capabilities,omitempty" yaml:"capabilities,omitempty"`
 }
 
 // DMSConfig defines Deployment Management Service configuration
 type DMSConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	DeploymentURL     string               `json:"deploymentUrl" yaml:"deploymentUrl"`
-	HelmRepository    string               `json:"helmRepository,omitempty" yaml:"helmRepository,omitempty"`
-	LifecycleHooks    []*LifecycleHook     `json:"lifecycleHooks,omitempty" yaml:"lifecycleHooks,omitempty"`
+	Enabled        bool             `json:"enabled" yaml:"enabled"`
+	DeploymentURL  string           `json:"deploymentUrl" yaml:"deploymentUrl"`
+	HelmRepository string           `json:"helmRepository,omitempty" yaml:"helmRepository,omitempty"`
+	LifecycleHooks []*LifecycleHook `json:"lifecycleHooks,omitempty" yaml:"lifecycleHooks,omitempty"`
 }
 
 // LifecycleHook defines deployment lifecycle hook
 type LifecycleHook struct {
-	Phase             string               `json:"phase" yaml:"phase"`     // pre-install, post-install, pre-delete, post-delete
-	Script            string               `json:"script" yaml:"script"`
-	TimeoutSeconds    int32                `json:"timeoutSeconds,omitempty" yaml:"timeoutSeconds,omitempty"`
+	Phase          string `json:"phase" yaml:"phase"` // pre-install, post-install, pre-delete, post-delete
+	Script         string `json:"script" yaml:"script"`
+	TimeoutSeconds int32  `json:"timeoutSeconds,omitempty" yaml:"timeoutSeconds,omitempty"`
 }
 
 // ResourceTypeConfig defines resource type configuration
 type ResourceTypeConfig struct {
-	ResourceTypeID    string               `json:"resourceTypeId" yaml:"resourceTypeId"`
-	Name              string               `json:"name" yaml:"name"`
-	Description       string               `json:"description,omitempty" yaml:"description,omitempty"`
-	Properties        map[string]interface{} `json:"properties,omitempty" yaml:"properties,omitempty"`
-	Extensions        map[string]interface{} `json:"extensions,omitempty" yaml:"extensions,omitempty"`
+	ResourceTypeID string                 `json:"resourceTypeId" yaml:"resourceTypeId"`
+	Name           string                 `json:"name" yaml:"name"`
+	Description    string                 `json:"description,omitempty" yaml:"description,omitempty"`
+	Properties     map[string]interface{} `json:"properties,omitempty" yaml:"properties,omitempty"`
+	Extensions     map[string]interface{} `json:"extensions,omitempty" yaml:"extensions,omitempty"`
 }
 
 // CloudProviderConfig defines cloud provider configuration
 type CloudProviderConfig struct {
-	ProviderID        string               `json:"providerId" yaml:"providerId"`
-	ProviderType      string               `json:"providerType" yaml:"providerType"` // aws, azure, gcp, openstack
-	Region            string               `json:"region,omitempty" yaml:"region,omitempty"`
-	Credentials       map[string]string    `json:"credentials,omitempty" yaml:"credentials,omitempty"`
-	ResourceMapping   map[string]string    `json:"resourceMapping,omitempty" yaml:"resourceMapping,omitempty"`
+	ProviderID      string            `json:"providerId" yaml:"providerId"`
+	ProviderType    string            `json:"providerType" yaml:"providerType"` // aws, azure, gcp, openstack
+	Region          string            `json:"region,omitempty" yaml:"region,omitempty"`
+	Credentials     map[string]string `json:"credentials,omitempty" yaml:"credentials,omitempty"`
+	ResourceMapping map[string]string `json:"resourceMapping,omitempty" yaml:"resourceMapping,omitempty"`
 }
 
 // E2InterfaceConfig defines E2 interface specific configuration
 type E2InterfaceConfig struct {
 	// E2 Node configuration
-	E2Nodes           []*E2NodeConfig      `json:"e2Nodes,omitempty" yaml:"e2Nodes,omitempty"`
-	
+	E2Nodes []*E2NodeConfig `json:"e2Nodes,omitempty" yaml:"e2Nodes,omitempty"`
+
 	// Service Model configuration
-	ServiceModels     []*E2ServiceModelConfig `json:"serviceModels,omitempty" yaml:"serviceModels,omitempty"`
-	
+	ServiceModels []*E2ServiceModelConfig `json:"serviceModels,omitempty" yaml:"serviceModels,omitempty"`
+
 	// Subscription management
-	Subscriptions     []*E2SubscriptionConfig `json:"subscriptions,omitempty" yaml:"subscriptions,omitempty"`
-	
+	Subscriptions []*E2SubscriptionConfig `json:"subscriptions,omitempty" yaml:"subscriptions,omitempty"`
+
 	// Control message configuration
-	ControlMessages   []*ControlMessageConfig `json:"controlMessages,omitempty" yaml:"controlMessages,omitempty"`
-	
+	ControlMessages []*ControlMessageConfig `json:"controlMessages,omitempty" yaml:"controlMessages,omitempty"`
+
 	// SCTP configuration
-	SCTP              *SCTPConfig          `json:"sctp,omitempty" yaml:"sctp,omitempty"`
+	SCTP *SCTPConfig `json:"sctp,omitempty" yaml:"sctp,omitempty"`
 }
 
 // E2NodeConfig defines E2 node configuration
 type E2NodeConfig struct {
-	NodeID            string               `json:"nodeId" yaml:"nodeId"`
-	GlobalE2NodeID    *GlobalE2NodeID      `json:"globalE2NodeId" yaml:"globalE2NodeId"`
-	RAN_Function      []*RANFunctionConfig `json:"ranFunctions,omitempty" yaml:"ranFunctions,omitempty"`
-	ConnectionStatus  string               `json:"connectionStatus,omitempty" yaml:"connectionStatus,omitempty"`
+	NodeID           string               `json:"nodeId" yaml:"nodeId"`
+	GlobalE2NodeID   *GlobalE2NodeID      `json:"globalE2NodeId" yaml:"globalE2NodeId"`
+	RAN_Function     []*RANFunctionConfig `json:"ranFunctions,omitempty" yaml:"ranFunctions,omitempty"`
+	ConnectionStatus string               `json:"connectionStatus,omitempty" yaml:"connectionStatus,omitempty"`
 }
 
 // GlobalE2NodeID defines global E2 node identifier
 type GlobalE2NodeID struct {
-	PLMNIdentity      string               `json:"plmnIdentity" yaml:"plmnIdentity"`
-	GNBIdentity       *GNBIdentity         `json:"gnbIdentity,omitempty" yaml:"gnbIdentity,omitempty"`
-	ENBIdentity       *ENBIdentity         `json:"enbIdentity,omitempty" yaml:"enbIdentity,omitempty"`
-	NgENBIdentity     *NgENBIdentity       `json:"ngenBIdentity,omitempty" yaml:"ngenBIdentity,omitempty"`
+	PLMNIdentity  string         `json:"plmnIdentity" yaml:"plmnIdentity"`
+	GNBIdentity   *GNBIdentity   `json:"gnbIdentity,omitempty" yaml:"gnbIdentity,omitempty"`
+	ENBIdentity   *ENBIdentity   `json:"enbIdentity,omitempty" yaml:"enbIdentity,omitempty"`
+	NgENBIdentity *NgENBIdentity `json:"ngenBIdentity,omitempty" yaml:"ngenBIdentity,omitempty"`
 }
 
 // GNBIdentity defines gNB identity
 type GNBIdentity struct {
-	GNBID             string               `json:"gnbId" yaml:"gnbId"`
-	GNBIDLength       int32                `json:"gnbIdLength,omitempty" yaml:"gnbIdLength,omitempty"`
+	GNBID       string `json:"gnbId" yaml:"gnbId"`
+	GNBIDLength int32  `json:"gnbIdLength,omitempty" yaml:"gnbIdLength,omitempty"`
 }
 
 // ENBIdentity defines eNB identity
 type ENBIdentity struct {
-	MacroENBID        string               `json:"macroEnbId,omitempty" yaml:"macroEnbId,omitempty"`
-	HomeENBID         string               `json:"homeEnbId,omitempty" yaml:"homeEnbId,omitempty"`
-	ShortMacroENBID   string               `json:"shortMacroEnbId,omitempty" yaml:"shortMacroEnbId,omitempty"`
-	LongMacroENBID    string               `json:"longMacroEnbId,omitempty" yaml:"longMacroEnbId,omitempty"`
+	MacroENBID      string `json:"macroEnbId,omitempty" yaml:"macroEnbId,omitempty"`
+	HomeENBID       string `json:"homeEnbId,omitempty" yaml:"homeEnbId,omitempty"`
+	ShortMacroENBID string `json:"shortMacroEnbId,omitempty" yaml:"shortMacroEnbId,omitempty"`
+	LongMacroENBID  string `json:"longMacroEnbId,omitempty" yaml:"longMacroEnbId,omitempty"`
 }
 
 // NgENBIdentity defines ng-eNB identity
 type NgENBIdentity struct {
-	MacroNgENBID      string               `json:"macroNgenBId,omitempty" yaml:"macroNgenBId,omitempty"`
-	ShortMacroNgENBID string               `json:"shortMacroNgenBId,omitempty" yaml:"shortMacroNgenBId,omitempty"`
-	LongMacroNgENBID  string               `json:"longMacroNgenBId,omitempty" yaml:"longMacroNgenBId,omitempty"`
+	MacroNgENBID      string `json:"macroNgenBId,omitempty" yaml:"macroNgenBId,omitempty"`
+	ShortMacroNgENBID string `json:"shortMacroNgenBId,omitempty" yaml:"shortMacroNgenBId,omitempty"`
+	LongMacroNgENBID  string `json:"longMacroNgenBId,omitempty" yaml:"longMacroNgenBId,omitempty"`
 }
 
 // RANFunctionConfig defines RAN function configuration
 type RANFunctionConfig struct {
-	RANFunctionID     int32                `json:"ranFunctionId" yaml:"ranFunctionId"`
-	RANFunctionDefinition string           `json:"ranFunctionDefinition" yaml:"ranFunctionDefinition"`
-	RANFunctionRevision int32              `json:"ranFunctionRevision" yaml:"ranFunctionRevision"`
-	RANFunctionOID    string               `json:"ranFunctionOid,omitempty" yaml:"ranFunctionOid,omitempty"`
+	RANFunctionID         int32  `json:"ranFunctionId" yaml:"ranFunctionId"`
+	RANFunctionDefinition string `json:"ranFunctionDefinition" yaml:"ranFunctionDefinition"`
+	RANFunctionRevision   int32  `json:"ranFunctionRevision" yaml:"ranFunctionRevision"`
+	RANFunctionOID        string `json:"ranFunctionOid,omitempty" yaml:"ranFunctionOid,omitempty"`
 }
 
 // E2ServiceModelConfig defines E2 service model configuration
 type E2ServiceModelConfig struct {
-	ServiceModelID    string               `json:"serviceModelId" yaml:"serviceModelId"`
-	ServiceModelName  string               `json:"serviceModelName" yaml:"serviceModelName"`
-	Description       string               `json:"description,omitempty" yaml:"description,omitempty"`
-	ServiceModelOID   string               `json:"serviceModelOid" yaml:"serviceModelOid"`
-	Functions         []string             `json:"functions,omitempty" yaml:"functions,omitempty"`
+	ServiceModelID   string   `json:"serviceModelId" yaml:"serviceModelId"`
+	ServiceModelName string   `json:"serviceModelName" yaml:"serviceModelName"`
+	Description      string   `json:"description,omitempty" yaml:"description,omitempty"`
+	ServiceModelOID  string   `json:"serviceModelOid" yaml:"serviceModelOid"`
+	Functions        []string `json:"functions,omitempty" yaml:"functions,omitempty"`
 }
 
 // E2SubscriptionConfig defines E2 subscription configuration
 type E2SubscriptionConfig struct {
-	SubscriptionID    string               `json:"subscriptionId" yaml:"subscriptionId"`
-	RANFunctionID     int32                `json:"ranFunctionId" yaml:"ranFunctionId"`
-	EventTriggers     []*EventTrigger      `json:"eventTriggers,omitempty" yaml:"eventTriggers,omitempty"`
-	Actions           []*E2Action          `json:"actions,omitempty" yaml:"actions,omitempty"`
-	ReportingPeriod   string               `json:"reportingPeriod,omitempty" yaml:"reportingPeriod,omitempty"`
+	SubscriptionID  string          `json:"subscriptionId" yaml:"subscriptionId"`
+	RANFunctionID   int32           `json:"ranFunctionId" yaml:"ranFunctionId"`
+	EventTriggers   []*EventTrigger `json:"eventTriggers,omitempty" yaml:"eventTriggers,omitempty"`
+	Actions         []*E2Action     `json:"actions,omitempty" yaml:"actions,omitempty"`
+	ReportingPeriod string          `json:"reportingPeriod,omitempty" yaml:"reportingPeriod,omitempty"`
 }
 
 // EventTrigger defines event trigger configuration
 type EventTrigger struct {
-	TriggerType       string               `json:"triggerType" yaml:"triggerType"`
-	TriggerCondition  string               `json:"triggerCondition,omitempty" yaml:"triggerCondition,omitempty"`
-	Parameters        map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	TriggerType      string                 `json:"triggerType" yaml:"triggerType"`
+	TriggerCondition string                 `json:"triggerCondition,omitempty" yaml:"triggerCondition,omitempty"`
+	Parameters       map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
 // E2Action defines E2 action configuration
 type E2Action struct {
-	ActionID          int32                `json:"actionId" yaml:"actionId"`
-	ActionType        string               `json:"actionType" yaml:"actionType"`     // report, insert, policy
-	ActionDefinition  map[string]interface{} `json:"actionDefinition,omitempty" yaml:"actionDefinition,omitempty"`
-	SubsequentAction  string               `json:"subsequentAction,omitempty" yaml:"subsequentAction,omitempty"`
+	ActionID         int32                  `json:"actionId" yaml:"actionId"`
+	ActionType       string                 `json:"actionType" yaml:"actionType"` // report, insert, policy
+	ActionDefinition map[string]interface{} `json:"actionDefinition,omitempty" yaml:"actionDefinition,omitempty"`
+	SubsequentAction string                 `json:"subsequentAction,omitempty" yaml:"subsequentAction,omitempty"`
 }
 
 // ControlMessageConfig defines control message configuration
 type ControlMessageConfig struct {
-	MessageType       string               `json:"messageType" yaml:"messageType"`
-	RANFunctionID     int32                `json:"ranFunctionId" yaml:"ranFunctionId"`
-	ControlHeader     map[string]interface{} `json:"controlHeader,omitempty" yaml:"controlHeader,omitempty"`
-	ControlMessage    map[string]interface{} `json:"controlMessage,omitempty" yaml:"controlMessage,omitempty"`
-	CallProcessID     string               `json:"callProcessId,omitempty" yaml:"callProcessId,omitempty"`
+	MessageType    string                 `json:"messageType" yaml:"messageType"`
+	RANFunctionID  int32                  `json:"ranFunctionId" yaml:"ranFunctionId"`
+	ControlHeader  map[string]interface{} `json:"controlHeader,omitempty" yaml:"controlHeader,omitempty"`
+	ControlMessage map[string]interface{} `json:"controlMessage,omitempty" yaml:"controlMessage,omitempty"`
+	CallProcessID  string                 `json:"callProcessId,omitempty" yaml:"callProcessId,omitempty"`
 }
 
 // SCTPConfig defines SCTP configuration
 type SCTPConfig struct {
-	Port              int32                `json:"port" yaml:"port"`
-	Streams           int32                `json:"streams,omitempty" yaml:"streams,omitempty"`
-	MaxInStreams      int32                `json:"maxInStreams,omitempty" yaml:"maxInStreams,omitempty"`
-	MaxOutStreams     int32                `json:"maxOutStreams,omitempty" yaml:"maxOutStreams,omitempty"`
-	HeartbeatInterval string               `json:"heartbeatInterval,omitempty" yaml:"heartbeatInterval,omitempty"`
+	Port              int32  `json:"port" yaml:"port"`
+	Streams           int32  `json:"streams,omitempty" yaml:"streams,omitempty"`
+	MaxInStreams      int32  `json:"maxInStreams,omitempty" yaml:"maxInStreams,omitempty"`
+	MaxOutStreams     int32  `json:"maxOutStreams,omitempty" yaml:"maxOutStreams,omitempty"`
+	HeartbeatInterval string `json:"heartbeatInterval,omitempty" yaml:"heartbeatInterval,omitempty"`
 }
 
 // InterfaceQoSConfig defines QoS configuration for interfaces
 type InterfaceQoSConfig struct {
-	Priority          int32                `json:"priority,omitempty" yaml:"priority,omitempty"`
-	Bandwidth         string               `json:"bandwidth,omitempty" yaml:"bandwidth,omitempty"`
-	Latency           string               `json:"latency,omitempty" yaml:"latency,omitempty"`
-	PacketLoss        float64              `json:"packetLoss,omitempty" yaml:"packetLoss,omitempty"`
-	Jitter            string               `json:"jitter,omitempty" yaml:"jitter,omitempty"`
+	Priority   int32   `json:"priority,omitempty" yaml:"priority,omitempty"`
+	Bandwidth  string  `json:"bandwidth,omitempty" yaml:"bandwidth,omitempty"`
+	Latency    string  `json:"latency,omitempty" yaml:"latency,omitempty"`
+	PacketLoss float64 `json:"packetLoss,omitempty" yaml:"packetLoss,omitempty"`
+	Jitter     string  `json:"jitter,omitempty" yaml:"jitter,omitempty"`
 }
 
 // InterfaceObservability defines observability configuration
 type InterfaceObservability struct {
-	Logging           *LoggingConfig       `json:"logging,omitempty" yaml:"logging,omitempty"`
-	Metrics           *MetricsConfig       `json:"metrics,omitempty" yaml:"metrics,omitempty"`
-	Tracing           *TracingConfig       `json:"tracing,omitempty" yaml:"tracing,omitempty"`
-	HealthChecks      []string             `json:"healthChecks,omitempty" yaml:"healthChecks,omitempty"`
+	Logging      *LoggingConfig `json:"logging,omitempty" yaml:"logging,omitempty"`
+	Metrics      *MetricsConfig `json:"metrics,omitempty" yaml:"metrics,omitempty"`
+	Tracing      *TracingConfig `json:"tracing,omitempty" yaml:"tracing,omitempty"`
+	HealthChecks []string       `json:"healthChecks,omitempty" yaml:"healthChecks,omitempty"`
 }
 
 // LoggingConfig defines logging configuration
 type LoggingConfig struct {
-	Level             string               `json:"level,omitempty" yaml:"level,omitempty"`
-	Format            string               `json:"format,omitempty" yaml:"format,omitempty"`
-	Output            string               `json:"output,omitempty" yaml:"output,omitempty"`
-	Retention         string               `json:"retention,omitempty" yaml:"retention,omitempty"`
+	Level     string `json:"level,omitempty" yaml:"level,omitempty"`
+	Format    string `json:"format,omitempty" yaml:"format,omitempty"`
+	Output    string `json:"output,omitempty" yaml:"output,omitempty"`
+	Retention string `json:"retention,omitempty" yaml:"retention,omitempty"`
 }
 
 // MetricsConfig defines metrics configuration
 type MetricsConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	Port              int32                `json:"port,omitempty" yaml:"port,omitempty"`
-	Path              string               `json:"path,omitempty" yaml:"path,omitempty"`
-	Interval          string               `json:"interval,omitempty" yaml:"interval,omitempty"`
-	CustomMetrics     []string             `json:"customMetrics,omitempty" yaml:"customMetrics,omitempty"`
+	Enabled       bool     `json:"enabled" yaml:"enabled"`
+	Port          int32    `json:"port,omitempty" yaml:"port,omitempty"`
+	Path          string   `json:"path,omitempty" yaml:"path,omitempty"`
+	Interval      string   `json:"interval,omitempty" yaml:"interval,omitempty"`
+	CustomMetrics []string `json:"customMetrics,omitempty" yaml:"customMetrics,omitempty"`
 }
 
 // TracingConfig defines tracing configuration
 type TracingConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	SamplingRate      float64              `json:"samplingRate,omitempty" yaml:"samplingRate,omitempty"`
-	Endpoint          string               `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
-	Headers           map[string]string    `json:"headers,omitempty" yaml:"headers,omitempty"`
+	Enabled      bool              `json:"enabled" yaml:"enabled"`
+	SamplingRate float64           `json:"samplingRate,omitempty" yaml:"samplingRate,omitempty"`
+	Endpoint     string            `json:"endpoint,omitempty" yaml:"endpoint,omitempty"`
+	Headers      map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
 }
 
 // Supporting configuration types
 
 // ComplianceConfig defines overall compliance configuration
 type ComplianceConfig struct {
-	Standard          string               `json:"standard" yaml:"standard"`     // O-RAN.WG3.O-RAN-ARCH-v03.00
-	Version           string               `json:"version" yaml:"version"`
-	Validations       []ComplianceValidation `json:"validations,omitempty" yaml:"validations,omitempty"`
-	Certification     bool                 `json:"certification,omitempty" yaml:"certification,omitempty"`
+	Standard      string                 `json:"standard" yaml:"standard"` // O-RAN.WG3.O-RAN-ARCH-v03.00
+	Version       string                 `json:"version" yaml:"version"`
+	Validations   []ComplianceValidation `json:"validations,omitempty" yaml:"validations,omitempty"`
+	Certification bool                   `json:"certification,omitempty" yaml:"certification,omitempty"`
 }
 
 // ComplianceValidation defines compliance validation
 type ComplianceValidation struct {
-	RuleID            string               `json:"ruleId" yaml:"ruleId"`
-	Description       string               `json:"description" yaml:"description"`
-	Severity          string               `json:"severity" yaml:"severity"`
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
+	RuleID      string `json:"ruleId" yaml:"ruleId"`
+	Description string `json:"description" yaml:"description"`
+	Severity    string `json:"severity" yaml:"severity"`
+	Enabled     bool   `json:"enabled" yaml:"enabled"`
 }
 
 // InterfaceSecurityConfig defines security configuration
 type InterfaceSecurityConfig struct {
-	GlobalPolicies    []SecurityPolicy     `json:"globalPolicies,omitempty" yaml:"globalPolicies,omitempty"`
-	ThreatDetection   *ThreatDetection     `json:"threatDetection,omitempty" yaml:"threatDetection,omitempty"`
-	IncidentResponse  *IncidentResponse    `json:"incidentResponse,omitempty" yaml:"incidentResponse,omitempty"`
+	GlobalPolicies   []SecurityPolicy  `json:"globalPolicies,omitempty" yaml:"globalPolicies,omitempty"`
+	ThreatDetection  *ThreatDetection  `json:"threatDetection,omitempty" yaml:"threatDetection,omitempty"`
+	IncidentResponse *IncidentResponse `json:"incidentResponse,omitempty" yaml:"incidentResponse,omitempty"`
 }
 
 // SecurityPolicy defines security policy
 type SecurityPolicy struct {
-	PolicyID          string               `json:"policyId" yaml:"policyId"`
-	PolicyName        string               `json:"policyName" yaml:"policyName"`
-	PolicyType        string               `json:"policyType" yaml:"policyType"`
-	Rules             []SecurityRule       `json:"rules,omitempty" yaml:"rules,omitempty"`
+	PolicyID   string         `json:"policyId" yaml:"policyId"`
+	PolicyName string         `json:"policyName" yaml:"policyName"`
+	PolicyType string         `json:"policyType" yaml:"policyType"`
+	Rules      []SecurityRule `json:"rules,omitempty" yaml:"rules,omitempty"`
 }
 
 // SecurityRule defines security rule
 type SecurityRule struct {
-	RuleID            string               `json:"ruleId" yaml:"ruleId"`
-	Condition         string               `json:"condition" yaml:"condition"`
-	Action            string               `json:"action" yaml:"action"`
-	Priority          int32                `json:"priority,omitempty" yaml:"priority,omitempty"`
+	RuleID    string `json:"ruleId" yaml:"ruleId"`
+	Condition string `json:"condition" yaml:"condition"`
+	Action    string `json:"action" yaml:"action"`
+	Priority  int32  `json:"priority,omitempty" yaml:"priority,omitempty"`
 }
 
 // ThreatDetection defines threat detection configuration
 type ThreatDetection struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	DetectionMethods  []string             `json:"detectionMethods,omitempty" yaml:"detectionMethods,omitempty"`
-	AlertThresholds   map[string]float64   `json:"alertThresholds,omitempty" yaml:"alertThresholds,omitempty"`
+	Enabled          bool               `json:"enabled" yaml:"enabled"`
+	DetectionMethods []string           `json:"detectionMethods,omitempty" yaml:"detectionMethods,omitempty"`
+	AlertThresholds  map[string]float64 `json:"alertThresholds,omitempty" yaml:"alertThresholds,omitempty"`
 }
 
 // IncidentResponse defines incident response configuration
 type IncidentResponse struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	ResponseTeam      []string             `json:"responseTeam,omitempty" yaml:"responseTeam,omitempty"`
-	EscalationProcedure string             `json:"escalationProcedure,omitempty" yaml:"escalationProcedure,omitempty"`
-	AutoResponse      []AutoResponse       `json:"autoResponse,omitempty" yaml:"autoResponse,omitempty"`
+	Enabled             bool           `json:"enabled" yaml:"enabled"`
+	ResponseTeam        []string       `json:"responseTeam,omitempty" yaml:"responseTeam,omitempty"`
+	EscalationProcedure string         `json:"escalationProcedure,omitempty" yaml:"escalationProcedure,omitempty"`
+	AutoResponse        []AutoResponse `json:"autoResponse,omitempty" yaml:"autoResponse,omitempty"`
 }
 
 // AutoResponse defines automatic response configuration
 type AutoResponse struct {
-	TriggerCondition  string               `json:"triggerCondition" yaml:"triggerCondition"`
-	Action            string               `json:"action" yaml:"action"`
-	Parameters        map[string]string    `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	TriggerCondition string            `json:"triggerCondition" yaml:"triggerCondition"`
+	Action           string            `json:"action" yaml:"action"`
+	Parameters       map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
 // InterfaceMonitoringConfig defines monitoring configuration
 type InterfaceMonitoringConfig struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	KPIs              []InterfaceKPI       `json:"kpis,omitempty" yaml:"kpis,omitempty"`
-	Dashboards        []DashboardConfig    `json:"dashboards,omitempty" yaml:"dashboards,omitempty"`
-	Alerting          *InterfaceAlerting   `json:"alerting,omitempty" yaml:"alerting,omitempty"`
+	Enabled    bool               `json:"enabled" yaml:"enabled"`
+	KPIs       []InterfaceKPI     `json:"kpis,omitempty" yaml:"kpis,omitempty"`
+	Dashboards []DashboardConfig  `json:"dashboards,omitempty" yaml:"dashboards,omitempty"`
+	Alerting   *InterfaceAlerting `json:"alerting,omitempty" yaml:"alerting,omitempty"`
 }
 
 // InterfaceKPI defines interface KPI
 type InterfaceKPI struct {
-	Name              string               `json:"name" yaml:"name"`
-	Description       string               `json:"description,omitempty" yaml:"description,omitempty"`
-	Unit              string               `json:"unit,omitempty" yaml:"unit,omitempty"`
-	CollectionInterval string              `json:"collectionInterval,omitempty" yaml:"collectionInterval,omitempty"`
-	Target            float64              `json:"target,omitempty" yaml:"target,omitempty"`
+	Name               string  `json:"name" yaml:"name"`
+	Description        string  `json:"description,omitempty" yaml:"description,omitempty"`
+	Unit               string  `json:"unit,omitempty" yaml:"unit,omitempty"`
+	CollectionInterval string  `json:"collectionInterval,omitempty" yaml:"collectionInterval,omitempty"`
+	Target             float64 `json:"target,omitempty" yaml:"target,omitempty"`
 }
 
 // DashboardConfig defines dashboard configuration
 type DashboardConfig struct {
-	Name              string               `json:"name" yaml:"name"`
-	Type              string               `json:"type" yaml:"type"`
-	URL               string               `json:"url,omitempty" yaml:"url,omitempty"`
-	Config            map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
+	Name   string                 `json:"name" yaml:"name"`
+	Type   string                 `json:"type" yaml:"type"`
+	URL    string                 `json:"url,omitempty" yaml:"url,omitempty"`
+	Config map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
 }
 
 // InterfaceAlerting defines interface alerting
 type InterfaceAlerting struct {
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
-	Rules             []AlertingRule       `json:"rules,omitempty" yaml:"rules,omitempty"`
-	Channels          []AlertingChannel    `json:"channels,omitempty" yaml:"channels,omitempty"`
+	Enabled  bool              `json:"enabled" yaml:"enabled"`
+	Rules    []AlertingRule    `json:"rules,omitempty" yaml:"rules,omitempty"`
+	Channels []AlertingChannel `json:"channels,omitempty" yaml:"channels,omitempty"`
 }
 
 // AlertingRule defines alerting rule
 type AlertingRule struct {
-	RuleID            string               `json:"ruleId" yaml:"ruleId"`
-	Metric            string               `json:"metric" yaml:"metric"`
-	Condition         string               `json:"condition" yaml:"condition"`
-	Threshold         float64              `json:"threshold" yaml:"threshold"`
-	Duration          string               `json:"duration,omitempty" yaml:"duration,omitempty"`
-	Severity          string               `json:"severity,omitempty" yaml:"severity,omitempty"`
+	RuleID    string  `json:"ruleId" yaml:"ruleId"`
+	Metric    string  `json:"metric" yaml:"metric"`
+	Condition string  `json:"condition" yaml:"condition"`
+	Threshold float64 `json:"threshold" yaml:"threshold"`
+	Duration  string  `json:"duration,omitempty" yaml:"duration,omitempty"`
+	Severity  string  `json:"severity,omitempty" yaml:"severity,omitempty"`
 }
 
 // AlertingChannel defines alerting channel
 type AlertingChannel struct {
-	ChannelID         string               `json:"channelId" yaml:"channelId"`
-	Type              string               `json:"type" yaml:"type"`
-	Config            map[string]string    `json:"config,omitempty" yaml:"config,omitempty"`
-	Enabled           bool                 `json:"enabled" yaml:"enabled"`
+	ChannelID string            `json:"channelId" yaml:"channelId"`
+	Type      string            `json:"type" yaml:"type"`
+	Config    map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
+	Enabled   bool              `json:"enabled" yaml:"enabled"`
 }
 
 // RICConfiguration defines RIC configuration
 type RICConfiguration struct {
-	NonRTRIC          *NonRTRICConfig      `json:"nonRtRic,omitempty" yaml:"nonRtRic,omitempty"`
-	NearRTRIC         *NearRTRICConfig     `json:"nearRtRic,omitempty" yaml:"nearRtRic,omitempty"`
-	RICPlatform       *RICPlatformConfig   `json:"ricPlatform,omitempty" yaml:"ricPlatform,omitempty"`
+	NonRTRIC    *NonRTRICConfig    `json:"nonRtRic,omitempty" yaml:"nonRtRic,omitempty"`
+	NearRTRIC   *NearRTRICConfig   `json:"nearRtRic,omitempty" yaml:"nearRtRic,omitempty"`
+	RICPlatform *RICPlatformConfig `json:"ricPlatform,omitempty" yaml:"ricPlatform,omitempty"`
 }
 
 // NonRTRICConfig defines Non-RT RIC configuration
 type NonRTRICConfig struct {
-	PolicyManagement  *PolicyManagementConfig `json:"policyManagement,omitempty" yaml:"policyManagement,omitempty"`
-	EnrichmentInfo    *EnrichmentInfoConfig `json:"enrichmentInfo,omitempty" yaml:"enrichmentInfo,omitempty"`
-	APPCatalog        *APPCatalogConfig    `json:"appCatalog,omitempty" yaml:"appCatalog,omitempty"`
+	PolicyManagement *PolicyManagementConfig `json:"policyManagement,omitempty" yaml:"policyManagement,omitempty"`
+	EnrichmentInfo   *EnrichmentInfoConfig   `json:"enrichmentInfo,omitempty" yaml:"enrichmentInfo,omitempty"`
+	APPCatalog       *APPCatalogConfig       `json:"appCatalog,omitempty" yaml:"appCatalog,omitempty"`
 }
 
 // PolicyManagementConfig defines policy management configuration
 type PolicyManagementConfig struct {
-	ServiceURL        string               `json:"serviceUrl" yaml:"serviceUrl"`
-	Policies          []PolicyConfig       `json:"policies,omitempty" yaml:"policies,omitempty"`
+	ServiceURL string         `json:"serviceUrl" yaml:"serviceUrl"`
+	Policies   []PolicyConfig `json:"policies,omitempty" yaml:"policies,omitempty"`
 }
 
 // PolicyConfig defines policy configuration
 type PolicyConfig struct {
-	PolicyID          string               `json:"policyId" yaml:"policyId"`
-	PolicyType        string               `json:"policyType" yaml:"policyType"`
-	ServiceID         string               `json:"serviceId" yaml:"serviceId"`
-	PolicyData        map[string]interface{} `json:"policyData" yaml:"policyData"`
+	PolicyID   string                 `json:"policyId" yaml:"policyId"`
+	PolicyType string                 `json:"policyType" yaml:"policyType"`
+	ServiceID  string                 `json:"serviceId" yaml:"serviceId"`
+	PolicyData map[string]interface{} `json:"policyData" yaml:"policyData"`
 }
 
 // EnrichmentInfoConfig defines enrichment information configuration
 type EnrichmentInfoConfig struct {
-	ServiceURL        string               `json:"serviceUrl" yaml:"serviceUrl"`
-	DataTypes         []DataTypeConfig     `json:"dataTypes,omitempty" yaml:"dataTypes,omitempty"`
+	ServiceURL string           `json:"serviceUrl" yaml:"serviceUrl"`
+	DataTypes  []DataTypeConfig `json:"dataTypes,omitempty" yaml:"dataTypes,omitempty"`
 }
 
 // DataTypeConfig defines data type configuration
 type DataTypeConfig struct {
-	InfoTypeID        string               `json:"infoTypeId" yaml:"infoTypeId"`
-	InfoTypeName      string               `json:"infoTypeName" yaml:"infoTypeName"`
-	Schema            map[string]interface{} `json:"schema" yaml:"schema"`
+	InfoTypeID   string                 `json:"infoTypeId" yaml:"infoTypeId"`
+	InfoTypeName string                 `json:"infoTypeName" yaml:"infoTypeName"`
+	Schema       map[string]interface{} `json:"schema" yaml:"schema"`
 }
 
 // APPCatalogConfig defines APP catalog configuration
 type APPCatalogConfig struct {
-	ServiceURL        string               `json:"serviceUrl" yaml:"serviceUrl"`
-	Applications      []ApplicationConfig  `json:"applications,omitempty" yaml:"applications,omitempty"`
+	ServiceURL   string              `json:"serviceUrl" yaml:"serviceUrl"`
+	Applications []ApplicationConfig `json:"applications,omitempty" yaml:"applications,omitempty"`
 }
 
 // ApplicationConfig defines application configuration
 type ApplicationConfig struct {
-	ApplicationID     string               `json:"applicationId" yaml:"applicationId"`
-	ApplicationName   string               `json:"applicationName" yaml:"applicationName"`
-	Version           string               `json:"version" yaml:"version"`
-	Artifacts         []ArtifactConfig     `json:"artifacts,omitempty" yaml:"artifacts,omitempty"`
+	ApplicationID   string           `json:"applicationId" yaml:"applicationId"`
+	ApplicationName string           `json:"applicationName" yaml:"applicationName"`
+	Version         string           `json:"version" yaml:"version"`
+	Artifacts       []ArtifactConfig `json:"artifacts,omitempty" yaml:"artifacts,omitempty"`
 }
 
 // ArtifactConfig defines artifact configuration
 type ArtifactConfig struct {
-	ArtifactID        string               `json:"artifactId" yaml:"artifactId"`
-	Type              string               `json:"type" yaml:"type"`
-	URL               string               `json:"url" yaml:"url"`
-	Checksum          string               `json:"checksum,omitempty" yaml:"checksum,omitempty"`
+	ArtifactID string `json:"artifactId" yaml:"artifactId"`
+	Type       string `json:"type" yaml:"type"`
+	URL        string `json:"url" yaml:"url"`
+	Checksum   string `json:"checksum,omitempty" yaml:"checksum,omitempty"`
 }
 
 // RICPlatformConfig defines RIC platform configuration
 type RICPlatformConfig struct {
-	Components        []ComponentConfig    `json:"components,omitempty" yaml:"components,omitempty"`
-	Messaging         *MessagingConfig     `json:"messaging,omitempty" yaml:"messaging,omitempty"`
-	Database          *DatabaseConfig      `json:"database,omitempty" yaml:"database,omitempty"`
+	Components []ComponentConfig `json:"components,omitempty" yaml:"components,omitempty"`
+	Messaging  *MessagingConfig  `json:"messaging,omitempty" yaml:"messaging,omitempty"`
+	Database   *DatabaseConfig   `json:"database,omitempty" yaml:"database,omitempty"`
 }
 
 // ComponentConfig defines platform component configuration
 type ComponentConfig struct {
-	ComponentID       string               `json:"componentId" yaml:"componentId"`
-	ComponentName     string               `json:"componentName" yaml:"componentName"`
-	Image             string               `json:"image" yaml:"image"`
-	Port              int32                `json:"port,omitempty" yaml:"port,omitempty"`
-	Environment       map[string]string    `json:"environment,omitempty" yaml:"environment,omitempty"`
+	ComponentID   string            `json:"componentId" yaml:"componentId"`
+	ComponentName string            `json:"componentName" yaml:"componentName"`
+	Image         string            `json:"image" yaml:"image"`
+	Port          int32             `json:"port,omitempty" yaml:"port,omitempty"`
+	Environment   map[string]string `json:"environment,omitempty" yaml:"environment,omitempty"`
 }
 
 // MessagingConfig defines messaging configuration
 type MessagingConfig struct {
-	Type              string               `json:"type" yaml:"type"`     // rmr, kafka, rabbitmq
-	Endpoints         []string             `json:"endpoints" yaml:"endpoints"`
-	Parameters        map[string]string    `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Type       string            `json:"type" yaml:"type"` // rmr, kafka, rabbitmq
+	Endpoints  []string          `json:"endpoints" yaml:"endpoints"`
+	Parameters map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
 // DatabaseConfig defines database configuration
 type DatabaseConfig struct {
-	Type              string               `json:"type" yaml:"type"`     // redis, etcd, postgresql
-	Endpoints         []string             `json:"endpoints" yaml:"endpoints"`
-	Credentials       map[string]string    `json:"credentials,omitempty" yaml:"credentials,omitempty"`
-	Parameters        map[string]string    `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Type        string            `json:"type" yaml:"type"` // redis, etcd, postgresql
+	Endpoints   []string          `json:"endpoints" yaml:"endpoints"`
+	Credentials map[string]string `json:"credentials,omitempty" yaml:"credentials,omitempty"`
+	Parameters  map[string]string `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
 // ServiceModelConfig defines service model configuration
 type ServiceModelConfig struct {
-	ServiceModelID    string               `json:"serviceModelId" yaml:"serviceModelId"`
-	ServiceModelName  string               `json:"serviceModelName" yaml:"serviceModelName"`
-	ServiceModelOID   string               `json:"serviceModelOid" yaml:"serviceModelOid"`
-	Functions         []ServiceModelFunction `json:"functions,omitempty" yaml:"functions,omitempty"`
-	Schema            map[string]interface{} `json:"schema,omitempty" yaml:"schema,omitempty"`
+	ServiceModelID   string                 `json:"serviceModelId" yaml:"serviceModelId"`
+	ServiceModelName string                 `json:"serviceModelName" yaml:"serviceModelName"`
+	ServiceModelOID  string                 `json:"serviceModelOid" yaml:"serviceModelOid"`
+	Functions        []ServiceModelFunction `json:"functions,omitempty" yaml:"functions,omitempty"`
+	Schema           map[string]interface{} `json:"schema,omitempty" yaml:"schema,omitempty"`
 }
 
 // ServiceModelFunction defines service model function
 type ServiceModelFunction struct {
-	FunctionID        int32                `json:"functionId" yaml:"functionId"`
-	FunctionName      string               `json:"functionName" yaml:"functionName"`
-	FunctionType      string               `json:"functionType" yaml:"functionType"` // REPORT, INSERT, CONTROL, POLICY
-	Description       string               `json:"description,omitempty" yaml:"description,omitempty"`
+	FunctionID   int32  `json:"functionId" yaml:"functionId"`
+	FunctionName string `json:"functionName" yaml:"functionName"`
+	FunctionType string `json:"functionType" yaml:"functionType"` // REPORT, INSERT, CONTROL, POLICY
+	Description  string `json:"description,omitempty" yaml:"description,omitempty"`
 }
 
 // XAppConfiguration defines xApp configuration
 type XAppConfiguration struct {
-	XAppName          string               `json:"xappName" yaml:"xappName"`
-	XAppVersion       string               `json:"xappVersion" yaml:"xappVersion"`
-	Namespace         string               `json:"namespace,omitempty" yaml:"namespace,omitempty"`
-	HelmChart         *HelmChartConfig     `json:"helmChart,omitempty" yaml:"helmChart,omitempty"`
-	Configuration     map[string]interface{} `json:"configuration,omitempty" yaml:"configuration,omitempty"`
-	Resources         *XAppResources       `json:"resources,omitempty" yaml:"resources,omitempty"`
+	XAppName      string                 `json:"xappName" yaml:"xappName"`
+	XAppVersion   string                 `json:"xappVersion" yaml:"xappVersion"`
+	Namespace     string                 `json:"namespace,omitempty" yaml:"namespace,omitempty"`
+	HelmChart     *HelmChartConfig       `json:"helmChart,omitempty" yaml:"helmChart,omitempty"`
+	Configuration map[string]interface{} `json:"configuration,omitempty" yaml:"configuration,omitempty"`
+	Resources     *XAppResources         `json:"resources,omitempty" yaml:"resources,omitempty"`
 }
 
 // HelmChartConfig defines Helm chart configuration
 type HelmChartConfig struct {
-	ChartName         string               `json:"chartName" yaml:"chartName"`
-	ChartVersion      string               `json:"chartVersion" yaml:"chartVersion"`
-	Repository        string               `json:"repository" yaml:"repository"`
-	Values            map[string]interface{} `json:"values,omitempty" yaml:"values,omitempty"`
+	ChartName    string                 `json:"chartName" yaml:"chartName"`
+	ChartVersion string                 `json:"chartVersion" yaml:"chartVersion"`
+	Repository   string                 `json:"repository" yaml:"repository"`
+	Values       map[string]interface{} `json:"values,omitempty" yaml:"values,omitempty"`
 }
 
 // XAppResources defines xApp resource requirements
 type XAppResources struct {
-	CPU               string               `json:"cpu,omitempty" yaml:"cpu,omitempty"`
-	Memory            string               `json:"memory,omitempty" yaml:"memory,omitempty"`
-	Storage           string               `json:"storage,omitempty" yaml:"storage,omitempty"`
-	Replicas          int32                `json:"replicas,omitempty" yaml:"replicas,omitempty"`
+	CPU      string `json:"cpu,omitempty" yaml:"cpu,omitempty"`
+	Memory   string `json:"memory,omitempty" yaml:"memory,omitempty"`
+	Storage  string `json:"storage,omitempty" yaml:"storage,omitempty"`
+	Replicas int32  `json:"replicas,omitempty" yaml:"replicas,omitempty"`
 }
 
 // NewORANInterfaceConfigFunction creates a new O-RAN interface configuration function
@@ -920,7 +920,7 @@ func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []p
 	defer span.End()
 
 	logger := log.FromContext(ctx).WithName("oran-interface-config")
-	
+
 	span.SetAttributes(
 		attribute.Int("input.resources", len(resources)),
 	)
@@ -937,7 +937,7 @@ func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []p
 		attribute.Int("interfaces.count", len(oranConfig.Interfaces)),
 	)
 
-	logger.Info("Configuring O-RAN interfaces", 
+	logger.Info("Configuring O-RAN interfaces",
 		"interfaces", len(oranConfig.Interfaces),
 		"resources", len(resources),
 	)
@@ -968,7 +968,7 @@ func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []p
 	)
 
 	span.SetStatus(codes.Ok, "O-RAN interface configuration completed")
-	logger.Info("O-RAN interface configuration completed successfully", 
+	logger.Info("O-RAN interface configuration completed successfully",
 		"processedResources", len(processedResources),
 	)
 

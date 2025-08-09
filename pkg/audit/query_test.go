@@ -33,7 +33,7 @@ func (suite *QueryEngineTestSuite) SetupTest() {
 
 func (suite *QueryEngineTestSuite) createTestEvents() []*AuditEvent {
 	now := time.Now()
-	
+
 	return []*AuditEvent{
 		{
 			ID:        uuid.New().String(),
@@ -145,31 +145,31 @@ func (suite *QueryEngineTestSuite) TestBasicEventRetrieval() {
 		query := &QueryRequest{
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 5)
 		suite.Equal(int64(5), result.TotalCount)
 	})
-	
+
 	suite.Run("limit results", func() {
 		query := &QueryRequest{
 			Limit: 2,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 2)
 		suite.Equal(int64(5), result.TotalCount) // Total count should reflect all matches
 		suite.True(result.HasMore)
 	})
-	
+
 	suite.Run("offset results", func() {
 		query := &QueryRequest{
 			Limit:  2,
 			Offset: 2,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 2)
@@ -187,13 +187,13 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 			},
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 1) // Only successful auth event
 		suite.Equal(EventTypeAuthentication, result.Events[0].EventType)
 	})
-	
+
 	suite.Run("filter by multiple event types", func() {
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
@@ -201,11 +201,11 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 			},
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 2)
-		
+
 		eventTypes := make([]EventType, len(result.Events))
 		for i, event := range result.Events {
 			eventTypes[i] = event.EventType
@@ -213,7 +213,7 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 		suite.Contains(eventTypes, EventTypeAuthentication)
 		suite.Contains(eventTypes, EventTypeAuthenticationFailed)
 	})
-	
+
 	suite.Run("filter by severity", func() {
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
@@ -221,13 +221,13 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 			},
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 1)
 		suite.Equal(SeverityCritical, result.Events[0].Severity)
 	})
-	
+
 	suite.Run("filter by severity range", func() {
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
@@ -236,17 +236,17 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 			},
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Greater(len(result.Events), 0)
-		
+
 		for _, event := range result.Events {
 			suite.GreaterOrEqual(event.Severity, SeverityWarning)
 			suite.LessOrEqual(event.Severity, SeverityCritical)
 		}
 	})
-	
+
 	suite.Run("filter by component", func() {
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
@@ -254,16 +254,16 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 			},
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 2) // auth and auth-failed events
-		
+
 		for _, event := range result.Events {
 			suite.Equal("auth-service", event.Component)
 		}
 	})
-	
+
 	suite.Run("filter by user", func() {
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
@@ -271,16 +271,16 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 			},
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 2) // auth and data access events
-		
+
 		for _, event := range result.Events {
 			suite.Equal("user1", event.UserContext.UserID)
 		}
 	})
-	
+
 	suite.Run("filter by result", func() {
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
@@ -288,11 +288,11 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 			},
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 2) // auth-failed and security violation
-		
+
 		for _, event := range result.Events {
 			suite.Equal(ResultFailure, event.Result)
 		}
@@ -302,48 +302,48 @@ func (suite *QueryEngineTestSuite) TestEventFiltering() {
 // Time Range Tests
 func (suite *QueryEngineTestSuite) TestTimeRangeFiltering() {
 	now := time.Now()
-	
+
 	suite.Run("filter by start time", func() {
 		query := &QueryRequest{
 			StartTime: now.Add(-8 * time.Hour), // Last 8 hours
 			Limit:     100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 3) // Events within last 8 hours
-		
+
 		for _, event := range result.Events {
 			suite.True(event.Timestamp.After(query.StartTime) || event.Timestamp.Equal(query.StartTime))
 		}
 	})
-	
+
 	suite.Run("filter by end time", func() {
 		query := &QueryRequest{
 			EndTime: now.Add(-4 * time.Hour), // Before 4 hours ago
 			Limit:   100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 3) // Events before 4 hours ago
-		
+
 		for _, event := range result.Events {
 			suite.True(event.Timestamp.Before(query.EndTime) || event.Timestamp.Equal(query.EndTime))
 		}
 	})
-	
+
 	suite.Run("filter by time range", func() {
 		query := &QueryRequest{
 			StartTime: now.Add(-8 * time.Hour),
 			EndTime:   now.Add(-2 * time.Hour),
 			Limit:     100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 2) // Events within the range
-		
+
 		for _, event := range result.Events {
 			suite.True(event.Timestamp.After(query.StartTime) || event.Timestamp.Equal(query.StartTime))
 			suite.True(event.Timestamp.Before(query.EndTime) || event.Timestamp.Equal(query.EndTime))
@@ -359,64 +359,64 @@ func (suite *QueryEngineTestSuite) TestEventSorting() {
 			SortOrder: "asc",
 			Limit:     100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 5)
-		
+
 		// Verify ascending order
 		for i := 1; i < len(result.Events); i++ {
 			suite.True(result.Events[i].Timestamp.After(result.Events[i-1].Timestamp) ||
 				result.Events[i].Timestamp.Equal(result.Events[i-1].Timestamp))
 		}
 	})
-	
+
 	suite.Run("sort by timestamp descending", func() {
 		query := &QueryRequest{
 			SortBy:    "timestamp",
 			SortOrder: "desc",
 			Limit:     100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 5)
-		
+
 		// Verify descending order
 		for i := 1; i < len(result.Events); i++ {
 			suite.True(result.Events[i].Timestamp.Before(result.Events[i-1].Timestamp) ||
 				result.Events[i].Timestamp.Equal(result.Events[i-1].Timestamp))
 		}
 	})
-	
+
 	suite.Run("sort by severity", func() {
 		query := &QueryRequest{
 			SortBy:    "severity",
 			SortOrder: "desc", // Most severe first
 			Limit:     100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 5)
-		
+
 		// Verify severity descending order
 		for i := 1; i < len(result.Events); i++ {
 			suite.LessOrEqual(result.Events[i].Severity, result.Events[i-1].Severity)
 		}
 	})
-	
+
 	suite.Run("sort by component", func() {
 		query := &QueryRequest{
 			SortBy:    "component",
 			SortOrder: "asc",
 			Limit:     100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 5)
-		
+
 		// Verify component alphabetical order
 		for i := 1; i < len(result.Events); i++ {
 			suite.LessOrEqual(result.Events[i-1].Component, result.Events[i].Component)
@@ -431,41 +431,41 @@ func (suite *QueryEngineTestSuite) TestTextSearch() {
 			Query: "login",
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 2) // Both auth events have "login" action
 	})
-	
+
 	suite.Run("search in event data", func() {
 		query := &QueryRequest{
 			Query: "session_123",
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 1)
 		suite.Equal("session_123", result.Events[0].Data["session_id"])
 	})
-	
+
 	suite.Run("search case insensitive", func() {
 		query := &QueryRequest{
 			Query: "ALICE",
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 2) // Both events for user alice
 	})
-	
+
 	suite.Run("search with wildcards", func() {
 		query := &QueryRequest{
 			Query: "user*",
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Greater(len(result.Events), 0)
@@ -488,10 +488,10 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 			SortOrder: "desc",
 			Limit:     100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
-		
+
 		// Verify all conditions are met
 		for _, event := range result.Events {
 			suite.True(event.Severity == SeverityInfo || event.Severity == SeverityWarning)
@@ -500,7 +500,7 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 			suite.True(event.Timestamp.Before(query.EndTime) || event.Timestamp.Equal(query.EndTime))
 		}
 	})
-	
+
 	suite.Run("nested data filtering", func() {
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
@@ -508,12 +508,12 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 			},
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 1) // Only data access event has sensitive=true
 	})
-	
+
 	suite.Run("user context filtering", func() {
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
@@ -521,16 +521,16 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 			},
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 2) // Both events for alice who is admin
-		
+
 		for _, event := range result.Events {
 			suite.Equal("admin", event.UserContext.Role)
 		}
 	})
-	
+
 	suite.Run("resource context filtering", func() {
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
@@ -538,7 +538,7 @@ func (suite *QueryEngineTestSuite) TestComplexQueries() {
 			},
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 1) // Only data access event has read operation
@@ -552,11 +552,11 @@ func (suite *QueryEngineTestSuite) TestFieldSelection() {
 			IncludeFields: []string{"id", "timestamp", "event_type", "severity"},
 			Limit:         100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 5)
-		
+
 		// Verify field filtering (would need actual implementation)
 		for _, event := range result.Events {
 			suite.NotEmpty(event.ID)
@@ -564,17 +564,17 @@ func (suite *QueryEngineTestSuite) TestFieldSelection() {
 			suite.NotEmpty(event.EventType)
 		}
 	})
-	
+
 	suite.Run("exclude specific fields", func() {
 		query := &QueryRequest{
 			ExcludeFields: []string{"data", "stack_trace"},
 			Limit:         100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.Len(result.Events, 5)
-		
+
 		// In a real implementation, data fields would be excluded
 	})
 }
@@ -593,13 +593,13 @@ func (suite *QueryEngineTestSuite) TestAggregations() {
 			},
 			Limit: 0, // No events, just aggregations
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.NotNil(result.Aggregations)
 		suite.Contains(result.Aggregations, "event_types")
 	})
-	
+
 	suite.Run("count by severity", func() {
 		query := &QueryRequest{
 			Aggregations: map[string]interface{}{
@@ -611,13 +611,13 @@ func (suite *QueryEngineTestSuite) TestAggregations() {
 			},
 			Limit: 0,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.NotNil(result.Aggregations)
 		suite.Contains(result.Aggregations, "severities")
 	})
-	
+
 	suite.Run("date histogram", func() {
 		query := &QueryRequest{
 			Aggregations: map[string]interface{}{
@@ -630,7 +630,7 @@ func (suite *QueryEngineTestSuite) TestAggregations() {
 			},
 			Limit: 0,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.NoError(err)
 		suite.NotNil(result.Aggregations)
@@ -654,7 +654,7 @@ func (suite *QueryEngineTestSuite) TestQueryPerformance() {
 				Result:    ResultSuccess,
 			}
 		}
-		
+
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
 				"component": "component_0",
@@ -663,11 +663,11 @@ func (suite *QueryEngineTestSuite) TestQueryPerformance() {
 			SortOrder: "desc",
 			Limit:     100,
 		}
-		
+
 		start := time.Now()
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, largeDataset)
 		duration := time.Since(start)
-		
+
 		suite.NoError(err)
 		suite.NotNil(result)
 		suite.Less(duration, 5*time.Second, "Query took too long: %v", duration)
@@ -681,12 +681,12 @@ func (suite *QueryEngineTestSuite) TestErrorHandling() {
 			SortBy: "invalid_field",
 			Limit:  100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.Error(err)
 		suite.Nil(result)
 	})
-	
+
 	suite.Run("invalid filter value", func() {
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
@@ -694,30 +694,30 @@ func (suite *QueryEngineTestSuite) TestErrorHandling() {
 			},
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.Error(err)
 		suite.Nil(result)
 	})
-	
+
 	suite.Run("negative limit", func() {
 		query := &QueryRequest{
 			Limit: -1,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(context.Background(), query, suite.testEvents)
 		suite.Error(err)
 		suite.Nil(result)
 	})
-	
+
 	suite.Run("context cancellation", func() {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
-		
+
 		query := &QueryRequest{
 			Limit: 100,
 		}
-		
+
 		result, err := suite.queryEngine.ExecuteQuery(ctx, query, suite.testEvents)
 		suite.Error(err)
 		suite.Contains(err.Error(), "context")
@@ -797,17 +797,17 @@ func TestQueryBuilder(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			query := tt.builder().Build()
-			
+
 			// Compare specific fields as full comparison is complex
 			assert.Equal(t, tt.expected.Query, query.Query)
 			assert.Equal(t, tt.expected.Limit, query.Limit)
 			assert.Equal(t, tt.expected.SortBy, query.SortBy)
 			assert.Equal(t, tt.expected.SortOrder, query.SortOrder)
-			
+
 			if tt.expected.Filters != nil {
 				assert.NotNil(t, query.Filters)
 				for key, expectedValue := range tt.expected.Filters {
@@ -821,7 +821,7 @@ func TestQueryBuilder(t *testing.T) {
 // Benchmark Tests
 func BenchmarkQueryEngine(b *testing.B) {
 	queryEngine := NewQueryEngine()
-	
+
 	// Generate test data
 	events := make([]*AuditEvent, 1000)
 	for i := 0; i < len(events); i++ {
@@ -834,7 +834,7 @@ func BenchmarkQueryEngine(b *testing.B) {
 			Result:    ResultSuccess,
 		}
 	}
-	
+
 	b.Run("simple filter", func(b *testing.B) {
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
@@ -842,13 +842,13 @@ func BenchmarkQueryEngine(b *testing.B) {
 			},
 			Limit: 100,
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			queryEngine.ExecuteQuery(context.Background(), query, events)
 		}
 	})
-	
+
 	b.Run("complex filter with sort", func(b *testing.B) {
 		query := &QueryRequest{
 			Filters: map[string]interface{}{
@@ -858,19 +858,19 @@ func BenchmarkQueryEngine(b *testing.B) {
 			SortOrder: "desc",
 			Limit:     50,
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			queryEngine.ExecuteQuery(context.Background(), query, events)
 		}
 	})
-	
+
 	b.Run("text search", func(b *testing.B) {
 		query := &QueryRequest{
 			Query: "comp_1",
 			Limit: 100,
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			queryEngine.ExecuteQuery(context.Background(), query, events)
@@ -892,23 +892,23 @@ func (qe *QueryEngine) ExecuteQuery(ctx context.Context, query *QueryRequest, ev
 		return nil, ctx.Err()
 	default:
 	}
-	
+
 	// Validate query
 	if err := qe.validateQuery(query); err != nil {
 		return nil, err
 	}
-	
+
 	// Filter events
 	filtered := qe.filterEvents(events, query)
-	
+
 	// Sort events
 	sorted := qe.sortEvents(filtered, query)
-	
+
 	// Apply pagination
 	total := int64(len(sorted))
 	start := query.Offset
 	end := start + query.Limit
-	
+
 	if start >= len(sorted) {
 		sorted = []*AuditEvent{}
 	} else if end > len(sorted) {
@@ -916,10 +916,10 @@ func (qe *QueryEngine) ExecuteQuery(ctx context.Context, query *QueryRequest, ev
 	} else {
 		sorted = sorted[start:end]
 	}
-	
+
 	// Generate aggregations if requested
 	aggregations := qe.generateAggregations(filtered, query)
-	
+
 	return &QueryResponse{
 		Events:       sorted,
 		TotalCount:   total,
@@ -934,7 +934,7 @@ func (qe *QueryEngine) validateQuery(query *QueryRequest) error {
 	if query.Limit < 0 {
 		return fmt.Errorf("limit cannot be negative")
 	}
-	
+
 	if query.SortBy != "" {
 		validFields := []string{"timestamp", "severity", "component", "event_type", "result"}
 		valid := false
@@ -948,7 +948,7 @@ func (qe *QueryEngine) validateQuery(query *QueryRequest) error {
 			return fmt.Errorf("invalid sort field: %s", query.SortBy)
 		}
 	}
-	
+
 	// Validate severity filters
 	if severity, exists := query.Filters["severity"]; exists {
 		if severityStr, ok := severity.(string); ok {
@@ -957,19 +957,19 @@ func (qe *QueryEngine) validateQuery(query *QueryRequest) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
 func (qe *QueryEngine) filterEvents(events []*AuditEvent, query *QueryRequest) []*AuditEvent {
 	var result []*AuditEvent
-	
+
 	for _, event := range events {
 		if qe.matchesFilters(event, query) {
 			result = append(result, event)
 		}
 	}
-	
+
 	return result
 }
 
@@ -981,12 +981,12 @@ func (qe *QueryEngine) matchesFilters(event *AuditEvent, query *QueryRequest) bo
 	if !query.EndTime.IsZero() && event.Timestamp.After(query.EndTime) {
 		return false
 	}
-	
+
 	// Text search
 	if query.Query != "" && !qe.matchesTextSearch(event, query.Query) {
 		return false
 	}
-	
+
 	// Field filters
 	if query.Filters != nil {
 		for key, value := range query.Filters {
@@ -995,24 +995,24 @@ func (qe *QueryEngine) matchesFilters(event *AuditEvent, query *QueryRequest) bo
 			}
 		}
 	}
-	
+
 	return true
 }
 
 func (qe *QueryEngine) matchesTextSearch(event *AuditEvent, query string) bool {
 	query = strings.ToLower(query)
-	
+
 	searchFields := []string{
 		strings.ToLower(string(event.EventType)),
 		strings.ToLower(event.Component),
 		strings.ToLower(event.Action),
 		strings.ToLower(event.Description),
 	}
-	
+
 	if event.UserContext != nil {
 		searchFields = append(searchFields, strings.ToLower(event.UserContext.Username))
 	}
-	
+
 	// Search in data fields
 	if event.Data != nil {
 		for _, v := range event.Data {
@@ -1021,13 +1021,13 @@ func (qe *QueryEngine) matchesTextSearch(event *AuditEvent, query string) bool {
 			}
 		}
 	}
-	
+
 	for _, field := range searchFields {
 		if strings.Contains(field, query) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -1095,13 +1095,13 @@ func (qe *QueryEngine) sortEvents(events []*AuditEvent, query *QueryRequest) []*
 	if query.SortBy == "" {
 		return events
 	}
-	
+
 	result := make([]*AuditEvent, len(events))
 	copy(result, events)
-	
+
 	sort.Slice(result, func(i, j int) bool {
 		var less bool
-		
+
 		switch query.SortBy {
 		case "timestamp":
 			less = result[i].Timestamp.Before(result[j].Timestamp)
@@ -1116,14 +1116,14 @@ func (qe *QueryEngine) sortEvents(events []*AuditEvent, query *QueryRequest) []*
 		default:
 			return false
 		}
-		
+
 		if query.SortOrder == "desc" {
 			less = !less
 		}
-		
+
 		return less
 	})
-	
+
 	return result
 }
 
@@ -1131,9 +1131,9 @@ func (qe *QueryEngine) generateAggregations(events []*AuditEvent, query *QueryRe
 	if query.Aggregations == nil {
 		return nil
 	}
-	
+
 	result := make(map[string]interface{})
-	
+
 	for key, aggConfig := range query.Aggregations {
 		if config, ok := aggConfig.(map[string]interface{}); ok {
 			if _, hasTerms := config["terms"]; hasTerms {
@@ -1144,7 +1144,7 @@ func (qe *QueryEngine) generateAggregations(events []*AuditEvent, query *QueryRe
 			}
 		}
 	}
-	
+
 	return result
 }
 

@@ -41,7 +41,7 @@ func (suite *ORANComplianceTestSuite) SetupSuite() {
 			"type":     "memory",
 			"database": "oran_compliance_test_db",
 		},
-		ComplianceMode: true, // Enable strict O-RAN compliance
+		ComplianceMode:       true, // Enable strict O-RAN compliance
 		SpecificationVersion: "O-RAN.WG6.O2ims-Interface-v01.01",
 	}
 
@@ -78,11 +78,11 @@ func (suite *ORANComplianceTestSuite) TestORANServiceInformation() {
 		suite.Assert().Equal("Nephoran O2 IMS", serviceInfo["name"])
 		suite.Assert().Equal("O-RAN.WG6.O2ims-Interface-v01.01", serviceInfo["specification"])
 		suite.Assert().Equal("v1.0", serviceInfo["apiVersion"])
-		
+
 		// Validate required capabilities per O-RAN spec
 		capabilities, ok := serviceInfo["capabilities"].([]interface{})
 		suite.Require().True(ok, "capabilities must be an array")
-		
+
 		requiredCapabilities := []string{
 			"InfrastructureInventory",
 			"InfrastructureMonitoring",
@@ -90,7 +90,7 @@ func (suite *ORANComplianceTestSuite) TestORANServiceInformation() {
 		}
 
 		for _, required := range requiredCapabilities {
-			suite.Assert().Contains(capabilities, required, 
+			suite.Assert().Contains(capabilities, required,
 				fmt.Sprintf("Missing required O-RAN capability: %s", required))
 		}
 
@@ -98,10 +98,10 @@ func (suite *ORANComplianceTestSuite) TestORANServiceInformation() {
 		suite.Assert().Contains(serviceInfo, "endpoints")
 		endpoints, ok := serviceInfo["endpoints"].(map[string]interface{})
 		suite.Require().True(ok)
-		
+
 		expectedEndpoints := []string{
 			"resourcePools",
-			"resourceTypes", 
+			"resourceTypes",
 			"resources",
 			"deploymentManagers",
 			"subscriptions",
@@ -119,17 +119,17 @@ func (suite *ORANComplianceTestSuite) TestORANResourcePoolCompliance() {
 	suite.Run("Resource Pool O-RAN Data Model Compliance", func() {
 		// O-RAN.WG6.O2ims-Interface-v01.01 Section 4.3 - Resource Pool Object
 		poolID := "oran-compliant-pool-001"
-		
+
 		pool := &models.ResourcePool{
-			ResourcePoolID:   poolID,
-			Name:            "O-RAN Compliant Resource Pool",
-			Description:     "Resource pool compliant with O-RAN specifications",
-			Location:        "Geographic location identifier",
-			OCloudID:        "oran-ocloud-001",
-			Provider:        "kubernetes",
-			Region:          "us-east-1",
-			Zone:            "us-east-1a",
-			State:           "AVAILABLE", // Per O-RAN spec: AVAILABLE, UNAVAILABLE, MAINTENANCE
+			ResourcePoolID: poolID,
+			Name:           "O-RAN Compliant Resource Pool",
+			Description:    "Resource pool compliant with O-RAN specifications",
+			Location:       "Geographic location identifier",
+			OCloudID:       "oran-ocloud-001",
+			Provider:       "kubernetes",
+			Region:         "us-east-1",
+			Zone:           "us-east-1a",
+			State:          "AVAILABLE", // Per O-RAN spec: AVAILABLE, UNAVAILABLE, MAINTENANCE
 			Capacity: &models.ResourceCapacity{
 				CPU: &models.ResourceMetric{
 					Total:       "1000",
@@ -140,7 +140,7 @@ func (suite *ORANComplianceTestSuite) TestORANResourcePoolCompliance() {
 				},
 				Memory: &models.ResourceMetric{
 					Total:       "2048Gi",
-					Available:   "1638Gi", 
+					Available:   "1638Gi",
 					Used:        "410Gi",
 					Unit:        "bytes",
 					Utilization: 20.0,
@@ -155,10 +155,10 @@ func (suite *ORANComplianceTestSuite) TestORANResourcePoolCompliance() {
 			},
 			// O-RAN extensions for additional metadata
 			Extensions: map[string]interface{}{
-				"oranVersion":        "1.0.1",
+				"oranVersion":          "1.0.1",
 				"hardwareAcceleration": true,
-				"networkFeatures":    []string{"SRIOV", "DPDK", "OVS"},
-				"complianceLevel":    "O-RAN-WG6-v1.0",
+				"networkFeatures":      []string{"SRIOV", "DPDK", "OVS"},
+				"complianceLevel":      "O-RAN-WG6-v1.0",
 			},
 		}
 
@@ -190,10 +190,10 @@ func (suite *ORANComplianceTestSuite) TestORANResourcePoolCompliance() {
 		suite.Assert().NotEmpty(retrievedPool.Name, "Name is mandatory per O-RAN spec")
 		suite.Assert().NotEmpty(retrievedPool.OCloudID, "OCloudID is mandatory per O-RAN spec")
 		suite.Assert().NotEmpty(retrievedPool.Location, "Location is mandatory per O-RAN spec")
-		
+
 		// Validate state values are O-RAN compliant
 		validStates := []string{"AVAILABLE", "UNAVAILABLE", "MAINTENANCE"}
-		suite.Assert().Contains(validStates, retrievedPool.State, 
+		suite.Assert().Contains(validStates, retrievedPool.State,
 			"State must be one of O-RAN defined values: %v", validStates)
 
 		// Validate capacity structure per O-RAN spec
@@ -224,28 +224,28 @@ func (suite *ORANComplianceTestSuite) TestORANResourceTypeCompliance() {
 
 		resourceType := &models.ResourceType{
 			ResourceTypeID: typeID,
-			Name:          "O-RAN Compute Resource Type",
-			Description:   "Compute resource type compliant with O-RAN specifications",
-			Vendor:        "Nephoran Systems",
-			Model:         "ORAN-Compute-Standard-v1",
-			Version:       "1.2.0",
+			Name:           "O-RAN Compute Resource Type",
+			Description:    "Compute resource type compliant with O-RAN specifications",
+			Vendor:         "Nephoran Systems",
+			Model:          "ORAN-Compute-Standard-v1",
+			Version:        "1.2.0",
 			Specifications: &models.ResourceTypeSpec{
-				Category:    "COMPUTE",        // O-RAN defined categories
+				Category:    "COMPUTE",         // O-RAN defined categories
 				SubCategory: "GENERAL_PURPOSE", // O-RAN sub-categories
 				MinResources: map[string]string{
-					"cpu":                "1000m",
-					"memory":             "2Gi",
-					"ephemeral-storage":  "10Gi",
+					"cpu":               "1000m",
+					"memory":            "2Gi",
+					"ephemeral-storage": "10Gi",
 				},
 				MaxResources: map[string]string{
-					"cpu":                "32000m",
-					"memory":             "256Gi", 
-					"ephemeral-storage":  "1Ti",
+					"cpu":               "32000m",
+					"memory":            "256Gi",
+					"ephemeral-storage": "1Ti",
 				},
 				DefaultResources: map[string]string{
-					"cpu":                "4000m",
-					"memory":             "8Gi",
-					"ephemeral-storage":  "100Gi",
+					"cpu":               "4000m",
+					"memory":            "8Gi",
+					"ephemeral-storage": "100Gi",
 				},
 				RequiredPorts: []models.PortSpec{
 					{Name: "management", Port: 22, Protocol: "TCP"},
@@ -256,22 +256,22 @@ func (suite *ORANComplianceTestSuite) TestORANResourceTypeCompliance() {
 				},
 				// O-RAN specific capabilities
 				Capabilities: map[string]interface{}{
-					"hardwareAcceleration": []string{"FPGA", "GPU", "TPU"},
-					"networkAcceleration":  []string{"SRIOV", "DPDK"},
-					"storageTypes":         []string{"SSD", "NVMe", "HDD"},
+					"hardwareAcceleration":  []string{"FPGA", "GPU", "TPU"},
+					"networkAcceleration":   []string{"SRIOV", "DPDK"},
+					"storageTypes":          []string{"SSD", "NVMe", "HDD"},
 					"virtualizationSupport": true,
-					"containerSupport":     true,
+					"containerSupport":      true,
 				},
 			},
 			SupportedActions: []string{"CREATE", "DELETE", "UPDATE", "SCALE", "HEAL", "BACKUP", "RESTORE"},
 			// O-RAN compliance metadata
 			Compliance: &models.ComplianceInfo{
-				Standard: "O-RAN-WG6-v1.0.1",
+				Standard:           "O-RAN-WG6-v1.0.1",
 				CertificationLevel: "CERTIFIED",
 				TestResults: map[string]interface{}{
-					"functionalTests":   "PASSED",
-					"performanceTests":  "PASSED", 
-					"securityTests":     "PASSED",
+					"functionalTests":       "PASSED",
+					"performanceTests":      "PASSED",
+					"securityTests":         "PASSED",
 					"interoperabilityTests": "PASSED",
 				},
 			},
@@ -342,27 +342,27 @@ func (suite *ORANComplianceTestSuite) TestORANAPIEndpointsCompliance() {
 		// O-RAN.WG6.O2ims-Interface-v01.01 Section 5 - API Endpoints
 		requiredEndpoints := map[string][]string{
 			// Resource Pool endpoints
-			"/o2ims/v1/resourcePools": {"GET", "POST"},
+			"/o2ims/v1/resourcePools":                  {"GET", "POST"},
 			"/o2ims/v1/resourcePools/{resourcePoolId}": {"GET", "PUT", "DELETE"},
-			
-			// Resource Type endpoints  
-			"/o2ims/v1/resourceTypes": {"GET", "POST"},
+
+			// Resource Type endpoints
+			"/o2ims/v1/resourceTypes":                  {"GET", "POST"},
 			"/o2ims/v1/resourceTypes/{resourceTypeId}": {"GET", "PUT", "DELETE"},
-			
+
 			// Resource Instance endpoints
-			"/o2ims/v1/resources": {"GET", "POST"},
+			"/o2ims/v1/resources":              {"GET", "POST"},
 			"/o2ims/v1/resources/{resourceId}": {"GET", "PUT", "DELETE"},
-			
+
 			// Deployment Manager endpoints
-			"/o2ims/v1/deploymentManagers": {"GET", "POST"},
+			"/o2ims/v1/deploymentManagers":                       {"GET", "POST"},
 			"/o2ims/v1/deploymentManagers/{deploymentManagerId}": {"GET", "PUT", "DELETE"},
-			
+
 			// Subscription endpoints
-			"/o2ims/v1/subscriptions": {"GET", "POST"},
+			"/o2ims/v1/subscriptions":                  {"GET", "POST"},
 			"/o2ims/v1/subscriptions/{subscriptionId}": {"GET", "DELETE"},
-			
+
 			// Alarm endpoints
-			"/o2ims/v1/alarms": {"GET", "POST"},
+			"/o2ims/v1/alarms":           {"GET", "POST"},
 			"/o2ims/v1/alarms/{alarmId}": {"GET", "PATCH", "DELETE"},
 		}
 
@@ -399,22 +399,22 @@ func (suite *ORANComplianceTestSuite) TestORANAPIEndpointsCompliance() {
 func (suite *ORANComplianceTestSuite) TestORANQueryParametersCompliance() {
 	suite.Run("O-RAN Query Parameters Compliance", func() {
 		// O-RAN.WG6.O2ims-Interface-v01.01 Section 5.2 - Query Parameters
-		
+
 		// Create test resource pools for filtering
 		testPools := []models.ResourcePool{
 			{
 				ResourcePoolID: "filter-test-pool-1",
-				Name:          "Filter Test Pool 1",
-				Provider:      "kubernetes",
-				Location:      "us-east-1",
-				State:         "AVAILABLE",
+				Name:           "Filter Test Pool 1",
+				Provider:       "kubernetes",
+				Location:       "us-east-1",
+				State:          "AVAILABLE",
 			},
 			{
-				ResourcePoolID: "filter-test-pool-2", 
-				Name:          "Filter Test Pool 2",
-				Provider:      "openstack",
-				Location:      "us-west-2",
-				State:         "UNAVAILABLE",
+				ResourcePoolID: "filter-test-pool-2",
+				Name:           "Filter Test Pool 2",
+				Provider:       "openstack",
+				Location:       "us-west-2",
+				State:          "UNAVAILABLE",
 			},
 		}
 
@@ -434,23 +434,23 @@ func (suite *ORANComplianceTestSuite) TestORANQueryParametersCompliance() {
 		// Test O-RAN compliant filter syntax: (eq,field,value)
 		suite.Run("Filter Syntax Compliance", func() {
 			testCases := []struct {
-				name           string
-				filter         string
-				expectedCount  int
+				name          string
+				filter        string
+				expectedCount int
 			}{
 				{
-					name:   "Equal filter",
-					filter: "(eq,provider,kubernetes)",
+					name:          "Equal filter",
+					filter:        "(eq,provider,kubernetes)",
 					expectedCount: 1,
 				},
 				{
-					name:   "Multiple filters with AND", 
-					filter: "(eq,provider,kubernetes);(eq,state,AVAILABLE)",
+					name:          "Multiple filters with AND",
+					filter:        "(eq,provider,kubernetes);(eq,state,AVAILABLE)",
 					expectedCount: 1,
 				},
 				{
-					name:   "Location filter",
-					filter: "(eq,location,us-west-2)",
+					name:          "Location filter",
+					filter:        "(eq,location,us-west-2)",
 					expectedCount: 1,
 				},
 			}
@@ -526,7 +526,7 @@ func (suite *ORANComplianceTestSuite) TestORANErrorResponsesCompliance() {
 
 			// Validate O-RAN error response structure
 			suite.Assert().Contains(errorResponse, "type", "Error response must contain 'type' field")
-			suite.Assert().Contains(errorResponse, "title", "Error response must contain 'title' field") 
+			suite.Assert().Contains(errorResponse, "title", "Error response must contain 'title' field")
 			suite.Assert().Contains(errorResponse, "status", "Error response must contain 'status' field")
 			suite.Assert().Contains(errorResponse, "detail", "Error response must contain 'detail' field")
 
@@ -580,9 +580,9 @@ func (suite *ORANComplianceTestSuite) TestORANContentTypeCompliance() {
 		suite.Run("JSON Content Type Required for POST", func() {
 			pool := &models.ResourcePool{
 				ResourcePoolID: "content-type-test-pool",
-				Name:          "Content Type Test Pool",
-				Provider:      "kubernetes",
-				OCloudID:      "test-ocloud",
+				Name:           "Content Type Test Pool",
+				Provider:       "kubernetes",
+				OCloudID:       "test-ocloud",
 			}
 
 			poolJSON, err := json.Marshal(pool)
@@ -660,7 +660,7 @@ func (suite *ORANComplianceTestSuite) TestORANVersioningCompliance() {
 func (suite *ORANComplianceTestSuite) TestORANSecurityHeadersCompliance() {
 	suite.Run("O-RAN Security Headers Compliance", func() {
 		// While TLS is disabled in test, validate security header structure
-		
+
 		resp, err := suite.client.Get(suite.server.URL + "/o2ims/v1/")
 		suite.Require().NoError(err)
 		defer resp.Body.Close()
@@ -699,15 +699,15 @@ func (suite *ORANComplianceTestSuite) TestORANDataModelConsistency() {
 		suite.Run("Resource Pool Data Model Consistency", func() {
 			pool := &models.ResourcePool{
 				ResourcePoolID: "consistency-test-pool",
-				Name:          "Consistency Test Pool",
-				Provider:      "kubernetes",
-				OCloudID:      "consistency-test-ocloud",
+				Name:           "Consistency Test Pool",
+				Provider:       "kubernetes",
+				OCloudID:       "consistency-test-ocloud",
 				// Test with all optional fields to validate structure
-				Description:   "Test pool for data model consistency",
-				Location:      "test-location",
-				Region:        "test-region",
-				Zone:          "test-zone",
-				State:         "AVAILABLE",
+				Description: "Test pool for data model consistency",
+				Location:    "test-location",
+				Region:      "test-region",
+				Zone:        "test-zone",
+				State:       "AVAILABLE",
 				Capacity: &models.ResourceCapacity{
 					CPU: &models.ResourceMetric{
 						Total: "100", Available: "80", Used: "20", Unit: "cores", Utilization: 20.0,

@@ -24,13 +24,13 @@ type ProcessIntentRequest struct {
 }
 
 type ProcessIntentResponse struct {
-	Result          string                 `json:"result"`
-	ProcessingTime  string                 `json:"processing_time"`
-	RequestID       string                 `json:"request_id"`
-	ServiceVersion  string                 `json:"service_version"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
-	Status          string                 `json:"status"`
-	Error           string                 `json:"error,omitempty"`
+	Result         string                 `json:"result"`
+	ProcessingTime string                 `json:"processing_time"`
+	RequestID      string                 `json:"request_id"`
+	ServiceVersion string                 `json:"service_version"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Status         string                 `json:"status"`
+	Error          string                 `json:"error,omitempty"`
 }
 
 type HealthResponse struct {
@@ -154,12 +154,12 @@ func (s *LLMProcessorService) processIntentHandler(w http.ResponseWriter, r *htt
 
 func (s *LLMProcessorService) statusHandler(w http.ResponseWriter, r *http.Request) {
 	status := map[string]interface{}{
-		"service":     "llm-processor",
-		"version":     s.serviceVersion,
-		"uptime":      time.Since(s.startTime).String(),
-		"healthy":     s.healthy,
-		"ready":       s.ready,
-		"timestamp":   time.Now().UTC().Format(time.RFC3339),
+		"service":   "llm-processor",
+		"version":   s.serviceVersion,
+		"uptime":    time.Since(s.startTime).String(),
+		"healthy":   s.healthy,
+		"ready":     s.ready,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -457,9 +457,9 @@ var _ = Describe("LLM Processor Service Tests", func() {
 		It("Should handle complex JSON responses from LLM", func() {
 			By("Setting up service with complex response")
 			complexResponse := map[string]interface{}{
-				"action":     "deploy",
-				"component":  "5g-core",
-				"replicas":   3,
+				"action":    "deploy",
+				"component": "5g-core",
+				"replicas":  3,
 				"resources": map[string]interface{}{
 					"cpu":    "2000m",
 					"memory": "4Gi",

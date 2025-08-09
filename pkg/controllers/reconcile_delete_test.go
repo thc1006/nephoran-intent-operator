@@ -240,9 +240,9 @@ func TestReconcileDeleteWithFakeGitClient(t *testing.T) {
 
 		// Test exponential backoff for multiple retries
 		expectedDelays := []time.Duration{
-			config.RetryDelay,        // First retry: base delay
-			config.RetryDelay * 2,    // Second retry: base * 2
-			config.RetryDelay * 4,    // Third retry: base * 4 (but capped at 5 minutes)
+			config.RetryDelay,     // First retry: base delay
+			config.RetryDelay * 2, // Second retry: base * 2
+			config.RetryDelay * 4, // Third retry: base * 4 (but capped at 5 minutes)
 		}
 
 		for i := 0; i < 3; i++ {
@@ -270,7 +270,7 @@ func TestReconcileDeleteWithFakeGitClient(t *testing.T) {
 			// Allow some tolerance in timing
 			tolerance := time.Second
 			if result.RequeueAfter < expectedDelay-tolerance || result.RequeueAfter > expectedDelay+tolerance {
-				t.Errorf("Retry %d: Expected RequeueAfter to be approximately %v, got: %v", 
+				t.Errorf("Retry %d: Expected RequeueAfter to be approximately %v, got: %v",
 					i, expectedDelay, result.RequeueAfter)
 			}
 
@@ -291,7 +291,7 @@ func TestReconcileDeleteWithFakeGitClient(t *testing.T) {
 				t.Errorf("Retry %d: Expected Ready condition to be set", i)
 			} else {
 				if readyCondition.Reason != "GitPushFailed" {
-					t.Errorf("Retry %d: Expected Ready condition reason to be GitPushFailed, got: %v", 
+					t.Errorf("Retry %d: Expected Ready condition reason to be GitPushFailed, got: %v",
 						i, readyCondition.Reason)
 				}
 			}
@@ -352,7 +352,7 @@ func TestReconcileDeleteWithFakeGitClient(t *testing.T) {
 			t.Errorf("Expected Ready condition to be set")
 		} else {
 			if readyCondition.Reason != "CleanupFailedMaxRetries" {
-				t.Errorf("Expected Ready condition reason to be CleanupFailedMaxRetries, got: %v", 
+				t.Errorf("Expected Ready condition reason to be CleanupFailedMaxRetries, got: %v",
 					readyCondition.Reason)
 			}
 		}

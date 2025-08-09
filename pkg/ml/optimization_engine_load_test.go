@@ -40,11 +40,11 @@ type LoadTestResults struct {
 
 // LoadTester performs load testing on the optimization engine
 type LoadTester struct {
-	config  *LoadTestConfig
-	engine  *OptimizationEngine
-	results *LoadTestResults
+	config    *LoadTestConfig
+	engine    *OptimizationEngine
+	results   *LoadTestResults
 	latencies []int64
-	mu      sync.Mutex
+	mu        sync.Mutex
 }
 
 // NewLoadTester creates a new load tester
@@ -62,20 +62,20 @@ func (lt *LoadTester) Run(ctx context.Context) (*LoadTestResults, error) {
 	// Create rate limiter
 	limiter := time.NewTicker(time.Second / time.Duration(lt.config.RequestsPerSecond))
 	defer limiter.Stop()
-	
+
 	// Create worker pool
 	workers := make(chan struct{}, lt.config.ConcurrentUsers)
 	for i := 0; i < lt.config.ConcurrentUsers; i++ {
 		workers <- struct{}{}
 	}
-	
+
 	// Start time
 	startTime := time.Now()
 	deadline := startTime.Add(lt.config.Duration)
-	
+
 	// WaitGroup for all requests
 	var wg sync.WaitGroup
-	
+
 	// Request generator
 	go func() {
 		for time.Now().Before(deadline) {
@@ -85,29 +85,29 @@ func (lt *LoadTester) Run(ctx context.Context) (*LoadTestResults, error) {
 			case <-limiter.C:
 				// Get worker
 				<-workers
-				
+
 				wg.Add(1)
 				go func() {
 					defer func() {
 						workers <- struct{}{} // Return worker
 						wg.Done()
 					}()
-					
+
 					lt.executeRequest(ctx)
 				}()
 			}
 		}
 	}()
-	
+
 	// Wait for all requests to complete
 	wg.Wait()
-	
+
 	// Calculate percentiles
 	lt.calculatePercentiles()
-	
+
 	// Collect final metrics
 	lt.results.GoroutinesUsed = lt.config.ConcurrentUsers
-	
+
 	return lt.results, nil
 }
 
@@ -125,21 +125,21 @@ func (lt *LoadTester) executeRequest(ctx context.Context) {
 		},
 		Timestamp: time.Now(),
 	}
-	
+
 	// Measure request
 	start := time.Now()
 	_, err := lt.engine.OptimizeNetworkDeployment(ctx, intent)
 	latency := time.Since(start).Microseconds()
-	
+
 	// Update metrics
 	atomic.AddInt64(&lt.results.TotalRequests, 1)
-	
+
 	if err != nil {
 		atomic.AddInt64(&lt.results.FailedRequests, 1)
 	} else {
 		atomic.AddInt64(&lt.results.SuccessfulRequests, 1)
 		atomic.AddInt64(&lt.results.TotalLatency, latency)
-		
+
 		// Update min/max latency
 		for {
 			min := atomic.LoadInt64(&lt.results.MinLatency)
@@ -147,14 +147,14 @@ func (lt *LoadTester) executeRequest(ctx context.Context) {
 				break
 			}
 		}
-		
+
 		for {
 			max := atomic.LoadInt64(&lt.results.MaxLatency)
 			if latency <= max || atomic.CompareAndSwapInt64(&lt.results.MaxLatency, max, latency) {
 				break
 			}
 		}
-		
+
 		// Store latency for percentile calculation
 		lt.mu.Lock()
 		lt.latencies = append(lt.latencies, latency)
@@ -166,14 +166,14 @@ func (lt *LoadTester) executeRequest(ctx context.Context) {
 func (lt *LoadTester) calculatePercentiles() {
 	lt.mu.Lock()
 	defer lt.mu.Unlock()
-	
+
 	if len(lt.latencies) == 0 {
 		return
 	}
-	
+
 	// Sort latencies
 	sortInt64s(lt.latencies)
-	
+
 	// Calculate percentiles
 	lt.results.P50Latency = lt.latencies[len(lt.latencies)*50/100]
 	lt.results.P95Latency = lt.latencies[len(lt.latencies)*95/100]
@@ -196,21 +196,21 @@ func sortInt64s(a []int64) {
 	if len(a) < 2 {
 		return
 	}
-	
+
 	left, right := 0, len(a)-1
 	pivot := rand.Intn(right)
-	
+
 	a[pivot], a[right] = a[right], a[pivot]
-	
+
 	for i := range a {
 		if a[i] < a[right] {
 			a[left], a[i] = a[i], a[left]
 			left++
 		}
 	}
-	
+
 	a[left], a[right] = a[right], a[left]
-	
+
 	sortInt64s(a[:left])
 	sortInt64s(a[left+1:])
 }
@@ -220,7 +220,7 @@ func TestLoadScenarios(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping load test in short mode")
 	}
-	
+
 	scenarios := []struct {
 		name   string
 		config LoadTestConfig
@@ -270,26 +270,26 @@ func TestLoadScenarios(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
 			// Create test engine
 			engine := createBenchmarkEngine(t, scenario.config.DataPointsPerQuery, 5*time.Millisecond)
-			
+
 			// Create load tester
 			tester := NewLoadTester(&scenario.config, engine)
-			
+
 			// Run load test
 			ctx := context.Background()
 			results, err := tester.Run(ctx)
 			if err != nil {
 				t.Fatalf("Load test failed: %v", err)
 			}
-			
+
 			// Log results
 			t.Logf("Load Test Results for %s:", scenario.name)
 			t.Logf("  Total Requests: %d", results.TotalRequests)
-			t.Logf("  Successful: %d (%.2f%%)", results.SuccessfulRequests, 
+			t.Logf("  Successful: %d (%.2f%%)", results.SuccessfulRequests,
 				float64(results.SuccessfulRequests)/float64(results.TotalRequests)*100)
 			t.Logf("  Failed: %d", results.FailedRequests)
 			t.Logf("  Average Latency: %.2fms", float64(results.TotalLatency)/float64(results.SuccessfulRequests)/1000)
@@ -299,13 +299,13 @@ func TestLoadScenarios(t *testing.T) {
 			t.Logf("  P95 Latency: %.2fms", float64(results.P95Latency)/1000)
 			t.Logf("  P99 Latency: %.2fms", float64(results.P99Latency)/1000)
 			t.Logf("  Throughput: %.2f req/s", float64(results.SuccessfulRequests)/scenario.config.Duration.Seconds())
-			
+
 			// Assert performance requirements
 			avgLatency := float64(results.TotalLatency) / float64(results.SuccessfulRequests) / 1000 // in ms
-			if avgLatency > 1000 { // 1 second threshold
+			if avgLatency > 1000 {                                                                   // 1 second threshold
 				t.Errorf("Average latency too high: %.2fms (expected < 1000ms)", avgLatency)
 			}
-			
+
 			successRate := float64(results.SuccessfulRequests) / float64(results.TotalRequests)
 			if successRate < 0.95 { // 95% success rate threshold
 				t.Errorf("Success rate too low: %.2f%% (expected >= 95%%)", successRate*100)
@@ -324,18 +324,18 @@ func BenchmarkLoadTest(b *testing.B) {
 		EnableCaching:      true,
 		EnableOptimization: true,
 	}
-	
+
 	engine := createBenchmarkEngine(b, config.DataPointsPerQuery, 5*time.Millisecond)
 	tester := NewLoadTester(&config, engine)
-	
+
 	b.ResetTimer()
-	
+
 	ctx := context.Background()
 	results, err := tester.Run(ctx)
 	if err != nil {
 		b.Fatal(err)
 	}
-	
+
 	b.ReportMetric(float64(results.SuccessfulRequests), "requests")
 	b.ReportMetric(float64(results.TotalLatency)/float64(results.SuccessfulRequests)/1000, "ms/op")
 	b.ReportMetric(float64(results.P95Latency)/1000, "p95_ms")

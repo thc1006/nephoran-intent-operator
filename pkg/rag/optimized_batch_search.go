@@ -17,67 +17,67 @@ import (
 
 // BatchSearchRequest represents a batch of search requests
 type BatchSearchRequest struct {
-	Queries            []*SearchQuery    `json:"queries"`
-	MaxConcurrency     int               `json:"max_concurrency"`
-	EnableAggregation  bool              `json:"enable_aggregation"`
-	DeduplicationKey   string            `json:"deduplication_key"`
-	Metadata           map[string]interface{} `json:"metadata"`
+	Queries           []*SearchQuery         `json:"queries"`
+	MaxConcurrency    int                    `json:"max_concurrency"`
+	EnableAggregation bool                   `json:"enable_aggregation"`
+	DeduplicationKey  string                 `json:"deduplication_key"`
+	Metadata          map[string]interface{} `json:"metadata"`
 }
 
 // BatchSearchResponse represents the response from batch search
 type BatchSearchResponse struct {
-	Results         []*SearchResponse     `json:"results"`
-	AggregatedResults []*shared.SearchResult `json:"aggregated_results"`
-	TotalProcessingTime time.Duration        `json:"total_processing_time"`
-	ParallelQueries    int                   `json:"parallel_queries"`
-	CacheHits          int                   `json:"cache_hits"`
-	Metadata           map[string]interface{} `json:"metadata"`
+	Results             []*SearchResponse      `json:"results"`
+	AggregatedResults   []*shared.SearchResult `json:"aggregated_results"`
+	TotalProcessingTime time.Duration          `json:"total_processing_time"`
+	ParallelQueries     int                    `json:"parallel_queries"`
+	CacheHits           int                    `json:"cache_hits"`
+	Metadata            map[string]interface{} `json:"metadata"`
 }
 
 // SearchBatch represents a batch of related queries
 type SearchBatch struct {
-	ID           string         `json:"id"`
-	Queries      []*SearchQuery `json:"queries"`
-	Priority     int            `json:"priority"`
-	CreatedAt    time.Time      `json:"created_at"`
-	MaxWaitTime  time.Duration  `json:"max_wait_time"`
+	ID          string         `json:"id"`
+	Queries     []*SearchQuery `json:"queries"`
+	Priority    int            `json:"priority"`
+	CreatedAt   time.Time      `json:"created_at"`
+	MaxWaitTime time.Duration  `json:"max_wait_time"`
 }
 
 // BatchOptimizer handles batching optimization
 type BatchOptimizer struct {
-	maxBatchSize      int
-	maxWaitTime       time.Duration
+	maxBatchSize        int
+	maxWaitTime         time.Duration
 	similarityThreshold float32
-	batchQueue        chan *SearchBatch
-	processingQueue   chan *BatchSearchRequest
-	results          map[string]chan *BatchSearchResponse
-	mutex            sync.RWMutex
-	logger           *slog.Logger
+	batchQueue          chan *SearchBatch
+	processingQueue     chan *BatchSearchRequest
+	results             map[string]chan *BatchSearchResponse
+	mutex               sync.RWMutex
+	logger              *slog.Logger
 }
 
 // OptimizedBatchSearchClient provides high-performance batch searching
 type OptimizedBatchSearchClient struct {
-	client          *WeaviateClient
-	optimizer       *BatchOptimizer
-	queryCache      *QueryResultCache
-	config          *BatchSearchConfig
-	logger          *slog.Logger
-	metrics         *BatchSearchMetrics
-	vectorCache     sync.Map  // Cache for computed vectors
-	queryPool       sync.Pool // Pool for query objects
+	client      *WeaviateClient
+	optimizer   *BatchOptimizer
+	queryCache  *QueryResultCache
+	config      *BatchSearchConfig
+	logger      *slog.Logger
+	metrics     *BatchSearchMetrics
+	vectorCache sync.Map  // Cache for computed vectors
+	queryPool   sync.Pool // Pool for query objects
 }
 
 // BatchSearchConfig holds configuration for batch searching
 type BatchSearchConfig struct {
-	MaxBatchSize           int           `json:"max_batch_size"`
-	MaxConcurrency         int           `json:"max_concurrency"`
-	MaxWaitTime            time.Duration `json:"max_wait_time"`
-	EnableVectorCaching    bool          `json:"enable_vector_caching"`
+	MaxBatchSize            int           `json:"max_batch_size"`
+	MaxConcurrency          int           `json:"max_concurrency"`
+	MaxWaitTime             time.Duration `json:"max_wait_time"`
+	EnableVectorCaching     bool          `json:"enable_vector_caching"`
 	EnableQueryOptimization bool          `json:"enable_query_optimization"`
-	EnableDeduplication    bool          `json:"enable_deduplication"`
-	SimilarityThreshold    float32       `json:"similarity_threshold"`
-	CacheSize              int           `json:"cache_size"`
-	CacheTTL               time.Duration `json:"cache_ttl"`
+	EnableDeduplication     bool          `json:"enable_deduplication"`
+	SimilarityThreshold     float32       `json:"similarity_threshold"`
+	CacheSize               int           `json:"cache_size"`
+	CacheTTL                time.Duration `json:"cache_ttl"`
 }
 
 // BatchSearchMetrics tracks batch search performance
@@ -103,10 +103,10 @@ type QueryResultCache struct {
 
 // CachedQueryResult represents a cached query result
 type CachedQueryResult struct {
-	Result    *SearchResponse `json:"result"`
-	CreatedAt time.Time       `json:"created_at"`
-	AccessCount int64          `json:"access_count"`
-	Vector    []float32       `json:"vector"`
+	Result      *SearchResponse `json:"result"`
+	CreatedAt   time.Time       `json:"created_at"`
+	AccessCount int64           `json:"access_count"`
+	Vector      []float32       `json:"vector"`
 }
 
 // NewOptimizedBatchSearchClient creates a new optimized batch search client
@@ -135,12 +135,12 @@ func NewOptimizedBatchSearchClient(weaviateClient *WeaviateClient, config *Batch
 	}
 
 	client := &OptimizedBatchSearchClient{
-		client:    weaviateClient,
-		optimizer: optimizer,
+		client:     weaviateClient,
+		optimizer:  optimizer,
 		queryCache: cache,
-		config:    config,
-		logger:    logger,
-		metrics:   &BatchSearchMetrics{},
+		config:     config,
+		logger:     logger,
+		metrics:    &BatchSearchMetrics{},
 	}
 
 	// Initialize query pool for object reuse
@@ -160,13 +160,13 @@ func getDefaultBatchSearchConfig() *BatchSearchConfig {
 	return &BatchSearchConfig{
 		MaxBatchSize:            50,
 		MaxConcurrency:          10,
-		MaxWaitTime:            100 * time.Millisecond,
+		MaxWaitTime:             100 * time.Millisecond,
 		EnableVectorCaching:     true,
 		EnableQueryOptimization: true,
 		EnableDeduplication:     true,
 		SimilarityThreshold:     0.95,
-		CacheSize:              1000,
-		CacheTTL:               5 * time.Minute,
+		CacheSize:               1000,
+		CacheTTL:                5 * time.Minute,
 	}
 }
 
@@ -190,10 +190,10 @@ func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *B
 
 	// Step 1: Deduplicate and optimize queries
 	optimizedQueries := c.optimizeQueries(request.Queries)
-	
+
 	// Step 2: Check cache for existing results
 	cachedResults, remainingQueries := c.checkCache(ctx, optimizedQueries)
-	
+
 	// Step 3: Execute remaining queries in parallel
 	freshResults, err := c.executeParallelSearch(ctx, remainingQueries, request.MaxConcurrency)
 	if err != nil {
@@ -202,7 +202,7 @@ func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *B
 
 	// Step 4: Combine cached and fresh results
 	allResults := append(cachedResults, freshResults...)
-	
+
 	// Step 5: Aggregate results if requested
 	var aggregatedResults []*shared.SearchResult
 	if request.EnableAggregation {
@@ -210,11 +210,11 @@ func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *B
 	}
 
 	response := &BatchSearchResponse{
-		Results:            allResults,
-		AggregatedResults:  aggregatedResults,
+		Results:             allResults,
+		AggregatedResults:   aggregatedResults,
 		TotalProcessingTime: time.Since(startTime),
-		ParallelQueries:    len(remainingQueries),
-		CacheHits:          len(cachedResults),
+		ParallelQueries:     len(remainingQueries),
+		CacheHits:           len(cachedResults),
 		Metadata: map[string]interface{}{
 			"original_queries":  len(request.Queries),
 			"optimized_queries": len(optimizedQueries),
@@ -247,14 +247,14 @@ func (c *OptimizedBatchSearchClient) optimizeQueries(queries []*SearchQuery) []*
 	for _, query := range queries {
 		// Create deduplication key
 		key := c.createQueryKey(query)
-		
+
 		if existing, exists := seen[key]; exists {
 			// Merge with existing query if similar
 			if c.areSimilarQueries(query, existing) {
 				continue
 			}
 		}
-		
+
 		seen[key] = query
 		optimized = append(optimized, query)
 	}
@@ -273,7 +273,7 @@ func (c *OptimizedBatchSearchClient) checkCache(ctx context.Context, queries []*
 
 	for _, query := range queries {
 		key := c.createQueryKey(query)
-		
+
 		if cached, found := c.queryCache.data.Load(key); found {
 			if cachedResult, ok := cached.(*CachedQueryResult); ok {
 				// Check if still valid
@@ -286,7 +286,7 @@ func (c *OptimizedBatchSearchClient) checkCache(ctx context.Context, queries []*
 				c.queryCache.data.Delete(key)
 			}
 		}
-		
+
 		remainingQueries = append(remainingQueries, query)
 	}
 
@@ -300,7 +300,7 @@ func (c *OptimizedBatchSearchClient) executeParallelSearch(ctx context.Context, 
 	}
 
 	results := make([]*SearchResponse, len(queries))
-	
+
 	// Create error group with concurrency limit
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(maxConcurrency)
@@ -308,15 +308,15 @@ func (c *OptimizedBatchSearchClient) executeParallelSearch(ctx context.Context, 
 	// Process queries in parallel
 	for i, query := range queries {
 		i, query := i, query // Capture loop variables
-		
+
 		g.Go(func() error {
 			result, err := c.client.Search(ctx, query)
 			if err != nil {
 				return fmt.Errorf("search failed for query %d: %w", i, err)
 			}
-			
+
 			results[i] = result
-			
+
 			// Cache the result
 			if c.config.EnableVectorCaching {
 				key := c.createQueryKey(query)
@@ -327,7 +327,7 @@ func (c *OptimizedBatchSearchClient) executeParallelSearch(ctx context.Context, 
 				}
 				c.queryCache.data.Store(key, cachedResult)
 			}
-			
+
 			return nil
 		})
 	}
@@ -349,7 +349,7 @@ func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchRespons
 			if result.Document == nil {
 				continue
 			}
-			
+
 			key := result.Document.ID
 			if existing, exists := seen[key]; exists {
 				// Combine scores using max
@@ -370,23 +370,23 @@ func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchRespons
 func (c *OptimizedBatchSearchClient) ParallelMultiQuery(ctx context.Context, queries map[string]*SearchQuery) (map[string]*SearchResponse, error) {
 	results := make(map[string]*SearchResponse)
 	resultsMutex := sync.Mutex{}
-	
+
 	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(c.config.MaxConcurrency)
 
 	for queryType, query := range queries {
 		queryType, query := queryType, query // Capture loop variables
-		
+
 		g.Go(func() error {
 			result, err := c.client.Search(ctx, query)
 			if err != nil {
 				return fmt.Errorf("search failed for query type %s: %w", queryType, err)
 			}
-			
+
 			resultsMutex.Lock()
 			results[queryType] = result
 			resultsMutex.Unlock()
-			
+
 			return nil
 		})
 	}
@@ -407,20 +407,20 @@ func (c *OptimizedBatchSearchClient) StreamingBatchSearch(ctx context.Context, q
 
 	for _, query := range queries {
 		query := query // Capture loop variable
-		
+
 		g.Go(func() error {
 			result, err := c.client.Search(ctx, query)
 			if err != nil {
 				c.logger.Error("streaming search failed", "error", err, "query", query.Query)
 				return nil // Don't fail the entire batch for one query
 			}
-			
+
 			select {
 			case resultChan <- result:
 			case <-ctx.Done():
 				return ctx.Err()
 			}
-			
+
 			return nil
 		})
 	}
@@ -431,46 +431,46 @@ func (c *OptimizedBatchSearchClient) StreamingBatchSearch(ctx context.Context, q
 // Helper methods
 
 func (c *OptimizedBatchSearchClient) createQueryKey(query *SearchQuery) string {
-	key := fmt.Sprintf("%s|%d|%t|%.2f|%t", 
-		query.Query, query.Limit, query.HybridSearch, 
+	key := fmt.Sprintf("%s|%d|%t|%.2f|%t",
+		query.Query, query.Limit, query.HybridSearch,
 		query.HybridAlpha, query.UseReranker)
-	
+
 	// Add filters to key
 	if len(query.Filters) > 0 {
 		if filtersJSON, err := json.Marshal(query.Filters); err == nil {
 			key += "|" + string(filtersJSON)
 		}
 	}
-	
+
 	return key
 }
 
 func (c *OptimizedBatchSearchClient) areSimilarQueries(q1, q2 *SearchQuery) bool {
 	// Simple similarity check - can be enhanced with semantic similarity
-	return q1.Query == q2.Query && 
-		   q1.HybridSearch == q2.HybridSearch &&
-		   q1.UseReranker == q2.UseReranker
+	return q1.Query == q2.Query &&
+		q1.HybridSearch == q2.HybridSearch &&
+		q1.UseReranker == q2.UseReranker
 }
 
 func (c *OptimizedBatchSearchClient) updateMetrics(response *BatchSearchResponse) {
 	c.metrics.mutex.Lock()
 	defer c.metrics.mutex.Unlock()
-	
+
 	c.metrics.TotalBatches++
 	c.metrics.TotalQueries += int64(len(response.Results))
-	
+
 	// Update average latency
 	if c.metrics.TotalBatches == 1 {
 		c.metrics.AverageLatency = response.TotalProcessingTime
 	} else {
-		c.metrics.AverageLatency = (c.metrics.AverageLatency*time.Duration(c.metrics.TotalBatches-1) + 
+		c.metrics.AverageLatency = (c.metrics.AverageLatency*time.Duration(c.metrics.TotalBatches-1) +
 			response.TotalProcessingTime) / time.Duration(c.metrics.TotalBatches)
 	}
-	
+
 	// Update throughput (queries per second)
-	c.metrics.ThroughputQPS = float64(c.metrics.TotalQueries) / 
+	c.metrics.ThroughputQPS = float64(c.metrics.TotalQueries) /
 		(float64(c.metrics.AverageLatency.Nanoseconds()) / 1e9)
-	
+
 	// Update cache hit rate
 	if len(response.Results) > 0 {
 		c.metrics.CacheHitRate = float64(response.CacheHits) / float64(len(response.Results))
@@ -485,7 +485,7 @@ func (c *OptimizedBatchSearchClient) startBatchProcessor() {
 func (c *OptimizedBatchSearchClient) startCacheEviction() {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -499,7 +499,7 @@ func (c *OptimizedBatchSearchClient) startCacheEviction() {
 func (c *OptimizedBatchSearchClient) evictExpiredCacheEntries() {
 	now := time.Now()
 	var toEvict []string
-	
+
 	c.queryCache.data.Range(func(key, value interface{}) bool {
 		if cached, ok := value.(*CachedQueryResult); ok {
 			if now.Sub(cached.CreatedAt) > c.queryCache.ttl {
@@ -508,11 +508,11 @@ func (c *OptimizedBatchSearchClient) evictExpiredCacheEntries() {
 		}
 		return true
 	})
-	
+
 	for _, key := range toEvict {
 		c.queryCache.data.Delete(key)
 	}
-	
+
 	if len(toEvict) > 0 {
 		c.logger.Debug("Evicted expired cache entries", "count", len(toEvict))
 	}
@@ -522,7 +522,7 @@ func (c *OptimizedBatchSearchClient) evictExpiredCacheEntries() {
 func (c *OptimizedBatchSearchClient) GetMetrics() *BatchSearchMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
-	
+
 	metrics := *c.metrics
 	return &metrics
 }

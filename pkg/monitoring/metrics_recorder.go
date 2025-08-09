@@ -13,56 +13,56 @@ import (
 
 // MetricsRecorder provides a unified interface for recording metrics
 type MetricsRecorder struct {
-	mu          sync.RWMutex
-	registry    prometheus.Registerer
+	mu            sync.RWMutex
+	registry      prometheus.Registerer
 	meterProvider metric.MeterProvider
-	
+
 	// Prometheus metrics - Basic Infrastructure
-	controllerHealth   *prometheus.GaugeVec
-	intentProcessing   *prometheus.HistogramVec
-	llmRequests        *prometheus.CounterVec
-	llmLatency         *prometheus.HistogramVec
-	ragQueries         *prometheus.CounterVec
-	ragLatency         *prometheus.HistogramVec
-	oranConnections    *prometheus.GaugeVec
-	systemResources    *prometheus.GaugeVec
-	errorCounts        *prometheus.CounterVec
-	alertCounts        *prometheus.CounterVec
-	
+	controllerHealth *prometheus.GaugeVec
+	intentProcessing *prometheus.HistogramVec
+	llmRequests      *prometheus.CounterVec
+	llmLatency       *prometheus.HistogramVec
+	ragQueries       *prometheus.CounterVec
+	ragLatency       *prometheus.HistogramVec
+	oranConnections  *prometheus.GaugeVec
+	systemResources  *prometheus.GaugeVec
+	errorCounts      *prometheus.CounterVec
+	alertCounts      *prometheus.CounterVec
+
 	// Business KPI Metrics
-	automationRate        *prometheus.GaugeVec
-	costPerIntent         *prometheus.GaugeVec
-	userSatisfaction      *prometheus.GaugeVec
-	timeToDeployment      *prometheus.HistogramVec
-	complianceScore       *prometheus.GaugeVec
-	
+	automationRate   *prometheus.GaugeVec
+	costPerIntent    *prometheus.GaugeVec
+	userSatisfaction *prometheus.GaugeVec
+	timeToDeployment *prometheus.HistogramVec
+	complianceScore  *prometheus.GaugeVec
+
 	// SLI/SLO Metrics
-	serviceAvailability   *prometheus.GaugeVec
-	errorBudgetBurn       *prometheus.GaugeVec
-	sliLatencyP95         *prometheus.GaugeVec
-	sliLatencyP99         *prometheus.GaugeVec
-	sloCompliance         *prometheus.GaugeVec
-	
+	serviceAvailability *prometheus.GaugeVec
+	errorBudgetBurn     *prometheus.GaugeVec
+	sliLatencyP95       *prometheus.GaugeVec
+	sliLatencyP99       *prometheus.GaugeVec
+	sloCompliance       *prometheus.GaugeVec
+
 	// Advanced Performance Metrics
-	throughputMetrics     *prometheus.GaugeVec
-	capacityUtilization   *prometheus.GaugeVec
-	predictionAccuracy    *prometheus.GaugeVec
-	anomalyDetection      *prometheus.CounterVec
-	
+	throughputMetrics   *prometheus.GaugeVec
+	capacityUtilization *prometheus.GaugeVec
+	predictionAccuracy  *prometheus.GaugeVec
+	anomalyDetection    *prometheus.CounterVec
+
 	// O-RAN Compliance Metrics
-	oranCompliance        *prometheus.GaugeVec
-	interfaceHealth       *prometheus.GaugeVec
-	policyViolations      *prometheus.CounterVec
-	
+	oranCompliance   *prometheus.GaugeVec
+	interfaceHealth  *prometheus.GaugeVec
+	policyViolations *prometheus.CounterVec
+
 	// Cost and Resource Optimization Metrics
-	resourceEfficiency    *prometheus.GaugeVec
-	costOptimization      *prometheus.GaugeVec
-	energyEfficiency      *prometheus.GaugeVec
-	
+	resourceEfficiency *prometheus.GaugeVec
+	costOptimization   *prometheus.GaugeVec
+	energyEfficiency   *prometheus.GaugeVec
+
 	// Security and Audit Metrics
-	securityIncidents     *prometheus.CounterVec
-	auditCompliance       *prometheus.GaugeVec
-	accessViolations      *prometheus.CounterVec
+	securityIncidents *prometheus.CounterVec
+	auditCompliance   *prometheus.GaugeVec
+	accessViolations  *prometheus.CounterVec
 }
 
 // MetricsConfig holds configuration for metrics recording
@@ -213,19 +213,19 @@ func (mr *MetricsRecorder) initPrometheusMetrics(namespace, subsystem string) {
 
 	// Initialize Business KPI Metrics
 	mr.initBusinessKPIMetrics(namespace, subsystem)
-	
+
 	// Initialize SLI/SLO Metrics
 	mr.initSLIMetrics(namespace, subsystem)
-	
+
 	// Initialize Advanced Performance Metrics
 	mr.initAdvancedPerformanceMetrics(namespace, subsystem)
-	
+
 	// Initialize O-RAN Compliance Metrics
 	mr.initORANComplianceMetrics(namespace, subsystem)
-	
+
 	// Initialize Cost and Resource Optimization Metrics
 	mr.initCostOptimizationMetrics(namespace, subsystem)
-	
+
 	// Initialize Security and Audit Metrics
 	mr.initSecurityMetrics(namespace, subsystem)
 }
@@ -522,7 +522,7 @@ func (mr *MetricsRecorder) RecordLLMRequest(model, status string, cacheHit bool,
 	if cacheHit {
 		cacheHitStr = "true"
 	}
-	
+
 	mr.llmRequests.WithLabelValues(model, status, cacheHitStr).Inc()
 	mr.llmLatency.WithLabelValues(model, "request").Observe(duration.Seconds())
 }
@@ -692,98 +692,98 @@ func (mr *MetricsRecorder) GetRegistry() prometheus.Registerer {
 // MetricsSummary provides a comprehensive summary of current metrics
 type MetricsSummary struct {
 	// Basic Infrastructure Metrics
-	ControllerHealth   map[string]bool     `json:"controller_health"`
-	IntentProcessing   ProcessingStats     `json:"intent_processing"`
-	LLMRequests        LLMStats           `json:"llm_requests"`
-	RAGQueries         RAGStats           `json:"rag_queries"`
-	ORANConnections    map[string]bool     `json:"oran_connections"`
-	SystemResources    map[string]float64  `json:"system_resources"`
-	ErrorCounts        map[string]int      `json:"error_counts"`
-	
+	ControllerHealth map[string]bool    `json:"controller_health"`
+	IntentProcessing ProcessingStats    `json:"intent_processing"`
+	LLMRequests      LLMStats           `json:"llm_requests"`
+	RAGQueries       RAGStats           `json:"rag_queries"`
+	ORANConnections  map[string]bool    `json:"oran_connections"`
+	SystemResources  map[string]float64 `json:"system_resources"`
+	ErrorCounts      map[string]int     `json:"error_counts"`
+
 	// Business KPI Metrics
-	BusinessKPIs       BusinessKPIStats    `json:"business_kpis"`
-	
+	BusinessKPIs BusinessKPIStats `json:"business_kpis"`
+
 	// SLI/SLO Metrics
-	ServiceLevels      ServiceLevelStats   `json:"service_levels"`
-	
+	ServiceLevels ServiceLevelStats `json:"service_levels"`
+
 	// Advanced Performance Metrics
-	PerformanceMetrics PerformanceStats    `json:"performance_metrics"`
-	
+	PerformanceMetrics PerformanceStats `json:"performance_metrics"`
+
 	// O-RAN Compliance Metrics
-	ORANCompliance     ORANComplianceStats `json:"oran_compliance"`
-	
+	ORANCompliance ORANComplianceStats `json:"oran_compliance"`
+
 	// Cost and Resource Optimization
-	Optimization       OptimizationStats   `json:"optimization"`
-	
+	Optimization OptimizationStats `json:"optimization"`
+
 	// Security and Audit
-	Security           SecurityStats       `json:"security"`
-	
-	Timestamp          time.Time          `json:"timestamp"`
+	Security SecurityStats `json:"security"`
+
+	Timestamp time.Time `json:"timestamp"`
 }
 
 type ProcessingStats struct {
-	TotalProcessed  int64         `json:"total_processed"`
-	SuccessRate     float64       `json:"success_rate"`
-	AverageLatency  time.Duration `json:"average_latency"`
-	P95Latency      time.Duration `json:"p95_latency"`
-	P99Latency      time.Duration `json:"p99_latency"`
-	ThroughputOPS   float64       `json:"throughput_ops"`
+	TotalProcessed int64         `json:"total_processed"`
+	SuccessRate    float64       `json:"success_rate"`
+	AverageLatency time.Duration `json:"average_latency"`
+	P95Latency     time.Duration `json:"p95_latency"`
+	P99Latency     time.Duration `json:"p99_latency"`
+	ThroughputOPS  float64       `json:"throughput_ops"`
 }
 
 type LLMStats struct {
-	TotalRequests   int64         `json:"total_requests"`
-	CacheHitRate    float64       `json:"cache_hit_rate"`
-	AverageLatency  time.Duration `json:"average_latency"`
-	ErrorRate       float64       `json:"error_rate"`
-	CostPerRequest  float64       `json:"cost_per_request"`
-	TokensUsed      int64         `json:"tokens_used"`
+	TotalRequests  int64         `json:"total_requests"`
+	CacheHitRate   float64       `json:"cache_hit_rate"`
+	AverageLatency time.Duration `json:"average_latency"`
+	ErrorRate      float64       `json:"error_rate"`
+	CostPerRequest float64       `json:"cost_per_request"`
+	TokensUsed     int64         `json:"tokens_used"`
 }
 
 type RAGStats struct {
-	TotalQueries    int64         `json:"total_queries"`
-	AverageLatency  time.Duration `json:"average_latency"`
-	SuccessRate     float64       `json:"success_rate"`
-	IndexSize       int64         `json:"index_size"`
-	QueryAccuracy   float64       `json:"query_accuracy"`
+	TotalQueries   int64         `json:"total_queries"`
+	AverageLatency time.Duration `json:"average_latency"`
+	SuccessRate    float64       `json:"success_rate"`
+	IndexSize      int64         `json:"index_size"`
+	QueryAccuracy  float64       `json:"query_accuracy"`
 }
 
 type BusinessKPIStats struct {
-	AutomationRate          float64 `json:"automation_rate"`
-	AverageCostPerIntent    float64 `json:"average_cost_per_intent"`
-	UserSatisfactionScore   float64 `json:"user_satisfaction_score"`
+	AutomationRate          float64       `json:"automation_rate"`
+	AverageCostPerIntent    float64       `json:"average_cost_per_intent"`
+	UserSatisfactionScore   float64       `json:"user_satisfaction_score"`
 	AverageTimeToDeployment time.Duration `json:"average_time_to_deployment"`
-	ComplianceScore         float64 `json:"compliance_score"`
-	BusinessValue           float64 `json:"business_value"`
+	ComplianceScore         float64       `json:"compliance_score"`
+	BusinessValue           float64       `json:"business_value"`
 }
 
 type ServiceLevelStats struct {
-	Availability        float64 `json:"availability"`
+	Availability         float64 `json:"availability"`
 	ErrorBudgetRemaining float64 `json:"error_budget_remaining"`
-	LatencyP95          float64 `json:"latency_p95"`
-	LatencyP99          float64 `json:"latency_p99"`
-	SLOComplianceRate   float64 `json:"slo_compliance_rate"`
-	IncidentCount       int     `json:"incident_count"`
+	LatencyP95           float64 `json:"latency_p95"`
+	LatencyP99           float64 `json:"latency_p99"`
+	SLOComplianceRate    float64 `json:"slo_compliance_rate"`
+	IncidentCount        int     `json:"incident_count"`
 }
 
 type PerformanceStats struct {
-	CurrentThroughput      float64 `json:"current_throughput"`
-	CapacityUtilization    float64 `json:"capacity_utilization"`
-	PredictionAccuracy     float64 `json:"prediction_accuracy"`
-	AnomaliesDetected      int     `json:"anomalies_detected"`
-	ResponseTimeVariance   float64 `json:"response_time_variance"`
-	QueueDepth            int     `json:"queue_depth"`
+	CurrentThroughput    float64 `json:"current_throughput"`
+	CapacityUtilization  float64 `json:"capacity_utilization"`
+	PredictionAccuracy   float64 `json:"prediction_accuracy"`
+	AnomaliesDetected    int     `json:"anomalies_detected"`
+	ResponseTimeVariance float64 `json:"response_time_variance"`
+	QueueDepth           int     `json:"queue_depth"`
 }
 
 type ORANComplianceStats struct {
-	OverallComplianceScore  float64 `json:"overall_compliance_score"`
-	InterfaceHealthScore    float64 `json:"interface_health_score"`
-	PolicyViolations        int     `json:"policy_violations"`
-	StandardsAdherence      float64 `json:"standards_adherence"`
-	InteroperabilityScore   float64 `json:"interoperability_score"`
+	OverallComplianceScore float64 `json:"overall_compliance_score"`
+	InterfaceHealthScore   float64 `json:"interface_health_score"`
+	PolicyViolations       int     `json:"policy_violations"`
+	StandardsAdherence     float64 `json:"standards_adherence"`
+	InteroperabilityScore  float64 `json:"interoperability_score"`
 }
 
 type OptimizationStats struct {
-	ResourceEfficiency  float64 `json:"resource_efficiency"`
+	ResourceEfficiency float64 `json:"resource_efficiency"`
 	CostSavings        float64 `json:"cost_savings"`
 	EnergyEfficiency   float64 `json:"energy_efficiency"`
 	WasteReduction     float64 `json:"waste_reduction"`
@@ -791,11 +791,11 @@ type OptimizationStats struct {
 }
 
 type SecurityStats struct {
-	SecurityIncidents    int     `json:"security_incidents"`
-	AuditCompliance     float64 `json:"audit_compliance"`
-	AccessViolations    int     `json:"access_violations"`
-	ThreatLevel         string  `json:"threat_level"`
-	SecurityPosture     float64 `json:"security_posture"`
+	SecurityIncidents int     `json:"security_incidents"`
+	AuditCompliance   float64 `json:"audit_compliance"`
+	AccessViolations  int     `json:"access_violations"`
+	ThreatLevel       string  `json:"threat_level"`
+	SecurityPosture   float64 `json:"security_posture"`
 }
 
 // GetMetricsSummary returns a summary of current metrics
@@ -813,25 +813,25 @@ func (mr *MetricsRecorder) GetMetricsSummary(ctx context.Context) (*MetricsSumma
 
 	// In a real implementation, these would query actual Prometheus metrics
 	// For now, we'll populate with sample data structure
-	
+
 	// Business KPIs calculation
 	summary.BusinessKPIs = mr.calculateBusinessKPIs(ctx)
-	
+
 	// Service Level metrics calculation
 	summary.ServiceLevels = mr.calculateServiceLevelStats(ctx)
-	
+
 	// Performance metrics calculation
 	summary.PerformanceMetrics = mr.calculatePerformanceStats(ctx)
-	
+
 	// O-RAN compliance calculation
 	summary.ORANCompliance = mr.calculateORANComplianceStats(ctx)
-	
+
 	// Optimization metrics calculation
 	summary.Optimization = mr.calculateOptimizationStats(ctx)
-	
+
 	// Security metrics calculation
 	summary.Security = mr.calculateSecurityStats(ctx)
-	
+
 	return summary, nil
 }
 
@@ -841,71 +841,71 @@ func (mr *MetricsRecorder) GetMetricsSummary(ctx context.Context) (*MetricsSumma
 func (mr *MetricsRecorder) calculateBusinessKPIs(ctx context.Context) BusinessKPIStats {
 	// In production, these would query actual Prometheus metrics using promql
 	// For demonstration, returning structured calculation framework
-	
+
 	return BusinessKPIStats{
-		AutomationRate:          mr.getMetricValue("automation_rate", 85.0),          // 85% automation
-		AverageCostPerIntent:    mr.getMetricValue("cost_per_intent", 0.023),         // $0.023 per intent
-		UserSatisfactionScore:   mr.getMetricValue("user_satisfaction", 8.7),         // 8.7/10 satisfaction
+		AutomationRate:          mr.getMetricValue("automation_rate", 85.0),                                // 85% automation
+		AverageCostPerIntent:    mr.getMetricValue("cost_per_intent", 0.023),                               // $0.023 per intent
+		UserSatisfactionScore:   mr.getMetricValue("user_satisfaction", 8.7),                               // 8.7/10 satisfaction
 		AverageTimeToDeployment: time.Duration(mr.getMetricValue("time_to_deployment", 300)) * time.Second, // 5 minutes
-		ComplianceScore:         mr.getMetricValue("compliance_score", 94.2),         // 94.2% compliance
-		BusinessValue:           mr.calculateBusinessValue(),                         // Calculated ROI
+		ComplianceScore:         mr.getMetricValue("compliance_score", 94.2),                               // 94.2% compliance
+		BusinessValue:           mr.calculateBusinessValue(),                                               // Calculated ROI
 	}
 }
 
 // calculateServiceLevelStats calculates SLI/SLO metrics
 func (mr *MetricsRecorder) calculateServiceLevelStats(ctx context.Context) ServiceLevelStats {
 	return ServiceLevelStats{
-		Availability:        mr.getMetricValue("availability", 99.95),               // 99.95% availability
-		ErrorBudgetRemaining: mr.getMetricValue("error_budget", 78.5),              // 78.5% error budget remaining
-		LatencyP95:          mr.getMetricValue("latency_p95", 1.8),                 // 1.8s P95 latency
-		LatencyP99:          mr.getMetricValue("latency_p99", 4.2),                 // 4.2s P99 latency
-		SLOComplianceRate:   mr.getMetricValue("slo_compliance", 96.8),             // 96.8% SLO compliance
-		IncidentCount:       int(mr.getMetricValue("incidents", 2)),                // 2 recent incidents
+		Availability:         mr.getMetricValue("availability", 99.95),  // 99.95% availability
+		ErrorBudgetRemaining: mr.getMetricValue("error_budget", 78.5),   // 78.5% error budget remaining
+		LatencyP95:           mr.getMetricValue("latency_p95", 1.8),     // 1.8s P95 latency
+		LatencyP99:           mr.getMetricValue("latency_p99", 4.2),     // 4.2s P99 latency
+		SLOComplianceRate:    mr.getMetricValue("slo_compliance", 96.8), // 96.8% SLO compliance
+		IncidentCount:        int(mr.getMetricValue("incidents", 2)),    // 2 recent incidents
 	}
 }
 
 // calculatePerformanceStats calculates advanced performance metrics
 func (mr *MetricsRecorder) calculatePerformanceStats(ctx context.Context) PerformanceStats {
 	return PerformanceStats{
-		CurrentThroughput:      mr.getMetricValue("throughput", 45.7),              // 45.7 intents/min
-		CapacityUtilization:    mr.getMetricValue("capacity_util", 67.3),           // 67.3% capacity
-		PredictionAccuracy:     mr.getMetricValue("prediction_accuracy", 89.2),     // 89.2% ML accuracy
-		AnomaliesDetected:      int(mr.getMetricValue("anomalies", 3)),             // 3 anomalies detected
-		ResponseTimeVariance:   mr.getMetricValue("response_variance", 0.34),       // 0.34s variance
-		QueueDepth:            int(mr.getMetricValue("queue_depth", 8)),            // 8 items in queue
+		CurrentThroughput:    mr.getMetricValue("throughput", 45.7),          // 45.7 intents/min
+		CapacityUtilization:  mr.getMetricValue("capacity_util", 67.3),       // 67.3% capacity
+		PredictionAccuracy:   mr.getMetricValue("prediction_accuracy", 89.2), // 89.2% ML accuracy
+		AnomaliesDetected:    int(mr.getMetricValue("anomalies", 3)),         // 3 anomalies detected
+		ResponseTimeVariance: mr.getMetricValue("response_variance", 0.34),   // 0.34s variance
+		QueueDepth:           int(mr.getMetricValue("queue_depth", 8)),       // 8 items in queue
 	}
 }
 
 // calculateORANComplianceStats calculates O-RAN compliance metrics
 func (mr *MetricsRecorder) calculateORANComplianceStats(ctx context.Context) ORANComplianceStats {
 	return ORANComplianceStats{
-		OverallComplianceScore:  mr.getMetricValue("oran_compliance", 92.7),        // 92.7% O-RAN compliance
-		InterfaceHealthScore:    mr.getMetricValue("interface_health", 95.1),       // 95.1% interface health
-		PolicyViolations:        int(mr.getMetricValue("policy_violations", 1)),    // 1 policy violation
-		StandardsAdherence:      mr.getMetricValue("standards_adherence", 98.3),    // 98.3% standards adherence
-		InteroperabilityScore:   mr.getMetricValue("interoperability", 87.9),      // 87.9% interoperability
+		OverallComplianceScore: mr.getMetricValue("oran_compliance", 92.7),     // 92.7% O-RAN compliance
+		InterfaceHealthScore:   mr.getMetricValue("interface_health", 95.1),    // 95.1% interface health
+		PolicyViolations:       int(mr.getMetricValue("policy_violations", 1)), // 1 policy violation
+		StandardsAdherence:     mr.getMetricValue("standards_adherence", 98.3), // 98.3% standards adherence
+		InteroperabilityScore:  mr.getMetricValue("interoperability", 87.9),    // 87.9% interoperability
 	}
 }
 
 // calculateOptimizationStats calculates cost and resource optimization metrics
 func (mr *MetricsRecorder) calculateOptimizationStats(ctx context.Context) OptimizationStats {
 	return OptimizationStats{
-		ResourceEfficiency:  mr.getMetricValue("resource_efficiency", 82.4),       // 82.4% resource efficiency
-		CostSavings:        mr.getMetricValue("cost_savings", 1247.50),            // $1,247.50 savings
-		EnergyEfficiency:   mr.getMetricValue("energy_efficiency", 76.8),          // 76.8% energy efficiency
-		WasteReduction:     mr.getMetricValue("waste_reduction", 34.2),            // 34.2% waste reduction
-		OptimizationScore: mr.calculateOptimizationScore(),                       // Overall optimization score
+		ResourceEfficiency: mr.getMetricValue("resource_efficiency", 82.4), // 82.4% resource efficiency
+		CostSavings:        mr.getMetricValue("cost_savings", 1247.50),     // $1,247.50 savings
+		EnergyEfficiency:   mr.getMetricValue("energy_efficiency", 76.8),   // 76.8% energy efficiency
+		WasteReduction:     mr.getMetricValue("waste_reduction", 34.2),     // 34.2% waste reduction
+		OptimizationScore:  mr.calculateOptimizationScore(),                // Overall optimization score
 	}
 }
 
 // calculateSecurityStats calculates security and audit metrics
 func (mr *MetricsRecorder) calculateSecurityStats(ctx context.Context) SecurityStats {
 	return SecurityStats{
-		SecurityIncidents:    int(mr.getMetricValue("security_incidents", 0)),     // 0 security incidents
-		AuditCompliance:     mr.getMetricValue("audit_compliance", 97.8),          // 97.8% audit compliance
-		AccessViolations:    int(mr.getMetricValue("access_violations", 2)),       // 2 access violations
-		ThreatLevel:         mr.getThreatLevel(),                                  // Current threat level
-		SecurityPosture:     mr.getMetricValue("security_posture", 91.3),          // 91.3% security posture
+		SecurityIncidents: int(mr.getMetricValue("security_incidents", 0)), // 0 security incidents
+		AuditCompliance:   mr.getMetricValue("audit_compliance", 97.8),     // 97.8% audit compliance
+		AccessViolations:  int(mr.getMetricValue("access_violations", 2)),  // 2 access violations
+		ThreatLevel:       mr.getThreatLevel(),                             // Current threat level
+		SecurityPosture:   mr.getMetricValue("security_posture", 91.3),     // 91.3% security posture
 	}
 }
 
@@ -917,7 +917,7 @@ func (mr *MetricsRecorder) getMetricValue(metricName string, defaultValue float6
 	// Example: query := fmt.Sprintf("nephoran_intent_operator_%s", metricName)
 	// result := mr.prometheusClient.Query(context.Background(), query, time.Now())
 	// For now, return default value with some variance for demonstration
-	
+
 	variance := 0.1 * defaultValue * (math.Sin(float64(time.Now().Unix()%3600)) * 0.1)
 	return defaultValue + variance
 }
@@ -925,10 +925,10 @@ func (mr *MetricsRecorder) getMetricValue(metricName string, defaultValue float6
 // calculateBusinessValue calculates overall business value ROI
 func (mr *MetricsRecorder) calculateBusinessValue() float64 {
 	// Complex business value calculation based on multiple factors
-	automationSavings := mr.getMetricValue("automation_rate", 85.0) * 100.0      // Automation savings
-	efficiencyGains := mr.getMetricValue("resource_efficiency", 82.4) * 50.0     // Efficiency gains
-	complianceBenefit := mr.getMetricValue("compliance_score", 94.2) * 25.0      // Compliance benefits
-	
+	automationSavings := mr.getMetricValue("automation_rate", 85.0) * 100.0  // Automation savings
+	efficiencyGains := mr.getMetricValue("resource_efficiency", 82.4) * 50.0 // Efficiency gains
+	complianceBenefit := mr.getMetricValue("compliance_score", 94.2) * 25.0  // Compliance benefits
+
 	totalValue := automationSavings + efficiencyGains + complianceBenefit
 	return totalValue / 100.0 // Normalize to percentage
 }
@@ -938,7 +938,7 @@ func (mr *MetricsRecorder) calculateOptimizationScore() float64 {
 	resourceScore := mr.getMetricValue("resource_efficiency", 82.4)
 	energyScore := mr.getMetricValue("energy_efficiency", 76.8)
 	costScore := 100.0 - (mr.getMetricValue("cost_per_intent", 0.023) * 1000.0) // Inverse of cost
-	
+
 	// Weighted average: 40% resource, 30% energy, 30% cost
 	return (resourceScore*0.4 + energyScore*0.3 + costScore*0.3)
 }
@@ -947,9 +947,9 @@ func (mr *MetricsRecorder) calculateOptimizationScore() float64 {
 func (mr *MetricsRecorder) getThreatLevel() string {
 	incidents := int(mr.getMetricValue("security_incidents", 0))
 	violations := int(mr.getMetricValue("access_violations", 2))
-	
+
 	totalThreats := incidents*3 + violations // Weight incidents more heavily
-	
+
 	switch {
 	case totalThreats == 0:
 		return "minimal"
@@ -970,13 +970,13 @@ func (mr *MetricsRecorder) getThreatLevel() string {
 func (mr *MetricsRecorder) CalculateTrendAnalysis(ctx context.Context, metricName string, timeWindow time.Duration) (*TrendAnalysis, error) {
 	// This would implement time-series analysis in production
 	return &TrendAnalysis{
-		MetricName:      metricName,
-		TimeWindow:      timeWindow,
-		TrendDirection:  "increasing",
-		TrendStrength:   0.75,
-		Forecast:        mr.getMetricValue(metricName, 100.0) * 1.15, // 15% increase forecast
-		Confidence:      0.87,
-		AnalysisTime:    time.Now(),
+		MetricName:     metricName,
+		TimeWindow:     timeWindow,
+		TrendDirection: "increasing",
+		TrendStrength:  0.75,
+		Forecast:       mr.getMetricValue(metricName, 100.0) * 1.15, // 15% increase forecast
+		Confidence:     0.87,
+		AnalysisTime:   time.Now(),
 	}, nil
 }
 
@@ -984,23 +984,23 @@ func (mr *MetricsRecorder) CalculateTrendAnalysis(ctx context.Context, metricNam
 func (mr *MetricsRecorder) PredictCapacityRequirements(ctx context.Context, timeHorizon time.Duration) (*CapacityPrediction, error) {
 	currentThroughput := mr.getMetricValue("throughput", 45.7)
 	currentUtilization := mr.getMetricValue("capacity_util", 67.3)
-	
+
 	// Simple growth model - in production would use ML models
 	growthRate := 0.15 // 15% growth per month
 	months := float64(timeHorizon.Hours()) / (24 * 30)
-	
+
 	predictedThroughput := currentThroughput * math.Pow(1+growthRate, months)
 	predictedUtilization := currentUtilization * (predictedThroughput / currentThroughput)
-	
+
 	return &CapacityPrediction{
-		TimeHorizon:         timeHorizon,
-		CurrentThroughput:   currentThroughput,
-		PredictedThroughput: predictedThroughput,
-		CurrentUtilization:  currentUtilization,
+		TimeHorizon:          timeHorizon,
+		CurrentThroughput:    currentThroughput,
+		PredictedThroughput:  predictedThroughput,
+		CurrentUtilization:   currentUtilization,
 		PredictedUtilization: predictedUtilization,
-		RecommendedAction:   mr.getCapacityRecommendation(predictedUtilization),
-		Confidence:          0.82,
-		PredictionTime:      time.Now(),
+		RecommendedAction:    mr.getCapacityRecommendation(predictedUtilization),
+		Confidence:           0.82,
+		PredictionTime:       time.Now(),
 	}, nil
 }
 
@@ -1027,11 +1027,11 @@ func (mr *MetricsRecorder) DetectAnomalies(ctx context.Context, metricName strin
 	currentValue := mr.getMetricValue(metricName, 100.0)
 	historicalMean := mr.getMetricValue(metricName+"_mean", 95.0)
 	standardDeviation := mr.getMetricValue(metricName+"_stddev", 5.0)
-	
+
 	// Z-score anomaly detection
-	zScore := math.Abs(currentValue - historicalMean) / standardDeviation
+	zScore := math.Abs(currentValue-historicalMean) / standardDeviation
 	threshold := 2.0 / sensitivityLevel // Higher sensitivity = lower threshold
-	
+
 	isAnomaly := zScore > threshold
 	severity := "normal"
 	if isAnomaly {
@@ -1046,17 +1046,17 @@ func (mr *MetricsRecorder) DetectAnomalies(ctx context.Context, metricName strin
 			severity = "low"
 		}
 	}
-	
+
 	return &AnomalyDetectionResult{
 		MetricName:        metricName,
 		CurrentValue:      currentValue,
 		ExpectedValue:     historicalMean,
 		Deviation:         math.Abs(currentValue - historicalMean),
-		ZScore:           zScore,
-		IsAnomaly:        isAnomaly,
-		Severity:         severity,
-		Confidence:       math.Min(zScore/4.0, 1.0), // Cap confidence at 1.0
-		DetectionTime:    time.Now(),
+		ZScore:            zScore,
+		IsAnomaly:         isAnomaly,
+		Severity:          severity,
+		Confidence:        math.Min(zScore/4.0, 1.0), // Cap confidence at 1.0
+		DetectionTime:     time.Now(),
 		RecommendedAction: mr.getAnomalyRecommendation(isAnomaly, severity),
 	}, nil
 }
@@ -1066,7 +1066,7 @@ func (mr *MetricsRecorder) getAnomalyRecommendation(isAnomaly bool, severity str
 	if !isAnomaly {
 		return "no_action_required"
 	}
-	
+
 	switch severity {
 	case "critical":
 		return "immediate_investigation_required"
@@ -1085,13 +1085,13 @@ func (mr *MetricsRecorder) getAnomalyRecommendation(isAnomaly bool, severity str
 
 // TrendAnalysis represents trend analysis results
 type TrendAnalysis struct {
-	MetricName      string        `json:"metric_name"`
-	TimeWindow      time.Duration `json:"time_window"`
-	TrendDirection  string        `json:"trend_direction"`  // "increasing", "decreasing", "stable"
-	TrendStrength   float64       `json:"trend_strength"`   // 0.0 to 1.0
-	Forecast        float64       `json:"forecast"`
-	Confidence      float64       `json:"confidence"`       // 0.0 to 1.0
-	AnalysisTime    time.Time     `json:"analysis_time"`
+	MetricName     string        `json:"metric_name"`
+	TimeWindow     time.Duration `json:"time_window"`
+	TrendDirection string        `json:"trend_direction"` // "increasing", "decreasing", "stable"
+	TrendStrength  float64       `json:"trend_strength"`  // 0.0 to 1.0
+	Forecast       float64       `json:"forecast"`
+	Confidence     float64       `json:"confidence"` // 0.0 to 1.0
+	AnalysisTime   time.Time     `json:"analysis_time"`
 }
 
 // CapacityPrediction represents capacity planning predictions
@@ -1112,10 +1112,10 @@ type AnomalyDetectionResult struct {
 	CurrentValue      float64   `json:"current_value"`
 	ExpectedValue     float64   `json:"expected_value"`
 	Deviation         float64   `json:"deviation"`
-	ZScore           float64   `json:"z_score"`
-	IsAnomaly        bool      `json:"is_anomaly"`
-	Severity         string    `json:"severity"`
-	Confidence       float64   `json:"confidence"`
-	DetectionTime    time.Time `json:"detection_time"`
-	RecommendedAction string   `json:"recommended_action"`
+	ZScore            float64   `json:"z_score"`
+	IsAnomaly         bool      `json:"is_anomaly"`
+	Severity          string    `json:"severity"`
+	Confidence        float64   `json:"confidence"`
+	DetectionTime     time.Time `json:"detection_time"`
+	RecommendedAction string    `json:"recommended_action"`
 }

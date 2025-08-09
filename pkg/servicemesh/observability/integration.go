@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/expfmt"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
@@ -24,14 +24,14 @@ type ObservabilityIntegration struct {
 	tracer          trace.Tracer
 	meter           metric.Meter
 	logger          log.Logger
-	
+
 	// Metrics
-	mtlsConnections     metric.Int64Counter
+	mtlsConnections      metric.Int64Counter
 	certificateRotations metric.Int64Counter
 	policyApplications   metric.Int64Counter
-	meshHealthGauge     metric.Float64ObservableGauge
-	serviceLatency      metric.Float64Histogram
-	errorRate          metric.Float64ObservableGauge
+	meshHealthGauge      metric.Float64ObservableGauge
+	serviceLatency       metric.Float64Histogram
+	errorRate            metric.Float64ObservableGauge
 }
 
 // NewObservabilityIntegration creates new observability integration

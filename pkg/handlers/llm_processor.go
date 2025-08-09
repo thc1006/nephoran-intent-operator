@@ -38,13 +38,13 @@ type ProcessIntentRequest struct {
 }
 
 type ProcessIntentResponse struct {
-	Result          string                 `json:"result"`
-	ProcessingTime  string                 `json:"processing_time"`
-	RequestID       string                 `json:"request_id"`
-	ServiceVersion  string                 `json:"service_version"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
-	Status          string                 `json:"status"`
-	Error           string                 `json:"error,omitempty"`
+	Result         string                 `json:"result"`
+	ProcessingTime string                 `json:"processing_time"`
+	RequestID      string                 `json:"request_id"`
+	ServiceVersion string                 `json:"service_version"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Status         string                 `json:"status"`
+	Error          string                 `json:"error,omitempty"`
 }
 
 type HealthResponse struct {
@@ -56,10 +56,10 @@ type HealthResponse struct {
 
 // IntentProcessor handles the LLM processing logic with RAG enhancement
 type IntentProcessor struct {
-	LLMClient          *llm.Client
-	RAGEnhancedClient  *llm.RAGEnhancedProcessor
-	CircuitBreaker     *llm.CircuitBreaker
-	Logger             *slog.Logger
+	LLMClient         *llm.Client
+	RAGEnhancedClient *llm.RAGEnhancedProcessor
+	CircuitBreaker    *llm.CircuitBreaker
+	Logger            *slog.Logger
 }
 
 // NewLLMProcessorHandler creates a new handler instance
@@ -128,7 +128,7 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 	// Start timing for metrics
 	handlerStartTime := time.Now()
 	var statusCode int = http.StatusOK // Default to OK, will be overridden on error
-	
+
 	// Ensure metrics are recorded when handler exits
 	defer func() {
 		duration := time.Since(handlerStartTime)
@@ -139,7 +139,7 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 			duration,
 		)
 	}()
-	
+
 	if r.Method != http.MethodPost {
 		statusCode = http.StatusMethodNotAllowed
 		h.writeErrorResponse(w, "Method not allowed", statusCode, "")
@@ -209,7 +209,7 @@ func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Reque
 	// Start timing for metrics
 	handlerStartTime := time.Now()
 	statusCode := http.StatusOK
-	
+
 	// Ensure metrics are recorded when handler exits
 	defer func() {
 		duration := time.Since(handlerStartTime)
@@ -220,17 +220,17 @@ func (h *LLMProcessorHandler) StatusHandler(w http.ResponseWriter, r *http.Reque
 			duration,
 		)
 	}()
-	
+
 	status := map[string]interface{}{
-		"service":         "llm-processor",
-		"version":         h.config.ServiceVersion,
-		"uptime":          time.Since(h.startTime).String(),
-		"healthy":         h.healthChecker.IsHealthy(),
-		"ready":           h.healthChecker.IsReady(),
-		"backend_type":    h.config.LLMBackendType,
-		"model":           h.config.LLMModelName,
-		"rag_enabled":     h.config.RAGEnabled,
-		"timestamp":       time.Now().UTC().Format(time.RFC3339),
+		"service":      "llm-processor",
+		"version":      h.config.ServiceVersion,
+		"uptime":       time.Since(h.startTime).String(),
+		"healthy":      h.healthChecker.IsHealthy(),
+		"ready":        h.healthChecker.IsReady(),
+		"backend_type": h.config.LLMBackendType,
+		"model":        h.config.LLMModelName,
+		"rag_enabled":  h.config.RAGEnabled,
+		"timestamp":    time.Now().UTC().Format(time.RFC3339),
 	}
 
 	h.writeJSONResponse(w, status, http.StatusOK)
@@ -241,11 +241,11 @@ func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Re
 	// Start timing for HTTP request metrics
 	handlerStartTime := time.Now()
 	var statusCode int = http.StatusOK
-	
+
 	// Start timing for SSE stream duration
 	streamStartTime := time.Now()
 	streamRoute := "/api/v1/stream"
-	
+
 	// Ensure HTTP metrics are recorded when handler exits
 	defer func() {
 		// Record HTTP request metrics
@@ -256,14 +256,14 @@ func (h *LLMProcessorHandler) StreamingHandler(w http.ResponseWriter, r *http.Re
 			strconv.Itoa(statusCode),
 			duration,
 		)
-		
+
 		// Record SSE stream duration only if streaming actually occurred
 		if statusCode == http.StatusOK {
 			streamDuration := time.Since(streamStartTime)
 			h.metricsCollector.RecordSSEStream(streamRoute, streamDuration)
 		}
 	}()
-	
+
 	if r.Method != http.MethodPost {
 		statusCode = http.StatusMethodNotAllowed
 		h.writeErrorResponse(w, "Method not allowed", statusCode, "")
@@ -325,7 +325,7 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 	// Start timing for metrics
 	handlerStartTime := time.Now()
 	statusCode := http.StatusOK
-	
+
 	// Ensure metrics are recorded when handler exits
 	defer func() {
 		duration := time.Since(handlerStartTime)
@@ -336,7 +336,7 @@ func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Requ
 			duration,
 		)
 	}()
-	
+
 	metrics := map[string]interface{}{
 		"service": "llm-processor",
 		"version": h.config.ServiceVersion,
@@ -381,7 +381,7 @@ func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter,
 	// Start timing for metrics
 	handlerStartTime := time.Now()
 	var statusCode int = http.StatusOK
-	
+
 	// Ensure metrics are recorded when handler exits
 	defer func() {
 		duration := time.Since(handlerStartTime)
@@ -392,7 +392,7 @@ func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter,
 			duration,
 		)
 	}()
-	
+
 	if h.circuitBreakerMgr == nil {
 		statusCode = http.StatusServiceUnavailable
 		h.writeErrorResponse(w, "Circuit breaker manager not available", statusCode, "")
@@ -483,7 +483,7 @@ func (h *LLMProcessorHandler) writeErrorResponse(w http.ResponseWriter, message 
 		"error":     message,
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	}
-	
+
 	if requestID != "" {
 		response["request_id"] = requestID
 		w.Header().Set("X-Request-ID", requestID)

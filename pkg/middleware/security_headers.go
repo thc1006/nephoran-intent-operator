@@ -66,17 +66,17 @@ type SecurityHeadersConfig struct {
 // Following OWASP recommendations for security headers
 func DefaultSecurityHeadersConfig() *SecurityHeadersConfig {
 	return &SecurityHeadersConfig{
-		EnableHSTS:             false, // Disabled by default, enable only with proper TLS
-		HSTSMaxAge:             31536000, // 1 year
-		HSTSIncludeSubDomains:  false,
-		HSTSPreload:            false,
-		FrameOptions:           "DENY",
-		ContentTypeOptions:     true,
-		ReferrerPolicy:         "strict-origin-when-cross-origin",
-		ContentSecurityPolicy:  "default-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
-		PermissionsPolicy:      "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
-		XSSProtection:          "1; mode=block",
-		CustomHeaders:          make(map[string]string),
+		EnableHSTS:            false,    // Disabled by default, enable only with proper TLS
+		HSTSMaxAge:            31536000, // 1 year
+		HSTSIncludeSubDomains: false,
+		HSTSPreload:           false,
+		FrameOptions:          "DENY",
+		ContentTypeOptions:    true,
+		ReferrerPolicy:        "strict-origin-when-cross-origin",
+		ContentSecurityPolicy: "default-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+		PermissionsPolicy:     "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
+		XSSProtection:         "1; mode=block",
+		CustomHeaders:         make(map[string]string),
 	}
 }
 
@@ -123,7 +123,7 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 		if sh.config.EnableHSTS && sh.isSecureConnection(r) {
 			hstsValue := sh.buildHSTSHeader()
 			w.Header().Set("Strict-Transport-Security", hstsValue)
-			
+
 			sh.logger.Debug("HSTS header set",
 				slog.String("value", hstsValue),
 				slog.String("path", r.URL.Path))
@@ -186,21 +186,21 @@ func (sh *SecurityHeaders) Middleware(next http.Handler) http.Handler {
 // buildHSTSHeader constructs the HSTS header value based on configuration
 func (sh *SecurityHeaders) buildHSTSHeader() string {
 	var directives []string
-	
+
 	// max-age is required
 	directives = append(directives, fmt.Sprintf("max-age=%d", sh.config.HSTSMaxAge))
-	
+
 	// includeSubDomains is optional but recommended
 	if sh.config.HSTSIncludeSubDomains {
 		directives = append(directives, "includeSubDomains")
 	}
-	
+
 	// preload requires includeSubDomains and careful consideration
 	// WARNING: Once preloaded, it's very difficult to remove
 	if sh.config.HSTSPreload && sh.config.HSTSIncludeSubDomains {
 		directives = append(directives, "preload")
 	}
-	
+
 	return strings.Join(directives, "; ")
 }
 
@@ -211,22 +211,22 @@ func (sh *SecurityHeaders) isSecureConnection(r *http.Request) bool {
 	if r.TLS != nil {
 		return true
 	}
-	
+
 	// Check X-Forwarded-Proto header (common with reverse proxies)
 	if forwarded := r.Header.Get("X-Forwarded-Proto"); forwarded == "https" {
 		return true
 	}
-	
+
 	// Check Forwarded header (RFC 7239)
 	if forwarded := r.Header.Get("Forwarded"); strings.Contains(forwarded, "proto=https") {
 		return true
 	}
-	
+
 	// Check URL scheme
 	if r.URL.Scheme == "https" {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -240,12 +240,12 @@ func (sh *SecurityHeaders) ValidateConfig() error {
 				return fmt.Errorf("HSTS max-age must be at least 10886400 seconds (18 weeks) for preload")
 			}
 		}
-		
+
 		if sh.config.HSTSPreload && !sh.config.HSTSIncludeSubDomains {
 			return fmt.Errorf("HSTS preload requires includeSubDomains to be enabled")
 		}
 	}
-	
+
 	// Validate FrameOptions
 	validFrameOptions := map[string]bool{
 		"DENY":       true,
@@ -257,18 +257,18 @@ func (sh *SecurityHeaders) ValidateConfig() error {
 			return fmt.Errorf("invalid X-Frame-Options value: %s", sh.config.FrameOptions)
 		}
 	}
-	
+
 	// Validate CSP if provided
 	if sh.config.ContentSecurityPolicy != "" {
 		// Basic validation - ensure it contains directives
 		if !strings.Contains(sh.config.ContentSecurityPolicy, "-src") &&
-		   !strings.Contains(sh.config.ContentSecurityPolicy, "frame-ancestors") &&
-		   !strings.Contains(sh.config.ContentSecurityPolicy, "base-uri") {
+			!strings.Contains(sh.config.ContentSecurityPolicy, "frame-ancestors") &&
+			!strings.Contains(sh.config.ContentSecurityPolicy, "base-uri") {
 			sh.logger.Warn("CSP appears to have no directives",
 				slog.String("csp", sh.config.ContentSecurityPolicy))
 		}
 	}
-	
+
 	return nil
 }
 
@@ -276,40 +276,40 @@ func (sh *SecurityHeaders) ValidateConfig() error {
 // Useful for debugging and testing
 func (sh *SecurityHeaders) GetActiveHeaders(isSecure bool) map[string]string {
 	headers := make(map[string]string)
-	
+
 	if sh.config.EnableHSTS && isSecure {
 		headers["Strict-Transport-Security"] = sh.buildHSTSHeader()
 	}
-	
+
 	if sh.config.FrameOptions != "" {
 		headers["X-Frame-Options"] = sh.config.FrameOptions
 	}
-	
+
 	if sh.config.ContentTypeOptions {
 		headers["X-Content-Type-Options"] = "nosniff"
 	}
-	
+
 	if sh.config.ReferrerPolicy != "" {
 		headers["Referrer-Policy"] = sh.config.ReferrerPolicy
 	}
-	
+
 	if sh.config.ContentSecurityPolicy != "" {
 		headers["Content-Security-Policy"] = sh.config.ContentSecurityPolicy
 	}
-	
+
 	if sh.config.PermissionsPolicy != "" {
 		headers["Permissions-Policy"] = sh.config.PermissionsPolicy
 	}
-	
+
 	if sh.config.XSSProtection != "" {
 		headers["X-XSS-Protection"] = sh.config.XSSProtection
 	}
-	
+
 	// Add custom headers
 	for k, v := range sh.config.CustomHeaders {
 		headers[k] = v
 	}
-	
+
 	return headers
 }
 

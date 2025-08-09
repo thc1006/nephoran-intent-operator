@@ -39,14 +39,14 @@ type ContextInjectionRequest struct {
 
 // ContextInjectionResult contains the result of context injection
 type ContextInjectionResult struct {
-	FinalPrompt      string
-	TokensUsed       int
-	TokensAvailable  int
-	ContextLevel     ContextLevel
-	CompressionUsed  CompressionLevel
-	Strategy         string
-	Confidence       float64
-	ProcessingTime   time.Duration
+	FinalPrompt     string
+	TokensUsed      int
+	TokensAvailable int
+	ContextLevel    ContextLevel
+	CompressionUsed CompressionLevel
+	Strategy        string
+	Confidence      float64
+	ProcessingTime  time.Duration
 }
 
 // NetworkState holds current network information
@@ -87,10 +87,10 @@ type Connection struct {
 
 // CoverageArea represents a coverage area
 type CoverageArea struct {
-	ID       string
-	Type     string
-	Polygon  [][]float64
-	Quality  float64
+	ID      string
+	Type    string
+	Polygon [][]float64
+	Quality float64
 }
 
 // NetworkEvent represents a recent network event
@@ -113,23 +113,23 @@ type ContextStrategy interface {
 
 // SelectedContext represents the selected context for injection
 type SelectedContext struct {
-	SystemPrompt     string
-	Examples         []PromptExample
-	NetworkContext   string
-	RelevantDocs     []string
-	Metadata         map[string]interface{}
-	ConfidenceScore  float64
+	SystemPrompt    string
+	Examples        []PromptExample
+	NetworkContext  string
+	RelevantDocs    []string
+	Metadata        map[string]interface{}
+	ConfidenceScore float64
 }
 
 // ModelConfig holds configuration for different models
 type ModelConfig struct {
-	Name            string
-	MaxTokens       int
-	TokensPerWord   float64
-	ContextWindow   int
-	CostPerToken    float64
-	SupportsSystem  bool
-	OptimalTemp     float64
+	Name           string
+	MaxTokens      int
+	TokensPerWord  float64
+	ContextWindow  int
+	CostPerToken   float64
+	SupportsSystem bool
+	OptimalTemp    float64
 }
 
 // ContextLevel represents different levels of context detail
@@ -170,12 +170,12 @@ type TokenEstimator struct {
 
 // contextMetrics tracks context management metrics
 type contextMetrics struct {
-	requestsTotal       prometheus.Counter
-	tokensUsed          prometheus.Histogram
-	contextLevels       *prometheus.CounterVec
-	compressionUsed     *prometheus.CounterVec
-	budgetExceeded      prometheus.Counter
-	processingDuration  prometheus.Histogram
+	requestsTotal      prometheus.Counter
+	tokensUsed         prometheus.Histogram
+	contextLevels      *prometheus.CounterVec
+	compressionUsed    *prometheus.CounterVec
+	budgetExceeded     prometheus.Counter
+	processingDuration prometheus.Histogram
 }
 
 // NewDynamicContextManager creates a new dynamic context manager
@@ -227,7 +227,7 @@ func NewDynamicContextManager(logger *zap.Logger) *DynamicContextManager {
 		},
 		contextStrategies: make(map[string]ContextStrategy),
 		modelConfigs:      make(map[string]ModelConfig),
-		metrics:          metrics,
+		metrics:           metrics,
 	}
 
 	// Initialize default configurations
@@ -240,43 +240,43 @@ func NewDynamicContextManager(logger *zap.Logger) *DynamicContextManager {
 // initializeModelConfigs sets up default model configurations
 func (m *DynamicContextManager) initializeModelConfigs() {
 	m.modelConfigs["gpt-4"] = ModelConfig{
-		Name:            "gpt-4",
-		MaxTokens:       8192,
-		TokensPerWord:   1.3,
-		ContextWindow:   8192,
-		CostPerToken:    0.00003,
-		SupportsSystem:  true,
-		OptimalTemp:     0.7,
+		Name:           "gpt-4",
+		MaxTokens:      8192,
+		TokensPerWord:  1.3,
+		ContextWindow:  8192,
+		CostPerToken:   0.00003,
+		SupportsSystem: true,
+		OptimalTemp:    0.7,
 	}
 
 	m.modelConfigs["gpt-4-32k"] = ModelConfig{
-		Name:            "gpt-4-32k",
-		MaxTokens:       32768,
-		TokensPerWord:   1.3,
-		ContextWindow:   32768,
-		CostPerToken:    0.00006,
-		SupportsSystem:  true,
-		OptimalTemp:     0.7,
+		Name:           "gpt-4-32k",
+		MaxTokens:      32768,
+		TokensPerWord:  1.3,
+		ContextWindow:  32768,
+		CostPerToken:   0.00006,
+		SupportsSystem: true,
+		OptimalTemp:    0.7,
 	}
 
 	m.modelConfigs["gpt-3.5-turbo"] = ModelConfig{
-		Name:            "gpt-3.5-turbo",
-		MaxTokens:       4096,
-		TokensPerWord:   1.3,
-		ContextWindow:   4096,
-		CostPerToken:    0.0000015,
-		SupportsSystem:  true,
-		OptimalTemp:     0.7,
+		Name:           "gpt-3.5-turbo",
+		MaxTokens:      4096,
+		TokensPerWord:  1.3,
+		ContextWindow:  4096,
+		CostPerToken:   0.0000015,
+		SupportsSystem: true,
+		OptimalTemp:    0.7,
 	}
 
 	m.modelConfigs["claude-3"] = ModelConfig{
-		Name:            "claude-3",
-		MaxTokens:       200000,
-		TokensPerWord:   1.2,
-		ContextWindow:   200000,
-		CostPerToken:    0.000008,
-		SupportsSystem:  true,
-		OptimalTemp:     0.7,
+		Name:           "claude-3",
+		MaxTokens:      200000,
+		TokensPerWord:  1.2,
+		ContextWindow:  200000,
+		CostPerToken:   0.000008,
+		SupportsSystem: true,
+		OptimalTemp:    0.7,
 	}
 
 	// Initialize token estimator ratios
@@ -342,8 +342,8 @@ func (m *DynamicContextManager) InjectContext(
 
 	// Apply budget control and compression if needed
 	finalPrompt, tokensUsed, compressionUsed := m.applyBudgetControl(
-		initialPrompt, 
-		initialTokens, 
+		initialPrompt,
+		initialTokens,
 		request.MaxTokenBudget,
 		strategy,
 		request.ModelName,
@@ -351,14 +351,14 @@ func (m *DynamicContextManager) InjectContext(
 
 	// Calculate result metrics
 	result := &ContextInjectionResult{
-		FinalPrompt:      finalPrompt,
-		TokensUsed:       tokensUsed,
-		TokensAvailable:  request.MaxTokenBudget - tokensUsed,
-		ContextLevel:     contextLevel,
-		CompressionUsed:  compressionUsed,
-		Strategy:         m.getStrategyName(request),
-		Confidence:       selectedContext.ConfidenceScore,
-		ProcessingTime:   time.Since(start),
+		FinalPrompt:     finalPrompt,
+		TokensUsed:      tokensUsed,
+		TokensAvailable: request.MaxTokenBudget - tokensUsed,
+		ContextLevel:    contextLevel,
+		CompressionUsed: compressionUsed,
+		Strategy:        m.getStrategyName(request),
+		Confidence:      selectedContext.ConfidenceScore,
+		ProcessingTime:  time.Since(start),
 	}
 
 	// Update metrics
@@ -438,7 +438,7 @@ func (m *DynamicContextManager) applyBudgetControl(
 	for _, level := range compressionLevels {
 		compressed := strategy.Compress(prompt, level)
 		tokens := strategy.EstimateTokens(compressed, modelName)
-		
+
 		if tokens <= maxTokens {
 			return compressed, tokens, level
 		}
@@ -447,7 +447,7 @@ func (m *DynamicContextManager) applyBudgetControl(
 	// If still over budget, use heavy compression and truncate
 	compressed := strategy.Compress(prompt, HeavyCompression)
 	tokens := strategy.EstimateTokens(compressed, modelName)
-	
+
 	if tokens > maxTokens {
 		// Truncate to fit budget (last resort)
 		words := strings.Fields(compressed)
@@ -591,13 +591,13 @@ type TelecomContextStrategy struct {
 func (s *TelecomContextStrategy) SelectContext(request *ContextInjectionRequest) (*SelectedContext, error) {
 	// Determine intent type from content
 	intentType := s.classifyIntentType(request.Intent)
-	
+
 	// Get system prompt
 	systemPrompt := s.templates.GetSystemPrompt(intentType)
-	
+
 	// Get examples
 	examples := s.templates.GetExamples(intentType)
-	
+
 	// Format network context
 	var networkContext string
 	if request.NetworkState != nil {
@@ -610,10 +610,10 @@ func (s *TelecomContextStrategy) SelectContext(request *ContextInjectionRequest)
 		}
 		networkContext = s.templates.formatContext(telecomContext)
 	}
-	
+
 	// Calculate confidence based on available context
 	confidence := s.calculateConfidence(request, intentType)
-	
+
 	return &SelectedContext{
 		SystemPrompt:    systemPrompt,
 		Examples:        examples,
@@ -643,7 +643,7 @@ func (s *TelecomContextStrategy) Compress(content string, level CompressionLevel
 
 func (s *TelecomContextStrategy) classifyIntentType(intent string) string {
 	intent = strings.ToLower(intent)
-	
+
 	if strings.Contains(intent, "ric") || strings.Contains(intent, "xapp") || strings.Contains(intent, "e2") {
 		return "oran_network_intent"
 	}
@@ -656,17 +656,17 @@ func (s *TelecomContextStrategy) classifyIntentType(intent string) string {
 	if strings.Contains(intent, "ran") || strings.Contains(intent, "handover") || strings.Contains(intent, "optimization") {
 		return "ran_optimization_intent"
 	}
-	
+
 	return "oran_network_intent" // default
 }
 
 func (s *TelecomContextStrategy) calculateConfidence(request *ContextInjectionRequest, intentType string) float64 {
 	confidence := 0.7 // base confidence
-	
+
 	// Boost confidence if we have network state
 	if request.NetworkState != nil {
 		confidence += 0.1
-		
+
 		// More boost for more complete network state
 		if len(request.NetworkState.NetworkFunctions) > 0 {
 			confidence += 0.05
@@ -678,12 +678,12 @@ func (s *TelecomContextStrategy) calculateConfidence(request *ContextInjectionRe
 			confidence += 0.05
 		}
 	}
-	
+
 	// Boost confidence for well-classified intents
 	if intentType != "oran_network_intent" { // not default
 		confidence += 0.05
 	}
-	
+
 	return math.Min(confidence, 1.0)
 }
 
@@ -703,26 +703,26 @@ func (s *TelecomContextStrategy) lightCompress(content string) string {
 func (s *TelecomContextStrategy) moderateCompress(content string) string {
 	// Apply light compression first
 	content = s.lightCompress(content)
-	
+
 	// Remove example explanations
 	content = strings.ReplaceAll(content, "**Explanation:**", "")
-	
+
 	// Simplify section headers
 	content = strings.ReplaceAll(content, "## Current Network Context", "## Context")
 	content = strings.ReplaceAll(content, "## Response Requirements", "## Requirements")
-	
+
 	return content
 }
 
 func (s *TelecomContextStrategy) heavyCompress(content string) string {
 	// Apply moderate compression first
 	content = s.moderateCompress(content)
-	
+
 	// Remove all examples
 	lines := strings.Split(content, "\n")
 	var compressed []string
 	inExample := false
-	
+
 	for _, line := range lines {
 		if strings.Contains(line, "## Examples") {
 			inExample = true
@@ -735,7 +735,7 @@ func (s *TelecomContextStrategy) heavyCompress(content string) string {
 			compressed = append(compressed, line)
 		}
 	}
-	
+
 	return strings.Join(compressed, "\n")
 }
 
@@ -743,12 +743,12 @@ func (s *TelecomContextStrategy) heavyCompress(content string) string {
 func (te *TokenEstimator) EstimateTokens(content string, modelName string) int {
 	te.mu.RLock()
 	defer te.mu.RUnlock()
-	
+
 	ratio, exists := te.modelTokenRatios[modelName]
 	if !exists {
 		ratio = 1.3 // default ratio
 	}
-	
+
 	words := len(strings.Fields(content))
 	return int(float64(words) * ratio)
 }

@@ -17,157 +17,157 @@ import (
 // EscalationEngine manages automated escalation policies and workflows
 // providing intelligent, time-based escalation with business context awareness
 type EscalationEngine struct {
-	logger         *logging.StructuredLogger
-	config         *EscalationConfig
-	
+	logger *logging.StructuredLogger
+	config *EscalationConfig
+
 	// Escalation management
 	escalationPolicies map[string]*EscalationPolicy
 	activeEscalations  map[string]*ActiveEscalation
 	escalationHistory  []*EscalationEvent
-	
+
 	// Stakeholder management
 	stakeholderRegistry *StakeholderRegistry
 	oncallSchedule      *OncallSchedule
-	
+
 	// Auto-resolution
-	autoResolver        *AutoResolver
-	resolutionDetector  *ResolutionDetector
-	
+	autoResolver       *AutoResolver
+	resolutionDetector *ResolutionDetector
+
 	// Workflow integration
-	workflowExecutor    *WorkflowExecutor
-	ticketingSystem     *TicketingSystem
-	
+	workflowExecutor *WorkflowExecutor
+	ticketingSystem  *TicketingSystem
+
 	// Performance tracking
-	metrics            *EscalationMetrics
-	escalationStats    *EscalationStatistics
-	
+	metrics         *EscalationMetrics
+	escalationStats *EscalationStatistics
+
 	// State management
-	started            bool
-	stopCh             chan struct{}
-	escalationQueue    chan *EscalationRequest
-	mu                 sync.RWMutex
+	started         bool
+	stopCh          chan struct{}
+	escalationQueue chan *EscalationRequest
+	mu              sync.RWMutex
 }
 
 // EscalationConfig holds configuration for the escalation engine
 type EscalationConfig struct {
 	// Core escalation settings
-	DefaultEscalationDelay   time.Duration `yaml:"default_escalation_delay"`
-	MaxEscalationLevels     int           `yaml:"max_escalation_levels"`
-	EscalationTimeout       time.Duration `yaml:"escalation_timeout"`
-	
+	DefaultEscalationDelay time.Duration `yaml:"default_escalation_delay"`
+	MaxEscalationLevels    int           `yaml:"max_escalation_levels"`
+	EscalationTimeout      time.Duration `yaml:"escalation_timeout"`
+
 	// Auto-resolution settings
 	AutoResolutionEnabled   bool          `yaml:"auto_resolution_enabled"`
 	ResolutionCheckInterval time.Duration `yaml:"resolution_check_interval"`
 	AutoResolutionTimeout   time.Duration `yaml:"auto_resolution_timeout"`
-	
+
 	// Workflow settings
-	EnableWorkflowAutomation bool         `yaml:"enable_workflow_automation"`
-	WorkflowTimeout         time.Duration `yaml:"workflow_timeout"`
-	RetryFailedWorkflows    bool          `yaml:"retry_failed_workflows"`
-	
+	EnableWorkflowAutomation bool          `yaml:"enable_workflow_automation"`
+	WorkflowTimeout          time.Duration `yaml:"workflow_timeout"`
+	RetryFailedWorkflows     bool          `yaml:"retry_failed_workflows"`
+
 	// Notification settings
-	EscalationNotifyDelay   time.Duration `yaml:"escalation_notify_delay"`
-	AcknowledgmentTimeout   time.Duration `yaml:"acknowledgment_timeout"`
-	
+	EscalationNotifyDelay time.Duration `yaml:"escalation_notify_delay"`
+	AcknowledgmentTimeout time.Duration `yaml:"acknowledgment_timeout"`
+
 	// Business context
 	BusinessHoursEscalation bool          `yaml:"business_hours_escalation"`
 	WeekendEscalationDelay  time.Duration `yaml:"weekend_escalation_delay"`
-	
+
 	// Performance settings
-	MaxConcurrentEscalations int          `yaml:"max_concurrent_escalations"`
-	EscalationQueueSize     int           `yaml:"escalation_queue_size"`
+	MaxConcurrentEscalations int `yaml:"max_concurrent_escalations"`
+	EscalationQueueSize      int `yaml:"escalation_queue_size"`
 }
 
 // EscalationPolicy defines how alerts should be escalated
 type EscalationPolicy struct {
-	ID                string                  `json:"id"`
-	Name              string                  `json:"name"`
-	Description       string                  `json:"description"`
-	Enabled           bool                    `json:"enabled"`
-	
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Enabled     bool   `json:"enabled"`
+
 	// Policy triggers
-	TriggerConditions []EscalationTrigger     `json:"trigger_conditions"`
-	
+	TriggerConditions []EscalationTrigger `json:"trigger_conditions"`
+
 	// Escalation levels
-	Levels            []EscalationLevel       `json:"levels"`
-	
+	Levels []EscalationLevel `json:"levels"`
+
 	// Auto-resolution rules
-	AutoResolution    *AutoResolutionPolicy   `json:"auto_resolution,omitempty"`
-	
+	AutoResolution *AutoResolutionPolicy `json:"auto_resolution,omitempty"`
+
 	// Workflow integration
-	Workflows         []WorkflowReference     `json:"workflows,omitempty"`
-	
+	Workflows []WorkflowReference `json:"workflows,omitempty"`
+
 	// Business context
-	BusinessImpact    BusinessImpactRules     `json:"business_impact"`
-	Schedule          *EscalationSchedule     `json:"schedule,omitempty"`
-	
+	BusinessImpact BusinessImpactRules `json:"business_impact"`
+	Schedule       *EscalationSchedule `json:"schedule,omitempty"`
+
 	// Metadata
-	CreatedAt         time.Time               `json:"created_at"`
-	UpdatedAt         time.Time               `json:"updated_at"`
-	CreatedBy         string                  `json:"created_by"`
-	Version           int                     `json:"version"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	CreatedBy string    `json:"created_by"`
+	Version   int       `json:"version"`
 }
 
 // EscalationTrigger defines conditions that trigger escalation
 type EscalationTrigger struct {
-	Field         string        `json:"field"`         // severity, sla_type, business_impact
-	Operator      string        `json:"operator"`      // equals, greater_than, contains
+	Field         string        `json:"field"`    // severity, sla_type, business_impact
+	Operator      string        `json:"operator"` // equals, greater_than, contains
 	Value         string        `json:"value"`
 	TimeThreshold time.Duration `json:"time_threshold,omitempty"`
 }
 
 // EscalationLevel defines a single level in an escalation policy
 type EscalationLevel struct {
-	Level           int                    `json:"level"`
-	Name            string                 `json:"name"`
-	Delay           time.Duration          `json:"delay"`
-	Timeout         time.Duration          `json:"timeout"`
-	
+	Level   int           `json:"level"`
+	Name    string        `json:"name"`
+	Delay   time.Duration `json:"delay"`
+	Timeout time.Duration `json:"timeout"`
+
 	// Stakeholders to notify
-	Stakeholders    []StakeholderReference `json:"stakeholders"`
-	
+	Stakeholders []StakeholderReference `json:"stakeholders"`
+
 	// Actions to take
-	Actions         []EscalationAction     `json:"actions"`
-	
+	Actions []EscalationAction `json:"actions"`
+
 	// Conditions for moving to next level
-	EscalationRules []EscalationRule       `json:"escalation_rules"`
-	
+	EscalationRules []EscalationRule `json:"escalation_rules"`
+
 	// Schedule constraints
-	Schedule        *LevelSchedule         `json:"schedule,omitempty"`
+	Schedule *LevelSchedule `json:"schedule,omitempty"`
 }
 
 // StakeholderReference references a stakeholder for notification
 type StakeholderReference struct {
-	Type           string            `json:"type"`           // individual, team, role, oncall
-	Identifier     string            `json:"identifier"`     // user_id, team_id, role_name
-	NotificationMethod string        `json:"notification_method"` // email, sms, phone, slack
-	Parameters     map[string]string `json:"parameters,omitempty"`
+	Type               string            `json:"type"`                // individual, team, role, oncall
+	Identifier         string            `json:"identifier"`          // user_id, team_id, role_name
+	NotificationMethod string            `json:"notification_method"` // email, sms, phone, slack
+	Parameters         map[string]string `json:"parameters,omitempty"`
 }
 
 // EscalationAction defines an action to take during escalation
 type EscalationAction struct {
-	Type           string            `json:"type"`           // notify, create_ticket, run_workflow, auto_remediate
-	Name           string            `json:"name"`
-	Parameters     map[string]string `json:"parameters"`
-	Timeout        time.Duration     `json:"timeout,omitempty"`
-	RetryCount     int               `json:"retry_count,omitempty"`
-	OnFailure      string            `json:"on_failure,omitempty"` // continue, skip_level, stop
+	Type       string            `json:"type"` // notify, create_ticket, run_workflow, auto_remediate
+	Name       string            `json:"name"`
+	Parameters map[string]string `json:"parameters"`
+	Timeout    time.Duration     `json:"timeout,omitempty"`
+	RetryCount int               `json:"retry_count,omitempty"`
+	OnFailure  string            `json:"on_failure,omitempty"` // continue, skip_level, stop
 }
 
 // EscalationRule defines when to escalate to the next level
 type EscalationRule struct {
-	Type          string        `json:"type"`          // time_based, acknowledgment_based, condition_based
-	Condition     string        `json:"condition"`     // unacknowledged, unresolved, condition_worsened
+	Type          string        `json:"type"`      // time_based, acknowledgment_based, condition_based
+	Condition     string        `json:"condition"` // unacknowledged, unresolved, condition_worsened
 	Threshold     time.Duration `json:"threshold,omitempty"`
 	RequiredCount int           `json:"required_count,omitempty"`
 }
 
 // AutoResolutionPolicy defines automatic resolution behavior
 type AutoResolutionPolicy struct {
-	Enabled              bool          `json:"enabled"`
+	Enabled              bool                  `json:"enabled"`
 	ResolutionConditions []ResolutionCondition `json:"resolution_conditions"`
-	ConfirmationWindow   time.Duration `json:"confirmation_window"`
-	NotifyOnResolution   bool          `json:"notify_on_resolution"`
+	ConfirmationWindow   time.Duration         `json:"confirmation_window"`
+	NotifyOnResolution   bool                  `json:"notify_on_resolution"`
 }
 
 // ResolutionCondition defines conditions for automatic resolution
@@ -180,124 +180,124 @@ type ResolutionCondition struct {
 
 // WorkflowReference references an automated workflow
 type WorkflowReference struct {
-	WorkflowID    string            `json:"workflow_id"`
-	TriggerLevel  int               `json:"trigger_level"`
-	Parameters    map[string]string `json:"parameters,omitempty"`
-	Async         bool              `json:"async"`
+	WorkflowID   string            `json:"workflow_id"`
+	TriggerLevel int               `json:"trigger_level"`
+	Parameters   map[string]string `json:"parameters,omitempty"`
+	Async        bool              `json:"async"`
 }
 
 // BusinessImpactRules define business context for escalation
 type BusinessImpactRules struct {
-	HighImpactEscalationDelay time.Duration `json:"high_impact_escalation_delay"`
-	CustomerFacingPriority    bool          `json:"customer_facing_priority"`
-	RevenueThresholds        []RevenueThreshold `json:"revenue_thresholds"`
+	HighImpactEscalationDelay time.Duration      `json:"high_impact_escalation_delay"`
+	CustomerFacingPriority    bool               `json:"customer_facing_priority"`
+	RevenueThresholds         []RevenueThreshold `json:"revenue_thresholds"`
 }
 
 // RevenueThreshold defines revenue-based escalation rules
 type RevenueThreshold struct {
-	MinRevenue       float64       `json:"min_revenue"`
-	EscalationDelay  time.Duration `json:"escalation_delay"`
-	RequiredApprovers []string     `json:"required_approvers"`
+	MinRevenue        float64       `json:"min_revenue"`
+	EscalationDelay   time.Duration `json:"escalation_delay"`
+	RequiredApprovers []string      `json:"required_approvers"`
 }
 
 // EscalationSchedule defines schedule constraints for escalation
 type EscalationSchedule struct {
-	Timezone              string              `json:"timezone"`
-	BusinessHours         ScheduleWindow      `json:"business_hours"`
-	WeekendSchedule       *WeekendSchedule    `json:"weekend_schedule,omitempty"`
-	HolidaySchedule       *HolidaySchedule    `json:"holiday_schedule,omitempty"`
-	MaintenanceWindows    []MaintenanceWindow `json:"maintenance_windows,omitempty"`
+	Timezone           string              `json:"timezone"`
+	BusinessHours      ScheduleWindow      `json:"business_hours"`
+	WeekendSchedule    *WeekendSchedule    `json:"weekend_schedule,omitempty"`
+	HolidaySchedule    *HolidaySchedule    `json:"holiday_schedule,omitempty"`
+	MaintenanceWindows []MaintenanceWindow `json:"maintenance_windows,omitempty"`
 }
 
 // ScheduleWindow defines a time window
 type ScheduleWindow struct {
-	Start    int      `json:"start"`    // Hour (0-23)
-	End      int      `json:"end"`      // Hour (0-23)
-	Weekdays []int    `json:"weekdays"` // Days (0=Sunday)
+	Start    int   `json:"start"`    // Hour (0-23)
+	End      int   `json:"end"`      // Hour (0-23)
+	Weekdays []int `json:"weekdays"` // Days (0=Sunday)
 }
 
 // WeekendSchedule defines weekend-specific escalation behavior
 type WeekendSchedule struct {
-	Enabled         bool          `json:"enabled"`
-	DelayMultiplier float64       `json:"delay_multiplier"`
-	SkipLevels      []int         `json:"skip_levels,omitempty"`
+	Enabled         bool    `json:"enabled"`
+	DelayMultiplier float64 `json:"delay_multiplier"`
+	SkipLevels      []int   `json:"skip_levels,omitempty"`
 }
 
 // HolidaySchedule defines holiday-specific escalation behavior
 type HolidaySchedule struct {
-	Enabled    bool     `json:"enabled"`
-	Holidays   []string `json:"holidays"`
-	Behavior   string   `json:"behavior"` // skip, delay, emergency_only
+	Enabled  bool     `json:"enabled"`
+	Holidays []string `json:"holidays"`
+	Behavior string   `json:"behavior"` // skip, delay, emergency_only
 }
 
 // LevelSchedule defines schedule constraints for a specific level
 type LevelSchedule struct {
-	OnlyDuringBusinessHours bool              `json:"only_during_business_hours"`
-	SkipWeekends           bool              `json:"skip_weekends"`
-	MinimumStakeholders    int               `json:"minimum_stakeholders"`
-	FallbackStakeholders   []StakeholderReference `json:"fallback_stakeholders,omitempty"`
+	OnlyDuringBusinessHours bool                   `json:"only_during_business_hours"`
+	SkipWeekends            bool                   `json:"skip_weekends"`
+	MinimumStakeholders     int                    `json:"minimum_stakeholders"`
+	FallbackStakeholders    []StakeholderReference `json:"fallback_stakeholders,omitempty"`
 }
 
 // ActiveEscalation represents an ongoing escalation
 type ActiveEscalation struct {
-	ID             string                 `json:"id"`
-	AlertID        string                 `json:"alert_id"`
-	PolicyID       string                 `json:"policy_id"`
-	CurrentLevel   int                    `json:"current_level"`
-	State          EscalationState        `json:"state"`
-	
+	ID           string          `json:"id"`
+	AlertID      string          `json:"alert_id"`
+	PolicyID     string          `json:"policy_id"`
+	CurrentLevel int             `json:"current_level"`
+	State        EscalationState `json:"state"`
+
 	// Timing information
-	StartedAt      time.Time              `json:"started_at"`
-	LastEscalated  time.Time              `json:"last_escalated"`
-	NextEscalation *time.Time             `json:"next_escalation,omitempty"`
-	
+	StartedAt      time.Time  `json:"started_at"`
+	LastEscalated  time.Time  `json:"last_escalated"`
+	NextEscalation *time.Time `json:"next_escalation,omitempty"`
+
 	// Stakeholder interactions
-	Notifications  []NotificationRecord   `json:"notifications"`
-	Acknowledgments []Acknowledgment      `json:"acknowledgments"`
-	
+	Notifications   []NotificationRecord `json:"notifications"`
+	Acknowledgments []Acknowledgment     `json:"acknowledgments"`
+
 	// Workflow execution
 	ExecutedWorkflows []WorkflowExecution `json:"executed_workflows"`
-	
+
 	// Business context
-	BusinessImpact BusinessImpactScore   `json:"business_impact"`
-	Priority       int                   `json:"priority"`
-	
+	BusinessImpact BusinessImpactScore `json:"business_impact"`
+	Priority       int                 `json:"priority"`
+
 	// Resolution tracking
 	ResolutionAttempts []ResolutionAttempt `json:"resolution_attempts"`
-	AutoResolved      bool                `json:"auto_resolved"`
+	AutoResolved       bool                `json:"auto_resolved"`
 }
 
 // EscalationState represents the state of an escalation
 type EscalationState string
 
 const (
-	EscalationStateActive     EscalationState = "active"
+	EscalationStateActive       EscalationState = "active"
 	EscalationStateAcknowledged EscalationState = "acknowledged"
-	EscalationStateResolved   EscalationState = "resolved"
-	EscalationStateSuppressed EscalationState = "suppressed"
-	EscalationStateTimedOut   EscalationState = "timed_out"
-	EscalationStateFailed     EscalationState = "failed"
+	EscalationStateResolved     EscalationState = "resolved"
+	EscalationStateSuppressed   EscalationState = "suppressed"
+	EscalationStateTimedOut     EscalationState = "timed_out"
+	EscalationStateFailed       EscalationState = "failed"
 )
 
 // NotificationRecord tracks sent notifications
 type NotificationRecord struct {
-	ID            string                 `json:"id"`
-	Level         int                    `json:"level"`
-	Stakeholder   StakeholderReference   `json:"stakeholder"`
-	Method        string                 `json:"method"`
-	SentAt        time.Time              `json:"sent_at"`
-	DeliveredAt   *time.Time             `json:"delivered_at,omitempty"`
-	Status        string                 `json:"status"`
-	Response      string                 `json:"response,omitempty"`
+	ID          string               `json:"id"`
+	Level       int                  `json:"level"`
+	Stakeholder StakeholderReference `json:"stakeholder"`
+	Method      string               `json:"method"`
+	SentAt      time.Time            `json:"sent_at"`
+	DeliveredAt *time.Time           `json:"delivered_at,omitempty"`
+	Status      string               `json:"status"`
+	Response    string               `json:"response,omitempty"`
 }
 
 // Acknowledgment tracks stakeholder acknowledgments
 type Acknowledgment struct {
-	ID           string    `json:"id"`
-	StakeholderID string   `json:"stakeholder_id"`
+	ID             string    `json:"id"`
+	StakeholderID  string    `json:"stakeholder_id"`
 	AcknowledgedAt time.Time `json:"acknowledged_at"`
-	Message      string    `json:"message,omitempty"`
-	Method       string    `json:"method"`
+	Message        string    `json:"message,omitempty"`
+	Method         string    `json:"method"`
 }
 
 // WorkflowExecution tracks automated workflow executions
@@ -315,7 +315,7 @@ type WorkflowExecution struct {
 // ResolutionAttempt tracks resolution attempts
 type ResolutionAttempt struct {
 	ID          string    `json:"id"`
-	Type        string    `json:"type"`        // manual, automatic, workflow
+	Type        string    `json:"type"` // manual, automatic, workflow
 	AttemptedAt time.Time `json:"attempted_at"`
 	Success     bool      `json:"success"`
 	Details     string    `json:"details,omitempty"`
@@ -352,26 +352,26 @@ type StakeholderRegistry struct {
 
 // Stakeholder represents an individual stakeholder
 type Stakeholder struct {
-	ID               string            `json:"id"`
-	Name             string            `json:"name"`
-	Email            string            `json:"email"`
-	Phone            string            `json:"phone,omitempty"`
-	SlackUserID      string            `json:"slack_user_id,omitempty"`
-	TimeZone         string            `json:"timezone"`
-	Preferences      map[string]string `json:"preferences"`
-	Active           bool              `json:"active"`
-	AvailabilityHours ScheduleWindow   `json:"availability_hours"`
+	ID                string            `json:"id"`
+	Name              string            `json:"name"`
+	Email             string            `json:"email"`
+	Phone             string            `json:"phone,omitempty"`
+	SlackUserID       string            `json:"slack_user_id,omitempty"`
+	TimeZone          string            `json:"timezone"`
+	Preferences       map[string]string `json:"preferences"`
+	Active            bool              `json:"active"`
+	AvailabilityHours ScheduleWindow    `json:"availability_hours"`
 }
 
 // Team represents a team of stakeholders
 type Team struct {
-	ID           string   `json:"id"`
-	Name         string   `json:"name"`
-	Description  string   `json:"description"`
-	Members      []string `json:"members"`      // Stakeholder IDs
-	Leads        []string `json:"leads"`        // Stakeholder IDs who are team leads
+	ID              string   `json:"id"`
+	Name            string   `json:"name"`
+	Description     string   `json:"description"`
+	Members         []string `json:"members"`          // Stakeholder IDs
+	Leads           []string `json:"leads"`            // Stakeholder IDs who are team leads
 	EscalationOrder []string `json:"escalation_order"` // Order for team escalation
-	Active       bool     `json:"active"`
+	Active          bool     `json:"active"`
 }
 
 // Role represents a functional role
@@ -392,12 +392,12 @@ type OncallSchedule struct {
 
 // Schedule represents an on-call schedule
 type Schedule struct {
-	ID          string           `json:"id"`
-	Name        string           `json:"name"`
-	TimeZone    string           `json:"timezone"`
-	Rotations   []Rotation       `json:"rotations"`
-	Overrides   []Override       `json:"overrides"`
-	Active      bool             `json:"active"`
+	ID        string     `json:"id"`
+	Name      string     `json:"name"`
+	TimeZone  string     `json:"timezone"`
+	Rotations []Rotation `json:"rotations"`
+	Overrides []Override `json:"overrides"`
+	Active    bool       `json:"active"`
 }
 
 // Rotation defines a rotation schedule
@@ -412,11 +412,11 @@ type Rotation struct {
 
 // Override represents a schedule override
 type Override struct {
-	ID           string    `json:"id"`
-	StakeholderID string   `json:"stakeholder_id"`
-	StartTime    time.Time `json:"start_time"`
-	EndTime      time.Time `json:"end_time"`
-	Reason       string    `json:"reason"`
+	ID            string    `json:"id"`
+	StakeholderID string    `json:"stakeholder_id"`
+	StartTime     time.Time `json:"start_time"`
+	EndTime       time.Time `json:"end_time"`
+	Reason        string    `json:"reason"`
 }
 
 // AutoResolver handles automatic alert resolution
@@ -440,23 +440,23 @@ type WorkflowExecutor struct {
 
 // Workflow defines an automated workflow
 type Workflow struct {
-	ID          string           `json:"id"`
-	Name        string           `json:"name"`
-	Description string           `json:"description"`
-	Steps       []WorkflowStep   `json:"steps"`
-	Timeout     time.Duration    `json:"timeout"`
-	RetryPolicy *RetryPolicy     `json:"retry_policy,omitempty"`
+	ID          string         `json:"id"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Steps       []WorkflowStep `json:"steps"`
+	Timeout     time.Duration  `json:"timeout"`
+	RetryPolicy *RetryPolicy   `json:"retry_policy,omitempty"`
 }
 
 // WorkflowStep defines a single step in a workflow
 type WorkflowStep struct {
-	ID          string            `json:"id"`
-	Type        string            `json:"type"`        // http, script, notification, condition
-	Name        string            `json:"name"`
-	Parameters  map[string]string `json:"parameters"`
-	Timeout     time.Duration     `json:"timeout"`
-	OnSuccess   string            `json:"on_success,omitempty"` // next_step, complete
-	OnFailure   string            `json:"on_failure,omitempty"` // retry, next_step, fail
+	ID         string            `json:"id"`
+	Type       string            `json:"type"` // http, script, notification, condition
+	Name       string            `json:"name"`
+	Parameters map[string]string `json:"parameters"`
+	Timeout    time.Duration     `json:"timeout"`
+	OnSuccess  string            `json:"on_success,omitempty"` // next_step, complete
+	OnFailure  string            `json:"on_failure,omitempty"` // retry, next_step, fail
 }
 
 // RetryPolicy defines retry behavior for workflows
@@ -497,65 +497,65 @@ type Ticket struct {
 
 // TicketUpdate represents an update to a ticket
 type TicketUpdate struct {
-	Status      string                 `json:"status,omitempty"`
-	Priority    string                 `json:"priority,omitempty"`
-	Assignee    string                 `json:"assignee,omitempty"`
-	Comment     string                 `json:"comment,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Status   string                 `json:"status,omitempty"`
+	Priority string                 `json:"priority,omitempty"`
+	Assignee string                 `json:"assignee,omitempty"`
+	Comment  string                 `json:"comment,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // EscalationStatistics tracks escalation performance
 type EscalationStatistics struct {
-	TotalEscalations        int64            `json:"total_escalations"`
-	EscalationsResolved     int64            `json:"escalations_resolved"`
-	EscalationsTimedOut     int64            `json:"escalations_timed_out"`
-	AutoResolutions         int64            `json:"auto_resolutions"`
-	AverageResolutionTime   time.Duration    `json:"average_resolution_time"`
-	AverageAcknowledgmentTime time.Duration  `json:"average_acknowledgment_time"`
-	EscalationsByLevel      map[int]int64    `json:"escalations_by_level"`
-	PolicyEffectiveness     map[string]float64 `json:"policy_effectiveness"`
+	TotalEscalations          int64              `json:"total_escalations"`
+	EscalationsResolved       int64              `json:"escalations_resolved"`
+	EscalationsTimedOut       int64              `json:"escalations_timed_out"`
+	AutoResolutions           int64              `json:"auto_resolutions"`
+	AverageResolutionTime     time.Duration      `json:"average_resolution_time"`
+	AverageAcknowledgmentTime time.Duration      `json:"average_acknowledgment_time"`
+	EscalationsByLevel        map[int]int64      `json:"escalations_by_level"`
+	PolicyEffectiveness       map[string]float64 `json:"policy_effectiveness"`
 }
 
 // EscalationMetrics contains Prometheus metrics
 type EscalationMetrics struct {
-	EscalationsStarted    *prometheus.CounterVec
-	EscalationsResolved   *prometheus.CounterVec
-	EscalationDuration    *prometheus.HistogramVec
-	AcknowledgmentTime    *prometheus.HistogramVec
-	NotificationsSent     *prometheus.CounterVec
-	WorkflowsExecuted     *prometheus.CounterVec
-	ActiveEscalations     prometheus.Gauge
+	EscalationsStarted  *prometheus.CounterVec
+	EscalationsResolved *prometheus.CounterVec
+	EscalationDuration  *prometheus.HistogramVec
+	AcknowledgmentTime  *prometheus.HistogramVec
+	NotificationsSent   *prometheus.CounterVec
+	WorkflowsExecuted   *prometheus.CounterVec
+	ActiveEscalations   prometheus.Gauge
 }
 
 // DefaultEscalationConfig returns production-ready escalation configuration
 func DefaultEscalationConfig() *EscalationConfig {
 	return &EscalationConfig{
 		// Core escalation settings
-		DefaultEscalationDelay:   15 * time.Minute,
-		MaxEscalationLevels:     4,
-		EscalationTimeout:       4 * time.Hour,
-		
+		DefaultEscalationDelay: 15 * time.Minute,
+		MaxEscalationLevels:    4,
+		EscalationTimeout:      4 * time.Hour,
+
 		// Auto-resolution settings
 		AutoResolutionEnabled:   true,
 		ResolutionCheckInterval: 1 * time.Minute,
 		AutoResolutionTimeout:   30 * time.Minute,
-		
+
 		// Workflow settings
 		EnableWorkflowAutomation: true,
-		WorkflowTimeout:         10 * time.Minute,
-		RetryFailedWorkflows:    true,
-		
+		WorkflowTimeout:          10 * time.Minute,
+		RetryFailedWorkflows:     true,
+
 		// Notification settings
-		EscalationNotifyDelay:   2 * time.Minute,
-		AcknowledgmentTimeout:   10 * time.Minute,
-		
+		EscalationNotifyDelay: 2 * time.Minute,
+		AcknowledgmentTimeout: 10 * time.Minute,
+
 		// Business context
 		BusinessHoursEscalation: true,
 		WeekendEscalationDelay:  30 * time.Minute,
-		
+
 		// Performance settings
 		MaxConcurrentEscalations: 50,
-		EscalationQueueSize:     100,
+		EscalationQueueSize:      100,
 	}
 }
 
@@ -564,35 +564,35 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 	if config == nil {
 		config = DefaultEscalationConfig()
 	}
-	
+
 	if logger == nil {
 		return nil, fmt.Errorf("logger is required")
 	}
-	
+
 	// Initialize metrics
 	metrics := &EscalationMetrics{
 		EscalationsStarted: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "escalation_engine_escalations_started_total",
 			Help: "Total number of escalations started",
 		}, []string{"policy", "severity", "sla_type"}),
-		
+
 		EscalationsResolved: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "escalation_engine_escalations_resolved_total",
 			Help: "Total number of escalations resolved",
 		}, []string{"policy", "level", "method"}),
-		
+
 		EscalationDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "escalation_engine_duration_seconds",
 			Help:    "Duration of escalations in seconds",
 			Buckets: prometheus.ExponentialBuckets(60, 2, 12), // 1 minute to ~68 hours
 		}, []string{"policy", "result"}),
-		
+
 		ActiveEscalations: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "escalation_engine_active_escalations",
 			Help: "Number of currently active escalations",
 		}),
 	}
-	
+
 	// Register metrics
 	prometheus.MustRegister(
 		metrics.EscalationsStarted,
@@ -600,7 +600,7 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 		metrics.EscalationDuration,
 		metrics.ActiveEscalations,
 	)
-	
+
 	ee := &EscalationEngine{
 		logger:             logger.WithComponent("escalation-engine"),
 		config:             config,
@@ -608,14 +608,14 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 		activeEscalations:  make(map[string]*ActiveEscalation),
 		escalationHistory:  make([]*EscalationEvent, 0),
 		metrics:            metrics,
-		escalationStats:    &EscalationStatistics{
+		escalationStats: &EscalationStatistics{
 			EscalationsByLevel:  make(map[int]int64),
 			PolicyEffectiveness: make(map[string]float64),
 		},
-		stopCh:             make(chan struct{}),
-		escalationQueue:    make(chan *EscalationRequest, config.EscalationQueueSize),
+		stopCh:          make(chan struct{}),
+		escalationQueue: make(chan *EscalationRequest, config.EscalationQueueSize),
 	}
-	
+
 	// Initialize sub-components
 	ee.stakeholderRegistry = &StakeholderRegistry{
 		logger:       logger.WithComponent("stakeholder-registry"),
@@ -623,12 +623,12 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 		teams:        make(map[string]*Team),
 		roles:        make(map[string]*Role),
 	}
-	
+
 	ee.oncallSchedule = &OncallSchedule{
 		logger:    logger.WithComponent("oncall-schedule"),
 		schedules: make(map[string]*Schedule),
 	}
-	
+
 	ee.autoResolver = &AutoResolver{
 		logger: logger.WithComponent("auto-resolver"),
 		config: config,
@@ -637,22 +637,22 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 			config: config,
 		},
 	}
-	
+
 	ee.workflowExecutor = &WorkflowExecutor{
 		logger:    logger.WithComponent("workflow-executor"),
 		workflows: make(map[string]*Workflow),
 	}
-	
+
 	ee.ticketingSystem = &TicketingSystem{
 		logger:    logger.WithComponent("ticketing-system"),
 		providers: make(map[string]TicketingProvider),
 	}
-	
+
 	// Load default configurations
 	ee.loadDefaultEscalationPolicies()
 	ee.loadDefaultStakeholders()
 	ee.loadDefaultWorkflows()
-	
+
 	return ee, nil
 }
 
@@ -660,32 +660,32 @@ func NewEscalationEngine(config *EscalationConfig, logger *logging.StructuredLog
 func (ee *EscalationEngine) Start(ctx context.Context) error {
 	ee.mu.Lock()
 	defer ee.mu.Unlock()
-	
+
 	if ee.started {
 		return fmt.Errorf("escalation engine already started")
 	}
-	
+
 	ee.logger.InfoWithContext("Starting escalation engine",
 		"max_escalation_levels", ee.config.MaxEscalationLevels,
 		"default_delay", ee.config.DefaultEscalationDelay,
 		"auto_resolution_enabled", ee.config.AutoResolutionEnabled,
 	)
-	
+
 	// Start processing workers
 	for i := 0; i < 3; i++ { // Start 3 escalation workers
 		go ee.escalationWorker(ctx, i)
 	}
-	
+
 	// Start background processes
 	go ee.escalationMonitor(ctx)
 	if ee.config.AutoResolutionEnabled {
 		go ee.autoResolutionMonitor(ctx)
 	}
 	go ee.metricsUpdateLoop(ctx)
-	
+
 	ee.started = true
 	ee.logger.InfoWithContext("Escalation engine started successfully")
-	
+
 	return nil
 }
 
@@ -693,18 +693,18 @@ func (ee *EscalationEngine) Start(ctx context.Context) error {
 func (ee *EscalationEngine) Stop(ctx context.Context) error {
 	ee.mu.Lock()
 	defer ee.mu.Unlock()
-	
+
 	if !ee.started {
 		return nil
 	}
-	
+
 	ee.logger.InfoWithContext("Stopping escalation engine")
 	close(ee.stopCh)
 	close(ee.escalationQueue)
-	
+
 	ee.started = false
 	ee.logger.InfoWithContext("Escalation engine stopped")
-	
+
 	return nil
 }
 
@@ -714,13 +714,13 @@ func (ee *EscalationEngine) StartEscalation(ctx context.Context, alert *SLAAlert
 		Alert:    alert,
 		Priority: ee.calculateAlertPriority(alert),
 	}
-	
+
 	// Find appropriate escalation policy
 	policy := ee.findEscalationPolicy(alert)
 	if policy != nil {
 		request.PolicyID = policy.ID
 	}
-	
+
 	select {
 	case ee.escalationQueue <- request:
 		return nil
@@ -736,7 +736,7 @@ func (ee *EscalationEngine) escalationWorker(ctx context.Context, workerID int) 
 	ee.logger.DebugWithContext("Starting escalation worker",
 		slog.Int("worker_id", workerID),
 	)
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -747,7 +747,7 @@ func (ee *EscalationEngine) escalationWorker(ctx context.Context, workerID int) 
 			if !ok {
 				return
 			}
-			
+
 			ee.processEscalationRequest(ctx, request, workerID)
 		}
 	}
@@ -761,7 +761,7 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 		slog.Int("priority", request.Priority),
 		slog.Int("worker_id", workerID),
 	)
-	
+
 	// Create active escalation
 	escalation := &ActiveEscalation{
 		ID:           fmt.Sprintf("esc-%s-%d", request.Alert.ID, time.Now().Unix()),
@@ -774,17 +774,17 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 		BusinessImpact: BusinessImpactScore{
 			OverallScore: ee.calculateBusinessImpact(request.Alert),
 		},
-		Notifications:     make([]NotificationRecord, 0),
-		Acknowledgments:   make([]Acknowledgment, 0),
-		ExecutedWorkflows: make([]WorkflowExecution, 0),
+		Notifications:      make([]NotificationRecord, 0),
+		Acknowledgments:    make([]Acknowledgment, 0),
+		ExecutedWorkflows:  make([]WorkflowExecution, 0),
 		ResolutionAttempts: make([]ResolutionAttempt, 0),
 	}
-	
+
 	// Store active escalation
 	ee.mu.Lock()
 	ee.activeEscalations[escalation.ID] = escalation
 	ee.mu.Unlock()
-	
+
 	// Update metrics
 	policy := ee.escalationPolicies[request.PolicyID]
 	if policy != nil {
@@ -796,7 +796,7 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 	}
 	ee.metrics.ActiveEscalations.Inc()
 	ee.escalationStats.TotalEscalations++
-	
+
 	// Record escalation event
 	ee.recordEscalationEvent(&EscalationEvent{
 		ID:           fmt.Sprintf("event-%d", time.Now().UnixNano()),
@@ -810,7 +810,7 @@ func (ee *EscalationEngine) processEscalationRequest(ctx context.Context, reques
 			"priority":  request.Priority,
 		},
 	})
-	
+
 	// Start escalation process
 	ee.executeEscalationLevel(ctx, escalation, 0)
 }
@@ -826,41 +826,41 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 		)
 		return
 	}
-	
+
 	levelConfig := policy.Levels[level]
 	escalation.CurrentLevel = level
-	
+
 	ee.logger.InfoWithContext("Executing escalation level",
 		slog.String("escalation_id", escalation.ID),
 		slog.Int("level", level),
 		slog.String("level_name", levelConfig.Name),
 	)
-	
+
 	// Apply level delay if specified
 	if level > 0 && levelConfig.Delay > 0 {
 		time.Sleep(levelConfig.Delay)
 	}
-	
+
 	// Execute level actions
 	for _, action := range levelConfig.Actions {
 		ee.executeEscalationAction(ctx, escalation, action, level)
 	}
-	
+
 	// Notify stakeholders
 	for _, stakeholder := range levelConfig.Stakeholders {
 		ee.notifyStakeholder(ctx, escalation, stakeholder, level)
 	}
-	
+
 	// Schedule next escalation level if conditions are met
 	ee.scheduleNextEscalation(ctx, escalation, levelConfig)
-	
+
 	// Update escalation statistics
 	ee.escalationStats.EscalationsByLevel[level]++
 }
 
 // Additional methods would include:
 // - executeEscalationAction: Execute specific escalation actions
-// - notifyStakeholder: Send notifications to stakeholders  
+// - notifyStakeholder: Send notifications to stakeholders
 // - scheduleNextEscalation: Schedule next level based on rules
 // - escalationMonitor: Monitor active escalations for progression
 // - autoResolutionMonitor: Check for automatic resolution conditions
@@ -888,7 +888,7 @@ func (ee *EscalationEngine) loadDefaultWorkflows() {
 func (ee *EscalationEngine) calculateAlertPriority(alert *SLAAlert) int {
 	// Calculate priority based on severity, business impact, and SLA type
 	basePriority := 1
-	
+
 	switch alert.Severity {
 	case AlertSeverityUrgent:
 		basePriority = 5
@@ -901,12 +901,12 @@ func (ee *EscalationEngine) calculateAlertPriority(alert *SLAAlert) int {
 	default:
 		basePriority = 1
 	}
-	
+
 	// Adjust for business impact
 	if alert.BusinessImpact.CustomerFacing {
 		basePriority++
 	}
-	
+
 	return basePriority
 }
 
@@ -918,12 +918,12 @@ func (ee *EscalationEngine) findEscalationPolicy(alert *SLAAlert) *EscalationPol
 			return policy
 		}
 	}
-	
+
 	// Return default policy if no specific match
 	if defaultPolicy, exists := ee.escalationPolicies["default"]; exists {
 		return defaultPolicy
 	}
-	
+
 	return nil
 }
 
@@ -936,7 +936,7 @@ func (ee *EscalationEngine) evaluatePolicyTriggers(alert *SLAAlert, triggers []E
 func (ee *EscalationEngine) calculateBusinessImpact(alert *SLAAlert) float64 {
 	// Calculate business impact score based on alert characteristics
 	impact := 0.0
-	
+
 	// Base impact by SLA type
 	switch alert.SLAType {
 	case SLATypeAvailability:
@@ -948,7 +948,7 @@ func (ee *EscalationEngine) calculateBusinessImpact(alert *SLAAlert) float64 {
 	case SLAErrorRate:
 		impact += 0.5
 	}
-	
+
 	// Severity multiplier
 	switch alert.Severity {
 	case AlertSeverityUrgent:
@@ -958,21 +958,21 @@ func (ee *EscalationEngine) calculateBusinessImpact(alert *SLAAlert) float64 {
 	case AlertSeverityMajor:
 		impact *= 1.2
 	}
-	
+
 	// Business context adjustments
 	if alert.BusinessImpact.CustomerFacing {
 		impact *= 1.3
 	}
-	
+
 	return math.Min(impact, 1.0)
 }
 
 func (ee *EscalationEngine) recordEscalationEvent(event *EscalationEvent) {
 	ee.mu.Lock()
 	defer ee.mu.Unlock()
-	
+
 	ee.escalationHistory = append(ee.escalationHistory, event)
-	
+
 	// Keep only recent history to prevent memory bloat
 	if len(ee.escalationHistory) > 10000 {
 		ee.escalationHistory = ee.escalationHistory[1000:]

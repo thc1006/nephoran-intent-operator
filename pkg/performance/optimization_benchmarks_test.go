@@ -18,14 +18,14 @@ import (
 
 // Benchmark results structure for reporting
 type BenchmarkComparison struct {
-	Name           string
-	BeforeNsOp     int64
-	AfterNsOp      int64
-	BeforeAllocOp  int64
-	AfterAllocOp   int64
-	BeforeBytesOp  int64
-	AfterBytesOp   int64
-	SpeedupFactor  float64
+	Name            string
+	BeforeNsOp      int64
+	AfterNsOp       int64
+	BeforeAllocOp   int64
+	AfterAllocOp    int64
+	BeforeBytesOp   int64
+	AfterBytesOp    int64
+	SpeedupFactor   float64
 	MemoryReduction float64
 }
 
@@ -100,7 +100,7 @@ func BenchmarkLLMPipeline_ResponseCaching_Before(b *testing.B) {
 	}
 
 	intents := []string{"deploy_amf", "scale_smf", "update_upf", "deploy_amf", "scale_smf"}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		intent := intents[i%len(intents)]
@@ -112,7 +112,7 @@ func BenchmarkLLMPipeline_ResponseCaching_Before(b *testing.B) {
 func BenchmarkLLMPipeline_ResponseCaching_After(b *testing.B) {
 	cache := make(map[string]string)
 	var mu sync.RWMutex
-	
+
 	processIntent := func(intent string) (string, error) {
 		mu.RLock()
 		if cached, ok := cache[intent]; ok {
@@ -120,20 +120,20 @@ func BenchmarkLLMPipeline_ResponseCaching_After(b *testing.B) {
 			return cached, nil
 		}
 		mu.RUnlock()
-		
+
 		// Simulate LLM processing
 		time.Sleep(5 * time.Millisecond)
 		result := fmt.Sprintf("processed_%s", intent)
-		
+
 		mu.Lock()
 		cache[intent] = result
 		mu.Unlock()
-		
+
 		return result, nil
 	}
 
 	intents := []string{"deploy_amf", "scale_smf", "update_upf", "deploy_amf", "scale_smf"}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		intent := intents[i%len(intents)]
@@ -168,11 +168,11 @@ func BenchmarkLLMPipeline_Goroutines_After(b *testing.B) {
 	processBatch := func(items []string) []string {
 		results := make([]string, len(items))
 		var wg sync.WaitGroup
-		
+
 		// Process in parallel with worker pool
 		workers := 10
 		itemChan := make(chan int, len(items))
-		
+
 		for w := 0; w < workers; w++ {
 			wg.Add(1)
 			go func() {
@@ -183,13 +183,13 @@ func BenchmarkLLMPipeline_Goroutines_After(b *testing.B) {
 				}
 			}()
 		}
-		
+
 		for i := range items {
 			itemChan <- i
 		}
 		close(itemChan)
 		wg.Wait()
-		
+
 		return results
 	}
 
@@ -216,7 +216,7 @@ func BenchmarkWeaviate_BatchSearch_Before(b *testing.B) {
 	}
 
 	queries := []string{"query1", "query2", "query3", "query4", "query5"}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, query := range queries {
@@ -237,7 +237,7 @@ func BenchmarkWeaviate_BatchSearch_After(b *testing.B) {
 	}
 
 	queries := []string{"query1", "query2", "query3", "query4", "query5"}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _ = batchSearch(queries)
@@ -266,7 +266,7 @@ func BenchmarkWeaviate_HNSW_Before(b *testing.B) {
 			}
 			distances[i] = sum
 		}
-		
+
 		// Find k nearest (simplified)
 		results := make([]int, k)
 		for i := range results {
@@ -292,7 +292,7 @@ func BenchmarkWeaviate_HNSW_After(b *testing.B) {
 	index := &HNSWIndex{
 		layers: make([]map[int][]int, 3), // 3 layers
 	}
-	
+
 	// Build simplified index
 	for i := range index.layers {
 		index.layers[i] = make(map[int][]int)
@@ -306,7 +306,7 @@ func BenchmarkWeaviate_HNSW_After(b *testing.B) {
 		// HNSW search: navigate through layers
 		visited := make(map[int]bool)
 		candidates := []int{0} // Start from entry point
-		
+
 		// Search through layers (simplified)
 		for layer := len(index.layers) - 1; layer >= 0; layer-- {
 			newCandidates := []int{}
@@ -320,13 +320,13 @@ func BenchmarkWeaviate_HNSW_After(b *testing.B) {
 				}
 			}
 			candidates = newCandidates
-			
+
 			// Limit candidates
 			if len(candidates) > k*2 {
 				candidates = candidates[:k*2]
 			}
 		}
-		
+
 		// Return top k
 		if len(candidates) > k {
 			candidates = candidates[:k]
@@ -353,11 +353,11 @@ func BenchmarkWeaviate_Serialization_Before(b *testing.B) {
 		ID:     "doc1",
 		Vector: make([]float32, 768),
 		Properties: map[string]interface{}{
-			"title":       "Test Document",
-			"content":     "This is a test document with some content",
-			"metadata":    map[string]string{"key": "value"},
-			"score":       0.95,
-			"tags":        []string{"tag1", "tag2", "tag3"},
+			"title":    "Test Document",
+			"content":  "This is a test document with some content",
+			"metadata": map[string]string{"key": "value"},
+			"score":    0.95,
+			"tags":     []string{"tag1", "tag2", "tag3"},
 		},
 	}
 
@@ -415,7 +415,7 @@ func BenchmarkController_RequeueFrequency_Before(b *testing.B) {
 	}
 
 	queue := make(chan WorkItem, 1000)
-	
+
 	// Producer with aggressive requeue
 	go func() {
 		for i := 0; i < b.N; i++ {
@@ -447,12 +447,12 @@ func BenchmarkController_RequeueFrequency_After(b *testing.B) {
 	queue := make(chan WorkItem, 1000)
 	dedupMap := make(map[string]time.Time)
 	var mu sync.Mutex
-	
+
 	// Producer with deduplication and backoff
 	go func() {
 		for i := 0; i < b.N; i++ {
 			key := fmt.Sprintf("item_%d", i%100) // Simulate duplicate keys
-			
+
 			mu.Lock()
 			if lastTime, exists := dedupMap[key]; exists {
 				if time.Since(lastTime) < time.Millisecond {
@@ -462,7 +462,7 @@ func BenchmarkController_RequeueFrequency_After(b *testing.B) {
 			}
 			dedupMap[key] = time.Now()
 			mu.Unlock()
-			
+
 			queue <- WorkItem{
 				Key:       key,
 				Timestamp: time.Now(),
@@ -597,18 +597,18 @@ func BenchmarkE2E_IntentProcessing_Before(b *testing.B) {
 	processIntent := func(intent string) error {
 		// 1. Parse intent (no caching)
 		time.Sleep(5 * time.Millisecond)
-		
+
 		// 2. Query RAG (individual queries)
 		for i := 0; i < 3; i++ {
 			time.Sleep(2 * time.Millisecond)
 		}
-		
+
 		// 3. Generate deployment (no optimization)
 		time.Sleep(10 * time.Millisecond)
-		
+
 		// 4. Update status (immediate)
 		time.Sleep(1 * time.Millisecond)
-		
+
 		return nil
 	}
 
@@ -646,7 +646,7 @@ func BenchmarkE2E_IntentProcessing_After(b *testing.B) {
 			parseCache[intent] = struct{}{}
 			mu.Unlock()
 		}
-		
+
 		// 2. Query RAG (batch queries with cache)
 		mu.RLock()
 		if _, cached := ragCache[intent]; cached {
@@ -659,10 +659,10 @@ func BenchmarkE2E_IntentProcessing_After(b *testing.B) {
 			ragCache[intent] = []string{"result1", "result2", "result3"}
 			mu.Unlock()
 		}
-		
+
 		// 3. Generate deployment (optimized)
 		time.Sleep(7 * time.Millisecond) // Faster with optimizations
-		
+
 		// 4. Batch status update
 		mu.Lock()
 		statusBatch = append(statusBatch, intent)
@@ -672,7 +672,7 @@ func BenchmarkE2E_IntentProcessing_After(b *testing.B) {
 			statusBatch = statusBatch[:0]
 		}
 		mu.Unlock()
-		
+
 		return nil
 	}
 
@@ -801,20 +801,20 @@ func TestGenerateBenchmarkReport(t *testing.T) {
 	for _, bm := range benchmarks {
 		// Run before benchmark
 		beforeResult := testing.Benchmark(bm.before)
-		
+
 		// Run after benchmark
 		afterResult := testing.Benchmark(bm.after)
-		
+
 		speedup := float64(beforeResult.NsPerOp()) / float64(afterResult.NsPerOp())
 		improvement := (1 - 1/speedup) * 100
-		
+
 		fmt.Printf("%-30s %15d %15d %11.2fx %11.1f%%\n",
 			bm.name,
 			beforeResult.NsPerOp(),
 			afterResult.NsPerOp(),
 			speedup,
 			improvement)
-		
+
 		totalSpeedup += speedup
 		count++
 	}
@@ -853,7 +853,7 @@ func TestGenerateBenchmarkReport(t *testing.T) {
 	for _, bm := range memBenchmarks {
 		beforeResult := testing.Benchmark(bm.before)
 		afterResult := testing.Benchmark(bm.after)
-		
+
 		fmt.Printf("%-30s %15d %15d %15d %15d\n",
 			bm.name,
 			beforeResult.AllocsPerOp(),
@@ -864,21 +864,21 @@ func TestGenerateBenchmarkReport(t *testing.T) {
 
 	// Performance targets validation
 	fmt.Println("\n=== PERFORMANCE TARGETS VALIDATION ===\n")
-	
+
 	// Simulate latency measurements
 	p99LatencyBefore := 45 * time.Second
 	p99LatencyAfter := 28 * time.Second
 	latencyReduction := (1 - float64(p99LatencyAfter)/float64(p99LatencyBefore)) * 100
-	
+
 	cpuBefore := 85.0 // percentage
 	cpuAfter := 55.0  // percentage
 	cpuReduction := (1 - cpuAfter/cpuBefore) * 100
-	
+
 	fmt.Printf("99th Percentile Latency: %.0fs → %.0fs (%.1f%% reduction) ✓\n",
 		p99LatencyBefore.Seconds(), p99LatencyAfter.Seconds(), latencyReduction)
 	fmt.Printf("CPU Usage (8-core cluster): %.0f%% → %.0f%% (%.1f%% reduction) ✓\n",
 		cpuBefore, cpuAfter, cpuReduction)
-	
+
 	fmt.Println("\n✓ Target achieved: ≥30% drop in 99th percentile intent latency")
 	fmt.Println("✓ Target achieved: ≤60% CPU on 8-core test cluster")
 }
@@ -889,22 +889,22 @@ func TestGenerateBenchmarkReport(t *testing.T) {
 
 func runBenchmarkWithStats(b *testing.B, name string, fn func()) BenchmarkResult {
 	start := time.Now()
-	
+
 	// Collect initial memory stats
 	var memStatsBefore runtime.MemStats
 	runtime.ReadMemStats(&memStatsBefore)
-	
+
 	// Run benchmark
 	for i := 0; i < b.N; i++ {
 		fn()
 	}
-	
+
 	// Collect final memory stats
 	var memStatsAfter runtime.MemStats
 	runtime.ReadMemStats(&memStatsAfter)
-	
+
 	duration := time.Since(start)
-	
+
 	return BenchmarkResult{
 		Name:          name,
 		Duration:      duration,
@@ -917,7 +917,7 @@ func runBenchmarkWithStats(b *testing.B, name string, fn func()) BenchmarkResult
 // generatePrometheusMetrics exports benchmark results to Prometheus
 func generatePrometheusMetrics() {
 	registry := prometheus.NewRegistry()
-	
+
 	// Create metrics
 	benchmarkDuration := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -926,7 +926,7 @@ func generatePrometheusMetrics() {
 		},
 		[]string{"benchmark", "variant"},
 	)
-	
+
 	benchmarkSpeedup := prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "benchmark_speedup_factor",
@@ -934,9 +934,9 @@ func generatePrometheusMetrics() {
 		},
 		[]string{"benchmark"},
 	)
-	
+
 	registry.MustRegister(benchmarkDuration, benchmarkSpeedup)
-	
+
 	// Populate metrics with results
 	for _, result := range benchmarkResults {
 		benchmarkDuration.WithLabelValues(result.Name, "before").Set(float64(result.BeforeNsOp))

@@ -14,18 +14,18 @@ import (
 
 // MemoryPoolManager provides advanced memory management with Go 1.24+ optimizations
 type MemoryPoolManager struct {
-	objectPools   map[string]*ObjectPool
-	ringBuffers   map[string]*RingBuffer
-	memStats     *MemoryStats
-	gcOptimizer  *GCOptimizer
-	mmapManager  *MemoryMapManager
-	mu           sync.RWMutex
-	config       *MemoryConfig
+	objectPools map[string]*ObjectPool
+	ringBuffers map[string]*RingBuffer
+	memStats    *MemoryStats
+	gcOptimizer *GCOptimizer
+	mmapManager *MemoryMapManager
+	mu          sync.RWMutex
+	config      *MemoryConfig
 }
 
 // MemoryConfig contains memory optimization configuration
 type MemoryConfig struct {
-	EnableObjectPooling   bool
+	EnableObjectPooling  bool
 	EnableRingBuffers    bool
 	EnableGCOptimization bool
 	EnableMemoryMapping  bool
@@ -51,48 +51,48 @@ type ObjectPool[T any] struct {
 
 // RingBuffer provides lock-free ring buffer implementation
 type RingBuffer struct {
-	buffer    []unsafe.Pointer
-	head      int64
-	tail      int64
-	mask      int64
-	size      int64
-	reads     int64
-	writes    int64
+	buffer     []unsafe.Pointer
+	head       int64
+	tail       int64
+	mask       int64
+	size       int64
+	reads      int64
+	writes     int64
 	contention int64
 }
 
 // MemoryStats tracks memory usage and performance metrics
 type MemoryStats struct {
-	Allocations       int64
-	Deallocations     int64
-	TotalAllocated    int64
-	TotalFreed        int64
-	HeapSize          int64
-	GCCount           int64
-	GCPauseTime       int64 // in nanoseconds
-	PoolHitRate       float64
+	Allocations           int64
+	Deallocations         int64
+	TotalAllocated        int64
+	TotalFreed            int64
+	HeapSize              int64
+	GCCount               int64
+	GCPauseTime           int64 // in nanoseconds
+	PoolHitRate           float64
 	RingBufferUtilization float64
-	MemoryMapUsage    int64
-	lastGCStats       runtime.MemStats
-	mu               sync.RWMutex
+	MemoryMapUsage        int64
+	lastGCStats           runtime.MemStats
+	mu                    sync.RWMutex
 }
 
 // GCOptimizer manages garbage collection optimization
 type GCOptimizer struct {
-	baseGCPercent    int
+	baseGCPercent     int
 	dynamicAdjustment bool
-	lastGCTime       time.Time
-	gcMetrics        []GCMetrics
-	optimizationMode OptimizationMode
-	mu              sync.RWMutex
+	lastGCTime        time.Time
+	gcMetrics         []GCMetrics
+	optimizationMode  OptimizationMode
+	mu                sync.RWMutex
 }
 
 // GCMetrics contains garbage collection performance data
 type GCMetrics struct {
-	Timestamp    time.Time
-	PauseTime    time.Duration
-	HeapSize     uint64
-	GCPercent    int
+	Timestamp     time.Time
+	PauseTime     time.Duration
+	HeapSize      uint64
+	GCPercent     int
 	NumGoroutines int
 }
 
@@ -115,10 +115,10 @@ type MemoryMapManager struct {
 
 // MemoryMapping represents a memory-mapped file
 type MemoryMapping struct {
-	data      []byte
-	size      int64
-	filePath  string
-	refCount  int32
+	data       []byte
+	size       int64
+	filePath   string
+	refCount   int32
 	lastAccess time.Time
 	readOnly   bool
 }
@@ -130,8 +130,8 @@ func NewMemoryPoolManager(config *MemoryConfig) *MemoryPoolManager {
 	}
 
 	mpm := &MemoryPoolManager{
-		objectPools:  make(map[string]*ObjectPool),
-		ringBuffers:  make(map[string]*RingBuffer),
+		objectPools: make(map[string]*ObjectPool),
+		ringBuffers: make(map[string]*RingBuffer),
 		memStats:    &MemoryStats{},
 		gcOptimizer: NewGCOptimizer(config.GCTargetPercent),
 		mmapManager: NewMemoryMapManager(),
@@ -152,7 +152,7 @@ func NewMemoryPoolManager(config *MemoryConfig) *MemoryPoolManager {
 // DefaultMemoryConfig returns default memory configuration
 func DefaultMemoryConfig() *MemoryConfig {
 	return &MemoryConfig{
-		EnableObjectPooling:   true,
+		EnableObjectPooling:  true,
 		EnableRingBuffers:    true,
 		EnableGCOptimization: true,
 		EnableMemoryMapping:  true,
@@ -213,12 +213,12 @@ func (p *ObjectPool[T]) GetStats() PoolStats {
 	}
 
 	return PoolStats{
-		Name:     p.name,
-		Gets:     getCount,
-		Puts:     putCount,
-		Hits:     hitCount,
-		Misses:   missCount,
-		HitRate:  hitRate,
+		Name:    p.name,
+		Gets:    getCount,
+		Puts:    putCount,
+		Hits:    hitCount,
+		Misses:  missCount,
+		HitRate: hitRate,
 	}
 }
 
@@ -329,11 +329,11 @@ type RingBufferStats struct {
 // NewGCOptimizer creates a new GC optimizer
 func NewGCOptimizer(initialGCPercent int) *GCOptimizer {
 	return &GCOptimizer{
-		baseGCPercent:    initialGCPercent,
+		baseGCPercent:     initialGCPercent,
 		dynamicAdjustment: true,
-		lastGCTime:       time.Now(),
-		gcMetrics:        make([]GCMetrics, 0, 100),
-		optimizationMode: OptimizationBalanced,
+		lastGCTime:        time.Now(),
+		gcMetrics:         make([]GCMetrics, 0, 100),
+		optimizationMode:  OptimizationBalanced,
 	}
 }
 
@@ -568,13 +568,13 @@ func (mpm *MemoryPoolManager) GetMemoryStats() MemoryStats {
 		Allocations:           atomic.LoadInt64(&mpm.memStats.Allocations),
 		Deallocations:         atomic.LoadInt64(&mpm.memStats.Deallocations),
 		TotalAllocated:        atomic.LoadInt64(&mpm.memStats.TotalAllocated),
-		TotalFreed:           atomic.LoadInt64(&mpm.memStats.TotalFreed),
-		HeapSize:             atomic.LoadInt64(&mpm.memStats.HeapSize),
-		GCCount:              atomic.LoadInt64(&mpm.memStats.GCCount),
-		GCPauseTime:          atomic.LoadInt64(&mpm.memStats.GCPauseTime),
-		PoolHitRate:          mpm.memStats.PoolHitRate,
+		TotalFreed:            atomic.LoadInt64(&mpm.memStats.TotalFreed),
+		HeapSize:              atomic.LoadInt64(&mpm.memStats.HeapSize),
+		GCCount:               atomic.LoadInt64(&mpm.memStats.GCCount),
+		GCPauseTime:           atomic.LoadInt64(&mpm.memStats.GCPauseTime),
+		PoolHitRate:           mpm.memStats.PoolHitRate,
 		RingBufferUtilization: mpm.memStats.RingBufferUtilization,
-		MemoryMapUsage:       atomic.LoadInt64(&mpm.mmapManager.totalMapped),
+		MemoryMapUsage:        atomic.LoadInt64(&mpm.mmapManager.totalMapped),
 	}
 }
 

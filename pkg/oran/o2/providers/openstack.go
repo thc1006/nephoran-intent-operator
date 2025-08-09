@@ -29,25 +29,25 @@ const (
 
 // OpenStackProvider implements CloudProvider for OpenStack clouds
 type OpenStackProvider struct {
-	name          string
-	config        *ProviderConfiguration
-	authClient    *gophercloud.ProviderClient
-	computeClient *gophercloud.ServiceClient
-	networkClient *gophercloud.ServiceClient
-	storageClient *gophercloud.ServiceClient
-	heatClient    *gophercloud.ServiceClient
+	name           string
+	config         *ProviderConfiguration
+	authClient     *gophercloud.ProviderClient
+	computeClient  *gophercloud.ServiceClient
+	networkClient  *gophercloud.ServiceClient
+	storageClient  *gophercloud.ServiceClient
+	heatClient     *gophercloud.ServiceClient
 	identityClient *gophercloud.ServiceClient
-	connected     bool
-	eventCallback EventCallback
-	stopChannel   chan struct{}
-	mutex         sync.RWMutex
-	
+	connected      bool
+	eventCallback  EventCallback
+	stopChannel    chan struct{}
+	mutex          sync.RWMutex
+
 	// Cache for frequently accessed data
-	flavorCache   map[string]*flavors.Flavor
-	imageCache    map[string]*images.Image
-	networkCache  map[string]*networks.Network
-	cacheMutex    sync.RWMutex
-	cacheExpiry   time.Time
+	flavorCache  map[string]*flavors.Flavor
+	imageCache   map[string]*images.Image
+	networkCache map[string]*networks.Network
+	cacheMutex   sync.RWMutex
+	cacheExpiry  time.Time
 }
 
 // NewOpenStackProvider creates a new OpenStack provider instance
@@ -61,11 +61,11 @@ func NewOpenStackProvider(config *ProviderConfiguration) (CloudProvider, error) 
 	}
 
 	provider := &OpenStackProvider{
-		name:        config.Name,
-		config:      config,
-		stopChannel: make(chan struct{}),
-		flavorCache: make(map[string]*flavors.Flavor),
-		imageCache:  make(map[string]*images.Image),
+		name:         config.Name,
+		config:       config,
+		stopChannel:  make(chan struct{}),
+		flavorCache:  make(map[string]*flavors.Flavor),
+		imageCache:   make(map[string]*images.Image),
 		networkCache: make(map[string]*networks.Network),
 	}
 
@@ -97,21 +97,21 @@ func (o *OpenStackProvider) GetProviderInfo() *ProviderInfo {
 // GetSupportedResourceTypes returns the resource types supported by OpenStack
 func (o *OpenStackProvider) GetSupportedResourceTypes() []string {
 	return []string{
-		"server",          // Compute instances
-		"flavor",          // Instance types
-		"image",           // VM images
-		"volume",          // Block storage
-		"network",         // Virtual networks
-		"subnet",          // Network subnets
-		"port",            // Network ports
-		"router",          // Network routers
-		"floatingip",      // Floating IPs
-		"securitygroup",   // Security groups
-		"keypair",         // SSH key pairs
-		"stack",           // Heat stacks
-		"loadbalancer",    // Load balancers
-		"project",         // Tenants/Projects
-		"quota",           // Resource quotas
+		"server",        // Compute instances
+		"flavor",        // Instance types
+		"image",         // VM images
+		"volume",        // Block storage
+		"network",       // Virtual networks
+		"subnet",        // Network subnets
+		"port",          // Network ports
+		"router",        // Network routers
+		"floatingip",    // Floating IPs
+		"securitygroup", // Security groups
+		"keypair",       // SSH key pairs
+		"stack",         // Heat stacks
+		"loadbalancer",  // Load balancers
+		"project",       // Tenants/Projects
+		"quota",         // Resource quotas
 	}
 }
 
@@ -123,12 +123,12 @@ func (o *OpenStackProvider) GetCapabilities() *ProviderCapabilities {
 		NetworkTypes:     []string{"network", "subnet", "port", "router", "floatingip", "securitygroup"},
 		AcceleratorTypes: []string{"gpu", "fpga", "sriov"},
 
-		AutoScaling:     true,  // Via Heat
-		LoadBalancing:   true,  // Via Octavia
-		Monitoring:      true,  // Via Ceilometer/Gnocchi
-		Logging:         true,  // Via Monasca
-		Networking:      true,  // Neutron
-		StorageClasses:  true,  // Volume types
+		AutoScaling:    true, // Via Heat
+		LoadBalancing:  true, // Via Octavia
+		Monitoring:     true, // Via Ceilometer/Gnocchi
+		Logging:        true, // Via Monasca
+		Networking:     true, // Neutron
+		StorageClasses: true, // Volume types
 
 		HorizontalPodAutoscaling: false, // Not applicable
 		VerticalPodAutoscaling:   false, // Not applicable
@@ -137,12 +137,12 @@ func (o *OpenStackProvider) GetCapabilities() *ProviderCapabilities {
 		Namespaces:      false, // Projects instead
 		ResourceQuotas:  true,  // Nova/Neutron quotas
 		NetworkPolicies: true,  // Security groups
-		RBAC:           true,  // Keystone RBAC
+		RBAC:            true,  // Keystone RBAC
 
-		MultiZone:        true,  // Availability zones
-		MultiRegion:      true,  // Multiple regions
-		BackupRestore:    true,  // Volume backups
-		DisasterRecovery: true,  // Via replication
+		MultiZone:        true, // Availability zones
+		MultiRegion:      true, // Multiple regions
+		BackupRestore:    true, // Volume backups
+		DisasterRecovery: true, // Via replication
 
 		Encryption:       true,  // Volume encryption
 		SecretManagement: true,  // Barbican
@@ -476,11 +476,11 @@ func (o *OpenStackProvider) Deploy(ctx context.Context, req *DeploymentRequest) 
 
 	// Create Heat stack from template
 	createOpts := stacks.CreateOpts{
-		Name:         req.Name,
-		Template:     req.Template,
-		Parameters:   req.Parameters,
-		Tags:         convertLabelsToTags(req.Labels),
-		Timeout:      int(req.Timeout.Minutes()),
+		Name:       req.Name,
+		Template:   req.Template,
+		Parameters: req.Parameters,
+		Tags:       convertLabelsToTags(req.Labels),
+		Timeout:    int(req.Timeout.Minutes()),
 	}
 
 	result := stacks.Create(o.heatClient, createOpts)

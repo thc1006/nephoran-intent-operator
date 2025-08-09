@@ -41,39 +41,39 @@ func TestBuildTLSConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tlsConfig, err := BuildTLSConfig(tt.config)
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("expected error but got none")
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Errorf("unexpected error: %v", err)
 				return
 			}
-			
+
 			if tlsConfig == nil {
 				t.Error("expected TLS config but got nil")
 				return
 			}
-			
+
 			// Verify minimum TLS requirements
 			if tlsConfig.MinVersion != tls.VersionTLS12 {
 				t.Errorf("expected MinVersion TLS 1.2, got %v", tlsConfig.MinVersion)
 			}
-			
+
 			if !tlsConfig.PreferServerCipherSuites {
 				t.Error("expected PreferServerCipherSuites to be true")
 			}
-			
+
 			if len(tlsConfig.CipherSuites) == 0 {
 				t.Error("expected cipher suites to be configured")
 			}
-			
+
 			if tt.config != nil && tlsConfig.InsecureSkipVerify != tt.config.SkipVerify {
-				t.Errorf("expected InsecureSkipVerify %v, got %v", 
+				t.Errorf("expected InsecureSkipVerify %v, got %v",
 					tt.config.SkipVerify, tlsConfig.InsecureSkipVerify)
 			}
 		})
@@ -122,7 +122,7 @@ func TestValidateTLSConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateTLSConfig(tt.config)
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("expected error but got none")
@@ -229,7 +229,7 @@ MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDTest
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateTLSConfig(tt.config)
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Errorf("expected error but got none")

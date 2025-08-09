@@ -50,19 +50,19 @@ const (
 	DefaultMaxConcurrency = 50
 
 	// Blueprint metadata annotations
-	AnnotationBlueprintVersion    = "nephoran.com/blueprint-version"
-	AnnotationBlueprintType       = "nephoran.com/blueprint-type"
-	AnnotationBlueprintComponent  = "nephoran.com/blueprint-component"
-	AnnotationBlueprintGenerated  = "nephoran.com/blueprint-generated"
-	AnnotationIntentID            = "nephoran.com/intent-id"
-	AnnotationORANCompliant       = "nephoran.com/oran-compliant"
+	AnnotationBlueprintVersion   = "nephoran.com/blueprint-version"
+	AnnotationBlueprintType      = "nephoran.com/blueprint-type"
+	AnnotationBlueprintComponent = "nephoran.com/blueprint-component"
+	AnnotationBlueprintGenerated = "nephoran.com/blueprint-generated"
+	AnnotationIntentID           = "nephoran.com/intent-id"
+	AnnotationORANCompliant      = "nephoran.com/oran-compliant"
 )
 
 // PackageRevision represents a simplified Nephio package revision
 type PackageRevision struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	
+
 	Spec PackageRevisionSpec `json:"spec,omitempty"`
 }
 
@@ -79,7 +79,7 @@ type WorkspaceName struct {
 }
 
 type Task struct {
-	Type string          `json:"type"`
+	Type string               `json:"type"`
 	Init *PackageInitTaskSpec `json:"init,omitempty"`
 }
 
@@ -99,9 +99,9 @@ type BlueprintMetrics struct {
 	GenerationErrors   prometheus.Counter
 
 	// Template metrics
-	TemplateHits    prometheus.Counter
-	TemplateMisses  prometheus.Counter
-	TemplateErrors  prometheus.Counter
+	TemplateHits   prometheus.Counter
+	TemplateMisses prometheus.Counter
+	TemplateErrors prometheus.Counter
 
 	// Validation metrics
 	ValidationDuration prometheus.Histogram
@@ -265,17 +265,17 @@ type ValidationResult struct {
 // Manager handles blueprint lifecycle operations and orchestration
 type Manager struct {
 	// Core dependencies
-	client     client.Client
-	k8sClient  kubernetes.Interface
-	config     *BlueprintConfig
-	logger     *zap.Logger
-	metrics    *BlueprintMetrics
+	client    client.Client
+	k8sClient kubernetes.Interface
+	config    *BlueprintConfig
+	logger    *zap.Logger
+	metrics   *BlueprintMetrics
 
 	// Components
-	catalog     *Catalog
-	generator   *Generator
-	customizer  *Customizer
-	validator   *Validator
+	catalog    *Catalog
+	generator  *Generator
+	customizer *Customizer
+	validator  *Validator
 
 	// Operation management
 	operationQueue chan *BlueprintOperation
@@ -285,9 +285,9 @@ type Manager struct {
 	cancel         context.CancelFunc
 
 	// Cache and state
-	cache          sync.Map
-	healthStatus   map[string]bool
-	healthMutex    sync.RWMutex
+	cache           sync.Map
+	healthStatus    map[string]bool
+	healthMutex     sync.RWMutex
 	lastHealthCheck time.Time
 }
 
@@ -563,7 +563,7 @@ func (m *Manager) operationWorker() {
 			case m.semaphore <- struct{}{}:
 				// Process operation
 				result := m.processOperationSync(operation)
-				
+
 				// Execute callback if provided
 				if operation.Callback != nil {
 					operation.Callback(result)
@@ -711,7 +711,7 @@ func (m *Manager) GetHealthStatus() map[string]bool {
 	for component, health := range m.healthStatus {
 		status[component] = health
 	}
-	
+
 	return status
 }
 

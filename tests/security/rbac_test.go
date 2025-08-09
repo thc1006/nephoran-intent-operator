@@ -9,8 +9,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	rbacv1 "k8s.io/api/rbac/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -22,12 +22,12 @@ import (
 
 var _ = Describe("RBAC Security Tests", func() {
 	var (
-		ctx        context.Context
-		k8sClient  client.Client
-		clientset  *kubernetes.Clientset
-		namespace  string
-		rbacMgr    *security.RBACManager
-		timeout    time.Duration
+		ctx       context.Context
+		k8sClient client.Client
+		clientset *kubernetes.Clientset
+		namespace string
+		rbacMgr   *security.RBACManager
+		timeout   time.Duration
 	)
 
 	BeforeEach(func() {
@@ -143,7 +143,7 @@ var _ = Describe("RBAC Security Tests", func() {
 					dangerousVerbs := []string{"*", "create", "delete", "deletecollection"}
 					for _, verb := range rule.Verbs {
 						if contains(dangerousVerbs, verb) {
-							By(fmt.Sprintf("ClusterRole %s has potentially dangerous verb '%s' on resources %v", 
+							By(fmt.Sprintf("ClusterRole %s has potentially dangerous verb '%s' on resources %v",
 								role.Name, verb, rule.Resources))
 						}
 					}
@@ -168,9 +168,9 @@ var _ = Describe("RBAC Security Tests", func() {
 								"nodes", "persistentvolumes", "clusterroles", "clusterrolebindings",
 								"namespaces", "customresourcedefinitions",
 							}
-							
+
 							if contains(clusterScopedResources, resource) {
-								By(fmt.Sprintf("Warning: Namespace role %s has access to cluster-scoped resource %s", 
+								By(fmt.Sprintf("Warning: Namespace role %s has access to cluster-scoped resource %s",
 									role.Name, resource))
 							}
 						}
@@ -255,9 +255,9 @@ var _ = Describe("RBAC Security Tests", func() {
 				if binding.RoleRef.Name == "cluster-admin" {
 					for _, subject := range binding.Subjects {
 						if subject.Kind == "ServiceAccount" && subject.Namespace == namespace {
-							By(fmt.Sprintf("Warning: Service account %s/%s has cluster-admin privileges", 
+							By(fmt.Sprintf("Warning: Service account %s/%s has cluster-admin privileges",
 								subject.Namespace, subject.Name))
-							
+
 							// This might be acceptable for some operators but should be documented
 							Expect(subject.Name).To(BeElementOf("nephoran-operator", "system-operators"),
 								"Only specific service accounts should have cluster-admin privileges")
@@ -438,7 +438,7 @@ var _ = Describe("RBAC Security Tests", func() {
 				for _, subject := range binding.Subjects {
 					if subject.Kind == "ServiceAccount" && subject.Namespace == namespace {
 						// This service account has cluster-wide permissions
-						crossNamespaceBindings = append(crossNamespaceBindings, 
+						crossNamespaceBindings = append(crossNamespaceBindings,
 							fmt.Sprintf("%s -> %s", subject.Name, binding.RoleRef.Name))
 					}
 				}
@@ -468,7 +468,7 @@ var _ = Describe("RBAC Security Tests", func() {
 				By("Role not found - may not be created in test environment")
 			} else {
 				By(fmt.Sprintf("RBAC manager successfully created role %s", role.Name))
-				
+
 				// Verify role has appropriate rules
 				Expect(len(role.Rules)).To(BeNumerically(">", 0))
 			}
@@ -554,7 +554,7 @@ func TestRBACCompliance(t *testing.T) {
 		},
 		{
 			name:     "Network Viewer",
-			role:     "network-viewer", 
+			role:     "network-viewer",
 			expected: []string{"networkintents"},
 		},
 	}
@@ -573,7 +573,7 @@ func BenchmarkRBACOperations(b *testing.B) {
 	k8sClient := utils.GetK8sClient()
 	clientset := utils.GetClientset()
 	namespace := utils.GetTestNamespace()
-	
+
 	rbacMgr := security.NewRBACManager(k8sClient, clientset, namespace)
 
 	b.Run("CreateRole", func(b *testing.B) {

@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	certmanagerclientset "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
@@ -36,10 +36,10 @@ type CertManagerConfig struct {
 	SecretNamePrefix     string `yaml:"secret_name_prefix"`
 
 	// Advanced settings
-	EnableApproval     bool          `yaml:"enable_approval"`
-	DefaultDuration    time.Duration `yaml:"default_duration"`
-	RenewBefore        time.Duration `yaml:"renew_before"`
-	RevisionLimit      int32         `yaml:"revision_limit"`
+	EnableApproval  bool          `yaml:"enable_approval"`
+	DefaultDuration time.Duration `yaml:"default_duration"`
+	RenewBefore     time.Duration `yaml:"renew_before"`
+	RevisionLimit   int32         `yaml:"revision_limit"`
 
 	// ACME settings (if using ACME issuer)
 	ACMEConfig *ACMEConfig `yaml:"acme_config,omitempty"`
@@ -53,17 +53,17 @@ type CertManagerConfig struct {
 
 // ACMEConfig holds ACME-specific configuration
 type ACMEConfig struct {
-	Server      string              `yaml:"server"`
-	Email       string              `yaml:"email"`
-	PreferredChain string           `yaml:"preferred_chain"`
-	Solvers     []ACMESolver        `yaml:"solvers"`
-	PrivateKey  ACMEPrivateKey      `yaml:"private_key"`
+	Server         string         `yaml:"server"`
+	Email          string         `yaml:"email"`
+	PreferredChain string         `yaml:"preferred_chain"`
+	Solvers        []ACMESolver   `yaml:"solvers"`
+	PrivateKey     ACMEPrivateKey `yaml:"private_key"`
 }
 
 // ACMESolver defines ACME challenge solvers
 type ACMESolver struct {
-	DNS01   *DNS01Solver   `yaml:"dns01,omitempty"`
-	HTTP01  *HTTP01Solver  `yaml:"http01,omitempty"`
+	DNS01    *DNS01Solver    `yaml:"dns01,omitempty"`
+	HTTP01   *HTTP01Solver   `yaml:"http01,omitempty"`
 	Selector *SolverSelector `yaml:"selector,omitempty"`
 }
 
@@ -81,10 +81,10 @@ type HTTP01Solver struct {
 
 // HTTP01IngressSolver defines ingress-based HTTP-01 solver
 type HTTP01IngressSolver struct {
-	Class             string            `yaml:"class"`
-	ServiceType       string            `yaml:"service_type"`
-	IngressTemplate   map[string]string `yaml:"ingress_template"`
-	PodTemplate       map[string]string `yaml:"pod_template"`
+	Class           string            `yaml:"class"`
+	ServiceType     string            `yaml:"service_type"`
+	IngressTemplate map[string]string `yaml:"ingress_template"`
+	PodTemplate     map[string]string `yaml:"pod_template"`
 }
 
 // HTTP01GatewaySolver defines gateway-based HTTP-01 solver
@@ -95,54 +95,54 @@ type HTTP01GatewaySolver struct {
 
 // SolverSelector defines selector for ACME solvers
 type SolverSelector struct {
-	DNSNames   []string          `yaml:"dns_names"`
-	DNSZones   []string          `yaml:"dns_zones"`
+	DNSNames    []string          `yaml:"dns_names"`
+	DNSZones    []string          `yaml:"dns_zones"`
 	MatchLabels map[string]string `yaml:"match_labels"`
 }
 
 // ACMEPrivateKey defines ACME private key configuration
 type ACMEPrivateKey struct {
-	SecretRef   SecretRef `yaml:"secret_ref"`
-	Algorithm   string    `yaml:"algorithm"`
-	Size        int       `yaml:"size"`
-	RotationPolicy string `yaml:"rotation_policy"`
+	SecretRef      SecretRef `yaml:"secret_ref"`
+	Algorithm      string    `yaml:"algorithm"`
+	Size           int       `yaml:"size"`
+	RotationPolicy string    `yaml:"rotation_policy"`
 }
 
 // CAIssuerConfig holds CA issuer specific configuration
 type CAIssuerConfig struct {
-	SecretName string `yaml:"secret_name"`
+	SecretName            string   `yaml:"secret_name"`
 	CRLDistributionPoints []string `yaml:"crl_distribution_points"`
-	OCSPServers []string `yaml:"ocsp_servers"`
+	OCSPServers           []string `yaml:"ocsp_servers"`
 }
 
 // VaultIssuerConfig holds Vault issuer specific configuration
 type VaultIssuerConfig struct {
-	Server    string        `yaml:"server"`
-	Path      string        `yaml:"path"`
-	Role      string        `yaml:"role"`
-	Auth      VaultAuth     `yaml:"auth"`
-	CABundle  string        `yaml:"ca_bundle"`
-	Namespace string        `yaml:"namespace"`
+	Server    string    `yaml:"server"`
+	Path      string    `yaml:"path"`
+	Role      string    `yaml:"role"`
+	Auth      VaultAuth `yaml:"auth"`
+	CABundle  string    `yaml:"ca_bundle"`
+	Namespace string    `yaml:"namespace"`
 }
 
 // VaultAuth defines Vault authentication configuration
 type VaultAuth struct {
-	TokenSecretRef   *SecretRef         `yaml:"token_secret_ref,omitempty"`
-	AppRole          *VaultAppRole      `yaml:"app_role,omitempty"`
-	Kubernetes       *VaultKubernetes   `yaml:"kubernetes,omitempty"`
+	TokenSecretRef *SecretRef       `yaml:"token_secret_ref,omitempty"`
+	AppRole        *VaultAppRole    `yaml:"app_role,omitempty"`
+	Kubernetes     *VaultKubernetes `yaml:"kubernetes,omitempty"`
 }
 
 // VaultAppRole defines Vault AppRole authentication
 type VaultAppRole struct {
-	Path         string    `yaml:"path"`
-	RoleID       string    `yaml:"role_id"`
-	SecretRef    SecretRef `yaml:"secret_ref"`
+	Path      string    `yaml:"path"`
+	RoleID    string    `yaml:"role_id"`
+	SecretRef SecretRef `yaml:"secret_ref"`
 }
 
 // VaultKubernetes defines Vault Kubernetes authentication
 type VaultKubernetes struct {
-	Path         string    `yaml:"path"`
-	Role         string    `yaml:"role"`
+	Path              string             `yaml:"path"`
+	Role              string             `yaml:"role"`
 	ServiceAccountRef *ServiceAccountRef `yaml:"service_account_ref,omitempty"`
 }
 
@@ -230,12 +230,12 @@ func (b *CertManagerBackend) IssueCertificate(ctx context.Context, req *Certific
 			},
 		},
 		Spec: certmanagerv1.CertificateSpec{
-			CommonName: req.CommonName,
-			DNSNames:   req.DNSNames,
-			IPAddresses: req.IPAddresses,
+			CommonName:     req.CommonName,
+			DNSNames:       req.DNSNames,
+			IPAddresses:    req.IPAddresses,
 			EmailAddresses: req.EmailAddresses,
-			Duration:   &metav1.Duration{Duration: req.ValidityDuration},
-			RenewBefore: &metav1.Duration{Duration: b.config.RenewBefore},
+			Duration:       &metav1.Duration{Duration: req.ValidityDuration},
+			RenewBefore:    &metav1.Duration{Duration: b.config.RenewBefore},
 			Subject: &certmanagerv1.X509Subject{
 				Organizations: []string{"Nephoran"},
 			},
@@ -320,7 +320,7 @@ func (b *CertManagerBackend) RenewCertificate(ctx context.Context, req *Certific
 
 	// Trigger renewal by updating the Certificate resource
 	existingCert.Annotations["nephoran.io/force-renewal"] = time.Now().Format(time.RFC3339)
-	
+
 	_, err = b.certManagerClient.CertmanagerV1().
 		Certificates(b.config.CertificateNamespace).
 		Update(ctx, existingCert, metav1.UpdateOptions{})
@@ -360,10 +360,10 @@ func (b *CertManagerBackend) GetCRL(ctx context.Context) (*pkix.CertificateList,
 // GetBackendInfo returns backend information
 func (b *CertManagerBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
 	return &BackendInfo{
-		Type:    BackendCertManager,
-		Version: "cert-manager v1.x",
-		Status:  "ready",
-		Issuer:  fmt.Sprintf("%s/%s", b.config.IssuerKind, b.config.IssuerName),
+		Type:     BackendCertManager,
+		Version:  "cert-manager v1.x",
+		Status:   "ready",
+		Issuer:   fmt.Sprintf("%s/%s", b.config.IssuerKind, b.config.IssuerName),
 		Features: b.GetSupportedFeatures(),
 	}, nil
 }
@@ -427,7 +427,7 @@ func (b *CertManagerBackend) verifyIssuer(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("issuer not found: %w", err)
 		}
-		
+
 		// Check if issuer is ready
 		for _, condition := range issuer.Status.Conditions {
 			if condition.Type == certmanagerv1.IssuerConditionReady {
@@ -586,20 +586,20 @@ func (b *CertManagerBackend) buildCertificateResponse(ctx context.Context, cert 
 	}
 
 	response := &CertificateResponse{
-		RequestID:       req.ID,
-		Certificate:     parsedCert,
-		CertificatePEM:  string(certPEM),
-		PrivateKeyPEM:   string(keyPEM),
+		RequestID:        req.ID,
+		Certificate:      parsedCert,
+		CertificatePEM:   string(certPEM),
+		PrivateKeyPEM:    string(keyPEM),
 		CACertificatePEM: string(caPEM),
-		SerialNumber:    parsedCert.SerialNumber.String(),
-		Fingerprint:     fmt.Sprintf("%x", parsedCert.Fingerprint(crypto.SHA256)),
-		ExpiresAt:       parsedCert.NotAfter,
-		IssuedBy:        string(BackendCertManager),
-		Status:          StatusIssued,
+		SerialNumber:     parsedCert.SerialNumber.String(),
+		Fingerprint:      fmt.Sprintf("%x", parsedCert.Fingerprint(crypto.SHA256)),
+		ExpiresAt:        parsedCert.NotAfter,
+		IssuedBy:         string(BackendCertManager),
+		Status:           StatusIssued,
 		Metadata: map[string]string{
 			"cert_manager_certificate": cert.Name,
 			"cert_manager_secret":      cert.Spec.SecretName,
-			"tenant_id":               req.TenantID,
+			"tenant_id":                req.TenantID,
 		},
 		CreatedAt: time.Now(),
 	}

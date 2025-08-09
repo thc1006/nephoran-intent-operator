@@ -160,11 +160,11 @@ func TestHumanReadableSizes(t *testing.T) {
 
 			err := cfg.Validate()
 			if err != nil {
-				t.Errorf("Size %s (%d bytes) should be valid but got error: %s", 
+				t.Errorf("Size %s (%d bytes) should be valid but got error: %s",
 					tt.name, tt.sizeBytes, err.Error())
 			}
 
-			t.Logf("%s: %d bytes (%.2f MB) - %s", 
+			t.Logf("%s: %d bytes (%.2f MB) - %s",
 				tt.name, tt.sizeBytes, float64(tt.sizeBytes)/(1024*1024), tt.description)
 		})
 	}

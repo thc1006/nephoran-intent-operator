@@ -55,7 +55,7 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 
 	// Prepare handlers - extract health checker from service components
 	// _, _, _, _, _, _, _, healthChecker := service.GetComponents()
-	
+
 	// Create public route handlers
 	publicHandlers := &PublicRouteHandlers{
 		// Health:  healthChecker.HealthzHandler,  // You'll need to get these from your service
@@ -63,10 +63,10 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 		// Metrics: handler.MetricsHandler,        // You'll need to get this from your handler
 	}
 
-	// Create protected route handlers  
+	// Create protected route handlers
 	protectedHandlers := &ProtectedRouteHandlers{
 		// ProcessIntent:        handler.ProcessIntentHandler,
-		// Status:               handler.StatusHandler, 
+		// Status:               handler.StatusHandler,
 		// CircuitBreakerStatus: handler.CircuitBreakerStatusHandler,
 		// StreamingHandler:     handler.StreamingHandler,
 	}
@@ -89,7 +89,7 @@ func EnhancedSetupHTTPServer(cfg *config.LLMProcessorConfig, handler interface{}
 // Migration example showing how to transition from the current implementation
 func MigrationExample() {
 	// BEFORE (current main.go approach):
-	// 
+	//
 	// // Setup OAuth2 routes if enabled
 	// oauth2Manager.SetupRoutes(router)
 	//
@@ -112,12 +112,12 @@ func MigrationExample() {
 	//
 	// // Create enhanced manager
 	// enhancedManager, err := NewEnhancedOAuth2Manager(enhancedConfig, logger)
-	// 
+	//
 	// // Prepare handlers
 	// publicHandlers := &PublicRouteHandlers{...}
 	// protectedHandlers := &ProtectedRouteHandlers{...}
 	//
-	// // Configure all routes in one centralized call  
+	// // Configure all routes in one centralized call
 	// enhancedManager.ConfigureAllRoutes(router, publicHandlers, protectedHandlers)
 }
 
@@ -127,7 +127,7 @@ func MigrationExample() {
 //    All route setup logic is now in one place (ConfigureAllRoutes method)
 //    instead of scattered across main.go
 
-// 2. BETTER SEPARATION OF CONCERNS  
+// 2. BETTER SEPARATION OF CONCERNS
 //    - Public routes (health, metrics) have their own handler struct
 //    - Protected routes have their own handler struct
 //    - OAuth2 routes are handled internally

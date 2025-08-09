@@ -27,20 +27,20 @@ type A1Validator struct {
 
 // ValidationResult represents the result of a validation operation
 type ValidationResult struct {
-	Valid  bool                     `json:"valid"`
-	Errors []ValidationError        `json:"errors,omitempty"`
-	Warnings []ValidationWarning    `json:"warnings,omitempty"`
+	Valid    bool                `json:"valid"`
+	Errors   []ValidationError   `json:"errors,omitempty"`
+	Warnings []ValidationWarning `json:"warnings,omitempty"`
 }
 
 // ValidationError represents a validation error with detailed information
 type ValidationError struct {
-	Field       string      `json:"field"`
-	Value       interface{} `json:"value,omitempty"`
-	Tag         string      `json:"tag"`
-	Message     string      `json:"message"`
-	Param       string      `json:"param,omitempty"`
-	StructName  string      `json:"struct_name,omitempty"`
-	FieldPath   string      `json:"field_path,omitempty"`
+	Field      string      `json:"field"`
+	Value      interface{} `json:"value,omitempty"`
+	Tag        string      `json:"tag"`
+	Message    string      `json:"message"`
+	Param      string      `json:"param,omitempty"`
+	StructName string      `json:"struct_name,omitempty"`
+	FieldPath  string      `json:"field_path,omitempty"`
 }
 
 // ValidationWarning represents a validation warning
@@ -97,18 +97,18 @@ type JSONSchemaValidator struct {
 func NewA1Validator(config *ValidationConfig, logger *logging.StructuredLogger) *A1Validator {
 	if config == nil {
 		config = &ValidationConfig{
-			EnableSchemaValidation:    true,
+			EnableSchemaValidation:   true,
 			StrictValidation:         false,
 			ValidateAdditionalFields: true,
 		}
 	}
-	
+
 	if logger == nil {
 		logger = logging.NewStructuredLogger(logging.DefaultConfig("a1-validator", "1.0.0", "development"))
 	}
-	
+
 	v := validator.New()
-	
+
 	// Register custom validation tags
 	v.RegisterValidation("oran_policy_type_id", validatePolicyTypeID)
 	v.RegisterValidation("oran_policy_id", validatePolicyID)
@@ -118,7 +118,7 @@ func NewA1Validator(config *ValidationConfig, logger *logging.StructuredLogger) 
 	v.RegisterValidation("json_schema", validateJSONSchema)
 	v.RegisterValidation("uri_reference", validateURIReference)
 	v.RegisterValidation("iso8601", validateISO8601DateTime)
-	
+
 	// Register custom type function for better field names
 	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
 		name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
@@ -127,7 +127,7 @@ func NewA1Validator(config *ValidationConfig, logger *logging.StructuredLogger) 
 		}
 		return name
 	})
-	
+
 	return &A1Validator{
 		validator:      v,
 		logger:         logger.WithComponent("a1-validator"),
@@ -139,7 +139,7 @@ func NewA1Validator(config *ValidationConfig, logger *logging.StructuredLogger) 
 // ValidatePolicyType validates an A1 policy type according to O-RAN specifications
 func (av *A1Validator) ValidatePolicyType(policyType *PolicyType) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	if policyType == nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
@@ -148,13 +148,13 @@ func (av *A1Validator) ValidatePolicyType(policyType *PolicyType) *ValidationRes
 		})
 		return result
 	}
-	
+
 	// Structural validation using validator tags
 	if err := av.validator.Struct(policyType); err != nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, av.convertValidationErrors(err)...)
 	}
-	
+
 	// JSON Schema validation
 	if av.config.EnableSchemaValidation && policyType.Schema != nil {
 		if schemaResult := av.validateJSONSchemaStructure(policyType.Schema, "policy_type.schema"); !schemaResult.Valid {
@@ -163,21 +163,21 @@ func (av *A1Validator) ValidatePolicyType(policyType *PolicyType) *ValidationRes
 			result.Warnings = append(result.Warnings, schemaResult.Warnings...)
 		}
 	}
-	
+
 	// Business logic validation
 	if businessResult := av.validatePolicyTypeBusinessRules(policyType); !businessResult.Valid {
 		result.Valid = false
 		result.Errors = append(result.Errors, businessResult.Errors...)
 		result.Warnings = append(result.Warnings, businessResult.Warnings...)
 	}
-	
+
 	return result
 }
 
 // ValidatePolicyInstance validates an A1 policy instance
 func (av *A1Validator) ValidatePolicyInstance(policyTypeID int, instance *PolicyInstance) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	if instance == nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
@@ -186,13 +186,13 @@ func (av *A1Validator) ValidatePolicyInstance(policyTypeID int, instance *Policy
 		})
 		return result
 	}
-	
+
 	// Structural validation
 	if err := av.validator.Struct(instance); err != nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, av.convertValidationErrors(err)...)
 	}
-	
+
 	// Cross-reference validation
 	if instance.PolicyTypeID != policyTypeID {
 		result.Valid = false
@@ -203,7 +203,7 @@ func (av *A1Validator) ValidatePolicyInstance(policyTypeID int, instance *Policy
 			FieldPath: "policy_instance.policy_type_id",
 		})
 	}
-	
+
 	// Policy data validation against schema (if available in registry)
 	if av.config.EnableSchemaValidation {
 		if schema, exists := av.schemaRegistry[fmt.Sprintf("policy_type_%d", policyTypeID)]; exists {
@@ -219,21 +219,21 @@ func (av *A1Validator) ValidatePolicyInstance(policyTypeID int, instance *Policy
 			})
 		}
 	}
-	
+
 	// Business logic validation
 	if businessResult := av.validatePolicyInstanceBusinessRules(instance); !businessResult.Valid {
 		result.Valid = false
 		result.Errors = append(result.Errors, businessResult.Errors...)
 		result.Warnings = append(result.Warnings, businessResult.Warnings...)
 	}
-	
+
 	return result
 }
 
 // ValidateConsumerInfo validates A1-C consumer information
 func (av *A1Validator) ValidateConsumerInfo(info *ConsumerInfo) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	if info == nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
@@ -242,33 +242,33 @@ func (av *A1Validator) ValidateConsumerInfo(info *ConsumerInfo) *ValidationResul
 		})
 		return result
 	}
-	
+
 	// Structural validation
 	if err := av.validator.Struct(info); err != nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, av.convertValidationErrors(err)...)
 	}
-	
+
 	// Callback URL validation
 	if callbackResult := av.validateCallbackURL(info.CallbackURL); !callbackResult.Valid {
 		result.Valid = false
 		result.Errors = append(result.Errors, callbackResult.Errors...)
 	}
-	
+
 	// Business logic validation
 	if businessResult := av.validateConsumerBusinessRules(info); !businessResult.Valid {
 		result.Valid = false
 		result.Errors = append(result.Errors, businessResult.Errors...)
 		result.Warnings = append(result.Warnings, businessResult.Warnings...)
 	}
-	
+
 	return result
 }
 
 // ValidateEnrichmentInfoType validates A1-EI type information
 func (av *A1Validator) ValidateEnrichmentInfoType(eiType *EnrichmentInfoType) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	if eiType == nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
@@ -277,13 +277,13 @@ func (av *A1Validator) ValidateEnrichmentInfoType(eiType *EnrichmentInfoType) *V
 		})
 		return result
 	}
-	
+
 	// Structural validation
 	if err := av.validator.Struct(eiType); err != nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, av.convertValidationErrors(err)...)
 	}
-	
+
 	// Schema validation for EI job data schema
 	if av.config.EnableSchemaValidation && eiType.EiJobDataSchema != nil {
 		if schemaResult := av.validateJSONSchemaStructure(eiType.EiJobDataSchema, "ei_job_data_schema"); !schemaResult.Valid {
@@ -292,7 +292,7 @@ func (av *A1Validator) ValidateEnrichmentInfoType(eiType *EnrichmentInfoType) *V
 			result.Warnings = append(result.Warnings, schemaResult.Warnings...)
 		}
 	}
-	
+
 	// Schema validation for EI job result schema (if provided)
 	if av.config.EnableSchemaValidation && eiType.EiJobResultSchema != nil {
 		if schemaResult := av.validateJSONSchemaStructure(eiType.EiJobResultSchema, "ei_job_result_schema"); !schemaResult.Valid {
@@ -301,14 +301,14 @@ func (av *A1Validator) ValidateEnrichmentInfoType(eiType *EnrichmentInfoType) *V
 			result.Warnings = append(result.Warnings, schemaResult.Warnings...)
 		}
 	}
-	
+
 	return result
 }
 
 // ValidateEnrichmentInfoJob validates A1-EI job information
 func (av *A1Validator) ValidateEnrichmentInfoJob(job *EnrichmentInfoJob) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	if job == nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
@@ -317,19 +317,19 @@ func (av *A1Validator) ValidateEnrichmentInfoJob(job *EnrichmentInfoJob) *Valida
 		})
 		return result
 	}
-	
+
 	// Structural validation
 	if err := av.validator.Struct(job); err != nil {
 		result.Valid = false
 		result.Errors = append(result.Errors, av.convertValidationErrors(err)...)
 	}
-	
+
 	// Target URI validation
 	if targetResult := av.validateTargetURI(job.TargetURI); !targetResult.Valid {
 		result.Valid = false
 		result.Errors = append(result.Errors, targetResult.Errors...)
 	}
-	
+
 	// EI job data validation against type schema (if available)
 	if av.config.EnableSchemaValidation {
 		if schema, exists := av.schemaRegistry[fmt.Sprintf("ei_type_%s", job.EiTypeID)]; exists {
@@ -345,14 +345,14 @@ func (av *A1Validator) ValidateEnrichmentInfoJob(job *EnrichmentInfoJob) *Valida
 			})
 		}
 	}
-	
+
 	// Business logic validation
 	if businessResult := av.validateEIJobBusinessRules(job); !businessResult.Valid {
 		result.Valid = false
 		result.Errors = append(result.Errors, businessResult.Errors...)
 		result.Warnings = append(result.Warnings, businessResult.Warnings...)
 	}
-	
+
 	return result
 }
 
@@ -361,19 +361,19 @@ func (av *A1Validator) RegisterSchema(schemaID string, schema interface{}) error
 	if schemaID == "" {
 		return fmt.Errorf("schema ID cannot be empty")
 	}
-	
+
 	if schema == nil {
 		return fmt.Errorf("schema cannot be nil")
 	}
-	
+
 	// Validate the schema structure itself
 	if result := av.validateJSONSchemaStructure(schema, schemaID); !result.Valid {
 		return fmt.Errorf("invalid schema structure: %v", result.Errors)
 	}
-	
+
 	av.schemaRegistry[schemaID] = schema
 	av.logger.InfoWithContext("Schema registered", "schema_id", schemaID)
-	
+
 	return nil
 }
 
@@ -397,7 +397,7 @@ func (av *A1Validator) ListRegisteredSchemas() []string {
 // convertValidationErrors converts validator.ValidationErrors to ValidationError slice
 func (av *A1Validator) convertValidationErrors(err error) []ValidationError {
 	var validationErrors []ValidationError
-	
+
 	if validatorErrs, ok := err.(validator.ValidationErrors); ok {
 		for _, err := range validatorErrs {
 			validationErrors = append(validationErrors, ValidationError{
@@ -411,7 +411,7 @@ func (av *A1Validator) convertValidationErrors(err error) []ValidationError {
 			})
 		}
 	}
-	
+
 	return validationErrors
 }
 
@@ -454,7 +454,7 @@ func (av *A1Validator) getValidationMessage(err validator.FieldError) string {
 // validatePolicyTypeBusinessRules validates business-specific rules for policy types
 func (av *A1Validator) validatePolicyTypeBusinessRules(policyType *PolicyType) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	// Policy type ID range validation (O-RAN recommends 1-100000)
 	if policyType.PolicyTypeID < 1 || policyType.PolicyTypeID > 100000 {
 		result.Warnings = append(result.Warnings, ValidationWarning{
@@ -463,7 +463,7 @@ func (av *A1Validator) validatePolicyTypeBusinessRules(policyType *PolicyType) *
 			Message: "Policy type ID outside recommended range (1-100000)",
 		})
 	}
-	
+
 	// Schema complexity validation
 	if policyType.Schema != nil {
 		if complexity := av.calculateSchemaComplexity(policyType.Schema); complexity > 100 {
@@ -473,14 +473,14 @@ func (av *A1Validator) validatePolicyTypeBusinessRules(policyType *PolicyType) *
 			})
 		}
 	}
-	
+
 	return result
 }
 
 // validatePolicyInstanceBusinessRules validates business-specific rules for policy instances
 func (av *A1Validator) validatePolicyInstanceBusinessRules(instance *PolicyInstance) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	// Policy ID format validation (should be alphanumeric with hyphens/underscores)
 	if !regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(instance.PolicyID) {
 		result.Errors = append(result.Errors, ValidationError{
@@ -490,7 +490,7 @@ func (av *A1Validator) validatePolicyInstanceBusinessRules(instance *PolicyInsta
 		})
 		result.Valid = false
 	}
-	
+
 	// Policy data size validation
 	if data, err := json.Marshal(instance.PolicyData); err == nil {
 		if len(data) > 1024*1024 { // 1MB limit
@@ -500,14 +500,14 @@ func (av *A1Validator) validatePolicyInstanceBusinessRules(instance *PolicyInsta
 			})
 		}
 	}
-	
+
 	return result
 }
 
 // validateConsumerBusinessRules validates business-specific rules for consumers
 func (av *A1Validator) validateConsumerBusinessRules(info *ConsumerInfo) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	// Consumer ID format validation
 	if !regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(info.ConsumerID) {
 		result.Errors = append(result.Errors, ValidationError{
@@ -517,7 +517,7 @@ func (av *A1Validator) validateConsumerBusinessRules(info *ConsumerInfo) *Valida
 		})
 		result.Valid = false
 	}
-	
+
 	// Capabilities validation
 	validCapabilities := []string{"policy_notification", "enrichment_info", "real_time_control"}
 	for _, capability := range info.Capabilities {
@@ -536,14 +536,14 @@ func (av *A1Validator) validateConsumerBusinessRules(info *ConsumerInfo) *Valida
 			})
 		}
 	}
-	
+
 	return result
 }
 
 // validateEIJobBusinessRules validates business-specific rules for EI jobs
 func (av *A1Validator) validateEIJobBusinessRules(job *EnrichmentInfoJob) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	// EI job ID format validation
 	if !regexp.MustCompile(`^[a-zA-Z0-9_-]+$`).MatchString(job.EiJobID) {
 		result.Errors = append(result.Errors, ValidationError{
@@ -553,7 +553,7 @@ func (av *A1Validator) validateEIJobBusinessRules(job *EnrichmentInfoJob) *Valid
 		})
 		result.Valid = false
 	}
-	
+
 	// Job owner validation
 	if job.JobOwner == "" {
 		result.Errors = append(result.Errors, ValidationError{
@@ -562,14 +562,14 @@ func (av *A1Validator) validateEIJobBusinessRules(job *EnrichmentInfoJob) *Valid
 		})
 		result.Valid = false
 	}
-	
+
 	return result
 }
 
 // validateJSONSchemaStructure validates that a given object is a valid JSON schema
 func (av *A1Validator) validateJSONSchemaStructure(schema interface{}, fieldPath string) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	// Convert to map for inspection
 	schemaMap, ok := schema.(map[string]interface{})
 	if !ok {
@@ -581,7 +581,7 @@ func (av *A1Validator) validateJSONSchemaStructure(schema interface{}, fieldPath
 		})
 		return result
 	}
-	
+
 	// Validate required schema properties
 	if _, exists := schemaMap["type"]; !exists {
 		result.Warnings = append(result.Warnings, ValidationWarning{
@@ -590,7 +590,7 @@ func (av *A1Validator) validateJSONSchemaStructure(schema interface{}, fieldPath
 			FieldPath: fieldPath,
 		})
 	}
-	
+
 	// Validate schema version if present
 	if schemaVersion, exists := schemaMap["$schema"]; exists {
 		if versionStr, ok := schemaVersion.(string); ok {
@@ -599,7 +599,7 @@ func (av *A1Validator) validateJSONSchemaStructure(schema interface{}, fieldPath
 				"https://json-schema.org/draft/2019-09/schema",
 				"https://json-schema.org/draft/2020-12/schema",
 			}
-			
+
 			supported := false
 			for _, version := range supportedVersions {
 				if versionStr == version {
@@ -607,7 +607,7 @@ func (av *A1Validator) validateJSONSchemaStructure(schema interface{}, fieldPath
 					break
 				}
 			}
-			
+
 			if !supported {
 				result.Warnings = append(result.Warnings, ValidationWarning{
 					Field:     fieldPath,
@@ -618,18 +618,18 @@ func (av *A1Validator) validateJSONSchemaStructure(schema interface{}, fieldPath
 			}
 		}
 	}
-	
+
 	return result
 }
 
 // validateDataAgainstSchema validates data against a JSON schema
 func (av *A1Validator) validateDataAgainstSchema(data interface{}, schema interface{}, fieldPath string) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	// This is a simplified schema validation implementation
 	// In a production environment, you would use a proper JSON schema library
 	// like github.com/xeipuuv/gojsonschema
-	
+
 	schemaMap, ok := schema.(map[string]interface{})
 	if !ok {
 		result.Valid = false
@@ -640,7 +640,7 @@ func (av *A1Validator) validateDataAgainstSchema(data interface{}, schema interf
 		})
 		return result
 	}
-	
+
 	// Validate required fields
 	if required, exists := schemaMap["required"]; exists {
 		if requiredList, ok := required.([]interface{}); ok {
@@ -660,7 +660,7 @@ func (av *A1Validator) validateDataAgainstSchema(data interface{}, schema interf
 			}
 		}
 	}
-	
+
 	// Validate type
 	if schemaType, exists := schemaMap["type"]; exists {
 		if typeStr, ok := schemaType.(string); ok {
@@ -675,7 +675,7 @@ func (av *A1Validator) validateDataAgainstSchema(data interface{}, schema interf
 			}
 		}
 	}
-	
+
 	return result
 }
 
@@ -716,15 +716,15 @@ func (av *A1Validator) validateDataType(data interface{}, expectedType string) b
 // calculateSchemaComplexity calculates a complexity score for a JSON schema
 func (av *A1Validator) calculateSchemaComplexity(schema interface{}) int {
 	complexity := 0
-	
+
 	if schemaMap, ok := schema.(map[string]interface{}); ok {
 		complexity += len(schemaMap) // Base complexity from number of properties
-		
+
 		// Add complexity for nested schemas
 		if properties, exists := schemaMap["properties"]; exists {
 			if propsMap, ok := properties.(map[string]interface{}); ok {
 				complexity += len(propsMap)
-				
+
 				// Recursively calculate nested complexity
 				for _, prop := range propsMap {
 					if propMap, ok := prop.(map[string]interface{}); ok {
@@ -733,39 +733,39 @@ func (av *A1Validator) calculateSchemaComplexity(schema interface{}) int {
 				}
 			}
 		}
-		
+
 		// Add complexity for arrays
 		if items, exists := schemaMap["items"]; exists {
 			complexity += av.calculateSchemaComplexity(items)
 		}
-		
+
 		// Add complexity for conditional schemas
 		if allOf, exists := schemaMap["allOf"]; exists {
 			if allOfList, ok := allOf.([]interface{}); ok {
 				complexity += len(allOfList)
 			}
 		}
-		
+
 		if anyOf, exists := schemaMap["anyOf"]; exists {
 			if anyOfList, ok := anyOf.([]interface{}); ok {
 				complexity += len(anyOfList)
 			}
 		}
-		
+
 		if oneOf, exists := schemaMap["oneOf"]; exists {
 			if oneOfList, ok := oneOf.([]interface{}); ok {
 				complexity += len(oneOfList)
 			}
 		}
 	}
-	
+
 	return complexity
 }
 
 // validateCallbackURL validates a callback URL for consumers
 func (av *A1Validator) validateCallbackURL(callbackURL string) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	// Parse URL
 	u, err := url.Parse(callbackURL)
 	if err != nil {
@@ -777,7 +777,7 @@ func (av *A1Validator) validateCallbackURL(callbackURL string) *ValidationResult
 		})
 		return result
 	}
-	
+
 	// Validate scheme
 	if u.Scheme != "http" && u.Scheme != "https" {
 		result.Valid = false
@@ -787,7 +787,7 @@ func (av *A1Validator) validateCallbackURL(callbackURL string) *ValidationResult
 			Message: "URL scheme must be http or https",
 		})
 	}
-	
+
 	// Validate host
 	if u.Host == "" {
 		result.Valid = false
@@ -797,7 +797,7 @@ func (av *A1Validator) validateCallbackURL(callbackURL string) *ValidationResult
 			Message: "URL must have a valid host",
 		})
 	}
-	
+
 	// Security warning for HTTP
 	if u.Scheme == "http" {
 		result.Warnings = append(result.Warnings, ValidationWarning{
@@ -806,14 +806,14 @@ func (av *A1Validator) validateCallbackURL(callbackURL string) *ValidationResult
 			Message: "Using HTTP instead of HTTPS may pose security risks",
 		})
 	}
-	
+
 	return result
 }
 
 // validateTargetURI validates a target URI for EI jobs
 func (av *A1Validator) validateTargetURI(targetURI string) *ValidationResult {
 	result := &ValidationResult{Valid: true}
-	
+
 	// Parse URI
 	u, err := url.Parse(targetURI)
 	if err != nil {
@@ -825,7 +825,7 @@ func (av *A1Validator) validateTargetURI(targetURI string) *ValidationResult {
 		})
 		return result
 	}
-	
+
 	// Validate scheme
 	supportedSchemes := []string{"http", "https", "kafka", "amqp", "mqtt"}
 	schemeValid := false
@@ -835,7 +835,7 @@ func (av *A1Validator) validateTargetURI(targetURI string) *ValidationResult {
 			break
 		}
 	}
-	
+
 	if !schemeValid {
 		result.Valid = false
 		result.Errors = append(result.Errors, ValidationError{
@@ -844,7 +844,7 @@ func (av *A1Validator) validateTargetURI(targetURI string) *ValidationResult {
 			Message: fmt.Sprintf("URI scheme must be one of: %v", supportedSchemes),
 		})
 	}
-	
+
 	return result
 }
 
@@ -888,7 +888,7 @@ func validateConsumerID(fl validator.FieldLevel) bool {
 func validateJSONSchema(fl validator.FieldLevel) bool {
 	// This is a basic validation - in production use a proper JSON schema validator
 	value := fl.Field().Interface()
-	
+
 	if schemaMap, ok := value.(map[string]interface{}); ok {
 		// Check for basic schema structure
 		if _, hasType := schemaMap["type"]; hasType {
@@ -907,7 +907,7 @@ func validateJSONSchema(fl validator.FieldLevel) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -927,13 +927,13 @@ func validateISO8601DateTime(fl validator.FieldLevel) bool {
 		"2006-01-02T15:04:05Z",
 		"2006-01-02T15:04:05.000Z",
 	}
-	
+
 	for _, format := range formats {
 		if _, err := time.Parse(format, value); err == nil {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -973,6 +973,6 @@ func (vr *ValidationResult) GetValidationSummary() string {
 		}
 		return "Valid"
 	}
-	
+
 	return fmt.Sprintf("Invalid (%d errors, %d warnings)", len(vr.Errors), len(vr.Warnings))
 }

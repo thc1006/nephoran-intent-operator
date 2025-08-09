@@ -12,13 +12,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/fsnotify/fsnotify"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -37,28 +37,28 @@ type CertificateDistributor struct {
 
 // DistributionJob represents a certificate distribution job
 type DistributionJob struct {
-	ID               string                   `json:"id"`
-	Certificate      *CertificateResponse     `json:"certificate"`
-	Targets          []DistributionTarget     `json:"targets"`
-	Status           DistributionStatus       `json:"status"`
-	Progress         int                      `json:"progress"`
-	StartedAt        time.Time                `json:"started_at"`
-	CompletedAt      time.Time                `json:"completed_at"`
-	Errors           []string                 `json:"errors"`
-	RetryCount       int                      `json:"retry_count"`
+	ID          string               `json:"id"`
+	Certificate *CertificateResponse `json:"certificate"`
+	Targets     []DistributionTarget `json:"targets"`
+	Status      DistributionStatus   `json:"status"`
+	Progress    int                  `json:"progress"`
+	StartedAt   time.Time            `json:"started_at"`
+	CompletedAt time.Time            `json:"completed_at"`
+	Errors      []string             `json:"errors"`
+	RetryCount  int                  `json:"retry_count"`
 }
 
 // DistributionTarget represents a target for certificate distribution
 type DistributionTarget struct {
-	Type          TargetType           `json:"type"`
-	Name          string               `json:"name"`
-	Namespace     string               `json:"namespace,omitempty"`
-	Path          string               `json:"path,omitempty"`
-	Config        TargetConfig         `json:"config,omitempty"`
-	Status        DistributionStatus   `json:"status"`
-	LastUpdated   time.Time            `json:"last_updated"`
-	Hash          string               `json:"hash"`
-	ErrorMessage  string               `json:"error_message,omitempty"`
+	Type         TargetType         `json:"type"`
+	Name         string             `json:"name"`
+	Namespace    string             `json:"namespace,omitempty"`
+	Path         string             `json:"path,omitempty"`
+	Config       TargetConfig       `json:"config,omitempty"`
+	Status       DistributionStatus `json:"status"`
+	LastUpdated  time.Time          `json:"last_updated"`
+	Hash         string             `json:"hash"`
+	ErrorMessage string             `json:"error_message,omitempty"`
 }
 
 // TargetType represents different distribution target types
@@ -78,33 +78,33 @@ const (
 type DistributionStatus string
 
 const (
-	StatusPendingDist  DistributionStatus = "pending"
-	StatusInProgress   DistributionStatus = "in_progress"
-	StatusCompleted    DistributionStatus = "completed"
-	StatusFailedDist   DistributionStatus = "failed"
-	StatusRetrying     DistributionStatus = "retrying"
+	StatusPendingDist DistributionStatus = "pending"
+	StatusInProgress  DistributionStatus = "in_progress"
+	StatusCompleted   DistributionStatus = "completed"
+	StatusFailedDist  DistributionStatus = "failed"
+	StatusRetrying    DistributionStatus = "retrying"
 )
 
 // TargetConfig holds target-specific configuration
 type TargetConfig struct {
-	SecretType        corev1.SecretType     `json:"secret_type,omitempty"`
-	Labels            map[string]string     `json:"labels,omitempty"`
-	Annotations       map[string]string     `json:"annotations,omitempty"`
-	FileName          string                `json:"file_name,omitempty"`
-	FileMode          os.FileMode           `json:"file_mode,omitempty"`
-	RestartPolicy     RestartPolicy         `json:"restart_policy,omitempty"`
-	HealthCheckPath   string                `json:"health_check_path,omitempty"`
-	GracefulTimeout   time.Duration         `json:"graceful_timeout,omitempty"`
+	SecretType      corev1.SecretType `json:"secret_type,omitempty"`
+	Labels          map[string]string `json:"labels,omitempty"`
+	Annotations     map[string]string `json:"annotations,omitempty"`
+	FileName        string            `json:"file_name,omitempty"`
+	FileMode        os.FileMode       `json:"file_mode,omitempty"`
+	RestartPolicy   RestartPolicy     `json:"restart_policy,omitempty"`
+	HealthCheckPath string            `json:"health_check_path,omitempty"`
+	GracefulTimeout time.Duration     `json:"graceful_timeout,omitempty"`
 }
 
 // RestartPolicy defines how to restart services after certificate updates
 type RestartPolicy string
 
 const (
-	RestartPolicyNone        RestartPolicy = "none"
-	RestartPolicyRolling     RestartPolicy = "rolling"
-	RestartPolicyRecreate    RestartPolicy = "recreate"
-	RestartPolicySignal      RestartPolicy = "signal"
+	RestartPolicyNone     RestartPolicy = "none"
+	RestartPolicyRolling  RestartPolicy = "rolling"
+	RestartPolicyRecreate RestartPolicy = "recreate"
+	RestartPolicySignal   RestartPolicy = "signal"
 )
 
 // FileWatcher watches certificate files for changes
@@ -259,7 +259,7 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 				"target", target.Name,
 				"type", target.Type,
 				"error", err)
-			
+
 			target.Status = StatusFailedDist
 			target.ErrorMessage = err.Error()
 			job.Errors = append(job.Errors, fmt.Sprintf("%s: %v", target.Name, err))
@@ -279,7 +279,7 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 		d.logger.Info("distribution job completed successfully",
 			"job_id", job.ID,
 			"targets", totalTargets)
-		
+
 		// Send success notification
 		if d.notifier != nil {
 			d.notifier.sendDistributionNotification(job, true)
@@ -293,7 +293,7 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 				"success_count", successCount,
 				"total_targets", totalTargets,
 				"retry_count", job.RetryCount)
-			
+
 			// Schedule retry after delay
 			go func() {
 				time.Sleep(time.Duration(job.RetryCount*30) * time.Second)
@@ -306,7 +306,7 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 				"success_count", successCount,
 				"total_targets", totalTargets,
 				"errors", job.Errors)
-			
+
 			// Send failure notification
 			if d.notifier != nil {
 				d.notifier.sendDistributionNotification(job, false)
@@ -542,7 +542,7 @@ func (d *CertificateDistributor) buildDistributionTargets(cert *CertificateRespo
 
 	// Build targets based on certificate metadata and configuration
 	tenantID := cert.Metadata["tenant_id"]
-	
+
 	// Add configured distribution paths
 	for targetName, targetPath := range d.config.DistributionPaths {
 		targets = append(targets, DistributionTarget{
@@ -585,7 +585,7 @@ func (d *CertificateDistributor) setupFileWatcher(path string, cert *Certificate
 		d.logger.Info("certificate file changed, triggering reload",
 			"path", watchPath,
 			"serial_number", cert.SerialNumber)
-		
+
 		// Trigger hot reload for services using this certificate
 		d.triggerHotReload(cert, watchPath)
 	}, d.logger)

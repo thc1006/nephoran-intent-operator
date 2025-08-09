@@ -47,7 +47,7 @@ func BenchmarkHMACVerification(b *testing.B) {
 // BenchmarkHMACVerificationLargePayload benchmarks with large payloads
 func BenchmarkHMACVerificationLargePayload(b *testing.B) {
 	secret := "test-webhook-secret-key-12345"
-	
+
 	// Create a 1MB payload
 	largePayload := make([]byte, 1024*1024)
 	for i := range largePayload {

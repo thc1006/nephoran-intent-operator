@@ -45,17 +45,17 @@ import (
 
 const (
 	CNFOrchestratorFinalizer = "cnfdeployment.nephoran.com/finalizer"
-	
+
 	// Default timeout values
-	DefaultCNFDeployTimeout = 10 * time.Minute
-	DefaultCNFDeleteTimeout = 5 * time.Minute
+	DefaultCNFDeployTimeout   = 10 * time.Minute
+	DefaultCNFDeleteTimeout   = 5 * time.Minute
 	DefaultHealthCheckTimeout = 2 * time.Minute
-	
+
 	// Chart repository defaults
 	Default5GCoreChartsRepo = "https://charts.5g-core.io"
 	DefaultORANChartsRepo   = "https://charts.o-ran.io"
 	DefaultEdgeChartsRepo   = "https://charts.edge.io"
-	
+
 	// Events
 	EventCNFDeploymentStarted   = "CNFDeploymentStarted"
 	EventCNFDeploymentCompleted = "CNFDeploymentCompleted"
@@ -68,20 +68,20 @@ const (
 // CNFOrchestrator manages the lifecycle of Cloud Native Functions
 type CNFOrchestrator struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	Recorder           record.EventRecorder
-	PackageGenerator   *nephio.PackageGenerator
-	GitClient          git.ClientInterface
-	MetricsCollector   *monitoring.MetricsCollector
-	ORANClient         *oran.Client
-	HelmSettings       *cli.EnvSettings
-	
+	Scheme           *runtime.Scheme
+	Recorder         record.EventRecorder
+	PackageGenerator *nephio.PackageGenerator
+	GitClient        git.ClientInterface
+	MetricsCollector *monitoring.MetricsCollector
+	ORANClient       *oran.Client
+	HelmSettings     *cli.EnvSettings
+
 	// Configuration
 	Config *CNFOrchestratorConfig
-	
+
 	// Chart repositories
 	ChartRepositories map[nephoranv1.CNFType]string
-	
+
 	// Template registry
 	TemplateRegistry *CNFTemplateRegistry
 }
@@ -139,23 +139,23 @@ type InterfaceSpec struct {
 
 // HealthCheckSpec defines health check specifications
 type HealthCheckSpec struct {
-	Name        string
-	Type        string // HTTP, TCP, gRPC
-	Path        string
-	Port        int32
-	Interval    time.Duration
-	Timeout     time.Duration
-	Retries     int32
+	Name         string
+	Type         string // HTTP, TCP, gRPC
+	Path         string
+	Port         int32
+	Interval     time.Duration
+	Timeout      time.Duration
+	Retries      int32
 	InitialDelay time.Duration
 }
 
 // MonitoringSpec defines monitoring specifications
 type MonitoringSpec struct {
-	MetricName   string
-	MetricType   string
-	Path         string
-	Port         int32
-	AlertRules   []AlertRule
+	MetricName string
+	MetricType string
+	Path       string
+	Port       int32
+	AlertRules []AlertRule
 }
 
 // AlertRule defines alerting rule
@@ -202,7 +202,7 @@ func NewCNFOrchestrator(client client.Client, scheme *runtime.Scheme, recorder r
 		},
 		HelmSettings: cli.New(),
 	}
-	
+
 	orchestrator.initializeTemplateRegistry()
 	return orchestrator
 }
@@ -219,36 +219,36 @@ type DeployRequest struct {
 func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*DeploymentResult, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Starting CNF deployment", "cnf", req.CNFDeployment.Name, "function", req.CNFDeployment.Spec.Function)
-	
+
 	// Record deployment start event
-	c.Recorder.Event(req.CNFDeployment, "Normal", EventCNFDeploymentStarted, 
+	c.Recorder.Event(req.CNFDeployment, "Normal", EventCNFDeploymentStarted,
 		fmt.Sprintf("Starting deployment of %s CNF", req.CNFDeployment.Spec.Function))
-	
+
 	startTime := time.Now()
 	result := &DeploymentResult{}
-	
+
 	// Validate deployment request
 	if err := c.validateDeploymentRequest(req); err != nil {
 		return nil, fmt.Errorf("deployment validation failed: %w", err)
 	}
-	
+
 	// Get CNF template
 	template, err := c.getCNFTemplate(req.CNFDeployment.Spec.Function)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get CNF template: %w", err)
 	}
-	
+
 	// Check dependencies
 	if err := c.checkDependencies(ctx, req.CNFDeployment, template); err != nil {
 		return nil, fmt.Errorf("dependency check failed: %w", err)
 	}
-	
+
 	// Prepare deployment configuration
 	config, err := c.prepareDeploymentConfig(req.CNFDeployment, template)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare deployment config: %w", err)
 	}
-	
+
 	// Deploy based on strategy
 	switch req.CNFDeployment.Spec.DeploymentStrategy {
 	case nephoranv1.DeploymentStrategyHelm:
@@ -262,13 +262,13 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 	default:
 		return nil, fmt.Errorf("unsupported deployment strategy: %s", req.CNFDeployment.Spec.DeploymentStrategy)
 	}
-	
+
 	if err != nil {
 		c.Recorder.Event(req.CNFDeployment, "Warning", EventCNFDeploymentFailed,
 			fmt.Sprintf("CNF deployment failed: %v", err))
 		return result, err
 	}
-	
+
 	// Configure service mesh if enabled
 	if req.CNFDeployment.Spec.ServiceMesh != nil && req.CNFDeployment.Spec.ServiceMesh.Enabled {
 		if err := c.configureServiceMesh(ctx, req.CNFDeployment, result); err != nil {
@@ -276,7 +276,7 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 			// Don't fail deployment, just log the error
 		}
 	}
-	
+
 	// Setup monitoring
 	if req.CNFDeployment.Spec.Monitoring != nil && req.CNFDeployment.Spec.Monitoring.Enabled {
 		if err := c.setupMonitoring(ctx, req.CNFDeployment, template); err != nil {
@@ -284,7 +284,7 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 			// Don't fail deployment, just log the error
 		}
 	}
-	
+
 	// Configure auto-scaling
 	if req.CNFDeployment.Spec.AutoScaling != nil && req.CNFDeployment.Spec.AutoScaling.Enabled {
 		if err := c.configureAutoScaling(ctx, req.CNFDeployment); err != nil {
@@ -292,31 +292,31 @@ func (c *CNFOrchestrator) Deploy(ctx context.Context, req *DeployRequest) (*Depl
 			// Don't fail deployment, just log the error
 		}
 	}
-	
+
 	// Perform health checks
 	if err := c.performHealthChecks(ctx, req.CNFDeployment, template); err != nil {
 		logger.Error(err, "Health checks failed")
 		c.Recorder.Event(req.CNFDeployment, "Warning", EventCNFHealthCheckFailed,
 			fmt.Sprintf("Health checks failed: %v", err))
 	}
-	
+
 	result.Duration = time.Since(startTime)
 	result.Success = true
-	
+
 	// Record successful deployment
 	c.Recorder.Event(req.CNFDeployment, "Normal", EventCNFDeploymentCompleted,
 		fmt.Sprintf("CNF deployment completed successfully in %v", result.Duration))
-	
+
 	// Update metrics
 	if c.MetricsCollector != nil {
 		c.MetricsCollector.RecordCNFDeployment(req.CNFDeployment.Spec.Function, result.Duration)
 	}
-	
-	logger.Info("CNF deployment completed successfully", 
-		"cnf", req.CNFDeployment.Name, 
+
+	logger.Info("CNF deployment completed successfully",
+		"cnf", req.CNFDeployment.Name,
 		"function", req.CNFDeployment.Spec.Function,
 		"duration", result.Duration)
-	
+
 	return result, nil
 }
 
@@ -325,11 +325,11 @@ func (c *CNFOrchestrator) validateDeploymentRequest(req *DeployRequest) error {
 	if req.CNFDeployment == nil {
 		return fmt.Errorf("CNF deployment is required")
 	}
-	
+
 	if err := req.CNFDeployment.ValidateCNFDeployment(); err != nil {
 		return fmt.Errorf("CNF deployment validation failed: %w", err)
 	}
-	
+
 	// Validate strategy-specific requirements
 	switch req.CNFDeployment.Spec.DeploymentStrategy {
 	case nephoranv1.DeploymentStrategyHelm:
@@ -341,7 +341,7 @@ func (c *CNFOrchestrator) validateDeploymentRequest(req *DeployRequest) error {
 			return fmt.Errorf("Operator configuration is required for Operator deployment strategy")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -350,12 +350,12 @@ func (c *CNFOrchestrator) getCNFTemplate(function nephoranv1.CNFFunction) (*CNFT
 	if c.TemplateRegistry == nil {
 		return nil, fmt.Errorf("template registry not initialized")
 	}
-	
+
 	template, exists := c.TemplateRegistry.Templates[function]
 	if !exists {
 		return nil, fmt.Errorf("no template found for CNF function: %s", function)
 	}
-	
+
 	return template, nil
 }
 
@@ -364,10 +364,10 @@ func (c *CNFOrchestrator) checkDependencies(ctx context.Context, cnf *nephoranv1
 	if len(template.Dependencies) == 0 {
 		return nil
 	}
-	
+
 	logger := log.FromContext(ctx)
 	logger.Info("Checking CNF dependencies", "dependencies", template.Dependencies)
-	
+
 	for _, dep := range template.Dependencies {
 		// Check if dependency is deployed in the same namespace
 		dependencyList := &nephoranv1.CNFDeploymentList{}
@@ -375,11 +375,11 @@ func (c *CNFOrchestrator) checkDependencies(ctx context.Context, cnf *nephoranv1
 			client.InNamespace(cnf.Namespace),
 			client.MatchingFields{"spec.function": string(dep)},
 		}
-		
+
 		if err := c.List(ctx, dependencyList, listOpts...); err != nil {
 			return fmt.Errorf("failed to check dependency %s: %w", dep, err)
 		}
-		
+
 		found := false
 		for _, depCNF := range dependencyList.Items {
 			if depCNF.Status.Phase == "Running" {
@@ -387,36 +387,36 @@ func (c *CNFOrchestrator) checkDependencies(ctx context.Context, cnf *nephoranv1
 				break
 			}
 		}
-		
+
 		if !found {
 			return fmt.Errorf("required dependency %s is not deployed or not running", dep)
 		}
 	}
-	
+
 	return nil
 }
 
 // prepareDeploymentConfig prepares the deployment configuration
 func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment, template *CNFTemplate) (map[string]interface{}, error) {
 	config := make(map[string]interface{})
-	
+
 	// Start with template default values
 	for k, v := range template.DefaultValues {
 		config[k] = v
 	}
-	
+
 	// Apply CNF-specific configuration
 	if cnf.Spec.Configuration.Raw != nil {
 		var cnfConfig map[string]interface{}
 		if err := json.Unmarshal(cnf.Spec.Configuration.Raw, &cnfConfig); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal CNF configuration: %w", err)
 		}
-		
+
 		for k, v := range cnfConfig {
 			config[k] = v
 		}
 	}
-	
+
 	// Set resource requirements
 	config["resources"] = map[string]interface{}{
 		"requests": map[string]interface{}{
@@ -428,21 +428,21 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 			"memory": cnf.Spec.Resources.Memory.String(),
 		},
 	}
-	
+
 	// Override limits if specified
 	if cnf.Spec.Resources.MaxCPU != nil {
 		limits := config["resources"].(map[string]interface{})["limits"].(map[string]interface{})
 		limits["cpu"] = cnf.Spec.Resources.MaxCPU.String()
 	}
-	
+
 	if cnf.Spec.Resources.MaxMemory != nil {
 		limits := config["resources"].(map[string]interface{})["limits"].(map[string]interface{})
 		limits["memory"] = cnf.Spec.Resources.MaxMemory.String()
 	}
-	
+
 	// Set replica count
 	config["replicaCount"] = cnf.Spec.Replicas
-	
+
 	// Configure storage if specified
 	if cnf.Spec.Resources.Storage != nil {
 		config["persistence"] = map[string]interface{}{
@@ -450,7 +450,7 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 			"size":    cnf.Spec.Resources.Storage.String(),
 		}
 	}
-	
+
 	// Configure DPDK if specified
 	if cnf.Spec.Resources.DPDK != nil && cnf.Spec.Resources.DPDK.Enabled {
 		config["dpdk"] = map[string]interface{}{
@@ -460,12 +460,12 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 			"driver":  cnf.Spec.Resources.DPDK.Driver,
 		}
 	}
-	
+
 	// Configure hugepages if specified
 	if cnf.Spec.Resources.Hugepages != nil {
 		config["hugepages"] = cnf.Spec.Resources.Hugepages
 	}
-	
+
 	return config, nil
 }
 
@@ -473,7 +473,7 @@ func (c *CNFOrchestrator) prepareDeploymentConfig(cnf *nephoranv1.CNFDeployment,
 func (c *CNFOrchestrator) deployViaHelm(ctx context.Context, cnf *nephoranv1.CNFDeployment, config map[string]interface{}) (*DeploymentResult, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Deploying CNF via Helm", "cnf", cnf.Name, "chart", cnf.Spec.Helm.ChartName)
-	
+
 	// Prepare Helm configuration
 	actionConfig := new(action.Configuration)
 	if err := actionConfig.Init(c.HelmSettings.RESTClientGetter(), cnf.Namespace, "memory", func(format string, v ...interface{}) {
@@ -481,26 +481,26 @@ func (c *CNFOrchestrator) deployViaHelm(ctx context.Context, cnf *nephoranv1.CNF
 	}); err != nil {
 		return nil, fmt.Errorf("failed to initialize Helm action config: %w", err)
 	}
-	
+
 	// Determine release name
 	releaseName := cnf.Spec.Helm.ReleaseName
 	if releaseName == "" {
 		releaseName = fmt.Sprintf("%s-%s", strings.ToLower(string(cnf.Spec.Function)), cnf.Name)
 	}
-	
+
 	// Install or upgrade the chart
 	installAction := action.NewInstall(actionConfig)
 	installAction.ReleaseName = releaseName
 	installAction.Namespace = cnf.Namespace
 	installAction.CreateNamespace = true
 	installAction.Timeout = c.Config.HelmTimeout
-	
+
 	// Load chart
 	chart, err := loader.LoadDir(cnf.Spec.Helm.ChartName) // This would need proper chart loading
 	if err != nil {
 		return nil, fmt.Errorf("failed to load Helm chart: %w", err)
 	}
-	
+
 	// Merge values
 	values := config
 	if cnf.Spec.Helm.Values.Raw != nil {
@@ -512,19 +512,19 @@ func (c *CNFOrchestrator) deployViaHelm(ctx context.Context, cnf *nephoranv1.CNF
 			values[k] = v
 		}
 	}
-	
+
 	// Install the release
 	release, err := installAction.Run(chart, values)
 	if err != nil {
 		return nil, fmt.Errorf("failed to install Helm chart: %w", err)
 	}
-	
+
 	result := &DeploymentResult{
 		Success:     true,
 		ReleaseName: release.Name,
 		Namespace:   release.Namespace,
 	}
-	
+
 	return result, nil
 }
 
@@ -532,23 +532,23 @@ func (c *CNFOrchestrator) deployViaHelm(ctx context.Context, cnf *nephoranv1.CNF
 func (c *CNFOrchestrator) deployViaOperator(ctx context.Context, cnf *nephoranv1.CNFDeployment, config map[string]interface{}) (*DeploymentResult, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Deploying CNF via Operator", "cnf", cnf.Name, "operator", cnf.Spec.Operator.Name)
-	
+
 	// Create the custom resource for the operator
 	var cr runtime.Object
 	if err := json.Unmarshal(cnf.Spec.Operator.CustomResource.Raw, &cr); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal custom resource: %w", err)
 	}
-	
+
 	// Apply the custom resource
 	if err := c.Create(ctx, cr); err != nil && !errors.IsAlreadyExists(err) {
 		return nil, fmt.Errorf("failed to create custom resource: %w", err)
 	}
-	
+
 	result := &DeploymentResult{
 		Success:   true,
 		Namespace: cnf.Namespace,
 	}
-	
+
 	return result, nil
 }
 
@@ -556,28 +556,28 @@ func (c *CNFOrchestrator) deployViaOperator(ctx context.Context, cnf *nephoranv1
 func (c *CNFOrchestrator) deployViaGitOps(ctx context.Context, cnf *nephoranv1.CNFDeployment, config map[string]interface{}) (*DeploymentResult, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Deploying CNF via GitOps", "cnf", cnf.Name)
-	
+
 	if c.PackageGenerator == nil {
 		return nil, fmt.Errorf("package generator not configured")
 	}
-	
+
 	if c.GitClient == nil {
 		return nil, fmt.Errorf("git client not configured")
 	}
-	
+
 	// Generate Nephio package
 	packageData, err := c.PackageGenerator.GenerateCNFPackage(cnf, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate CNF package: %w", err)
 	}
-	
+
 	// Commit to Git repository
 	commitMsg := fmt.Sprintf("Deploy %s CNF: %s", cnf.Spec.Function, cnf.Name)
 	commitHash, err := c.GitClient.CommitPackage(ctx, packageData, commitMsg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to commit CNF package: %w", err)
 	}
-	
+
 	result := &DeploymentResult{
 		Success:   true,
 		Namespace: cnf.Namespace,
@@ -585,7 +585,7 @@ func (c *CNFOrchestrator) deployViaGitOps(ctx context.Context, cnf *nephoranv1.C
 			"gitCommit": commitHash,
 		},
 	}
-	
+
 	return result, nil
 }
 
@@ -593,25 +593,25 @@ func (c *CNFOrchestrator) deployViaGitOps(ctx context.Context, cnf *nephoranv1.C
 func (c *CNFOrchestrator) deployDirect(ctx context.Context, cnf *nephoranv1.CNFDeployment, config map[string]interface{}) (*DeploymentResult, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("Deploying CNF directly", "cnf", cnf.Name)
-	
+
 	// Generate Kubernetes manifests
 	manifests, err := c.generateDirectManifests(cnf, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate manifests: %w", err)
 	}
-	
+
 	// Apply manifests
 	for _, manifest := range manifests {
 		if err := c.Apply(ctx, manifest); err != nil {
 			return nil, fmt.Errorf("failed to apply manifest: %w", err)
 		}
 	}
-	
+
 	result := &DeploymentResult{
 		Success:   true,
 		Namespace: cnf.Namespace,
 	}
-	
+
 	return result, nil
 }
 
@@ -619,7 +619,7 @@ func (c *CNFOrchestrator) deployDirect(ctx context.Context, cnf *nephoranv1.CNFD
 func (c *CNFOrchestrator) generateDirectManifests(cnf *nephoranv1.CNFDeployment, config map[string]interface{}) ([]client.Object, error) {
 	// This would contain logic to generate appropriate Kubernetes resources
 	// based on the CNF function type and configuration
-	
+
 	// For now, return empty slice - this would be implemented with specific
 	// manifest generation logic for each CNF type
 	return []client.Object{}, nil
@@ -629,10 +629,10 @@ func (c *CNFOrchestrator) generateDirectManifests(cnf *nephoranv1.CNFDeployment,
 func (c *CNFOrchestrator) configureServiceMesh(ctx context.Context, cnf *nephoranv1.CNFDeployment, result *DeploymentResult) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Configuring service mesh", "cnf", cnf.Name, "mesh", cnf.Spec.ServiceMesh.Type)
-	
+
 	// Service mesh configuration would be implemented here
 	// This is a placeholder for the actual implementation
-	
+
 	return nil
 }
 
@@ -640,10 +640,10 @@ func (c *CNFOrchestrator) configureServiceMesh(ctx context.Context, cnf *nephora
 func (c *CNFOrchestrator) setupMonitoring(ctx context.Context, cnf *nephoranv1.CNFDeployment, template *CNFTemplate) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Setting up monitoring", "cnf", cnf.Name)
-	
+
 	// Monitoring setup would be implemented here
 	// This is a placeholder for the actual implementation
-	
+
 	return nil
 }
 
@@ -651,10 +651,10 @@ func (c *CNFOrchestrator) setupMonitoring(ctx context.Context, cnf *nephoranv1.C
 func (c *CNFOrchestrator) configureAutoScaling(ctx context.Context, cnf *nephoranv1.CNFDeployment) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Configuring auto-scaling", "cnf", cnf.Name)
-	
+
 	// Auto-scaling configuration would be implemented here
 	// This is a placeholder for the actual implementation
-	
+
 	return nil
 }
 
@@ -662,10 +662,10 @@ func (c *CNFOrchestrator) configureAutoScaling(ctx context.Context, cnf *nephora
 func (c *CNFOrchestrator) performHealthChecks(ctx context.Context, cnf *nephoranv1.CNFDeployment, template *CNFTemplate) error {
 	logger := log.FromContext(ctx)
 	logger.Info("Performing health checks", "cnf", cnf.Name)
-	
+
 	// Health check implementation would be here
 	// This is a placeholder for the actual implementation
-	
+
 	return nil
 }
 
@@ -674,13 +674,13 @@ func (c *CNFOrchestrator) initializeTemplateRegistry() {
 	c.TemplateRegistry = &CNFTemplateRegistry{
 		Templates: make(map[nephoranv1.CNFFunction]*CNFTemplate),
 	}
-	
+
 	// Initialize 5G Core function templates
 	c.init5GCoreTemplates()
-	
+
 	// Initialize O-RAN function templates
 	c.initORANTemplates()
-	
+
 	// Initialize edge function templates
 	c.initEdgeTemplates()
 }
@@ -703,7 +703,7 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 			"service": map[string]interface{}{
 				"type": "ClusterIP",
 				"ports": map[string]interface{}{
-					"sbi": 8080,
+					"sbi":  8080,
 					"sctp": 38412,
 				},
 			},
@@ -745,7 +745,7 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 			},
 		},
 	}
-	
+
 	// SMF template
 	c.TemplateRegistry.Templates[nephoranv1.CNFFunctionSMF] = &CNFTemplate{
 		Function: nephoranv1.CNFFunctionSMF,
@@ -797,7 +797,7 @@ func (c *CNFOrchestrator) init5GCoreTemplates() {
 			},
 		},
 	}
-	
+
 	// UPF template
 	c.TemplateRegistry.Templates[nephoranv1.CNFFunctionUPF] = &CNFTemplate{
 		Function: nephoranv1.CNFFunctionUPF,
@@ -915,7 +915,7 @@ func (c *CNFOrchestrator) initORANTemplates() {
 			},
 		},
 	}
-	
+
 	// O-DU template
 	c.TemplateRegistry.Templates[nephoranv1.CNFFunctionODU] = &CNFTemplate{
 		Function: nephoranv1.CNFFunctionODU,
@@ -992,7 +992,7 @@ func (c *CNFOrchestrator) initEdgeTemplates() {
 				"tag":        "latest",
 			},
 			"ues": map[string]interface{}{
-				"count": 100,
+				"count":     100,
 				"imsiStart": "001010000000001",
 			},
 		},

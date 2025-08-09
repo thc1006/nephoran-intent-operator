@@ -111,10 +111,10 @@ func (enf *E2NodeSetFixtures) CreateBasicE2NodeSet(name, namespace string, repli
 			Namespace: namespace,
 		},
 		Spec: nephoranv1.E2NodeSetSpec{
-			Replicas:             replicas,
-			E2InterfaceVersion:   "v3.0",
-			RICEndpoint:          "http://ric-service:8080",
-			HeartbeatInterval:    metav1.Duration{Duration: 30 * time.Second},
+			Replicas:           replicas,
+			E2InterfaceVersion: "v3.0",
+			RICEndpoint:        "http://ric-service:8080",
+			HeartbeatInterval:  metav1.Duration{Duration: 30 * time.Second},
 			SimulationConfig: nephoranv1.SimulationConfig{
 				UECount:           100,
 				TrafficGeneration: true,
@@ -184,8 +184,8 @@ func (cmf *ConfigMapFixtures) CreateE2NodeConfigMap(name, namespace string, node
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				"nephoran.com/e2-nodeset":  "test-nodeset",
-				"app":                      "e2-node-simulator",
+				"nephoran.com/e2-nodeset": "test-nodeset",
+				"app":                     "e2-node-simulator",
 				"nephoran.com/node-index": string(rune('0' + nodeIndex)),
 			},
 		},

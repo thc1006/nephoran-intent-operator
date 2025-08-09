@@ -48,12 +48,12 @@ func TestCORSConfiguration(t *testing.T) {
 	suite := NewAPISecuritySuite(t)
 
 	testCases := []struct {
-		name           string
-		origin         string
-		method         string
-		headers        map[string]string
-		expectedAllow  bool
-		description    string
+		name          string
+		origin        string
+		method        string
+		headers       map[string]string
+		expectedAllow bool
+		description   string
 	}{
 		{
 			name:          "Allowed_Origin",
@@ -120,13 +120,13 @@ func TestCORSConfiguration(t *testing.T) {
 				t.Run(tc.name, func(t *testing.T) {
 					req := httptest.NewRequest(tc.method, "/api/v1/test", nil)
 					req.Header.Set("Origin", tc.origin)
-					
+
 					for k, v := range tc.headers {
 						req.Header.Set(k, v)
 					}
 
 					w := httptest.NewRecorder()
-					
+
 					// Simulate CORS middleware
 					suite.simulateCORSMiddleware(w, req)
 
@@ -232,7 +232,7 @@ func TestSecurityHeaders(t *testing.T) {
 				t.Run(hdr.name, func(t *testing.T) {
 					value := w.Header().Get(hdr.header)
 					assert.NotEmpty(t, value, fmt.Sprintf("Missing %s header: %s", hdr.header, hdr.description))
-					
+
 					// For CSP, check that it contains key directives rather than exact match
 					if hdr.header == "Content-Security-Policy" {
 						assert.Contains(t, value, "default-src")
@@ -369,9 +369,9 @@ func TestAPIVersioning(t *testing.T) {
 
 	t.Run("Version_In_URL", func(t *testing.T) {
 		versions := []struct {
-			version     string
-			supported   bool
-			deprecated  bool
+			version    string
+			supported  bool
+			deprecated bool
 		}{
 			{"v1", true, false},
 			{"v2", true, false},
@@ -411,7 +411,7 @@ func TestAPIVersioning(t *testing.T) {
 	t.Run("Version_In_Header", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/api/health", nil)
 		req.Header.Set("API-Version", "2.0")
-		
+
 		w := httptest.NewRecorder()
 		w.Header().Set("API-Version", "2.0")
 		w.WriteHeader(http.StatusOK)
@@ -422,7 +422,7 @@ func TestAPIVersioning(t *testing.T) {
 	t.Run("Version_Negotiation", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/api/health", nil)
 		req.Header.Set("Accept", "application/vnd.nephoran.v2+json")
-		
+
 		w := httptest.NewRecorder()
 		w.Header().Set("Content-Type", "application/vnd.nephoran.v2+json")
 		w.WriteHeader(http.StatusOK)
@@ -476,10 +476,10 @@ func TestErrorHandlingSecurity(t *testing.T) {
 	for _, scenario := range errorScenarios {
 		t.Run(scenario.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
-			
+
 			// Simulate error response
 			errorResponse := suite.generateSecureErrorResponse(scenario.errorType, scenario.statusCode)
-			
+
 			w.WriteHeader(scenario.statusCode)
 			json.NewEncoder(w).Encode(errorResponse)
 
@@ -514,7 +514,7 @@ func TestSessionSecurity(t *testing.T) {
 
 	t.Run("Session_Cookie_Security", func(t *testing.T) {
 		w := httptest.NewRecorder()
-		
+
 		// Set session cookie with security flags
 		cookie := &http.Cookie{
 			Name:     "session_id",
@@ -525,13 +525,13 @@ func TestSessionSecurity(t *testing.T) {
 			Path:     "/",
 			MaxAge:   3600,
 		}
-		
+
 		http.SetCookie(w, cookie)
-		
+
 		// Parse cookie from response
 		cookies := w.Result().Cookies()
 		require.Len(t, cookies, 1)
-		
+
 		sessionCookie := cookies[0]
 		assert.True(t, sessionCookie.HttpOnly, "Session cookie should have HttpOnly flag")
 		assert.True(t, sessionCookie.Secure, "Session cookie should have Secure flag")
@@ -543,7 +543,7 @@ func TestSessionSecurity(t *testing.T) {
 		// Test that session ID changes after authentication
 		preAuthSession := "pre-auth-session-id"
 		postAuthSession := "post-auth-session-id"
-		
+
 		assert.NotEqual(t, preAuthSession, postAuthSession, "Session ID should change after authentication")
 	})
 
@@ -551,7 +551,7 @@ func TestSessionSecurity(t *testing.T) {
 		// Test session timeout configuration
 		sessionTimeout := 30 * time.Minute
 		idleTimeout := 15 * time.Minute
-		
+
 		assert.Equal(t, 30*time.Minute, sessionTimeout, "Absolute session timeout should be 30 minutes")
 		assert.Equal(t, 15*time.Minute, idleTimeout, "Idle timeout should be 15 minutes")
 	})
@@ -560,7 +560,7 @@ func TestSessionSecurity(t *testing.T) {
 		// Test concurrent session limits
 		userID := "user123"
 		maxSessions := 3
-		
+
 		sessions := make([]string, 0)
 		for i := 0; i < maxSessions+2; i++ {
 			sessionID := fmt.Sprintf("session-%d", i)
@@ -568,7 +568,7 @@ func TestSessionSecurity(t *testing.T) {
 				sessions = append(sessions, sessionID)
 			}
 		}
-		
+
 		assert.Len(t, sessions, maxSessions, "Should enforce maximum concurrent sessions")
 	})
 }
@@ -596,7 +596,7 @@ func TestCSRFProtection(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
 				req := httptest.NewRequest(tc.method, "/api/v1/resource", nil)
-				
+
 				if tc.hasToken {
 					if tc.validToken {
 						req.Header.Set("X-CSRF-Token", "valid-csrf-token")
@@ -604,9 +604,9 @@ func TestCSRFProtection(t *testing.T) {
 						req.Header.Set("X-CSRF-Token", "invalid-csrf-token")
 					}
 				}
-				
+
 				w := httptest.NewRecorder()
-				
+
 				// Simulate CSRF validation
 				if tc.method != "GET" && tc.method != "HEAD" && tc.method != "OPTIONS" {
 					if !tc.hasToken || !tc.validToken {
@@ -620,7 +620,7 @@ func TestCSRFProtection(t *testing.T) {
 				} else {
 					w.WriteHeader(http.StatusOK)
 				}
-				
+
 				if tc.shouldAllow {
 					assert.Equal(t, http.StatusOK, w.Code)
 				} else {
@@ -633,44 +633,44 @@ func TestCSRFProtection(t *testing.T) {
 	t.Run("Double_Submit_Cookie", func(t *testing.T) {
 		// Test double-submit cookie pattern
 		csrfToken := "csrf-token-value"
-		
+
 		req := httptest.NewRequest("POST", "/api/v1/resource", nil)
 		req.AddCookie(&http.Cookie{
 			Name:  "csrf_token",
 			Value: csrfToken,
 		})
 		req.Header.Set("X-CSRF-Token", csrfToken)
-		
+
 		w := httptest.NewRecorder()
-		
+
 		// Validate that cookie and header match
 		cookie, _ := req.Cookie("csrf_token")
 		headerToken := req.Header.Get("X-CSRF-Token")
-		
+
 		if cookie != nil && cookie.Value == headerToken {
 			w.WriteHeader(http.StatusOK)
 		} else {
 			w.WriteHeader(http.StatusForbidden)
 		}
-		
+
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
 
 	t.Run("SameSite_Cookie_Protection", func(t *testing.T) {
 		// Test SameSite cookie attribute for CSRF protection
 		w := httptest.NewRecorder()
-		
+
 		cookie := &http.Cookie{
 			Name:     "auth_token",
 			Value:    "auth-value",
 			SameSite: http.SameSiteStrictMode,
 		}
-		
+
 		http.SetCookie(w, cookie)
-		
+
 		cookies := w.Result().Cookies()
 		require.Len(t, cookies, 1)
-		
+
 		assert.Equal(t, http.SameSiteStrictMode, cookies[0].SameSite, "Should use SameSite=Strict for CSRF protection")
 	})
 }
@@ -682,9 +682,9 @@ func TestAPIThrottling(t *testing.T) {
 	t.Run("Expensive_Operation_Throttling", func(t *testing.T) {
 		// Test throttling for expensive operations
 		expensiveEndpoints := map[string]int{
-			"/api/v1/intent/process":     5,  // 5 requests per minute
-			"/api/v1/rag/train":          1,  // 1 request per minute
-			"/api/v1/nephio/deploy":      10, // 10 requests per minute
+			"/api/v1/intent/process": 5,  // 5 requests per minute
+			"/api/v1/rag/train":      1,  // 1 request per minute
+			"/api/v1/nephio/deploy":  10, // 10 requests per minute
 		}
 
 		for endpoint, limit := range expensiveEndpoints {
@@ -720,8 +720,8 @@ func TestAPIThrottling(t *testing.T) {
 		}
 
 		costThresholds := ComputeCost{
-			CPU:    80.0,  // 80% CPU
-			Memory: 1024,  // 1GB memory
+			CPU:    80.0, // 80% CPU
+			Memory: 1024, // 1GB memory
 			Time:   30 * time.Second,
 		}
 
@@ -823,7 +823,7 @@ func TestContentTypeValidation(t *testing.T) {
 
 func (s *APISecuritySuite) simulateCORSMiddleware(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get("Origin")
-	
+
 	// Define allowed origins
 	allowedOrigins := map[string]bool{
 		"https://nephoran.example.com": true,
@@ -839,7 +839,7 @@ func (s *APISecuritySuite) simulateCORSMiddleware(w http.ResponseWriter, r *http
 	// Handle preflight request
 	if r.Method == "OPTIONS" {
 		requestMethod := r.Header.Get("Access-Control-Request-Method")
-		
+
 		// Check if method is allowed
 		allowedMethods := []string{"GET", "POST", "PUT", "DELETE", "PATCH"}
 		methodAllowed := false
@@ -879,7 +879,7 @@ func (s *APISecuritySuite) addSecurityHeaders(w http.ResponseWriter) {
 	w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 	w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=(), payment=()")
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, private")
-	
+
 	// Remove sensitive headers
 	w.Header().Del("Server")
 	w.Header().Del("X-Powered-By")
@@ -992,10 +992,10 @@ func TestTelecommunicationsSpecificSecurity(t *testing.T) {
 	t.Run("Network_Function_Isolation", func(t *testing.T) {
 		// Test network function isolation
 		nfTests := []struct {
-			name         string
-			sourceNF     string
-			targetNF     string
-			allowed      bool
+			name     string
+			sourceNF string
+			targetNF string
+			allowed  bool
 		}{
 			{
 				name:     "AMF_to_SMF_Allowed",

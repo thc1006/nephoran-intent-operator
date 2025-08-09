@@ -18,13 +18,13 @@ import (
 
 // StreamingDocumentLoader provides memory-efficient document processing
 type StreamingDocumentLoader struct {
-	logger           *zap.Logger
-	chunkingService  *ChunkingService
-	memoryThreshold  int64 // bytes
-	bufferSize       int
-	maxConcurrency   int
-	processPool      *ProcessingPool
-	metrics          *streamingMetrics
+	logger          *zap.Logger
+	chunkingService *ChunkingService
+	memoryThreshold int64 // bytes
+	bufferSize      int
+	maxConcurrency  int
+	processPool     *ProcessingPool
+	metrics         *streamingMetrics
 }
 
 // StreamingConfig holds configuration for streaming operations
@@ -39,12 +39,12 @@ type StreamingConfig struct {
 
 // streamingMetrics tracks performance metrics
 type streamingMetrics struct {
-	documentsProcessed   prometheus.Counter
-	chunksProcessed      prometheus.Counter
-	bytesProcessed       prometheus.Counter
-	processingDuration   prometheus.Histogram
-	memoryUsage          prometheus.Gauge
-	backpressureEvents   prometheus.Counter
+	documentsProcessed    prometheus.Counter
+	chunksProcessed       prometheus.Counter
+	bytesProcessed        prometheus.Counter
+	processingDuration    prometheus.Histogram
+	memoryUsage           prometheus.Gauge
+	backpressureEvents    prometheus.Counter
 	streamingThresholdHit prometheus.Counter
 }
 
@@ -301,7 +301,7 @@ func (l *StreamingDocumentLoader) readChunkWithBackpressure(
 	// Check memory pressure
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	
+
 	if memStats.Alloc > uint64(l.memoryThreshold) {
 		l.metrics.backpressureEvents.Inc()
 		// Apply backpressure - wait for memory to be freed

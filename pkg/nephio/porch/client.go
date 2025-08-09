@@ -28,6 +28,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sony/gobreaker"
+	"golang.org/x/time/rate"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -39,35 +40,34 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"golang.org/x/time/rate"
 )
 
-// Config defines configuration for the Porch client
-type Config struct {
+// ClientConfig defines configuration for the Porch client
+type ClientConfig struct {
 	// Porch server endpoint (optional, uses in-cluster config if empty)
 	Endpoint string
-	
+
 	// Authentication config
 	AuthConfig *AuthConfig
-	
+
 	// TLS configuration
-	TLSConfig *TLSConfig
-	
+	TLSConfig *ClientTLSConfig
+
 	// Porch-specific configuration
 	PorchConfig *PorchConfig
 }
 
 // AuthConfig defines authentication configuration
 type AuthConfig struct {
-	Type        string // kubeconfig, bearer, basic
-	Token       string
-	Username    string
-	Password    string
-	Kubeconfig  string
+	Type       string // kubeconfig, bearer, basic
+	Token      string
+	Username   string
+	Password   string
+	Kubeconfig string
 }
 
-// TLSConfig defines TLS configuration
-type TLSConfig struct {
+// ClientTLSConfig defines TLS configuration
+type ClientTLSConfig struct {
 	InsecureSkipVerify bool
 	CertFile           string
 	KeyFile            string
@@ -78,67 +78,67 @@ type TLSConfig struct {
 type PorchConfig struct {
 	// Default namespace for operations
 	DefaultNamespace string
-	
+
 	// Default repository for package operations
 	DefaultRepository string
-	
+
 	// Circuit breaker configuration
-	CircuitBreaker *CircuitBreakerConfig
-	
+	CircuitBreaker *ClientCircuitBreakerConfig
+
 	// Rate limiting configuration
-	RateLimit *RateLimitConfig
-	
+	RateLimit *ClientRateLimitConfig
+
 	// Connection pool configuration
-	ConnectionPool *ConnectionPoolConfig
-	
+	ConnectionPool *ClientConnectionPoolConfig
+
 	// Function execution configuration
-	FunctionExecution *FunctionExecutionConfig
+	FunctionExecution *ClientFunctionExecutionConfig
 }
 
-// CircuitBreakerConfig defines circuit breaker settings
-type CircuitBreakerConfig struct {
-	Enabled             bool
-	FailureThreshold    int
-	SuccessThreshold    int
-	Timeout             time.Duration
-	HalfOpenMaxCalls    int
+// ClientCircuitBreakerConfig defines circuit breaker settings
+type ClientCircuitBreakerConfig struct {
+	Enabled          bool
+	FailureThreshold int
+	SuccessThreshold int
+	Timeout          time.Duration
+	HalfOpenMaxCalls int
 }
 
-// RateLimitConfig defines rate limiting settings
-type RateLimitConfig struct {
+// ClientRateLimitConfig defines rate limiting settings
+type ClientRateLimitConfig struct {
 	Enabled           bool
 	RequestsPerSecond float64
 	Burst             int
 }
 
-// ConnectionPoolConfig defines connection pool settings
-type ConnectionPoolConfig struct {
+// ClientConnectionPoolConfig defines connection pool settings
+type ClientConnectionPoolConfig struct {
 	MaxOpenConns    int
 	MaxIdleConns    int
 	ConnMaxLifetime time.Duration
 }
 
-// FunctionExecutionConfig defines function execution settings
-type FunctionExecutionConfig struct {
-	DefaultTimeout    time.Duration
-	MaxConcurrency    int
-	ResourceLimits    map[string]string
+// ClientFunctionExecutionConfig defines function execution settings
+type ClientFunctionExecutionConfig struct {
+	DefaultTimeout time.Duration
+	MaxConcurrency int
+	ResourceLimits map[string]string
 }
 
 // GetKubernetesConfig returns the Kubernetes configuration from the Porch config
-func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
+func (c *ClientConfig) GetKubernetesConfig() (*rest.Config, error) {
 	// If using in-cluster config
 	if c.AuthConfig == nil || c.AuthConfig.Type == "" {
 		return rest.InClusterConfig()
 	}
-	
+
 	// Build config based on auth type
 	config := &rest.Config{}
-	
+
 	if c.Endpoint != "" {
 		config.Host = c.Endpoint
 	}
-	
+
 	switch c.AuthConfig.Type {
 	case "bearer":
 		config.BearerToken = c.AuthConfig.Token
@@ -151,44 +151,44 @@ func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
 	default:
 		return rest.InClusterConfig()
 	}
-	
+
 	// Apply TLS configuration
 	if c.TLSConfig != nil {
 		config.TLSClientConfig = rest.TLSClientConfig{
-			Insecure:   c.TLSConfig.InsecureSkipVerify,
-			CertFile:   c.TLSConfig.CertFile,
-			KeyFile:    c.TLSConfig.KeyFile,
-			CAFile:     c.TLSConfig.CAFile,
+			Insecure: c.TLSConfig.InsecureSkipVerify,
+			CertFile: c.TLSConfig.CertFile,
+			KeyFile:  c.TLSConfig.KeyFile,
+			CAFile:   c.TLSConfig.CAFile,
 		}
 	}
-	
+
 	return config, nil
 }
 
 // DefaultPorchConfig returns default Porch configuration
-func DefaultPorchConfig() *Config {
+func DefaultPorchConfig() *ClientConfig {
 	return &Config{
 		PorchConfig: &PorchConfig{
 			DefaultNamespace:  "default",
 			DefaultRepository: "default",
-			CircuitBreaker: &CircuitBreakerConfig{
-				Enabled:             true,
-				FailureThreshold:    5,
-				SuccessThreshold:    3,
-				Timeout:             30 * time.Second,
-				HalfOpenMaxCalls:    3,
+			CircuitBreaker: &ClientCircuitBreakerConfig{
+				Enabled:          true,
+				FailureThreshold: 5,
+				SuccessThreshold: 3,
+				Timeout:          30 * time.Second,
+				HalfOpenMaxCalls: 3,
 			},
-			RateLimit: &RateLimitConfig{
+			RateLimit: &ClientRateLimitConfig{
 				Enabled:           true,
 				RequestsPerSecond: 10.0,
 				Burst:             20,
 			},
-			ConnectionPool: &ConnectionPoolConfig{
+			ConnectionPool: &ClientConnectionPoolConfig{
 				MaxOpenConns:    10,
 				MaxIdleConns:    5,
 				ConnMaxLifetime: 30 * time.Minute,
 			},
-			FunctionExecution: &FunctionExecutionConfig{
+			FunctionExecution: &ClientFunctionExecutionConfig{
 				DefaultTimeout: 60 * time.Second,
 				MaxConcurrency: 5,
 				ResourceLimits: map[string]string{
@@ -206,44 +206,44 @@ type Client struct {
 	dynamic    dynamic.Interface
 	client     client.Client
 	restClient rest.Interface
-	
+
 	// Configuration
-	config *Config
-	
+	config *ClientConfig
+
 	// Circuit breaker for fault tolerance
 	circuitBreaker *gobreaker.CircuitBreaker
-	
+
 	// Rate limiter for API calls
 	rateLimiter *rate.Limiter
-	
+
 	// Metrics
 	metrics *ClientMetrics
-	
+
 	// Logger
 	logger logr.Logger
-	
+
 	// Cache for frequently accessed resources
 	cache *clientCache
-	
+
 	// Repository manager
 	repoManager RepositoryManager
-	
+
 	// Package revision manager
 	pkgManager PackageRevisionManager
-	
+
 	// Function runner
 	functionRunner FunctionRunner
-	
+
 	// Connection pool
 	connectionPool *connectionPool
-	
+
 	// Mutex for thread safety
 	mutex sync.RWMutex
 }
 
 // ClientOptions defines options for creating a Porch client
 type ClientOptions struct {
-	Config         *Config
+	Config         *ClientConfig
 	KubeConfig     *rest.Config
 	Logger         logr.Logger
 	MetricsEnabled bool
@@ -254,13 +254,13 @@ type ClientOptions struct {
 
 // ClientMetrics defines Prometheus metrics for the Porch client
 type ClientMetrics struct {
-	requestsTotal     *prometheus.CounterVec
-	requestDuration   *prometheus.HistogramVec
-	cacheHits         prometheus.Counter
-	cacheMisses       prometheus.Counter
+	requestsTotal       *prometheus.CounterVec
+	requestDuration     *prometheus.HistogramVec
+	cacheHits           prometheus.Counter
+	cacheMisses         prometheus.Counter
 	circuitBreakerState prometheus.Gauge
-	activeConnections prometheus.Gauge
-	errorRate         *prometheus.CounterVec
+	activeConnections   prometheus.Gauge
+	errorRate           *prometheus.CounterVec
 }
 
 // clientCache provides caching for frequently accessed resources
@@ -289,7 +289,7 @@ func NewClient(opts ClientOptions) (*Client, error) {
 	if opts.Config == nil {
 		return nil, fmt.Errorf("config is required")
 	}
-	
+
 	if opts.KubeConfig == nil {
 		var err error
 		opts.KubeConfig, err = opts.Config.GetKubernetesConfig()
@@ -297,17 +297,17 @@ func NewClient(opts ClientOptions) (*Client, error) {
 			return nil, fmt.Errorf("failed to get kubernetes config: %w", err)
 		}
 	}
-	
+
 	if opts.Logger.GetSink() == nil {
 		opts.Logger = log.Log.WithName("porch-client")
 	}
-	
+
 	// Create dynamic client
 	dynamicClient, err := dynamic.NewForConfig(opts.KubeConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
-	
+
 	// Create controller-runtime client
 	scheme := runtime.NewScheme()
 	ctrlClient, err := client.New(opts.KubeConfig, client.Options{
@@ -316,13 +316,13 @@ func NewClient(opts ClientOptions) (*Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create controller client: %w", err)
 	}
-	
+
 	// Create REST client
 	restClient, err := rest.RESTClientFor(opts.KubeConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create REST client: %w", err)
 	}
-	
+
 	client := &Client{
 		dynamic:    dynamicClient,
 		client:     ctrlClient,
@@ -330,22 +330,22 @@ func NewClient(opts ClientOptions) (*Client, error) {
 		config:     opts.Config,
 		logger:     opts.Logger,
 	}
-	
+
 	// Initialize circuit breaker
 	if err := client.initCircuitBreaker(); err != nil {
 		return nil, fmt.Errorf("failed to initialize circuit breaker: %w", err)
 	}
-	
+
 	// Initialize rate limiter
 	if err := client.initRateLimiter(); err != nil {
 		return nil, fmt.Errorf("failed to initialize rate limiter: %w", err)
 	}
-	
+
 	// Initialize metrics
 	if opts.MetricsEnabled {
 		client.metrics = client.initMetrics()
 	}
-	
+
 	// Initialize cache
 	if opts.CacheEnabled {
 		client.cache = &clientCache{
@@ -360,7 +360,7 @@ func NewClient(opts ClientOptions) (*Client, error) {
 			client.cache.maxSize = 1000
 		}
 	}
-	
+
 	// Initialize connection pool
 	poolSize := 10
 	if client.config.PorchConfig.ConnectionPool != nil && client.config.PorchConfig.ConnectionPool.MaxOpenConns > 0 {
@@ -370,12 +370,12 @@ func NewClient(opts ClientOptions) (*Client, error) {
 		pool:    make(chan *rest.RESTClient, poolSize),
 		maxSize: poolSize,
 	}
-	
+
 	// Initialize sub-managers with stub implementations
 	client.repoManager = &repositoryManagerStub{client: client}
 	client.pkgManager = &packageRevisionManagerStub{client: client}
 	client.functionRunner = &functionRunnerStub{client: client}
-	
+
 	return client, nil
 }
 
@@ -390,7 +390,7 @@ func (c *Client) GetRepository(ctx context.Context, name string) (*Repository, e
 			c.metrics.requestsTotal.WithLabelValues("GetRepository", "complete").Inc()
 		}
 	}()
-	
+
 	// Check cache first
 	if c.cache != nil {
 		if cached := c.getCached(fmt.Sprintf("repo:%s", name)); cached != nil {
@@ -405,24 +405,24 @@ func (c *Client) GetRepository(ctx context.Context, name string) (*Repository, e
 			c.metrics.cacheMisses.Inc()
 		}
 	}
-	
+
 	// Execute with circuit breaker
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.getRepositoryInternal(ctx, name)
 	})
-	
+
 	if err != nil {
 		c.recordError("GetRepository", err)
 		return nil, err
 	}
-	
+
 	repo := result.(*Repository)
-	
+
 	// Cache the result
 	if c.cache != nil {
 		c.setCached(fmt.Sprintf("repo:%s", name), repo)
 	}
-	
+
 	return repo, nil
 }
 
@@ -435,16 +435,16 @@ func (c *Client) ListRepositories(ctx context.Context, opts *ListOptions) (*Repo
 			c.metrics.requestsTotal.WithLabelValues("ListRepositories", "complete").Inc()
 		}
 	}()
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.listRepositoriesInternal(ctx, opts)
 	})
-	
+
 	if err != nil {
 		c.recordError("ListRepositories", err)
 		return nil, err
 	}
-	
+
 	return result.(*RepositoryList), nil
 }
 
@@ -457,28 +457,28 @@ func (c *Client) CreateRepository(ctx context.Context, repo *Repository) (*Repos
 			c.metrics.requestsTotal.WithLabelValues("CreateRepository", "complete").Inc()
 		}
 	}()
-	
+
 	// Validate repository
 	if err := c.validateRepository(repo); err != nil {
 		return nil, fmt.Errorf("repository validation failed: %w", err)
 	}
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.createRepositoryInternal(ctx, repo)
 	})
-	
+
 	if err != nil {
 		c.recordError("CreateRepository", err)
 		return nil, err
 	}
-	
+
 	created := result.(*Repository)
-	
+
 	// Invalidate cache
 	if c.cache != nil {
 		c.invalidateCache(fmt.Sprintf("repo:%s", created.Name))
 	}
-	
+
 	return created, nil
 }
 
@@ -491,28 +491,28 @@ func (c *Client) UpdateRepository(ctx context.Context, repo *Repository) (*Repos
 			c.metrics.requestsTotal.WithLabelValues("UpdateRepository", "complete").Inc()
 		}
 	}()
-	
+
 	// Validate repository
 	if err := c.validateRepository(repo); err != nil {
 		return nil, fmt.Errorf("repository validation failed: %w", err)
 	}
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.updateRepositoryInternal(ctx, repo)
 	})
-	
+
 	if err != nil {
 		c.recordError("UpdateRepository", err)
 		return nil, err
 	}
-	
+
 	updated := result.(*Repository)
-	
+
 	// Invalidate cache
 	if c.cache != nil {
 		c.invalidateCache(fmt.Sprintf("repo:%s", updated.Name))
 	}
-	
+
 	return updated, nil
 }
 
@@ -525,21 +525,21 @@ func (c *Client) DeleteRepository(ctx context.Context, name string) error {
 			c.metrics.requestsTotal.WithLabelValues("DeleteRepository", "complete").Inc()
 		}
 	}()
-	
+
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return nil, c.deleteRepositoryInternal(ctx, name)
 	})
-	
+
 	if err != nil {
 		c.recordError("DeleteRepository", err)
 		return err
 	}
-	
+
 	// Invalidate cache
 	if c.cache != nil {
 		c.invalidateCache(fmt.Sprintf("repo:%s", name))
 	}
-	
+
 	return nil
 }
 
@@ -552,21 +552,21 @@ func (c *Client) SyncRepository(ctx context.Context, name string) error {
 			c.metrics.requestsTotal.WithLabelValues("SyncRepository", "complete").Inc()
 		}
 	}()
-	
+
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return nil, c.syncRepositoryInternal(ctx, name)
 	})
-	
+
 	if err != nil {
 		c.recordError("SyncRepository", err)
 		return err
 	}
-	
+
 	// Invalidate cache
 	if c.cache != nil {
 		c.invalidateCache(fmt.Sprintf("repo:%s", name))
 	}
-	
+
 	return nil
 }
 
@@ -581,9 +581,9 @@ func (c *Client) GetPackageRevision(ctx context.Context, name string, revision s
 			c.metrics.requestsTotal.WithLabelValues("GetPackageRevision", "complete").Inc()
 		}
 	}()
-	
+
 	cacheKey := fmt.Sprintf("pkg:%s:%s", name, revision)
-	
+
 	// Check cache first
 	if c.cache != nil {
 		if cached := c.getCached(cacheKey); cached != nil {
@@ -598,23 +598,23 @@ func (c *Client) GetPackageRevision(ctx context.Context, name string, revision s
 			c.metrics.cacheMisses.Inc()
 		}
 	}
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.getPackageRevisionInternal(ctx, name, revision)
 	})
-	
+
 	if err != nil {
 		c.recordError("GetPackageRevision", err)
 		return nil, err
 	}
-	
+
 	pkg := result.(*PackageRevision)
-	
+
 	// Cache the result
 	if c.cache != nil {
 		c.setCached(cacheKey, pkg)
 	}
-	
+
 	return pkg, nil
 }
 
@@ -627,16 +627,16 @@ func (c *Client) ListPackageRevisions(ctx context.Context, opts *ListOptions) (*
 			c.metrics.requestsTotal.WithLabelValues("ListPackageRevisions", "complete").Inc()
 		}
 	}()
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.listPackageRevisionsInternal(ctx, opts)
 	})
-	
+
 	if err != nil {
 		c.recordError("ListPackageRevisions", err)
 		return nil, err
 	}
-	
+
 	return result.(*PackageRevisionList), nil
 }
 
@@ -649,29 +649,29 @@ func (c *Client) CreatePackageRevision(ctx context.Context, pkg *PackageRevision
 			c.metrics.requestsTotal.WithLabelValues("CreatePackageRevision", "complete").Inc()
 		}
 	}()
-	
+
 	// Validate package revision
 	if err := c.validatePackageRevision(pkg); err != nil {
 		return nil, fmt.Errorf("package revision validation failed: %w", err)
 	}
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.createPackageRevisionInternal(ctx, pkg)
 	})
-	
+
 	if err != nil {
 		c.recordError("CreatePackageRevision", err)
 		return nil, err
 	}
-	
+
 	created := result.(*PackageRevision)
-	
+
 	// Invalidate cache
 	if c.cache != nil {
 		cacheKey := fmt.Sprintf("pkg:%s:%s", created.Spec.PackageName, created.Spec.Revision)
 		c.invalidateCache(cacheKey)
 	}
-	
+
 	return created, nil
 }
 
@@ -684,29 +684,29 @@ func (c *Client) UpdatePackageRevision(ctx context.Context, pkg *PackageRevision
 			c.metrics.requestsTotal.WithLabelValues("UpdatePackageRevision", "complete").Inc()
 		}
 	}()
-	
+
 	// Validate package revision
 	if err := c.validatePackageRevision(pkg); err != nil {
 		return nil, fmt.Errorf("package revision validation failed: %w", err)
 	}
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.updatePackageRevisionInternal(ctx, pkg)
 	})
-	
+
 	if err != nil {
 		c.recordError("UpdatePackageRevision", err)
 		return nil, err
 	}
-	
+
 	updated := result.(*PackageRevision)
-	
+
 	// Invalidate cache
 	if c.cache != nil {
 		cacheKey := fmt.Sprintf("pkg:%s:%s", updated.Spec.PackageName, updated.Spec.Revision)
 		c.invalidateCache(cacheKey)
 	}
-	
+
 	return updated, nil
 }
 
@@ -719,22 +719,22 @@ func (c *Client) DeletePackageRevision(ctx context.Context, name string, revisio
 			c.metrics.requestsTotal.WithLabelValues("DeletePackageRevision", "complete").Inc()
 		}
 	}()
-	
+
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return nil, c.deletePackageRevisionInternal(ctx, name, revision)
 	})
-	
+
 	if err != nil {
 		c.recordError("DeletePackageRevision", err)
 		return err
 	}
-	
+
 	// Invalidate cache
 	if c.cache != nil {
 		cacheKey := fmt.Sprintf("pkg:%s:%s", name, revision)
 		c.invalidateCache(cacheKey)
 	}
-	
+
 	return nil
 }
 
@@ -747,22 +747,22 @@ func (c *Client) ApprovePackageRevision(ctx context.Context, name string, revisi
 			c.metrics.requestsTotal.WithLabelValues("ApprovePackageRevision", "complete").Inc()
 		}
 	}()
-	
+
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return nil, c.approvePackageRevisionInternal(ctx, name, revision)
 	})
-	
+
 	if err != nil {
 		c.recordError("ApprovePackageRevision", err)
 		return err
 	}
-	
+
 	// Invalidate cache
 	if c.cache != nil {
 		cacheKey := fmt.Sprintf("pkg:%s:%s", name, revision)
 		c.invalidateCache(cacheKey)
 	}
-	
+
 	return nil
 }
 
@@ -775,22 +775,22 @@ func (c *Client) ProposePackageRevision(ctx context.Context, name string, revisi
 			c.metrics.requestsTotal.WithLabelValues("ProposePackageRevision", "complete").Inc()
 		}
 	}()
-	
+
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return nil, c.proposePackageRevisionInternal(ctx, name, revision)
 	})
-	
+
 	if err != nil {
 		c.recordError("ProposePackageRevision", err)
 		return err
 	}
-	
+
 	// Invalidate cache
 	if c.cache != nil {
 		cacheKey := fmt.Sprintf("pkg:%s:%s", name, revision)
 		c.invalidateCache(cacheKey)
 	}
-	
+
 	return nil
 }
 
@@ -803,22 +803,22 @@ func (c *Client) RejectPackageRevision(ctx context.Context, name string, revisio
 			c.metrics.requestsTotal.WithLabelValues("RejectPackageRevision", "complete").Inc()
 		}
 	}()
-	
+
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return nil, c.rejectPackageRevisionInternal(ctx, name, revision, reason)
 	})
-	
+
 	if err != nil {
 		c.recordError("RejectPackageRevision", err)
 		return err
 	}
-	
+
 	// Invalidate cache
 	if c.cache != nil {
 		cacheKey := fmt.Sprintf("pkg:%s:%s", name, revision)
 		c.invalidateCache(cacheKey)
 	}
-	
+
 	return nil
 }
 
@@ -833,16 +833,16 @@ func (c *Client) GetPackageContents(ctx context.Context, name string, revision s
 			c.metrics.requestsTotal.WithLabelValues("GetPackageContents", "complete").Inc()
 		}
 	}()
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.getPackageContentsInternal(ctx, name, revision)
 	})
-	
+
 	if err != nil {
 		c.recordError("GetPackageContents", err)
 		return nil, err
 	}
-	
+
 	return result.(map[string][]byte), nil
 }
 
@@ -855,22 +855,22 @@ func (c *Client) UpdatePackageContents(ctx context.Context, name string, revisio
 			c.metrics.requestsTotal.WithLabelValues("UpdatePackageContents", "complete").Inc()
 		}
 	}()
-	
+
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return nil, c.updatePackageContentsInternal(ctx, name, revision, contents)
 	})
-	
+
 	if err != nil {
 		c.recordError("UpdatePackageContents", err)
 		return err
 	}
-	
+
 	// Invalidate cache
 	if c.cache != nil {
 		cacheKey := fmt.Sprintf("pkg:%s:%s", name, revision)
 		c.invalidateCache(cacheKey)
 	}
-	
+
 	return nil
 }
 
@@ -883,16 +883,16 @@ func (c *Client) RenderPackage(ctx context.Context, name string, revision string
 			c.metrics.requestsTotal.WithLabelValues("RenderPackage", "complete").Inc()
 		}
 	}()
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.renderPackageInternal(ctx, name, revision)
 	})
-	
+
 	if err != nil {
 		c.recordError("RenderPackage", err)
 		return nil, err
 	}
-	
+
 	return result.(*RenderResult), nil
 }
 
@@ -907,16 +907,16 @@ func (c *Client) RunFunction(ctx context.Context, req *FunctionRequest) (*Functi
 			c.metrics.requestsTotal.WithLabelValues("RunFunction", "complete").Inc()
 		}
 	}()
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.runFunctionInternal(ctx, req)
 	})
-	
+
 	if err != nil {
 		c.recordError("RunFunction", err)
 		return nil, err
 	}
-	
+
 	return result.(*FunctionResponse), nil
 }
 
@@ -929,16 +929,16 @@ func (c *Client) ValidatePackage(ctx context.Context, name string, revision stri
 			c.metrics.requestsTotal.WithLabelValues("ValidatePackage", "complete").Inc()
 		}
 	}()
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.validatePackageInternal(ctx, name, revision)
 	})
-	
+
 	if err != nil {
 		c.recordError("ValidatePackage", err)
 		return nil, err
 	}
-	
+
 	return result.(*ValidationResult), nil
 }
 
@@ -953,16 +953,16 @@ func (c *Client) GetWorkflow(ctx context.Context, name string) (*Workflow, error
 			c.metrics.requestsTotal.WithLabelValues("GetWorkflow", "complete").Inc()
 		}
 	}()
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.getWorkflowInternal(ctx, name)
 	})
-	
+
 	if err != nil {
 		c.recordError("GetWorkflow", err)
 		return nil, err
 	}
-	
+
 	return result.(*Workflow), nil
 }
 
@@ -975,16 +975,16 @@ func (c *Client) ListWorkflows(ctx context.Context, opts *ListOptions) (*Workflo
 			c.metrics.requestsTotal.WithLabelValues("ListWorkflows", "complete").Inc()
 		}
 	}()
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.listWorkflowsInternal(ctx, opts)
 	})
-	
+
 	if err != nil {
 		c.recordError("ListWorkflows", err)
 		return nil, err
 	}
-	
+
 	return result.(*WorkflowList), nil
 }
 
@@ -997,16 +997,16 @@ func (c *Client) CreateWorkflow(ctx context.Context, workflow *Workflow) (*Workf
 			c.metrics.requestsTotal.WithLabelValues("CreateWorkflow", "complete").Inc()
 		}
 	}()
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.createWorkflowInternal(ctx, workflow)
 	})
-	
+
 	if err != nil {
 		c.recordError("CreateWorkflow", err)
 		return nil, err
 	}
-	
+
 	return result.(*Workflow), nil
 }
 
@@ -1019,16 +1019,16 @@ func (c *Client) UpdateWorkflow(ctx context.Context, workflow *Workflow) (*Workf
 			c.metrics.requestsTotal.WithLabelValues("UpdateWorkflow", "complete").Inc()
 		}
 	}()
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.updateWorkflowInternal(ctx, workflow)
 	})
-	
+
 	if err != nil {
 		c.recordError("UpdateWorkflow", err)
 		return nil, err
 	}
-	
+
 	return result.(*Workflow), nil
 }
 
@@ -1041,16 +1041,16 @@ func (c *Client) DeleteWorkflow(ctx context.Context, name string) error {
 			c.metrics.requestsTotal.WithLabelValues("DeleteWorkflow", "complete").Inc()
 		}
 	}()
-	
+
 	_, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return nil, c.deleteWorkflowInternal(ctx, name)
 	})
-	
+
 	if err != nil {
 		c.recordError("DeleteWorkflow", err)
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -1065,16 +1065,16 @@ func (c *Client) Health(ctx context.Context) (*HealthStatus, error) {
 			c.metrics.requestsTotal.WithLabelValues("Health", "complete").Inc()
 		}
 	}()
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.healthInternal(ctx)
 	})
-	
+
 	if err != nil {
 		c.recordError("Health", err)
 		return nil, err
 	}
-	
+
 	return result.(*HealthStatus), nil
 }
 
@@ -1087,16 +1087,16 @@ func (c *Client) Version(ctx context.Context) (*VersionInfo, error) {
 			c.metrics.requestsTotal.WithLabelValues("Version", "complete").Inc()
 		}
 	}()
-	
+
 	result, err := c.circuitBreaker.Execute(func() (interface{}, error) {
 		return c.versionInternal(ctx)
 	})
-	
+
 	if err != nil {
 		c.recordError("Version", err)
 		return nil, err
 	}
-	
+
 	return result.(*VersionInfo), nil
 }
 
@@ -1105,21 +1105,21 @@ func (c *Client) Version(ctx context.Context) (*VersionInfo, error) {
 // getRepositoryInternal implements the actual repository retrieval logic
 func (c *Client) getRepositoryInternal(ctx context.Context, name string) (*Repository, error) {
 	c.logger.V(1).Info("Getting repository", "name", name)
-	
+
 	// Apply rate limiting
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Get repository using dynamic client
 	gvr := schema.GroupVersionResource{
 		Group:    "config.porch.kpt.dev",
 		Version:  "v1alpha1",
 		Resource: "repositories",
 	}
-	
+
 	obj, err := c.dynamic.Resource(gvr).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -1127,13 +1127,13 @@ func (c *Client) getRepositoryInternal(ctx context.Context, name string) (*Repos
 		}
 		return nil, fmt.Errorf("failed to get repository %s: %w", name, err)
 	}
-	
+
 	// Convert unstructured to Repository
 	repo := &Repository{}
 	if err := convertFromUnstructured(obj, repo); err != nil {
 		return nil, fmt.Errorf("failed to convert repository: %w", err)
 	}
-	
+
 	c.logger.V(1).Info("Successfully retrieved repository", "name", name, "url", repo.Spec.URL)
 	return repo, nil
 }
@@ -1141,21 +1141,21 @@ func (c *Client) getRepositoryInternal(ctx context.Context, name string) (*Repos
 // listRepositoriesInternal implements the actual repository listing logic
 func (c *Client) listRepositoriesInternal(ctx context.Context, opts *ListOptions) (*RepositoryList, error) {
 	c.logger.V(1).Info("Listing repositories", "opts", opts)
-	
+
 	// Apply rate limiting
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Get repositories using dynamic client
 	gvr := schema.GroupVersionResource{
 		Group:    "config.porch.kpt.dev",
 		Version:  "v1alpha1",
 		Resource: "repositories",
 	}
-	
+
 	listOptions := metav1.ListOptions{}
 	if opts != nil {
 		if opts.LabelSelector != "" {
@@ -1171,31 +1171,31 @@ func (c *Client) listRepositoriesInternal(ctx context.Context, opts *ListOptions
 			listOptions.Continue = opts.Continue
 		}
 	}
-	
+
 	namespace := ""
 	if opts != nil && opts.Namespace != "" {
 		namespace = opts.Namespace
 	}
-	
+
 	var obj *unstructured.UnstructuredList
 	var err error
-	
+
 	if namespace != "" {
 		obj, err = c.dynamic.Resource(gvr).Namespace(namespace).List(ctx, listOptions)
 	} else {
 		obj, err = c.dynamic.Resource(gvr).List(ctx, listOptions)
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to list repositories: %w", err)
 	}
-	
+
 	// Convert unstructured list to RepositoryList
 	repoList := &RepositoryList{}
 	if err := convertFromUnstructured(obj, repoList); err != nil {
 		return nil, fmt.Errorf("failed to convert repository list: %w", err)
 	}
-	
+
 	c.logger.V(1).Info("Successfully listed repositories", "count", len(repoList.Items))
 	return repoList, nil
 }
@@ -1203,48 +1203,48 @@ func (c *Client) listRepositoriesInternal(ctx context.Context, opts *ListOptions
 // createRepositoryInternal implements the actual repository creation logic
 func (c *Client) createRepositoryInternal(ctx context.Context, repo *Repository) (*Repository, error) {
 	c.logger.V(1).Info("Creating repository", "name", repo.Name, "url", repo.Spec.URL)
-	
+
 	// Apply rate limiting
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Set creation timestamp and generate name if needed
 	now := metav1.Now()
 	if repo.CreationTimestamp.IsZero() {
 		repo.CreationTimestamp = now
 	}
-	
+
 	// Set API version and kind
 	repo.APIVersion = "config.porch.kpt.dev/v1alpha1"
 	repo.Kind = "Repository"
-	
+
 	// Convert to unstructured for creation
 	obj, err := convertToUnstructured(repo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert repository: %w", err)
 	}
-	
+
 	// Create repository using dynamic client
 	gvr := schema.GroupVersionResource{
 		Group:    "config.porch.kpt.dev",
 		Version:  "v1alpha1",
 		Resource: "repositories",
 	}
-	
+
 	created, err := c.dynamic.Resource(gvr).Create(ctx, obj, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create repository: %w", err)
 	}
-	
+
 	// Convert back to Repository
 	result := &Repository{}
 	if err := convertFromUnstructured(created, result); err != nil {
 		return nil, fmt.Errorf("failed to convert created repository: %w", err)
 	}
-	
+
 	c.logger.Info("Successfully created repository", "name", result.Name, "uid", result.UID)
 	return result, nil
 }
@@ -1252,38 +1252,38 @@ func (c *Client) createRepositoryInternal(ctx context.Context, repo *Repository)
 // updateRepositoryInternal implements the actual repository update logic
 func (c *Client) updateRepositoryInternal(ctx context.Context, repo *Repository) (*Repository, error) {
 	c.logger.V(1).Info("Updating repository", "name", repo.Name)
-	
+
 	// Apply rate limiting
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Convert to unstructured for update
 	obj, err := convertToUnstructured(repo)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert repository: %w", err)
 	}
-	
+
 	// Update repository using dynamic client
 	gvr := schema.GroupVersionResource{
 		Group:    "config.porch.kpt.dev",
 		Version:  "v1alpha1",
 		Resource: "repositories",
 	}
-	
+
 	updated, err := c.dynamic.Resource(gvr).Update(ctx, obj, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update repository: %w", err)
 	}
-	
+
 	// Convert back to Repository
 	result := &Repository{}
 	if err := convertFromUnstructured(updated, result); err != nil {
 		return nil, fmt.Errorf("failed to convert updated repository: %w", err)
 	}
-	
+
 	c.logger.Info("Successfully updated repository", "name", result.Name)
 	return result, nil
 }
@@ -1291,21 +1291,21 @@ func (c *Client) updateRepositoryInternal(ctx context.Context, repo *Repository)
 // deleteRepositoryInternal implements the actual repository deletion logic
 func (c *Client) deleteRepositoryInternal(ctx context.Context, name string) error {
 	c.logger.V(1).Info("Deleting repository", "name", name)
-	
+
 	// Apply rate limiting
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Delete repository using dynamic client
 	gvr := schema.GroupVersionResource{
 		Group:    "config.porch.kpt.dev",
 		Version:  "v1alpha1",
 		Resource: "repositories",
 	}
-	
+
 	err := c.dynamic.Resource(gvr).Delete(ctx, name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -1313,7 +1313,7 @@ func (c *Client) deleteRepositoryInternal(ctx context.Context, name string) erro
 		}
 		return fmt.Errorf("failed to delete repository %s: %w", name, err)
 	}
-	
+
 	c.logger.Info("Successfully deleted repository", "name", name)
 	return nil
 }
@@ -1321,30 +1321,30 @@ func (c *Client) deleteRepositoryInternal(ctx context.Context, name string) erro
 // syncRepositoryInternal implements the actual repository synchronization logic
 func (c *Client) syncRepositoryInternal(ctx context.Context, name string) error {
 	c.logger.V(1).Info("Syncing repository", "name", name)
-	
+
 	// Apply rate limiting
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Get the repository first
 	repo, err := c.getRepositoryInternal(ctx, name)
 	if err != nil {
 		return fmt.Errorf("failed to get repository for sync: %w", err)
 	}
-	
+
 	// Update sync status
 	repo.Status.LastSyncTime = &metav1.Time{Time: time.Now()}
 	repo.Status.SyncError = ""
-	
+
 	// Update the repository
 	_, err = c.updateRepositoryInternal(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("failed to update repository sync status: %w", err)
 	}
-	
+
 	c.logger.Info("Successfully synced repository", "name", name)
 	return nil
 }
@@ -1352,20 +1352,20 @@ func (c *Client) syncRepositoryInternal(ctx context.Context, name string) error 
 // listPackageRevisionsInternal implements package revision listing
 func (c *Client) listPackageRevisionsInternal(ctx context.Context, opts *ListOptions) (*PackageRevisionList, error) {
 	c.logger.V(1).Info("Listing package revisions", "opts", opts)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Get package revisions using dynamic client
 	gvr := schema.GroupVersionResource{
 		Group:    "porch.kpt.dev",
 		Version:  "v1alpha1",
 		Resource: "packagerevisions",
 	}
-	
+
 	listOptions := metav1.ListOptions{}
 	if opts != nil {
 		if opts.LabelSelector != "" {
@@ -1381,31 +1381,31 @@ func (c *Client) listPackageRevisionsInternal(ctx context.Context, opts *ListOpt
 			listOptions.Continue = opts.Continue
 		}
 	}
-	
+
 	namespace := ""
 	if opts != nil && opts.Namespace != "" {
 		namespace = opts.Namespace
 	}
-	
+
 	var obj *unstructured.UnstructuredList
 	var err error
-	
+
 	if namespace != "" {
 		obj, err = c.dynamic.Resource(gvr).Namespace(namespace).List(ctx, listOptions)
 	} else {
 		obj, err = c.dynamic.Resource(gvr).List(ctx, listOptions)
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to list package revisions: %w", err)
 	}
-	
+
 	// Convert unstructured list to PackageRevisionList
 	pkgList := &PackageRevisionList{}
 	if err := convertFromUnstructured(obj, pkgList); err != nil {
 		return nil, fmt.Errorf("failed to convert package revision list: %w", err)
 	}
-	
+
 	c.logger.V(1).Info("Successfully listed package revisions", "count", len(pkgList.Items))
 	return pkgList, nil
 }
@@ -1413,58 +1413,58 @@ func (c *Client) listPackageRevisionsInternal(ctx context.Context, opts *ListOpt
 // createPackageRevisionInternal implements package revision creation
 func (c *Client) createPackageRevisionInternal(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
 	c.logger.V(1).Info("Creating package revision", "name", pkg.Spec.PackageName, "revision", pkg.Spec.Revision)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Set creation timestamp and generate name if needed
 	now := metav1.Now()
 	if pkg.CreationTimestamp.IsZero() {
 		pkg.CreationTimestamp = now
 	}
-	
+
 	// Set API version and kind
 	pkg.APIVersion = "porch.kpt.dev/v1alpha1"
 	pkg.Kind = "PackageRevision"
-	
+
 	// Generate name if not set (typically packagename-revision)
 	if pkg.Name == "" {
 		pkg.Name = fmt.Sprintf("%s-%s", pkg.Spec.PackageName, pkg.Spec.Revision)
 	}
-	
+
 	// Set default lifecycle if not specified
 	if pkg.Spec.Lifecycle == "" {
 		pkg.Spec.Lifecycle = PackageRevisionLifecycleDraft
 	}
-	
+
 	// Convert to unstructured for creation
 	obj, err := convertToUnstructured(pkg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert package revision: %w", err)
 	}
-	
+
 	// Create package revision using dynamic client
 	gvr := schema.GroupVersionResource{
 		Group:    "porch.kpt.dev",
 		Version:  "v1alpha1",
 		Resource: "packagerevisions",
 	}
-	
+
 	// PackageRevisions are cluster-scoped in Porch
 	created, err := c.dynamic.Resource(gvr).Create(ctx, obj, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create package revision: %w", err)
 	}
-	
+
 	// Convert back to PackageRevision
 	result := &PackageRevision{}
 	if err := convertFromUnstructured(created, result); err != nil {
 		return nil, fmt.Errorf("failed to convert created package revision: %w", err)
 	}
-	
+
 	c.logger.Info("Successfully created package revision", "name", result.Name, "uid", result.UID)
 	return result, nil
 }
@@ -1472,37 +1472,37 @@ func (c *Client) createPackageRevisionInternal(ctx context.Context, pkg *Package
 // updatePackageRevisionInternal implements package revision update
 func (c *Client) updatePackageRevisionInternal(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
 	c.logger.V(1).Info("Updating package revision", "name", pkg.Spec.PackageName, "revision", pkg.Spec.Revision)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Convert to unstructured for update
 	obj, err := convertToUnstructured(pkg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert package revision: %w", err)
 	}
-	
+
 	// Update package revision using dynamic client
 	gvr := schema.GroupVersionResource{
 		Group:    "porch.kpt.dev",
 		Version:  "v1alpha1",
 		Resource: "packagerevisions",
 	}
-	
+
 	updated, err := c.dynamic.Resource(gvr).Update(ctx, obj, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update package revision: %w", err)
 	}
-	
+
 	// Convert back to PackageRevision
 	result := &PackageRevision{}
 	if err := convertFromUnstructured(updated, result); err != nil {
 		return nil, fmt.Errorf("failed to convert updated package revision: %w", err)
 	}
-	
+
 	c.logger.Info("Successfully updated package revision", "name", result.Name)
 	return result, nil
 }
@@ -1510,23 +1510,23 @@ func (c *Client) updatePackageRevisionInternal(ctx context.Context, pkg *Package
 // deletePackageRevisionInternal implements package revision deletion
 func (c *Client) deletePackageRevisionInternal(ctx context.Context, name string, revision string) error {
 	c.logger.V(1).Info("Deleting package revision", "name", name, "revision", revision)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Delete package revision using dynamic client
 	gvr := schema.GroupVersionResource{
 		Group:    "porch.kpt.dev",
 		Version:  "v1alpha1",
 		Resource: "packagerevisions",
 	}
-	
+
 	// Construct the package revision name (typically name-revision)
 	resourceName := fmt.Sprintf("%s-%s", name, revision)
-	
+
 	err := c.dynamic.Resource(gvr).Delete(ctx, resourceName, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -1534,7 +1534,7 @@ func (c *Client) deletePackageRevisionInternal(ctx context.Context, name string,
 		}
 		return fmt.Errorf("failed to delete package revision %s:%s: %w", name, revision, err)
 	}
-	
+
 	c.logger.Info("Successfully deleted package revision", "name", name, "revision", revision)
 	return nil
 }
@@ -1542,31 +1542,31 @@ func (c *Client) deletePackageRevisionInternal(ctx context.Context, name string,
 // approvePackageRevisionInternal implements package revision approval
 func (c *Client) approvePackageRevisionInternal(ctx context.Context, name string, revision string) error {
 	c.logger.V(1).Info("Approving package revision", "name", name, "revision", revision)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Get the current package revision
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
 	if err != nil {
 		return fmt.Errorf("failed to get package revision: %w", err)
 	}
-	
+
 	// Check current lifecycle state
 	if pkg.Spec.Lifecycle != PackageRevisionLifecycleProposed {
 		return fmt.Errorf("package revision must be in Proposed state to approve, current state: %s", pkg.Spec.Lifecycle)
 	}
-	
+
 	// Transition to Published lifecycle
 	pkg.Spec.Lifecycle = PackageRevisionLifecyclePublished
-	
+
 	// Update status to indicate approval
 	now := metav1.Now()
 	pkg.Status.PublishTime = &now
-	
+
 	// Set approval condition
 	condition := metav1.Condition{
 		Type:               "Approved",
@@ -1576,13 +1576,13 @@ func (c *Client) approvePackageRevisionInternal(ctx context.Context, name string
 		Message:            "Package revision has been approved and published",
 	}
 	pkg.SetCondition(condition)
-	
+
 	// Update the package revision
 	_, err = c.updatePackageRevisionInternal(ctx, pkg)
 	if err != nil {
 		return fmt.Errorf("failed to approve package revision: %w", err)
 	}
-	
+
 	c.logger.Info("Successfully approved package revision", "name", name, "revision", revision)
 	return nil
 }
@@ -1590,27 +1590,27 @@ func (c *Client) approvePackageRevisionInternal(ctx context.Context, name string
 // proposePackageRevisionInternal implements package revision proposal
 func (c *Client) proposePackageRevisionInternal(ctx context.Context, name string, revision string) error {
 	c.logger.V(1).Info("Proposing package revision", "name", name, "revision", revision)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Get the current package revision
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
 	if err != nil {
 		return fmt.Errorf("failed to get package revision: %w", err)
 	}
-	
+
 	// Check current lifecycle state
 	if pkg.Spec.Lifecycle != PackageRevisionLifecycleDraft {
 		return fmt.Errorf("package revision must be in Draft state to propose, current state: %s", pkg.Spec.Lifecycle)
 	}
-	
+
 	// Transition to Proposed lifecycle
 	pkg.Spec.Lifecycle = PackageRevisionLifecycleProposed
-	
+
 	// Set proposed condition
 	now := metav1.Now()
 	condition := metav1.Condition{
@@ -1621,13 +1621,13 @@ func (c *Client) proposePackageRevisionInternal(ctx context.Context, name string
 		Message:            "Package revision has been proposed for review",
 	}
 	pkg.SetCondition(condition)
-	
+
 	// Update the package revision
 	_, err = c.updatePackageRevisionInternal(ctx, pkg)
 	if err != nil {
 		return fmt.Errorf("failed to propose package revision: %w", err)
 	}
-	
+
 	c.logger.Info("Successfully proposed package revision", "name", name, "revision", revision)
 	return nil
 }
@@ -1635,27 +1635,27 @@ func (c *Client) proposePackageRevisionInternal(ctx context.Context, name string
 // rejectPackageRevisionInternal implements package revision rejection
 func (c *Client) rejectPackageRevisionInternal(ctx context.Context, name string, revision string, reason string) error {
 	c.logger.V(1).Info("Rejecting package revision", "name", name, "revision", revision, "reason", reason)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Get the current package revision
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
 	if err != nil {
 		return fmt.Errorf("failed to get package revision: %w", err)
 	}
-	
+
 	// Check current lifecycle state
 	if pkg.Spec.Lifecycle != PackageRevisionLifecycleProposed {
 		return fmt.Errorf("package revision must be in Proposed state to reject, current state: %s", pkg.Spec.Lifecycle)
 	}
-	
+
 	// Transition back to Draft lifecycle
 	pkg.Spec.Lifecycle = PackageRevisionLifecycleDraft
-	
+
 	// Set rejection condition
 	now := metav1.Now()
 	condition := metav1.Condition{
@@ -1666,13 +1666,13 @@ func (c *Client) rejectPackageRevisionInternal(ctx context.Context, name string,
 		Message:            fmt.Sprintf("Package revision rejected: %s", reason),
 	}
 	pkg.SetCondition(condition)
-	
+
 	// Update the package revision
 	_, err = c.updatePackageRevisionInternal(ctx, pkg)
 	if err != nil {
 		return fmt.Errorf("failed to reject package revision: %w", err)
 	}
-	
+
 	c.logger.Info("Successfully rejected package revision", "name", name, "revision", revision, "reason", reason)
 	return nil
 }
@@ -1680,21 +1680,21 @@ func (c *Client) rejectPackageRevisionInternal(ctx context.Context, name string,
 // getPackageContentsInternal implements package content retrieval
 func (c *Client) getPackageContentsInternal(ctx context.Context, name string, revision string) (map[string][]byte, error) {
 	c.logger.V(1).Info("Getting package contents", "name", name, "revision", revision)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Get the package revision first
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get package revision: %w", err)
 	}
-	
+
 	contents := make(map[string][]byte)
-	
+
 	// Extract contents from resources in the package revision spec
 	if pkg.Spec.Resources != nil {
 		for i, resource := range pkg.Spec.Resources {
@@ -1704,13 +1704,13 @@ func (c *Client) getPackageContentsInternal(ctx context.Context, name string, re
 				c.logger.Error(err, "Failed to convert resource to YAML", "index", i)
 				continue
 			}
-			
+
 			// Generate filename based on resource metadata
 			filename := generateResourceFilename(resource)
 			contents[filename] = yamlData
 		}
 	}
-	
+
 	// If no resources in spec, try to get from PackageRevisionResources sub-resource
 	if len(contents) == 0 {
 		resourceContents, err := c.getPackageResourcesFromPorch(ctx, name, revision)
@@ -1720,7 +1720,7 @@ func (c *Client) getPackageContentsInternal(ctx context.Context, name string, re
 			contents = resourceContents
 		}
 	}
-	
+
 	c.logger.V(1).Info("Successfully retrieved package contents", "name", name, "revision", revision, "fileCount", len(contents))
 	return contents, nil
 }
@@ -1728,19 +1728,19 @@ func (c *Client) getPackageContentsInternal(ctx context.Context, name string, re
 // updatePackageContentsInternal implements package content update
 func (c *Client) updatePackageContentsInternal(ctx context.Context, name string, revision string, contents map[string][]byte) error {
 	c.logger.V(1).Info("Updating package contents", "name", name, "revision", revision, "fileCount", len(contents))
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Get the current package revision
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
 	if err != nil {
 		return fmt.Errorf("failed to get package revision: %w", err)
 	}
-	
+
 	// Convert file contents to KRM resources
 	resources := []KRMResource{}
 	for filename, content := range contents {
@@ -1748,31 +1748,31 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name string,
 		if !isYAMLFile(filename) {
 			continue
 		}
-		
+
 		resource, err := convertYAMLToKRMResource(content)
 		if err != nil {
 			c.logger.Error(err, "Failed to convert YAML to KRM resource", "filename", filename)
 			continue
 		}
-		
+
 		resources = append(resources, *resource)
 	}
-	
+
 	// Update the package revision with new resources
 	pkg.Spec.Resources = resources
-	
+
 	// Update the package revision
 	_, err = c.updatePackageRevisionInternal(ctx, pkg)
 	if err != nil {
 		return fmt.Errorf("failed to update package revision with new contents: %w", err)
 	}
-	
+
 	// Also try to update using PackageRevisionResources if available
 	if err := c.updatePackageResourcesInPorch(ctx, name, revision, contents); err != nil {
 		c.logger.V(1).Info("Failed to update PackageRevisionResources", "error", err)
 		// Don't fail the entire operation, as the main update succeeded
 	}
-	
+
 	c.logger.Info("Successfully updated package contents", "name", name, "revision", revision, "resourceCount", len(resources))
 	return nil
 }
@@ -1780,33 +1780,33 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name string,
 // renderPackageInternal implements package rendering
 func (c *Client) renderPackageInternal(ctx context.Context, name string, revision string) (*RenderResult, error) {
 	c.logger.V(1).Info("Rendering package", "name", name, "revision", revision)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Get the package revision
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get package revision: %w", err)
 	}
-	
+
 	// If no functions defined, return resources as-is
 	if len(pkg.Spec.Functions) == 0 {
 		return &RenderResult{
 			Resources: pkg.Spec.Resources,
 		}, nil
 	}
-	
+
 	// Execute each function in the pipeline
 	currentResources := pkg.Spec.Resources
 	var allResults []*FunctionResult
-	
+
 	for _, functionConfig := range pkg.Spec.Functions {
 		c.logger.V(1).Info("Executing function in pipeline", "image", functionConfig.Image)
-		
+
 		// Create function request
 		req := &FunctionRequest{
 			FunctionConfig: functionConfig,
@@ -1819,7 +1819,7 @@ func (c *Client) renderPackageInternal(ctx context.Context, name string, revisio
 				},
 			},
 		}
-		
+
 		// Execute function
 		resp, err := c.runFunctionInternal(ctx, req)
 		if err != nil {
@@ -1832,7 +1832,7 @@ func (c *Client) renderPackageInternal(ctx context.Context, name string, revisio
 				},
 			}, nil
 		}
-		
+
 		// Check for function execution errors
 		if resp.Error != nil {
 			return &RenderResult{
@@ -1844,12 +1844,12 @@ func (c *Client) renderPackageInternal(ctx context.Context, name string, revisio
 				},
 			}, nil
 		}
-		
+
 		// Update resources for next function in pipeline
 		currentResources = resp.Resources
 		allResults = append(allResults, resp.Results...)
 	}
-	
+
 	c.logger.V(1).Info("Successfully rendered package", "name", name, "revision", revision, "finalResourceCount", len(currentResources))
 	return &RenderResult{
 		Resources: currentResources,
@@ -1860,20 +1860,20 @@ func (c *Client) renderPackageInternal(ctx context.Context, name string, revisio
 // runFunctionInternal implements function execution
 func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 	c.logger.V(1).Info("Running function", "image", req.FunctionConfig.Image)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Create FunctionEvalTask resource for Porch function execution
 	gvr := schema.GroupVersionResource{
 		Group:    "porch.kpt.dev",
 		Version:  "v1alpha1",
 		Resource: "functionevaltasks",
 	}
-	
+
 	// Create the function evaluation task
 	task := map[string]interface{}{
 		"apiVersion": "porch.kpt.dev/v1alpha1",
@@ -1891,29 +1891,29 @@ func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) 
 			"timeout":   "30s",
 		},
 	}
-	
+
 	// Convert to unstructured
 	taskObj := &unstructured.Unstructured{}
 	taskObj.Object = task
-	
+
 	// Create the task
 	createdTask, err := c.dynamic.Resource(gvr).Create(ctx, taskObj, metav1.CreateOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create function evaluation task: %w", err)
 	}
-	
+
 	// Wait for task completion (polling approach)
 	taskName := createdTask.GetName()
 	response, err := c.waitForFunctionTaskCompletion(ctx, taskName, 60*time.Second)
 	if err != nil {
 		return nil, fmt.Errorf("function execution failed: %w", err)
 	}
-	
+
 	// Clean up the task
 	if err := c.dynamic.Resource(gvr).Delete(ctx, taskName, metav1.DeleteOptions{}); err != nil {
 		c.logger.Error(err, "Failed to cleanup function evaluation task", "taskName", taskName)
 	}
-	
+
 	c.logger.V(1).Info("Successfully executed function", "image", req.FunctionConfig.Image, "resourceCount", len(response.Resources))
 	return response, nil
 }
@@ -1921,13 +1921,13 @@ func (c *Client) runFunctionInternal(ctx context.Context, req *FunctionRequest) 
 // validatePackageInternal implements package validation
 func (c *Client) validatePackageInternal(ctx context.Context, name string, revision string) (*ValidationResult, error) {
 	c.logger.V(1).Info("Validating package", "name", name, "revision", revision)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	// Get the package revision
 	pkg, err := c.getPackageRevisionInternal(ctx, name, revision)
 	if err != nil {
@@ -1940,10 +1940,10 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 			}},
 		}, nil
 	}
-	
+
 	var errors []ValidationError
 	var warnings []ValidationError
-	
+
 	// Validate basic package structure
 	if pkg.Spec.PackageName == "" {
 		errors = append(errors, ValidationError{
@@ -1953,7 +1953,7 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 			Code:     "MISSING_PACKAGE_NAME",
 		})
 	}
-	
+
 	if pkg.Spec.Repository == "" {
 		errors = append(errors, ValidationError{
 			Path:     "spec.repository",
@@ -1962,7 +1962,7 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 			Code:     "MISSING_REPOSITORY",
 		})
 	}
-	
+
 	// Validate lifecycle transitions
 	if !IsValidLifecycle(pkg.Spec.Lifecycle) {
 		errors = append(errors, ValidationError{
@@ -1972,7 +1972,7 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 			Code:     "INVALID_LIFECYCLE",
 		})
 	}
-	
+
 	// Validate resources
 	for i, resource := range pkg.Spec.Resources {
 		if resource.APIVersion == "" {
@@ -1983,7 +1983,7 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 				Code:     "MISSING_API_VERSION",
 			})
 		}
-		
+
 		if resource.Kind == "" {
 			errors = append(errors, ValidationError{
 				Path:     fmt.Sprintf("spec.resources[%d].kind", i),
@@ -1992,7 +1992,7 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 				Code:     "MISSING_KIND",
 			})
 		}
-		
+
 		// Check for resource name in metadata
 		if metadata, ok := resource.Metadata["name"]; !ok || metadata == "" {
 			warnings = append(warnings, ValidationError{
@@ -2003,7 +2003,7 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 			})
 		}
 	}
-	
+
 	// Validate function configurations
 	for i, function := range pkg.Spec.Functions {
 		if function.Image == "" {
@@ -2015,11 +2015,11 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 			})
 		}
 	}
-	
+
 	isValid := len(errors) == 0
-	
+
 	c.logger.V(1).Info("Package validation completed", "name", name, "revision", revision, "valid", isValid, "errors", len(errors), "warnings", len(warnings))
-	
+
 	return &ValidationResult{
 		Valid:    isValid,
 		Errors:   errors,
@@ -2030,78 +2030,78 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 // getWorkflowInternal implements workflow retrieval
 func (c *Client) getWorkflowInternal(ctx context.Context, name string) (*Workflow, error) {
 	c.logger.V(1).Info("Getting workflow", "name", name)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	return &Workflow{}, nil
 }
 
 // listWorkflowsInternal implements workflow listing
 func (c *Client) listWorkflowsInternal(ctx context.Context, opts *ListOptions) (*WorkflowList, error) {
 	c.logger.V(1).Info("Listing workflows", "opts", opts)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	return &WorkflowList{}, nil
 }
 
 // createWorkflowInternal implements workflow creation
 func (c *Client) createWorkflowInternal(ctx context.Context, workflow *Workflow) (*Workflow, error) {
 	c.logger.V(1).Info("Creating workflow", "name", workflow.Name)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	return workflow, nil
 }
 
 // updateWorkflowInternal implements workflow update
 func (c *Client) updateWorkflowInternal(ctx context.Context, workflow *Workflow) (*Workflow, error) {
 	c.logger.V(1).Info("Updating workflow", "name", workflow.Name)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	return workflow, nil
 }
 
 // deleteWorkflowInternal implements workflow deletion
 func (c *Client) deleteWorkflowInternal(ctx context.Context, name string) error {
 	c.logger.V(1).Info("Deleting workflow", "name", name)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
 // healthInternal implements health check
 func (c *Client) healthInternal(ctx context.Context) (*HealthStatus, error) {
 	c.logger.V(1).Info("Checking health")
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	return &HealthStatus{
 		Status:    "healthy",
 		Timestamp: &metav1.Time{Time: time.Now()},
@@ -2111,13 +2111,13 @@ func (c *Client) healthInternal(ctx context.Context) (*HealthStatus, error) {
 // versionInternal implements version retrieval
 func (c *Client) versionInternal(ctx context.Context) (*VersionInfo, error) {
 	c.logger.V(1).Info("Getting version")
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	return &VersionInfo{
 		Version: "v1.0.0",
 	}, nil
@@ -2126,22 +2126,22 @@ func (c *Client) versionInternal(ctx context.Context) (*VersionInfo, error) {
 // getPackageRevisionInternal implements package revision retrieval
 func (c *Client) getPackageRevisionInternal(ctx context.Context, name string, revision string) (*PackageRevision, error) {
 	c.logger.V(1).Info("Getting package revision", "name", name, "revision", revision)
-	
+
 	if c.rateLimiter != nil {
 		if err := c.rateLimiter.Wait(ctx); err != nil {
 			return nil, fmt.Errorf("rate limit exceeded: %w", err)
 		}
 	}
-	
+
 	gvr := schema.GroupVersionResource{
 		Group:    "porch.kpt.dev",
 		Version:  "v1alpha1",
 		Resource: "packagerevisions",
 	}
-	
+
 	// Construct the package revision name (typically name-revision)
 	resourceName := fmt.Sprintf("%s-%s", name, revision)
-	
+
 	obj, err := c.dynamic.Resource(gvr).Get(ctx, resourceName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -2149,12 +2149,12 @@ func (c *Client) getPackageRevisionInternal(ctx context.Context, name string, re
 		}
 		return nil, fmt.Errorf("failed to get package revision %s:%s: %w", name, revision, err)
 	}
-	
+
 	pkg := &PackageRevision{}
 	if err := convertFromUnstructured(obj, pkg); err != nil {
 		return nil, fmt.Errorf("failed to convert package revision: %w", err)
 	}
-	
+
 	c.logger.V(1).Info("Successfully retrieved package revision", "name", name, "revision", revision)
 	return pkg, nil
 }
@@ -2166,37 +2166,37 @@ func (c *Client) validateRepository(repo *Repository) error {
 	if repo == nil {
 		return fmt.Errorf("repository cannot be nil")
 	}
-	
+
 	if repo.Name == "" {
 		return fmt.Errorf("repository name is required")
 	}
-	
+
 	if repo.Spec.URL == "" {
 		return fmt.Errorf("repository URL is required")
 	}
-	
+
 	if repo.Spec.Type == "" {
 		return fmt.Errorf("repository type is required")
 	}
-	
+
 	// Validate repository type
 	validTypes := map[string]bool{
 		"git": true,
 		"oci": true,
 	}
-	
+
 	if !validTypes[repo.Spec.Type] {
 		return fmt.Errorf("unsupported repository type: %s", repo.Spec.Type)
 	}
-	
+
 	// Validate URL format
 	if repo.Spec.Type == "git" {
-		if !strings.HasPrefix(repo.Spec.URL, "https://") && 
-		   !strings.HasPrefix(repo.Spec.URL, "git@") {
+		if !strings.HasPrefix(repo.Spec.URL, "https://") &&
+			!strings.HasPrefix(repo.Spec.URL, "git@") {
 			return fmt.Errorf("git repository URL must start with https:// or git@")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -2205,24 +2205,24 @@ func (c *Client) validatePackageRevision(pkg *PackageRevision) error {
 	if pkg == nil {
 		return fmt.Errorf("package revision cannot be nil")
 	}
-	
+
 	if pkg.Spec.PackageName == "" {
 		return fmt.Errorf("package name is required")
 	}
-	
+
 	if pkg.Spec.Repository == "" {
 		return fmt.Errorf("repository is required")
 	}
-	
+
 	if pkg.Spec.Revision == "" {
 		return fmt.Errorf("revision is required")
 	}
-	
+
 	// Validate lifecycle
 	if pkg.Spec.Lifecycle != "" && !IsValidLifecycle(pkg.Spec.Lifecycle) {
 		return fmt.Errorf("invalid lifecycle: %s", pkg.Spec.Lifecycle)
 	}
-	
+
 	return nil
 }
 
@@ -2246,7 +2246,7 @@ func (c *Client) initCircuitBreaker() error {
 			}
 		},
 	}
-	
+
 	if c.config.PorchConfig.CircuitBreaker != nil {
 		cb := c.config.PorchConfig.CircuitBreaker
 		if cb.Enabled {
@@ -2263,7 +2263,7 @@ func (c *Client) initCircuitBreaker() error {
 			}
 		}
 	}
-	
+
 	c.circuitBreaker = gobreaker.NewCircuitBreaker(settings)
 	return nil
 }
@@ -2336,21 +2336,21 @@ func (c *Client) getCached(key string) interface{} {
 	if c.cache == nil {
 		return nil
 	}
-	
+
 	c.cache.mutex.RLock()
 	defer c.cache.mutex.RUnlock()
-	
+
 	entry, exists := c.cache.cache[key]
 	if !exists {
 		return nil
 	}
-	
+
 	// Check if expired
 	if time.Since(entry.timestamp) > c.cache.ttl {
 		go c.evictExpired()
 		return nil
 	}
-	
+
 	return entry.data
 }
 
@@ -2359,15 +2359,15 @@ func (c *Client) setCached(key string, value interface{}) {
 	if c.cache == nil {
 		return
 	}
-	
+
 	c.cache.mutex.Lock()
 	defer c.cache.mutex.Unlock()
-	
+
 	// Evict if cache is full
 	if len(c.cache.cache) >= c.cache.maxSize {
 		c.evictOldestLocked()
 	}
-	
+
 	c.cache.cache[key] = &cacheEntry{
 		data:      value,
 		timestamp: time.Now(),
@@ -2379,10 +2379,10 @@ func (c *Client) invalidateCache(key string) {
 	if c.cache == nil {
 		return
 	}
-	
+
 	c.cache.mutex.Lock()
 	defer c.cache.mutex.Unlock()
-	
+
 	delete(c.cache.cache, key)
 }
 
@@ -2391,10 +2391,10 @@ func (c *Client) evictExpired() {
 	if c.cache == nil {
 		return
 	}
-	
+
 	c.cache.mutex.Lock()
 	defer c.cache.mutex.Unlock()
-	
+
 	now := time.Now()
 	for key, entry := range c.cache.cache {
 		if now.Sub(entry.timestamp) > c.cache.ttl {
@@ -2407,14 +2407,14 @@ func (c *Client) evictExpired() {
 func (c *Client) evictOldestLocked() {
 	var oldestKey string
 	var oldestTime time.Time
-	
+
 	for key, entry := range c.cache.cache {
 		if oldestKey == "" || entry.timestamp.Before(oldestTime) {
 			oldestKey = key
 			oldestTime = entry.timestamp
 		}
 	}
-	
+
 	if oldestKey != "" {
 		delete(c.cache.cache, oldestKey)
 	}
@@ -2427,7 +2427,7 @@ func (c *Client) recordError(operation string, err error) {
 	if c.metrics == nil {
 		return
 	}
-	
+
 	errorType := "unknown"
 	if errors.IsNotFound(err) {
 		errorType = "not_found"
@@ -2446,7 +2446,7 @@ func (c *Client) recordError(operation string, err error) {
 	} else if errors.IsTooManyRequests(err) {
 		errorType = "rate_limited"
 	}
-	
+
 	c.metrics.errorRate.WithLabelValues(operation, errorType).Inc()
 }
 
@@ -2456,12 +2456,12 @@ func convertToUnstructured(obj interface{}) (*unstructured.Unstructured, error) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal object: %w", err)
 	}
-	
+
 	unstructuredObj := &unstructured.Unstructured{}
 	if err := json.Unmarshal(data, unstructuredObj); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal to unstructured: %w", err)
 	}
-	
+
 	return unstructuredObj, nil
 }
 
@@ -2471,11 +2471,11 @@ func convertFromUnstructured(obj interface{}, target interface{}) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal unstructured object: %w", err)
 	}
-	
+
 	if err := json.Unmarshal(data, target); err != nil {
 		return fmt.Errorf("failed to unmarshal to target type: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -2489,7 +2489,7 @@ func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
 		"kind":       resource.Kind,
 		"metadata":   resource.Metadata,
 	}
-	
+
 	if resource.Spec != nil {
 		resourceMap["spec"] = resource.Spec
 	}
@@ -2499,13 +2499,13 @@ func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
 	if resource.Data != nil {
 		resourceMap["data"] = resource.Data
 	}
-	
+
 	// Convert to YAML using JSON marshaling then conversion
 	jsonBytes, err := json.Marshal(resourceMap)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal resource to JSON: %w", err)
 	}
-	
+
 	// Simple YAML conversion (in production, use proper YAML library)
 	// For now, return as formatted JSON which is valid YAML
 	return jsonBytes, nil
@@ -2514,14 +2514,14 @@ func convertKRMResourceToYAML(resource KRMResource) ([]byte, error) {
 // convertYAMLToKRMResource converts YAML bytes to a KRMResource
 func convertYAMLToKRMResource(yamlData []byte) (*KRMResource, error) {
 	var resourceMap map[string]interface{}
-	
+
 	// Parse as JSON first (most YAML is valid JSON)
 	if err := json.Unmarshal(yamlData, &resourceMap); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal YAML data: %w", err)
 	}
-	
+
 	resource := &KRMResource{}
-	
+
 	// Extract required fields
 	if apiVersion, ok := resourceMap["apiVersion"].(string); ok {
 		resource.APIVersion = apiVersion
@@ -2541,7 +2541,7 @@ func convertYAMLToKRMResource(yamlData []byte) (*KRMResource, error) {
 	if data, ok := resourceMap["data"].(map[string]interface{}); ok {
 		resource.Data = data
 	}
-	
+
 	return resource, nil
 }
 
@@ -2553,24 +2553,24 @@ func generateResourceFilename(resource KRMResource) string {
 			name = resourceName
 		}
 	}
-	
+
 	if name == "" {
 		name = "resource"
 	}
-	
+
 	// Create filename from kind and name
 	kind := strings.ToLower(resource.Kind)
 	if kind == "" {
 		kind = "resource"
 	}
-	
+
 	return fmt.Sprintf("%s-%s.yaml", kind, name)
 }
 
 // isYAMLFile checks if a filename represents a YAML file
 func isYAMLFile(filename string) bool {
 	return strings.HasSuffix(strings.ToLower(filename), ".yaml") ||
-		   strings.HasSuffix(strings.ToLower(filename), ".yml")
+		strings.HasSuffix(strings.ToLower(filename), ".yml")
 }
 
 // getPackageResourcesFromPorch retrieves package resources from Porch PackageRevisionResources
@@ -2581,32 +2581,32 @@ func (c *Client) getPackageResourcesFromPorch(ctx context.Context, name string, 
 		Version:  "v1alpha1",
 		Resource: "packagerevisionresources",
 	}
-	
+
 	resourceName := fmt.Sprintf("%s-%s", name, revision)
-	
+
 	obj, err := c.dynamic.Resource(gvr).Get(ctx, resourceName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get package revision resources: %w", err)
 	}
-	
+
 	// Extract resources from the PackageRevisionResources spec
 	spec, found, err := unstructured.NestedMap(obj.Object, "spec")
 	if err != nil || !found {
 		return nil, fmt.Errorf("no spec found in PackageRevisionResources")
 	}
-	
+
 	resources, found, err := unstructured.NestedMap(spec, "resources")
 	if err != nil || !found {
 		return nil, fmt.Errorf("no resources found in PackageRevisionResources spec")
 	}
-	
+
 	contents := make(map[string][]byte)
 	for filename, content := range resources {
 		if contentStr, ok := content.(string); ok {
 			contents[filename] = []byte(contentStr)
 		}
 	}
-	
+
 	return contents, nil
 }
 
@@ -2617,45 +2617,45 @@ func (c *Client) updatePackageResourcesInPorch(ctx context.Context, name string,
 		Version:  "v1alpha1",
 		Resource: "packagerevisionresources",
 	}
-	
+
 	resourceName := fmt.Sprintf("%s-%s", name, revision)
-	
+
 	// Get current PackageRevisionResources
 	obj, err := c.dynamic.Resource(gvr).Get(ctx, resourceName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get package revision resources: %w", err)
 	}
-	
+
 	// Update resources in spec
 	resources := make(map[string]interface{})
 	for filename, content := range contents {
 		resources[filename] = string(content)
 	}
-	
+
 	if err := unstructured.SetNestedMap(obj.Object, resources, "spec", "resources"); err != nil {
 		return fmt.Errorf("failed to set resources in spec: %w", err)
 	}
-	
+
 	// Update the PackageRevisionResources
 	_, err = c.dynamic.Resource(gvr).Update(ctx, obj, metav1.UpdateOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to update package revision resources: %w", err)
 	}
-	
+
 	return nil
 }
 
 // convertResourcesToUnstructured converts KRM resources to unstructured format
 func (c *Client) convertResourcesToUnstructured(resources []KRMResource) []interface{} {
 	result := make([]interface{}, len(resources))
-	
+
 	for i, resource := range resources {
 		resourceMap := map[string]interface{}{
 			"apiVersion": resource.APIVersion,
 			"kind":       resource.Kind,
 			"metadata":   resource.Metadata,
 		}
-		
+
 		if resource.Spec != nil {
 			resourceMap["spec"] = resource.Spec
 		}
@@ -2665,10 +2665,10 @@ func (c *Client) convertResourcesToUnstructured(resources []KRMResource) []inter
 		if resource.Data != nil {
 			resourceMap["data"] = resource.Data
 		}
-		
+
 		result[i] = resourceMap
 	}
-	
+
 	return result
 }
 
@@ -2679,13 +2679,13 @@ func (c *Client) waitForFunctionTaskCompletion(ctx context.Context, taskName str
 		Version:  "v1alpha1",
 		Resource: "functionevaltasks",
 	}
-	
+
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
-	
+
 	ticker := time.NewTicker(2 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -2696,13 +2696,13 @@ func (c *Client) waitForFunctionTaskCompletion(ctx context.Context, taskName str
 				c.logger.Error(err, "Failed to get function task status", "taskName", taskName)
 				continue
 			}
-			
+
 			// Check task status
 			status, found, err := unstructured.NestedMap(obj.Object, "status")
 			if err != nil || !found {
 				continue // Task not yet started
 			}
-			
+
 			// Check if completed
 			if phase, ok := status["phase"].(string); ok {
 				switch phase {
@@ -2732,13 +2732,13 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 		Results:   []*FunctionResult{},
 		Logs:      []string{},
 	}
-	
+
 	// Extract resources
 	if resources, ok := status["resources"].([]interface{}); ok {
 		for _, res := range resources {
 			if resMap, ok := res.(map[string]interface{}); ok {
 				resource := KRMResource{}
-				
+
 				if apiVersion, ok := resMap["apiVersion"].(string); ok {
 					resource.APIVersion = apiVersion
 				}
@@ -2757,18 +2757,18 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 				if data, ok := resMap["data"].(map[string]interface{}); ok {
 					resource.Data = data
 				}
-				
+
 				response.Resources = append(response.Resources, resource)
 			}
 		}
 	}
-	
+
 	// Extract results
 	if results, ok := status["results"].([]interface{}); ok {
 		for _, res := range results {
 			if resMap, ok := res.(map[string]interface{}); ok {
 				result := &FunctionResult{}
-				
+
 				if message, ok := resMap["message"].(string); ok {
 					result.Message = message
 				}
@@ -2789,12 +2789,12 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 						}
 					}
 				}
-				
+
 				response.Results = append(response.Results, result)
 			}
 		}
 	}
-	
+
 	// Extract logs
 	if logs, ok := status["logs"].([]interface{}); ok {
 		for _, log := range logs {
@@ -2803,31 +2803,31 @@ func (c *Client) extractFunctionResponse(status map[string]interface{}) (*Functi
 			}
 		}
 	}
-	
+
 	return response, nil
 }
 
 // Close closes the client and cleans up resources
 func (c *Client) Close() error {
 	c.logger.Info("Closing Porch client")
-	
+
 	// Close connection pool
 	if c.connectionPool != nil {
 		close(c.connectionPool.pool)
 	}
-	
+
 	// Clear cache
 	if c.cache != nil {
 		c.cache.mutex.Lock()
 		c.cache.cache = make(map[string]*cacheEntry)
 		c.cache.mutex.Unlock()
 	}
-	
+
 	return nil
 }
 
 // GetConfig returns the client configuration
-func (c *Client) GetConfig() *Config {
+func (c *Client) GetConfig() *ClientConfig {
 	return c.config
 }
 

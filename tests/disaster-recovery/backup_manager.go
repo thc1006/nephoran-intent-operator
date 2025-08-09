@@ -54,16 +54,16 @@ const (
 
 // BackupManifest contains metadata about a backup
 type BackupManifest struct {
-	ID               string                         `json:"id"`
-	Timestamp        time.Time                      `json:"timestamp"`
-	Namespace        string                         `json:"namespace"`
-	ResourceCounts   map[string]int                 `json:"resource_counts"`
-	BackupOptions    BackupOptions                  `json:"backup_options"`
-	ChecksumSHA256   string                         `json:"checksum_sha256"`
-	BackupSize       int64                          `json:"backup_size"`
-	BackupVersion    string                         `json:"backup_version"`
-	KubernetesVersion string                        `json:"kubernetes_version"`
-	Resources        []BackupResourceMetadata       `json:"resources"`
+	ID                string                   `json:"id"`
+	Timestamp         time.Time                `json:"timestamp"`
+	Namespace         string                   `json:"namespace"`
+	ResourceCounts    map[string]int           `json:"resource_counts"`
+	BackupOptions     BackupOptions            `json:"backup_options"`
+	ChecksumSHA256    string                   `json:"checksum_sha256"`
+	BackupSize        int64                    `json:"backup_size"`
+	BackupVersion     string                   `json:"backup_version"`
+	KubernetesVersion string                   `json:"kubernetes_version"`
+	Resources         []BackupResourceMetadata `json:"resources"`
 }
 
 // BackupResourceMetadata contains metadata about backed up resources
@@ -78,12 +78,12 @@ type BackupResourceMetadata struct {
 
 // RestoreResult contains information about a restore operation
 type RestoreResult struct {
-	Success           bool                    `json:"success"`
-	ResourcesRestored int                     `json:"resources_restored"`
-	ResourcesFailed   int                     `json:"resources_failed"`
-	Errors            []RestoreError          `json:"errors"`
-	Duration          time.Duration           `json:"duration"`
-	ValidationResults []ValidationResult      `json:"validation_results"`
+	Success           bool               `json:"success"`
+	ResourcesRestored int                `json:"resources_restored"`
+	ResourcesFailed   int                `json:"resources_failed"`
+	Errors            []RestoreError     `json:"errors"`
+	Duration          time.Duration      `json:"duration"`
+	ValidationResults []ValidationResult `json:"validation_results"`
 }
 
 // RestoreError represents an error during restore
@@ -117,11 +117,11 @@ func (bm *BackupManager) CreateBackup(ctx context.Context, backupID string, opti
 	}
 
 	manifest := &BackupManifest{
-		ID:            backupID,
-		Timestamp:     time.Now(),
-		Namespace:     options.Namespace,
-		BackupOptions: options,
-		BackupVersion: "1.0",
+		ID:             backupID,
+		Timestamp:      time.Now(),
+		Namespace:      options.Namespace,
+		BackupOptions:  options,
+		BackupVersion:  "1.0",
 		ResourceCounts: make(map[string]int),
 	}
 
@@ -132,7 +132,7 @@ func (bm *BackupManager) CreateBackup(ctx context.Context, backupID string, opti
 		if err != nil {
 			return nil, fmt.Errorf("failed to backup %s: %w", gvk.String(), err)
 		}
-		
+
 		allResources = append(allResources, resources...)
 		manifest.ResourceCounts[gvk.Kind] = len(resources)
 	}
@@ -146,7 +146,7 @@ func (bm *BackupManager) CreateBackup(ctx context.Context, backupID string, opti
 
 		filename := fmt.Sprintf("resource-%d-%s-%s.json", i, resource.GetKind(), resource.GetName())
 		resourcePath := filepath.Join(backupPath, filename)
-		
+
 		if err := os.WriteFile(resourcePath, resourceData, 0644); err != nil {
 			return nil, fmt.Errorf("failed to write resource file: %w", err)
 		}
@@ -189,7 +189,7 @@ func (bm *BackupManager) RestoreBackup(ctx context.Context, backupID string, opt
 	}
 
 	backupPath := filepath.Join(bm.backupDir, backupID)
-	
+
 	// Load manifest
 	manifest, err := bm.loadManifest(backupPath)
 	if err != nil {
@@ -210,7 +210,7 @@ func (bm *BackupManager) RestoreBackup(ctx context.Context, backupID string, opt
 				Error:    err.Error(),
 				Fatal:    false,
 			})
-			
+
 			if !options.IgnoreErrors {
 				result.Success = false
 			}
@@ -275,7 +275,7 @@ func (bm *BackupManager) DeleteBackup(backupID string) error {
 // ValidateBackup checks backup integrity
 func (bm *BackupManager) ValidateBackup(backupID string) error {
 	backupPath := filepath.Join(bm.backupDir, backupID)
-	
+
 	manifest, err := bm.loadManifest(backupPath)
 	if err != nil {
 		return fmt.Errorf("failed to load manifest: %w", err)
@@ -344,7 +344,7 @@ func (bm *BackupManager) cleanResourceForBackup(resource unstructured.Unstructur
 
 func (bm *BackupManager) loadManifest(backupPath string) (*BackupManifest, error) {
 	manifestPath := filepath.Join(backupPath, "manifest.json")
-	
+
 	data, err := os.ReadFile(manifestPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read manifest file: %w", err)
@@ -490,7 +490,7 @@ func (bm *BackupManager) validateRestoredResources(ctx context.Context, manifest
 		// Check if resource exists
 		resource := &unstructured.Unstructured{}
 		resource.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   "", // Will be determined from API discovery
+			Group:   "",   // Will be determined from API discovery
 			Version: "v1", // Simplified for test
 			Kind:    resourceMeta.Kind,
 		})

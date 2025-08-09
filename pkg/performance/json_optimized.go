@@ -22,31 +22,31 @@ import (
 
 // OptimizedJSONProcessor provides high-performance JSON operations with Go 1.24+ optimizations
 type OptimizedJSONProcessor struct {
-	schemaCache    *JSONSchemaCache
-	encoderPool    *EncoderPool
-	decoderPool    *DecoderPool
-	streamPool     *StreamPool
-	bufferPool     *BufferPool
-	parserPool     *fastjson.ParserPool
-	metrics       *JSONMetrics
-	config        *JSONConfig
-	workerPool    *JSONWorkerPool
-	mu            sync.RWMutex
+	schemaCache *JSONSchemaCache
+	encoderPool *EncoderPool
+	decoderPool *DecoderPool
+	streamPool  *StreamPool
+	bufferPool  *BufferPool
+	parserPool  *fastjson.ParserPool
+	metrics     *JSONMetrics
+	config      *JSONConfig
+	workerPool  *JSONWorkerPool
+	mu          sync.RWMutex
 }
 
 // JSONConfig contains JSON processing configuration
 type JSONConfig struct {
 	EnableSchemaOptimization bool
-	EnableStreaming         bool
-	EnableConcurrency       bool
-	EnableSIMD              bool
-	MaxConcurrentOperations int
-	StreamingBufferSize     int
-	SchemaValidation        bool
-	CompressionEnabled      bool
-	PoolSize                int
-	MaxObjectSize           int64
-	MetricsInterval         time.Duration
+	EnableStreaming          bool
+	EnableConcurrency        bool
+	EnableSIMD               bool
+	MaxConcurrentOperations  int
+	StreamingBufferSize      int
+	SchemaValidation         bool
+	CompressionEnabled       bool
+	PoolSize                 int
+	MaxObjectSize            int64
+	MetricsInterval          time.Duration
 }
 
 // JSONSchemaCache caches JSON schemas for optimization
@@ -70,14 +70,14 @@ type CachedSchema struct {
 
 // FieldInfo contains metadata about JSON fields for optimization
 type FieldInfo struct {
-	Name        string
-	Type        reflect.Type
-	Offset      uintptr
-	Size        uintptr
-	IsPointer   bool
-	IsRequired  bool
-	Validation  func(interface{}) bool
-	Serializer  func(interface{}) []byte
+	Name       string
+	Type       reflect.Type
+	Offset     uintptr
+	Size       uintptr
+	IsPointer  bool
+	IsRequired bool
+	Validation func(interface{}) bool
+	Serializer func(interface{}) []byte
 }
 
 // EncoderPool manages a pool of JSON encoders
@@ -98,35 +98,35 @@ type DecoderPool struct {
 
 // StreamPool manages streaming JSON processors
 type StreamPool struct {
-	encoders   chan *json.Encoder
-	decoders   chan *json.Decoder
-	buffers    chan *bytes.Buffer
-	maxSize    int
-	created    int64
-	reused     int64
+	encoders chan *json.Encoder
+	decoders chan *json.Decoder
+	buffers  chan *bytes.Buffer
+	maxSize  int
+	created  int64
+	reused   int64
 }
 
 // JSONWorkerPool manages concurrent JSON processing
 type JSONWorkerPool struct {
-	workers     chan chan *JSONTask
-	workQueue   chan *JSONTask
-	maxWorkers  int
-	activeTasks int64
+	workers        chan chan *JSONTask
+	workQueue      chan *JSONTask
+	maxWorkers     int
+	activeTasks    int64
 	completedTasks int64
-	failedTasks int64
-	shutdown    chan bool
-	wg          sync.WaitGroup
+	failedTasks    int64
+	shutdown       chan bool
+	wg             sync.WaitGroup
 }
 
 // JSONTask represents a JSON processing task
 type JSONTask struct {
-	Operation   JSONOperation
-	Data        []byte
-	Target      interface{}
-	Result      chan *JSONResult
-	Context     context.Context
-	StartTime   time.Time
-	Schema      *CachedSchema
+	Operation JSONOperation
+	Data      []byte
+	Target    interface{}
+	Result    chan *JSONResult
+	Context   context.Context
+	StartTime time.Time
+	Schema    *CachedSchema
 }
 
 // JSONOperation defines the type of JSON operation
@@ -141,26 +141,26 @@ const (
 
 // JSONResult contains the result of a JSON operation
 type JSONResult struct {
-	Data      []byte
-	Error     error
-	Duration  time.Duration
+	Data           []byte
+	Error          error
+	Duration       time.Duration
 	BytesProcessed int64
 }
 
 // JSONMetrics tracks JSON processing performance
 type JSONMetrics struct {
-	MarshalCount      int64
-	UnmarshalCount    int64
-	ValidationCount   int64
-	StreamingCount    int64
-	TotalProcessTime  int64 // nanoseconds
-	ErrorCount        int64
-	BytesProcessed    int64
-	SchemaHitRate     float64
-	PoolHitRate       float64
-	ConcurrencyLevel  int64
-	SIMDOperations    int64
-	CompressionRatio  float64
+	MarshalCount     int64
+	UnmarshalCount   int64
+	ValidationCount  int64
+	StreamingCount   int64
+	TotalProcessTime int64 // nanoseconds
+	ErrorCount       int64
+	BytesProcessed   int64
+	SchemaHitRate    float64
+	PoolHitRate      float64
+	ConcurrencyLevel int64
+	SIMDOperations   int64
+	CompressionRatio float64
 }
 
 // NewOptimizedJSONProcessor creates a new optimized JSON processor
@@ -176,8 +176,8 @@ func NewOptimizedJSONProcessor(config *JSONConfig) *OptimizedJSONProcessor {
 		streamPool:  NewStreamPool(config.PoolSize),
 		bufferPool:  NewBufferPool(),
 		parserPool:  &fastjson.ParserPool{},
-		metrics:    &JSONMetrics{},
-		config:     config,
+		metrics:     &JSONMetrics{},
+		config:      config,
 	}
 
 	if config.EnableConcurrency {
@@ -194,16 +194,16 @@ func NewOptimizedJSONProcessor(config *JSONConfig) *OptimizedJSONProcessor {
 func DefaultJSONConfig() *JSONConfig {
 	return &JSONConfig{
 		EnableSchemaOptimization: true,
-		EnableStreaming:         true,
-		EnableConcurrency:       true,
-		EnableSIMD:              true,
-		MaxConcurrentOperations: runtime.NumCPU() * 2,
-		StreamingBufferSize:     64 * 1024, // 64KB
-		SchemaValidation:        true,
-		CompressionEnabled:      false,
-		PoolSize:                100,
-		MaxObjectSize:           10 * 1024 * 1024, // 10MB
-		MetricsInterval:         30 * time.Second,
+		EnableStreaming:          true,
+		EnableConcurrency:        true,
+		EnableSIMD:               true,
+		MaxConcurrentOperations:  runtime.NumCPU() * 2,
+		StreamingBufferSize:      64 * 1024, // 64KB
+		SchemaValidation:         true,
+		CompressionEnabled:       false,
+		PoolSize:                 100,
+		MaxObjectSize:            10 * 1024 * 1024, // 10MB
+		MetricsInterval:          30 * time.Second,
 	}
 }
 
@@ -691,12 +691,12 @@ func (processor *OptimizedJSONProcessor) getSchemaKey(obj interface{}) string {
 	if obj == nil {
 		return "nil"
 	}
-	
+
 	t := reflect.TypeOf(obj)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	
+
 	return t.String()
 }
 

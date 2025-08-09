@@ -11,8 +11,7 @@ import (
 	"sigs.k8s.io/kustomize/api/krusty"
 	"sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
-
-// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
+	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
 )
 
 // Customizer manages package customization for different clusters
@@ -25,19 +24,19 @@ type Customizer struct {
 type CustomizationStrategy string
 
 const (
-	StrategyTemplate   CustomizationStrategy = "template"
-	StrategyOverlay    CustomizationStrategy = "overlay"
-	StrategyGenerated  CustomizationStrategy = "generated"
+	StrategyTemplate  CustomizationStrategy = "template"
+	StrategyOverlay   CustomizationStrategy = "overlay"
+	StrategyGenerated CustomizationStrategy = "generated"
 )
 
 // CustomizationOptions configures package customization
 type CustomizationOptions struct {
-	Strategy     CustomizationStrategy
-	Environment  string
-	Region       string
-	Annotations  map[string]string
-	Labels       map[string]string
-	Resources    ResourceCustomization
+	Strategy    CustomizationStrategy
+	Environment string
+	Region      string
+	Annotations map[string]string
+	Labels      map[string]string
+	Resources   ResourceCustomization
 }
 
 // ResourceCustomization defines custom resource configurations
@@ -141,7 +140,7 @@ func (c *Customizer) customizeWithKustomize(
 	// Build Kustomize overlay
 	k := krusty.MakeKustomizer(krusty.MakeDefaultOptions())
 	filesys := filesys.MakeFsOnDisk()
-	
+
 	result, err := k.Run(filesys, workspaceDir)
 	if err != nil {
 		return nil, fmt.Errorf("kustomize build failed: %w", err)
@@ -155,8 +154,8 @@ func (c *Customizer) customizeWithKustomize(
 
 	// Create new package revision with customized resources
 	customizedPackage, err := c.createCustomizedPackageRevision(
-		ctx, 
-		packageRevision, 
+		ctx,
+		packageRevision,
 		customizedResources,
 	)
 	if err != nil {
@@ -202,8 +201,8 @@ func (c *Customizer) generateKustomizationFile(
 			Kind:       "Kustomization",
 			APIVersion: "kustomize.config.k8s.io/v1beta1",
 		},
-		Resources: []string{"."},
-		Namespace: options.Environment,
+		Resources:  []string{"."},
+		Namespace:  options.Environment,
 		NamePrefix: fmt.Sprintf("%s-", options.Region),
 		CommonLabels: map[string]string{
 			"environment": options.Environment,
@@ -232,7 +231,7 @@ spec:
 }
 
 func (c *Customizer) writeKustomizationFile(
-	workspaceDir string, 
+	workspaceDir string,
 	kustomization *types.Kustomization,
 ) error {
 	// Write Kustomization file to workspace

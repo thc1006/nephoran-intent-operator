@@ -179,7 +179,7 @@ var _ = Describe("Enhanced Client Edge Cases", func() {
 
 			Expect(err).To(HaveOccurred())
 			Expect(result).To(BeEmpty())
-			
+
 			// Should be a timeout error
 			var enhancedErr *EnhancedError
 			Expect(errors.As(err, &enhancedErr)).To(BeTrue())
@@ -198,7 +198,7 @@ var _ = Describe("Enhanced Client Edge Cases", func() {
 
 			Expect(err).To(HaveOccurred())
 			Expect(result).To(BeEmpty())
-			
+
 			// Should be a network error
 			var enhancedErr *EnhancedError
 			Expect(errors.As(err, &enhancedErr)).To(BeTrue())
@@ -238,7 +238,7 @@ var _ = Describe("Enhanced Client Edge Cases", func() {
 		It("should handle memory pressure gracefully", func() {
 			// Create requests with large payloads
 			largeIntent := string(make([]byte, 10*1024*1024)) // 10MB intent
-			
+
 			result, err := enhancedClient.ProcessIntentWithEnhancements(
 				context.Background(),
 				largeIntent,
@@ -307,7 +307,7 @@ var _ = Describe("Enhanced Client Edge Cases", func() {
 				largeSpec := make(map[string]interface{})
 				largeSpec["replicas"] = float64(1)
 				largeSpec["image"] = "test:latest"
-				
+
 				// Add large configuration
 				largeConfig := make([]string, 1000)
 				for i := 0; i < 1000; i++ {
@@ -384,13 +384,13 @@ var _ = Describe("Enhanced Client Edge Cases", func() {
 	Context("Async Processing Edge Cases", func() {
 		It("should handle async cancellation", func() {
 			ctx, cancel := context.WithCancel(context.Background())
-			
+
 			// Start async processing
 			resultChan := enhancedClient.ProcessIntentWithEnhancementsAsync(ctx, "async cancel test")
-			
+
 			// Cancel immediately
 			cancel()
-			
+
 			// Should complete (might succeed or fail due to cancellation)
 			select {
 			case result := <-resultChan:
@@ -409,7 +409,7 @@ var _ = Describe("Enhanced Client Edge Cases", func() {
 		It("should handle multiple concurrent async operations", func() {
 			const numAsync = 10
 			resultChans := make([]<-chan AsyncProcessingResult, numAsync)
-			
+
 			// Start multiple async operations
 			for i := 0; i < numAsync; i++ {
 				resultChans[i] = enhancedClient.ProcessIntentWithEnhancementsAsync(
@@ -417,7 +417,7 @@ var _ = Describe("Enhanced Client Edge Cases", func() {
 					fmt.Sprintf("async concurrent test %d", i),
 				)
 			}
-			
+
 			// Collect all results
 			successCount := 0
 			for i := 0; i < numAsync; i++ {
@@ -440,20 +440,20 @@ var _ = Describe("Enhanced Client Edge Cases", func() {
 	Context("Cache Adaptive TTL Edge Cases", func() {
 		It("should adjust TTL based on access patterns", func() {
 			cacheManager := NewCacheManager(time.Minute, 100, false, false, nil)
-			
+
 			key := "adaptive-ttl-test"
 			response := "test response"
-			
+
 			// Set initial item
 			cacheManager.SetWithTags(key, response, []string{"test"})
-			
+
 			// Access it multiple times to increase access count
 			for i := 0; i < 15; i++ {
 				_, _, found := cacheManager.GetWithMetadata(key)
 				Expect(found).To(BeTrue())
 				time.Sleep(10 * time.Millisecond) // Small delay between accesses
 			}
-			
+
 			// Calculate adaptive TTL - should be longer due to high access count
 			adaptiveTTL := cacheManager.calculateAdaptiveTTL(key)
 			Expect(adaptiveTTL).To(BeNumerically(">", time.Minute))
@@ -461,19 +461,19 @@ var _ = Describe("Enhanced Client Edge Cases", func() {
 
 		It("should handle cache statistics overflow", func() {
 			cacheManager := NewCacheManager(time.Minute, 100, false, false, nil)
-			
+
 			// Create many cache entries to test stats management
 			for i := 0; i < 200; i++ {
 				key := fmt.Sprintf("overflow-test-%d", i)
 				response := fmt.Sprintf("response-%d", i)
 				cacheManager.SetWithTags(key, response, []string{"test"})
-				
+
 				// Access some entries multiple times
 				if i < 50 {
 					cacheManager.GetWithMetadata(key)
 				}
 			}
-			
+
 			// Should handle overflow gracefully (evicting least used items)
 			Expect(cacheManager.currentSize).To(BeNumerically("<=", 100))
 		})

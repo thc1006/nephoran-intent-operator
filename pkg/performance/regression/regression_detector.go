@@ -26,73 +26,73 @@ type RegressionDetector struct {
 // RegressionConfig defines detection parameters and thresholds
 type RegressionConfig struct {
 	// Statistical parameters
-	ConfidenceLevel      float64 // e.g., 0.95 for 95% confidence
-	SignificanceLevel    float64 // e.g., 0.05 for 5% significance
-	MinSampleSize        int     // Minimum samples for valid comparison
-	SlidingWindowSize    int     // Number of recent samples to analyze
-	
+	ConfidenceLevel   float64 // e.g., 0.95 for 95% confidence
+	SignificanceLevel float64 // e.g., 0.05 for 5% significance
+	MinSampleSize     int     // Minimum samples for valid comparison
+	SlidingWindowSize int     // Number of recent samples to analyze
+
 	// Regression thresholds
-	LatencyRegressionPct   float64 // % increase considered regression
-	ThroughputRegressionPct float64 // % decrease considered regression
-	ErrorRateRegressionPct  float64 // % increase considered regression
+	LatencyRegressionPct      float64 // % increase considered regression
+	ThroughputRegressionPct   float64 // % decrease considered regression
+	ErrorRateRegressionPct    float64 // % increase considered regression
 	AvailabilityRegressionPct float64 // % decrease considered regression
-	
+
 	// Detection sensitivity
-	TrendDetectionPeriod   time.Duration // Period for trend analysis
-	NoiseFilteringEnabled  bool          // Filter out noisy/spurious regressions
-	SeasonalAdjustment     bool          // Account for seasonal patterns
-	
+	TrendDetectionPeriod  time.Duration // Period for trend analysis
+	NoiseFilteringEnabled bool          // Filter out noisy/spurious regressions
+	SeasonalAdjustment    bool          // Account for seasonal patterns
+
 	// Performance targets (from Nephoran Intent Operator claims)
-	TargetLatencyP95Ms     float64 // 2000ms target
-	TargetThroughputRpm    float64 // 45 intents/min target
-	TargetAvailabilityPct  float64 // 99.95% target
-	TargetCacheHitRatePct  float64 // 87% target
+	TargetLatencyP95Ms    float64 // 2000ms target
+	TargetThroughputRpm   float64 // 45 intents/min target
+	TargetAvailabilityPct float64 // 99.95% target
+	TargetCacheHitRatePct float64 // 87% target
 }
 
 // PerformanceBaseline represents historical baseline performance data
 type PerformanceBaseline struct {
-	ID               string
-	CreatedAt        time.Time
-	ValidFrom        time.Time
-	ValidUntil       time.Time
-	Version          string
-	
+	ID         string
+	CreatedAt  time.Time
+	ValidFrom  time.Time
+	ValidUntil time.Time
+	Version    string
+
 	// Baseline metrics with statistical distributions
-	LatencyMetrics       *BaselineMetrics
-	ThroughputMetrics    *BaselineMetrics
-	ErrorRateMetrics     *BaselineMetrics
-	AvailabilityMetrics  *BaselineMetrics
-	ResourceMetrics      *BaselineMetrics
-	
+	LatencyMetrics      *BaselineMetrics
+	ThroughputMetrics   *BaselineMetrics
+	ErrorRateMetrics    *BaselineMetrics
+	AvailabilityMetrics *BaselineMetrics
+	ResourceMetrics     *BaselineMetrics
+
 	// Contextual information
-	TestConditions       *TestConditions
-	SystemConfiguration  *SystemConfiguration
-	SampleCount          int
-	QualityScore         float64 // Baseline quality/reliability score
+	TestConditions      *TestConditions
+	SystemConfiguration *SystemConfiguration
+	SampleCount         int
+	QualityScore        float64 // Baseline quality/reliability score
 }
 
 // BaselineMetrics contains statistical summary of baseline performance
 type BaselineMetrics struct {
-	MetricName      string
-	Unit            string
-	Mean            float64
-	Median          float64
-	StandardDev     float64
-	P50, P95, P99   float64
-	Min, Max        float64
-	SampleSize      int
-	Distribution    []float64 // Raw samples for detailed analysis
-	Seasonality     *SeasonalPattern
+	MetricName       string
+	Unit             string
+	Mean             float64
+	Median           float64
+	StandardDev      float64
+	P50, P95, P99    float64
+	Min, Max         float64
+	SampleSize       int
+	Distribution     []float64 // Raw samples for detailed analysis
+	Seasonality      *SeasonalPattern
 	TrendCoefficient float64
 }
 
 // SeasonalPattern captures seasonal performance variations
 type SeasonalPattern struct {
-	HasSeasonality   bool
-	Period           time.Duration
-	Amplitude        float64
-	Phase            float64
-	SeasonalIndices  map[string]float64 // e.g., hourly/daily patterns
+	HasSeasonality  bool
+	Period          time.Duration
+	Amplitude       float64
+	Phase           float64
+	SeasonalIndices map[string]float64 // e.g., hourly/daily patterns
 }
 
 // TestConditions captures environmental factors during baseline creation
@@ -107,82 +107,82 @@ type TestConditions struct {
 
 // SystemConfiguration captures system state during baseline
 type SystemConfiguration struct {
-	Version           string
-	Dependencies      map[string]string
-	ResourceLimits    map[string]float64
-	ConfigurationHash string
+	Version            string
+	Dependencies       map[string]string
+	ResourceLimits     map[string]float64
+	ConfigurationHash  string
 	InfrastructureType string
 }
 
 // AlertThresholds defines when to trigger different alert levels
 type AlertThresholds struct {
 	// Critical thresholds (immediate action required)
-	CriticalLatencyMs     float64 // Latency exceeding this triggers critical alert
-	CriticalErrorRatePct  float64 // Error rate exceeding this is critical
+	CriticalLatencyMs       float64 // Latency exceeding this triggers critical alert
+	CriticalErrorRatePct    float64 // Error rate exceeding this is critical
 	CriticalAvailabilityPct float64 // Availability below this is critical
-	
+
 	// Warning thresholds (monitoring required)
-	WarningLatencyMs      float64
-	WarningErrorRatePct   float64
+	WarningLatencyMs       float64
+	WarningErrorRatePct    float64
 	WarningAvailabilityPct float64
-	
+
 	// Trend thresholds (gradual degradation)
-	TrendDegradationPct   float64 // % degradation over trend period
-	ConsecutiveFailures   int     // Consecutive bad measurements
+	TrendDegradationPct float64 // % degradation over trend period
+	ConsecutiveFailures int     // Consecutive bad measurements
 }
 
 // RegressionAnalysis represents the result of regression detection analysis
 type RegressionAnalysis struct {
-	AnalysisID        string
-	Timestamp         time.Time
-	BaselineUsed      *PerformanceBaseline
+	AnalysisID         string
+	Timestamp          time.Time
+	BaselineUsed       *PerformanceBaseline
 	CurrentMeasurement *PerformanceMeasurement
-	
+
 	// Overall assessment
-	HasRegression     bool
-	RegressionSeverity string // "Critical", "High", "Medium", "Low"
-	ConfidenceScore   float64 // 0-1 confidence in regression detection
-	
+	HasRegression      bool
+	RegressionSeverity string  // "Critical", "High", "Medium", "Low"
+	ConfidenceScore    float64 // 0-1 confidence in regression detection
+
 	// Detailed findings
 	MetricRegressions []MetricRegression
 	TrendAnalysis     *TrendAnalysisResult
 	StatisticalTests  map[string]*StatisticalTestResult
-	
+
 	// Root cause hints
-	PotentialCauses   []PotentialCause
+	PotentialCauses     []PotentialCause
 	CorrelationAnalysis *CorrelationAnalysis
-	
+
 	// Recommendations
-	ImmediateActions  []string
+	ImmediateActions   []string
 	InvestigationSteps []string
 	PreventionMeasures []string
 }
 
 // PerformanceMeasurement represents current performance measurements
 type PerformanceMeasurement struct {
-	Timestamp      time.Time
-	Source         string
-	SampleCount    int
-	TestDuration   time.Duration
-	
+	Timestamp    time.Time
+	Source       string
+	SampleCount  int
+	TestDuration time.Duration
+
 	// Core performance metrics
-	LatencyP50     float64
-	LatencyP95     float64
-	LatencyP99     float64
-	Throughput     float64
-	ErrorRate      float64
-	Availability   float64
-	
+	LatencyP50   float64
+	LatencyP95   float64
+	LatencyP99   float64
+	Throughput   float64
+	ErrorRate    float64
+	Availability float64
+
 	// Resource utilization
 	CPUUtilization float64
 	MemoryUsageMB  float64
 	GoroutineCount int
 	CacheHitRate   float64
-	
-	// Quality indicators  
-	SampleQuality  float64 // Quality of this measurement
-	NoiseLevel     float64 // Amount of noise in measurement
-	Outliers       int     // Number of outliers detected
+
+	// Quality indicators
+	SampleQuality float64 // Quality of this measurement
+	NoiseLevel    float64 // Amount of noise in measurement
+	Outliers      int     // Number of outliers detected
 }
 
 // MetricRegression represents regression analysis for a specific metric
@@ -192,53 +192,53 @@ type MetricRegression struct {
 	CurrentValue      float64
 	AbsoluteChange    float64
 	RelativeChangePct float64
-	
+
 	// Statistical analysis
-	IsSignificant     bool
-	PValue            float64
-	EffectSize        float64 // Cohen's d
+	IsSignificant      bool
+	PValue             float64
+	EffectSize         float64 // Cohen's d
 	ConfidenceInterval ConfidenceInterval
-	
+
 	// Assessment
-	RegressionType    string // "Performance", "Availability", "Resource"
-	Severity          string
-	Impact            string
-	TrendDirection    string // "Improving", "Stable", "Degrading"
+	RegressionType string // "Performance", "Availability", "Resource"
+	Severity       string
+	Impact         string
+	TrendDirection string // "Improving", "Stable", "Degrading"
 }
 
 // ConfidenceInterval represents statistical confidence bounds
 type ConfidenceInterval struct {
-	Lower        float64
-	Upper        float64
-	Level        float64
-	MarginError  float64
+	Lower       float64
+	Upper       float64
+	Level       float64
+	MarginError float64
 }
 
 // StatisticalTestResult contains results from statistical hypothesis tests
 type StatisticalTestResult struct {
-	TestName       string
-	TestType       string // "t-test", "mann-whitney", "ks-test"
-	Statistic      float64
-	PValue         float64
-	IsSignificant  bool
-	DegreesOfFreedom int
+	TestName              string
+	TestType              string // "t-test", "mann-whitney", "ks-test"
+	Statistic             float64
+	PValue                float64
+	IsSignificant         bool
+	DegreesOfFreedom      int
 	AlternativeHypothesis string
-	Interpretation string
+	Interpretation        string
 }
 
 // PotentialCause represents possible causes of performance regression
 type PotentialCause struct {
-	Category    string // "Code", "Infrastructure", "Load", "External"
-	Description string
-	Likelihood  float64 // 0-1 probability score
-	Evidence    []string
+	Category      string // "Code", "Infrastructure", "Load", "External"
+	Description   string
+	Likelihood    float64 // 0-1 probability score
+	Evidence      []string
 	Investigation []string // Steps to investigate this cause
 }
 
 // CorrelationAnalysis examines relationships between metrics and external factors
 type CorrelationAnalysis struct {
-	MetricCorrelations map[string]float64 // Correlation between different metrics
-	ExternalFactors    map[string]float64 // Correlation with external factors
+	MetricCorrelations map[string]float64         // Correlation between different metrics
+	ExternalFactors    map[string]float64         // Correlation with external factors
 	LaggedCorrelations map[string]map[int]float64 // Time-lagged correlations
 }
 
@@ -251,11 +251,11 @@ type TrendAnalyzer struct {
 
 // TrendAnalysisConfig configures trend analysis behavior
 type TrendAnalysisConfig struct {
-	WindowSizes        []int     // Different window sizes for trend analysis
-	TrendMethods       []string  // "linear", "polynomial", "seasonal"
+	WindowSizes          []int    // Different window sizes for trend analysis
+	TrendMethods         []string // "linear", "polynomial", "seasonal"
 	ChangePointDetection bool     // Detect sudden changes in trends
-	AnomalyDetection   bool      // Detect anomalous measurements
-	ForecastingEnabled bool      // Generate performance forecasts
+	AnomalyDetection     bool     // Detect anomalous measurements
+	ForecastingEnabled   bool     // Generate performance forecasts
 }
 
 // TrendAnalysisResult contains results from trend analysis
@@ -278,22 +278,22 @@ type DetectedSeasonality struct {
 
 // ChangePoint represents a detected change in performance trend
 type ChangePoint struct {
-	Timestamp    time.Time
-	Metric       string
-	BeforeValue  float64
-	AfterValue   float64
-	ChangeType   string // "step", "trend", "variance"
-	Confidence   float64
+	Timestamp   time.Time
+	Metric      string
+	BeforeValue float64
+	AfterValue  float64
+	ChangeType  string // "step", "trend", "variance"
+	Confidence  float64
 }
 
 // AnomalyEvent represents detected performance anomaly
 type AnomalyEvent struct {
-	Timestamp    time.Time
-	Metric       string
-	Value        float64
+	Timestamp     time.Time
+	Metric        string
+	Value         float64
 	ExpectedValue float64
-	Severity     string
-	AnomalyType  string // "outlier", "contextual", "collective"
+	Severity      string
+	AnomalyType   string // "outlier", "contextual", "collective"
 }
 
 // PerformanceForecast provides performance predictions
@@ -306,10 +306,10 @@ type PerformanceForecast struct {
 
 // ForecastPoint represents a single forecast prediction
 type ForecastPoint struct {
-	Timestamp     time.Time
+	Timestamp      time.Time
 	PredictedValue float64
-	LowerBound    float64
-	UpperBound    float64
+	LowerBound     float64
+	UpperBound     float64
 }
 
 // ForecastRisk represents predicted performance risks
@@ -361,11 +361,11 @@ type RegressionAlert struct {
 
 // RecommendedAction represents suggested response actions
 type RecommendedAction struct {
-	Type         string // "immediate", "investigation", "prevention"
-	Description  string
-	Priority     int
+	Type          string // "immediate", "investigation", "prevention"
+	Description   string
+	Priority      int
 	EstimatedTime time.Duration
-	Owner        string
+	Owner         string
 }
 
 // NewRegressionDetector creates a new regression detection system
@@ -390,21 +390,21 @@ func getDefaultRegressionConfig() *RegressionConfig {
 		SignificanceLevel: 0.05,
 		MinSampleSize:     30,
 		SlidingWindowSize: 100,
-		
+
 		// Regression thresholds based on Nephoran performance claims
-		LatencyRegressionPct:    10.0, // 10% latency increase = regression
-		ThroughputRegressionPct: 10.0, // 10% throughput decrease = regression
-		ErrorRateRegressionPct:  50.0, // 50% error rate increase = regression
-		AvailabilityRegressionPct: 0.1, // 0.1% availability decrease = regression
-		
+		LatencyRegressionPct:      10.0, // 10% latency increase = regression
+		ThroughputRegressionPct:   10.0, // 10% throughput decrease = regression
+		ErrorRateRegressionPct:    50.0, // 50% error rate increase = regression
+		AvailabilityRegressionPct: 0.1,  // 0.1% availability decrease = regression
+
 		// Detection settings
 		TrendDetectionPeriod:  24 * time.Hour,
 		NoiseFilteringEnabled: true,
-		SeasonalAdjustment:   true,
-		
+		SeasonalAdjustment:    true,
+
 		// Performance targets from claims
 		TargetLatencyP95Ms:    2000,  // Sub-2-second P95 claim
-		TargetThroughputRpm:   45,    // 45 intents/min claim  
+		TargetThroughputRpm:   45,    // 45 intents/min claim
 		TargetAvailabilityPct: 99.95, // 99.95% availability claim
 		TargetCacheHitRatePct: 87,    // 87% cache hit rate claim
 	}
@@ -487,9 +487,9 @@ func (rd *RegressionDetector) analyzeLatencyRegression(analysis *RegressionAnaly
 	}
 
 	// Perform statistical test
-	testResult := rd.performTTest(rd.baseline.LatencyMetrics.Distribution, 
+	testResult := rd.performTTest(rd.baseline.LatencyMetrics.Distribution,
 		[]float64{currentP95}) // Simplified - would use full current distribution
-	
+
 	regression.IsSignificant = testResult.IsSignificant
 	regression.PValue = testResult.PValue
 	regression.EffectSize = rd.calculateEffectSize(baselineP95, currentP95, rd.baseline.LatencyMetrics.StandardDev)
@@ -547,9 +547,9 @@ func (rd *RegressionDetector) analyzeThroughputRegression(analysis *RegressionAn
 	isRegression := regression.RelativeChangePct < -rd.config.ThroughputRegressionPct
 
 	// Statistical test
-	testResult := rd.performTTest(rd.baseline.ThroughputMetrics.Distribution, 
+	testResult := rd.performTTest(rd.baseline.ThroughputMetrics.Distribution,
 		[]float64{currentThroughput})
-	
+
 	regression.IsSignificant = testResult.IsSignificant
 	regression.PValue = testResult.PValue
 	regression.EffectSize = rd.calculateEffectSize(baselineThroughput, currentThroughput, rd.baseline.ThroughputMetrics.StandardDev)
@@ -608,9 +608,9 @@ func (rd *RegressionDetector) analyzeErrorRateRegression(analysis *RegressionAna
 	// For error rate, positive change is regression
 	isRegression := regression.RelativeChangePct > rd.config.ErrorRateRegressionPct
 
-	testResult := rd.performTTest(rd.baseline.ErrorRateMetrics.Distribution, 
+	testResult := rd.performTTest(rd.baseline.ErrorRateMetrics.Distribution,
 		[]float64{currentErrorRate})
-	
+
 	regression.IsSignificant = testResult.IsSignificant
 	regression.PValue = testResult.PValue
 	regression.EffectSize = rd.calculateEffectSize(baselineErrorRate, currentErrorRate, rd.baseline.ErrorRateMetrics.StandardDev)
@@ -658,9 +658,9 @@ func (rd *RegressionDetector) analyzeAvailabilityRegression(analysis *Regression
 	// For availability, negative change is regression
 	isRegression := regression.RelativeChangePct < -rd.config.AvailabilityRegressionPct
 
-	testResult := rd.performTTest(rd.baseline.AvailabilityMetrics.Distribution, 
+	testResult := rd.performTTest(rd.baseline.AvailabilityMetrics.Distribution,
 		[]float64{currentAvailability})
-	
+
 	regression.IsSignificant = testResult.IsSignificant
 	regression.PValue = testResult.PValue
 	regression.EffectSize = rd.calculateEffectSize(baselineAvailability, currentAvailability, rd.baseline.AvailabilityMetrics.StandardDev)
@@ -693,43 +693,43 @@ func (rd *RegressionDetector) analyzeAvailabilityRegression(analysis *Regression
 func (rd *RegressionDetector) performTTest(baseline []float64, current []float64) *StatisticalTestResult {
 	if len(baseline) == 0 || len(current) == 0 {
 		return &StatisticalTestResult{
-			TestName: "t-test",
-			TestType: "two-sample",
-			IsSignificant: false,
+			TestName:       "t-test",
+			TestType:       "two-sample",
+			IsSignificant:  false,
 			Interpretation: "Insufficient data for test",
 		}
 	}
 
 	baselineMean := stat.Mean(baseline, nil)
 	currentMean := stat.Mean(current, nil)
-	
+
 	baselineVar := stat.Variance(baseline, nil)
 	currentVar := stat.Variance(current, nil)
-	
+
 	n1, n2 := float64(len(baseline)), float64(len(current))
-	
+
 	// Welch's t-test for unequal variances
 	pooledSE := math.Sqrt(baselineVar/n1 + currentVar/n2)
 	tStat := (currentMean - baselineMean) / pooledSE
-	
+
 	// Degrees of freedom for Welch's test
-	df := math.Pow(baselineVar/n1+currentVar/n2, 2) / 
+	df := math.Pow(baselineVar/n1+currentVar/n2, 2) /
 		(math.Pow(baselineVar/n1, 2)/(n1-1) + math.Pow(currentVar/n2, 2)/(n2-1))
-	
+
 	// Simplified p-value calculation (would use proper t-distribution in production)
 	pValue := 0.05 // Placeholder - would calculate actual p-value
-	
+
 	isSignificant := pValue < rd.config.SignificanceLevel
-	
+
 	return &StatisticalTestResult{
-		TestName:         "t-test",
-		TestType:         "two-sample",
-		Statistic:        tStat,
-		PValue:           pValue,
-		IsSignificant:    isSignificant,
-		DegreesOfFreedom: int(df),
+		TestName:              "t-test",
+		TestType:              "two-sample",
+		Statistic:             tStat,
+		PValue:                pValue,
+		IsSignificant:         isSignificant,
+		DegreesOfFreedom:      int(df),
 		AlternativeHypothesis: "two-sided",
-		Interpretation:   fmt.Sprintf("Difference is statistically %s (p=%.4f)", 
+		Interpretation: fmt.Sprintf("Difference is statistically %s (p=%.4f)",
 			map[bool]string{true: "significant", false: "not significant"}[isSignificant], pValue),
 	}
 }
@@ -747,12 +747,12 @@ func (rd *RegressionDetector) determineOverallRegression(analysis *RegressionAna
 	criticalCount := 0
 	highCount := 0
 	significantCount := 0
-	
+
 	for _, regression := range analysis.MetricRegressions {
 		if regression.IsSignificant {
 			significantCount++
 		}
-		
+
 		switch regression.Severity {
 		case "Critical":
 			criticalCount++
@@ -760,10 +760,10 @@ func (rd *RegressionDetector) determineOverallRegression(analysis *RegressionAna
 			highCount++
 		}
 	}
-	
+
 	// Determine overall regression status
 	analysis.HasRegression = criticalCount > 0 || highCount > 1 || significantCount > 2
-	
+
 	// Determine overall severity
 	if criticalCount > 0 {
 		analysis.RegressionSeverity = "Critical"
@@ -788,45 +788,45 @@ func (rd *RegressionDetector) generateCausesAndRecommendations(analysis *Regress
 		case "LatencyP95":
 			if regression.Severity == "Critical" || regression.Severity == "High" {
 				analysis.PotentialCauses = append(analysis.PotentialCauses, PotentialCause{
-					Category:    "Code",
-					Description: "Inefficient algorithm or increased processing complexity",
-					Likelihood:  0.7,
-					Evidence:    []string{"Significant latency increase without load increase"},
+					Category:      "Code",
+					Description:   "Inefficient algorithm or increased processing complexity",
+					Likelihood:    0.7,
+					Evidence:      []string{"Significant latency increase without load increase"},
 					Investigation: []string{"Review recent code changes", "Profile CPU usage", "Analyze LLM processing time"},
 				})
-				
-				analysis.ImmediateActions = append(analysis.ImmediateActions, 
+
+				analysis.ImmediateActions = append(analysis.ImmediateActions,
 					"Enable detailed performance profiling",
 					"Review recent deployments and changes",
 					"Check LLM and RAG service health")
 			}
-			
+
 		case "Throughput":
 			if regression.Severity == "Critical" || regression.Severity == "High" {
 				analysis.PotentialCauses = append(analysis.PotentialCauses, PotentialCause{
-					Category:    "Infrastructure",
-					Description: "Resource constraints or bottlenecks",
-					Likelihood:  0.8,
-					Evidence:    []string{"Throughput decrease without configuration changes"},
+					Category:      "Infrastructure",
+					Description:   "Resource constraints or bottlenecks",
+					Likelihood:    0.8,
+					Evidence:      []string{"Throughput decrease without configuration changes"},
 					Investigation: []string{"Check CPU and memory utilization", "Analyze database performance", "Review connection pools"},
 				})
-				
+
 				analysis.ImmediateActions = append(analysis.ImmediateActions,
 					"Scale up resources if needed",
 					"Check for resource bottlenecks",
 					"Verify downstream service health")
 			}
-			
+
 		case "ErrorRate":
 			if regression.Severity == "Critical" || regression.Severity == "High" {
 				analysis.PotentialCauses = append(analysis.PotentialCauses, PotentialCause{
-					Category:    "External",
-					Description: "Downstream service failures or network issues",
-					Likelihood:  0.9,
-					Evidence:    []string{"Increased error rate"},
+					Category:      "External",
+					Description:   "Downstream service failures or network issues",
+					Likelihood:    0.9,
+					Evidence:      []string{"Increased error rate"},
 					Investigation: []string{"Check downstream service logs", "Verify network connectivity", "Review error patterns"},
 				})
-				
+
 				analysis.ImmediateActions = append(analysis.ImmediateActions,
 					"Check error logs and patterns",
 					"Verify external service dependencies",
@@ -834,7 +834,7 @@ func (rd *RegressionDetector) generateCausesAndRecommendations(analysis *Regress
 			}
 		}
 	}
-	
+
 	// Generate investigation steps
 	analysis.InvestigationSteps = append(analysis.InvestigationSteps,
 		"Compare current metrics with historical trends",
@@ -842,7 +842,7 @@ func (rd *RegressionDetector) generateCausesAndRecommendations(analysis *Regress
 		"Review system configuration changes",
 		"Examine resource utilization patterns",
 		"Investigate user behavior changes")
-	
+
 	// Generate prevention measures
 	analysis.PreventionMeasures = append(analysis.PreventionMeasures,
 		"Implement automated performance testing in CI/CD",
@@ -859,14 +859,14 @@ func (rd *RegressionDetector) SendAlert(ctx context.Context, analysis *Regressio
 	}
 
 	alert := &RegressionAlert{
-		ID:        analysis.AnalysisID,
-		Timestamp: analysis.Timestamp,
-		Severity:  analysis.RegressionSeverity,
-		Title:     fmt.Sprintf("Performance Regression Detected - %s", analysis.RegressionSeverity),
-		Description: rd.generateAlertDescription(analysis),
+		ID:              analysis.AnalysisID,
+		Timestamp:       analysis.Timestamp,
+		Severity:        analysis.RegressionSeverity,
+		Title:           fmt.Sprintf("Performance Regression Detected - %s", analysis.RegressionSeverity),
+		Description:     rd.generateAlertDescription(analysis),
 		AffectedMetrics: rd.extractAffectedMetrics(analysis),
-		Analysis:    analysis,
-		Actions:     rd.generateRecommendedActions(analysis),
+		Analysis:        analysis,
+		Actions:         rd.generateRecommendedActions(analysis),
 		Context: map[string]interface{}{
 			"confidence_score": analysis.ConfidenceScore,
 			"baseline_id":      analysis.BaselineUsed.ID,
@@ -880,19 +880,19 @@ func (rd *RegressionDetector) SendAlert(ctx context.Context, analysis *Regressio
 // generateAlertDescription creates human-readable alert description
 func (rd *RegressionDetector) generateAlertDescription(analysis *RegressionAnalysis) string {
 	desc := fmt.Sprintf("Performance regression detected with %.1f%% confidence. ", analysis.ConfidenceScore*100)
-	
+
 	criticalMetrics := make([]string, 0)
 	for _, regression := range analysis.MetricRegressions {
 		if regression.Severity == "Critical" || regression.Severity == "High" {
-			criticalMetrics = append(criticalMetrics, 
+			criticalMetrics = append(criticalMetrics,
 				fmt.Sprintf("%s: %.1f%% change", regression.MetricName, regression.RelativeChangePct))
 		}
 	}
-	
+
 	if len(criticalMetrics) > 0 {
 		desc += "Affected metrics: " + fmt.Sprintf("%v", criticalMetrics)
 	}
-	
+
 	return desc
 }
 
@@ -910,29 +910,29 @@ func (rd *RegressionDetector) extractAffectedMetrics(analysis *RegressionAnalysi
 // generateRecommendedActions converts analysis recommendations to actions
 func (rd *RegressionDetector) generateRecommendedActions(analysis *RegressionAnalysis) []RecommendedAction {
 	actions := make([]RecommendedAction, 0)
-	
+
 	// Immediate actions
 	for i, action := range analysis.ImmediateActions {
 		actions = append(actions, RecommendedAction{
-			Type:         "immediate",
-			Description:  action,
-			Priority:     i + 1,
+			Type:          "immediate",
+			Description:   action,
+			Priority:      i + 1,
 			EstimatedTime: 30 * time.Minute,
-			Owner:        "ops-team",
+			Owner:         "ops-team",
 		})
 	}
-	
+
 	// Investigation actions
 	for i, action := range analysis.InvestigationSteps {
 		actions = append(actions, RecommendedAction{
-			Type:         "investigation",
-			Description:  action,
-			Priority:     i + 1,
+			Type:          "investigation",
+			Description:   action,
+			Priority:      i + 1,
 			EstimatedTime: 2 * time.Hour,
-			Owner:        "dev-team",
+			Owner:         "dev-team",
 		})
 	}
-	
+
 	return actions
 }
 
@@ -941,39 +941,39 @@ func (rd *RegressionDetector) UpdateBaseline(baseline *PerformanceBaseline) erro
 	if baseline == nil {
 		return fmt.Errorf("baseline cannot be nil")
 	}
-	
+
 	// Validate baseline quality
 	if baseline.QualityScore < 0.7 {
 		return fmt.Errorf("baseline quality score %.2f below threshold 0.7", baseline.QualityScore)
 	}
-	
+
 	rd.baseline = baseline
 	klog.Infof("Updated performance baseline: ID=%s, Quality=%.2f", baseline.ID, baseline.QualityScore)
-	
+
 	return nil
 }
 
 // Supporting functions and types for remaining functionality
 func getDefaultAlertThresholds() *AlertThresholds {
 	return &AlertThresholds{
-		CriticalLatencyMs:      3000,  // 3 seconds is critical
-		CriticalErrorRatePct:   5.0,   // 5% error rate is critical
+		CriticalLatencyMs:       3000, // 3 seconds is critical
+		CriticalErrorRatePct:    5.0,  // 5% error rate is critical
 		CriticalAvailabilityPct: 99.0, // Below 99% is critical
-		WarningLatencyMs:       2500,  // Warning at 2.5 seconds
-		WarningErrorRatePct:    2.0,   // Warning at 2% error rate
-		WarningAvailabilityPct: 99.5,  // Warning below 99.5%
-		TrendDegradationPct:    15.0,  // 15% degradation over time
-		ConsecutiveFailures:    3,     // 3 consecutive bad measurements
+		WarningLatencyMs:        2500, // Warning at 2.5 seconds
+		WarningErrorRatePct:     2.0,  // Warning at 2% error rate
+		WarningAvailabilityPct:  99.5, // Warning below 99.5%
+		TrendDegradationPct:     15.0, // 15% degradation over time
+		ConsecutiveFailures:     3,    // 3 consecutive bad measurements
 	}
 }
 
 func getDefaultTrendConfig() *TrendAnalysisConfig {
 	return &TrendAnalysisConfig{
-		WindowSizes:            []int{10, 50, 100},
-		TrendMethods:           []string{"linear", "seasonal"},
-		ChangePointDetection:   true,
-		AnomalyDetection:      true,
-		ForecastingEnabled:    true,
+		WindowSizes:          []int{10, 50, 100},
+		TrendMethods:         []string{"linear", "seasonal"},
+		ChangePointDetection: true,
+		AnomalyDetection:     true,
+		ForecastingEnabled:   true,
 	}
 }
 
@@ -1002,7 +1002,7 @@ func (ta *TrendAnalyzer) AnalyzeTrends(ctx context.Context, measurement *Perform
 
 func NewNotificationManager(config *NotificationConfig) *NotificationManager {
 	return &NotificationManager{
-		config: config,
+		config:   config,
 		channels: make(map[string]NotificationChannel),
 	}
 }

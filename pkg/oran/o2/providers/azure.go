@@ -22,24 +22,24 @@ const (
 
 // AzureProvider implements CloudProvider for Microsoft Azure
 type AzureProvider struct {
-	name               string
-	config             *ProviderConfiguration
-	credential         azcore.TokenCredential
-	subscriptionID     string
-	resourceGroupName  string
-	location           string
-	
+	name              string
+	config            *ProviderConfiguration
+	credential        azcore.TokenCredential
+	subscriptionID    string
+	resourceGroupName string
+	location          string
+
 	// Azure service clients
-	resourcesClient    *armresources.Client
-	computeClient      *armcompute.VirtualMachinesClient
-	networkClient      *armnetwork.VirtualNetworksClient
-	storageClient      *armstorage.AccountsClient
-	aksClient          *armcontainerservice.ManagedClustersClient
-	
-	connected          bool
-	eventCallback      EventCallback
-	stopChannel        chan struct{}
-	mutex              sync.RWMutex
+	resourcesClient *armresources.Client
+	computeClient   *armcompute.VirtualMachinesClient
+	networkClient   *armnetwork.VirtualNetworksClient
+	storageClient   *armstorage.AccountsClient
+	aksClient       *armcontainerservice.ManagedClustersClient
+
+	connected     bool
+	eventCallback EventCallback
+	stopChannel   chan struct{}
+	mutex         sync.RWMutex
 }
 
 // NewAzureProvider creates a new Azure provider instance
@@ -116,31 +116,31 @@ func (a *AzureProvider) GetCapabilities() *ProviderCapabilities {
 		NetworkTypes:     []string{"virtual_network", "subnet", "network_security_group", "load_balancer"},
 		AcceleratorTypes: []string{"gpu", "fpga"},
 
-		AutoScaling:     true,
-		LoadBalancing:   true,
-		Monitoring:      true,
-		Logging:         true,
-		Networking:      true,
-		StorageClasses:  true,
+		AutoScaling:    true,
+		LoadBalancing:  true,
+		Monitoring:     true,
+		Logging:        true,
+		Networking:     true,
+		StorageClasses: true,
 
-		HorizontalPodAutoscaling: true,  // AKS
-		VerticalPodAutoscaling:   true,  // AKS
-		ClusterAutoscaling:       true,  // AKS/VMSS
+		HorizontalPodAutoscaling: true, // AKS
+		VerticalPodAutoscaling:   true, // AKS
+		ClusterAutoscaling:       true, // AKS/VMSS
 
-		Namespaces:      true,  // AKS
-		ResourceQuotas:  true,  // Azure Policy
-		NetworkPolicies: true,  // NSG/Azure Firewall
-		RBAC:           true,  // Azure AD
+		Namespaces:      true, // AKS
+		ResourceQuotas:  true, // Azure Policy
+		NetworkPolicies: true, // NSG/Azure Firewall
+		RBAC:            true, // Azure AD
 
-		MultiZone:        true,  // Availability Zones
-		MultiRegion:      true,  // Global services
-		BackupRestore:    true,  // Azure Backup
-		DisasterRecovery: true,  // Site Recovery
+		MultiZone:        true, // Availability Zones
+		MultiRegion:      true, // Global services
+		BackupRestore:    true, // Azure Backup
+		DisasterRecovery: true, // Site Recovery
 
-		Encryption:       true,  // Key Vault
-		SecretManagement: true,  // Key Vault
-		ImageScanning:    true,  // Container Registry
-		PolicyEngine:     true,  // Azure Policy
+		Encryption:       true, // Key Vault
+		SecretManagement: true, // Key Vault
+		ImageScanning:    true, // Container Registry
+		PolicyEngine:     true, // Azure Policy
 
 		MaxNodes:    5000,   // AKS limit
 		MaxPods:     250000, // AKS with multiple node pools
@@ -190,7 +190,7 @@ func (a *AzureProvider) createCredential() (azcore.TokenCredential, error) {
 	if clientID, exists := a.config.Credentials["client_id"]; exists {
 		clientSecret := a.config.Credentials["client_secret"]
 		tenantID := a.config.Credentials["tenant_id"]
-		
+
 		return azidentity.NewClientSecretCredential(
 			tenantID,
 			clientID,

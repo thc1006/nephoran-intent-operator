@@ -116,7 +116,7 @@ func (p *GitHubProvider) GetProviderName() string {
 // GetAuthorizationURL generates OAuth2 authorization URL with PKCE support
 func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options ...AuthOption) (string, *PKCEChallenge, error) {
 	opts := ApplyOptions(options...)
-	
+
 	// Update redirect URI if provided
 	config := *p.oauth2Cfg
 	if redirectURI != "" {
@@ -124,29 +124,29 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 	}
 
 	authURL := config.AuthCodeURL(state, oauth2.AccessTypeOffline)
-	
+
 	var challenge *PKCEChallenge
 	var err error
-	
+
 	if opts.UsePKCE {
 		challenge, err = GeneratePKCEChallenge()
 		if err != nil {
 			return "", nil, fmt.Errorf("failed to generate PKCE challenge: %w", err)
 		}
-		
+
 		// Add PKCE parameters to URL
 		parsedURL, err := url.Parse(authURL)
 		if err != nil {
 			return "", nil, fmt.Errorf("failed to parse auth URL: %w", err)
 		}
-		
+
 		query := parsedURL.Query()
 		query.Set("code_challenge", challenge.CodeChallenge)
 		query.Set("code_challenge_method", challenge.Method)
 		parsedURL.RawQuery = query.Encode()
 		authURL = parsedURL.String()
 	}
-	
+
 	// Add custom parameters
 	if opts.LoginHint != "" {
 		parsedURL, _ := url.Parse(authURL)
@@ -155,7 +155,7 @@ func (p *GitHubProvider) GetAuthorizationURL(state, redirectURI string, options 
 		parsedURL.RawQuery = query.Encode()
 		authURL = parsedURL.String()
 	}
-	
+
 	for key, value := range opts.CustomParams {
 		parsedURL, _ := url.Parse(authURL)
 		query := parsedURL.Query()
@@ -181,7 +181,7 @@ func (p *GitHubProvider) ExchangeCodeForToken(ctx context.Context, code, redirec
 
 	token, err := config.Exchange(ctx, code, opts...)
 	if err != nil {
-		return nil, NewProviderError(p.GetProviderName(), "token_exchange_failed", 
+		return nil, NewProviderError(p.GetProviderName(), "token_exchange_failed",
 			"Failed to exchange authorization code for token", err)
 	}
 
@@ -199,7 +199,7 @@ func (p *GitHubProvider) RefreshToken(ctx context.Context, refreshToken string) 
 	token := &oauth2.Token{
 		RefreshToken: refreshToken,
 	}
-	
+
 	tokenSource := p.oauth2Cfg.TokenSource(ctx, token)
 	newToken, err := tokenSource.Token()
 	if err != nil {
@@ -223,22 +223,22 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user info request: %w", err)
 	}
-	
+
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
-	
+
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, NewProviderError(p.GetProviderName(), "userinfo_failed",
 			fmt.Sprintf("GitHub API returned status %d", resp.StatusCode), nil)
 	}
-	
+
 	var githubUser GitHubUserInfo
 	if err := json.NewDecoder(resp.Body).Decode(&githubUser); err != nil {
 		return nil, fmt.Errorf("failed to decode user info: %w", err)
@@ -284,8 +284,8 @@ func (p *GitHubProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 		Provider:      p.GetProviderName(),
 		ProviderID:    fmt.Sprintf("%d", githubUser.ID),
 		Attributes: map[string]interface{}{
-			"github_id":         githubUser.ID,
-			"github_login":      githubUser.Login,
+			"github_id":        githubUser.ID,
+			"github_login":     githubUser.Login,
 			"company":          githubUser.Company,
 			"location":         githubUser.Location,
 			"bio":              githubUser.Bio,
@@ -306,11 +306,11 @@ func (p *GitHubProvider) ValidateToken(ctx context.Context, accessToken string) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create validation request: %w", err)
 	}
-	
+
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
-	
+
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return &TokenValidation{
@@ -319,21 +319,21 @@ func (p *GitHubProvider) ValidateToken(ctx context.Context, accessToken string) 
 		}, nil
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode == http.StatusUnauthorized {
 		return &TokenValidation{
 			Valid: false,
 			Error: "Token is invalid or expired",
 		}, nil
 	}
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return &TokenValidation{
 			Valid: false,
 			Error: fmt.Sprintf("Unexpected status code: %d", resp.StatusCode),
 		}, nil
 	}
-	
+
 	var githubUser GitHubUserInfo
 	if err := json.NewDecoder(resp.Body).Decode(&githubUser); err != nil {
 		return &TokenValidation{
@@ -380,26 +380,26 @@ func (p *GitHubProvider) GetOrganizations(ctx context.Context, accessToken strin
 	if err != nil {
 		return nil, fmt.Errorf("failed to create organizations request: %w", err)
 	}
-	
+
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
-	
+
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get organizations: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned status %d for organizations", resp.StatusCode)
 	}
-	
+
 	var githubOrgs []GitHubOrganization
 	if err := json.NewDecoder(resp.Body).Decode(&githubOrgs); err != nil {
 		return nil, fmt.Errorf("failed to decode organizations: %w", err)
 	}
-	
+
 	organizations := make([]Organization, len(githubOrgs))
 	for i, org := range githubOrgs {
 		organizations[i] = Organization{
@@ -408,7 +408,7 @@ func (p *GitHubProvider) GetOrganizations(ctx context.Context, accessToken strin
 			DisplayName: org.Name,
 		}
 	}
-	
+
 	return organizations, nil
 }
 
@@ -418,26 +418,26 @@ func (p *GitHubProvider) getUserEmails(ctx context.Context, accessToken string) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create emails request: %w", err)
 	}
-	
+
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
-	
+
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get emails: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("GitHub API returned status %d for emails", resp.StatusCode)
 	}
-	
+
 	var emails []GitHubEmail
 	if err := json.NewDecoder(resp.Body).Decode(&emails); err != nil {
 		return nil, fmt.Errorf("failed to decode emails: %w", err)
 	}
-	
+
 	return emails, nil
 }
 
@@ -447,31 +447,31 @@ func (p *GitHubProvider) getUserTeams(ctx context.Context, accessToken string) (
 	if err != nil {
 		return nil, fmt.Errorf("failed to create teams request: %w", err)
 	}
-	
+
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
 	req.Header.Set("User-Agent", "Nephoran-Intent-Operator/1.0")
-	
+
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get teams: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return []string{}, nil // Teams endpoint might not be accessible
 	}
-	
+
 	var teams []GitHubTeam
 	if err := json.NewDecoder(resp.Body).Decode(&teams); err != nil {
 		return []string{}, nil // Continue without teams if decoding fails
 	}
-	
+
 	teamNames := make([]string, len(teams))
 	for i, team := range teams {
 		teamNames[i] = fmt.Sprintf("%s/%s", team.Organization.Login, team.Slug)
 	}
-	
+
 	return teamNames, nil
 }
 
@@ -495,7 +495,7 @@ func (p *GitHubProvider) GetRoles(ctx context.Context, accessToken string) ([]st
 	if err != nil {
 		return nil, err
 	}
-	
+
 	roles := make([]string, 0, len(organizations))
 	for _, org := range organizations {
 		if org.Role != "" {
@@ -504,7 +504,7 @@ func (p *GitHubProvider) GetRoles(ctx context.Context, accessToken string) ([]st
 			roles = append(roles, fmt.Sprintf("%s:member", org.Name))
 		}
 	}
-	
+
 	return roles, nil
 }
 
@@ -514,12 +514,12 @@ func (p *GitHubProvider) CheckGroupMembership(ctx context.Context, accessToken s
 	if err != nil {
 		return nil, err
 	}
-	
+
 	userOrgs, err := p.GetOrganizations(ctx, accessToken)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create a map of user's groups and organizations
 	userGroupMap := make(map[string]bool)
 	for _, group := range userGroups {
@@ -529,14 +529,14 @@ func (p *GitHubProvider) CheckGroupMembership(ctx context.Context, accessToken s
 		userGroupMap[org.Name] = true
 		userGroupMap[strings.ToLower(org.Name)] = true
 	}
-	
+
 	var memberGroups []string
 	for _, group := range groups {
 		if userGroupMap[group] || userGroupMap[strings.ToLower(group)] {
 			memberGroups = append(memberGroups, group)
 		}
 	}
-	
+
 	return memberGroups, nil
 }
 
@@ -548,13 +548,13 @@ func (p *GitHubProvider) ValidateUserAccess(ctx context.Context, accessToken str
 	if err != nil {
 		return fmt.Errorf("failed to get user info for access validation: %w", err)
 	}
-	
+
 	// Basic validation - ensure user has organizations or is verified
 	if requiredLevel >= AccessLevelWrite {
 		if len(userInfo.Organizations) == 0 && !userInfo.EmailVerified {
 			return fmt.Errorf("user does not meet minimum access requirements")
 		}
 	}
-	
+
 	return nil
 }

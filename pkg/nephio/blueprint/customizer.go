@@ -40,46 +40,46 @@ import (
 
 // Customizer handles blueprint customization and parameterization based on NetworkIntent context
 type Customizer struct {
-	config              *BlueprintConfig
-	logger              *zap.Logger
-	
+	config *BlueprintConfig
+	logger *zap.Logger
+
 	// Customization rules and policies
 	customizationRules  map[string]*CustomizationRule
 	policyEngine        *PolicyEngine
 	environmentProfiles map[string]*EnvironmentProfile
-	
+
 	// Template processing
-	templateCache       sync.Map
-	functionRegistry    map[string]CustomFunction
-	
+	templateCache    sync.Map
+	functionRegistry map[string]CustomFunction
+
 	// Performance optimization
-	processingPool      sync.Pool
-	customizationMutex  sync.RWMutex
+	processingPool     sync.Pool
+	customizationMutex sync.RWMutex
 }
 
 // CustomizationRule defines rules for blueprint customization
 type CustomizationRule struct {
-	ID             string                    `json:"id" yaml:"id"`
-	Name           string                    `json:"name" yaml:"name"`
-	Description    string                    `json:"description" yaml:"description"`
-	Priority       int                       `json:"priority" yaml:"priority"`
-	
+	ID          string `json:"id" yaml:"id"`
+	Name        string `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
+	Priority    int    `json:"priority" yaml:"priority"`
+
 	// Targeting criteria
-	Components     []v1.TargetComponent      `json:"components,omitempty" yaml:"components,omitempty"`
-	IntentTypes    []v1.IntentType           `json:"intentTypes,omitempty" yaml:"intentTypes,omitempty"`
-	Environments   []string                  `json:"environments,omitempty" yaml:"environments,omitempty"`
-	
+	Components   []v1.TargetComponent `json:"components,omitempty" yaml:"components,omitempty"`
+	IntentTypes  []v1.IntentType      `json:"intentTypes,omitempty" yaml:"intentTypes,omitempty"`
+	Environments []string             `json:"environments,omitempty" yaml:"environments,omitempty"`
+
 	// Conditions for rule activation
-	Conditions     []RuleCondition           `json:"conditions" yaml:"conditions"`
-	
+	Conditions []RuleCondition `json:"conditions" yaml:"conditions"`
+
 	// Transformations to apply
-	Transformations []Transformation         `json:"transformations" yaml:"transformations"`
-	
+	Transformations []Transformation `json:"transformations" yaml:"transformations"`
+
 	// Rule metadata
-	Enabled        bool                      `json:"enabled" yaml:"enabled"`
-	Author         string                    `json:"author" yaml:"author"`
-	Version        string                    `json:"version" yaml:"version"`
-	Tags           []string                  `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Enabled bool     `json:"enabled" yaml:"enabled"`
+	Author  string   `json:"author" yaml:"author"`
+	Version string   `json:"version" yaml:"version"`
+	Tags    []string `json:"tags,omitempty" yaml:"tags,omitempty"`
 }
 
 // RuleCondition defines conditions for rule activation
@@ -105,43 +105,43 @@ type Transformation struct {
 type TransformationType string
 
 const (
-	TransformationReplace    TransformationType = "replace"
-	TransformationMerge      TransformationType = "merge"
-	TransformationAppend     TransformationType = "append"
-	TransformationDelete     TransformationType = "delete"
+	TransformationReplace     TransformationType = "replace"
+	TransformationMerge       TransformationType = "merge"
+	TransformationAppend      TransformationType = "append"
+	TransformationDelete      TransformationType = "delete"
 	TransformationConditional TransformationType = "conditional"
-	TransformationTemplate   TransformationType = "template"
-	TransformationFunction   TransformationType = "function"
+	TransformationTemplate    TransformationType = "template"
+	TransformationFunction    TransformationType = "function"
 )
 
 // EnvironmentProfile defines environment-specific configurations
 type EnvironmentProfile struct {
-	Name           string                    `json:"name" yaml:"name"`
-	Description    string                    `json:"description" yaml:"description"`
-	
+	Name        string `json:"name" yaml:"name"`
+	Description string `json:"description" yaml:"description"`
+
 	// Environment characteristics
-	Type           EnvironmentType           `json:"type" yaml:"type"`
-	Scale          EnvironmentScale          `json:"scale" yaml:"scale"`
-	SecurityLevel  SecurityLevel             `json:"securityLevel" yaml:"securityLevel"`
-	
+	Type          EnvironmentType  `json:"type" yaml:"type"`
+	Scale         EnvironmentScale `json:"scale" yaml:"scale"`
+	SecurityLevel SecurityLevel    `json:"securityLevel" yaml:"securityLevel"`
+
 	// Resource configurations
-	ResourceLimits ResourceConfiguration     `json:"resourceLimits" yaml:"resourceLimits"`
-	NetworkPolicies []NetworkPolicyTemplate  `json:"networkPolicies,omitempty" yaml:"networkPolicies,omitempty"`
-	
+	ResourceLimits  ResourceConfiguration   `json:"resourceLimits" yaml:"resourceLimits"`
+	NetworkPolicies []NetworkPolicyTemplate `json:"networkPolicies,omitempty" yaml:"networkPolicies,omitempty"`
+
 	// Deployment configurations
-	ReplicaCounts   map[string]int           `json:"replicaCounts,omitempty" yaml:"replicaCounts,omitempty"`
-	NodeSelectors   map[string]string        `json:"nodeSelectors,omitempty" yaml:"nodeSelectors,omitempty"`
-	Tolerations     []TolerationTemplate     `json:"tolerations,omitempty" yaml:"tolerations,omitempty"`
-	Affinity        *AffinityTemplate        `json:"affinity,omitempty" yaml:"affinity,omitempty"`
-	
+	ReplicaCounts map[string]int       `json:"replicaCounts,omitempty" yaml:"replicaCounts,omitempty"`
+	NodeSelectors map[string]string    `json:"nodeSelectors,omitempty" yaml:"nodeSelectors,omitempty"`
+	Tolerations   []TolerationTemplate `json:"tolerations,omitempty" yaml:"tolerations,omitempty"`
+	Affinity      *AffinityTemplate    `json:"affinity,omitempty" yaml:"affinity,omitempty"`
+
 	// Service mesh configuration
-	ServiceMesh    ServiceMeshProfile        `json:"serviceMesh" yaml:"serviceMesh"`
-	
+	ServiceMesh ServiceMeshProfile `json:"serviceMesh" yaml:"serviceMesh"`
+
 	// Monitoring configuration
-	Monitoring     MonitoringProfile         `json:"monitoring" yaml:"monitoring"`
-	
+	Monitoring MonitoringProfile `json:"monitoring" yaml:"monitoring"`
+
 	// Custom parameters
-	Parameters     map[string]interface{}    `json:"parameters,omitempty" yaml:"parameters,omitempty"`
+	Parameters map[string]interface{} `json:"parameters,omitempty" yaml:"parameters,omitempty"`
 }
 
 // Environment classification enums
@@ -165,20 +165,20 @@ const (
 )
 
 const (
-	SecurityLevelBasic      SecurityLevel = "basic"
-	SecurityLevelStandard   SecurityLevel = "standard"
-	SecurityLevelEnhanced   SecurityLevel = "enhanced"
-	SecurityLevelCritical   SecurityLevel = "critical"
+	SecurityLevelBasic    SecurityLevel = "basic"
+	SecurityLevelStandard SecurityLevel = "standard"
+	SecurityLevelEnhanced SecurityLevel = "enhanced"
+	SecurityLevelCritical SecurityLevel = "critical"
 )
 
 // Configuration templates
 type ResourceConfiguration struct {
-	CPU            string `json:"cpu" yaml:"cpu"`
-	Memory         string `json:"memory" yaml:"memory"`
-	Storage        string `json:"storage" yaml:"storage"`
-	MaxCPU         string `json:"maxCpu" yaml:"maxCpu"`
-	MaxMemory      string `json:"maxMemory" yaml:"maxMemory"`
-	MaxStorage     string `json:"maxStorage" yaml:"maxStorage"`
+	CPU        string `json:"cpu" yaml:"cpu"`
+	Memory     string `json:"memory" yaml:"memory"`
+	Storage    string `json:"storage" yaml:"storage"`
+	MaxCPU     string `json:"maxCpu" yaml:"maxCpu"`
+	MaxMemory  string `json:"maxMemory" yaml:"maxMemory"`
+	MaxStorage string `json:"maxStorage" yaml:"maxStorage"`
 }
 
 type NetworkPolicyTemplate struct {
@@ -196,9 +196,9 @@ type TolerationTemplate struct {
 }
 
 type AffinityTemplate struct {
-	NodeAffinity    *NodeAffinityTemplate    `json:"nodeAffinity,omitempty" yaml:"nodeAffinity,omitempty"`
-	PodAffinity     *PodAffinityTemplate     `json:"podAffinity,omitempty" yaml:"podAffinity,omitempty"`
-	PodAntiAffinity *PodAffinityTemplate     `json:"podAntiAffinity,omitempty" yaml:"podAntiAffinity,omitempty"`
+	NodeAffinity    *NodeAffinityTemplate `json:"nodeAffinity,omitempty" yaml:"nodeAffinity,omitempty"`
+	PodAffinity     *PodAffinityTemplate  `json:"podAffinity,omitempty" yaml:"podAffinity,omitempty"`
+	PodAntiAffinity *PodAffinityTemplate  `json:"podAntiAffinity,omitempty" yaml:"podAntiAffinity,omitempty"`
 }
 
 type NodeAffinityTemplate struct {
@@ -227,24 +227,24 @@ type PodAffinityTerm struct {
 }
 
 type ServiceMeshProfile struct {
-	Enabled           bool   `json:"enabled" yaml:"enabled"`
-	InjectSidecar     bool   `json:"injectSidecar" yaml:"injectSidecar"`
-	MTLSMode          string `json:"mtlsMode" yaml:"mtlsMode"`
-	TrafficPolicy     string `json:"trafficPolicy" yaml:"trafficPolicy"`
-	CircuitBreaker    bool   `json:"circuitBreaker" yaml:"circuitBreaker"`
-	RetryPolicy       string `json:"retryPolicy" yaml:"retryPolicy"`
-	TimeoutPolicy     string `json:"timeoutPolicy" yaml:"timeoutPolicy"`
+	Enabled        bool   `json:"enabled" yaml:"enabled"`
+	InjectSidecar  bool   `json:"injectSidecar" yaml:"injectSidecar"`
+	MTLSMode       string `json:"mtlsMode" yaml:"mtlsMode"`
+	TrafficPolicy  string `json:"trafficPolicy" yaml:"trafficPolicy"`
+	CircuitBreaker bool   `json:"circuitBreaker" yaml:"circuitBreaker"`
+	RetryPolicy    string `json:"retryPolicy" yaml:"retryPolicy"`
+	TimeoutPolicy  string `json:"timeoutPolicy" yaml:"timeoutPolicy"`
 }
 
 type MonitoringProfile struct {
-	Enabled           bool     `json:"enabled" yaml:"enabled"`
-	MetricsEnabled    bool     `json:"metricsEnabled" yaml:"metricsEnabled"`
-	LoggingEnabled    bool     `json:"loggingEnabled" yaml:"loggingEnabled"`
-	TracingEnabled    bool     `json:"tracingEnabled" yaml:"tracingEnabled"`
-	AlertingEnabled   bool     `json:"alertingEnabled" yaml:"alertingEnabled"`
-	MetricsScrapeInterval string `json:"metricsScrapeInterval" yaml:"metricsScrapeInterval"`
-	LogLevel          string   `json:"logLevel" yaml:"logLevel"`
-	AlertRules        []string `json:"alertRules,omitempty" yaml:"alertRules,omitempty"`
+	Enabled               bool     `json:"enabled" yaml:"enabled"`
+	MetricsEnabled        bool     `json:"metricsEnabled" yaml:"metricsEnabled"`
+	LoggingEnabled        bool     `json:"loggingEnabled" yaml:"loggingEnabled"`
+	TracingEnabled        bool     `json:"tracingEnabled" yaml:"tracingEnabled"`
+	AlertingEnabled       bool     `json:"alertingEnabled" yaml:"alertingEnabled"`
+	MetricsScrapeInterval string   `json:"metricsScrapeInterval" yaml:"metricsScrapeInterval"`
+	LogLevel              string   `json:"logLevel" yaml:"logLevel"`
+	AlertRules            []string `json:"alertRules,omitempty" yaml:"alertRules,omitempty"`
 }
 
 // CustomFunction represents a custom function for blueprint customization
@@ -252,9 +252,9 @@ type CustomFunction func(context.Context, interface{}) (interface{}, error)
 
 // PolicyEngine handles policy-based customization
 type PolicyEngine struct {
-	policies       map[string]*CustomizationPolicy
-	evaluator      *PolicyEvaluator
-	mutex          sync.RWMutex
+	policies  map[string]*CustomizationPolicy
+	evaluator *PolicyEvaluator
+	mutex     sync.RWMutex
 }
 
 type CustomizationPolicy struct {
@@ -286,9 +286,9 @@ type PolicyAction struct {
 }
 
 type PolicyScope struct {
-	Namespaces []string                 `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
-	Components []v1.TargetComponent     `json:"components,omitempty" yaml:"components,omitempty"`
-	Labels     map[string]string        `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Namespaces []string             `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
+	Components []v1.TargetComponent `json:"components,omitempty" yaml:"components,omitempty"`
+	Labels     map[string]string    `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
 type PolicyEvaluator struct {
@@ -346,7 +346,7 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 
 	// Create customization context
 	customCtx := &CustomizationContext{
-		Intent:           intent,
+		Intent:          intent,
 		Files:           make(map[string]string),
 		Parameters:      c.extractParameters(intent),
 		Environment:     c.determineEnvironment(intent),
@@ -414,18 +414,18 @@ func (c *Customizer) CustomizeBlueprint(ctx context.Context, intent *v1.NetworkI
 
 // CustomizationContext holds context for blueprint customization
 type CustomizationContext struct {
-	Intent           *v1.NetworkIntent
-	Files            map[string]string
-	Parameters       map[string]interface{}
-	Environment      *EnvironmentProfile
-	TargetCluster    string
-	TargetNamespace  string
-	NetworkSlice     string
-	SecurityProfile  string
-	ResourceProfile  string
+	Intent             *v1.NetworkIntent
+	Files              map[string]string
+	Parameters         map[string]interface{}
+	Environment        *EnvironmentProfile
+	TargetCluster      string
+	TargetNamespace    string
+	NetworkSlice       string
+	SecurityProfile    string
+	ResourceProfile    string
 	ServiceMeshEnabled bool
-	StartTime        time.Time
-	Metadata         map[string]interface{}
+	StartTime          time.Time
+	Metadata           map[string]interface{}
 }
 
 // applyEnvironmentCustomizations applies environment-specific customizations
@@ -504,7 +504,7 @@ func (c *Customizer) applyComponentCustomizations(ctx context.Context, customCtx
 				return fmt.Errorf("xApp customization failed: %w", err)
 			}
 		default:
-			c.logger.Debug("Using generic customization for component", 
+			c.logger.Debug("Using generic customization for component",
 				zap.String("component", string(component)))
 		}
 	}
@@ -772,7 +772,7 @@ func (c *Customizer) applyReplicaCountToDeployment(content string, replicaCounts
 	if err != nil {
 		return content, err
 	}
-	
+
 	return string(customizedYAML), nil
 }
 
@@ -883,8 +883,8 @@ func (c *Customizer) initializeDefaults() error {
 			".*": 1, // Single replica for all deployments
 		},
 		ServiceMesh: ServiceMeshProfile{
-			Enabled:       false,
-			MTLSMode:      "PERMISSIVE",
+			Enabled:  false,
+			MTLSMode: "PERMISSIVE",
 		},
 		Monitoring: MonitoringProfile{
 			Enabled:               true,
@@ -910,10 +910,10 @@ func (c *Customizer) initializeDefaults() error {
 			MaxMemory: "4Gi",
 		},
 		ReplicaCounts: map[string]int{
-			"amf":  3,
-			"smf":  3,
-			"upf":  2,
-			".*":   2, // Default 2 replicas
+			"amf": 3,
+			"smf": 3,
+			"upf": 2,
+			".*":  2, // Default 2 replicas
 		},
 		ServiceMesh: ServiceMeshProfile{
 			Enabled:        true,
@@ -976,7 +976,7 @@ func (c *Customizer) HealthCheck(ctx context.Context) bool {
 
 // Additional helper methods would be implemented for:
 // - applySchedulingConstraints
-// - applyNetworkPolicies  
+// - applyNetworkPolicies
 // - applyServiceMeshConfiguration
 // - applyMonitoringConfiguration
 // - applyResourceCustomizations

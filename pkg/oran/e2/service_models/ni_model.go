@@ -108,17 +108,17 @@ type NIActionDefinitionFormat1 struct {
 
 // NIActionDefinitionFormat2 for statistics collection
 type NIActionDefinitionFormat2 struct {
-	InterfaceList   []NIInterfaceInfo `json:"interface_list"`
-	MeasurementList []NIMeasurement   `json:"measurement_list"`
-	GranularityPeriod int             `json:"granularity_period_ms"` // milliseconds
+	InterfaceList     []NIInterfaceInfo `json:"interface_list"`
+	MeasurementList   []NIMeasurement   `json:"measurement_list"`
+	GranularityPeriod int               `json:"granularity_period_ms"` // milliseconds
 }
 
 // NIActionDefinitionFormat3 for interface monitoring
 type NIActionDefinitionFormat3 struct {
-	InterfaceList     []NIInterfaceInfo       `json:"interface_list"`
-	MonitoringType    NIMonitoringType        `json:"monitoring_type"`
-	ThresholdList     []NIThreshold           `json:"threshold_list,omitempty"`
-	NotificationMode  NINotificationMode      `json:"notification_mode"`
+	InterfaceList    []NIInterfaceInfo  `json:"interface_list"`
+	MonitoringType   NIMonitoringType   `json:"monitoring_type"`
+	ThresholdList    []NIThreshold      `json:"threshold_list,omitempty"`
+	NotificationMode NINotificationMode `json:"notification_mode"`
 }
 
 // NIInterfaceInfo describes a network interface
@@ -183,11 +183,11 @@ type NIIndicationMessageFormats struct {
 
 // NIIndicationMessageFormat1 for captured messages
 type NIIndicationMessageFormat1 struct {
-	CapturedMessage     []byte                 `json:"captured_message"`
-	MessageType         NIMessageType          `json:"message_type"`
-	DecodedFields       map[string]interface{} `json:"decoded_fields,omitempty"`
-	CaptureTimestamp    time.Time              `json:"capture_timestamp"`
-	MessageSize         int                    `json:"message_size"`
+	CapturedMessage  []byte                 `json:"captured_message"`
+	MessageType      NIMessageType          `json:"message_type"`
+	DecodedFields    map[string]interface{} `json:"decoded_fields,omitempty"`
+	CaptureTimestamp time.Time              `json:"capture_timestamp"`
+	MessageSize      int                    `json:"message_size"`
 }
 
 // NIIndicationMessageFormat2 for statistics report
@@ -204,11 +204,11 @@ type NIIndicationMessageFormat3 struct {
 
 // NIInterfaceStats contains statistics for an interface
 type NIInterfaceStats struct {
-	InterfaceID    string                   `json:"interface_id"`
-	InterfaceType  NIInterfaceType          `json:"interface_type"`
-	Measurements   []NIMeasurementValue     `json:"measurements"`
-	StartTime      time.Time                `json:"start_time"`
-	EndTime        time.Time                `json:"end_time"`
+	InterfaceID   string               `json:"interface_id"`
+	InterfaceType NIInterfaceType      `json:"interface_type"`
+	Measurements  []NIMeasurementValue `json:"measurements"`
+	StartTime     time.Time            `json:"start_time"`
+	EndTime       time.Time            `json:"end_time"`
 }
 
 // NIMeasurementValue contains a measurement value
@@ -221,14 +221,14 @@ type NIMeasurementValue struct {
 
 // NIInterfaceStatus contains status information for an interface
 type NIInterfaceStatus struct {
-	InterfaceID     string                 `json:"interface_id"`
-	InterfaceType   NIInterfaceType        `json:"interface_type"`
-	OperationalState NIOperationalState    `json:"operational_state"`
-	AdminState      NIAdminState           `json:"admin_state"`
-	LoadLevel       float64                `json:"load_level,omitempty"`
-	ErrorRate       float64                `json:"error_rate,omitempty"`
-	Latency         float64                `json:"latency_ms,omitempty"`
-	AdditionalInfo  map[string]interface{} `json:"additional_info,omitempty"`
+	InterfaceID      string                 `json:"interface_id"`
+	InterfaceType    NIInterfaceType        `json:"interface_type"`
+	OperationalState NIOperationalState     `json:"operational_state"`
+	AdminState       NIAdminState           `json:"admin_state"`
+	LoadLevel        float64                `json:"load_level,omitempty"`
+	ErrorRate        float64                `json:"error_rate,omitempty"`
+	Latency          float64                `json:"latency_ms,omitempty"`
+	AdditionalInfo   map[string]interface{} `json:"additional_info,omitempty"`
 }
 
 // NIOperationalState defines operational state of interface
@@ -283,10 +283,10 @@ type NIControlMessageFormat1 struct {
 
 // NIControlMessageFormat2 for message injection
 type NIControlMessageFormat2 struct {
-	TargetInterface   NIInterfaceInfo    `json:"target_interface"`
-	MessageToInject   []byte             `json:"message_to_inject"`
-	MessageType       NIMessageType      `json:"message_type"`
-	InjectionTiming   NIInjectionTiming  `json:"injection_timing"`
+	TargetInterface NIInterfaceInfo   `json:"target_interface"`
+	MessageToInject []byte            `json:"message_to_inject"`
+	MessageType     NIMessageType     `json:"message_type"`
+	InjectionTiming NIInjectionTiming `json:"injection_timing"`
 }
 
 // NIControlAction defines control actions
@@ -302,9 +302,9 @@ const (
 
 // NIInjectionTiming defines when to inject a message
 type NIInjectionTiming struct {
-	ImmediateInjection bool          `json:"immediate_injection"`
-	ScheduledTime      *time.Time    `json:"scheduled_time,omitempty"`
-	DelayMs            int           `json:"delay_ms,omitempty"`
+	ImmediateInjection bool       `json:"immediate_injection"`
+	ScheduledTime      *time.Time `json:"scheduled_time,omitempty"`
+	DelayMs            int        `json:"delay_ms,omitempty"`
 }
 
 // NIControlOutcome defines control outcome for NI

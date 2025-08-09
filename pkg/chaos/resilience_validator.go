@@ -80,13 +80,13 @@ type ResilienceValidator struct {
 
 // ValidatorConfig defines validator configuration
 type ValidatorConfig struct {
-	PrometheusURL         string
-	MetricsInterval       time.Duration
-	BaselineWindow        time.Duration
-	SLAConfig             SLAConfig
-	CircuitBreakerConfig  CircuitBreakerValidationConfig
-	AutoScalingConfig     AutoScalingValidationConfig
-	DegradationConfig     DegradationValidationConfig
+	PrometheusURL        string
+	MetricsInterval      time.Duration
+	BaselineWindow       time.Duration
+	SLAConfig            SLAConfig
+	CircuitBreakerConfig CircuitBreakerValidationConfig
+	AutoScalingConfig    AutoScalingValidationConfig
+	DegradationConfig    DegradationValidationConfig
 }
 
 // SLAConfig defines SLA thresholds for validation
@@ -109,20 +109,20 @@ type CircuitBreakerValidationConfig struct {
 
 // AutoScalingValidationConfig defines auto-scaling validation parameters
 type AutoScalingValidationConfig struct {
-	Enabled              bool
-	ExpectedScaleUpTime  time.Duration
+	Enabled               bool
+	ExpectedScaleUpTime   time.Duration
 	ExpectedScaleDownTime time.Duration
-	MinReplicas          int
-	MaxReplicas          int
-	TargetCPUPercent     float64
+	MinReplicas           int
+	MaxReplicas           int
+	TargetCPUPercent      float64
 }
 
 // DegradationValidationConfig defines graceful degradation validation
 type DegradationValidationConfig struct {
-	Enabled                 bool
-	AcceptableDegradedMode  []string
-	MaxDegradationDuration  time.Duration
-	RequiredFunctionality   []string
+	Enabled                bool
+	AcceptableDegradedMode []string
+	MaxDegradationDuration time.Duration
+	RequiredFunctionality  []string
 }
 
 // NewResilienceValidator creates a new resilience validator
@@ -258,7 +258,7 @@ func (v *ResilienceValidator) CheckSLACompliance(ctx context.Context, thresholds
 			Threshold:   thresholds.MinAvailability,
 			ActualValue: state.Availability,
 			Severity:    v.calculateSeverity("availability", state.Availability, thresholds.MinAvailability),
-			Description: fmt.Sprintf("Availability %.2f%% below threshold %.2f%%", 
+			Description: fmt.Sprintf("Availability %.2f%% below threshold %.2f%%",
 				state.Availability, thresholds.MinAvailability),
 			Impact: "Service availability degraded, potential user impact",
 		})
@@ -273,7 +273,7 @@ func (v *ResilienceValidator) CheckSLACompliance(ctx context.Context, thresholds
 			Threshold:   float64(maxLatency.Milliseconds()),
 			ActualValue: float64(state.LatencyP95.Milliseconds()),
 			Severity:    v.calculateSeverity("latency", float64(state.LatencyP95.Milliseconds()), float64(maxLatency.Milliseconds())),
-			Description: fmt.Sprintf("P95 latency %v exceeds threshold %v", 
+			Description: fmt.Sprintf("P95 latency %v exceeds threshold %v",
 				state.LatencyP95, maxLatency),
 			Impact: "User experience degraded due to high latency",
 		})
@@ -287,7 +287,7 @@ func (v *ResilienceValidator) CheckSLACompliance(ctx context.Context, thresholds
 			Threshold:   thresholds.MinThroughput,
 			ActualValue: state.Throughput,
 			Severity:    v.calculateSeverity("throughput", state.Throughput, thresholds.MinThroughput),
-			Description: fmt.Sprintf("Throughput %.2f below threshold %.2f intents/min", 
+			Description: fmt.Sprintf("Throughput %.2f below threshold %.2f intents/min",
 				state.Throughput, thresholds.MinThroughput),
 			Impact: "Reduced processing capacity",
 		})
@@ -301,7 +301,7 @@ func (v *ResilienceValidator) CheckSLACompliance(ctx context.Context, thresholds
 			Threshold:   thresholds.MaxErrorRate,
 			ActualValue: state.ErrorRate,
 			Severity:    v.calculateSeverity("error_rate", state.ErrorRate, thresholds.MaxErrorRate),
-			Description: fmt.Sprintf("Error rate %.2f%% exceeds threshold %.2f%%", 
+			Description: fmt.Sprintf("Error rate %.2f%% exceeds threshold %.2f%%",
 				state.ErrorRate, thresholds.MaxErrorRate),
 			Impact: "Increased failures affecting users",
 		})
@@ -372,7 +372,7 @@ func (v *ResilienceValidator) ValidateCircuitBreaker(ctx context.Context, startT
 			recoveryTime := cbState.RecoveredAt.Sub(*cbState.TriggeredAt)
 			recoveryCheck.Value = recoveryTime
 			recoveryCheck.Threshold = v.config.CircuitBreakerConfig.ExpectedRecoveryTime
-			
+
 			if recoveryTime <= v.config.CircuitBreakerConfig.ExpectedRecoveryTime {
 				recoveryCheck.Details = fmt.Sprintf("Recovered in %v", recoveryTime)
 			} else {
@@ -392,7 +392,7 @@ func (v *ResilienceValidator) ValidateCircuitBreaker(ctx context.Context, startT
 		Threshold:   v.config.CircuitBreakerConfig.ErrorThresholdPercent,
 		Passed:      cbState.ErrorRate >= v.config.CircuitBreakerConfig.ErrorThresholdPercent,
 	}
-	
+
 	if errorCheck.Passed {
 		errorCheck.Details = fmt.Sprintf("Error rate %.2f%% triggered circuit breaker", cbState.ErrorRate)
 	} else {
@@ -440,11 +440,11 @@ func (v *ResilienceValidator) ValidateAutoScaling(ctx context.Context, experimen
 		if hpa.CurrentCPU > v.config.AutoScalingConfig.TargetCPUPercent {
 			if hpa.CurrentReplicas >= hpa.TargetReplicas {
 				scaleUpCheck.Passed = true
-				scaleUpCheck.Details = fmt.Sprintf("Scaled to %d replicas at %.2f%% CPU", 
+				scaleUpCheck.Details = fmt.Sprintf("Scaled to %d replicas at %.2f%% CPU",
 					hpa.CurrentReplicas, hpa.CurrentCPU)
 			} else {
 				scaleUpCheck.Passed = false
-				scaleUpCheck.Details = fmt.Sprintf("Failed to scale: %d/%d replicas at %.2f%% CPU", 
+				scaleUpCheck.Details = fmt.Sprintf("Failed to scale: %d/%d replicas at %.2f%% CPU",
 					hpa.CurrentReplicas, hpa.TargetReplicas, hpa.CurrentCPU)
 				result.Success = false
 			}
@@ -460,10 +460,10 @@ func (v *ResilienceValidator) ValidateAutoScaling(ctx context.Context, experimen
 			Description: "Verify replicas stay within configured bounds",
 			Value:       hpa.CurrentReplicas,
 			Threshold:   fmt.Sprintf("%d-%d", v.config.AutoScalingConfig.MinReplicas, v.config.AutoScalingConfig.MaxReplicas),
-			Passed:      hpa.CurrentReplicas >= v.config.AutoScalingConfig.MinReplicas && 
-						hpa.CurrentReplicas <= v.config.AutoScalingConfig.MaxReplicas,
+			Passed: hpa.CurrentReplicas >= v.config.AutoScalingConfig.MinReplicas &&
+				hpa.CurrentReplicas <= v.config.AutoScalingConfig.MaxReplicas,
 		}
-		
+
 		if !boundsCheck.Passed {
 			boundsCheck.Details = fmt.Sprintf("Replicas %d outside bounds", hpa.CurrentReplicas)
 			result.Success = false
@@ -556,7 +556,7 @@ func (v *ResilienceValidator) ValidateGracefulDegradation(ctx context.Context) *
 			Threshold:   v.config.DegradationConfig.MaxDegradationDuration,
 			Passed:      duration <= v.config.DegradationConfig.MaxDegradationDuration,
 		}
-		
+
 		if durationCheck.Passed {
 			durationCheck.Details = fmt.Sprintf("Degraded for %v", duration)
 		} else {
@@ -617,12 +617,12 @@ func (v *ResilienceValidator) PostExperimentValidation(ctx context.Context, expe
 			Threshold:   check.baseline,
 			Passed:      diff <= check.tolerance,
 		}
-		
+
 		if valCheck.Passed {
-			valCheck.Details = fmt.Sprintf("%s recovered to %.2f (baseline: %.2f)", 
+			valCheck.Details = fmt.Sprintf("%s recovered to %.2f (baseline: %.2f)",
 				check.name, check.current, check.baseline)
 		} else {
-			valCheck.Details = fmt.Sprintf("%s not recovered: %.2f (baseline: %.2f, diff: %.2f)", 
+			valCheck.Details = fmt.Sprintf("%s not recovered: %.2f (baseline: %.2f, diff: %.2f)",
 				check.name, check.current, check.baseline, diff)
 			validation.Success = false
 		}
@@ -635,7 +635,7 @@ func (v *ResilienceValidator) PostExperimentValidation(ctx context.Context, expe
 		Description: "Verify data consistency after experiment",
 		Passed:      !result.RecoveryMetrics.DataLoss,
 	}
-	
+
 	if consistencyCheck.Passed {
 		consistencyCheck.Details = "No data loss detected"
 	} else {
@@ -652,7 +652,7 @@ func (v *ResilienceValidator) PostExperimentValidation(ctx context.Context, expe
 		Threshold:   currentState.ActivePods,
 		Passed:      currentState.HealthyPods == currentState.ActivePods,
 	}
-	
+
 	if podHealthCheck.Passed {
 		podHealthCheck.Details = fmt.Sprintf("All %d pods healthy", currentState.ActivePods)
 	} else {
@@ -770,7 +770,7 @@ func (v *ResilienceValidator) queryMetric(ctx context.Context, query string) (mo
 	}
 
 	if len(warnings) > 0 {
-		v.logger.Warn("Prometheus query warnings", 
+		v.logger.Warn("Prometheus query warnings",
 			zap.String("query", query),
 			zap.Strings("warnings", warnings))
 	}
@@ -785,7 +785,7 @@ func (v *ResilienceValidator) queryMetric(ctx context.Context, query string) (mo
 
 // CircuitBreakerState represents circuit breaker state
 type CircuitBreakerState struct {
-	State       string     // open, half-open, closed
+	State       string // open, half-open, closed
 	ErrorRate   float64
 	TriggeredAt *time.Time
 	RecoveredAt *time.Time
@@ -935,7 +935,7 @@ func (v *ResilienceValidator) getDegradationState(ctx context.Context) (*Degrada
 // calculateSeverity calculates violation severity
 func (v *ResilienceValidator) calculateSeverity(metric string, actual, threshold float64) string {
 	var deviation float64
-	
+
 	switch metric {
 	case "availability":
 		deviation = (threshold - actual) / threshold * 100
@@ -966,7 +966,7 @@ func (v *ResilienceValidator) ValidateRecoveryTime(ctx context.Context, startTim
 	}
 
 	recoveryDuration := endTime.Sub(startTime)
-	
+
 	// Check MTTR against target
 	mttrCheck := ValidationCheck{
 		Name:        "Mean Time To Recovery",
@@ -975,7 +975,7 @@ func (v *ResilienceValidator) ValidateRecoveryTime(ctx context.Context, startTim
 		Threshold:   5 * time.Minute,
 		Passed:      recoveryDuration <= 5*time.Minute,
 	}
-	
+
 	if mttrCheck.Passed {
 		mttrCheck.Details = fmt.Sprintf("System recovered in %v", recoveryDuration)
 	} else {
@@ -990,14 +990,14 @@ func (v *ResilienceValidator) ValidateRecoveryTime(ctx context.Context, startTim
 // GetBaselineMetrics captures baseline metrics for comparison
 func (v *ResilienceValidator) GetBaselineMetrics(ctx context.Context) (*SystemState, error) {
 	v.logger.Info("Capturing baseline metrics")
-	
+
 	// Collect multiple samples over baseline window
 	samples := []SystemState{}
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	
+
 	timeout := time.After(v.config.BaselineWindow)
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -1012,7 +1012,7 @@ func (v *ResilienceValidator) GetBaselineMetrics(ctx context.Context) (*SystemSt
 			if len(samples) == 0 {
 				return nil, fmt.Errorf("no baseline samples collected")
 			}
-			
+
 			baseline := &SystemState{}
 			for _, sample := range samples {
 				baseline.Availability += sample.Availability
@@ -1024,7 +1024,7 @@ func (v *ResilienceValidator) GetBaselineMetrics(ctx context.Context) (*SystemSt
 				baseline.CPUUtilization += sample.CPUUtilization
 				baseline.MemoryUtilization += sample.MemoryUtilization
 			}
-			
+
 			count := float64(len(samples))
 			baseline.Availability /= count
 			baseline.LatencyP50 /= time.Duration(count)
@@ -1034,7 +1034,7 @@ func (v *ResilienceValidator) GetBaselineMetrics(ctx context.Context) (*SystemSt
 			baseline.ErrorRate /= count
 			baseline.CPUUtilization /= count
 			baseline.MemoryUtilization /= count
-			
+
 			return baseline, nil
 		case <-ctx.Done():
 			return nil, ctx.Err()

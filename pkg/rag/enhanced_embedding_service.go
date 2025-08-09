@@ -46,68 +46,68 @@ type EnhancedEmbeddingProvider interface {
 
 // ModelInfo contains information about the embedding model
 type ModelInfo struct {
-	Name          string  `json:"name"`
-	Dimensions    int     `json:"dimensions"`
-	MaxTokens     int     `json:"max_tokens"`
-	CostPerToken  float64 `json:"cost_per_token"`
-	Provider      string  `json:"provider"`
-	ApiVersion    string  `json:"api_version"`
-	Capabilities  []string `json:"capabilities"`
+	Name         string   `json:"name"`
+	Dimensions   int      `json:"dimensions"`
+	MaxTokens    int      `json:"max_tokens"`
+	CostPerToken float64  `json:"cost_per_token"`
+	Provider     string   `json:"provider"`
+	ApiVersion   string   `json:"api_version"`
+	Capabilities []string `json:"capabilities"`
 }
 
 // EnhancedProviderConfig holds configuration for a specific provider
 type EnhancedProviderConfig struct {
 	Name           string            `json:"name"`
-	Type           string            `json:"type"`           // "openai", "azure", "local", "huggingface"
+	Type           string            `json:"type"` // "openai", "azure", "local", "huggingface"
 	APIKey         string            `json:"api_key"`
 	APIEndpoint    string            `json:"api_endpoint"`
 	ModelName      string            `json:"model_name"`
-	Priority       int               `json:"priority"`       // Higher = preferred
+	Priority       int               `json:"priority"` // Higher = preferred
 	MaxConcurrency int               `json:"max_concurrency"`
-	RateLimit      int               `json:"rate_limit"`     // Requests per minute
+	RateLimit      int               `json:"rate_limit"` // Requests per minute
 	CostPerToken   float64           `json:"cost_per_token"`
 	Timeout        time.Duration     `json:"timeout"`
 	Headers        map[string]string `json:"headers"`
 	Enabled        bool              `json:"enabled"`
-	
+
 	// Provider-specific settings
-	AzureDeployment string `json:"azure_deployment,omitempty"`
+	AzureDeployment  string `json:"azure_deployment,omitempty"`
 	HuggingfaceModel string `json:"huggingface_model,omitempty"`
 	LocalModelPath   string `json:"local_model_path,omitempty"`
 }
 
 // LoadBalancer manages provider selection and load distribution
 type EnhancedLoadBalancer struct {
-	strategy    string                    // "round_robin", "least_cost", "fastest", "quality"
-	providers   []string
-	currentIdx  int
-	weights     map[string]float64
-	mutex       sync.RWMutex
+	strategy   string // "round_robin", "least_cost", "fastest", "quality"
+	providers  []string
+	currentIdx int
+	weights    map[string]float64
+	mutex      sync.RWMutex
 }
 
 // CostManager tracks and manages embedding costs
 type EnhancedCostManager struct {
-	dailySpend    map[string]float64 // date -> amount
-	monthlySpend  map[string]float64 // month -> amount
-	limits        EnhancedCostLimits
-	alerts        []EnhancedCostAlert
-	mutex         sync.RWMutex
+	dailySpend   map[string]float64 // date -> amount
+	monthlySpend map[string]float64 // month -> amount
+	limits       EnhancedCostLimits
+	alerts       []EnhancedCostAlert
+	mutex        sync.RWMutex
 }
 
 // CostLimits defines spending limits
 type EnhancedCostLimits struct {
-	DailyLimit   float64 `json:"daily_limit"`
-	MonthlyLimit float64 `json:"monthly_limit"`
+	DailyLimit     float64 `json:"daily_limit"`
+	MonthlyLimit   float64 `json:"monthly_limit"`
 	AlertThreshold float64 `json:"alert_threshold"` // Percentage of limit
 }
 
 // CostAlert represents a cost alert
 type EnhancedCostAlert struct {
-	Timestamp   time.Time `json:"timestamp"`
-	Level       string    `json:"level"`     // "warning", "critical"
-	Message     string    `json:"message"`
-	Amount      float64   `json:"amount"`
-	Limit       float64   `json:"limit"`
+	Timestamp time.Time `json:"timestamp"`
+	Level     string    `json:"level"` // "warning", "critical"
+	Message   string    `json:"message"`
+	Amount    float64   `json:"amount"`
+	Limit     float64   `json:"limit"`
 }
 
 // All type definitions moved to embedding_support.go to avoid duplicates
@@ -172,7 +172,7 @@ func NewMultiProviderEmbeddingService(config *EmbeddingConfig) (*MultiProviderEm
 // GenerateEmbeddings generates embeddings using the best available provider
 func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context, request *EmbeddingRequest) (*EmbeddingResponse, error) {
 	startTime := time.Now()
-	
+
 	mps.logger.Debug("Generating embeddings",
 		"texts", len(request.Texts),
 		"use_cache", request.UseCache,
@@ -209,7 +209,7 @@ func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context
 
 	// Preprocess and deduplicate texts
 	deduplicatedRequest, indexMapping := mps.preprocessAndDeduplicate(request)
-	
+
 	// Generate embeddings for deduplicated texts
 	response, err := mps.generateWithProvider(ctx, provider, deduplicatedRequest)
 	if err != nil {
@@ -222,7 +222,7 @@ func (mps *MultiProviderEmbeddingService) GenerateEmbeddings(ctx context.Context
 			return nil, fmt.Errorf("embedding generation failed: %w", err)
 		}
 	}
-	
+
 	// Expand response back to original text count using index mapping
 	response = mps.expandResponse(response, indexMapping, len(request.Texts))
 
@@ -283,7 +283,7 @@ func (mps *MultiProviderEmbeddingService) initializeProviders() error {
 			Timeout:        30 * time.Second, // Default timeout
 			Enabled:        providerConfig.Enabled,
 		}
-		
+
 		provider, err := mps.createProvider(enhancedConfig)
 		if err != nil {
 			mps.logger.Error("Failed to create provider", "name", providerConfig.Name, "error", err)
@@ -384,7 +384,7 @@ func (mps *MultiProviderEmbeddingService) generateWithFallback(ctx context.Conte
 		}
 
 		mps.logger.Info("Trying fallback provider", "provider", providerName)
-		
+
 		response, err := mps.generateWithProvider(ctx, provider, request)
 		if err == nil {
 			return response, nil
@@ -412,36 +412,36 @@ func (mps *MultiProviderEmbeddingService) preprocessTelecomTexts(texts []string)
 func (mps *MultiProviderEmbeddingService) preprocessSingleText(text string) string {
 	// Normalize telecom acronyms
 	text = mps.expandTelecomAcronyms(text)
-	
+
 	// Preserve technical terms
 	if mps.config.PreserveTechnicalTerms {
 		text = mps.preserveTechnicalTerms(text)
 	}
-	
+
 	// Apply technical term weighting
 	if mps.config.TechnicalTermWeighting > 1.0 {
 		text = mps.applyTechnicalTermWeighting(text)
 	}
-	
+
 	return text
 }
 
 // expandTelecomAcronyms expands common telecom acronyms
 func (mps *MultiProviderEmbeddingService) expandTelecomAcronyms(text string) string {
 	acronymMap := map[string]string{
-		"5G":     "Fifth Generation 5G",
-		"4G":     "Fourth Generation 4G",
-		"gNB":    "Next Generation NodeB gNB",
-		"eNB":    "Evolved NodeB eNB",
-		"AMF":    "Access and Mobility Management Function AMF",
-		"SMF":    "Session Management Function SMF",
-		"UPF":    "User Plane Function UPF",
-		"O-RAN":  "Open Radio Access Network O-RAN",
-		"RAN":    "Radio Access Network RAN",
-		"QoS":    "Quality of Service QoS",
-		"URLLC":  "Ultra-Reliable Low Latency Communication URLLC",
-		"eMBB":   "Enhanced Mobile Broadband eMBB",
-		"mMTC":   "Massive Machine Type Communication mMTC",
+		"5G":    "Fifth Generation 5G",
+		"4G":    "Fourth Generation 4G",
+		"gNB":   "Next Generation NodeB gNB",
+		"eNB":   "Evolved NodeB eNB",
+		"AMF":   "Access and Mobility Management Function AMF",
+		"SMF":   "Session Management Function SMF",
+		"UPF":   "User Plane Function UPF",
+		"O-RAN": "Open Radio Access Network O-RAN",
+		"RAN":   "Radio Access Network RAN",
+		"QoS":   "Quality of Service QoS",
+		"URLLC": "Ultra-Reliable Low Latency Communication URLLC",
+		"eMBB":  "Enhanced Mobile Broadband eMBB",
+		"mMTC":  "Massive Machine Type Communication mMTC",
 	}
 
 	for acronym, expansion := range acronymMap {
@@ -472,7 +472,7 @@ func (mps *MultiProviderEmbeddingService) preserveTechnicalTerms(text string) st
 func (mps *MultiProviderEmbeddingService) applyTechnicalTermWeighting(text string) string {
 	// This would typically involve duplicating technical terms based on weighting
 	weight := int(mps.config.TechnicalTermWeighting)
-	
+
 	technicalTerms := []string{
 		"specification", "protocol", "interface", "procedure",
 		"frequency", "bandwidth", "power", "antenna",
@@ -551,11 +551,11 @@ func (mps *MultiProviderEmbeddingService) preprocessAndDeduplicate(request *Embe
 	dedupeMap := make(map[string]int)
 	indexMapping := make(map[int]int) // maps original index to deduplicated index
 	duplicateCount := 0
-	
+
 	for i, text := range request.Texts {
 		// Preprocess the text (normalize, clean, etc.)
 		processedText := mps.preprocessSingleText(text)
-		
+
 		if existingIdx, exists := dedupeMap[processedText]; exists {
 			// Text already exists, map to existing index
 			indexMapping[i] = existingIdx
@@ -568,7 +568,7 @@ func (mps *MultiProviderEmbeddingService) preprocessAndDeduplicate(request *Embe
 			indexMapping[i] = newIdx
 		}
 	}
-	
+
 	// Log deduplication statistics
 	if duplicateCount > 0 {
 		deduplicationRatio := float64(duplicateCount) / float64(len(request.Texts)) * 100
@@ -579,18 +579,18 @@ func (mps *MultiProviderEmbeddingService) preprocessAndDeduplicate(request *Embe
 			"deduplication_ratio", fmt.Sprintf("%.1f%%", deduplicationRatio),
 		)
 	}
-	
+
 	// Create new request with deduplicated texts
 	deduplicatedRequest := &EmbeddingRequest{
-		Texts:       processed,
-		UseCache:    request.UseCache,
-		Priority:    request.Priority,
-		Metadata:    request.Metadata,
-		Model:       request.Model,
-		BatchSize:   request.BatchSize,
-		Timeout:     request.Timeout,
+		Texts:     processed,
+		UseCache:  request.UseCache,
+		Priority:  request.Priority,
+		Metadata:  request.Metadata,
+		Model:     request.Model,
+		BatchSize: request.BatchSize,
+		Timeout:   request.Timeout,
 	}
-	
+
 	return deduplicatedRequest, indexMapping
 }
 
@@ -600,17 +600,17 @@ func (mps *MultiProviderEmbeddingService) expandResponse(response *EmbeddingResp
 		// No deduplication was applied
 		return response
 	}
-	
+
 	// Create expanded embeddings array
 	expandedEmbeddings := make([][]float32, originalCount)
-	
+
 	for originalIdx := 0; originalIdx < originalCount; originalIdx++ {
 		deduplicatedIdx := indexMapping[originalIdx]
 		if deduplicatedIdx < len(response.Embeddings) {
 			expandedEmbeddings[originalIdx] = response.Embeddings[deduplicatedIdx]
 		}
 	}
-	
+
 	// Update response with expanded embeddings
 	expandedResponse := &EmbeddingResponse{
 		Embeddings:     expandedEmbeddings,
@@ -624,12 +624,12 @@ func (mps *MultiProviderEmbeddingService) expandResponse(response *EmbeddingResp
 		RequestID:      response.RequestID,
 		Metadata:       response.Metadata,
 	}
-	
+
 	mps.logger.Debug("Response expanded after deduplication",
 		"original_embedding_count", len(response.Embeddings),
 		"expanded_embedding_count", len(expandedEmbeddings),
 	)
-	
+
 	return expandedResponse
 }
 
@@ -708,8 +708,8 @@ func (mps *MultiProviderEmbeddingService) updateMetrics(response *EmbeddingRespo
 		// Update average latency
 		if mps.metrics.SuccessfulRequests > 0 {
 			mps.metrics.AverageLatency = time.Duration(
-				(int64(mps.metrics.AverageLatency)*mps.metrics.SuccessfulRequests + int64(response.ProcessingTime)) / 
-				(mps.metrics.SuccessfulRequests + 1),
+				(int64(mps.metrics.AverageLatency)*mps.metrics.SuccessfulRequests + int64(response.ProcessingTime)) /
+					(mps.metrics.SuccessfulRequests + 1),
 			)
 		}
 
@@ -761,7 +761,7 @@ func (mps *MultiProviderEmbeddingService) GetCostSummary() *CostSummary {
 	if enhancedSummary == nil {
 		return nil
 	}
-	
+
 	// Convert EnhancedCostSummary to CostSummary
 	alerts := make([]CostAlert, len(enhancedSummary.Alerts))
 	for i, alert := range enhancedSummary.Alerts {
@@ -773,7 +773,7 @@ func (mps *MultiProviderEmbeddingService) GetCostSummary() *CostSummary {
 			Timestamp: alert.Timestamp,
 		}
 	}
-	
+
 	return &CostSummary{
 		DailySpending:   enhancedSummary.DailySpending,
 		MonthlySpending: enhancedSummary.MonthlySpending,
@@ -796,11 +796,10 @@ func (mps *MultiProviderEmbeddingService) Close() error {
 	if mps.healthMonitor != nil {
 		mps.healthMonitor.Stop()
 	}
-	
+
 	if mps.cacheManager != nil {
 		return mps.cacheManager.Close()
 	}
-	
+
 	return nil
 }
-

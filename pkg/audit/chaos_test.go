@@ -27,9 +27,9 @@ import (
 // ChaosTestSuite performs chaos engineering tests on the audit system
 type ChaosTestSuite struct {
 	suite.Suite
-	tempDir        string
-	chaosServer    *httptest.Server
-	flakyServer    *httptest.Server
+	tempDir         string
+	chaosServer     *httptest.Server
+	flakyServer     *httptest.Server
 	networkEmulator *NetworkEmulator
 }
 
@@ -53,12 +53,12 @@ func (suite *ChaosTestSuite) SetupSuite() {
 			w.Write([]byte(`{"error": "chaos induced failure"}`))
 			return
 		}
-		
+
 		// 20% chance of timeout (slow response)
 		if rand.Float32() < 0.2 {
 			time.Sleep(5 * time.Second)
 		}
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status": "ok"}`))
 	}))
@@ -74,7 +74,7 @@ func (suite *ChaosTestSuite) SetupSuite() {
 				return
 			}
 		}
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status": "flaky_ok"}`))
 	}))
@@ -127,11 +127,11 @@ func (suite *ChaosTestSuite) TestBackendFailureScenarios() {
 		for i := 0; i < totalEvents; i++ {
 			event := createChaosTestEvent(fmt.Sprintf("chaos-test-%d", i))
 			err := auditSystem.LogEvent(event)
-			
+
 			if err == nil {
 				atomic.AddInt64(&successCount, 1)
 			}
-			
+
 			time.Sleep(10 * time.Millisecond) // Small delay between events
 		}
 
@@ -140,7 +140,7 @@ func (suite *ChaosTestSuite) TestBackendFailureScenarios() {
 
 		stats := auditSystem.GetStats()
 		suite.Greater(successCount, int64(totalEvents/2), "Too many events failed")
-		suite.T().Logf("Chaos test results: %d/%d events submitted, %d processed", 
+		suite.T().Logf("Chaos test results: %d/%d events submitted, %d processed",
 			successCount, totalEvents, stats.EventsReceived)
 	})
 
@@ -238,7 +238,7 @@ func (suite *ChaosTestSuite) TestDiskFailureScenarios() {
 	suite.Run("disk space exhaustion simulation", func() {
 		// Create a small filesystem simulation
 		smallLogFile := filepath.Join(suite.tempDir, "small_disk.log")
-		
+
 		config := &AuditSystemConfig{
 			Enabled:       true,
 			LogLevel:      SeverityInfo,
@@ -252,9 +252,9 @@ func (suite *ChaosTestSuite) TestDiskFailureScenarios() {
 
 		// Add file backend that will run out of space
 		diskFullBackend := &DiskFullBackend{
-			logFile:       smallLogFile,
-			maxSize:       1024, // 1KB limit
-			currentSize:   0,
+			logFile:     smallLogFile,
+			maxSize:     1024, // 1KB limit
+			currentSize: 0,
 		}
 		auditSystem.backends = []backends.Backend{diskFullBackend}
 
@@ -267,7 +267,7 @@ func (suite *ChaosTestSuite) TestDiskFailureScenarios() {
 			event := createChaosTestEvent(fmt.Sprintf("diskfull-test-%d", i))
 			err := auditSystem.LogEvent(event)
 			suite.NoError(err, "Event submission should not fail immediately")
-			
+
 			time.Sleep(10 * time.Millisecond)
 		}
 
@@ -373,7 +373,7 @@ func (suite *ChaosTestSuite) TestNetworkPartitions() {
 
 		stats := auditSystem.GetStats()
 		suite.T().Logf("Network partition test: %d events sent, %d processed", eventsSent, stats.EventsReceived)
-		
+
 		// System should recover after partition heals
 		suite.Greater(stats.EventsReceived, int64(0))
 	})
@@ -442,7 +442,7 @@ func (suite *ChaosTestSuite) TestResourceExhaustion() {
 				// Create large events to increase memory pressure
 				event := createLargeChaosEvent(fmt.Sprintf("memory-pressure-%d", i))
 				auditSystem.LogEvent(event)
-				
+
 				if i%100 == 0 {
 					suite.T().Logf("Sent %d events for memory pressure test", i)
 				}
@@ -454,7 +454,7 @@ func (suite *ChaosTestSuite) TestResourceExhaustion() {
 
 		stats := auditSystem.GetStats()
 		suite.T().Logf("Memory pressure test: %d events processed", stats.EventsReceived)
-		
+
 		// System should handle memory pressure without crashing
 		suite.Greater(stats.EventsReceived, int64(0))
 	})
@@ -487,7 +487,7 @@ func (suite *ChaosTestSuite) TestResourceExhaustion() {
 		for i := 0; i < 200; i++ {
 			event := createChaosTestEvent(fmt.Sprintf("overflow-test-%d", i))
 			err := auditSystem.LogEvent(event)
-			
+
 			if err != nil {
 				atomic.AddInt64(&rejected, 1)
 			} else {
@@ -533,7 +533,7 @@ func (suite *ChaosTestSuite) TestCascadingFailures() {
 			event := createChaosTestEvent(fmt.Sprintf("cascade-test-%d", i))
 			err := auditSystem.LogEvent(event)
 			suite.NoError(err, "Event submission should not fail")
-			
+
 			time.Sleep(50 * time.Millisecond)
 		}
 
@@ -541,7 +541,7 @@ func (suite *ChaosTestSuite) TestCascadingFailures() {
 
 		stats := auditSystem.GetStats()
 		suite.T().Logf("Cascading failure test: %d events processed", stats.EventsReceived)
-		
+
 		// System should remain operational despite multiple backend failures
 		suite.Greater(stats.EventsReceived, int64(50))
 	})
@@ -631,9 +631,9 @@ func (suite *ChaosTestSuite) TestRecoveryScenarios() {
 		time.Sleep(2 * time.Second)
 		finalStats := auditSystem.GetStats()
 
-		suite.T().Logf("Recovery test: Phase1=%d, Final=%d events processed", 
+		suite.T().Logf("Recovery test: Phase1=%d, Final=%d events processed",
 			phase1Stats.EventsReceived, finalStats.EventsReceived)
-		
+
 		// Should recover and process more events
 		suite.Greater(finalStats.EventsReceived, phase1Stats.EventsReceived)
 	})
@@ -681,10 +681,10 @@ func (suite *ChaosTestSuite) TestRecoveryScenarios() {
 
 		stats := auditSystem.GetStats()
 		processingRate := float64(stats.EventsReceived) / float64(totalSent)
-		
-		suite.T().Logf("Graceful degradation: %d sent, %d processed (%.2f%%)", 
+
+		suite.T().Logf("Graceful degradation: %d sent, %d processed (%.2f%%)",
 			totalSent, stats.EventsReceived, processingRate*100)
-		
+
 		// Should process some events despite overload
 		suite.Greater(processingRate, 0.1) // At least 10%
 	})
@@ -713,7 +713,7 @@ func (suite *ChaosTestSuite) TestSystemLimits() {
 
 		// Test with various event sizes
 		eventSizes := []int{512, 1024, 2048, 5120} // 512B, 1KB, 2KB, 5KB
-		
+
 		for _, size := range eventSizes {
 			event := createSizedChaosEvent(fmt.Sprintf("size-test-%d", size), size)
 			err := auditSystem.LogEvent(event)
@@ -751,18 +751,18 @@ func (suite *ChaosTestSuite) TestSystemLimits() {
 				if err == nil {
 					mockBackend := &MockChaosBackend{}
 					auditSystem.backends = []backends.Backend{mockBackend}
-					
+
 					err = auditSystem.Start()
 					assert.NoError(t, err)
-					
+
 					if err == nil {
 						defer auditSystem.Stop()
-						
+
 						// Send test event
 						event := createChaosTestEvent("extreme-batch-test")
 						err = auditSystem.LogEvent(event)
 						assert.NoError(t, err)
-						
+
 						time.Sleep(200 * time.Millisecond)
 					}
 				}
@@ -885,7 +885,7 @@ func (dfb *DiskFullBackend) WriteEvent(ctx context.Context, event *AuditEvent) e
 	defer dfb.mutex.Unlock()
 
 	eventSize := int64(len(event.Action) + len(event.Component) + 100) // Approximate size
-	
+
 	if dfb.currentSize+eventSize > dfb.maxSize {
 		return errors.New("no space left on device")
 	}
@@ -1127,10 +1127,10 @@ func (rb *RecoveryBackend) Health(ctx context.Context) error { return nil }
 func (rb *RecoveryBackend) Close() error { return nil }
 
 type OverloadedBackend struct {
-	maxCapacity   int
-	currentLoad   int64
-	processed     int64
-	mutex         sync.Mutex
+	maxCapacity int
+	currentLoad int64
+	processed   int64
+	mutex       sync.Mutex
 }
 
 func (ob *OverloadedBackend) Type() string { return "overloaded" }

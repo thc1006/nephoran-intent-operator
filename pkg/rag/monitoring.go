@@ -25,12 +25,12 @@ type RAGMonitor struct {
 	mutex          sync.RWMutex
 
 	// Prometheus metrics
-	queryLatencyHistogram    *prometheus.HistogramVec
-	queryCountCounter        *prometheus.CounterVec
-	embeddingLatencyHist     *prometheus.HistogramVec
-	embeddingCountCounter    *prometheus.CounterVec
+	queryLatencyHistogram   *prometheus.HistogramVec
+	queryCountCounter       *prometheus.CounterVec
+	embeddingLatencyHist    *prometheus.HistogramVec
+	embeddingCountCounter   *prometheus.CounterVec
 	cacheHitRateGauge       *prometheus.GaugeVec
-	documentProcessingGauge  prometheus.Gauge
+	documentProcessingGauge prometheus.Gauge
 	chunkingLatencyHist     *prometheus.HistogramVec
 	retrievalLatencyHist    *prometheus.HistogramVec
 	contextAssemblyHist     *prometheus.HistogramVec
@@ -44,26 +44,26 @@ type MonitoringConfig struct {
 	MetricsPort     int    `json:"metrics_port"`
 	MetricsPath     string `json:"metrics_path"`
 	HealthCheckPath string `json:"health_check_path"`
-	
+
 	// Collection intervals
 	MetricsInterval     time.Duration `json:"metrics_interval"`
 	HealthCheckInterval time.Duration `json:"health_check_interval"`
-	
+
 	// Alerting configuration
-	EnableAlerting      bool                           `json:"enable_alerting"`
-	AlertThresholds     map[string]AlertThreshold      `json:"alert_thresholds"`
-	AlertWebhooks       []string                       `json:"alert_webhooks"`
-	
+	EnableAlerting  bool                      `json:"enable_alerting"`
+	AlertThresholds map[string]AlertThreshold `json:"alert_thresholds"`
+	AlertWebhooks   []string                  `json:"alert_webhooks"`
+
 	// Log configuration
 	EnableStructuredLogs bool   `json:"enable_structured_logs"`
-	LogLevel            string `json:"log_level"`
-	
+	LogLevel             string `json:"log_level"`
+
 	// Trace sampling
-	TraceSampleRate     float64 `json:"trace_sample_rate"`
-	EnableDistributedTracing bool `json:"enable_distributed_tracing"`
-	
+	TraceSampleRate          float64 `json:"trace_sample_rate"`
+	EnableDistributedTracing bool    `json:"enable_distributed_tracing"`
+
 	// Performance monitoring
-	EnableResourceMonitoring bool `json:"enable_resource_monitoring"`
+	EnableResourceMonitoring   bool          `json:"enable_resource_monitoring"`
 	ResourceMonitoringInterval time.Duration `json:"resource_monitoring_interval"`
 }
 
@@ -84,25 +84,25 @@ type HealthChecker interface {
 
 // HealthStatus represents the health status of a component
 type HealthStatus struct {
-	ComponentName string                 `json:"component_name"`
-	IsHealthy     bool                   `json:"is_healthy"`
-	Status        string                 `json:"status"`
-	LastCheck     time.Time              `json:"last_check"`
-	ResponseTime  time.Duration          `json:"response_time"`
-	AverageLatency time.Duration          `json:"average_latency"`
-	ConsecutiveFailures int                   `json:"consecutive_failures"`
-	ErrorMessage  string                 `json:"error_message,omitempty"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	ComponentName       string                 `json:"component_name"`
+	IsHealthy           bool                   `json:"is_healthy"`
+	Status              string                 `json:"status"`
+	LastCheck           time.Time              `json:"last_check"`
+	ResponseTime        time.Duration          `json:"response_time"`
+	AverageLatency      time.Duration          `json:"average_latency"`
+	ConsecutiveFailures int                    `json:"consecutive_failures"`
+	ErrorMessage        string                 `json:"error_message,omitempty"`
+	Metadata            map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // SystemHealth represents overall system health
 type SystemHealth struct {
-	Status           string                    `json:"status"`
-	IsHealthy        bool                      `json:"is_healthy"`
-	Components       map[string]HealthStatus   `json:"components"`
-	SystemMetrics    SystemMetrics             `json:"system_metrics"`
-	LastCheck        time.Time                 `json:"last_check"`
-	UptimeSeconds    int64                     `json:"uptime_seconds"`
+	Status        string                  `json:"status"`
+	IsHealthy     bool                    `json:"is_healthy"`
+	Components    map[string]HealthStatus `json:"components"`
+	SystemMetrics SystemMetrics           `json:"system_metrics"`
+	LastCheck     time.Time               `json:"last_check"`
+	UptimeSeconds int64                   `json:"uptime_seconds"`
 }
 
 // SystemMetrics holds system-level metrics
@@ -118,11 +118,11 @@ type SystemMetrics struct {
 
 // AlertManager handles alerting based on metrics and thresholds
 type AlertManager struct {
-	config    *MonitoringConfig
-	logger    *slog.Logger
-	alerts    map[string]Alert
-	webhooks  []string
-	mutex     sync.RWMutex
+	config   *MonitoringConfig
+	logger   *slog.Logger
+	alerts   map[string]Alert
+	webhooks []string
+	mutex    sync.RWMutex
 }
 
 // Alert represents an active alert
@@ -140,12 +140,12 @@ type Alert struct {
 
 // RAGMetricsCollector collects metrics from all RAG components
 type RAGMetricsCollector struct {
-	monitor         *RAGMonitor
-	ragService      *RAGService
+	monitor          *RAGMonitor
+	ragService       *RAGService
 	embeddingService *EmbeddingService
 	retrievalService *EnhancedRetrievalService
-	redisCache      *RedisCache
-	mutex           sync.RWMutex
+	redisCache       *RedisCache
+	mutex            sync.RWMutex
 }
 
 // NewRAGMonitor creates a new RAG monitoring system
@@ -155,10 +155,10 @@ func NewRAGMonitor(config *MonitoringConfig) *RAGMonitor {
 	}
 
 	monitor := &RAGMonitor{
-		config:         config,
-		logger:         slog.Default().With("component", "rag-monitor"),
-		healthCheckers: make(map[string]HealthChecker),
-		alertManager:   NewAlertManager(config),
+		config:               config,
+		logger:               slog.Default().With("component", "rag-monitor"),
+		healthCheckers:       make(map[string]HealthChecker),
+		alertManager:         NewAlertManager(config),
 		systemResourceGauges: make(map[string]prometheus.Gauge),
 	}
 
@@ -173,14 +173,13 @@ func NewRAGMonitor(config *MonitoringConfig) *RAGMonitor {
 	// Start background monitoring tasks
 	go monitor.startHealthChecking()
 	go monitor.startMetricsCollection()
-	
+
 	if config.EnableResourceMonitoring {
 		go monitor.startResourceMonitoring()
 	}
 
 	return monitor
 }
-
 
 // initializePrometheusMetrics initializes all Prometheus metrics
 func (rm *RAGMonitor) initializePrometheusMetrics() {
@@ -314,16 +313,16 @@ func (rm *RAGMonitor) initializePrometheusMetrics() {
 // startMetricsServer starts the HTTP server for metrics and health checks
 func (rm *RAGMonitor) startMetricsServer() error {
 	mux := http.NewServeMux()
-	
+
 	// Metrics endpoint
 	mux.Handle(rm.config.MetricsPath, promhttp.Handler())
-	
+
 	// Health check endpoint
 	mux.HandleFunc(rm.config.HealthCheckPath, rm.handleHealthCheck)
-	
+
 	// System status endpoint
 	mux.HandleFunc("/status", rm.handleSystemStatus)
-	
+
 	// Component metrics endpoint
 	mux.HandleFunc("/metrics/components", rm.handleComponentMetrics)
 
@@ -346,7 +345,7 @@ func (rm *RAGMonitor) startMetricsServer() error {
 func (rm *RAGMonitor) RegisterHealthChecker(checker HealthChecker) {
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
-	
+
 	rm.healthCheckers[checker.GetComponentName()] = checker
 	rm.logger.Info("Health checker registered", "component", checker.GetComponentName())
 }
@@ -384,12 +383,12 @@ func (rm *RAGMonitor) performHealthChecks(ctx context.Context) {
 			status.LastCheck = time.Now()
 
 			if !status.IsHealthy {
-				rm.logger.Warn("Component unhealthy", 
+				rm.logger.Warn("Component unhealthy",
 					"component", name,
 					"status", status.Status,
 					"error", status.ErrorMessage,
 				)
-				
+
 				// Trigger alert if alerting is enabled
 				if rm.config.EnableAlerting {
 					rm.alertManager.TriggerAlert(Alert{
@@ -424,7 +423,7 @@ func (rm *RAGMonitor) startMetricsCollection() {
 func (rm *RAGMonitor) collectAndUpdateMetrics() {
 	// This would collect metrics from registered components
 	// For now, we'll update based on component health
-	
+
 	rm.mutex.RLock()
 	checkers := make(map[string]HealthChecker)
 	for name, checker := range rm.healthCheckers {
@@ -472,7 +471,7 @@ func (rm *RAGMonitor) collectSystemMetrics() SystemMetrics {
 		NetworkBytesIn:     1024000,
 		NetworkBytesOut:    512000,
 		GoroutineCount:     100,
-		HeapSizeMB:        128.5,
+		HeapSizeMB:         128.5,
 	}
 }
 
@@ -490,7 +489,7 @@ func (rm *RAGMonitor) updateSystemResourceMetrics(metrics SystemMetrics) {
 // handleHealthCheck handles health check requests
 func (rm *RAGMonitor) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
+
 	rm.mutex.RLock()
 	checkers := make(map[string]HealthChecker)
 	for name, checker := range rm.healthCheckers {
@@ -532,14 +531,14 @@ func (rm *RAGMonitor) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 // handleSystemStatus handles system status requests
 func (rm *RAGMonitor) handleSystemStatus(w http.ResponseWriter, r *http.Request) {
 	status := map[string]interface{}{
-		"service":         "nephoran-rag-pipeline",
-		"version":         "1.0.0",
-		"build_time":      time.Now().Format(time.RFC3339),
-		"uptime_seconds":  int64(time.Since(time.Now()).Seconds()),
+		"service":        "nephoran-rag-pipeline",
+		"version":        "1.0.0",
+		"build_time":     time.Now().Format(time.RFC3339),
+		"uptime_seconds": int64(time.Since(time.Now()).Seconds()),
 		"monitoring": map[string]interface{}{
-			"metrics_enabled":    true,
-			"health_checks":      len(rm.healthCheckers),
-			"alerting_enabled":   rm.config.EnableAlerting,
+			"metrics_enabled":     true,
+			"health_checks":       len(rm.healthCheckers),
+			"alerting_enabled":    rm.config.EnableAlerting,
 			"resource_monitoring": rm.config.EnableResourceMonitoring,
 		},
 	}
@@ -551,10 +550,10 @@ func (rm *RAGMonitor) handleSystemStatus(w http.ResponseWriter, r *http.Request)
 // handleComponentMetrics handles component-specific metrics requests
 func (rm *RAGMonitor) handleComponentMetrics(w http.ResponseWriter, r *http.Request) {
 	componentMetrics := make(map[string]interface{})
-	
+
 	// Collect metrics from components
 	// This would be implemented based on actual component interfaces
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(componentMetrics)
 }
@@ -631,7 +630,7 @@ func (am *AlertManager) TriggerAlert(alert Alert) {
 	defer am.mutex.Unlock()
 
 	am.alerts[alert.ID] = alert
-	
+
 	am.logger.Warn("Alert triggered",
 		"id", alert.ID,
 		"severity", alert.Severity,
@@ -752,11 +751,11 @@ func (hc *EmbeddingServiceHealthChecker) CheckHealth(ctx context.Context) Health
 	// Get service metrics
 	metrics := hc.embeddingService.GetMetrics()
 	status.Metadata = map[string]interface{}{
-		"total_requests":     metrics.TotalRequests,
+		"total_requests":      metrics.TotalRequests,
 		"successful_requests": metrics.SuccessfulRequests,
-		"failed_requests":    metrics.FailedRequests,
-		"average_latency":    metrics.AverageLatency.String(),
-		"cache_hit_rate":     metrics.CacheStats.HitRate,
+		"failed_requests":     metrics.FailedRequests,
+		"average_latency":     metrics.AverageLatency.String(),
+		"cache_hit_rate":      metrics.CacheStats.HitRate,
 	}
 
 	// Check error rate

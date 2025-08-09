@@ -40,9 +40,9 @@ type CSRFManager struct {
 
 // CSRFToken represents a CSRF token
 type CSRFToken struct {
-	Token     string    `json:"token"`
-	SessionID string    `json:"session_id"`
-	CreatedAt time.Time `json:"created_at"`
+	Token     string     `json:"token"`
+	SessionID string     `json:"session_id"`
+	CreatedAt time.Time  `json:"created_at"`
 	UsedAt    *time.Time `json:"used_at,omitempty"`
 }
 
@@ -501,17 +501,17 @@ func ValidateState(state string) error {
 	if state == "" {
 		return fmt.Errorf("state parameter is required")
 	}
-	
+
 	// Decode to check if it's valid base64url
 	if _, err := base64.RawURLEncoding.DecodeString(state); err != nil {
 		return fmt.Errorf("invalid state format: %w", err)
 	}
-	
+
 	// Check minimum length (32 bytes = 43 base64url chars)
 	if len(state) < 43 {
 		return fmt.Errorf("state parameter too short")
 	}
-	
+
 	return nil
 }
 

@@ -46,15 +46,15 @@ func (m *MockBackend) WriteEvent(ctx context.Context, event *AuditEvent) error {
 	if m.latency > 0 {
 		time.Sleep(m.latency)
 	}
-	
+
 	if m.shouldFail {
 		return fmt.Errorf("mock backend failure")
 	}
-	
+
 	m.mutex.Lock()
 	m.receivedEvents = append(m.receivedEvents, event)
 	m.mutex.Unlock()
-	
+
 	args := m.Called(ctx, event)
 	return args.Error(0)
 }
@@ -63,15 +63,15 @@ func (m *MockBackend) WriteEvents(ctx context.Context, events []*AuditEvent) err
 	if m.latency > 0 {
 		time.Sleep(m.latency)
 	}
-	
+
 	if m.shouldFail {
 		return fmt.Errorf("mock backend batch failure")
 	}
-	
+
 	m.mutex.Lock()
 	m.receivedEvents = append(m.receivedEvents, events...)
 	m.mutex.Unlock()
-	
+
 	args := m.Called(ctx, events)
 	return args.Error(0)
 }
@@ -118,9 +118,9 @@ func (m *MockBackend) Reset() {
 // AuditSystemTestSuite contains the test suite for AuditSystem
 type AuditSystemTestSuite struct {
 	suite.Suite
-	config       *AuditSystemConfig
-	mockBackend  *MockBackend
-	auditSystem  *AuditSystem
+	config      *AuditSystemConfig
+	mockBackend *MockBackend
+	auditSystem *AuditSystem
 }
 
 func TestAuditSystemTestSuite(t *testing.T) {
@@ -150,10 +150,10 @@ func (suite *AuditSystemTestSuite) SetupTest() {
 	// Create audit system
 	auditSystem, err := NewAuditSystem(suite.config)
 	suite.Require().NoError(err)
-	
+
 	// Replace backends with mock
 	auditSystem.backends = []backends.Backend{suite.mockBackend}
-	
+
 	suite.auditSystem = auditSystem
 }
 
@@ -167,7 +167,7 @@ func (suite *AuditSystemTestSuite) TearDownTest() {
 func (suite *AuditSystemTestSuite) TestNewAuditSystem() {
 	config := DefaultAuditConfig()
 	auditSystem, err := NewAuditSystem(config)
-	
+
 	suite.NoError(err)
 	suite.NotNil(auditSystem)
 	suite.Equal(config, auditSystem.config)
@@ -178,7 +178,7 @@ func (suite *AuditSystemTestSuite) TestNewAuditSystem() {
 
 func (suite *AuditSystemTestSuite) TestNewAuditSystemWithNilConfig() {
 	auditSystem, err := NewAuditSystem(nil)
-	
+
 	suite.NoError(err)
 	suite.NotNil(auditSystem)
 	suite.Equal(DefaultAuditConfig(), auditSystem.config)
@@ -189,16 +189,16 @@ func (suite *AuditSystemTestSuite) TestStartStop() {
 	err := suite.auditSystem.Start()
 	suite.NoError(err)
 	suite.True(suite.auditSystem.running.Load())
-	
+
 	// Test double start (should return error)
 	err = suite.auditSystem.Start()
 	suite.Error(err)
-	
+
 	// Test stop
 	err = suite.auditSystem.Stop()
 	suite.NoError(err)
 	suite.False(suite.auditSystem.running.Load())
-	
+
 	// Test double stop (should not error)
 	err = suite.auditSystem.Stop()
 	suite.NoError(err)
@@ -208,7 +208,7 @@ func (suite *AuditSystemTestSuite) TestLogEventDisabled() {
 	suite.config.Enabled = false
 	auditSystem, err := NewAuditSystem(suite.config)
 	suite.Require().NoError(err)
-	
+
 	event := &AuditEvent{
 		ID:        uuid.New().String(),
 		EventType: EventTypeAuthentication,
@@ -217,7 +217,7 @@ func (suite *AuditSystemTestSuite) TestLogEventDisabled() {
 		Severity:  SeverityInfo,
 		Timestamp: time.Now(),
 	}
-	
+
 	// Should not error but also not process the event
 	err = auditSystem.LogEvent(event)
 	suite.NoError(err)
@@ -228,11 +228,11 @@ func (suite *AuditSystemTestSuite) TestLogEventBelowMinimumSeverity() {
 	auditSystem, err := NewAuditSystem(suite.config)
 	suite.Require().NoError(err)
 	auditSystem.backends = []backends.Backend{suite.mockBackend}
-	
+
 	err = auditSystem.Start()
 	suite.Require().NoError(err)
 	defer auditSystem.Stop()
-	
+
 	event := &AuditEvent{
 		ID:        uuid.New().String(),
 		EventType: EventTypeAuthentication,
@@ -241,13 +241,13 @@ func (suite *AuditSystemTestSuite) TestLogEventBelowMinimumSeverity() {
 		Severity:  SeverityInfo, // Below minimum
 		Timestamp: time.Now(),
 	}
-	
+
 	err = auditSystem.LogEvent(event)
 	suite.NoError(err)
-	
+
 	// Give time for processing
 	time.Sleep(50 * time.Millisecond)
-	
+
 	// Should not have received any events
 	receivedEvents := suite.mockBackend.GetReceivedEvents()
 	suite.Empty(receivedEvents)
@@ -257,7 +257,7 @@ func (suite *AuditSystemTestSuite) TestLogEventValidation() {
 	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
-	
+
 	// Test invalid event (missing required fields)
 	invalidEvent := &AuditEvent{}
 	err = suite.auditSystem.LogEvent(invalidEvent)
@@ -269,23 +269,23 @@ func (suite *AuditSystemTestSuite) TestEventEnrichment() {
 	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
-	
+
 	event := &AuditEvent{
 		EventType: EventTypeAuthentication,
 		Component: "test",
 		Action:    "test",
 		Severity:  SeverityInfo,
 	}
-	
+
 	err = suite.auditSystem.LogEvent(event)
 	suite.NoError(err)
-	
+
 	// Wait for batch processing
 	time.Sleep(150 * time.Millisecond)
-	
+
 	receivedEvents := suite.mockBackend.GetReceivedEvents()
 	suite.Len(receivedEvents, 1)
-	
+
 	enrichedEvent := receivedEvents[0]
 	suite.NotEmpty(enrichedEvent.ID)
 	suite.NotZero(enrichedEvent.Timestamp)
@@ -297,7 +297,7 @@ func (suite *AuditSystemTestSuite) TestBatchProcessing() {
 	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
-	
+
 	// Send exactly batch size events
 	for i := 0; i < suite.config.BatchSize; i++ {
 		event := &AuditEvent{
@@ -308,14 +308,14 @@ func (suite *AuditSystemTestSuite) TestBatchProcessing() {
 			Severity:  SeverityInfo,
 			Timestamp: time.Now(),
 		}
-		
+
 		err := suite.auditSystem.LogEvent(event)
 		suite.NoError(err)
 	}
-	
+
 	// Give time for batch processing
 	time.Sleep(50 * time.Millisecond)
-	
+
 	receivedEvents := suite.mockBackend.GetReceivedEvents()
 	suite.Len(receivedEvents, suite.config.BatchSize)
 }
@@ -324,7 +324,7 @@ func (suite *AuditSystemTestSuite) TestTimerBasedFlushing() {
 	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
-	
+
 	// Send one event (less than batch size)
 	event := &AuditEvent{
 		ID:        uuid.New().String(),
@@ -334,18 +334,18 @@ func (suite *AuditSystemTestSuite) TestTimerBasedFlushing() {
 		Severity:  SeverityInfo,
 		Timestamp: time.Now(),
 	}
-	
+
 	err = suite.auditSystem.LogEvent(event)
 	suite.NoError(err)
-	
+
 	// Should not be processed immediately
 	time.Sleep(50 * time.Millisecond)
 	receivedEvents := suite.mockBackend.GetReceivedEvents()
 	suite.Empty(receivedEvents)
-	
+
 	// Wait for timer flush
 	time.Sleep(150 * time.Millisecond)
-	
+
 	receivedEvents = suite.mockBackend.GetReceivedEvents()
 	suite.Len(receivedEvents, 1)
 }
@@ -354,15 +354,15 @@ func (suite *AuditSystemTestSuite) TestQueueOverflow() {
 	// Create system with small queue
 	config := *suite.config
 	config.MaxQueueSize = 2
-	
+
 	auditSystem, err := NewAuditSystem(&config)
 	suite.Require().NoError(err)
 	auditSystem.backends = []backends.Backend{suite.mockBackend}
-	
+
 	err = auditSystem.Start()
 	suite.Require().NoError(err)
 	defer auditSystem.Stop()
-	
+
 	// Fill queue and then overflow
 	for i := 0; i < 5; i++ {
 		event := &AuditEvent{
@@ -373,7 +373,7 @@ func (suite *AuditSystemTestSuite) TestQueueOverflow() {
 			Severity:  SeverityInfo,
 			Timestamp: time.Now(),
 		}
-		
+
 		err := auditSystem.LogEvent(event)
 		if i >= config.MaxQueueSize {
 			// Should start dropping events
@@ -389,7 +389,7 @@ func (suite *AuditSystemTestSuite) TestStats() {
 	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
-	
+
 	// Log some events
 	for i := 0; i < 5; i++ {
 		event := &AuditEvent{
@@ -400,14 +400,14 @@ func (suite *AuditSystemTestSuite) TestStats() {
 			Severity:  SeverityInfo,
 			Timestamp: time.Now(),
 		}
-		
+
 		err := suite.auditSystem.LogEvent(event)
 		suite.NoError(err)
 	}
-	
+
 	// Wait for processing
 	time.Sleep(150 * time.Millisecond)
-	
+
 	stats := suite.auditSystem.GetStats()
 	suite.Equal(int64(5), stats.EventsReceived)
 	suite.Equal(int64(0), stats.EventsDropped)
@@ -419,11 +419,11 @@ func (suite *AuditSystemTestSuite) TestStats() {
 func (suite *AuditSystemTestSuite) TestBackendFailure() {
 	// Configure backend to fail
 	suite.mockBackend.SetFailure(true)
-	
+
 	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
-	
+
 	event := &AuditEvent{
 		ID:        uuid.New().String(),
 		EventType: EventTypeAuthentication,
@@ -432,13 +432,13 @@ func (suite *AuditSystemTestSuite) TestBackendFailure() {
 		Severity:  SeverityInfo,
 		Timestamp: time.Now(),
 	}
-	
+
 	err = suite.auditSystem.LogEvent(event)
 	suite.NoError(err)
-	
+
 	// Wait for processing (should not crash)
 	time.Sleep(150 * time.Millisecond)
-	
+
 	// System should still be running
 	suite.True(suite.auditSystem.running.Load())
 }
@@ -447,17 +447,17 @@ func (suite *AuditSystemTestSuite) TestConcurrentEventLogging() {
 	err := suite.auditSystem.Start()
 	suite.Require().NoError(err)
 	defer suite.auditSystem.Stop()
-	
+
 	const numGoroutines = 10
 	const eventsPerGoroutine = 20
-	
+
 	var wg sync.WaitGroup
 	wg.Add(numGoroutines)
-	
+
 	for g := 0; g < numGoroutines; g++ {
 		go func(goroutineID int) {
 			defer wg.Done()
-			
+
 			for i := 0; i < eventsPerGoroutine; i++ {
 				event := &AuditEvent{
 					ID:        uuid.New().String(),
@@ -467,21 +467,21 @@ func (suite *AuditSystemTestSuite) TestConcurrentEventLogging() {
 					Severity:  SeverityInfo,
 					Timestamp: time.Now(),
 				}
-				
+
 				err := suite.auditSystem.LogEvent(event)
 				suite.NoError(err)
 			}
 		}(g)
 	}
-	
+
 	wg.Wait()
-	
+
 	// Wait for all events to be processed
 	time.Sleep(500 * time.Millisecond)
-	
+
 	receivedEvents := suite.mockBackend.GetReceivedEvents()
 	suite.Len(receivedEvents, numGoroutines*eventsPerGoroutine)
-	
+
 	// Check that all events are unique
 	eventIDs := make(map[string]bool)
 	for _, event := range receivedEvents {
@@ -572,27 +572,27 @@ func TestAuditSystemScenarios(t *testing.T) {
 			expectError: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mockBackend := NewMockBackend()
 			mockBackend.On("Type").Return("mock")
 			mockBackend.On("WriteEvents", mock.Anything, mock.Anything).Return(nil)
 			mockBackend.On("Close").Return(nil)
-			
+
 			config := tt.config()
 			auditSystem, err := NewAuditSystem(config)
 			require.NoError(t, err)
-			
+
 			// Replace backends with mock
 			auditSystem.backends = []backends.Backend{mockBackend}
-			
+
 			if config.Enabled {
 				err = auditSystem.Start()
 				require.NoError(t, err)
 				defer auditSystem.Stop()
 			}
-			
+
 			for _, event := range tt.events {
 				err = auditSystem.LogEvent(event)
 				if tt.expectError {
@@ -601,10 +601,10 @@ func TestAuditSystemScenarios(t *testing.T) {
 					assert.NoError(t, err)
 				}
 			}
-			
+
 			// Wait for processing
 			time.Sleep(100 * time.Millisecond)
-			
+
 			receivedEvents := mockBackend.GetReceivedEvents()
 			assert.Len(t, receivedEvents, tt.expectCount)
 		})
@@ -618,7 +618,7 @@ func BenchmarkAuditSystemLogEvent(b *testing.B) {
 	mockBackend.On("Type").Return("mock")
 	mockBackend.On("WriteEvents", mock.Anything, mock.Anything).Return(nil)
 	mockBackend.On("Close").Return(nil)
-	
+
 	config := &AuditSystemConfig{
 		Enabled:       true,
 		LogLevel:      SeverityInfo,
@@ -627,16 +627,16 @@ func BenchmarkAuditSystemLogEvent(b *testing.B) {
 		MaxQueueSize:  10000,
 		Backends:      []backends.BackendConfig{},
 	}
-	
+
 	auditSystem, err := NewAuditSystem(config)
 	require.NoError(b, err)
-	
+
 	auditSystem.backends = []backends.Backend{mockBackend}
-	
+
 	err = auditSystem.Start()
 	require.NoError(b, err)
 	defer auditSystem.Stop()
-	
+
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -648,7 +648,7 @@ func BenchmarkAuditSystemLogEvent(b *testing.B) {
 				Severity:  SeverityInfo,
 				Timestamp: time.Now(),
 			}
-			
+
 			auditSystem.LogEvent(event)
 		}
 	})
@@ -676,7 +676,7 @@ func BenchmarkEventValidation(b *testing.B) {
 			Operation:    "create",
 		},
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		event.Validate()
@@ -687,14 +687,14 @@ func BenchmarkEventEnrichment(b *testing.B) {
 	config := DefaultAuditConfig()
 	auditSystem, err := NewAuditSystem(config)
 	require.NoError(b, err)
-	
+
 	event := &AuditEvent{
 		EventType: EventTypeAuthentication,
 		Component: "benchmark",
 		Action:    "test",
 		Severity:  SeverityInfo,
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		auditSystem.enrichEvent(event)
@@ -715,8 +715,8 @@ func TestComplianceMetadataEnrichment(t *testing.T) {
 			complianceMode: []ComplianceStandard{ComplianceSOC2},
 			eventType:      EventTypeAuthentication,
 			expectedFields: map[string]string{
-				"soc2_control_id":      "CC6.1",
-				"soc2_trust_service":   "Security",
+				"soc2_control_id":    "CC6.1",
+				"soc2_trust_service": "Security",
 			},
 		},
 		{
@@ -733,22 +733,22 @@ func TestComplianceMetadataEnrichment(t *testing.T) {
 			complianceMode: []ComplianceStandard{CompliancePCIDSS},
 			eventType:      EventTypeAuthentication,
 			expectedFields: map[string]string{
-				"pci_requirement":        "8.1.1",
+				"pci_requirement":         "8.1.1",
 				"pci_data_classification": "Non-CHD",
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := &AuditSystemConfig{
 				Enabled:        false, // Don't start processing
 				ComplianceMode: tt.complianceMode,
 			}
-			
+
 			auditSystem, err := NewAuditSystem(config)
 			require.NoError(t, err)
-			
+
 			event := &AuditEvent{
 				ID:        uuid.New().String(),
 				EventType: tt.eventType,
@@ -757,9 +757,9 @@ func TestComplianceMetadataEnrichment(t *testing.T) {
 				Severity:  SeverityInfo,
 				Timestamp: time.Now(),
 			}
-			
+
 			auditSystem.enrichEvent(event)
-			
+
 			require.NotNil(t, event.ComplianceMetadata)
 			for key, expectedValue := range tt.expectedFields {
 				actualValue, exists := event.ComplianceMetadata[key]
@@ -778,12 +778,12 @@ func TestMetricsCollection(t *testing.T) {
 	auditProcessingDuration.Reset()
 	auditQueueSize.Reset()
 	auditErrorsTotal.Reset()
-	
+
 	mockBackend := NewMockBackend()
 	mockBackend.On("Type").Return("mock")
 	mockBackend.On("WriteEvents", mock.Anything, mock.Anything).Return(nil)
 	mockBackend.On("Close").Return(nil)
-	
+
 	config := &AuditSystemConfig{
 		Enabled:       true,
 		LogLevel:      SeverityInfo,
@@ -792,16 +792,16 @@ func TestMetricsCollection(t *testing.T) {
 		MaxQueueSize:  10,
 		Backends:      []backends.BackendConfig{},
 	}
-	
+
 	auditSystem, err := NewAuditSystem(config)
 	require.NoError(t, err)
-	
+
 	auditSystem.backends = []backends.Backend{mockBackend}
-	
+
 	err = auditSystem.Start()
 	require.NoError(t, err)
 	defer auditSystem.Stop()
-	
+
 	// Log events
 	for i := 0; i < 3; i++ {
 		event := &AuditEvent{
@@ -812,18 +812,18 @@ func TestMetricsCollection(t *testing.T) {
 			Severity:  SeverityInfo,
 			Timestamp: time.Now(),
 		}
-		
+
 		err := auditSystem.LogEvent(event)
 		require.NoError(t, err)
 	}
-	
+
 	// Wait for processing
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Verify metrics are collected
 	metricFamilies, err := prometheus.DefaultGatherer.Gather()
 	require.NoError(t, err)
-	
+
 	var foundEventMetric bool
 	for _, mf := range metricFamilies {
 		if mf.GetName() == "nephoran_audit_events_total" {
@@ -831,6 +831,6 @@ func TestMetricsCollection(t *testing.T) {
 			break
 		}
 	}
-	
+
 	assert.True(t, foundEventMetric, "Expected audit events metric not found")
 }

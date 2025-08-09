@@ -29,8 +29,8 @@ func NewPackageDeploymentOrchestrator(registry *ClusterRegistry, logger *zap.Log
 
 // PropagatePackage deploys a package to selected target clusters
 func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
-	ctx context.Context, 
-	packageName string, 
+	ctx context.Context,
+	packageName string,
 	options *PropagationOptions,
 ) (*PropagationResult, error) {
 	// Select deployment targets
@@ -41,8 +41,8 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 
 	// Prepare propagation result
 	result := &PropagationResult{
-		PackageName:          packageName,
-		Timestamp:            metav1.Now(),
+		PackageName:           packageName,
+		Timestamp:             metav1.Now(),
 		SuccessfulDeployments: []string{},
 		FailedDeployments:     []string{},
 	}
@@ -71,20 +71,20 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 
 			deploymentStart := time.Now()
 			deploymentResult, err := pdo.deployToCluster(ctx, packageName, t, options)
-			
+
 			mu.Lock()
 			defer mu.Unlock()
 
 			if err != nil {
 				result.FailedDeployments = append(result.FailedDeployments, t.Cluster.ID)
-				pdo.logger.Error("Package deployment failed", 
+				pdo.logger.Error("Package deployment failed",
 					zap.String("packageName", packageName),
 					zap.String("clusterID", t.Cluster.ID),
 					zap.Error(err))
 			} else {
 				result.SuccessfulDeployments = append(result.SuccessfulDeployments, t.Cluster.ID)
 				result.TotalLatencyMS += float64(time.Since(deploymentStart).Milliseconds())
-				pdo.logger.Info("Package deployment successful", 
+				pdo.logger.Info("Package deployment successful",
 					zap.String("packageName", packageName),
 					zap.String("clusterID", t.Cluster.ID))
 			}
@@ -106,9 +106,9 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 
 // deployToCluster handles package deployment to a single cluster
 func (pdo *PackageDeploymentOrchestrator) deployToCluster(
-	ctx context.Context, 
-	packageName string, 
-	target *DeploymentTarget, 
+	ctx context.Context,
+	packageName string,
+	target *DeploymentTarget,
 	options *PropagationOptions,
 ) (bool, error) {
 	// Create dynamic client for flexible resource management
@@ -139,8 +139,8 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 
 		// Create or update resource
 		_, err := dynamicClient.Resource(resource.GroupVersionKind()).Namespace(resource.GetNamespace()).Create(
-			ctx, 
-			resource, 
+			ctx,
+			resource,
 			metav1.CreateOptions{},
 		)
 
@@ -154,8 +154,8 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 
 // validatePackageDeployment performs a dry run validation of package deployment
 func (pdo *PackageDeploymentOrchestrator) validatePackageDeployment(
-	ctx context.Context, 
-	resources []*unstructured.Unstructured, 
+	ctx context.Context,
+	resources []*unstructured.Unstructured,
 	target *DeploymentTarget,
 ) (bool, error) {
 	// Implement validation logic
@@ -188,14 +188,14 @@ func (pdo *PackageDeploymentOrchestrator) validatePackageDeployment(
 
 // rollbackFailedDeployments handles rollback for failed deployments
 func (pdo *PackageDeploymentOrchestrator) rollbackFailedDeployments(
-	ctx context.Context, 
-	packageName string, 
+	ctx context.Context,
+	packageName string,
 	result *PropagationResult,
 ) {
 	for _, clusterID := range result.FailedDeployments {
 		cluster, err := pdo.clusterRegistry.GetCluster(clusterID)
 		if err != nil {
-			pdo.logger.Error("Failed to get cluster for rollback", 
+			pdo.logger.Error("Failed to get cluster for rollback",
 				zap.String("clusterID", clusterID),
 				zap.Error(err))
 			continue
@@ -203,16 +203,16 @@ func (pdo *PackageDeploymentOrchestrator) rollbackFailedDeployments(
 
 		// TODO: Implement actual rollback logic
 		// This would involve removing deployed resources or restoring previous state
-		pdo.logger.Warn("Rollback initiated for cluster", 
+		pdo.logger.Warn("Rollback initiated for cluster",
 			zap.String("packageName", packageName),
-			zap:String("clusterID", clusterID))
+			zap.String("clusterID", clusterID))
 	}
 }
 
-// retrievePackageResources fetches package resources 
+// retrievePackageResources fetches package resources
 // TODO: Replace with actual Nephio Porch package retrieval
 func (pdo *PackageDeploymentOrchestrator) retrievePackageResources(
-	ctx context.Context, 
+	ctx context.Context,
 	packageName string,
 ) ([]*unstructured.Unstructured, error) {
 	// Placeholder implementation

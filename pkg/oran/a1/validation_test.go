@@ -155,7 +155,7 @@ func (v *TestA1Validator) ValidatePolicyInstance(policyType *PolicyType, instanc
 	}
 
 	if instance.PolicyTypeID != policyType.PolicyTypeID {
-		return NewValidationError("policy_type_id mismatch", "policy_type_id", 
+		return NewValidationError("policy_type_id mismatch", "policy_type_id",
 			map[string]interface{}{
 				"expected": policyType.PolicyTypeID,
 				"actual":   instance.PolicyTypeID,
@@ -409,7 +409,7 @@ func TestValidatePolicyInstance_Success(t *testing.T) {
 		},
 		PolicyInfo: PolicyInstanceInfo{
 			NotificationDestination: "http://callback.example.com/notify",
-			RequestID:              "req-123",
+			RequestID:               "req-123",
 		},
 	}
 
@@ -421,10 +421,10 @@ func TestValidatePolicyInstance_NilInputs(t *testing.T) {
 	validator := NewTestA1Validator()
 
 	tests := []struct {
-		name         string
-		policyType   *PolicyType
-		instance     *PolicyInstance
-		expectedMsg  string
+		name        string
+		policyType  *PolicyType
+		instance    *PolicyInstance
+		expectedMsg string
 	}{
 		{
 			"nil policy type",
@@ -738,8 +738,8 @@ func TestValidateEIJob_Success(t *testing.T) {
 		EiTypeID: "test-ei-type-1",
 		EiJobData: map[string]interface{}{
 			"config": map[string]interface{}{
-				"measurement_type":  "throughput",
-				"reporting_period":  5000,
+				"measurement_type": "throughput",
+				"reporting_period": 5000,
 				"targets": []interface{}{
 					map[string]interface{}{
 						"cell_id":   "cell-001",
@@ -1189,7 +1189,7 @@ func (v *JSONSchemaValidator) validateField(value interface{}, schema map[string
 			if _, ok := value.(string); !ok {
 				return fmt.Errorf("expected string, got %T", value)
 			}
-			
+
 			// Check string constraints
 			if str, ok := value.(string); ok {
 				if minLen, exists := schema["minLength"]; exists {

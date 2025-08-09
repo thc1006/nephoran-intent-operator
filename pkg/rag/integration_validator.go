@@ -12,19 +12,19 @@ import (
 
 // IntegrationValidator validates the complete RAG pipeline integration
 type IntegrationValidator struct {
-	logger     *slog.Logger
-	testSuite  *ValidationTestSuite
-	results    *ValidationResults
-	mutex      sync.RWMutex
+	logger    *slog.Logger
+	testSuite *ValidationTestSuite
+	results   *ValidationResults
+	mutex     sync.RWMutex
 }
 
 // ValidationTestSuite contains all validation tests
 type ValidationTestSuite struct {
-	ComponentTests     []ComponentTest     `json:"component_tests"`
-	IntegrationTests   []IntegrationTest   `json:"integration_tests"`
-	PerformanceTests   []PerformanceTest   `json:"performance_tests"`
-	ScalabilityTests   []ScalabilityTest   `json:"scalability_tests"`
-	ResilienceTests    []ResilienceTest    `json:"resilience_tests"`
+	ComponentTests   []ComponentTest   `json:"component_tests"`
+	IntegrationTests []IntegrationTest `json:"integration_tests"`
+	PerformanceTests []PerformanceTest `json:"performance_tests"`
+	ScalabilityTests []ScalabilityTest `json:"scalability_tests"`
+	ResilienceTests  []ResilienceTest  `json:"resilience_tests"`
 }
 
 // ComponentTest validates individual components
@@ -51,107 +51,107 @@ type IntegrationTest struct {
 
 // PerformanceTest validates performance requirements
 type PerformanceTest struct {
-	ID               string        `json:"id"`
-	Name             string        `json:"name"`
-	Description      string        `json:"description"`
-	TestFunc         func() error  `json:"-"`
-	Timeout          time.Duration `json:"timeout"`
-	MaxLatency       time.Duration `json:"max_latency"`
-	MinThroughput    int64         `json:"min_throughput"`
-	MaxMemoryUsage   int64         `json:"max_memory_usage"`
-	MaxErrorRate     float64       `json:"max_error_rate"`
+	ID             string        `json:"id"`
+	Name           string        `json:"name"`
+	Description    string        `json:"description"`
+	TestFunc       func() error  `json:"-"`
+	Timeout        time.Duration `json:"timeout"`
+	MaxLatency     time.Duration `json:"max_latency"`
+	MinThroughput  int64         `json:"min_throughput"`
+	MaxMemoryUsage int64         `json:"max_memory_usage"`
+	MaxErrorRate   float64       `json:"max_error_rate"`
 }
 
 // ScalabilityTest validates system scalability
 type ScalabilityTest struct {
-	ID          string        `json:"id"`
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	TestFunc    func() error  `json:"-"`
-	Timeout     time.Duration `json:"timeout"`
-	LoadLevels  []int         `json:"load_levels"`
-	MetricName  string        `json:"metric_name"`
-	MaxDegradation float64    `json:"max_degradation"`
+	ID             string        `json:"id"`
+	Name           string        `json:"name"`
+	Description    string        `json:"description"`
+	TestFunc       func() error  `json:"-"`
+	Timeout        time.Duration `json:"timeout"`
+	LoadLevels     []int         `json:"load_levels"`
+	MetricName     string        `json:"metric_name"`
+	MaxDegradation float64       `json:"max_degradation"`
 }
 
 // ResilienceTest validates system resilience and error handling
 type ResilienceTest struct {
-	ID          string        `json:"id"`
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	TestFunc    func() error  `json:"-"`
-	Timeout     time.Duration `json:"timeout"`
-	FailureType string        `json:"failure_type"`
+	ID           string        `json:"id"`
+	Name         string        `json:"name"`
+	Description  string        `json:"description"`
+	TestFunc     func() error  `json:"-"`
+	Timeout      time.Duration `json:"timeout"`
+	FailureType  string        `json:"failure_type"`
 	RecoveryTime time.Duration `json:"recovery_time"`
 }
 
 // ValidationResults holds all validation results
 type ValidationResults struct {
-	StartTime           time.Time                 `json:"start_time"`
-	EndTime             time.Time                 `json:"end_time"`
-	Duration            time.Duration             `json:"duration"`
-	ComponentResults    []TestResult              `json:"component_results"`
-	IntegrationResults  []TestResult              `json:"integration_results"`
-	PerformanceResults  []PerformanceTestResult   `json:"performance_results"`
-	ScalabilityResults  []ScalabilityTestResult   `json:"scalability_results"`
-	ResilienceResults   []ResilienceTestResult    `json:"resilience_results"`
-	OverallStatus       string                    `json:"overall_status"` // PASS, FAIL, WARNING
-	CriticalFailures    int                       `json:"critical_failures"`
-	TotalTests          int                       `json:"total_tests"`
-	PassedTests         int                       `json:"passed_tests"`
-	FailedTests         int                       `json:"failed_tests"`
-	SkippedTests        int                       `json:"skipped_tests"`
-	Summary             string                    `json:"summary"`
-	Recommendations     []string                  `json:"recommendations"`
+	StartTime          time.Time               `json:"start_time"`
+	EndTime            time.Time               `json:"end_time"`
+	Duration           time.Duration           `json:"duration"`
+	ComponentResults   []TestResult            `json:"component_results"`
+	IntegrationResults []TestResult            `json:"integration_results"`
+	PerformanceResults []PerformanceTestResult `json:"performance_results"`
+	ScalabilityResults []ScalabilityTestResult `json:"scalability_results"`
+	ResilienceResults  []ResilienceTestResult  `json:"resilience_results"`
+	OverallStatus      string                  `json:"overall_status"` // PASS, FAIL, WARNING
+	CriticalFailures   int                     `json:"critical_failures"`
+	TotalTests         int                     `json:"total_tests"`
+	PassedTests        int                     `json:"passed_tests"`
+	FailedTests        int                     `json:"failed_tests"`
+	SkippedTests       int                     `json:"skipped_tests"`
+	Summary            string                  `json:"summary"`
+	Recommendations    []string                `json:"recommendations"`
 }
 
 // TestResult represents the result of a single test
 type TestResult struct {
-	TestID      string        `json:"test_id"`
-	TestName    string        `json:"test_name"`
-	Status      string        `json:"status"` // PASS, FAIL, SKIP, ERROR
-	Duration    time.Duration `json:"duration"`
-	ErrorMsg    string        `json:"error_msg,omitempty"`
-	Details     string        `json:"details,omitempty"`
-	Critical    bool          `json:"critical"`
+	TestID   string        `json:"test_id"`
+	TestName string        `json:"test_name"`
+	Status   string        `json:"status"` // PASS, FAIL, SKIP, ERROR
+	Duration time.Duration `json:"duration"`
+	ErrorMsg string        `json:"error_msg,omitempty"`
+	Details  string        `json:"details,omitempty"`
+	Critical bool          `json:"critical"`
 }
 
 // PerformanceTestResult extends TestResult with performance metrics
 type PerformanceTestResult struct {
 	TestResult
-	ActualLatency    time.Duration `json:"actual_latency"`
-	ActualThroughput int64         `json:"actual_throughput"`
-	MemoryUsage      int64         `json:"memory_usage"`
-	ErrorRate        float64       `json:"error_rate"`
+	ActualLatency    time.Duration          `json:"actual_latency"`
+	ActualThroughput int64                  `json:"actual_throughput"`
+	MemoryUsage      int64                  `json:"memory_usage"`
+	ErrorRate        float64                `json:"error_rate"`
 	MetricsDetails   map[string]interface{} `json:"metrics_details"`
 }
 
 // ScalabilityTestResult extends TestResult with scalability metrics
 type ScalabilityTestResult struct {
 	TestResult
-	LoadResults    map[int]LoadResult `json:"load_results"`
-	ScalingFactor  float64            `json:"scaling_factor"`
-	BreakingPoint  int                `json:"breaking_point,omitempty"`
+	LoadResults   map[int]LoadResult `json:"load_results"`
+	ScalingFactor float64            `json:"scaling_factor"`
+	BreakingPoint int                `json:"breaking_point,omitempty"`
 }
 
 // LoadResult represents results at a specific load level
 type LoadResult struct {
-	LoadLevel    int           `json:"load_level"`
-	Latency      time.Duration `json:"latency"`
-	Throughput   int64         `json:"throughput"`
-	ErrorRate    float64       `json:"error_rate"`
-	MemoryUsage  int64         `json:"memory_usage"`
-	CPUUsage     float64       `json:"cpu_usage"`
+	LoadLevel   int           `json:"load_level"`
+	Latency     time.Duration `json:"latency"`
+	Throughput  int64         `json:"throughput"`
+	ErrorRate   float64       `json:"error_rate"`
+	MemoryUsage int64         `json:"memory_usage"`
+	CPUUsage    float64       `json:"cpu_usage"`
 }
 
 // ResilienceTestResult extends TestResult with resilience metrics
 type ResilienceTestResult struct {
 	TestResult
-	FailureInjected  bool          `json:"failure_injected"`
-	RecoveryTime     time.Duration `json:"recovery_time"`
-	DataLoss         bool          `json:"data_loss"`
-	ServiceDegraded  bool          `json:"service_degraded"`
-	AutoRecovery     bool          `json:"auto_recovery"`
+	FailureInjected bool          `json:"failure_injected"`
+	RecoveryTime    time.Duration `json:"recovery_time"`
+	DataLoss        bool          `json:"data_loss"`
+	ServiceDegraded bool          `json:"service_degraded"`
+	AutoRecovery    bool          `json:"auto_recovery"`
 }
 
 // NewIntegrationValidator creates a new integration validator
@@ -168,7 +168,7 @@ func NewIntegrationValidator() *IntegrationValidator {
 // ValidateCompleteIntegration validates the complete RAG pipeline integration
 func (iv *IntegrationValidator) ValidateCompleteIntegration(ctx context.Context, pipeline *RAGPipeline) (*ValidationResults, error) {
 	iv.logger.Info("Starting complete RAG pipeline integration validation")
-	
+
 	iv.results = &ValidationResults{
 		StartTime: time.Now(),
 	}
@@ -243,7 +243,7 @@ func (iv *IntegrationValidator) runSingleComponentTest(ctx context.Context, test
 
 	// Run the test
 	testErr := iv.executeComponentTest(testCtx, test, pipeline)
-	
+
 	if testErr != nil {
 		result.Status = "FAIL"
 		result.ErrorMsg = testErr.Error()
@@ -397,8 +397,8 @@ func (iv *IntegrationValidator) testRetrievalService(ctx context.Context, retrie
 
 	// Test search functionality
 	searchRequest := &EnhancedSearchRequest{
-		Query:  "test query for validation",
-		Limit:  5,
+		Query: "test query for validation",
+		Limit: 5,
 	}
 
 	_, err := retrieval.SearchEnhanced(ctx, searchRequest)
@@ -479,10 +479,10 @@ func (iv *IntegrationValidator) runSingleIntegrationTest(ctx context.Context, te
 func (iv *IntegrationValidator) testEndToEndDocumentProcessing(ctx context.Context, pipeline *RAGPipeline) error {
 	// Create a test document content
 	// testDoc := "Sample 3GPP specification content for testing the complete pipeline processing."
-	
+
 	// This would test the complete flow from document to query
 	// Implementation would depend on pipeline methods being available
-	
+
 	iv.logger.Debug("End-to-end document processing test passed")
 	return nil
 }
@@ -490,7 +490,7 @@ func (iv *IntegrationValidator) testEndToEndDocumentProcessing(ctx context.Conte
 func (iv *IntegrationValidator) testEmbeddingCacheIntegration(ctx context.Context, pipeline *RAGPipeline) error {
 	// Test embedding generation with caching enabled
 	// Implementation would test cache hit/miss scenarios
-	
+
 	iv.logger.Debug("Embedding cache integration test passed")
 	return nil
 }
@@ -645,9 +645,9 @@ func createDefaultTestSuite() *ValidationTestSuite {
 				Description:    "Validates query response times",
 				Timeout:        300 * time.Second,
 				MaxLatency:     5 * time.Second,
-				MinThroughput:  100, // queries per minute
+				MinThroughput:  100,                // queries per minute
 				MaxMemoryUsage: 1024 * 1024 * 1024, // 1GB
-				MaxErrorRate:   0.01, // 1%
+				MaxErrorRate:   0.01,               // 1%
 			},
 		},
 		ScalabilityTests: []ScalabilityTest{

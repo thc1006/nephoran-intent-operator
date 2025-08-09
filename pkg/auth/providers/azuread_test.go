@@ -55,7 +55,7 @@ func TestNewAzureADProvider(t *testing.T) {
 			assert.NotNil(t, provider)
 			assert.Equal(t, tt.wantName, provider.GetProviderName())
 			assert.Equal(t, tt.wantTenant, provider.tenantID)
-			
+
 			config := provider.GetConfiguration()
 			assert.Equal(t, tt.clientID, config.ClientID)
 			assert.Equal(t, tt.clientSecret, config.ClientSecret)
@@ -246,12 +246,12 @@ func TestAzureADProvider_ExchangeCodeForToken(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		code         string
-		wantError    bool
-		wantToken    string
-		wantRefresh  string
-		wantIDToken  bool
+		name        string
+		code        string
+		wantError   bool
+		wantToken   string
+		wantRefresh string
+		wantIDToken bool
 	}{
 		{
 			name:        "Valid code exchange",
@@ -290,7 +290,7 @@ func TestAzureADProvider_ExchangeCodeForToken(t *testing.T) {
 			assert.Equal(t, tt.wantRefresh, tokenResp.RefreshToken)
 			assert.Equal(t, "Bearer", tokenResp.TokenType)
 			assert.Equal(t, int64(3600), tokenResp.ExpiresIn)
-			
+
 			if tt.wantIDToken {
 				assert.NotEmpty(t, tokenResp.IDToken)
 			}
@@ -539,12 +539,12 @@ func TestAzureADProvider_GetUserInfo(t *testing.T) {
 			assert.Equal(t, tt.wantEmail, userInfo.Email)
 			assert.Equal(t, tt.wantName, userInfo.Name)
 			assert.Equal(t, "azuread", userInfo.Provider)
-			
+
 			if tt.wantUserType != "" {
 				assert.Contains(t, userInfo.Attributes, "user_type")
 				assert.Equal(t, tt.wantUserType, userInfo.Attributes["user_type"])
 			}
-			
+
 			if tt.wantEnabled != nil {
 				assert.Contains(t, userInfo.Attributes, "account_enabled")
 				assert.Equal(t, *tt.wantEnabled, userInfo.Attributes["account_enabled"])
@@ -558,7 +558,7 @@ func TestAzureADProvider_GetGroups(t *testing.T) {
 		if r.URL.Path == "/v1.0/me/memberOf" {
 			authHeader := r.Header.Get("Authorization")
 			token := strings.TrimPrefix(authHeader, "Bearer ")
-			
+
 			switch token {
 			case "valid-token":
 				groups := map[string]interface{}{
@@ -622,7 +622,7 @@ func TestAzureADProvider_GetGroups(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			
+
 			// Check if provider implements EnterpriseProvider
 			if ep, ok := provider.(EnterpriseProvider); ok {
 				groups, err := ep.GetGroups(ctx, tt.token)
@@ -634,7 +634,7 @@ func TestAzureADProvider_GetGroups(t *testing.T) {
 
 				assert.NoError(t, err)
 				assert.Len(t, groups, tt.wantGroupCount)
-				
+
 				if tt.wantGroupCount > 0 {
 					assert.Equal(t, tt.wantFirstGroup, groups[0])
 				}
@@ -650,7 +650,7 @@ func TestAzureADProvider_ValidateToken(t *testing.T) {
 		if r.URL.Path == "/v1.0/me" {
 			authHeader := r.Header.Get("Authorization")
 			token := strings.TrimPrefix(authHeader, "Bearer ")
-			
+
 			switch token {
 			case "valid-token":
 				userInfo := map[string]interface{}{
@@ -718,10 +718,10 @@ func TestAzureADProvider_RevokeToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/oauth2/v2.0/logout") {
 			assert.Equal(t, "POST", r.Method)
-			
+
 			err := r.ParseForm()
 			require.NoError(t, err)
-			
+
 			token := r.FormValue("token")
 			if token == "valid-token" {
 				w.WriteHeader(http.StatusOK)
@@ -777,7 +777,7 @@ func TestAzureADProvider_DiscoverConfiguration(t *testing.T) {
 				Issuer:                "https://login.microsoftonline.com/test-tenant/v2.0",
 				AuthorizationEndpoint: "https://login.microsoftonline.com/test-tenant/oauth2/v2.0/authorize",
 				TokenEndpoint:         "https://login.microsoftonline.com/test-tenant/oauth2/v2.0/token",
-				JWKSUri:              "https://login.microsoftonline.com/test-tenant/discovery/v2.0/keys",
+				JWKSUri:               "https://login.microsoftonline.com/test-tenant/discovery/v2.0/keys",
 				ScopesSupported: []string{
 					"openid", "email", "profile", "offline_access",
 				},
@@ -867,7 +867,7 @@ func TestAzureADProvider_TenantSpecific(t *testing.T) {
 // Benchmark tests
 func BenchmarkAzureADProvider_GetAuthorizationURL(b *testing.B) {
 	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _, _ = provider.GetAuthorizationURL("test-state", "http://localhost:8080/callback")
@@ -876,7 +876,7 @@ func BenchmarkAzureADProvider_GetAuthorizationURL(b *testing.B) {
 
 func BenchmarkAzureADProvider_GetAuthorizationURL_WithPKCE(b *testing.B) {
 	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _, _ = provider.GetAuthorizationURL("test-state", "http://localhost:8080/callback", WithPKCE())
@@ -920,7 +920,7 @@ func createMockAzureADServer() *httptest.Server {
 				Issuer:                "https://login.microsoftonline.com/test-tenant/v2.0",
 				AuthorizationEndpoint: "https://login.microsoftonline.com/test-tenant/oauth2/v2.0/authorize",
 				TokenEndpoint:         "https://login.microsoftonline.com/test-tenant/oauth2/v2.0/token",
-				JWKSUri:              "https://login.microsoftonline.com/test-tenant/discovery/v2.0/keys",
+				JWKSUri:               "https://login.microsoftonline.com/test-tenant/discovery/v2.0/keys",
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(config)
@@ -941,7 +941,7 @@ func TestAzureADProvider_EdgeCases(t *testing.T) {
 	t.Run("Invalid client credentials", func(t *testing.T) {
 		provider := NewAzureADProvider("", "", "http://localhost:8080/callback", "test-tenant")
 		assert.NotNil(t, provider)
-		
+
 		config := provider.GetConfiguration()
 		assert.Empty(t, config.ClientID)
 		assert.Empty(t, config.ClientSecret)

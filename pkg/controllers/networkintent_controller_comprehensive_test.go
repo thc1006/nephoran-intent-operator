@@ -29,11 +29,11 @@ import (
 
 // fakeLLMClient implements shared.ClientInterface for testing
 type fakeLLMClient struct {
-	shouldFail         bool
-	shouldReturnEmpty  bool
+	shouldFail              bool
+	shouldReturnEmpty       bool
 	shouldReturnInvalidJSON bool
-	response           string
-	callCount          int
+	response                string
+	callCount               int
 }
 
 func (f *fakeLLMClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
@@ -152,16 +152,16 @@ func (f *fakeDependencies) Reset() {
 
 func TestNetworkIntentController_Reconcile(t *testing.T) {
 	testCases := []struct {
-		name             string
-		networkIntent    *nephoranv1.NetworkIntent
-		existingObjects  []client.Object
-		depsSetup        func(*fakeDependencies)
-		config           *Config
-		expectedResult   ctrl.Result
-		expectedError    bool
-		expectedCalls    func(*testing.T, *fakeDependencies)
-		expectedStatus   func(*testing.T, *nephoranv1.NetworkIntent)
-		description      string
+		name            string
+		networkIntent   *nephoranv1.NetworkIntent
+		existingObjects []client.Object
+		depsSetup       func(*fakeDependencies)
+		config          *Config
+		expectedResult  ctrl.Result
+		expectedError   bool
+		expectedCalls   func(*testing.T, *fakeDependencies)
+		expectedStatus  func(*testing.T, *nephoranv1.NetworkIntent)
+		description     string
 	}{
 		{
 			name: "successful_end_to_end_processing",

@@ -29,10 +29,10 @@ var _ = Describe("Community Asset Validation Tests", func() {
 		It("should have comprehensive project metadata", func() {
 			// Check for main project files
 			requiredFiles := map[string]string{
-				"README.md":      "Project description and usage",
-				"LICENSE":        "License information", 
+				"README.md":       "Project description and usage",
+				"LICENSE":         "License information",
 				"CONTRIBUTING.md": "Contribution guidelines",
-				"go.mod":         "Go module definition",
+				"go.mod":          "Go module definition",
 			}
 
 			missingFiles := []string{}
@@ -60,7 +60,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 					// Verify file has substantial content
 					content, err := ioutil.ReadFile(filePath)
 					Expect(err).NotTo(HaveOccurred())
-					
+
 					if len(content) < 100 {
 						GinkgoWriter.Printf("Warning: %s has minimal content (%d bytes)\n", file, len(content))
 					}
@@ -78,17 +78,17 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			goModContent := string(content)
-			
+
 			// Check module name
 			moduleRegex := regexp.MustCompile(`module\s+([^\s]+)`)
 			moduleMatches := moduleRegex.FindStringSubmatch(goModContent)
 			Expect(moduleMatches).To(HaveLen(2), "go.mod should have valid module declaration")
-			
+
 			moduleName := moduleMatches[1]
 			GinkgoWriter.Printf("Go module: %s\n", moduleName)
 
 			// Should look like a proper module path
-			Expect(moduleName).To(MatchRegexp(`^[a-z0-9\-\.]+/[a-z0-9\-\./_]+$`), 
+			Expect(moduleName).To(MatchRegexp(`^[a-z0-9\-\.]+/[a-z0-9\-\./_]+$`),
 				"Module name should follow Go conventions")
 
 			// Check Go version
@@ -100,23 +100,23 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			GinkgoWriter.Printf("Go version: %s\n", goVersion)
 
 			// Should use reasonably current Go version
-			Expect(goVersion).To(MatchRegexp(`^1\.(1[8-9]|2[0-9])$`), 
+			Expect(goVersion).To(MatchRegexp(`^1\.(1[8-9]|2[0-9])$`),
 				"Should use Go 1.18 or later")
 		})
 
 		It("should have appropriate project structure", func() {
 			// Check for standard Go project directories
 			expectedDirs := map[string]bool{
-				"api":          false,
-				"cmd":          false,
-				"config":       false,
-				"controllers":  false, 
-				"pkg":          false,
-				"internal":     false,
-				"tests":        false,
-				"docs":         false,
-				"deployments":  false,
-				"scripts":      false,
+				"api":         false,
+				"cmd":         false,
+				"config":      false,
+				"controllers": false,
+				"pkg":         false,
+				"internal":    false,
+				"tests":       false,
+				"docs":        false,
+				"deployments": false,
+				"scripts":     false,
 			}
 
 			entries, err := ioutil.ReadDir(projectRoot)
@@ -144,7 +144,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			}
 
 			// Should have at least half of the expected directories for good structure
-			Expect(dirsFound).To(BeNumerically(">=", len(expectedDirs)/2), 
+			Expect(dirsFound).To(BeNumerically(">=", len(expectedDirs)/2),
 				"Should have good project structure with standard directories")
 		})
 	})
@@ -158,9 +158,9 @@ var _ = Describe("Community Asset Validation Tests", func() {
 					return err
 				}
 
-				if strings.HasSuffix(info.Name(), ".go") && 
-				   !strings.Contains(path, "/vendor/") &&
-				   !strings.Contains(path, "/.git/") {
+				if strings.HasSuffix(info.Name(), ".go") &&
+					!strings.Contains(path, "/vendor/") &&
+					!strings.Contains(path, "/.git/") {
 					goFiles = append(goFiles, path)
 				}
 				return nil
@@ -197,7 +197,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			}
 
 			// Allow some formatting issues but not too many
-			Expect(formattingIssues).To(BeNumerically("<=", len(goFiles)*2), 
+			Expect(formattingIssues).To(BeNumerically("<=", len(goFiles)*2),
 				"Should have consistent code formatting (max 2 issues per file)")
 		})
 
@@ -211,10 +211,10 @@ var _ = Describe("Community Asset Validation Tests", func() {
 					return err
 				}
 
-				if strings.HasSuffix(info.Name(), ".go") && 
-				   !strings.Contains(path, "/vendor/") &&
-				   !strings.Contains(path, "/.git/") {
-					
+				if strings.HasSuffix(info.Name(), ".go") &&
+					!strings.Contains(path, "/vendor/") &&
+					!strings.Contains(path, "/.git/") {
+
 					if strings.HasSuffix(info.Name(), "_test.go") {
 						testFiles = append(testFiles, path)
 					} else {
@@ -236,7 +236,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			GinkgoWriter.Printf("Test file ratio: %.2f (test files / source files)\n", testRatio)
 
 			// Should have reasonable test coverage (at least 30% test files)
-			Expect(testRatio).To(BeNumerically(">=", 0.3), 
+			Expect(testRatio).To(BeNumerically(">=", 0.3),
 				"Should have adequate test coverage (at least 0.3 test files per source file)")
 
 			// Check for test organization
@@ -248,9 +248,9 @@ var _ = Describe("Community Asset Validation Tests", func() {
 				}
 
 				testContent := string(content)
-				if strings.Contains(testContent, "ginkgo") || 
-				   strings.Contains(testContent, "testify") ||
-				   strings.Contains(testContent, "TestMain") {
+				if strings.Contains(testContent, "ginkgo") ||
+					strings.Contains(testContent, "testify") ||
+					strings.Contains(testContent, "TestMain") {
 					hasTestSuite = true
 					break
 				}
@@ -270,10 +270,10 @@ var _ = Describe("Community Asset Validation Tests", func() {
 					return err
 				}
 
-				if strings.HasSuffix(info.Name(), ".go") && 
-				   !strings.Contains(path, "/vendor/") &&
-				   !strings.Contains(path, "/.git/") &&
-				   !strings.HasSuffix(info.Name(), "_test.go") {
+				if strings.HasSuffix(info.Name(), ".go") &&
+					!strings.Contains(path, "/vendor/") &&
+					!strings.Contains(path, "/.git/") &&
+					!strings.HasSuffix(info.Name(), "_test.go") {
 					goFiles = append(goFiles, path)
 				}
 				return nil
@@ -290,7 +290,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 				}
 
 				goContent := string(content)
-				
+
 				// Look for error return patterns
 				errorReturnRegex := regexp.MustCompile(`\w+,\s*err\s*:=`)
 				errorReturns := errorReturnRegex.FindAllString(goContent, -1)
@@ -303,9 +303,9 @@ var _ = Describe("Community Asset Validation Tests", func() {
 						// Check if the next few lines handle the error
 						handlesError := false
 						for j := i + 1; j < min(i+5, len(lines)); j++ {
-							if strings.Contains(lines[j], "if err") || 
-							   strings.Contains(lines[j], "return") ||
-							   strings.Contains(lines[j], "panic") {
+							if strings.Contains(lines[j], "if err") ||
+								strings.Contains(lines[j], "return") ||
+								strings.Contains(lines[j], "panic") {
 								handlesError = true
 								break
 							}
@@ -319,12 +319,12 @@ var _ = Describe("Community Asset Validation Tests", func() {
 				}
 			}
 
-			GinkgoWriter.Printf("Error handling analysis: %d potential issues out of %d error checks\n", 
+			GinkgoWriter.Printf("Error handling analysis: %d potential issues out of %d error checks\n",
 				errorHandlingIssues, totalErrorChecks)
 
 			if totalErrorChecks > 0 {
 				errorHandlingRatio := float64(errorHandlingIssues) / float64(totalErrorChecks)
-				Expect(errorHandlingRatio).To(BeNumerically("<=", 0.2), 
+				Expect(errorHandlingRatio).To(BeNumerically("<=", 0.2),
 					"Should handle most errors properly (max 20% unhandled)")
 			}
 		})
@@ -339,19 +339,19 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			readmeContent := string(content)
-			
+
 			// Should be substantial
-			Expect(len(readmeContent)).To(BeNumerically(">=", 1000), 
+			Expect(len(readmeContent)).To(BeNumerically(">=", 1000),
 				"README should be comprehensive (>1000 characters)")
 
 			// Check for essential sections
 			essentialSections := map[string]*regexp.Regexp{
-				"Title":            regexp.MustCompile(`(?i)^#\s*[^\n]+`),
-				"Description":      regexp.MustCompile(`(?i)(description|overview|about)`),
-				"Installation":     regexp.MustCompile(`(?i)(install|setup|deploy)`),
-				"Usage":           regexp.MustCompile(`(?i)(usage|getting started|how to|example)`),
-				"Contributing":    regexp.MustCompile(`(?i)(contribut|development)`),
-				"License":         regexp.MustCompile(`(?i)license`),
+				"Title":        regexp.MustCompile(`(?i)^#\s*[^\n]+`),
+				"Description":  regexp.MustCompile(`(?i)(description|overview|about)`),
+				"Installation": regexp.MustCompile(`(?i)(install|setup|deploy)`),
+				"Usage":        regexp.MustCompile(`(?i)(usage|getting started|how to|example)`),
+				"Contributing": regexp.MustCompile(`(?i)(contribut|development)`),
+				"License":      regexp.MustCompile(`(?i)license`),
 			}
 
 			missingSections := []string{}
@@ -366,7 +366,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			}
 
 			// Should have most essential sections
-			Expect(len(missingSections)).To(BeNumerically("<=", len(essentialSections)/3), 
+			Expect(len(missingSections)).To(BeNumerically("<=", len(essentialSections)/3),
 				"README should cover most essential topics")
 		})
 
@@ -416,7 +416,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 
 							// Look for documentation comments
 							if strings.Contains(string(content), "// +kubebuilder:") ||
-							   strings.Contains(string(content), "// ") {
+								strings.Contains(string(content), "// ") {
 								hasAPIDoc = true
 								apiDocSize++
 							}
@@ -472,7 +472,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 							if err == nil {
 								// Look for documentation comments in YAML
 								if strings.Contains(string(content), "#") &&
-								   len(content) > 1000 {
+									len(content) > 1000 {
 									hasDeploymentDoc = true
 									GinkgoWriter.Printf("✅ Found deployment manifests with documentation\n")
 									return filepath.SkipDir
@@ -537,14 +537,14 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			for _, contributingPath := range contributingPaths {
 				if stat, err := os.Stat(contributingPath); err == nil {
 					hasContributingGuide = true
-					
+
 					// Validate content
 					content, err := ioutil.ReadFile(contributingPath)
 					if err == nil {
 						contributingContent := string(content)
-						
+
 						// Should be substantial
-						Expect(len(contributingContent)).To(BeNumerically(">=", 500), 
+						Expect(len(contributingContent)).To(BeNumerically(">=", 500),
 							"Contributing guidelines should be detailed")
 
 						// Check for essential topics
@@ -563,7 +563,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 							}
 						}
 
-						GinkgoWriter.Printf("Contributing guide covers %d/%d essential topics\n", 
+						GinkgoWriter.Printf("Contributing guide covers %d/%d essential topics\n",
 							foundTopics, len(essentialTopics))
 					}
 					break
@@ -585,7 +585,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 				if _, err := os.Stat(securityPath); err == nil {
 					hasSecurityPolicy = true
 					GinkgoWriter.Printf("✅ Found security policy: %s\n", securityPath)
-					
+
 					// Validate content
 					content, err := ioutil.ReadFile(securityPath)
 					if err == nil && len(content) > 200 {
@@ -671,12 +671,12 @@ var _ = Describe("Community Asset Validation Tests", func() {
 			for _, changelogPath := range changelogPaths {
 				if stat, err := os.Stat(changelogPath); err == nil {
 					hasChangelog = true
-					
+
 					// Validate changelog content
 					content, err := ioutil.ReadFile(changelogPath)
 					if err == nil {
 						changelogContent := string(content)
-						
+
 						// Should follow some structure
 						if strings.Contains(changelogContent, "##") || strings.Contains(changelogContent, "###") {
 							GinkgoWriter.Printf("✅ Found structured changelog: %s\n", changelogPath)
@@ -745,41 +745,41 @@ var _ = Describe("Community Asset Validation Tests", func() {
 		It("should generate comprehensive community asset validation report", func() {
 			report := map[string]interface{}{
 				"timestamp": "test-run",
-				"project":   "nephoran-intent-operator", 
+				"project":   "nephoran-intent-operator",
 				"test_type": "community_asset_validation",
 				"results": map[string]interface{}{
 					"project_metadata": map[string]interface{}{
-						"required_files_present":     true,
-						"go_module_configured":      true,
-						"project_structure_score":   85,
+						"required_files_present":  true,
+						"go_module_configured":    true,
+						"project_structure_score": 85,
 					},
 					"code_quality": map[string]interface{}{
-						"formatting_score":      90,
-						"test_coverage_ratio":   0.45,
-						"error_handling_score":  80,
+						"formatting_score":     90,
+						"test_coverage_ratio":  0.45,
+						"error_handling_score": 80,
 					},
 					"documentation_quality": map[string]interface{}{
-						"readme_comprehensive":      true,
-						"api_documentation_exists":  true,
-						"deployment_docs_exists":    true,
+						"readme_comprehensive":     true,
+						"api_documentation_exists": true,
+						"deployment_docs_exists":   true,
 					},
 					"community_engagement": map[string]interface{}{
-						"issue_templates_exist":    false,
+						"issue_templates_exist":     false,
 						"contributing_guide_exists": true,
-						"security_policy_exists":   false,
-						"code_of_conduct_exists":   false,
+						"security_policy_exists":    false,
+						"code_of_conduct_exists":    false,
 					},
 					"release_management": map[string]interface{}{
-						"versioning_strategy":     true,
-						"changelog_exists":        true,
-						"release_automation":      true,
+						"versioning_strategy": true,
+						"changelog_exists":    true,
+						"release_automation":  true,
 					},
 					"overall_score": 78,
 				},
 				"recommendations": []string{
 					"Add GitHub issue and PR templates to guide contributors",
 					"Create a SECURITY.md file with security policy",
-					"Add a CODE_OF_CONDUCT.md for community guidelines", 
+					"Add a CODE_OF_CONDUCT.md for community guidelines",
 					"Consider improving test coverage (current: 45%)",
 					"Enhance API documentation with more examples",
 				},
@@ -799,7 +799,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 
 			// Validate overall community readiness
 			overallScore := report["results"].(map[string]interface{})["overall_score"].(int)
-			
+
 			if overallScore >= 80 {
 				GinkgoWriter.Printf("✅ Excellent community readiness: %d%%\n", overallScore)
 			} else if overallScore >= 70 {

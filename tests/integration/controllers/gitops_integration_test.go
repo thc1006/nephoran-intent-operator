@@ -27,12 +27,12 @@ import (
 
 var _ = Describe("GitOps Integration Tests", func() {
 	var (
-		namespace          *corev1.Namespace
-		testCtx            context.Context
-		mockGitServer      *httptest.Server
-		mockNephioServer   *httptest.Server
-		gitRequestTracker  *GitRequestTracker
-		tempRepoDir        string
+		namespace         *corev1.Namespace
+		testCtx           context.Context
+		mockGitServer     *httptest.Server
+		mockNephioServer  *httptest.Server
+		gitRequestTracker *GitRequestTracker
+		tempRepoDir       string
 	)
 
 	BeforeEach(func() {
@@ -70,8 +70,8 @@ var _ = Describe("GitOps Integration Tests", func() {
 						Name:      "gitops-package-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/gitops-enabled": "true",
-							"nephoran.com/git-repo-url":   mockGitServer.URL + "/repo.git",
+							"nephoran.com/gitops-enabled":  "true",
+							"nephoran.com/git-repo-url":    mockGitServer.URL + "/repo.git",
 							"nephoran.com/nephio-endpoint": mockNephioServer.URL,
 						},
 					},
@@ -125,7 +125,7 @@ var _ = Describe("GitOps Integration Tests", func() {
 					packageFiles := gitRequestTracker.GetGeneratedFiles()
 					Expect(packageFiles).To(HaveKey("Kptfile"))
 					Expect(packageFiles).To(HaveKey("deployment.yaml"))
-					
+
 					// Verify Kptfile structure
 					var kptfile map[string]interface{}
 					err := yaml.Unmarshal([]byte(packageFiles["Kptfile"]), &kptfile)
@@ -144,8 +144,8 @@ var _ = Describe("GitOps Integration Tests", func() {
 						Name:      "retry-package-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/gitops-enabled": "true",
-							"nephoran.com/git-repo-url":   mockGitServer.URL + "/repo.git",
+							"nephoran.com/gitops-enabled":  "true",
+							"nephoran.com/git-repo-url":    mockGitServer.URL + "/repo.git",
 							"nephoran.com/nephio-endpoint": mockNephioServer.URL,
 						},
 					},
@@ -189,28 +189,28 @@ var _ = Describe("GitOps Integration Tests", func() {
 
 			It("should generate different package types for different network functions", func() {
 				testCases := []struct {
-					name      string
-					component nephoranv1.TargetComponent
+					name          string
+					component     nephoranv1.TargetComponent
 					expectedFiles []string
 				}{
 					{
-						name:      "AMF package",
-						component: nephoranv1.TargetComponentAMF,
+						name:          "AMF package",
+						component:     nephoranv1.TargetComponentAMF,
 						expectedFiles: []string{"Kptfile", "deployment.yaml", "service.yaml", "configmap.yaml"},
 					},
 					{
-						name:      "SMF package",
-						component: nephoranv1.TargetComponentSMF,
+						name:          "SMF package",
+						component:     nephoranv1.TargetComponentSMF,
 						expectedFiles: []string{"Kptfile", "deployment.yaml", "service.yaml", "pvc.yaml"},
 					},
 					{
-						name:      "UPF package",
-						component: nephoranv1.TargetComponentUPF,
+						name:          "UPF package",
+						component:     nephoranv1.TargetComponentUPF,
 						expectedFiles: []string{"Kptfile", "deployment.yaml", "service.yaml", "networkpolicy.yaml"},
 					},
 					{
-						name:      "Near-RT RIC package",
-						component: nephoranv1.TargetComponentNearRTRIC,
+						name:          "Near-RT RIC package",
+						component:     nephoranv1.TargetComponentNearRTRIC,
 						expectedFiles: []string{"Kptfile", "deployment.yaml", "service.yaml", "rbac.yaml"},
 					},
 				}
@@ -222,8 +222,8 @@ var _ = Describe("GitOps Integration Tests", func() {
 							Name:      fmt.Sprintf("package-type-%d", i),
 							Namespace: namespace.Name,
 							Annotations: map[string]string{
-								"nephoran.com/gitops-enabled": "true",
-								"nephoran.com/git-repo-url":   mockGitServer.URL + "/repo.git",
+								"nephoran.com/gitops-enabled":  "true",
+								"nephoran.com/git-repo-url":    mockGitServer.URL + "/repo.git",
 								"nephoran.com/nephio-endpoint": mockNephioServer.URL,
 							},
 						},
@@ -244,7 +244,7 @@ var _ = Describe("GitOps Integration Tests", func() {
 						if len(files) == 0 {
 							return false
 						}
-						
+
 						// Check if all expected files are generated
 						for _, expectedFile := range tc.expectedFiles {
 							if _, exists := files[expectedFile]; !exists {
@@ -274,10 +274,10 @@ var _ = Describe("GitOps Integration Tests", func() {
 						Name:      "deployment-tracking-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/gitops-enabled":    "true",
-							"nephoran.com/git-repo-url":      mockGitServer.URL + "/repo.git",
-							"nephoran.com/nephio-endpoint":   mockNephioServer.URL,
-							"nephoran.com/track-deployment":  "true",
+							"nephoran.com/gitops-enabled":   "true",
+							"nephoran.com/git-repo-url":     mockGitServer.URL + "/repo.git",
+							"nephoran.com/nephio-endpoint":  mockNephioServer.URL,
+							"nephoran.com/track-deployment": "true",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
@@ -307,7 +307,7 @@ var _ = Describe("GitOps Integration Tests", func() {
 				By("verifying deployment timing information is tracked")
 				Expect(createdIntent.Status.ProcessingStartTime).NotTo(BeNil())
 				if createdIntent.Status.DeploymentStartTime != nil {
-					Expect(createdIntent.Status.DeploymentStartTime.Time).To(BeTemporally(">=", 
+					Expect(createdIntent.Status.DeploymentStartTime.Time).To(BeTemporally(">=",
 						createdIntent.Status.ProcessingStartTime.Time))
 				}
 
@@ -330,7 +330,7 @@ var _ = Describe("GitOps Integration Tests", func() {
 
 				By("verifying deployment completion timestamps")
 				if createdIntent.Status.DeploymentCompletionTime != nil && createdIntent.Status.DeploymentStartTime != nil {
-					Expect(createdIntent.Status.DeploymentCompletionTime.Time).To(BeTemporally(">=", 
+					Expect(createdIntent.Status.DeploymentCompletionTime.Time).To(BeTemporally(">=",
 						createdIntent.Status.DeploymentStartTime.Time))
 				}
 			})
@@ -344,8 +344,8 @@ var _ = Describe("GitOps Integration Tests", func() {
 						Name:      "conflict-resolution-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/gitops-enabled": "true",
-							"nephoran.com/git-repo-url":   mockGitServer.URL + "/repo.git",
+							"nephoran.com/gitops-enabled":  "true",
+							"nephoran.com/git-repo-url":    mockGitServer.URL + "/repo.git",
 							"nephoran.com/nephio-endpoint": mockNephioServer.URL,
 						},
 					},
@@ -396,10 +396,10 @@ var _ = Describe("GitOps Integration Tests", func() {
 						Name:      "multi-cluster-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/gitops-enabled":    "true",
-							"nephoran.com/git-repo-url":      mockGitServer.URL + "/repo.git",
-							"nephoran.com/nephio-endpoint":   mockNephioServer.URL,
-							"nephoran.com/target-clusters":   "cluster-1,cluster-2,cluster-3",
+							"nephoran.com/gitops-enabled":  "true",
+							"nephoran.com/git-repo-url":    mockGitServer.URL + "/repo.git",
+							"nephoran.com/nephio-endpoint": mockNephioServer.URL,
+							"nephoran.com/target-clusters": "cluster-1,cluster-2,cluster-3",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
@@ -452,10 +452,10 @@ var _ = Describe("GitOps Integration Tests", func() {
 						Name:      "validation-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/gitops-enabled":      "true",
-							"nephoran.com/git-repo-url":        mockGitServer.URL + "/repo.git",
-							"nephoran.com/nephio-endpoint":     mockNephioServer.URL,
-							"nephoran.com/validate-manifests":  "true",
+							"nephoran.com/gitops-enabled":     "true",
+							"nephoran.com/git-repo-url":       mockGitServer.URL + "/repo.git",
+							"nephoran.com/nephio-endpoint":    mockNephioServer.URL,
+							"nephoran.com/validate-manifests": "true",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
@@ -476,13 +476,13 @@ var _ = Describe("GitOps Integration Tests", func() {
 
 				By("validating generated manifest structure")
 				files := gitRequestTracker.GetGeneratedFilesForIntent(intent.Name)
-				
+
 				// Validate deployment.yaml
 				if deploymentYaml, exists := files["deployment.yaml"]; exists {
 					var deployment map[string]interface{}
 					err := yaml.Unmarshal([]byte(deploymentYaml), &deployment)
 					Expect(err).NotTo(HaveOccurred())
-					
+
 					Expect(deployment["apiVersion"]).To(Equal("apps/v1"))
 					Expect(deployment["kind"]).To(Equal("Deployment"))
 					Expect(deployment["metadata"]).To(HaveKey("name"))
@@ -496,7 +496,7 @@ var _ = Describe("GitOps Integration Tests", func() {
 					var service map[string]interface{}
 					err := yaml.Unmarshal([]byte(serviceYaml), &service)
 					Expect(err).NotTo(HaveOccurred())
-					
+
 					Expect(service["apiVersion"]).To(Equal("v1"))
 					Expect(service["kind"]).To(Equal("Service"))
 					Expect(service["metadata"]).To(HaveKey("name"))
@@ -510,20 +510,20 @@ var _ = Describe("GitOps Integration Tests", func() {
 
 // GitRequestTracker tracks Git and Nephio operations for testing
 type GitRequestTracker struct {
-	mu                    sync.RWMutex
-	requestCounts         map[string]int
-	errorModes            map[string]ErrorConfig
-	generatedFiles        map[string]map[string]string // intent-name -> file-name -> content
-	generatedPackages     map[string]string
-	deploymentStatuses    map[string]string // commit-hash -> status
-	conflictSimulation    bool
-	tempDir               string
+	mu                 sync.RWMutex
+	requestCounts      map[string]int
+	errorModes         map[string]ErrorConfig
+	generatedFiles     map[string]map[string]string // intent-name -> file-name -> content
+	generatedPackages  map[string]string
+	deploymentStatuses map[string]string // commit-hash -> status
+	conflictSimulation bool
+	tempDir            string
 }
 
 type ErrorConfig struct {
-	enabled       bool
-	failureCount  int
-	currentFails  int
+	enabled      bool
+	failureCount int
+	currentFails int
 }
 
 func NewGitRequestTracker(tempDir string) *GitRequestTracker {
@@ -562,18 +562,18 @@ func (grt *GitRequestTracker) SetErrorMode(operation string, enabled bool, failu
 func (grt *GitRequestTracker) ShouldReturnError(operation string) bool {
 	grt.mu.Lock()
 	defer grt.mu.Unlock()
-	
+
 	config, exists := grt.errorModes[operation]
 	if !exists || !config.enabled {
 		return false
 	}
-	
+
 	if config.currentFails < config.failureCount {
 		config.currentFails++
 		grt.errorModes[operation] = config
 		return true
 	}
-	
+
 	// Disable error mode after reaching failure count
 	config.enabled = false
 	grt.errorModes[operation] = config
@@ -589,7 +589,7 @@ func (grt *GitRequestTracker) AddGeneratedFiles(intentName string, files map[str
 func (grt *GitRequestTracker) GetGeneratedFiles() map[string]string {
 	grt.mu.RLock()
 	defer grt.mu.RUnlock()
-	
+
 	allFiles := make(map[string]string)
 	for _, intentFiles := range grt.generatedFiles {
 		for filename, content := range intentFiles {
@@ -602,7 +602,7 @@ func (grt *GitRequestTracker) GetGeneratedFiles() map[string]string {
 func (grt *GitRequestTracker) GetGeneratedFilesForIntent(intentName string) map[string]string {
 	grt.mu.RLock()
 	defer grt.mu.RUnlock()
-	
+
 	if files, exists := grt.generatedFiles[intentName]; exists {
 		return files
 	}
@@ -612,7 +612,7 @@ func (grt *GitRequestTracker) GetGeneratedFilesForIntent(intentName string) map[
 func (grt *GitRequestTracker) HasGeneratedFiles(intentName string) bool {
 	grt.mu.RLock()
 	defer grt.mu.RUnlock()
-	
+
 	files, exists := grt.generatedFiles[intentName]
 	return exists && len(files) > 0
 }
@@ -620,7 +620,7 @@ func (grt *GitRequestTracker) HasGeneratedFiles(intentName string) bool {
 func (grt *GitRequestTracker) GetGeneratedPackages() map[string]string {
 	grt.mu.RLock()
 	defer grt.mu.RUnlock()
-	
+
 	result := make(map[string]string)
 	for k, v := range grt.generatedPackages {
 		result[k] = v
@@ -684,12 +684,12 @@ func setupMockNephioServer(tracker *GitRequestTracker) *httptest.Server {
 
 func handleGitClone(w http.ResponseWriter, r *http.Request, tracker *GitRequestTracker) {
 	tracker.IncrementRequest("git-clone")
-	
+
 	if tracker.ShouldReturnError("git-clone") {
 		http.Error(w, "Git clone failed", http.StatusInternalServerError)
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"status": "success",
 		"path":   "/tmp/repo",
@@ -699,32 +699,32 @@ func handleGitClone(w http.ResponseWriter, r *http.Request, tracker *GitRequestT
 
 func handleGitCommit(w http.ResponseWriter, r *http.Request, tracker *GitRequestTracker) {
 	tracker.IncrementRequest("git-commit")
-	
+
 	if tracker.ShouldReturnError("git-commit") || tracker.ShouldSimulateConflict() {
 		http.Error(w, "Git commit conflict", http.StatusConflict)
 		return
 	}
-	
+
 	commitHash := fmt.Sprintf("commit-%d-%d", time.Now().Unix(), tracker.GetRequestCount("git-commit"))
 	response := map[string]interface{}{
 		"status":     "success",
 		"commitHash": commitHash,
 	}
-	
+
 	// Set deployment status to pending
 	tracker.SetDeploymentStatus(commitHash, "pending")
-	
+
 	json.NewEncoder(w).Encode(response)
 }
 
 func handleGitPush(w http.ResponseWriter, r *http.Request, tracker *GitRequestTracker) {
 	tracker.IncrementRequest("git-push")
-	
+
 	if tracker.ShouldReturnError("git-push") {
 		http.Error(w, "Git push failed", http.StatusInternalServerError)
 		return
 	}
-	
+
 	response := map[string]interface{}{
 		"status": "success",
 	}
@@ -733,32 +733,32 @@ func handleGitPush(w http.ResponseWriter, r *http.Request, tracker *GitRequestTr
 
 func handleNephioPackageGen(w http.ResponseWriter, r *http.Request, tracker *GitRequestTracker) {
 	tracker.IncrementRequest("nephio-package-gen")
-	
+
 	if tracker.ShouldReturnError("nephio-package-gen") {
 		http.Error(w, "Nephio package generation failed", http.StatusInternalServerError)
 		return
 	}
-	
+
 	var request struct {
-		IntentName       string `json:"intentName"`
-		NetworkFunction  string `json:"networkFunction"`
-		TargetCluster    string `json:"targetCluster"`
-		Parameters       map[string]interface{} `json:"parameters"`
+		IntentName      string                 `json:"intentName"`
+		NetworkFunction string                 `json:"networkFunction"`
+		TargetCluster   string                 `json:"targetCluster"`
+		Parameters      map[string]interface{} `json:"parameters"`
 	}
-	
+
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Generate package files based on network function
 	files := generatePackageFiles(request.NetworkFunction, request.Parameters)
 	tracker.AddGeneratedFiles(request.IntentName, files)
-	
+
 	// Add to generated packages
 	packageName := fmt.Sprintf("%s-%s", request.NetworkFunction, request.TargetCluster)
 	tracker.generatedPackages[packageName] = "generated"
-	
+
 	response := map[string]interface{}{
 		"status":      "success",
 		"packageName": packageName,
@@ -769,7 +769,7 @@ func handleNephioPackageGen(w http.ResponseWriter, r *http.Request, tracker *Git
 
 func handleNephioPackageRevision(w http.ResponseWriter, r *http.Request, tracker *GitRequestTracker) {
 	tracker.IncrementRequest("nephio-package-revision")
-	
+
 	response := map[string]interface{}{
 		"status":   "success",
 		"revision": "v1",
@@ -780,10 +780,10 @@ func handleNephioPackageRevision(w http.ResponseWriter, r *http.Request, tracker
 // generatePackageFiles generates package files based on network function type
 func generatePackageFiles(networkFunction string, parameters map[string]interface{}) map[string]string {
 	files := make(map[string]string)
-	
+
 	// Always include Kptfile
 	files["Kptfile"] = generateKptfile(networkFunction)
-	
+
 	// Generate files based on network function type
 	switch strings.ToUpper(networkFunction) {
 	case "AMF":
@@ -806,7 +806,7 @@ func generatePackageFiles(networkFunction string, parameters map[string]interfac
 		files["deployment.yaml"] = generateGenericDeployment(networkFunction, parameters)
 		files["service.yaml"] = generateGenericService(networkFunction, parameters)
 	}
-	
+
 	return files
 }
 
@@ -829,7 +829,7 @@ func generateAMFDeployment(parameters map[string]interface{}) string {
 	if r, ok := parameters["replicas"].(int); ok {
 		replicas = r
 	}
-	
+
 	return fmt.Sprintf(`apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -1063,7 +1063,7 @@ spec:
     spec:
       containers:
       - name: %s
-        image: %s:latest`, 
+        image: %s:latest`,
 		strings.ToLower(networkFunction),
 		strings.ToLower(networkFunction),
 		strings.ToLower(networkFunction),

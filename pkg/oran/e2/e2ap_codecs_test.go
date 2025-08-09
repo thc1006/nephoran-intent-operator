@@ -39,7 +39,7 @@ func TestE2SetupRequestCodec(t *testing.T) {
 	// Test Decode
 	decoded, err := codec.Decode(data)
 	assert.NoError(t, err)
-	
+
 	decodedReq, ok := decoded.(*E2SetupRequest)
 	require.True(t, ok)
 	assert.Equal(t, req.GlobalE2NodeID.PLMNIdentity.MCC, decodedReq.GlobalE2NodeID.PLMNIdentity.MCC)

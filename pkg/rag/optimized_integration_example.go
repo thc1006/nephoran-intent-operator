@@ -14,64 +14,64 @@ import (
 // OptimizedRAGManager integrates all RAG optimizations
 type OptimizedRAGManager struct {
 	// Core components
-	originalClient     *WeaviateClient
-	optimizedPipeline  *OptimizedRAGPipeline
-	batchSearchClient  *OptimizedBatchSearchClient
-	grpcClient         *GRPCWeaviateClient
-	connectionPool     *OptimizedConnectionPool
-	hnswOptimizer      *HNSWOptimizer
-	
+	originalClient    *WeaviateClient
+	optimizedPipeline *OptimizedRAGPipeline
+	batchSearchClient *OptimizedBatchSearchClient
+	grpcClient        *GRPCWeaviateClient
+	connectionPool    *OptimizedConnectionPool
+	hnswOptimizer     *HNSWOptimizer
+
 	// Performance monitoring
-	benchmarker        *PerformanceBenchmarker
-	
+	benchmarker *PerformanceBenchmarker
+
 	// Configuration
-	config            *OptimizedRAGConfig
-	logger            *slog.Logger
+	config *OptimizedRAGConfig
+	logger *slog.Logger
 }
 
 // OptimizedRAGConfig holds configuration for the optimized RAG manager
 type OptimizedRAGConfig struct {
 	// Weaviate configuration
-	WeaviateConfig    *WeaviateConfig          `json:"weaviate_config"`
-	
+	WeaviateConfig *WeaviateConfig `json:"weaviate_config"`
+
 	// Optimization configurations
-	BatchSearchConfig *BatchSearchConfig       `json:"batch_search_config"`
-	GRPCConfig        *GRPCClientConfig        `json:"grpc_config"`
-	ConnectionConfig  *ConnectionPoolConfig    `json:"connection_config"`
-	RAGPipelineConfig *RAGPipelineConfig       `json:"rag_pipeline_config"`
-	HNSWOptimizerConfig *HNSWOptimizerConfig   `json:"hnsw_optimizer_config"`
-	
+	BatchSearchConfig   *BatchSearchConfig    `json:"batch_search_config"`
+	GRPCConfig          *GRPCClientConfig     `json:"grpc_config"`
+	ConnectionConfig    *ConnectionPoolConfig `json:"connection_config"`
+	RAGPipelineConfig   *RAGPipelineConfig    `json:"rag_pipeline_config"`
+	HNSWOptimizerConfig *HNSWOptimizerConfig  `json:"hnsw_optimizer_config"`
+
 	// Performance settings
-	BenchmarkConfig   *BenchmarkConfig         `json:"benchmark_config"`
-	
+	BenchmarkConfig *BenchmarkConfig `json:"benchmark_config"`
+
 	// Feature flags
-	EnableGRPC        bool                     `json:"enable_grpc"`
-	EnableBatching    bool                     `json:"enable_batching"`
-	EnableHNSWOptimization bool               `json:"enable_hnsw_optimization"`
-	EnablePerformanceMonitoring bool          `json:"enable_performance_monitoring"`
+	EnableGRPC                  bool `json:"enable_grpc"`
+	EnableBatching              bool `json:"enable_batching"`
+	EnableHNSWOptimization      bool `json:"enable_hnsw_optimization"`
+	EnablePerformanceMonitoring bool `json:"enable_performance_monitoring"`
 }
 
 // PerformanceReport provides comprehensive performance analysis
 type PerformanceReport struct {
 	// Performance improvements achieved
-	LatencyImprovement    float64               `json:"latency_improvement"`
-	ThroughputImprovement float64               `json:"throughput_improvement"`
-	AccuracyImprovement   float64               `json:"accuracy_improvement"`
-	MemoryEfficiency      float64               `json:"memory_efficiency"`
-	
+	LatencyImprovement    float64 `json:"latency_improvement"`
+	ThroughputImprovement float64 `json:"throughput_improvement"`
+	AccuracyImprovement   float64 `json:"accuracy_improvement"`
+	MemoryEfficiency      float64 `json:"memory_efficiency"`
+
 	// Specific optimizations impact
-	BatchingBenefit       float64               `json:"batching_benefit"`
-	CachingBenefit        float64               `json:"caching_benefit"`
-	GRPCBenefit          float64               `json:"grpc_benefit"`
-	HNSWOptimizationBenefit float64            `json:"hnsw_optimization_benefit"`
-	
+	BatchingBenefit         float64 `json:"batching_benefit"`
+	CachingBenefit          float64 `json:"caching_benefit"`
+	GRPCBenefit             float64 `json:"grpc_benefit"`
+	HNSWOptimizationBenefit float64 `json:"hnsw_optimization_benefit"`
+
 	// Overall metrics
-	OverallScore         float64               `json:"overall_score"`
-	RecommendedSettings  map[string]interface{} `json:"recommended_settings"`
-	PerformanceTargetsAchieved bool            `json:"performance_targets_achieved"`
-	
+	OverallScore               float64                `json:"overall_score"`
+	RecommendedSettings        map[string]interface{} `json:"recommended_settings"`
+	PerformanceTargetsAchieved bool                   `json:"performance_targets_achieved"`
+
 	// Benchmark results
-	BenchmarkResults     *BenchmarkResults     `json:"benchmark_results"`
+	BenchmarkResults *BenchmarkResults `json:"benchmark_results"`
 }
 
 // NewOptimizedRAGManager creates a new optimized RAG manager with all optimizations
@@ -157,30 +157,30 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 // getDefaultOptimizedRAGConfig returns default configuration
 func getDefaultOptimizedRAGConfig() *OptimizedRAGConfig {
 	return &OptimizedRAGConfig{
-		WeaviateConfig:    &WeaviateConfig{
-			Host:     "localhost:8080",
-			Scheme:   "http",
-			Timeout:  30 * time.Second,
-			Retries:  3,
+		WeaviateConfig: &WeaviateConfig{
+			Host:    "localhost:8080",
+			Scheme:  "http",
+			Timeout: 30 * time.Second,
+			Retries: 3,
 		},
-		BatchSearchConfig:       getDefaultBatchSearchConfig(),
-		GRPCConfig:             getDefaultGRPCConfig(),
-		ConnectionConfig:       getDefaultConnectionPoolConfig(),
-		RAGPipelineConfig:      getDefaultRAGPipelineConfig(),
-		HNSWOptimizerConfig:    getDefaultHNSWOptimizerConfig(),
-		BenchmarkConfig:        getDefaultBenchmarkConfig(),
-		
-		EnableGRPC:                     true,
-		EnableBatching:                 true,
-		EnableHNSWOptimization:         true,
-		EnablePerformanceMonitoring:    true,
+		BatchSearchConfig:   getDefaultBatchSearchConfig(),
+		GRPCConfig:          getDefaultGRPCConfig(),
+		ConnectionConfig:    getDefaultConnectionPoolConfig(),
+		RAGPipelineConfig:   getDefaultRAGPipelineConfig(),
+		HNSWOptimizerConfig: getDefaultHNSWOptimizerConfig(),
+		BenchmarkConfig:     getDefaultBenchmarkConfig(),
+
+		EnableGRPC:                  true,
+		EnableBatching:              true,
+		EnableHNSWOptimization:      true,
+		EnablePerformanceMonitoring: true,
 	}
 }
 
 // ProcessSingleQuery processes a single query with all optimizations
 func (m *OptimizedRAGManager) ProcessSingleQuery(ctx context.Context, request *RAGRequest) (*RAGResponse, error) {
 	m.logger.Debug("Processing single query with optimizations", "query", request.Query)
-	
+
 	// Use optimized pipeline for best performance
 	return m.optimizedPipeline.ProcessQuery(ctx, request)
 }
@@ -188,7 +188,7 @@ func (m *OptimizedRAGManager) ProcessSingleQuery(ctx context.Context, request *R
 // ProcessBatchQueries processes multiple queries with batch optimization
 func (m *OptimizedRAGManager) ProcessBatchQueries(ctx context.Context, requests []*RAGRequest) ([]*RAGResponse, error) {
 	m.logger.Info("Processing batch queries with optimizations", "count", len(requests))
-	
+
 	// Use optimized pipeline batch processing
 	return m.optimizedPipeline.ProcessBatch(ctx, requests)
 }
@@ -249,7 +249,7 @@ func (m *OptimizedRAGManager) OptimizeHNSWParameters(ctx context.Context, classN
 	}
 
 	m.logger.Info("Optimizing HNSW parameters", "class_name", className, "query_patterns", len(queryPatterns))
-	
+
 	return m.hnswOptimizer.OptimizeForWorkload(ctx, className, queryPatterns, nil)
 }
 
@@ -260,7 +260,7 @@ func (m *OptimizedRAGManager) RunPerformanceBenchmark(ctx context.Context) (*Per
 	}
 
 	m.logger.Info("Running comprehensive performance benchmark")
-	
+
 	// Run benchmark
 	benchmarkResults, err := m.benchmarker.RunComprehensiveBenchmark(ctx)
 	if err != nil {
@@ -345,8 +345,8 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 		return nil, fmt.Errorf("batch processing failed: %w", err)
 	}
 	batchTime := time.Since(batchStart)
-	m.logger.Info("Batch processing completed", 
-		"total_time", batchTime, 
+	m.logger.Info("Batch processing completed",
+		"total_time", batchTime,
 		"improvement", float64(baselineTime-batchTime)/float64(baselineTime)*100,
 		"responses", len(batchResponses))
 
@@ -359,7 +359,7 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 			m.logger.Warn("gRPC processing failed", "error", err)
 		} else {
 			grpcTime := time.Since(grpcStart)
-			m.logger.Info("gRPC processing completed", 
+			m.logger.Info("gRPC processing completed",
 				"total_time", grpcTime,
 				"improvement", float64(baselineTime-grpcTime)/float64(baselineTime)*100,
 				"responses", len(grpcResponses))
@@ -388,7 +388,7 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 
 	// Step 5: Demonstrate semantic caching
 	m.logger.Info("Step 5: Demonstrating semantic caching benefits")
-	
+
 	// First query (cache miss)
 	cacheQuery := &RAGRequest{Query: "5G AMF configuration parameters", MaxResults: 10}
 	uncachedStart := time.Now()
@@ -405,7 +405,7 @@ func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*Pe
 		return nil, fmt.Errorf("cached query failed: %w", err)
 	}
 	cachedTime := time.Since(cachedStart)
-	
+
 	cacheImprovement := float64(uncachedTime-cachedTime) / float64(uncachedTime) * 100
 	m.logger.Info("Semantic caching demonstrated",
 		"uncached_time", uncachedTime,
@@ -436,15 +436,15 @@ func (m *OptimizedRAGManager) GetOptimizationStatus() map[string]interface{} {
 			"original_client":     m.originalClient != nil,
 			"optimized_pipeline":  m.optimizedPipeline != nil,
 			"batch_search_client": m.batchSearchClient != nil,
-			"grpc_client":        m.grpcClient != nil,
-			"connection_pool":    m.connectionPool != nil,
-			"hnsw_optimizer":     m.hnswOptimizer != nil,
-			"benchmarker":        m.benchmarker != nil,
+			"grpc_client":         m.grpcClient != nil,
+			"connection_pool":     m.connectionPool != nil,
+			"hnsw_optimizer":      m.hnswOptimizer != nil,
+			"benchmarker":         m.benchmarker != nil,
 		},
 		"configuration": map[string]interface{}{
-			"grpc_enabled":                  m.config.EnableGRPC,
-			"batching_enabled":              m.config.EnableBatching,
-			"hnsw_optimization_enabled":     m.config.EnableHNSWOptimization,
+			"grpc_enabled":                   m.config.EnableGRPC,
+			"batching_enabled":               m.config.EnableBatching,
+			"hnsw_optimization_enabled":      m.config.EnableHNSWOptimization,
 			"performance_monitoring_enabled": m.config.EnablePerformanceMonitoring,
 		},
 	}
@@ -498,14 +498,14 @@ func (m *OptimizedRAGManager) generateOptimalSettings(benchmarkResults *Benchmar
 	if benchmarkResults.ThroughputResults != nil {
 		bestBatchSize := 1
 		bestThroughput := 0.0
-		
+
 		for batchSize, throughput := range benchmarkResults.ThroughputResults.BatchThroughput {
 			if throughput > bestThroughput {
 				bestThroughput = throughput
 				bestBatchSize = batchSize
 			}
 		}
-		
+
 		settings["recommended_batch_size"] = bestBatchSize
 	}
 
@@ -513,14 +513,14 @@ func (m *OptimizedRAGManager) generateOptimalSettings(benchmarkResults *Benchmar
 	if benchmarkResults.ThroughputResults != nil {
 		bestConcurrency := 1
 		bestThroughput := 0.0
-		
+
 		for concurrency, throughput := range benchmarkResults.ThroughputResults.ConcurrentThroughput {
 			if throughput > bestThroughput {
 				bestThroughput = throughput
 				bestConcurrency = concurrency
 			}
 		}
-		
+
 		settings["recommended_concurrency"] = bestConcurrency
 	}
 
@@ -610,8 +610,8 @@ func ExampleUsage() {
 	// Example 1: Process a single query with all optimizations
 	fmt.Println("=== Example 1: Single Query Processing ===")
 	singleQuery := &RAGRequest{
-		Query:      "5G AMF configuration parameters for high availability",
-		MaxResults: 10,
+		Query:           "5G AMF configuration parameters for high availability",
+		MaxResults:      10,
 		UseHybridSearch: true,
 		EnableReranking: true,
 	}
@@ -620,7 +620,7 @@ func ExampleUsage() {
 	if err != nil {
 		fmt.Printf("Single query failed: %v\n", err)
 	} else {
-		fmt.Printf("Single query successful: %d results, confidence: %.2f\n", 
+		fmt.Printf("Single query successful: %d results, confidence: %.2f\n",
 			len(response.SourceDocuments), response.Confidence)
 	}
 
@@ -639,7 +639,7 @@ func ExampleUsage() {
 	} else {
 		fmt.Printf("Batch processing successful: %d responses\n", len(batchResponses))
 		for i, response := range batchResponses {
-			fmt.Printf("  Query %d: %d results, confidence: %.2f\n", 
+			fmt.Printf("  Query %d: %d results, confidence: %.2f\n",
 				i+1, len(response.SourceDocuments), response.Confidence)
 		}
 	}
@@ -665,7 +665,7 @@ func ExampleUsage() {
 
 // This demonstrates how to achieve the target performance improvements:
 // - 40% latency reduction through batch processing, gRPC, and caching
-// - 50% throughput improvement through connection pooling and parallelization  
+// - 50% throughput improvement through connection pooling and parallelization
 // - Optimal HNSW parameters for your specific workload
 // - Comprehensive monitoring and optimization recommendations
 

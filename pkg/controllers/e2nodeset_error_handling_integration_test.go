@@ -95,7 +95,7 @@ func TestCompleteErrorHandlingWorkflow(t *testing.T) {
 		configMapList := &corev1.ConfigMapList{}
 		err = fakeClient.List(ctx, configMapList)
 		require.NoError(t, err)
-		
+
 		// Should have 2 ConfigMaps for 2 replicas
 		createdConfigMaps := 0
 		for _, cm := range configMapList.Items {
@@ -179,7 +179,7 @@ func TestErrorHandlingWithRetryLogic(t *testing.T) {
 		// Simulate multiple failed reconciliations
 		for attempt := 1; attempt <= DefaultMaxRetries; attempt++ {
 			result, err := reconciler.Reconcile(ctx, ctrl.Request{NamespacedName: namespacedName})
-			
+
 			// Should return error and schedule retry
 			assert.Error(t, err)
 			assert.NotZero(t, result.RequeueAfter, "Should schedule retry with backoff")
@@ -262,7 +262,7 @@ func TestCleanupErrorHandlingWithFinalizers(t *testing.T) {
 				},
 			},
 		}
-		
+
 		cm2 := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-cleanup-finalizer-e2node-1",
@@ -413,7 +413,7 @@ func TestIdempotentReconciliation(t *testing.T) {
 						{
 							FunctionID:  1,
 							Revision:    1,
-							Description: "KPM Service Model", 
+							Description: "KPM Service Model",
 							OID:         "1.3.6.1.4.1.53148.1.1.2.2",
 						},
 					},
@@ -466,7 +466,7 @@ func TestIdempotentReconciliation(t *testing.T) {
 	// Verify idempotency
 	assert.Equal(t, result1.RequeueAfter, result2.RequeueAfter, "Requeue timing should be identical")
 	assert.Equal(t, len(configMapList1.Items), len(configMapList2.Items), "ConfigMap count should be identical")
-	
+
 	// Count ConfigMaps for this E2NodeSet
 	count1 := countConfigMapsForE2NodeSet(configMapList1.Items, e2nodeSet.Name)
 	count2 := countConfigMapsForE2NodeSet(configMapList2.Items, e2nodeSet.Name)
@@ -569,9 +569,9 @@ func findConditionByType(conditions []nephoranv1.E2NodeSetCondition, conditionTy
 }
 
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && s[len(s)-len(substr):] == substr || 
-		   len(s) > len(substr) && s[:len(substr)] == substr ||
-		   len(s) > len(substr) && findSubstring(s, substr)
+	return len(s) >= len(substr) && s[len(s)-len(substr):] == substr ||
+		len(s) > len(substr) && s[:len(substr)] == substr ||
+		len(s) > len(substr) && findSubstring(s, substr)
 }
 
 func findSubstring(s, substr string) bool {

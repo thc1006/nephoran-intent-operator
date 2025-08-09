@@ -4,10 +4,10 @@ import (
 	"context"
 	"time"
 
+	"k8s.io/client-go/kubernetes"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"k8s.io/client-go/kubernetes"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
@@ -15,17 +15,17 @@ import (
 // InstrumentedReconciler wraps a reconciler with monitoring instrumentation
 type InstrumentedReconciler struct {
 	reconcile.Reconciler
-	Name         string
-	Metrics      *MetricsCollector
+	Name          string
+	Metrics       *MetricsCollector
 	HealthChecker *HealthChecker
 }
 
 // NewInstrumentedReconciler creates a new instrumented reconciler
 func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, metrics *MetricsCollector, kubeClient kubernetes.Interface, metricsRecorder *MetricsRecorder) *InstrumentedReconciler {
 	return &InstrumentedReconciler{
-		Reconciler: reconciler,
-		Name:       name,
-		Metrics:    metrics,
+		Reconciler:    reconciler,
+		Name:          name,
+		Metrics:       metrics,
 		HealthChecker: NewHealthChecker("1.0.0", kubeClient, metricsRecorder),
 	}
 }
@@ -34,25 +34,25 @@ func NewInstrumentedReconciler(reconciler reconcile.Reconciler, name string, met
 func (ir *InstrumentedReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	start := time.Now()
 	logger := log.FromContext(ctx)
-	
+
 	// Record API latency for Kubernetes operations
 	ir.recordAPILatency(ctx, start)
-	
+
 	// Call the wrapped reconciler
 	result, err := ir.Reconciler.Reconcile(ctx, req)
-	
+
 	duration := time.Since(start)
-	
+
 	// Record reconciliation metrics
 	if err != nil {
 		logger.Error(err, "reconciliation failed", "controller", ir.Name, "duration", duration)
 	} else {
 		logger.V(1).Info("reconciliation completed", "controller", ir.Name, "duration", duration)
 	}
-	
+
 	// Update controller health status
 	ir.Metrics.UpdateControllerHealth(ir.Name, "reconciler", err == nil)
-	
+
 	return result, err
 }
 
@@ -86,7 +86,7 @@ func (ni *NetworkIntentInstrumentation) RecordIntentProcessingComplete(intent *n
 	if !success {
 		status = "failed"
 	}
-	
+
 	intentType := "network_intent" // Default type since we don't have Spec.Type field
 	ni.Metrics.RecordNetworkIntentProcessed(intentType, status, duration)
 	ni.Metrics.UpdateNetworkIntentStatus(intent.Name, intent.Namespace, intentType, status)
@@ -98,7 +98,7 @@ func (ni *NetworkIntentInstrumentation) RecordLLMProcessing(model string, durati
 	if !success {
 		status = "error"
 	}
-	
+
 	ni.Metrics.RecordLLMRequest(model, status, duration, tokensUsed)
 }
 
@@ -127,16 +127,16 @@ func (e2i *E2NodeSetInstrumentation) RecordReconciliation(operation string, dura
 // UpdateReplicaStatus updates replica status metrics
 func (e2i *E2NodeSetInstrumentation) UpdateReplicaStatus(e2nodeSet *nephoranv1.E2NodeSet) {
 	e2i.Metrics.UpdateE2NodeSetReplicas(
-		e2nodeSet.Name, 
-		e2nodeSet.Namespace, 
-		"desired", 
+		e2nodeSet.Name,
+		e2nodeSet.Namespace,
+		"desired",
 		int(e2nodeSet.Spec.Replicas),
 	)
-	
+
 	e2i.Metrics.UpdateE2NodeSetReplicas(
-		e2nodeSet.Name, 
-		e2nodeSet.Namespace, 
-		"ready", 
+		e2nodeSet.Name,
+		e2nodeSet.Namespace,
+		"ready",
 		int(e2nodeSet.Status.ReadyReplicas),
 	)
 }
@@ -147,7 +147,7 @@ func (e2i *E2NodeSetInstrumentation) RecordScalingEvent(e2nodeSet *nephoranv1.E2
 	if newReplicas < oldReplicas {
 		direction = "down"
 	}
-	
+
 	e2i.Metrics.RecordE2NodeSetScaling(e2nodeSet.Name, e2nodeSet.Namespace, direction)
 }
 
@@ -170,7 +170,7 @@ func (oi *ORANInstrumentation) RecordA1Operation(operation string, duration time
 		status = "error"
 		oi.Metrics.RecordORANInterfaceError("A1", operation, errorType)
 	}
-	
+
 	oi.Metrics.RecordORANInterfaceRequest("A1", operation, status, duration)
 }
 
@@ -181,7 +181,7 @@ func (oi *ORANInstrumentation) RecordO1Operation(operation string, duration time
 		status = "error"
 		oi.Metrics.RecordORANInterfaceError("O1", operation, errorType)
 	}
-	
+
 	oi.Metrics.RecordORANInterfaceRequest("O1", operation, status, duration)
 }
 
@@ -192,7 +192,7 @@ func (oi *ORANInstrumentation) RecordO2Operation(operation string, duration time
 		status = "error"
 		oi.Metrics.RecordORANInterfaceError("O2", operation, errorType)
 	}
-	
+
 	oi.Metrics.RecordORANInterfaceRequest("O2", operation, status, duration)
 }
 
@@ -279,8 +279,8 @@ func (si *SystemInstrumentation) UpdateWorkerQueueMetrics(queueName string, dept
 
 // InstrumentationManager manages all instrumentation components
 type InstrumentationManager struct {
-	Metrics                    *MetricsCollector
-	HealthChecker              *HealthChecker
+	Metrics                      *MetricsCollector
+	HealthChecker                *HealthChecker
 	NetworkIntentInstrumentation *NetworkIntentInstrumentation
 	E2NodeSetInstrumentation     *E2NodeSetInstrumentation
 	ORANInstrumentation          *ORANInstrumentation
@@ -293,13 +293,13 @@ type InstrumentationManager struct {
 func NewInstrumentationManager(kubeClient kubernetes.Interface, metricsRecorder *MetricsRecorder) *InstrumentationManager {
 	metrics := NewMetricsCollector()
 	healthChecker := NewHealthChecker("1.0.0", kubeClient, metricsRecorder)
-	
+
 	// Register health checks (these are now handled internally by healthChecker)
 	// The health checks are registered automatically in the Start() method
-	
+
 	return &InstrumentationManager{
-		Metrics:                    metrics,
-		HealthChecker:              healthChecker,
+		Metrics:                      metrics,
+		HealthChecker:                healthChecker,
 		NetworkIntentInstrumentation: NewNetworkIntentInstrumentation(metrics),
 		E2NodeSetInstrumentation:     NewE2NodeSetInstrumentation(metrics),
 		ORANInstrumentation:          NewORANInstrumentation(metrics),

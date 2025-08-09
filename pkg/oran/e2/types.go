@@ -32,13 +32,13 @@ type E2ManagerInterface interface {
 
 // E2SubscriptionRequest represents a request to create an E2 subscription
 type E2SubscriptionRequest struct {
-	NodeID          string            `json:"node_id"`
-	SubscriptionID  string            `json:"subscription_id"`
-	RequestorID     string            `json:"requestor_id"`
-	RanFunctionID   int               `json:"ran_function_id"`
-	EventTriggers   []E2EventTrigger  `json:"event_triggers"`
-	Actions         []E2Action        `json:"actions"`
-	ReportingPeriod time.Duration     `json:"reporting_period"`
+	NodeID          string           `json:"node_id"`
+	SubscriptionID  string           `json:"subscription_id"`
+	RequestorID     string           `json:"requestor_id"`
+	RanFunctionID   int              `json:"ran_function_id"`
+	EventTriggers   []E2EventTrigger `json:"event_triggers"`
+	Actions         []E2Action       `json:"actions"`
+	ReportingPeriod time.Duration    `json:"reporting_period"`
 }
 
 // E2ControlMessage represents a control message to be sent to an E2 node
@@ -55,24 +55,24 @@ type E2ControlMessage struct {
 
 // E2Node represents an E2 node with enhanced information
 type E2Node struct {
-	NodeID            string              `json:"node_id"`
-	GlobalE2NodeID    E2NodeID            `json:"global_e2_node_id"`
-	RanFunctions      []*E2NodeFunction   `json:"ran_functions"`
-	ConnectionStatus  E2ConnectionStatus  `json:"connection_status"`
-	HealthStatus      NodeHealth          `json:"health_status"`
-	SubscriptionCount int                 `json:"subscription_count"`
-	LastSeen          time.Time           `json:"last_seen"`
+	NodeID            string                 `json:"node_id"`
+	GlobalE2NodeID    E2NodeID               `json:"global_e2_node_id"`
+	RanFunctions      []*E2NodeFunction      `json:"ran_functions"`
+	ConnectionStatus  E2ConnectionStatus     `json:"connection_status"`
+	HealthStatus      NodeHealth             `json:"health_status"`
+	SubscriptionCount int                    `json:"subscription_count"`
+	LastSeen          time.Time              `json:"last_seen"`
 	Configuration     map[string]interface{} `json:"configuration,omitempty"`
 }
 
 // RanFunction represents a RAN function for registration
 type RanFunction struct {
-	FunctionID          int              `json:"function_id"`
-	FunctionDefinition  string           `json:"function_definition"`
-	FunctionRevision    int              `json:"function_revision"`
-	FunctionOID         string           `json:"function_oid"`
-	FunctionDescription string           `json:"function_description"`
-	ServiceModel        E2ServiceModel   `json:"service_model"`
+	FunctionID          int            `json:"function_id"`
+	FunctionDefinition  string         `json:"function_definition"`
+	FunctionRevision    int            `json:"function_revision"`
+	FunctionOID         string         `json:"function_oid"`
+	FunctionDescription string         `json:"function_description"`
+	ServiceModel        E2ServiceModel `json:"service_model"`
 }
 
 // Connection pool methods for E2ConnectionPool
@@ -131,10 +131,10 @@ func (p *E2ConnectionPool) addConnection(nodeID string, adaptor *E2Adaptor) erro
 	}
 
 	p.connections[nodeID] = &PooledConnection{
-		adaptor:  adaptor,
-		lastUsed: time.Now(),
-		inUse:    false,
-		healthy:  true,
+		adaptor:   adaptor,
+		lastUsed:  time.Now(),
+		inUse:     false,
+		healthy:   true,
 		failCount: 0,
 	}
 
@@ -265,7 +265,7 @@ func (h *E2HealthMonitor) checkNodeHealth(nodeID string, health *NodeHealth) {
 	if err != nil {
 		health.FailureCount++
 		health.LastFailure = err.Error()
-		
+
 		// Update status based on failure count
 		if health.FailureCount >= 3 {
 			health.Status = "UNHEALTHY"

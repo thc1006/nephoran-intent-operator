@@ -19,12 +19,12 @@ var (
 		Name: "compliance_reports_generated_total",
 		Help: "Total number of compliance reports generated",
 	}, []string{"standard", "type"})
-	
+
 	complianceViolationsDetected = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "compliance_violations_detected_total",
 		Help: "Total number of compliance violations detected",
 	}, []string{"standard", "severity"})
-	
+
 	complianceReportDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "compliance_report_generation_duration_seconds",
 		Help: "Duration of compliance report generation",
@@ -36,40 +36,40 @@ type ComplianceLogger struct {
 	mutex     sync.RWMutex
 	logger    logr.Logger
 	standards []types.ComplianceStandard
-	
+
 	// Compliance tracking
 	soc2Tracker     *SOC2Tracker
 	iso27001Tracker *ISO27001Tracker
 	pciDSSTracker   *PCIDSSTracker
-	
+
 	// Configuration
 	config *ComplianceConfig
 }
 
 // ComplianceConfig holds configuration for compliance logging
 type ComplianceConfig struct {
-	Standards              []types.ComplianceStandard `json:"standards" yaml:"standards"`
-	ReportingInterval      time.Duration               `json:"reporting_interval" yaml:"reporting_interval"`
-	RetentionPeriods       map[string]time.Duration    `json:"retention_periods" yaml:"retention_periods"`
-	ViolationThresholds    map[string]int              `json:"violation_thresholds" yaml:"violation_thresholds"`
-	AutoRemediation        bool                        `json:"auto_remediation" yaml:"auto_remediation"`
-	NotificationEndpoints  []string                    `json:"notification_endpoints" yaml:"notification_endpoints"`
-	ReportOutputFormats    []string                    `json:"report_output_formats" yaml:"report_output_formats"`
+	Standards             []types.ComplianceStandard `json:"standards" yaml:"standards"`
+	ReportingInterval     time.Duration              `json:"reporting_interval" yaml:"reporting_interval"`
+	RetentionPeriods      map[string]time.Duration   `json:"retention_periods" yaml:"retention_periods"`
+	ViolationThresholds   map[string]int             `json:"violation_thresholds" yaml:"violation_thresholds"`
+	AutoRemediation       bool                       `json:"auto_remediation" yaml:"auto_remediation"`
+	NotificationEndpoints []string                   `json:"notification_endpoints" yaml:"notification_endpoints"`
+	ReportOutputFormats   []string                   `json:"report_output_formats" yaml:"report_output_formats"`
 }
 
 // ComplianceReport represents a comprehensive compliance report
 type ComplianceReport struct {
-	ReportID        string                          `json:"report_id"`
-	Standard        types.ComplianceStandard       `json:"standard"`
-	ReportType      string                          `json:"report_type"`
-	GenerationTime  time.Time                       `json:"generation_time"`
-	ReportPeriod    ReportPeriod                    `json:"report_period"`
-	Summary         ComplianceSummary               `json:"summary"`
-	Controls        []ControlAssessment             `json:"controls"`
-	Violations      []ComplianceViolation           `json:"violations"`
-	Recommendations []ComplianceRecommendation      `json:"recommendations"`
-	Evidence        []ComplianceEvidence            `json:"evidence"`
-	Attestation     *ComplianceAttestation          `json:"attestation,omitempty"`
+	ReportID        string                     `json:"report_id"`
+	Standard        types.ComplianceStandard   `json:"standard"`
+	ReportType      string                     `json:"report_type"`
+	GenerationTime  time.Time                  `json:"generation_time"`
+	ReportPeriod    ReportPeriod               `json:"report_period"`
+	Summary         ComplianceSummary          `json:"summary"`
+	Controls        []ControlAssessment        `json:"controls"`
+	Violations      []ComplianceViolation      `json:"violations"`
+	Recommendations []ComplianceRecommendation `json:"recommendations"`
+	Evidence        []ComplianceEvidence       `json:"evidence"`
+	Attestation     *ComplianceAttestation     `json:"attestation,omitempty"`
 }
 
 // ReportPeriod defines the time period covered by a compliance report
@@ -92,32 +92,32 @@ type ComplianceSummary struct {
 
 // ControlAssessment represents the assessment of a specific control
 type ControlAssessment struct {
-	ControlID          string                 `json:"control_id"`
-	ControlName        string                 `json:"control_name"`
-	Description        string                 `json:"description"`
-	Category           string                 `json:"category"`
-	Status             string                 `json:"status"`
-	ComplianceLevel    string                 `json:"compliance_level"`
-	LastAssessment     time.Time              `json:"last_assessment"`
-	EvidenceCount      int                    `json:"evidence_count"`
-	Findings           []string               `json:"findings"`
-	Metadata           map[string]interface{} `json:"metadata,omitempty"`
+	ControlID       string                 `json:"control_id"`
+	ControlName     string                 `json:"control_name"`
+	Description     string                 `json:"description"`
+	Category        string                 `json:"category"`
+	Status          string                 `json:"status"`
+	ComplianceLevel string                 `json:"compliance_level"`
+	LastAssessment  time.Time              `json:"last_assessment"`
+	EvidenceCount   int                    `json:"evidence_count"`
+	Findings        []string               `json:"findings"`
+	Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ComplianceViolation represents a specific compliance violation
 type ComplianceViolation struct {
-	ViolationID   string                 `json:"violation_id"`
-	ControlID     string                 `json:"control_id"`
-	Severity      string                 `json:"severity"`
-	Title         string                 `json:"title"`
-	Description   string                 `json:"description"`
-	DetectedAt    time.Time              `json:"detected_at"`
-	EventID       string                 `json:"event_id"`
-	UserID        string                 `json:"user_id"`
-	RemediationStatus string             `json:"remediation_status"`
-	DueDate       *time.Time             `json:"due_date,omitempty"`
-	Evidence      []string               `json:"evidence"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	ViolationID       string                 `json:"violation_id"`
+	ControlID         string                 `json:"control_id"`
+	Severity          string                 `json:"severity"`
+	Title             string                 `json:"title"`
+	Description       string                 `json:"description"`
+	DetectedAt        time.Time              `json:"detected_at"`
+	EventID           string                 `json:"event_id"`
+	UserID            string                 `json:"user_id"`
+	RemediationStatus string                 `json:"remediation_status"`
+	DueDate           *time.Time             `json:"due_date,omitempty"`
+	Evidence          []string               `json:"evidence"`
+	Metadata          map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ComplianceRecommendation provides actionable recommendations
@@ -135,16 +135,16 @@ type ComplianceRecommendation struct {
 
 // ComplianceEvidence represents evidence for compliance controls
 type ComplianceEvidence struct {
-	EvidenceID    string    `json:"evidence_id"`
-	ControlID     string    `json:"control_id"`
-	EventID       string    `json:"event_id"`
-	EvidenceType  string    `json:"evidence_type"`
-	Description   string    `json:"description"`
-	CollectedAt   time.Time `json:"collected_at"`
-	ValidUntil    time.Time `json:"valid_until"`
-	Authenticity  string    `json:"authenticity"`
-	Location      string    `json:"location"`
-	Hash          string    `json:"hash"`
+	EvidenceID   string    `json:"evidence_id"`
+	ControlID    string    `json:"control_id"`
+	EventID      string    `json:"event_id"`
+	EvidenceType string    `json:"evidence_type"`
+	Description  string    `json:"description"`
+	CollectedAt  time.Time `json:"collected_at"`
+	ValidUntil   time.Time `json:"valid_until"`
+	Authenticity string    `json:"authenticity"`
+	Location     string    `json:"location"`
+	Hash         string    `json:"hash"`
 }
 
 // ComplianceAttestation provides formal attestation
@@ -160,13 +160,13 @@ type ComplianceAttestation struct {
 func NewComplianceLogger(standards []types.ComplianceStandard) *ComplianceLogger {
 	config := DefaultComplianceConfig()
 	config.Standards = standards
-	
+
 	cl := &ComplianceLogger{
 		logger:    log.Log.WithName("compliance-logger"),
 		standards: standards,
 		config:    config,
 	}
-	
+
 	// Initialize trackers for each standard
 	for _, standard := range standards {
 		switch standard {
@@ -178,7 +178,7 @@ func NewComplianceLogger(standards []types.ComplianceStandard) *ComplianceLogger
 			cl.pciDSSTracker = NewPCIDSSTracker()
 		}
 	}
-	
+
 	return cl
 }
 
@@ -186,7 +186,7 @@ func NewComplianceLogger(standards []types.ComplianceStandard) *ComplianceLogger
 func (cl *ComplianceLogger) ProcessEvent(event *types.AuditEvent) {
 	cl.mutex.Lock()
 	defer cl.mutex.Unlock()
-	
+
 	// Process event with each enabled compliance tracker
 	for _, standard := range cl.standards {
 		switch standard {
@@ -204,7 +204,7 @@ func (cl *ComplianceLogger) ProcessEvent(event *types.AuditEvent) {
 			}
 		}
 	}
-	
+
 	// Check for violations
 	cl.checkComplianceViolations(event)
 }
@@ -216,10 +216,10 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 		duration := time.Since(start)
 		complianceReportDuration.WithLabelValues(string(standard)).Observe(duration.Seconds())
 	}()
-	
+
 	cl.mutex.RLock()
 	defer cl.mutex.RUnlock()
-	
+
 	report := &ComplianceReport{
 		ReportID:       fmt.Sprintf("%s-%s-%d", standard, reportType, time.Now().Unix()),
 		Standard:       standard,
@@ -231,7 +231,7 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 			Duration:  endTime.Sub(startTime).String(),
 		},
 	}
-	
+
 	// Generate report based on standard
 	switch standard {
 	case types.ComplianceSOC2:
@@ -247,7 +247,7 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 			return cl.generatePCIDSSReport(report, reportType, startTime, endTime)
 		}
 	}
-	
+
 	complianceReportsGenerated.WithLabelValues(string(standard), reportType).Inc()
 	return report, nil
 }
@@ -256,9 +256,9 @@ func (cl *ComplianceLogger) GenerateReport(ctx context.Context, standard types.C
 func (cl *ComplianceLogger) GetComplianceStatus() map[string]interface{} {
 	cl.mutex.RLock()
 	defer cl.mutex.RUnlock()
-	
+
 	status := make(map[string]interface{})
-	
+
 	for _, standard := range cl.standards {
 		switch standard {
 		case types.ComplianceSOC2:
@@ -275,7 +275,7 @@ func (cl *ComplianceLogger) GetComplianceStatus() map[string]interface{} {
 			}
 		}
 	}
-	
+
 	return status
 }
 
@@ -283,7 +283,7 @@ func (cl *ComplianceLogger) GetComplianceStatus() map[string]interface{} {
 func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 	// Check for common violation patterns
 	violations := make([]ComplianceViolation, 0)
-	
+
 	// Check authentication failures
 	if event.EventType == types.EventTypeAuthenticationFailed {
 		for _, standard := range cl.standards {
@@ -297,16 +297,16 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 				EventID:           event.ID,
 				RemediationStatus: "open",
 			}
-			
+
 			if event.UserContext != nil {
 				violation.UserID = event.UserContext.UserID
 			}
-			
+
 			violations = append(violations, violation)
 			complianceViolationsDetected.WithLabelValues(string(standard), "medium").Inc()
 		}
 	}
-	
+
 	// Check unauthorized access
 	if event.EventType == types.EventTypeAuthorizationFailed {
 		for _, standard := range cl.standards {
@@ -320,16 +320,16 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 				EventID:           event.ID,
 				RemediationStatus: "open",
 			}
-			
+
 			if event.UserContext != nil {
 				violation.UserID = event.UserContext.UserID
 			}
-			
+
 			violations = append(violations, violation)
 			complianceViolationsDetected.WithLabelValues(string(standard), "high").Inc()
 		}
 	}
-	
+
 	// Check data access without proper authorization
 	if event.EventType == types.EventTypeDataAccess && event.Result != types.ResultSuccess {
 		for _, standard := range cl.standards {
@@ -343,12 +343,12 @@ func (cl *ComplianceLogger) checkComplianceViolations(event *types.AuditEvent) {
 				EventID:           event.ID,
 				RemediationStatus: "open",
 			}
-			
+
 			violations = append(violations, violation)
 			complianceViolationsDetected.WithLabelValues(string(standard), "high").Inc()
 		}
 	}
-	
+
 	// Store violations for reporting
 	if len(violations) > 0 {
 		cl.storeViolations(violations)
@@ -388,7 +388,7 @@ func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, reportT
 			LastAssessment:  time.Now().UTC(),
 		},
 	}
-	
+
 	// Calculate compliance score
 	compliantControls := 0
 	for _, control := range controls {
@@ -396,18 +396,18 @@ func (cl *ComplianceLogger) generateSOC2Report(report *ComplianceReport, reportT
 			compliantControls++
 		}
 	}
-	
+
 	complianceScore := float64(compliantControls) / float64(len(controls)) * 100
-	
+
 	report.Controls = controls
 	report.Summary = ComplianceSummary{
 		TotalControls:        len(controls),
 		ControlsCompliant:    compliantControls,
 		ControlsNonCompliant: len(controls) - compliantControls,
 		ComplianceScore:      complianceScore,
-		RiskLevel:           cl.calculateRiskLevel(complianceScore),
+		RiskLevel:            cl.calculateRiskLevel(complianceScore),
 	}
-	
+
 	return report, nil
 }
 
@@ -442,7 +442,7 @@ func (cl *ComplianceLogger) generateISO27001Report(report *ComplianceReport, rep
 			LastAssessment:  time.Now().UTC(),
 		},
 	}
-	
+
 	report.Controls = controls
 	return report, nil
 }
@@ -478,7 +478,7 @@ func (cl *ComplianceLogger) generatePCIDSSReport(report *ComplianceReport, repor
 			LastAssessment:  time.Now().UTC(),
 		},
 	}
-	
+
 	report.Controls = controls
 	return report, nil
 }

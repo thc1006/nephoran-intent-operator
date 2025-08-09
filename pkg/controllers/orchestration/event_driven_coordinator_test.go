@@ -50,17 +50,17 @@ var _ = Describe("EventDrivenCoordinator", func() {
 	BeforeEach(func() {
 		ctx = context.Background()
 		logger = zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
-		
+
 		// Create scheme and add types
 		scheme = runtime.NewScheme()
 		Expect(corev1.AddToScheme(scheme)).To(Succeed())
 		Expect(nephoranv1.AddToScheme(scheme)).To(Succeed())
-		
+
 		// Create fake client
 		fakeClient = fake.NewClientBuilder().
 			WithScheme(scheme).
 			Build()
-		
+
 		// Create test NetworkIntent
 		networkIntent = &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
@@ -79,7 +79,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				},
 			},
 		}
-		
+
 		// Create coordinator
 		coordinator = NewEventDrivenCoordinator(fakeClient, logger)
 	})
@@ -104,7 +104,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 		It("should start and stop coordinator successfully", func() {
 			err := coordinator.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			err = coordinator.Stop(ctx)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -120,7 +120,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 			// Coordinate the intent
 			err := coordinator.CoordinateIntentWithEvents(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Verify coordination context was created
 			intentID := string(networkIntent.UID)
 			coordCtx, exists := coordinator.GetCoordinationContext(intentID)
@@ -131,11 +131,11 @@ var _ = Describe("EventDrivenCoordinator", func() {
 
 		It("should handle phase transitions", func() {
 			intentID := string(networkIntent.UID)
-			
+
 			// Start coordination
 			err := coordinator.CoordinateIntentWithEvents(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Create phase transition event
 			event := ProcessingEvent{
 				Type:     EventPhaseTransition,
@@ -145,11 +145,11 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				Success:  true,
 				Data:     make(map[string]interface{}),
 			}
-			
+
 			// Handle the event
 			err = coordinator.handlePhaseTransition(ctx, event)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Verify phase was updated
 			coordCtx, exists := coordinator.GetCoordinationContext(intentID)
 			Expect(exists).To(BeTrue())
@@ -159,11 +159,11 @@ var _ = Describe("EventDrivenCoordinator", func() {
 
 		It("should handle conflict detection and resolution", func() {
 			intentID := string(networkIntent.UID)
-			
+
 			// Start coordination
 			err := coordinator.CoordinateIntentWithEvents(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Create conflict detection event
 			conflictID := "test-conflict-123"
 			conflictEvent := ProcessingEvent{
@@ -177,17 +177,17 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					"type":       "ResourceConflict",
 				},
 			}
-			
+
 			// Handle conflict detection
 			err = coordinator.handleConflictDetected(ctx, conflictEvent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Verify conflict was recorded
 			coordCtx, exists := coordinator.GetCoordinationContext(intentID)
 			Expect(exists).To(BeTrue())
 			Expect(len(coordCtx.Conflicts)).To(Equal(1))
 			Expect(coordCtx.Conflicts[0].ID).To(Equal(conflictID))
-			
+
 			// Create conflict resolution event
 			resolutionEvent := ProcessingEvent{
 				Type:     EventConflictResolved,
@@ -199,11 +199,11 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					"conflictId": conflictID,
 				},
 			}
-			
+
 			// Handle conflict resolution
 			err = coordinator.handleConflictResolved(ctx, resolutionEvent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Verify conflict was removed
 			coordCtx, exists = coordinator.GetCoordinationContext(intentID)
 			Expect(exists).To(BeTrue())
@@ -213,11 +213,11 @@ var _ = Describe("EventDrivenCoordinator", func() {
 		It("should handle resource lock lifecycle", func() {
 			intentID := string(networkIntent.UID)
 			lockID := "test-lock-456"
-			
+
 			// Start coordination
 			err := coordinator.CoordinateIntentWithEvents(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Create lock acquisition event
 			lockAcquiredEvent := ProcessingEvent{
 				Type:     EventResourceLockAcquired,
@@ -229,16 +229,16 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					"lockId": lockID,
 				},
 			}
-			
+
 			// Handle lock acquisition
 			err = coordinator.handleResourceLockAcquired(ctx, lockAcquiredEvent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Verify lock was recorded
 			coordCtx, exists := coordinator.GetCoordinationContext(intentID)
 			Expect(exists).To(BeTrue())
 			Expect(coordCtx.Locks).To(ContainElement(lockID))
-			
+
 			// Create lock release event
 			lockReleasedEvent := ProcessingEvent{
 				Type:     EventResourceLockReleased,
@@ -250,11 +250,11 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					"lockId": lockID,
 				},
 			}
-			
+
 			// Handle lock release
 			err = coordinator.handleResourceLockReleased(ctx, lockReleasedEvent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Verify lock was removed
 			coordCtx, exists = coordinator.GetCoordinationContext(intentID)
 			Expect(exists).To(BeTrue())
@@ -263,11 +263,11 @@ var _ = Describe("EventDrivenCoordinator", func() {
 
 		It("should handle recovery events", func() {
 			intentID := string(networkIntent.UID)
-			
+
 			// Start coordination
 			err := coordinator.CoordinateIntentWithEvents(ctx, networkIntent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Create recovery initiated event
 			recoveryInitiatedEvent := ProcessingEvent{
 				Type:     EventRecoveryInitiated,
@@ -279,18 +279,18 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					"action": "llm-fallback",
 				},
 			}
-			
+
 			// Handle recovery initiation
 			err = coordinator.handleRecoveryInitiated(ctx, recoveryInitiatedEvent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Verify recovery was recorded
 			coordCtx, exists := coordinator.GetCoordinationContext(intentID)
 			Expect(exists).To(BeTrue())
 			Expect(coordCtx.RetryCount).To(Equal(1))
 			Expect(len(coordCtx.ErrorHistory)).To(Equal(1))
 			Expect(coordCtx.ErrorHistory[0]).To(ContainSubstring("Recovery initiated"))
-			
+
 			// Create recovery completed event
 			recoveryCompletedEvent := ProcessingEvent{
 				Type:     EventRecoveryCompleted,
@@ -302,11 +302,11 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					"action": "llm-fallback-completed",
 				},
 			}
-			
+
 			// Handle recovery completion
 			err = coordinator.handleRecoveryCompleted(ctx, recoveryCompletedEvent)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Verify recovery completion was recorded
 			coordCtx, exists = coordinator.GetCoordinationContext(intentID)
 			Expect(exists).To(BeTrue())
@@ -323,7 +323,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 
 		It("should persist events to ConfigMaps", func() {
 			intentID := string(networkIntent.UID)
-			
+
 			// Create test event
 			event := ProcessingEvent{
 				Type:          EventIntentReceived,
@@ -335,24 +335,24 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				Timestamp:     time.Now(),
 				CorrelationID: "test-correlation-123",
 			}
-			
+
 			// Persist the event
 			err := coordinator.eventStore.PersistEvent(ctx, event)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Verify ConfigMap was created
 			configMapName := "intent-events-" + intentID
 			configMap := &corev1.ConfigMap{}
-			
+
 			err = fakeClient.Get(ctx, client.ObjectKey{
 				Name:      configMapName,
 				Namespace: "nephoran-system",
 			}, configMap)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Verify event data is in ConfigMap
 			Expect(len(configMap.Data)).To(BeNumerically(">", 0))
-			
+
 			// Verify labels
 			Expect(configMap.Labels).To(HaveKeyWithValue("nephoran.com/intent-id", intentID))
 			Expect(configMap.Labels).To(HaveKeyWithValue("nephoran.com/event-store", "true"))
@@ -360,7 +360,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 
 		It("should retrieve events from persistent storage", func() {
 			intentID := string(networkIntent.UID)
-			
+
 			// Create and persist multiple events
 			events := []ProcessingEvent{
 				{
@@ -382,21 +382,21 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					CorrelationID: "correlation-2",
 				},
 			}
-			
+
 			for _, event := range events {
 				err := coordinator.eventStore.PersistEvent(ctx, event)
 				Expect(err).NotTo(HaveOccurred())
 			}
-			
+
 			// Retrieve events
 			retrievedEvents, err := coordinator.eventStore.GetEventsForIntent(ctx, intentID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(retrievedEvents)).To(Equal(2))
-			
+
 			// Verify event content
 			intentReceivedFound := false
 			llmStartedFound := false
-			
+
 			for _, event := range retrievedEvents {
 				switch event.Type {
 				case EventIntentReceived:
@@ -409,7 +409,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					Expect(event.Phase).To(Equal(interfaces.PhaseLLMProcessing))
 				}
 			}
-			
+
 			Expect(intentReceivedFound).To(BeTrue())
 			Expect(llmStartedFound).To(BeTrue())
 		})
@@ -423,7 +423,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 
 		It("should replay events for intent recovery", func() {
 			intentID := string(networkIntent.UID)
-			
+
 			// Create and persist events
 			events := []ProcessingEvent{
 				{
@@ -445,40 +445,40 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					CorrelationID: "replay-correlation-2",
 				},
 			}
-			
+
 			for _, event := range events {
 				err := coordinator.eventStore.PersistEvent(ctx, event)
 				Expect(err).NotTo(HaveOccurred())
 			}
-			
+
 			// Track replayed events
 			replayedEvents := make([]ProcessingEvent, 0)
 			replayHandler := func(ctx context.Context, event ProcessingEvent) error {
 				replayedEvents = append(replayedEvents, event)
 				return nil
 			}
-			
+
 			// Subscribe to all events to capture replays
 			err := coordinator.eventBus.Subscribe("*", replayHandler)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Wait for event bus to process subscriptions
 			time.Sleep(100 * time.Millisecond)
-			
+
 			// Replay events
 			err = coordinator.replayManager.ReplayEventsForIntent(ctx, intentID)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Wait for replay to complete
 			time.Sleep(500 * time.Millisecond)
-			
+
 			// Verify events were replayed
 			Expect(len(replayedEvents)).To(BeNumerically(">=", 2))
 		})
 
 		It("should handle replay with no events gracefully", func() {
 			intentID := "non-existent-intent"
-			
+
 			// Attempt replay for non-existent intent
 			err := coordinator.replayManager.ReplayEventsForIntent(ctx, intentID)
 			Expect(err).NotTo(HaveOccurred())
@@ -493,7 +493,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 
 		It("should detect stuck intents and initiate recovery", func() {
 			intentID := string(networkIntent.UID)
-			
+
 			// Create a coordination context with old timestamp
 			oldTime := time.Now().Add(-15 * time.Minute)
 			coordCtx := &CoordinationContext{
@@ -503,11 +503,11 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				LastUpdateTime: oldTime,
 				Metadata:       make(map[string]interface{}),
 			}
-			
+
 			coordinator.mutex.Lock()
 			coordinator.coordinationContexts[intentID] = coordCtx
 			coordinator.mutex.Unlock()
-			
+
 			// Track recovery events
 			recoveryEventReceived := false
 			recoveryHandler := func(ctx context.Context, event ProcessingEvent) error {
@@ -516,16 +516,16 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				}
 				return nil
 			}
-			
+
 			err := coordinator.eventBus.Subscribe(EventRecoveryInitiated, recoveryHandler)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Trigger recovery check
 			coordinator.checkForRecoveryNeeded(ctx)
-			
+
 			// Wait for event processing
 			time.Sleep(200 * time.Millisecond)
-			
+
 			// Verify recovery was initiated
 			Expect(recoveryEventReceived).To(BeTrue())
 		})
@@ -540,7 +540,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 		It("should handle multiple intents concurrently", func() {
 			numIntents := 5
 			intents := make([]*nephoranv1.NetworkIntent, numIntents)
-			
+
 			// Create multiple intents
 			for i := 0; i < numIntents; i++ {
 				intents[i] = &nephoranv1.NetworkIntent{
@@ -554,7 +554,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					},
 				}
 			}
-			
+
 			// Coordinate all intents concurrently
 			done := make(chan bool, numIntents)
 			for i := 0; i < numIntents; i++ {
@@ -565,12 +565,12 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					done <- true
 				}(intents[i])
 			}
-			
+
 			// Wait for all to complete
 			for i := 0; i < numIntents; i++ {
 				Eventually(done).Should(Receive())
 			}
-			
+
 			// Verify all coordination contexts were created
 			for i := 0; i < numIntents; i++ {
 				intentID := string(intents[i].UID)

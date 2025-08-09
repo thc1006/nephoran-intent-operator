@@ -6,8 +6,8 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,10 +19,10 @@ func init() {
 		// Create Linkerd-specific configuration
 		linkerdConfig := &Config{
 			Namespace:           meshConfig.Namespace,
-			TrustDomain:        meshConfig.TrustDomain,
-			ControlPlaneURL:    meshConfig.ControlPlaneURL,
-			CertificateConfig:  meshConfig.CertificateConfig,
-			PolicyDefaults:     meshConfig.PolicyDefaults,
+			TrustDomain:         meshConfig.TrustDomain,
+			ControlPlaneURL:     meshConfig.ControlPlaneURL,
+			CertificateConfig:   meshConfig.CertificateConfig,
+			PolicyDefaults:      meshConfig.PolicyDefaults,
 			ObservabilityConfig: meshConfig.ObservabilityConfig,
 		}
 
@@ -42,14 +42,14 @@ func init() {
 
 // Config contains Linkerd-specific configuration
 type Config struct {
-	Namespace           string                              `json:"namespace"`
-	TrustDomain         string                              `json:"trustDomain"`
-	ControlPlaneURL     string                              `json:"controlPlaneUrl"`
-	IdentityTrustDomain string                              `json:"identityTrustDomain"`
-	ProxyLogLevel       string                              `json:"proxyLogLevel"`
-	CertificateConfig   *abstraction.CertificateConfig      `json:"certificateConfig"`
-	PolicyDefaults      *abstraction.PolicyDefaults         `json:"policyDefaults"`
-	ObservabilityConfig *abstraction.ObservabilityConfig    `json:"observabilityConfig"`
+	Namespace           string                           `json:"namespace"`
+	TrustDomain         string                           `json:"trustDomain"`
+	ControlPlaneURL     string                           `json:"controlPlaneUrl"`
+	IdentityTrustDomain string                           `json:"identityTrustDomain"`
+	ProxyLogLevel       string                           `json:"proxyLogLevel"`
+	CertificateConfig   *abstraction.CertificateConfig   `json:"certificateConfig"`
+	PolicyDefaults      *abstraction.PolicyDefaults      `json:"policyDefaults"`
+	ObservabilityConfig *abstraction.ObservabilityConfig `json:"observabilityConfig"`
 }
 
 // LinkerdMesh implements ServiceMeshInterface for Linkerd

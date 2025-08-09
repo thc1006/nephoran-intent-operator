@@ -16,15 +16,15 @@ import (
 
 // ResourceTypeManager manages resource type definitions and YANG models
 type ResourceTypeManager struct {
-	storage       O2IMSStorage
-	kubeClient    client.Client
-	logger        *logging.StructuredLogger
-	config        *ResourceTypeConfig
+	storage    O2IMSStorage
+	kubeClient client.Client
+	logger     *logging.StructuredLogger
+	config     *ResourceTypeConfig
 
 	// Resource type cache
-	typeCache     map[string]*models.ResourceType
-	cacheMu       sync.RWMutex
-	cacheExpiry   time.Duration
+	typeCache   map[string]*models.ResourceType
+	cacheMu     sync.RWMutex
+	cacheExpiry time.Duration
 
 	// YANG model management
 	yangModelStore YANGModelStore
@@ -32,7 +32,7 @@ type ResourceTypeManager struct {
 
 	// Schema registry
 	schemaRegistry SchemaRegistry
-	
+
 	// Type discovery and validation
 	discoveryEnabled  bool
 	validationEnabled bool
@@ -41,32 +41,32 @@ type ResourceTypeManager struct {
 // ResourceTypeConfig defines configuration for resource type management
 type ResourceTypeConfig struct {
 	// Cache configuration
-	CacheEnabled          bool          `json:"cache_enabled"`
-	CacheExpiry           time.Duration `json:"cache_expiry"`
-	MaxCacheSize          int           `json:"max_cache_size"`
+	CacheEnabled bool          `json:"cache_enabled"`
+	CacheExpiry  time.Duration `json:"cache_expiry"`
+	MaxCacheSize int           `json:"max_cache_size"`
 
 	// YANG model configuration
-	YANGModelsEnabled     bool          `json:"yang_models_enabled"`
-	YANGModelsPath        string        `json:"yang_models_path"`
-	YANGValidationEnabled bool          `json:"yang_validation_enabled"`
+	YANGModelsEnabled     bool   `json:"yang_models_enabled"`
+	YANGModelsPath        string `json:"yang_models_path"`
+	YANGValidationEnabled bool   `json:"yang_validation_enabled"`
 
 	// Schema validation
-	SchemaValidationEnabled bool        `json:"schema_validation_enabled"`
-	StrictValidation        bool        `json:"strict_validation"`
+	SchemaValidationEnabled bool `json:"schema_validation_enabled"`
+	StrictValidation        bool `json:"strict_validation"`
 
 	// Type discovery
-	AutoDiscoveryEnabled    bool          `json:"auto_discovery_enabled"`
-	DiscoveryInterval       time.Duration `json:"discovery_interval"`
-	SupportedProviders      []string      `json:"supported_providers"`
+	AutoDiscoveryEnabled bool          `json:"auto_discovery_enabled"`
+	DiscoveryInterval    time.Duration `json:"discovery_interval"`
+	SupportedProviders   []string      `json:"supported_providers"`
 
 	// Vendor extensions
-	VendorExtensionsEnabled bool          `json:"vendor_extensions_enabled"`
-	AllowedVendors          []string      `json:"allowed_vendors"`
+	VendorExtensionsEnabled bool     `json:"vendor_extensions_enabled"`
+	AllowedVendors          []string `json:"allowed_vendors"`
 
 	// Versioning
-	VersioningEnabled       bool          `json:"versioning_enabled"`
-	DefaultVersion          string        `json:"default_version"`
-	SupportedVersions       []string      `json:"supported_versions"`
+	VersioningEnabled bool     `json:"versioning_enabled"`
+	DefaultVersion    string   `json:"default_version"`
+	SupportedVersions []string `json:"supported_versions"`
 }
 
 // YANGModelStore defines the interface for YANG model storage and retrieval
@@ -122,45 +122,45 @@ type SchemaRegistry interface {
 
 // YANGModel represents a YANG model definition
 type YANGModel struct {
-	ModelID          string                 `json:"modelId"`
-	Name             string                 `json:"name"`
-	Version          string                 `json:"version"`
-	Namespace        string                 `json:"namespace"`
-	Prefix           string                 `json:"prefix"`
-	Description      string                 `json:"description,omitempty"`
-	Organization     string                 `json:"organization,omitempty"`
-	Contact          string                 `json:"contact,omitempty"`
-	
+	ModelID      string `json:"modelId"`
+	Name         string `json:"name"`
+	Version      string `json:"version"`
+	Namespace    string `json:"namespace"`
+	Prefix       string `json:"prefix"`
+	Description  string `json:"description,omitempty"`
+	Organization string `json:"organization,omitempty"`
+	Contact      string `json:"contact,omitempty"`
+
 	// Model content
-	YANGContent      string                 `json:"yangContent"`
-	CompiledSchema   *CompiledSchema        `json:"compiledSchema,omitempty"`
-	
+	YANGContent    string          `json:"yangContent"`
+	CompiledSchema *CompiledSchema `json:"compiledSchema,omitempty"`
+
 	// Dependencies
-	ImportedModules  []*YANGModuleRef       `json:"importedModules,omitempty"`
-	IncludedSubmodules []*YANGModuleRef     `json:"includedSubmodules,omitempty"`
-	Dependencies     []*YANGDependency      `json:"dependencies,omitempty"`
-	
+	ImportedModules    []*YANGModuleRef  `json:"importedModules,omitempty"`
+	IncludedSubmodules []*YANGModuleRef  `json:"includedSubmodules,omitempty"`
+	Dependencies       []*YANGDependency `json:"dependencies,omitempty"`
+
 	// Validation and metadata
-	ValidationStatus *ValidationResult      `json:"validationStatus,omitempty"`
-	Features         []string               `json:"features,omitempty"`
-	Deviations       []*YANGDeviation       `json:"deviations,omitempty"`
-	
+	ValidationStatus *ValidationResult `json:"validationStatus,omitempty"`
+	Features         []string          `json:"features,omitempty"`
+	Deviations       []*YANGDeviation  `json:"deviations,omitempty"`
+
 	// Lifecycle
-	Status           string                 `json:"status"` // DRAFT, ACTIVE, DEPRECATED, OBSOLETE
-	Tags             map[string]string      `json:"tags,omitempty"`
-	Extensions       map[string]interface{} `json:"extensions,omitempty"`
-	CreatedAt        time.Time              `json:"createdAt"`
-	UpdatedAt        time.Time              `json:"updatedAt"`
-	CreatedBy        string                 `json:"createdBy,omitempty"`
-	UpdatedBy        string                 `json:"updatedBy,omitempty"`
+	Status     string                 `json:"status"` // DRAFT, ACTIVE, DEPRECATED, OBSOLETE
+	Tags       map[string]string      `json:"tags,omitempty"`
+	Extensions map[string]interface{} `json:"extensions,omitempty"`
+	CreatedAt  time.Time              `json:"createdAt"`
+	UpdatedAt  time.Time              `json:"updatedAt"`
+	CreatedBy  string                 `json:"createdBy,omitempty"`
+	UpdatedBy  string                 `json:"updatedBy,omitempty"`
 }
 
 // YANGModuleRef represents a reference to a YANG module
 type YANGModuleRef struct {
-	Name      string `json:"name"`
-	Version   string `json:"version,omitempty"`
-	Prefix    string `json:"prefix,omitempty"`
-	Required  bool   `json:"required"`
+	Name     string `json:"name"`
+	Version  string `json:"version,omitempty"`
+	Prefix   string `json:"prefix,omitempty"`
+	Required bool   `json:"required"`
 }
 
 // YANGDependency represents a dependency between YANG models
@@ -174,245 +174,245 @@ type YANGDependency struct {
 
 // YANGDeviation represents a YANG deviation
 type YANGDeviation struct {
-	TargetNode  string                 `json:"targetNode"`
-	DeviationType string               `json:"deviationType"` // NOT_SUPPORTED, ADD, REPLACE, DELETE
-	Description string                 `json:"description,omitempty"`
-	Reference   string                 `json:"reference,omitempty"`
-	Condition   map[string]interface{} `json:"condition,omitempty"`
+	TargetNode    string                 `json:"targetNode"`
+	DeviationType string                 `json:"deviationType"` // NOT_SUPPORTED, ADD, REPLACE, DELETE
+	Description   string                 `json:"description,omitempty"`
+	Reference     string                 `json:"reference,omitempty"`
+	Condition     map[string]interface{} `json:"condition,omitempty"`
 }
 
 // CompiledSchema represents a compiled YANG schema
 type CompiledSchema struct {
-	SchemaID        string                 `json:"schemaId"`
-	ModelName       string                 `json:"modelName"`
-	Version         string                 `json:"version"`
-	CompiledAt      time.Time              `json:"compiledAt"`
-	
+	SchemaID   string    `json:"schemaId"`
+	ModelName  string    `json:"modelName"`
+	Version    string    `json:"version"`
+	CompiledAt time.Time `json:"compiledAt"`
+
 	// Schema structure
-	RootNodes       []*YANGNode            `json:"rootNodes"`
-	DataTypes       []*YANGDataType        `json:"dataTypes"`
-	Identities      []*YANGIdentity        `json:"identities"`
-	Features        []*YANGFeature         `json:"features"`
-	
+	RootNodes  []*YANGNode     `json:"rootNodes"`
+	DataTypes  []*YANGDataType `json:"dataTypes"`
+	Identities []*YANGIdentity `json:"identities"`
+	Features   []*YANGFeature  `json:"features"`
+
 	// Constraints and validations
-	Constraints     []*YANGConstraint      `json:"constraints,omitempty"`
-	
+	Constraints []*YANGConstraint `json:"constraints,omitempty"`
+
 	// Metadata
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // YANGNode represents a node in the YANG schema tree
 type YANGNode struct {
-	Name            string                 `json:"name"`
-	Type            string                 `json:"type"` // CONTAINER, LIST, LEAF, LEAF_LIST, CHOICE, CASE, ANYXML, ANYDATA
-	Path            string                 `json:"path"`
-	Description     string                 `json:"description,omitempty"`
-	
+	Name        string `json:"name"`
+	Type        string `json:"type"` // CONTAINER, LIST, LEAF, LEAF_LIST, CHOICE, CASE, ANYXML, ANYDATA
+	Path        string `json:"path"`
+	Description string `json:"description,omitempty"`
+
 	// Node properties
-	Config          *bool                  `json:"config,omitempty"`
-	Mandatory       *bool                  `json:"mandatory,omitempty"`
-	Status          string                 `json:"status,omitempty"` // CURRENT, DEPRECATED, OBSOLETE
-	
+	Config    *bool  `json:"config,omitempty"`
+	Mandatory *bool  `json:"mandatory,omitempty"`
+	Status    string `json:"status,omitempty"` // CURRENT, DEPRECATED, OBSOLETE
+
 	// Type information
-	DataType        *YANGDataType          `json:"dataType,omitempty"`
-	DefaultValue    interface{}            `json:"defaultValue,omitempty"`
-	
+	DataType     *YANGDataType `json:"dataType,omitempty"`
+	DefaultValue interface{}   `json:"defaultValue,omitempty"`
+
 	// Constraints
-	Constraints     []*YANGConstraint      `json:"constraints,omitempty"`
-	
+	Constraints []*YANGConstraint `json:"constraints,omitempty"`
+
 	// Hierarchy
-	Parent          *YANGNode              `json:"parent,omitempty"`
-	Children        []*YANGNode            `json:"children,omitempty"`
-	
+	Parent   *YANGNode   `json:"parent,omitempty"`
+	Children []*YANGNode `json:"children,omitempty"`
+
 	// Extensions
-	Extensions      map[string]interface{} `json:"extensions,omitempty"`
+	Extensions map[string]interface{} `json:"extensions,omitempty"`
 }
 
 // YANGDataType represents a YANG data type
 type YANGDataType struct {
-	Name            string                 `json:"name"`
-	BaseType        string                 `json:"baseType"`
-	Description     string                 `json:"description,omitempty"`
-	
+	Name        string `json:"name"`
+	BaseType    string `json:"baseType"`
+	Description string `json:"description,omitempty"`
+
 	// Type restrictions
-	Restrictions    []*YANGRestriction     `json:"restrictions,omitempty"`
-	Enumerations    []*YANGEnumeration     `json:"enumerations,omitempty"`
-	UnionTypes      []*YANGDataType        `json:"unionTypes,omitempty"`
-	
+	Restrictions []*YANGRestriction `json:"restrictions,omitempty"`
+	Enumerations []*YANGEnumeration `json:"enumerations,omitempty"`
+	UnionTypes   []*YANGDataType    `json:"unionTypes,omitempty"`
+
 	// Derived type information
-	DerivedFrom     string                 `json:"derivedFrom,omitempty"`
-	
+	DerivedFrom string `json:"derivedFrom,omitempty"`
+
 	// Extensions
-	Extensions      map[string]interface{} `json:"extensions,omitempty"`
+	Extensions map[string]interface{} `json:"extensions,omitempty"`
 }
 
 // YANGRestriction represents a restriction on a YANG data type
 type YANGRestriction struct {
-	Type            string      `json:"type"` // LENGTH, PATTERN, RANGE, FRACTION_DIGITS
-	Value           interface{} `json:"value"`
-	ErrorMessage    string      `json:"errorMessage,omitempty"`
-	Description     string      `json:"description,omitempty"`
+	Type         string      `json:"type"` // LENGTH, PATTERN, RANGE, FRACTION_DIGITS
+	Value        interface{} `json:"value"`
+	ErrorMessage string      `json:"errorMessage,omitempty"`
+	Description  string      `json:"description,omitempty"`
 }
 
 // YANGEnumeration represents an enumeration value in YANG
 type YANGEnumeration struct {
-	Name            string `json:"name"`
-	Value           *int   `json:"value,omitempty"`
-	Description     string `json:"description,omitempty"`
-	Status          string `json:"status,omitempty"`
+	Name        string `json:"name"`
+	Value       *int   `json:"value,omitempty"`
+	Description string `json:"description,omitempty"`
+	Status      string `json:"status,omitempty"`
 }
 
 // YANGIdentity represents a YANG identity
 type YANGIdentity struct {
-	Name            string   `json:"name"`
-	BaseIdentities  []string `json:"baseIdentities,omitempty"`
-	Description     string   `json:"description,omitempty"`
-	Status          string   `json:"status,omitempty"`
+	Name           string   `json:"name"`
+	BaseIdentities []string `json:"baseIdentities,omitempty"`
+	Description    string   `json:"description,omitempty"`
+	Status         string   `json:"status,omitempty"`
 }
 
 // YANGFeature represents a YANG feature
 type YANGFeature struct {
-	Name            string   `json:"name"`
-	Description     string   `json:"description,omitempty"`
-	Status          string   `json:"status,omitempty"`
-	IfFeatures      []string `json:"ifFeatures,omitempty"`
+	Name        string   `json:"name"`
+	Description string   `json:"description,omitempty"`
+	Status      string   `json:"status,omitempty"`
+	IfFeatures  []string `json:"ifFeatures,omitempty"`
 }
 
 // YANGConstraint represents a YANG constraint
 type YANGConstraint struct {
-	Type            string                 `json:"type"` // MUST, WHEN, UNIQUE, KEY
-	Expression      string                 `json:"expression"`
-	ErrorMessage    string                 `json:"errorMessage,omitempty"`
-	Description     string                 `json:"description,omitempty"`
-	Context         map[string]interface{} `json:"context,omitempty"`
+	Type         string                 `json:"type"` // MUST, WHEN, UNIQUE, KEY
+	Expression   string                 `json:"expression"`
+	ErrorMessage string                 `json:"errorMessage,omitempty"`
+	Description  string                 `json:"description,omitempty"`
+	Context      map[string]interface{} `json:"context,omitempty"`
 }
 
 // ValidationResult represents the result of YANG validation
 type ValidationResult struct {
-	Valid           bool                   `json:"valid"`
-	Errors          []*ValidationError     `json:"errors,omitempty"`
-	Warnings        []*ValidationWarning   `json:"warnings,omitempty"`
-	Summary         string                 `json:"summary,omitempty"`
-	ValidationTime  time.Duration          `json:"validationTime"`
-	ValidatedAt     time.Time              `json:"validatedAt"`
+	Valid          bool                 `json:"valid"`
+	Errors         []*ValidationError   `json:"errors,omitempty"`
+	Warnings       []*ValidationWarning `json:"warnings,omitempty"`
+	Summary        string               `json:"summary,omitempty"`
+	ValidationTime time.Duration        `json:"validationTime"`
+	ValidatedAt    time.Time            `json:"validatedAt"`
 }
 
 // ValidationError represents a validation error
 type ValidationError struct {
-	Code            string `json:"code"`
-	Message         string `json:"message"`
-	Path            string `json:"path,omitempty"`
-	Line            int    `json:"line,omitempty"`
-	Column          int    `json:"column,omitempty"`
-	Severity        string `json:"severity"` // ERROR, WARNING, INFO
+	Code     string `json:"code"`
+	Message  string `json:"message"`
+	Path     string `json:"path,omitempty"`
+	Line     int    `json:"line,omitempty"`
+	Column   int    `json:"column,omitempty"`
+	Severity string `json:"severity"` // ERROR, WARNING, INFO
 }
 
 // ValidationWarning represents a validation warning
 type ValidationWarning struct {
-	Code            string `json:"code"`
-	Message         string `json:"message"`
-	Path            string `json:"path,omitempty"`
-	Line            int    `json:"line,omitempty"`
-	Column          int    `json:"column,omitempty"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
+	Path    string `json:"path,omitempty"`
+	Line    int    `json:"line,omitempty"`
+	Column  int    `json:"column,omitempty"`
 }
 
 // Schema represents a generic schema definition
 type Schema struct {
-	SchemaID        string                 `json:"schemaId"`
-	Name            string                 `json:"name"`
-	Version         string                 `json:"version"`
-	Type            string                 `json:"type"` // YANG, JSON_SCHEMA, XSD, AVRO
-	Content         string                 `json:"content"`
-	CompiledSchema  *CompiledSchema        `json:"compiledSchema,omitempty"`
-	
+	SchemaID       string          `json:"schemaId"`
+	Name           string          `json:"name"`
+	Version        string          `json:"version"`
+	Type           string          `json:"type"` // YANG, JSON_SCHEMA, XSD, AVRO
+	Content        string          `json:"content"`
+	CompiledSchema *CompiledSchema `json:"compiledSchema,omitempty"`
+
 	// Metadata
-	Description     string                 `json:"description,omitempty"`
-	Tags            map[string]string      `json:"tags,omitempty"`
-	Extensions      map[string]interface{} `json:"extensions,omitempty"`
-	
+	Description string                 `json:"description,omitempty"`
+	Tags        map[string]string      `json:"tags,omitempty"`
+	Extensions  map[string]interface{} `json:"extensions,omitempty"`
+
 	// Lifecycle
-	Status          string                 `json:"status"`
-	CreatedAt       time.Time              `json:"createdAt"`
-	UpdatedAt       time.Time              `json:"updatedAt"`
-	CreatedBy       string                 `json:"createdBy,omitempty"`
+	Status    string    `json:"status"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	CreatedBy string    `json:"createdBy,omitempty"`
 }
 
 // SchemaReference represents a reference to a schema
 type SchemaReference struct {
-	SchemaID        string `json:"schemaId"`
-	Version         string `json:"version,omitempty"`
-	Type            string `json:"type,omitempty"`
+	SchemaID string `json:"schemaId"`
+	Version  string `json:"version,omitempty"`
+	Type     string `json:"type,omitempty"`
 }
 
 // CompatibilityResult represents the result of schema compatibility check
 type CompatibilityResult struct {
-	Compatible      bool                   `json:"compatible"`
-	CompatibilityLevel string              `json:"compatibilityLevel"` // FULL, BACKWARD, FORWARD, NONE
-	Issues          []*CompatibilityIssue  `json:"issues,omitempty"`
-	Summary         string                 `json:"summary,omitempty"`
+	Compatible         bool                  `json:"compatible"`
+	CompatibilityLevel string                `json:"compatibilityLevel"` // FULL, BACKWARD, FORWARD, NONE
+	Issues             []*CompatibilityIssue `json:"issues,omitempty"`
+	Summary            string                `json:"summary,omitempty"`
 }
 
 // CompatibilityIssue represents a compatibility issue
 type CompatibilityIssue struct {
-	Type            string `json:"type"` // BREAKING, NON_BREAKING, WARNING
-	Message         string `json:"message"`
-	Path            string `json:"path,omitempty"`
-	Severity        string `json:"severity"`
+	Type     string `json:"type"` // BREAKING, NON_BREAKING, WARNING
+	Message  string `json:"message"`
+	Path     string `json:"path,omitempty"`
+	Severity string `json:"severity"`
 }
 
 // Filter types for queries
 
 // YANGModelFilter defines filters for YANG model queries
 type YANGModelFilter struct {
-	Names           []string          `json:"names,omitempty"`
-	Versions        []string          `json:"versions,omitempty"`
-	Namespaces      []string          `json:"namespaces,omitempty"`
-	Organizations   []string          `json:"organizations,omitempty"`
-	Status          []string          `json:"status,omitempty"`
-	Features        []string          `json:"features,omitempty"`
-	Tags            map[string]string `json:"tags,omitempty"`
-	CreatedAfter    *time.Time        `json:"createdAfter,omitempty"`
-	CreatedBefore   *time.Time        `json:"createdBefore,omitempty"`
-	Limit           int               `json:"limit,omitempty"`
-	Offset          int               `json:"offset,omitempty"`
-	SortBy          string            `json:"sortBy,omitempty"`
-	SortOrder       string            `json:"sortOrder,omitempty"`
+	Names         []string          `json:"names,omitempty"`
+	Versions      []string          `json:"versions,omitempty"`
+	Namespaces    []string          `json:"namespaces,omitempty"`
+	Organizations []string          `json:"organizations,omitempty"`
+	Status        []string          `json:"status,omitempty"`
+	Features      []string          `json:"features,omitempty"`
+	Tags          map[string]string `json:"tags,omitempty"`
+	CreatedAfter  *time.Time        `json:"createdAfter,omitempty"`
+	CreatedBefore *time.Time        `json:"createdBefore,omitempty"`
+	Limit         int               `json:"limit,omitempty"`
+	Offset        int               `json:"offset,omitempty"`
+	SortBy        string            `json:"sortBy,omitempty"`
+	SortOrder     string            `json:"sortOrder,omitempty"`
 }
 
 // SchemaFilter defines filters for schema queries
 type SchemaFilter struct {
-	Names           []string          `json:"names,omitempty"`
-	Versions        []string          `json:"versions,omitempty"`
-	Types           []string          `json:"types,omitempty"`
-	Status          []string          `json:"status,omitempty"`
-	Tags            map[string]string `json:"tags,omitempty"`
-	CreatedAfter    *time.Time        `json:"createdAfter,omitempty"`
-	CreatedBefore   *time.Time        `json:"createdBefore,omitempty"`
-	Limit           int               `json:"limit,omitempty"`
-	Offset          int               `json:"offset,omitempty"`
-	SortBy          string            `json:"sortBy,omitempty"`
-	SortOrder       string            `json:"sortOrder,omitempty"`
+	Names         []string          `json:"names,omitempty"`
+	Versions      []string          `json:"versions,omitempty"`
+	Types         []string          `json:"types,omitempty"`
+	Status        []string          `json:"status,omitempty"`
+	Tags          map[string]string `json:"tags,omitempty"`
+	CreatedAfter  *time.Time        `json:"createdAfter,omitempty"`
+	CreatedBefore *time.Time        `json:"createdBefore,omitempty"`
+	Limit         int               `json:"limit,omitempty"`
+	Offset        int               `json:"offset,omitempty"`
+	SortBy        string            `json:"sortBy,omitempty"`
+	SortOrder     string            `json:"sortOrder,omitempty"`
 }
 
 // NewResourceTypeManager creates a new resource type manager
 func NewResourceTypeManager(storage O2IMSStorage, kubeClient client.Client, logger *logging.StructuredLogger) *ResourceTypeManager {
 	config := &ResourceTypeConfig{
-		CacheEnabled:             true,
-		CacheExpiry:              30 * time.Minute,
-		MaxCacheSize:             500,
-		YANGModelsEnabled:        true,
-		YANGModelsPath:           "/etc/yang-models",
-		YANGValidationEnabled:    true,
-		SchemaValidationEnabled:  true,
-		StrictValidation:         false,
-		AutoDiscoveryEnabled:     true,
-		DiscoveryInterval:        10 * time.Minute,
-		SupportedProviders:       []string{"kubernetes", "openstack", "aws", "azure", "gcp"},
-		VendorExtensionsEnabled:  true,
+		CacheEnabled:            true,
+		CacheExpiry:             30 * time.Minute,
+		MaxCacheSize:            500,
+		YANGModelsEnabled:       true,
+		YANGModelsPath:          "/etc/yang-models",
+		YANGValidationEnabled:   true,
+		SchemaValidationEnabled: true,
+		StrictValidation:        false,
+		AutoDiscoveryEnabled:    true,
+		DiscoveryInterval:       10 * time.Minute,
+		SupportedProviders:      []string{"kubernetes", "openstack", "aws", "azure", "gcp"},
+		VendorExtensionsEnabled: true,
 		AllowedVendors:          []string{"ericsson", "nokia", "huawei", "cisco", "juniper"},
-		VersioningEnabled:        true,
-		DefaultVersion:           "1.0.0",
-		SupportedVersions:        []string{"1.0.0", "1.1.0"},
+		VersioningEnabled:       true,
+		DefaultVersion:          "1.0.0",
+		SupportedVersions:       []string{"1.0.0", "1.1.0"},
 	}
 
 	return &ResourceTypeManager{
@@ -641,11 +641,11 @@ func (rtm *ResourceTypeManager) RegisterYANGModel(ctx context.Context, model *YA
 		if err != nil {
 			return fmt.Errorf("YANG model validation failed: %w", err)
 		}
-		
+
 		if !result.Valid {
 			return fmt.Errorf("YANG model is invalid: %v", result.Errors)
 		}
-		
+
 		model.ValidationStatus = result
 	}
 
@@ -719,10 +719,10 @@ func (rtm *ResourceTypeManager) validateResourceType(ctx context.Context, resour
 
 // generateResourceTypeID generates a unique resource type ID
 func (rtm *ResourceTypeManager) generateResourceTypeID(resourceType *models.ResourceType) string {
-	return fmt.Sprintf("%s-%s-%s-%d", 
-		resourceType.Vendor, 
-		resourceType.Name, 
-		resourceType.Version, 
+	return fmt.Sprintf("%s-%s-%s-%d",
+		resourceType.Vendor,
+		resourceType.Name,
+		resourceType.Version,
 		time.Now().Unix())
 }
 
@@ -753,16 +753,16 @@ func (rtm *ResourceTypeManager) checkResourceTypeDependencies(ctx context.Contex
 		ResourceTypeIDs: []string{resourceTypeID},
 		Limit:           1,
 	}
-	
+
 	resources, err := rtm.storage.ListResources(ctx, filter)
 	if err != nil {
 		return fmt.Errorf("failed to check dependencies: %w", err)
 	}
-	
+
 	if len(resources) > 0 {
 		return fmt.Errorf("resource type has %d dependent resources", len(resources))
 	}
-	
+
 	return nil
 }
 

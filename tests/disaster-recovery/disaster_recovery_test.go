@@ -28,13 +28,13 @@ import (
 // DisasterRecoveryTestSuite provides comprehensive disaster recovery testing
 type DisasterRecoveryTestSuite struct {
 	suite.Suite
-	k8sClient    client.Client
-	testEnv      *envtest.Environment
-	ctx          context.Context
-	cancel       context.CancelFunc
-	backupDir    string
-	testData     *TestDataSet
-	scenarios    []*DisasterScenario
+	k8sClient client.Client
+	testEnv   *envtest.Environment
+	ctx       context.Context
+	cancel    context.CancelFunc
+	backupDir string
+	testData  *TestDataSet
+	scenarios []*DisasterScenario
 }
 
 // DisasterScenario represents a disaster recovery test scenario
@@ -58,24 +58,24 @@ type DisasterScenario struct {
 type DisasterType string
 
 const (
-	DisasterTypeDataCorruption     DisasterType = "data_corruption"
-	DisasterTypeControllerFailure  DisasterType = "controller_failure"
-	DisasterTypeEtcdFailure        DisasterType = "etcd_failure"
-	DisasterTypeNodeFailure        DisasterType = "node_failure"
-	DisasterTypeNetworkPartition   DisasterType = "network_partition"
+	DisasterTypeDataCorruption      DisasterType = "data_corruption"
+	DisasterTypeControllerFailure   DisasterType = "controller_failure"
+	DisasterTypeEtcdFailure         DisasterType = "etcd_failure"
+	DisasterTypeNodeFailure         DisasterType = "node_failure"
+	DisasterTypeNetworkPartition    DisasterType = "network_partition"
 	DisasterTypeCompleteClusterLoss DisasterType = "complete_cluster_loss"
-	DisasterTypeStorageFailure     DisasterType = "storage_failure"
-	DisasterTypeBackupCorruption   DisasterType = "backup_corruption"
+	DisasterTypeStorageFailure      DisasterType = "storage_failure"
+	DisasterTypeBackupCorruption    DisasterType = "backup_corruption"
 )
 
 // RecoveryStrategy defines recovery approaches
 type RecoveryStrategy string
 
 const (
-	RecoveryStrategyBackupRestore    RecoveryStrategy = "backup_restore"
-	RecoveryStrategyFailover         RecoveryStrategy = "failover"
-	RecoveryStrategyReplication      RecoveryStrategy = "replication"
-	RecoveryStrategyReconciliation   RecoveryStrategy = "reconciliation"
+	RecoveryStrategyBackupRestore      RecoveryStrategy = "backup_restore"
+	RecoveryStrategyFailover           RecoveryStrategy = "failover"
+	RecoveryStrategyReplication        RecoveryStrategy = "replication"
+	RecoveryStrategyReconciliation     RecoveryStrategy = "reconciliation"
 	RecoveryStrategyManualIntervention RecoveryStrategy = "manual_intervention"
 )
 
@@ -147,7 +147,7 @@ func (suite *DisasterRecoveryTestSuite) SetupSuite() {
 
 func (suite *DisasterRecoveryTestSuite) TearDownSuite() {
 	suite.cancel()
-	
+
 	// Cleanup backup directory
 	if suite.backupDir != "" {
 		os.RemoveAll(suite.backupDir)
@@ -175,7 +175,7 @@ func (suite *DisasterRecoveryTestSuite) setupTestData() {
 			},
 			{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-intent-2", 
+					Name:      "test-intent-2",
 					Namespace: "default",
 				},
 				Spec: nephoran.NetworkIntentSpec{
@@ -235,78 +235,78 @@ func (suite *DisasterRecoveryTestSuite) setupTestData() {
 func (suite *DisasterRecoveryTestSuite) setupDisasterScenarios() {
 	suite.scenarios = []*DisasterScenario{
 		{
-			Name:               "Complete Data Corruption Recovery",
-			Description:        "Simulate complete etcd data corruption and recover from backup",
-			DisasterType:       DisasterTypeDataCorruption,
-			AffectedComponents: []string{"etcd", "custom-resources"},
-			RecoveryStrategy:   RecoveryStrategyBackupRestore,
-			ExpectedRTO:        5 * time.Minute,
-			ExpectedRPO:        1 * time.Minute,
-			PreConditions:      suite.setupDataCorruptionPreConditions,
-			InjectDisaster:     suite.injectDataCorruption,
-			ValidateFailure:    suite.validateDataCorruptionFailure,
-			ExecuteRecovery:    suite.executeBackupRestore,
-			ValidateRecovery:   suite.validateDataCorruptionRecovery,
+			Name:                "Complete Data Corruption Recovery",
+			Description:         "Simulate complete etcd data corruption and recover from backup",
+			DisasterType:        DisasterTypeDataCorruption,
+			AffectedComponents:  []string{"etcd", "custom-resources"},
+			RecoveryStrategy:    RecoveryStrategyBackupRestore,
+			ExpectedRTO:         5 * time.Minute,
+			ExpectedRPO:         1 * time.Minute,
+			PreConditions:       suite.setupDataCorruptionPreConditions,
+			InjectDisaster:      suite.injectDataCorruption,
+			ValidateFailure:     suite.validateDataCorruptionFailure,
+			ExecuteRecovery:     suite.executeBackupRestore,
+			ValidateRecovery:    suite.validateDataCorruptionRecovery,
 			PostRecoveryCleanup: suite.cleanupDataCorruption,
 		},
 		{
-			Name:               "Controller Node Failure Recovery",
-			Description:        "Simulate controller node failure with automatic failover",
-			DisasterType:       DisasterTypeControllerFailure,
-			AffectedComponents: []string{"nephoran-controller", "webhooks"},
-			RecoveryStrategy:   RecoveryStrategyFailover,
-			ExpectedRTO:        2 * time.Minute,
-			ExpectedRPO:        0 * time.Second, // No data loss expected
-			PreConditions:      suite.setupControllerFailurePreConditions,
-			InjectDisaster:     suite.injectControllerFailure,
-			ValidateFailure:    suite.validateControllerFailure,
-			ExecuteRecovery:    suite.executeControllerFailover,
-			ValidateRecovery:   suite.validateControllerRecovery,
+			Name:                "Controller Node Failure Recovery",
+			Description:         "Simulate controller node failure with automatic failover",
+			DisasterType:        DisasterTypeControllerFailure,
+			AffectedComponents:  []string{"nephoran-controller", "webhooks"},
+			RecoveryStrategy:    RecoveryStrategyFailover,
+			ExpectedRTO:         2 * time.Minute,
+			ExpectedRPO:         0 * time.Second, // No data loss expected
+			PreConditions:       suite.setupControllerFailurePreConditions,
+			InjectDisaster:      suite.injectControllerFailure,
+			ValidateFailure:     suite.validateControllerFailure,
+			ExecuteRecovery:     suite.executeControllerFailover,
+			ValidateRecovery:    suite.validateControllerRecovery,
 			PostRecoveryCleanup: suite.cleanupControllerFailure,
 		},
 		{
-			Name:               "Storage Volume Failure Recovery",
-			Description:        "Simulate persistent volume failure and data recovery",
-			DisasterType:       DisasterTypeStorageFailure,
-			AffectedComponents: []string{"persistent-volumes", "stateful-data"},
-			RecoveryStrategy:   RecoveryStrategyReplication,
-			ExpectedRTO:        3 * time.Minute,
-			ExpectedRPO:        30 * time.Second,
-			PreConditions:      suite.setupStorageFailurePreConditions,
-			InjectDisaster:     suite.injectStorageFailure,
-			ValidateFailure:    suite.validateStorageFailure,
-			ExecuteRecovery:    suite.executeStorageRecovery,
-			ValidateRecovery:   suite.validateStorageRecovery,
+			Name:                "Storage Volume Failure Recovery",
+			Description:         "Simulate persistent volume failure and data recovery",
+			DisasterType:        DisasterTypeStorageFailure,
+			AffectedComponents:  []string{"persistent-volumes", "stateful-data"},
+			RecoveryStrategy:    RecoveryStrategyReplication,
+			ExpectedRTO:         3 * time.Minute,
+			ExpectedRPO:         30 * time.Second,
+			PreConditions:       suite.setupStorageFailurePreConditions,
+			InjectDisaster:      suite.injectStorageFailure,
+			ValidateFailure:     suite.validateStorageFailure,
+			ExecuteRecovery:     suite.executeStorageRecovery,
+			ValidateRecovery:    suite.validateStorageRecovery,
 			PostRecoveryCleanup: suite.cleanupStorageFailure,
 		},
 		{
-			Name:               "Network Partition Recovery",
-			Description:        "Simulate network partition affecting cluster communication",
-			DisasterType:       DisasterTypeNetworkPartition,
-			AffectedComponents: []string{"inter-node-communication", "api-server"},
-			RecoveryStrategy:   RecoveryStrategyReconciliation,
-			ExpectedRTO:        1 * time.Minute,
-			ExpectedRPO:        0 * time.Second,
-			PreConditions:      suite.setupNetworkPartitionPreConditions,
-			InjectDisaster:     suite.injectNetworkPartition,
-			ValidateFailure:    suite.validateNetworkPartition,
-			ExecuteRecovery:    suite.executeNetworkRecovery,
-			ValidateRecovery:   suite.validateNetworkRecovery,
+			Name:                "Network Partition Recovery",
+			Description:         "Simulate network partition affecting cluster communication",
+			DisasterType:        DisasterTypeNetworkPartition,
+			AffectedComponents:  []string{"inter-node-communication", "api-server"},
+			RecoveryStrategy:    RecoveryStrategyReconciliation,
+			ExpectedRTO:         1 * time.Minute,
+			ExpectedRPO:         0 * time.Second,
+			PreConditions:       suite.setupNetworkPartitionPreConditions,
+			InjectDisaster:      suite.injectNetworkPartition,
+			ValidateFailure:     suite.validateNetworkPartition,
+			ExecuteRecovery:     suite.executeNetworkRecovery,
+			ValidateRecovery:    suite.validateNetworkRecovery,
 			PostRecoveryCleanup: suite.cleanupNetworkPartition,
 		},
 		{
-			Name:               "Backup Corruption Recovery",
-			Description:        "Simulate backup corruption requiring alternative recovery methods",
-			DisasterType:       DisasterTypeBackupCorruption,
-			AffectedComponents: []string{"backup-system", "recovery-data"},
-			RecoveryStrategy:   RecoveryStrategyManualIntervention,
-			ExpectedRTO:        10 * time.Minute,
-			ExpectedRPO:        5 * time.Minute,
-			PreConditions:      suite.setupBackupCorruptionPreConditions,
-			InjectDisaster:     suite.injectBackupCorruption,
-			ValidateFailure:    suite.validateBackupCorruption,
-			ExecuteRecovery:    suite.executeManualRecovery,
-			ValidateRecovery:   suite.validateManualRecovery,
+			Name:                "Backup Corruption Recovery",
+			Description:         "Simulate backup corruption requiring alternative recovery methods",
+			DisasterType:        DisasterTypeBackupCorruption,
+			AffectedComponents:  []string{"backup-system", "recovery-data"},
+			RecoveryStrategy:    RecoveryStrategyManualIntervention,
+			ExpectedRTO:         10 * time.Minute,
+			ExpectedRPO:         5 * time.Minute,
+			PreConditions:       suite.setupBackupCorruptionPreConditions,
+			InjectDisaster:      suite.injectBackupCorruption,
+			ValidateFailure:     suite.validateBackupCorruption,
+			ExecuteRecovery:     suite.executeManualRecovery,
+			ValidateRecovery:    suite.validateManualRecovery,
 			PostRecoveryCleanup: suite.cleanupBackupCorruption,
 		},
 	}
@@ -336,7 +336,7 @@ func (suite *DisasterRecoveryTestSuite) TestBackupCorruptionRecovery() {
 
 func (suite *DisasterRecoveryTestSuite) runDisasterScenario(scenario *DisasterScenario) {
 	suite.T().Logf("Starting disaster recovery scenario: %s", scenario.Name)
-	
+
 	metrics := &RecoveryMetrics{
 		StartTime: time.Now(),
 	}
@@ -356,18 +356,18 @@ func (suite *DisasterRecoveryTestSuite) runDisasterScenario(scenario *DisasterSc
 
 	for _, step := range steps {
 		suite.T().Logf("Executing step: %s", step.name)
-		
+
 		stepStart := time.Now()
 		err := step.fn(suite)
 		stepDuration := time.Since(stepStart)
-		
+
 		if err != nil {
-			metrics.ErrorMessages = append(metrics.ErrorMessages, 
+			metrics.ErrorMessages = append(metrics.ErrorMessages,
 				fmt.Sprintf("Step %s failed: %v", step.name, err))
 			suite.T().Errorf("Step %s failed after %v: %v", step.name, stepDuration, err)
 			return
 		}
-		
+
 		suite.T().Logf("Step %s completed in %v", step.name, stepDuration)
 	}
 
@@ -377,7 +377,7 @@ func (suite *DisasterRecoveryTestSuite) runDisasterScenario(scenario *DisasterSc
 
 	// Validate RTO/RPO objectives
 	suite.validateRecoveryObjectives(scenario, metrics)
-	
+
 	suite.T().Logf("Disaster recovery scenario completed: %s", scenario.Name)
 	suite.T().Logf("  Actual RTO: %v (Expected: %v)", metrics.ActualRTO, scenario.ExpectedRTO)
 	suite.T().Logf("  Recovery Success: %t", metrics.RecoverySuccess)
@@ -386,13 +386,13 @@ func (suite *DisasterRecoveryTestSuite) runDisasterScenario(scenario *DisasterSc
 func (suite *DisasterRecoveryTestSuite) validateRecoveryObjectives(scenario *DisasterScenario, metrics *RecoveryMetrics) {
 	// Validate RTO (Recovery Time Objective)
 	assert.True(suite.T(), metrics.ActualRTO <= scenario.ExpectedRTO*2, // Allow 2x buffer for test environment
-		"Recovery took too long: actual %v, expected max %v", 
+		"Recovery took too long: actual %v, expected max %v",
 		metrics.ActualRTO, scenario.ExpectedRTO)
-	
+
 	// Validate RPO (Recovery Point Objective) - simulated for test environment
 	assert.False(suite.T(), metrics.DataLossOccurred && scenario.ExpectedRPO == 0,
 		"Unexpected data loss occurred when RPO was 0")
-	
+
 	// Validate overall success
 	assert.True(suite.T(), metrics.RecoverySuccess,
 		"Recovery failed with errors: %v", metrics.ErrorMessages)
@@ -407,7 +407,7 @@ func (suite *DisasterRecoveryTestSuite) setupDataCorruptionPreConditions() error
 			return fmt.Errorf("failed to create test intent: %w", err)
 		}
 	}
-	
+
 	// Create backup
 	return suite.createBackup("pre-corruption-backup", []string{"network-intents", "e2-nodesets"})
 }
@@ -419,7 +419,7 @@ func (suite *DisasterRecoveryTestSuite) injectDataCorruption() error {
 			return fmt.Errorf("failed to simulate data corruption: %w", err)
 		}
 	}
-	
+
 	suite.T().Log("Data corruption injected: all NetworkIntents deleted")
 	return nil
 }
@@ -430,11 +430,11 @@ func (suite *DisasterRecoveryTestSuite) validateDataCorruptionFailure() error {
 	if err := suite.k8sClient.List(suite.ctx, &intentList); err != nil {
 		return fmt.Errorf("failed to list network intents: %w", err)
 	}
-	
+
 	if len(intentList.Items) != 0 {
 		return fmt.Errorf("expected no network intents after corruption, found %d", len(intentList.Items))
 	}
-	
+
 	suite.T().Log("Data corruption validated: resources are missing")
 	return nil
 }
@@ -442,7 +442,7 @@ func (suite *DisasterRecoveryTestSuite) validateDataCorruptionFailure() error {
 func (suite *DisasterRecoveryTestSuite) executeBackupRestore() error {
 	// Simulate backup restoration
 	suite.T().Log("Executing backup restore...")
-	
+
 	// Re-create resources from backup
 	for _, intent := range suite.testData.NetworkIntents {
 		intent.ResourceVersion = "" // Clear resource version for recreation
@@ -450,7 +450,7 @@ func (suite *DisasterRecoveryTestSuite) executeBackupRestore() error {
 			return fmt.Errorf("failed to restore intent from backup: %w", err)
 		}
 	}
-	
+
 	suite.T().Log("Backup restore completed")
 	return nil
 }
@@ -461,12 +461,12 @@ func (suite *DisasterRecoveryTestSuite) validateDataCorruptionRecovery() error {
 	if err := suite.k8sClient.List(suite.ctx, &intentList); err != nil {
 		return fmt.Errorf("failed to list network intents after recovery: %w", err)
 	}
-	
+
 	if len(intentList.Items) != len(suite.testData.NetworkIntents) {
-		return fmt.Errorf("expected %d network intents after recovery, found %d", 
+		return fmt.Errorf("expected %d network intents after recovery, found %d",
 			len(suite.testData.NetworkIntents), len(intentList.Items))
 	}
-	
+
 	suite.T().Log("Data corruption recovery validated: all resources restored")
 	return nil
 }
@@ -485,7 +485,7 @@ func (suite *DisasterRecoveryTestSuite) setupControllerFailurePreConditions() er
 	if err := suite.k8sClient.Create(suite.ctx, deployment); err != nil {
 		return fmt.Errorf("failed to create controller deployment: %w", err)
 	}
-	
+
 	// Wait for deployment to be ready
 	return suite.waitForDeploymentReady(deployment.Name, deployment.Namespace, 30*time.Second)
 }
@@ -497,16 +497,16 @@ func (suite *DisasterRecoveryTestSuite) injectControllerFailure() error {
 		Name:      suite.testData.Deployments[0].Name,
 		Namespace: suite.testData.Deployments[0].Namespace,
 	}
-	
+
 	if err := suite.k8sClient.Get(suite.ctx, key, deployment); err != nil {
 		return fmt.Errorf("failed to get deployment: %w", err)
 	}
-	
+
 	deployment.Spec.Replicas = int32Ptr(0)
 	if err := suite.k8sClient.Update(suite.ctx, deployment); err != nil {
 		return fmt.Errorf("failed to scale down deployment: %w", err)
 	}
-	
+
 	suite.T().Log("Controller failure injected: deployment scaled to 0")
 	return nil
 }
@@ -518,15 +518,15 @@ func (suite *DisasterRecoveryTestSuite) validateControllerFailure() error {
 		Name:      suite.testData.Deployments[0].Name,
 		Namespace: suite.testData.Deployments[0].Namespace,
 	}
-	
+
 	if err := suite.k8sClient.Get(suite.ctx, key, deployment); err != nil {
 		return fmt.Errorf("failed to get deployment: %w", err)
 	}
-	
+
 	if deployment.Status.ReadyReplicas != 0 {
 		return fmt.Errorf("expected 0 ready replicas, found %d", deployment.Status.ReadyReplicas)
 	}
-	
+
 	suite.T().Log("Controller failure validated: no replicas running")
 	return nil
 }
@@ -538,16 +538,16 @@ func (suite *DisasterRecoveryTestSuite) executeControllerFailover() error {
 		Name:      suite.testData.Deployments[0].Name,
 		Namespace: suite.testData.Deployments[0].Namespace,
 	}
-	
+
 	if err := suite.k8sClient.Get(suite.ctx, key, deployment); err != nil {
 		return fmt.Errorf("failed to get deployment: %w", err)
 	}
-	
+
 	deployment.Spec.Replicas = int32Ptr(3)
 	if err := suite.k8sClient.Update(suite.ctx, deployment); err != nil {
 		return fmt.Errorf("failed to scale up deployment: %w", err)
 	}
-	
+
 	suite.T().Log("Controller failover executed: deployment scaled to 3")
 	return nil
 }
@@ -599,7 +599,7 @@ func (suite *DisasterRecoveryTestSuite) cleanupStorageFailure() error {
 	return nil
 }
 
-// Network partition scenario implementations  
+// Network partition scenario implementations
 func (suite *DisasterRecoveryTestSuite) setupNetworkPartitionPreConditions() error {
 	suite.T().Log("Setting up network partition pre-conditions")
 	return nil // Simplified for test environment
@@ -668,7 +668,7 @@ func (suite *DisasterRecoveryTestSuite) createBackup(backupID string, components
 	if err := os.MkdirAll(backupPath, 0755); err != nil {
 		return fmt.Errorf("failed to create backup directory: %w", err)
 	}
-	
+
 	metadata := &BackupMetadata{
 		Timestamp:        time.Now(),
 		BackupID:         backupID,
@@ -678,7 +678,7 @@ func (suite *DisasterRecoveryTestSuite) createBackup(backupID string, components
 		BackupSize:       1024,
 		BackupPath:       backupPath,
 	}
-	
+
 	suite.T().Logf("Created backup: %s at %s", backupID, backupPath)
 	_ = metadata // Use metadata for actual backup operations
 	return nil
@@ -687,7 +687,7 @@ func (suite *DisasterRecoveryTestSuite) createBackup(backupID string, components
 func (suite *DisasterRecoveryTestSuite) waitForDeploymentReady(name, namespace string, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(suite.ctx, timeout)
 	defer cancel()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -695,19 +695,19 @@ func (suite *DisasterRecoveryTestSuite) waitForDeploymentReady(name, namespace s
 		default:
 			deployment := &appsv1.Deployment{}
 			key := types.NamespacedName{Name: name, Namespace: namespace}
-			
+
 			if err := suite.k8sClient.Get(suite.ctx, key, deployment); err != nil {
 				time.Sleep(1 * time.Second)
 				continue
 			}
-			
+
 			if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas &&
 				deployment.Status.ReadyReplicas > 0 {
-				suite.T().Logf("Deployment %s/%s is ready with %d replicas", 
+				suite.T().Logf("Deployment %s/%s is ready with %d replicas",
 					namespace, name, deployment.Status.ReadyReplicas)
 				return nil
 			}
-			
+
 			time.Sleep(1 * time.Second)
 		}
 	}
@@ -720,27 +720,27 @@ func int32Ptr(i int32) *int32 {
 // Comprehensive disaster recovery testing
 func (suite *DisasterRecoveryTestSuite) TestComprehensiveDisasterRecovery() {
 	suite.T().Log("Starting comprehensive disaster recovery test suite")
-	
+
 	// Run all disaster scenarios in sequence
 	for i, scenario := range suite.scenarios {
 		suite.T().Logf("Running scenario %d/%d: %s", i+1, len(suite.scenarios), scenario.Name)
 		suite.runDisasterScenario(scenario)
 	}
-	
+
 	suite.T().Log("Comprehensive disaster recovery test suite completed")
 }
 
 // Benchmark disaster recovery performance
 func (suite *DisasterRecoveryTestSuite) TestDisasterRecoveryPerformance() {
 	metrics := make(map[string]*RecoveryMetrics)
-	
+
 	for _, scenario := range suite.scenarios {
 		suite.T().Logf("Benchmarking scenario: %s", scenario.Name)
-		
+
 		startTime := time.Now()
 		suite.runDisasterScenario(scenario)
 		endTime := time.Now()
-		
+
 		metrics[scenario.Name] = &RecoveryMetrics{
 			StartTime:       startTime,
 			EndTime:         endTime,
@@ -748,7 +748,7 @@ func (suite *DisasterRecoveryTestSuite) TestDisasterRecoveryPerformance() {
 			RecoverySuccess: true, // Simplified for benchmark
 		}
 	}
-	
+
 	// Report performance metrics
 	suite.T().Log("Disaster Recovery Performance Summary:")
 	for name, metric := range metrics {
@@ -759,7 +759,7 @@ func (suite *DisasterRecoveryTestSuite) TestDisasterRecoveryPerformance() {
 // Test parallel disaster recovery scenarios
 func (suite *DisasterRecoveryTestSuite) TestParallelDisasterRecovery() {
 	suite.T().Log("Testing parallel disaster recovery scenarios")
-	
+
 	// This would test multiple simultaneous disasters
 	// Simplified for test environment
 	suite.T().Log("Parallel disaster recovery scenarios completed")
@@ -773,12 +773,12 @@ func TestDisasterRecoveryTestSuite(t *testing.T) {
 
 func (suite *DisasterRecoveryTestSuite) validateBackupIntegrity(backupID string) error {
 	backupPath := filepath.Join(suite.backupDir, backupID)
-	
+
 	// Check if backup directory exists
 	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
 		return fmt.Errorf("backup directory does not exist: %s", backupPath)
 	}
-	
+
 	suite.T().Logf("Backup integrity validated for: %s", backupID)
 	return nil
 }
@@ -786,7 +786,7 @@ func (suite *DisasterRecoveryTestSuite) validateBackupIntegrity(backupID string)
 func (suite *DisasterRecoveryTestSuite) estimateRecoveryTime(scenario *DisasterScenario) time.Duration {
 	// Estimate recovery time based on disaster type and strategy
 	baseTime := 30 * time.Second // Base recovery time for test environment
-	
+
 	switch scenario.DisasterType {
 	case DisasterTypeDataCorruption:
 		return baseTime * 5
@@ -805,20 +805,20 @@ func (suite *DisasterRecoveryTestSuite) estimateRecoveryTime(scenario *DisasterS
 
 func (suite *DisasterRecoveryTestSuite) generateDisasterReport(scenario *DisasterScenario, metrics *RecoveryMetrics) error {
 	reportPath := filepath.Join(suite.backupDir, fmt.Sprintf("disaster-report-%s.json", scenario.Name))
-	
+
 	report := map[string]interface{}{
-		"scenario_name":      scenario.Name,
-		"disaster_type":      scenario.DisasterType,
-		"recovery_strategy":  scenario.RecoveryStrategy,
-		"expected_rto":       scenario.ExpectedRTO.String(),
-		"actual_rto":         metrics.ActualRTO.String(),
-		"expected_rpo":       scenario.ExpectedRPO.String(),
-		"recovery_success":   metrics.RecoverySuccess,
-		"error_messages":     metrics.ErrorMessages,
+		"scenario_name":       scenario.Name,
+		"disaster_type":       scenario.DisasterType,
+		"recovery_strategy":   scenario.RecoveryStrategy,
+		"expected_rto":        scenario.ExpectedRTO.String(),
+		"actual_rto":          metrics.ActualRTO.String(),
+		"expected_rpo":        scenario.ExpectedRPO.String(),
+		"recovery_success":    metrics.RecoverySuccess,
+		"error_messages":      metrics.ErrorMessages,
 		"affected_components": scenario.AffectedComponents,
-		"timestamp":          time.Now().Format(time.RFC3339),
+		"timestamp":           time.Now().Format(time.RFC3339),
 	}
-	
+
 	suite.T().Logf("Generated disaster recovery report: %s", reportPath)
 	_ = report // In real implementation, would write to file
 	return nil

@@ -21,7 +21,7 @@ type AuthMiddleware struct {
 type MiddlewareConfig struct {
 	// Skip authentication for these paths
 	SkipAuth []string `json:"skip_auth"`
-	
+
 	// CORS settings
 	EnableCORS       bool     `json:"enable_cors"`
 	AllowedOrigins   []string `json:"allowed_origins"`
@@ -29,29 +29,29 @@ type MiddlewareConfig struct {
 	AllowedHeaders   []string `json:"allowed_headers"`
 	AllowCredentials bool     `json:"allow_credentials"`
 	MaxAge           int      `json:"max_age"`
-	
+
 	// Security headers
 	EnableSecurityHeaders bool `json:"enable_security_headers"`
-	
+
 	// Rate limiting (basic implementation)
-	EnableRateLimit  bool          `json:"enable_rate_limit"`
-	RequestsPerMin   int           `json:"requests_per_min"`
-	RateLimitWindow  time.Duration `json:"rate_limit_window"`
-	
+	EnableRateLimit bool          `json:"enable_rate_limit"`
+	RequestsPerMin  int           `json:"requests_per_min"`
+	RateLimitWindow time.Duration `json:"rate_limit_window"`
+
 	// CSRF protection
-	EnableCSRF       bool     `json:"enable_csrf"`
-	CSRFTokenHeader  string   `json:"csrf_token_header"`
-	CSRFSafeMethods  []string `json:"csrf_safe_methods"`
+	EnableCSRF      bool     `json:"enable_csrf"`
+	CSRFTokenHeader string   `json:"csrf_token_header"`
+	CSRFSafeMethods []string `json:"csrf_safe_methods"`
 }
 
 // AuthContext represents authentication context
 type AuthContext struct {
-	UserID      string              `json:"user_id"`
-	SessionID   string              `json:"session_id"`
-	Provider    string              `json:"provider"`
-	Roles       []string            `json:"roles"`
-	Permissions []string            `json:"permissions"`
-	IsAdmin     bool                `json:"is_admin"`
+	UserID      string                 `json:"user_id"`
+	SessionID   string                 `json:"session_id"`
+	Provider    string                 `json:"provider"`
+	Roles       []string               `json:"roles"`
+	Permissions []string               `json:"permissions"`
+	IsAdmin     bool                   `json:"is_admin"`
 	Attributes  map[string]interface{} `json:"attributes"`
 }
 
@@ -147,7 +147,7 @@ func (am *AuthMiddleware) RequirePermissionMiddleware(permission string) func(ht
 			}
 
 			if !hasPermission {
-				am.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions", 
+				am.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 					fmt.Sprintf("Required permission: %s", permission))
 				return
 			}
@@ -177,7 +177,7 @@ func (am *AuthMiddleware) RequireRoleMiddleware(role string) func(http.Handler) 
 			}
 
 			if !hasRole {
-				am.writeErrorResponse(w, http.StatusForbidden, "insufficient_role", 
+				am.writeErrorResponse(w, http.StatusForbidden, "insufficient_role",
 					fmt.Sprintf("Required role: %s", role))
 				return
 			}
@@ -251,15 +251,15 @@ func (am *AuthMiddleware) CSRFMiddleware(next http.Handler) http.Handler {
 func (am *AuthMiddleware) RequestLoggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		
+
 		// Wrap response writer to capture status code
 		wrapper := &responseWrapper{ResponseWriter: w, statusCode: http.StatusOK}
-		
+
 		next.ServeHTTP(wrapper, r)
-		
+
 		duration := time.Since(start)
 		authContext := GetAuthContext(r.Context())
-		
+
 		userID := "anonymous"
 		if authContext != nil {
 			userID = authContext.UserID
@@ -412,7 +412,7 @@ func (am *AuthMiddleware) isSafeMethod(method string) bool {
 
 func (am *AuthMiddleware) handleCORS(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get("Origin")
-	
+
 	// Check if origin is allowed
 	allowed := false
 	for _, allowedOrigin := range am.config.AllowedOrigins {
@@ -447,14 +447,14 @@ func (am *AuthMiddleware) setSecurityHeaders(w http.ResponseWriter) {
 func (am *AuthMiddleware) writeErrorResponse(w http.ResponseWriter, status int, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	
+
 	errorResponse := map[string]interface{}{
-		"error": code,
+		"error":             code,
 		"error_description": message,
-		"status": status,
-		"timestamp": time.Now().Unix(),
+		"status":            status,
+		"timestamp":         time.Now().Unix(),
 	}
-	
+
 	json.NewEncoder(w).Encode(errorResponse)
 }
 

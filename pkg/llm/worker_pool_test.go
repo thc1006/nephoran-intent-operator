@@ -488,9 +488,9 @@ func TestIntentProcessingPool(t *testing.T) {
 		// Simulate intent processing
 		time.Sleep(100 * time.Millisecond)
 		return map[string]interface{}{
-			"intent":     intent,
-			"processed":  true,
-			"result":     "success",
+			"intent":    intent,
+			"processed": true,
+			"result":    "success",
 			"timestamp": time.Now(),
 		}, nil
 	}
@@ -600,7 +600,7 @@ func TestHealthChecker(t *testing.T) {
 
 	// Should have fewer unhealthy workers or be completely healthy
 	assert.True(t, len(finalUnhealthyWorkers) <= len(unhealthyWorkers))
-	
+
 	// With enough successful jobs, pool should eventually become healthy
 	if !finalHealthy {
 		t.Log("Pool not fully recovered yet, which is acceptable in this timing-sensitive test")
@@ -665,6 +665,6 @@ func BenchmarkWorkerPool_JobProcessing(b *testing.B) {
 		}
 		pool.Submit(job)
 	}
-	
+
 	wg.Wait()
 }

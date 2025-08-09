@@ -43,18 +43,18 @@ type Conflict struct {
 
 // CoordinationContext holds coordination state for an intent
 type CoordinationContext struct {
-	IntentID         string
-	CurrentPhase     interfaces.ProcessingPhase
-	CompletedPhases  []interfaces.ProcessingPhase
-	FailedPhases     []interfaces.ProcessingPhase
-	Locks            []string
-	Dependencies     []string
-	Conflicts        []Conflict
-	ErrorHistory     []string
-	RetryCount       int
-	StartTime        time.Time
-	LastUpdateTime   time.Time
-	Metadata         map[string]interface{}
+	IntentID        string
+	CurrentPhase    interfaces.ProcessingPhase
+	CompletedPhases []interfaces.ProcessingPhase
+	FailedPhases    []interfaces.ProcessingPhase
+	Locks           []string
+	Dependencies    []string
+	Conflicts       []Conflict
+	ErrorHistory    []string
+	RetryCount      int
+	StartTime       time.Time
+	LastUpdateTime  time.Time
+	Metadata        map[string]interface{}
 }
 
 // PhaseTracker tracks the status of phases across intents
@@ -65,16 +65,16 @@ type PhaseTracker struct {
 
 // PhaseStatus represents the status of a phase for an intent
 type PhaseStatus struct {
-	IntentID    string
-	Phase       interfaces.ProcessingPhase
-	Status      string // Pending, InProgress, Completed, Failed
-	StartTime   *time.Time
-	EndTime     *time.Time
-	RetryCount  int
-	LastError   string
-	Metrics     map[string]float64
-	DependsOn   []interfaces.ProcessingPhase
-	BlockedBy   []interfaces.ProcessingPhase
+	IntentID   string
+	Phase      interfaces.ProcessingPhase
+	Status     string // Pending, InProgress, Completed, Failed
+	StartTime  *time.Time
+	EndTime    *time.Time
+	RetryCount int
+	LastError  string
+	Metrics    map[string]float64
+	DependsOn  []interfaces.ProcessingPhase
+	BlockedBy  []interfaces.ProcessingPhase
 }
 
 // NewPhaseTracker creates a new PhaseTracker
@@ -150,8 +150,8 @@ func (pt *PhaseTracker) RemoveIntent(intentID string) {
 
 // ConflictResolver handles resource conflicts between intents
 type ConflictResolver struct {
-	logger logr.Logger
-	client client.Client
+	logger               logr.Logger
+	client               client.Client
 	resolutionStrategies map[string]ConflictResolutionStrategy
 }
 
@@ -164,8 +164,8 @@ func NewConflictResolver(client client.Client, logger logr.Logger) *ConflictReso
 		logger: logger.WithName("conflict-resolver"),
 		client: client,
 		resolutionStrategies: map[string]ConflictResolutionStrategy{
-			"NamespaceConflict": resolveNamespaceConflict,
-			"ResourceConflict":  resolveResourceConflict,
+			"NamespaceConflict":  resolveNamespaceConflict,
+			"ResourceConflict":   resolveResourceConflict,
 			"DependencyConflict": resolveDependencyConflict,
 		},
 	}
@@ -208,8 +208,8 @@ func resolveDependencyConflict(conflict Conflict) (bool, error) {
 
 // RecoveryManager handles automatic recovery from failures
 type RecoveryManager struct {
-	logger logr.Logger
-	client client.Client
+	logger             logr.Logger
+	client             client.Client
 	recoveryStrategies map[string]RecoveryStrategy
 }
 
@@ -222,10 +222,10 @@ func NewRecoveryManager(client client.Client, logger logr.Logger) *RecoveryManag
 		logger: logger.WithName("recovery-manager"),
 		client: client,
 		recoveryStrategies: map[string]RecoveryStrategy{
-			"LLM_PROCESSING_FAILED":     recoverLLMProcessing,
-			"RESOURCE_PLANNING_FAILED":  recoverResourcePlanning,
+			"LLM_PROCESSING_FAILED":      recoverLLMProcessing,
+			"RESOURCE_PLANNING_FAILED":   recoverResourcePlanning,
 			"MANIFEST_GENERATION_FAILED": recoverManifestGeneration,
-			"DEPLOYMENT_FAILED":         recoverDeployment,
+			"DEPLOYMENT_FAILED":          recoverDeployment,
 		},
 	}
 }

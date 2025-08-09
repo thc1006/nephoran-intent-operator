@@ -68,7 +68,7 @@ func createTestPolicyInstance() *PolicyInstance {
 		},
 		PolicyInfo: PolicyInstanceInfo{
 			NotificationDestination: "http://test-callback.com",
-			RequestID:              "req-123",
+			RequestID:               "req-123",
 		},
 		CreatedAt:  time.Now(),
 		ModifiedAt: time.Now(),
@@ -119,23 +119,23 @@ func createTestEIJob() *EnrichmentInfoJob {
 				"param1": "value1",
 			},
 		},
-		TargetURI:        "http://test-consumer.com/ei",
-		JobOwner:         "test-owner",
-		JobStatusURL:     "http://test-status.com",
-		CreatedAt:        time.Now(),
-		ModifiedAt:       time.Now(),
-		LastExecutedAt:   time.Now(),
+		TargetURI:      "http://test-consumer.com/ei",
+		JobOwner:       "test-owner",
+		JobStatusURL:   "http://test-status.com",
+		CreatedAt:      time.Now(),
+		ModifiedAt:     time.Now(),
+		LastExecutedAt: time.Now(),
 	}
 }
 
 func createTestConsumer() *Consumer {
 	return &Consumer{
-		ConsumerID:     "test-consumer-1",
-		ConsumerName:   "Test Consumer",
-		CallbackURL:    "http://test-consumer.com/callback",
-		Description:    "Test consumer for unit tests",
-		RegisteredAt:   time.Now(),
-		LastActiveAt:   time.Now(),
+		ConsumerID:      "test-consumer-1",
+		ConsumerName:    "Test Consumer",
+		CallbackURL:     "http://test-consumer.com/callback",
+		Description:     "Test consumer for unit tests",
+		RegisteredAt:    time.Now(),
+		LastActiveAt:    time.Now(),
 		SubscribedTypes: []string{"policy", "ei"},
 	}
 }
@@ -144,7 +144,7 @@ func setupHandlerTest(t *testing.T) (*A1Handlers, *MockA1Service, *MockA1Validat
 	service := &MockA1Service{}
 	validator := &MockA1Validator{}
 	storage := &MockA1Storage{}
-	
+
 	logger := createTestLogger()
 	config := createTestConfig()
 	metrics := &noopMetrics{}
@@ -343,10 +343,10 @@ func TestHandleCreatePolicyType(t *testing.T) {
 			setupMocks: func(service *MockA1Service, validator *MockA1Validator, storage *MockA1Storage) {
 				// Check if policy type already exists
 				storage.On("GetPolicyType", mock.AnythingOfType("*context.valueCtx"), 1).Return((*PolicyType)(nil), NewA1Error(ErrorTypePolicyTypeNotFound, "Not found", http.StatusNotFound, nil))
-				
+
 				// Validate policy type
 				validator.On("ValidatePolicyType", mock.AnythingOfType("*a1.PolicyType")).Return(nil)
-				
+
 				// Create policy type
 				service.On("CreatePolicyType", mock.AnythingOfType("*context.valueCtx"), mock.AnythingOfType("*a1.PolicyType")).Return(nil)
 			},
@@ -364,10 +364,10 @@ func TestHandleCreatePolicyType(t *testing.T) {
 			expectError:    true,
 		},
 		{
-			name:         "invalid JSON",
-			policyTypeID: "1",
-			requestBody:  "invalid-json",
-			setupMocks:   func(*MockA1Service, *MockA1Validator, *MockA1Storage) {},
+			name:           "invalid JSON",
+			policyTypeID:   "1",
+			requestBody:    "invalid-json",
+			setupMocks:     func(*MockA1Service, *MockA1Validator, *MockA1Storage) {},
 			expectedStatus: http.StatusBadRequest,
 			expectError:    true,
 		},
@@ -423,10 +423,10 @@ func TestHandleDeletePolicyType(t *testing.T) {
 				// Check policy type exists
 				policyType := createTestPolicyType()
 				storage.On("GetPolicyType", mock.AnythingOfType("*context.valueCtx"), 1).Return(policyType, nil)
-				
+
 				// Check no active policy instances
 				storage.On("GetPolicyInstances", mock.AnythingOfType("*context.valueCtx"), 1).Return([]string{}, nil)
-				
+
 				// Delete policy type
 				service.On("DeletePolicyType", mock.AnythingOfType("*context.valueCtx"), 1).Return(nil)
 			},
@@ -489,7 +489,7 @@ func TestHandleGetPolicyInstances(t *testing.T) {
 				// Check policy type exists
 				policyType := createTestPolicyType()
 				storage.On("GetPolicyType", mock.AnythingOfType("*context.valueCtx"), 1).Return(policyType, nil)
-				
+
 				// Get policy instances
 				storage.On("GetPolicyInstances", mock.AnythingOfType("*context.valueCtx"), 1).Return([]string{"policy-1", "policy-2"}, nil)
 			},
@@ -562,13 +562,13 @@ func TestHandleCreatePolicyInstance(t *testing.T) {
 				// Check policy type exists
 				policyType := createTestPolicyType()
 				storage.On("GetPolicyType", mock.AnythingOfType("*context.valueCtx"), 1).Return(policyType, nil)
-				
+
 				// Check instance doesn't exist
 				storage.On("GetPolicyInstance", mock.AnythingOfType("*context.valueCtx"), 1, "test-policy-1").Return((*PolicyInstance)(nil), NewA1Error(ErrorTypePolicyInstanceNotFound, "Not found", http.StatusNotFound, nil))
-				
+
 				// Validate instance
 				validator.On("ValidatePolicyInstance", mock.AnythingOfType("*a1.PolicyType"), mock.AnythingOfType("*a1.PolicyInstance")).Return(nil)
-				
+
 				// Create instance
 				service.On("CreatePolicyInstance", mock.AnythingOfType("*context.valueCtx"), mock.AnythingOfType("*a1.PolicyInstance")).Return(nil)
 			},
@@ -642,11 +642,11 @@ func TestHandleGetPolicyStatus(t *testing.T) {
 				// Check policy type exists
 				policyType := createTestPolicyType()
 				storage.On("GetPolicyType", mock.AnythingOfType("*context.valueCtx"), 1).Return(policyType, nil)
-				
+
 				// Check policy instance exists
 				policyInstance := createTestPolicyInstance()
 				storage.On("GetPolicyInstance", mock.AnythingOfType("*context.valueCtx"), 1, "test-policy-1").Return(policyInstance, nil)
-				
+
 				// Get policy status
 				policyStatus := createTestPolicyStatus()
 				storage.On("GetPolicyStatus", mock.AnythingOfType("*context.valueCtx"), 1, "test-policy-1").Return(policyStatus, nil)
@@ -744,7 +744,7 @@ func TestHandleRegisterConsumer(t *testing.T) {
 			setupMocks: func(service *MockA1Service, storage *MockA1Storage) {
 				// Check consumer doesn't exist
 				storage.On("GetConsumer", mock.AnythingOfType("*context.valueCtx"), "new-consumer").Return((*Consumer)(nil), NewA1Error(ErrorTypeConsumerNotFound, "Not found", http.StatusNotFound, nil))
-				
+
 				// Register consumer
 				service.On("RegisterConsumer", mock.AnythingOfType("*context.valueCtx"), mock.AnythingOfType("*a1.Consumer")).Return(nil)
 			},
@@ -839,13 +839,13 @@ func TestHandleCreateEIJob(t *testing.T) {
 				// Check EI type exists
 				eiType := createTestEIType()
 				storage.On("GetEIType", mock.AnythingOfType("*context.valueCtx"), "test-ei-type-1").Return(eiType, nil)
-				
+
 				// Check job doesn't exist
 				storage.On("GetEIJob", mock.AnythingOfType("*context.valueCtx"), "new-ei-job").Return((*EnrichmentInfoJob)(nil), NewA1Error(ErrorTypeEIJobNotFound, "Not found", http.StatusNotFound, nil))
-				
+
 				// Validate job
 				validator.On("ValidateEIJob", mock.AnythingOfType("*a1.EnrichmentInfoType"), mock.AnythingOfType("*a1.EnrichmentInfoJob")).Return(nil)
-				
+
 				// Create job
 				service.On("CreateEIJob", mock.AnythingOfType("*context.valueCtx"), mock.AnythingOfType("*a1.EnrichmentInfoJob")).Return(nil)
 			},
@@ -898,10 +898,10 @@ func TestHandlers_InvalidHTTPMethods(t *testing.T) {
 	handlers, _, _, _ := setupHandlerTest(t)
 
 	tests := []struct {
-		name     string
-		method   string
-		path     string
-		handler  http.HandlerFunc
+		name    string
+		method  string
+		path    string
+		handler http.HandlerFunc
 	}{
 		{"GET on PUT endpoint", "GET", "/A1-P/v2/policytypes/1", handlers.HandleCreatePolicyType},
 		{"POST on GET endpoint", "POST", "/A1-P/v2/policytypes", handlers.HandleGetPolicyTypes},
@@ -1076,12 +1076,12 @@ func (m *MockA1Service) CreateEIJob(ctx context.Context, job *EnrichmentInfoJob)
 // Error type for proper error handling in tests
 func NewA1Error(errorType A1ErrorType, message string, statusCode int, cause error) error {
 	return &A1Error{
-		Type:       errorType,
-		Title:      message,
-		Status:     statusCode,
-		Detail:     message,
-		Instance:   "",
-		Cause:      cause,
+		Type:     errorType,
+		Title:    message,
+		Status:   statusCode,
+		Detail:   message,
+		Instance: "",
+		Cause:    cause,
 	}
 }
 

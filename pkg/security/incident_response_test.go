@@ -39,7 +39,7 @@ var _ = Describe("IncidentResponse", func() {
 				EscalationList: []string{"manager@test.com"},
 			},
 		}
-		
+
 		var err error
 		ir, err = NewIncidentResponse(config)
 		Expect(err).ToNot(HaveOccurred())
@@ -56,7 +56,7 @@ var _ = Describe("IncidentResponse", func() {
 		Context("when creating incident response system", func() {
 			It("should create with provided configuration", func() {
 				system, err := NewIncidentResponse(config)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(system).NotTo(BeNil())
 				Expect(system.config).To(Equal(config))
@@ -67,7 +67,7 @@ var _ = Describe("IncidentResponse", func() {
 
 			It("should create with default configuration when nil provided", func() {
 				system, err := NewIncidentResponse(nil)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(system).NotTo(BeNil())
 				Expect(system.config).NotTo(BeNil())
@@ -76,7 +76,7 @@ var _ = Describe("IncidentResponse", func() {
 
 			It("should initialize metrics", func() {
 				system, err := NewIncidentResponse(config)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				metrics := system.GetMetrics()
 				Expect(metrics.TotalIncidents).To(Equal(int64(0)))
@@ -86,7 +86,7 @@ var _ = Describe("IncidentResponse", func() {
 
 			It("should load default playbooks", func() {
 				system, err := NewIncidentResponse(config)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(system.playbooks)).To(BeNumerically(">", 0))
 			})
@@ -119,7 +119,7 @@ var _ = Describe("IncidentResponse", func() {
 		Context("when creating valid incident", func() {
 			It("should create incident successfully", func() {
 				incident, err := ir.CreateIncident(ctx, request)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(incident).NotTo(BeNil())
 				Expect(incident.ID).NotTo(BeEmpty())
@@ -132,7 +132,7 @@ var _ = Describe("IncidentResponse", func() {
 			It("should assign unique ID", func() {
 				incident1, err1 := ir.CreateIncident(ctx, request)
 				incident2, err2 := ir.CreateIncident(ctx, request)
-				
+
 				Expect(err1).ToNot(HaveOccurred())
 				Expect(err2).ToNot(HaveOccurred())
 				Expect(incident1.ID).NotTo(Equal(incident2.ID))
@@ -142,12 +142,12 @@ var _ = Describe("IncidentResponse", func() {
 				initialMetrics := ir.GetMetrics()
 				initialTotal := initialMetrics.TotalIncidents
 				initialOpen := initialMetrics.OpenIncidents
-				
+
 				incident, err := ir.CreateIncident(ctx, request)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(incident).NotTo(BeNil())
-				
+
 				finalMetrics := ir.GetMetrics()
 				Expect(finalMetrics.TotalIncidents).To(Equal(initialTotal + 1))
 				Expect(finalMetrics.OpenIncidents).To(Equal(initialOpen + 1))
@@ -155,7 +155,7 @@ var _ = Describe("IncidentResponse", func() {
 
 			It("should create initial timeline event", func() {
 				incident, err := ir.CreateIncident(ctx, request)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(incident.Timeline)).To(Equal(1))
 				Expect(incident.Timeline[0].Type).To(Equal("created"))
@@ -165,12 +165,12 @@ var _ = Describe("IncidentResponse", func() {
 
 			It("should trigger automated response for high severity", func() {
 				request.Severity = "Critical"
-				
+
 				incident, err := ir.CreateIncident(ctx, request)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(incident).NotTo(BeNil())
-				
+
 				// Give some time for automated response to trigger
 				time.Sleep(100 * time.Millisecond)
 			})
@@ -179,10 +179,10 @@ var _ = Describe("IncidentResponse", func() {
 		Context("when forensics is enabled", func() {
 			It("should start evidence collection", func() {
 				incident, err := ir.CreateIncident(ctx, request)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(incident).NotTo(BeNil())
-				
+
 				// Give some time for evidence collection to start
 				time.Sleep(100 * time.Millisecond)
 			})
@@ -210,11 +210,11 @@ var _ = Describe("IncidentResponse", func() {
 					Status:    "Acknowledged",
 					UpdatedBy: "analyst-01",
 				}
-				
+
 				err := ir.UpdateIncident(ctx, incident.ID, update)
-				
+
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				updatedIncident, err := ir.GetIncident(incident.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updatedIncident.Status).To(Equal("Acknowledged"))
@@ -226,14 +226,14 @@ var _ = Describe("IncidentResponse", func() {
 					Status:    "Resolved",
 					UpdatedBy: "analyst-01",
 				}
-				
+
 				err := ir.UpdateIncident(ctx, incident.ID, update)
-				
+
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				updatedIncident, err := ir.GetIncident(incident.ID)
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				statusChangeFound := false
 				for _, event := range updatedIncident.Timeline {
 					if event.Type == "status_changed" {
@@ -251,11 +251,11 @@ var _ = Describe("IncidentResponse", func() {
 					Status:    "Resolved",
 					UpdatedBy: "analyst-01",
 				}
-				
+
 				err := ir.UpdateIncident(ctx, incident.ID, update)
-				
+
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				updatedIncident, err := ir.GetIncident(incident.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updatedIncident.ResolvedAt).NotTo(BeNil())
@@ -268,11 +268,11 @@ var _ = Describe("IncidentResponse", func() {
 					Assignee:  "analyst-02",
 					UpdatedBy: "manager-01",
 				}
-				
+
 				err := ir.UpdateIncident(ctx, incident.ID, update)
-				
+
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				updatedIncident, err := ir.GetIncident(incident.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updatedIncident.Assignee).To(Equal("analyst-02"))
@@ -285,11 +285,11 @@ var _ = Describe("IncidentResponse", func() {
 					Severity:  "Critical",
 					UpdatedBy: "manager-01",
 				}
-				
+
 				err := ir.UpdateIncident(ctx, incident.ID, update)
-				
+
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				updatedIncident, err := ir.GetIncident(incident.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updatedIncident.Severity).To(Equal("Critical"))
@@ -301,14 +301,14 @@ var _ = Describe("IncidentResponse", func() {
 					Severity:  "Critical",
 					UpdatedBy: "manager-01",
 				}
-				
+
 				err := ir.UpdateIncident(ctx, incident.ID, update)
-				
+
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				updatedIncident, err := ir.GetIncident(incident.ID)
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				severityChangeFound := false
 				for _, event := range updatedIncident.Timeline {
 					if event.Type == "severity_changed" {
@@ -328,9 +328,9 @@ var _ = Describe("IncidentResponse", func() {
 					Status:    "Resolved",
 					UpdatedBy: "analyst-01",
 				}
-				
+
 				err := ir.UpdateIncident(ctx, "nonexistent-id", update)
-				
+
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("incident not found"))
 			})
@@ -355,7 +355,7 @@ var _ = Describe("IncidentResponse", func() {
 		Context("when incident exists", func() {
 			It("should return incident", func() {
 				retrieved, err := ir.GetIncident(incident.ID)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(retrieved).NotTo(BeNil())
 				Expect(retrieved.ID).To(Equal(incident.ID))
@@ -366,7 +366,7 @@ var _ = Describe("IncidentResponse", func() {
 		Context("when incident doesn't exist", func() {
 			It("should return error", func() {
 				retrieved, err := ir.GetIncident("nonexistent-id")
-				
+
 				Expect(err).To(HaveOccurred())
 				Expect(retrieved).To(BeNil())
 				Expect(err.Error()).To(ContainSubstring("incident not found"))
@@ -400,7 +400,7 @@ var _ = Describe("IncidentResponse", func() {
 					Tags:     []string{"medium", "policy"},
 				},
 			}
-			
+
 			for _, req := range incidents {
 				_, err := ir.CreateIncident(ctx, req)
 				Expect(err).ToNot(HaveOccurred())
@@ -410,17 +410,17 @@ var _ = Describe("IncidentResponse", func() {
 		Context("when listing all incidents", func() {
 			It("should return all incidents", func() {
 				incidents, err := ir.ListIncidents(nil)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(incidents)).To(Equal(3))
 			})
 
 			It("should sort by detection time (newest first)", func() {
 				incidents, err := ir.ListIncidents(nil)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(incidents)).To(BeNumerically(">=", 2))
-				
+
 				for i := 1; i < len(incidents); i++ {
 					Expect(incidents[i-1].DetectedAt).To(BeTemporally(">=", incidents[i].DetectedAt))
 				}
@@ -431,7 +431,7 @@ var _ = Describe("IncidentResponse", func() {
 			It("should return only matching incidents", func() {
 				filter := &IncidentFilter{Severity: "Critical"}
 				incidents, err := ir.ListIncidents(filter)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(incidents)).To(Equal(1))
 				Expect(incidents[0].Severity).To(Equal("Critical"))
@@ -442,7 +442,7 @@ var _ = Describe("IncidentResponse", func() {
 			It("should return only matching incidents", func() {
 				filter := &IncidentFilter{Category: "malware"}
 				incidents, err := ir.ListIncidents(filter)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(incidents)).To(Equal(1))
 				Expect(incidents[0].Category).To(Equal("malware"))
@@ -453,10 +453,10 @@ var _ = Describe("IncidentResponse", func() {
 			It("should return incidents with matching tags", func() {
 				filter := &IncidentFilter{Tags: []string{"critical"}}
 				incidents, err := ir.ListIncidents(filter)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(incidents)).To(Equal(1))
-				
+
 				tagFound := false
 				for _, tag := range incidents[0].Tags {
 					if tag == "critical" {
@@ -472,7 +472,7 @@ var _ = Describe("IncidentResponse", func() {
 			It("should respect limit parameter", func() {
 				filter := &IncidentFilter{Limit: 2}
 				incidents, err := ir.ListIncidents(filter)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(incidents)).To(Equal(2))
 			})
@@ -486,7 +486,7 @@ var _ = Describe("IncidentResponse", func() {
 					ToDate:   now.Add(1 * time.Hour),
 				}
 				incidents, err := ir.ListIncidents(filter)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(incidents)).To(Equal(3))
 			})
@@ -520,11 +520,11 @@ var _ = Describe("IncidentResponse", func() {
 						"timestamp":  time.Now().Unix(),
 					},
 				}
-				
+
 				err := ir.AddEvidence(incident.ID, evidence)
-				
+
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				updatedIncident, err := ir.GetIncident(incident.ID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(updatedIncident.Evidence)).To(Equal(1))
@@ -538,14 +538,14 @@ var _ = Describe("IncidentResponse", func() {
 					Source:      "filesystem",
 					Description: "Suspicious executable",
 				}
-				
+
 				err := ir.AddEvidence(incident.ID, evidence)
-				
+
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				updatedIncident, err := ir.GetIncident(incident.ID)
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				evidenceEventFound := false
 				for _, event := range updatedIncident.Timeline {
 					if event.Type == "evidence_added" {
@@ -563,9 +563,9 @@ var _ = Describe("IncidentResponse", func() {
 					Type:   "log",
 					Source: "test",
 				}
-				
+
 				err := ir.AddEvidence("nonexistent-id", evidence)
-				
+
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("incident not found"))
 			})
@@ -595,13 +595,13 @@ var _ = Describe("IncidentResponse", func() {
 					playbookID = id
 					break
 				}
-				
+
 				Expect(playbookID).NotTo(BeEmpty())
-				
+
 				err := ir.ExecutePlaybook(ctx, incident.ID, playbookID)
-				
+
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				// Check that actions were added to incident
 				updatedIncident, err := ir.GetIncident(incident.ID)
 				Expect(err).ToNot(HaveOccurred())
@@ -612,7 +612,7 @@ var _ = Describe("IncidentResponse", func() {
 		Context("when playbook doesn't exist", func() {
 			It("should return error", func() {
 				err := ir.ExecutePlaybook(ctx, incident.ID, "nonexistent-playbook")
-				
+
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("playbook not found"))
 			})
@@ -622,7 +622,7 @@ var _ = Describe("IncidentResponse", func() {
 			It("should return error", func() {
 				playbookID := "malware_detected"
 				err := ir.ExecutePlaybook(ctx, "nonexistent-incident", playbookID)
-				
+
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("incident not found"))
 			})
@@ -638,19 +638,19 @@ var _ = Describe("IncidentResponse", func() {
 					Category: "malware",
 					Source:   "security-monitor",
 				}
-				
+
 				incident, err := ir.CreateIncident(ctx, request)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(incident).NotTo(BeNil())
-				
+
 				// Give time for automated response
 				time.Sleep(200 * time.Millisecond)
-				
+
 				// Check if automated actions were taken
 				updatedIncident, err := ir.GetIncident(incident.ID)
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				// Should have automated actions if matching playbooks exist
 				automatedFound := false
 				for _, action := range updatedIncident.Actions {
@@ -666,19 +666,19 @@ var _ = Describe("IncidentResponse", func() {
 			It("should not trigger for low severity incidents", func() {
 				originalConfig := ir.config.AutoResponseThreshold
 				ir.config.AutoResponseThreshold = "High"
-				
+
 				request := &CreateIncidentRequest{
 					Title:    "Low Priority Issue",
 					Severity: "Low",
 					Category: "policy-violation",
 					Source:   "compliance-check",
 				}
-				
+
 				incident, err := ir.CreateIncident(ctx, request)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(incident).NotTo(BeNil())
-				
+
 				// Restore original config
 				ir.config.AutoResponseThreshold = originalConfig
 			})
@@ -696,15 +696,15 @@ var _ = Describe("IncidentResponse", func() {
 					Category: "malware",
 					Source:   "security-monitor",
 				}
-				
+
 				incident, err := ir.CreateIncident(ctx, request)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(incident).NotTo(BeNil())
-				
+
 				// Give time for potential automated response
 				time.Sleep(100 * time.Millisecond)
-				
+
 				// Should not have automated actions
 				updatedIncident, err := ir.GetIncident(incident.ID)
 				Expect(err).ToNot(HaveOccurred())
@@ -717,7 +717,7 @@ var _ = Describe("IncidentResponse", func() {
 		Context("when incidents are created and resolved", func() {
 			It("should track incident counts correctly", func() {
 				initialMetrics := ir.GetMetrics()
-				
+
 				// Create incidents
 				request1 := &CreateIncidentRequest{
 					Title:    "Incident 1",
@@ -731,19 +731,19 @@ var _ = Describe("IncidentResponse", func() {
 					Category: "test",
 					Source:   "test",
 				}
-				
+
 				incident1, err1 := ir.CreateIncident(ctx, request1)
 				incident2, err2 := ir.CreateIncident(ctx, request2)
-				
+
 				Expect(err1).ToNot(HaveOccurred())
 				Expect(err2).ToNot(HaveOccurred())
 				Expect(incident2).NotTo(BeNil()) // Use incident2
-				
+
 				// Check metrics after creation
 				afterCreateMetrics := ir.GetMetrics()
 				Expect(afterCreateMetrics.TotalIncidents).To(Equal(initialMetrics.TotalIncidents + 2))
 				Expect(afterCreateMetrics.OpenIncidents).To(Equal(initialMetrics.OpenIncidents + 2))
-				
+
 				// Resolve one incident
 				update := &IncidentUpdate{
 					Status:    "Resolved",
@@ -751,7 +751,7 @@ var _ = Describe("IncidentResponse", func() {
 				}
 				err := ir.UpdateIncident(ctx, incident1.ID, update)
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				// Check metrics after resolution
 				afterResolveMetrics := ir.GetMetrics()
 				Expect(afterResolveMetrics.OpenIncidents).To(Equal(initialMetrics.OpenIncidents + 1))
@@ -765,16 +765,16 @@ var _ = Describe("IncidentResponse", func() {
 					Category: "test",
 					Source:   "test",
 				}
-				
+
 				initialMetrics := ir.GetMetrics()
 				initialCritical := initialMetrics.IncidentsBySeverity["Critical"]
-				
+
 				_, err := ir.CreateIncident(ctx, request)
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				finalMetrics := ir.GetMetrics()
 				finalCritical := finalMetrics.IncidentsBySeverity["Critical"]
-				
+
 				Expect(finalCritical).To(Equal(initialCritical + 1))
 			})
 
@@ -785,20 +785,20 @@ var _ = Describe("IncidentResponse", func() {
 					Category: "test",
 					Source:   "test",
 				}
-				
+
 				incident, err := ir.CreateIncident(ctx, request)
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				// Wait a bit then resolve
 				time.Sleep(10 * time.Millisecond)
-				
+
 				update := &IncidentUpdate{
 					Status:    "Resolved",
 					UpdatedBy: "analyst",
 				}
 				err = ir.UpdateIncident(ctx, incident.ID, update)
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				metrics := ir.GetMetrics()
 				Expect(metrics.MTTR).To(BeNumerically(">", 0))
 			})
@@ -808,7 +808,7 @@ var _ = Describe("IncidentResponse", func() {
 	Describe("Default Configuration", func() {
 		It("should have proper default values", func() {
 			defaultConfig := getDefaultIncidentConfig()
-			
+
 			Expect(defaultConfig.EnableAutoResponse).To(BeTrue())
 			Expect(defaultConfig.AutoResponseThreshold).To(Equal("High"))
 			Expect(defaultConfig.IncidentRetention).To(Equal(90 * 24 * time.Hour))
@@ -822,7 +822,7 @@ var _ = Describe("IncidentResponse", func() {
 		It("should generate unique incident IDs", func() {
 			id1 := generateIncidentID()
 			id2 := generateIncidentID()
-			
+
 			Expect(id1).NotTo(Equal(id2))
 			Expect(id1).To(HavePrefix("INC-"))
 			Expect(id2).To(HavePrefix("INC-"))
@@ -831,7 +831,7 @@ var _ = Describe("IncidentResponse", func() {
 		It("should generate unique evidence IDs", func() {
 			id1 := generateEvidenceID()
 			id2 := generateEvidenceID()
-			
+
 			Expect(id1).NotTo(Equal(id2))
 			Expect(id1).To(HavePrefix("EVD-"))
 			Expect(id2).To(HavePrefix("EVD-"))
@@ -840,7 +840,7 @@ var _ = Describe("IncidentResponse", func() {
 		It("should generate unique action IDs", func() {
 			id1 := generateActionID()
 			id2 := generateActionID()
-			
+
 			Expect(id1).NotTo(Equal(id2))
 			Expect(id1).To(HavePrefix("ACT-"))
 			Expect(id2).To(HavePrefix("ACT-"))
@@ -852,7 +852,7 @@ var _ = Describe("IncidentResponse", func() {
 			It("should close gracefully", func() {
 				system, err := NewIncidentResponse(config)
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				err = system.Close()
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -867,7 +867,7 @@ var _ = Describe("IncidentResponse", func() {
 		BeforeEach(func() {
 			webhookSecret = "test-webhook-secret-key-12345"
 			config.WebhookSecret = webhookSecret
-			
+
 			var err error
 			ir, err = NewIncidentResponse(config)
 			Expect(err).ToNot(HaveOccurred())
@@ -1016,7 +1016,7 @@ var _ = Describe("IncidentResponse", func() {
 			It("should reject webhook with signature for different payload", func() {
 				originalPayload := `{"type": "security_alert", "alert": {"title": "original"}}`
 				modifiedPayload := `{"type": "security_alert", "alert": {"title": "modified"}}`
-				
+
 				// Sign the original payload but send the modified one
 				signature := generateValidSignature([]byte(originalPayload), webhookSecret)
 				req := createWebhookRequest(modifiedPayload, signature)
@@ -1165,7 +1165,7 @@ var _ = Describe("IncidentResponse", func() {
 			It("should consistently reject invalid signatures (timing attack protection)", func() {
 				payload := `{"type": "security_alert", "alert": {"title": "test"}}`
 				validSignature := generateValidSignature([]byte(payload), webhookSecret)
-				
+
 				// Test multiple invalid signatures to ensure consistent timing
 				invalidSignatures := []string{
 					"sha256=0000000000000000000000000000000000000000000000000000000000000000",

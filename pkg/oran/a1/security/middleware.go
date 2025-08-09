@@ -28,30 +28,30 @@ type SecurityMiddleware struct {
 // SecurityConfig holds comprehensive security configuration
 type SecurityConfig struct {
 	Authentication  *AuthConfig         `json:"authentication"`
-	MTLS           *MTLSConfig         `json:"mtls"`
-	Encryption     *EncryptionConfig   `json:"encryption"`
-	Sanitization   *SanitizationConfig `json:"sanitization"`
-	Audit          *AuditConfig        `json:"audit"`
-	RateLimit      *RateLimitConfig    `json:"rate_limit"`
+	MTLS            *MTLSConfig         `json:"mtls"`
+	Encryption      *EncryptionConfig   `json:"encryption"`
+	Sanitization    *SanitizationConfig `json:"sanitization"`
+	Audit           *AuditConfig        `json:"audit"`
+	RateLimit       *RateLimitConfig    `json:"rate_limit"`
 	SecurityHeaders *HeadersConfig      `json:"security_headers"`
-	CORS           *CORSConfig         `json:"cors"`
-	CSRF           *CSRFConfig         `json:"csrf"`
+	CORS            *CORSConfig         `json:"cors"`
+	CSRF            *CSRFConfig         `json:"csrf"`
 }
 
 // HeadersConfig holds security headers configuration
 type HeadersConfig struct {
-	Enabled                    bool              `json:"enabled"`
-	StrictTransportSecurity    string            `json:"strict_transport_security"`
-	ContentSecurityPolicy      string            `json:"content_security_policy"`
-	XContentTypeOptions        string            `json:"x_content_type_options"`
-	XFrameOptions              string            `json:"x_frame_options"`
-	XXSSProtection             string            `json:"x_xss_protection"`
-	ReferrerPolicy             string            `json:"referrer_policy"`
-	PermissionsPolicy          string            `json:"permissions_policy"`
-	CrossOriginEmbedderPolicy  string            `json:"cross_origin_embedder_policy"`
-	CrossOriginOpenerPolicy    string            `json:"cross_origin_opener_policy"`
-	CrossOriginResourcePolicy  string            `json:"cross_origin_resource_policy"`
-	CustomHeaders              map[string]string `json:"custom_headers"`
+	Enabled                   bool              `json:"enabled"`
+	StrictTransportSecurity   string            `json:"strict_transport_security"`
+	ContentSecurityPolicy     string            `json:"content_security_policy"`
+	XContentTypeOptions       string            `json:"x_content_type_options"`
+	XFrameOptions             string            `json:"x_frame_options"`
+	XXSSProtection            string            `json:"x_xss_protection"`
+	ReferrerPolicy            string            `json:"referrer_policy"`
+	PermissionsPolicy         string            `json:"permissions_policy"`
+	CrossOriginEmbedderPolicy string            `json:"cross_origin_embedder_policy"`
+	CrossOriginOpenerPolicy   string            `json:"cross_origin_opener_policy"`
+	CrossOriginResourcePolicy string            `json:"cross_origin_resource_policy"`
+	CustomHeaders             map[string]string `json:"custom_headers"`
 }
 
 // CORSConfig holds CORS configuration
@@ -77,17 +77,17 @@ type CSRFConfig struct {
 
 // RequestContext holds request-specific security context
 type RequestContext struct {
-	RequestID       string                 `json:"request_id"`
-	SessionID       string                 `json:"session_id,omitempty"`
-	CorrelationID   string                 `json:"correlation_id,omitempty"`
-	User            *User                  `json:"user,omitempty"`
-	ClientIP        string                 `json:"client_ip"`
-	UserAgent       string                 `json:"user_agent"`
-	Method          string                 `json:"method"`
-	Path            string                 `json:"path"`
-	StartTime       time.Time              `json:"start_time"`
-	SecurityFlags   map[string]bool        `json:"security_flags,omitempty"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	RequestID     string                 `json:"request_id"`
+	SessionID     string                 `json:"session_id,omitempty"`
+	CorrelationID string                 `json:"correlation_id,omitempty"`
+	User          *User                  `json:"user,omitempty"`
+	ClientIP      string                 `json:"client_ip"`
+	UserAgent     string                 `json:"user_agent"`
+	Method        string                 `json:"method"`
+	Path          string                 `json:"path"`
+	StartTime     time.Time              `json:"start_time"`
+	SecurityFlags map[string]bool        `json:"security_flags,omitempty"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // NewSecurityMiddleware creates a new security middleware
@@ -440,15 +440,15 @@ func (sm *SecurityMiddleware) auditMiddleware(next http.Handler) http.Handler {
 
 		// Create audit event
 		event := &AuditEvent{
-			EventType:      sm.getEventType(r),
-			Severity:       SeverityInfo,
-			RequestID:      reqCtx.RequestID,
-			SessionID:      reqCtx.SessionID,
-			CorrelationID:  reqCtx.CorrelationID,
-			ClientIP:       reqCtx.ClientIP,
-			UserAgent:      reqCtx.UserAgent,
-			RequestMethod:  r.Method,
-			RequestPath:    r.URL.Path,
+			EventType:     sm.getEventType(r),
+			Severity:      SeverityInfo,
+			RequestID:     reqCtx.RequestID,
+			SessionID:     reqCtx.SessionID,
+			CorrelationID: reqCtx.CorrelationID,
+			ClientIP:      reqCtx.ClientIP,
+			UserAgent:     reqCtx.UserAgent,
+			RequestMethod: r.Method,
+			RequestPath:   r.URL.Path,
 		}
 
 		// Add actor information if available
@@ -535,15 +535,15 @@ func (sm *SecurityMiddleware) securityHeadersMiddleware(next http.Handler) http.
 func (sm *SecurityMiddleware) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-		
+
 		// Check if origin is allowed
 		if sm.isOriginAllowed(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
-			
+
 			if sm.config.CORS.AllowCredentials {
 				w.Header().Set("Access-Control-Allow-Credentials", "true")
 			}
-			
+
 			// Handle preflight requests
 			if r.Method == http.MethodOptions {
 				w.Header().Set("Access-Control-Allow-Methods", strings.Join(sm.config.CORS.AllowedMethods, ", "))
@@ -552,7 +552,7 @@ func (sm *SecurityMiddleware) corsMiddleware(next http.Handler) http.Handler {
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}
-			
+
 			// Set exposed headers
 			if len(sm.config.CORS.ExposedHeaders) > 0 {
 				w.Header().Set("Access-Control-Expose-Headers", strings.Join(sm.config.CORS.ExposedHeaders, ", "))
@@ -657,14 +657,14 @@ func (sm *SecurityMiddleware) isOriginAllowed(origin string) bool {
 func (sm *SecurityMiddleware) sendErrorResponse(w http.ResponseWriter, statusCode int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	
+
 	response := map[string]interface{}{
 		"error": map[string]interface{}{
 			"code":    statusCode,
 			"message": message,
 		},
 	}
-	
+
 	json.NewEncoder(w).Encode(response)
 }
 

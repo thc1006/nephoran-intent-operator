@@ -28,14 +28,14 @@ import (
 
 // EncryptionConfig holds encryption configuration
 type EncryptionConfig struct {
-	Enabled              bool                    `json:"enabled"`
-	Algorithm            EncryptionAlgorithm     `json:"algorithm"`
-	KeyManagement        *KeyManagementConfig    `json:"key_management"`
-	FieldEncryption      *FieldEncryptionConfig  `json:"field_encryption"`
-	TransitEncryption    *TransitEncryptionConfig `json:"transit_encryption"`
-	StorageEncryption    *StorageEncryptionConfig `json:"storage_encryption"`
-	HSMConfig            *HSMConfig              `json:"hsm_config,omitempty"`
-	ComplianceMode       ComplianceMode          `json:"compliance_mode"`
+	Enabled           bool                     `json:"enabled"`
+	Algorithm         EncryptionAlgorithm      `json:"algorithm"`
+	KeyManagement     *KeyManagementConfig     `json:"key_management"`
+	FieldEncryption   *FieldEncryptionConfig   `json:"field_encryption"`
+	TransitEncryption *TransitEncryptionConfig `json:"transit_encryption"`
+	StorageEncryption *StorageEncryptionConfig `json:"storage_encryption"`
+	HSMConfig         *HSMConfig               `json:"hsm_config,omitempty"`
+	ComplianceMode    ComplianceMode           `json:"compliance_mode"`
 }
 
 // EncryptionAlgorithm represents the encryption algorithm
@@ -52,81 +52,81 @@ const (
 type ComplianceMode string
 
 const (
-	ComplianceFIPS140    ComplianceMode = "fips-140-2"
-	ComplianceHIPAA      ComplianceMode = "hipaa"
-	CompliancePCIDSS     ComplianceMode = "pci-dss"
-	ComplianceGDPR       ComplianceMode = "gdpr"
-	ComplianceCustom     ComplianceMode = "custom"
+	ComplianceFIPS140 ComplianceMode = "fips-140-2"
+	ComplianceHIPAA   ComplianceMode = "hipaa"
+	CompliancePCIDSS  ComplianceMode = "pci-dss"
+	ComplianceGDPR    ComplianceMode = "gdpr"
+	ComplianceCustom  ComplianceMode = "custom"
 )
 
 // KeyManagementConfig holds key management configuration
 type KeyManagementConfig struct {
-	Provider            KeyProvider           `json:"provider"`
-	MasterKeyPath       string                `json:"master_key_path"`
-	KeyDerivation       KeyDerivationMethod   `json:"key_derivation"`
-	RotationEnabled     bool                  `json:"rotation_enabled"`
-	RotationInterval    time.Duration         `json:"rotation_interval"`
-	KeyVersioning       bool                  `json:"key_versioning"`
-	MaxKeyAge           time.Duration         `json:"max_key_age"`
-	BackupEnabled       bool                  `json:"backup_enabled"`
-	BackupLocation      string                `json:"backup_location"`
-	SecureDelete        bool                  `json:"secure_delete"`
+	Provider         KeyProvider         `json:"provider"`
+	MasterKeyPath    string              `json:"master_key_path"`
+	KeyDerivation    KeyDerivationMethod `json:"key_derivation"`
+	RotationEnabled  bool                `json:"rotation_enabled"`
+	RotationInterval time.Duration       `json:"rotation_interval"`
+	KeyVersioning    bool                `json:"key_versioning"`
+	MaxKeyAge        time.Duration       `json:"max_key_age"`
+	BackupEnabled    bool                `json:"backup_enabled"`
+	BackupLocation   string              `json:"backup_location"`
+	SecureDelete     bool                `json:"secure_delete"`
 }
 
 // KeyProvider represents the key management provider
 type KeyProvider string
 
 const (
-	KeyProviderLocal    KeyProvider = "local"
-	KeyProviderVault    KeyProvider = "vault"
-	KeyProviderAWSKMS   KeyProvider = "aws-kms"
-	KeyProviderAzureKV  KeyProvider = "azure-keyvault"
-	KeyProviderGCPKMS   KeyProvider = "gcp-kms"
-	KeyProviderHSM      KeyProvider = "hsm"
+	KeyProviderLocal   KeyProvider = "local"
+	KeyProviderVault   KeyProvider = "vault"
+	KeyProviderAWSKMS  KeyProvider = "aws-kms"
+	KeyProviderAzureKV KeyProvider = "azure-keyvault"
+	KeyProviderGCPKMS  KeyProvider = "gcp-kms"
+	KeyProviderHSM     KeyProvider = "hsm"
 )
 
 // KeyDerivationMethod represents the key derivation method
 type KeyDerivationMethod string
 
 const (
-	KDFArgon2   KeyDerivationMethod = "argon2"
-	KDFPBKDF2   KeyDerivationMethod = "pbkdf2"
-	KDFScrypt   KeyDerivationMethod = "scrypt"
-	KDFHKDF     KeyDerivationMethod = "hkdf"
+	KDFArgon2 KeyDerivationMethod = "argon2"
+	KDFPBKDF2 KeyDerivationMethod = "pbkdf2"
+	KDFScrypt KeyDerivationMethod = "scrypt"
+	KDFHKDF   KeyDerivationMethod = "hkdf"
 )
 
 // FieldEncryptionConfig holds field-level encryption configuration
 type FieldEncryptionConfig struct {
-	Enabled           bool                `json:"enabled"`
-	Fields            []FieldDefinition   `json:"fields"`
-	PreserveFormat    bool                `json:"preserve_format"`
-	Searchable        bool                `json:"searchable"`
-	DeterministicMode bool                `json:"deterministic_mode"`
+	Enabled             bool              `json:"enabled"`
+	Fields              []FieldDefinition `json:"fields"`
+	PreserveFormat      bool              `json:"preserve_format"`
+	Searchable          bool              `json:"searchable"`
+	DeterministicMode   bool              `json:"deterministic_mode"`
 	TokenizationEnabled bool              `json:"tokenization_enabled"`
 }
 
 // FieldDefinition defines a field to be encrypted
 type FieldDefinition struct {
-	Name            string              `json:"name"`
-	Path            string              `json:"path"`
-	Type            FieldType           `json:"type"`
-	Algorithm       EncryptionAlgorithm `json:"algorithm"`
-	Sensitivity     SensitivityLevel    `json:"sensitivity"`
-	Searchable      bool                `json:"searchable"`
-	MaskingEnabled  bool                `json:"masking_enabled"`
-	MaskingPattern  string              `json:"masking_pattern"`
+	Name           string              `json:"name"`
+	Path           string              `json:"path"`
+	Type           FieldType           `json:"type"`
+	Algorithm      EncryptionAlgorithm `json:"algorithm"`
+	Sensitivity    SensitivityLevel    `json:"sensitivity"`
+	Searchable     bool                `json:"searchable"`
+	MaskingEnabled bool                `json:"masking_enabled"`
+	MaskingPattern string              `json:"masking_pattern"`
 }
 
 // FieldType represents the type of field
 type FieldType string
 
 const (
-	FieldTypeString   FieldType = "string"
-	FieldTypeNumber   FieldType = "number"
-	FieldTypeDate     FieldType = "date"
-	FieldTypeJSON     FieldType = "json"
-	FieldTypeBinary   FieldType = "binary"
-	FieldTypePII      FieldType = "pii"
+	FieldTypeString FieldType = "string"
+	FieldTypeNumber FieldType = "number"
+	FieldTypeDate   FieldType = "date"
+	FieldTypeJSON   FieldType = "json"
+	FieldTypeBinary FieldType = "binary"
+	FieldTypePII    FieldType = "pii"
 )
 
 // SensitivityLevel represents data sensitivity level
@@ -142,36 +142,36 @@ const (
 
 // TransitEncryptionConfig holds transit encryption configuration
 type TransitEncryptionConfig struct {
-	Enabled            bool                `json:"enabled"`
-	EnforceHTTPS       bool                `json:"enforce_https"`
-	MinTLSVersion      string              `json:"min_tls_version"`
-	PerfectForwardSecrecy bool             `json:"perfect_forward_secrecy"`
-	EncryptHeaders     bool                `json:"encrypt_headers"`
-	EncryptMetadata    bool                `json:"encrypt_metadata"`
+	Enabled               bool   `json:"enabled"`
+	EnforceHTTPS          bool   `json:"enforce_https"`
+	MinTLSVersion         string `json:"min_tls_version"`
+	PerfectForwardSecrecy bool   `json:"perfect_forward_secrecy"`
+	EncryptHeaders        bool   `json:"encrypt_headers"`
+	EncryptMetadata       bool   `json:"encrypt_metadata"`
 }
 
 // StorageEncryptionConfig holds storage encryption configuration
 type StorageEncryptionConfig struct {
-	Enabled           bool                `json:"enabled"`
-	EncryptionAtRest  bool                `json:"encryption_at_rest"`
-	DatabaseEncryption bool               `json:"database_encryption"`
-	FileEncryption    bool                `json:"file_encryption"`
-	BackupEncryption  bool                `json:"backup_encryption"`
-	KeyWrapping       bool                `json:"key_wrapping"`
+	Enabled            bool `json:"enabled"`
+	EncryptionAtRest   bool `json:"encryption_at_rest"`
+	DatabaseEncryption bool `json:"database_encryption"`
+	FileEncryption     bool `json:"file_encryption"`
+	BackupEncryption   bool `json:"backup_encryption"`
+	KeyWrapping        bool `json:"key_wrapping"`
 }
 
 // HSMConfig holds Hardware Security Module configuration
 type HSMConfig struct {
-	Enabled       bool              `json:"enabled"`
-	Provider      string            `json:"provider"`
-	Endpoint      string            `json:"endpoint"`
-	Slot          int               `json:"slot"`
-	Pin           string            `json:"pin"`
-	Library       string            `json:"library"`
-	Timeout       time.Duration     `json:"timeout"`
-	RetryAttempts int               `json:"retry_attempts"`
-	LoadBalancing bool              `json:"load_balancing"`
-	Endpoints     []string          `json:"endpoints"`
+	Enabled       bool          `json:"enabled"`
+	Provider      string        `json:"provider"`
+	Endpoint      string        `json:"endpoint"`
+	Slot          int           `json:"slot"`
+	Pin           string        `json:"pin"`
+	Library       string        `json:"library"`
+	Timeout       time.Duration `json:"timeout"`
+	RetryAttempts int           `json:"retry_attempts"`
+	LoadBalancing bool          `json:"load_balancing"`
+	Endpoints     []string      `json:"endpoints"`
 }
 
 // EncryptionManager manages encryption operations
@@ -225,30 +225,30 @@ type Tokenizer interface {
 
 // EncryptionKey represents an encryption key
 type EncryptionKey struct {
-	ID            string            `json:"id"`
-	Version       int               `json:"version"`
-	Algorithm     EncryptionAlgorithm `json:"algorithm"`
-	Key           []byte            `json:"-"`
-	EncryptedKey  []byte            `json:"encrypted_key"`
-	CreatedAt     time.Time         `json:"created_at"`
-	RotatedAt     time.Time         `json:"rotated_at"`
-	ExpiresAt     time.Time         `json:"expires_at"`
-	Active        bool              `json:"active"`
-	Purpose       string            `json:"purpose"`
-	Metadata      map[string]string `json:"metadata"`
+	ID           string              `json:"id"`
+	Version      int                 `json:"version"`
+	Algorithm    EncryptionAlgorithm `json:"algorithm"`
+	Key          []byte              `json:"-"`
+	EncryptedKey []byte              `json:"encrypted_key"`
+	CreatedAt    time.Time           `json:"created_at"`
+	RotatedAt    time.Time           `json:"rotated_at"`
+	ExpiresAt    time.Time           `json:"expires_at"`
+	Active       bool                `json:"active"`
+	Purpose      string              `json:"purpose"`
+	Metadata     map[string]string   `json:"metadata"`
 }
 
 // EncryptedData represents encrypted data with metadata
 type EncryptedData struct {
-	Version       int               `json:"version"`
-	KeyID         string            `json:"key_id"`
-	Algorithm     EncryptionAlgorithm `json:"algorithm"`
-	Ciphertext    []byte            `json:"ciphertext"`
-	Nonce         []byte            `json:"nonce"`
-	Tag           []byte            `json:"tag,omitempty"`
-	AAD           []byte            `json:"aad,omitempty"`
-	EncryptedAt   time.Time         `json:"encrypted_at"`
-	Metadata      map[string]string `json:"metadata,omitempty"`
+	Version     int                 `json:"version"`
+	KeyID       string              `json:"key_id"`
+	Algorithm   EncryptionAlgorithm `json:"algorithm"`
+	Ciphertext  []byte              `json:"ciphertext"`
+	Nonce       []byte              `json:"nonce"`
+	Tag         []byte              `json:"tag,omitempty"`
+	AAD         []byte              `json:"aad,omitempty"`
+	EncryptedAt time.Time           `json:"encrypted_at"`
+	Metadata    map[string]string   `json:"metadata,omitempty"`
 }
 
 // NewEncryptionManager creates a new encryption manager
@@ -278,7 +278,7 @@ func NewEncryptionManager(config *EncryptionConfig, logger *logging.StructuredLo
 	// Initialize encryptors
 	em.dataEncryptor = NewDataEncryptor(config, em.activeMasterKey)
 	em.fieldEncryptor = NewFieldEncryptor(config.FieldEncryption, em.dataEncryptor)
-	
+
 	if config.FieldEncryption != nil && config.FieldEncryption.TokenizationEnabled {
 		em.tokenizer = NewTokenizer(em.dataEncryptor)
 	}
@@ -496,7 +496,7 @@ func (em *EncryptionManager) RotateKeys(ctx context.Context) error {
 				slog.Error(err))
 			continue
 		}
-		
+
 		// Remove old key from cache
 		delete(em.keyCache, keyID)
 	}

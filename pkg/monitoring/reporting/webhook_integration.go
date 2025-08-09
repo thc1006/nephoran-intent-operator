@@ -26,52 +26,52 @@ type WebhookManager struct {
 	logger   *zap.Logger
 	client   *http.Client
 	webhooks map[string]WebhookConfig
-	
+
 	// Metrics
-	webhookRequests       prometheus.Counter
-	webhookFailures       prometheus.Counter
-	webhookLatency        prometheus.Histogram
-	webhookRetries        prometheus.Counter
+	webhookRequests prometheus.Counter
+	webhookFailures prometheus.Counter
+	webhookLatency  prometheus.Histogram
+	webhookRetries  prometheus.Counter
 }
 
 // WebhookPayload represents the standard webhook payload structure
 type WebhookPayload struct {
 	// Standard fields
-	EventType   string                 `json:"event_type"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Source      string                 `json:"source"`
-	Environment string                 `json:"environment"`
-	Severity    string                 `json:"severity"`
-	
+	EventType   string    `json:"event_type"`
+	Timestamp   time.Time `json:"timestamp"`
+	Source      string    `json:"source"`
+	Environment string    `json:"environment"`
+	Severity    string    `json:"severity"`
+
 	// Performance report data
-	Report      *PerformanceReport     `json:"report,omitempty"`
-	Summary     *ExecutiveSummary      `json:"summary,omitempty"`
-	Claims      []ClaimValidation      `json:"claims,omitempty"`
-	Alerts      []AlertInfo            `json:"alerts,omitempty"`
-	
+	Report  *PerformanceReport `json:"report,omitempty"`
+	Summary *ExecutiveSummary  `json:"summary,omitempty"`
+	Claims  []ClaimValidation  `json:"claims,omitempty"`
+	Alerts  []AlertInfo        `json:"alerts,omitempty"`
+
 	// Custom data
-	CustomData  map[string]interface{} `json:"custom_data,omitempty"`
+	CustomData map[string]interface{} `json:"custom_data,omitempty"`
 }
 
 // SlackPayload represents Slack-specific webhook format
 type SlackPayload struct {
-	Channel     string             `json:"channel,omitempty"`
-	Username    string             `json:"username,omitempty"`
-	IconEmoji   string             `json:"icon_emoji,omitempty"`
-	Text        string             `json:"text"`
-	Attachments []SlackAttachment  `json:"attachments,omitempty"`
+	Channel     string            `json:"channel,omitempty"`
+	Username    string            `json:"username,omitempty"`
+	IconEmoji   string            `json:"icon_emoji,omitempty"`
+	Text        string            `json:"text"`
+	Attachments []SlackAttachment `json:"attachments,omitempty"`
 }
 
 // SlackAttachment represents Slack message attachment
 type SlackAttachment struct {
-	Color      string       `json:"color,omitempty"`
-	Title      string       `json:"title,omitempty"`
-	Text       string       `json:"text,omitempty"`
-	Fields     []SlackField `json:"fields,omitempty"`
+	Color      string        `json:"color,omitempty"`
+	Title      string        `json:"title,omitempty"`
+	Text       string        `json:"text,omitempty"`
+	Fields     []SlackField  `json:"fields,omitempty"`
 	Actions    []SlackAction `json:"actions,omitempty"`
-	Timestamp  int64        `json:"ts,omitempty"`
-	Footer     string       `json:"footer,omitempty"`
-	FooterIcon string       `json:"footer_icon,omitempty"`
+	Timestamp  int64         `json:"ts,omitempty"`
+	Footer     string        `json:"footer,omitempty"`
+	FooterIcon string        `json:"footer_icon,omitempty"`
 }
 
 // SlackField represents Slack attachment field
@@ -91,22 +91,22 @@ type SlackAction struct {
 
 // TeamsPayload represents Microsoft Teams webhook format
 type TeamsPayload struct {
-	Type       string              `json:"@type"`
-	Context    string              `json:"@context"`
-	ThemeColor string              `json:"themeColor,omitempty"`
-	Summary    string              `json:"summary"`
-	Sections   []TeamsSection      `json:"sections,omitempty"`
-	Actions    []TeamsAction       `json:"potentialAction,omitempty"`
+	Type       string         `json:"@type"`
+	Context    string         `json:"@context"`
+	ThemeColor string         `json:"themeColor,omitempty"`
+	Summary    string         `json:"summary"`
+	Sections   []TeamsSection `json:"sections,omitempty"`
+	Actions    []TeamsAction  `json:"potentialAction,omitempty"`
 }
 
 // TeamsSection represents Teams message section
 type TeamsSection struct {
-	ActivityTitle    string       `json:"activityTitle,omitempty"`
-	ActivitySubtitle string       `json:"activitySubtitle,omitempty"`
-	ActivityText     string       `json:"activityText,omitempty"`
-	ActivityImage    string       `json:"activityImage,omitempty"`
-	Facts           []TeamsFact  `json:"facts,omitempty"`
-	Markdown        bool         `json:"markdown,omitempty"`
+	ActivityTitle    string      `json:"activityTitle,omitempty"`
+	ActivitySubtitle string      `json:"activitySubtitle,omitempty"`
+	ActivityText     string      `json:"activityText,omitempty"`
+	ActivityImage    string      `json:"activityImage,omitempty"`
+	Facts            []TeamsFact `json:"facts,omitempty"`
+	Markdown         bool        `json:"markdown,omitempty"`
 }
 
 // TeamsFact represents Teams fact
@@ -124,12 +124,12 @@ type TeamsAction struct {
 
 // PagerDutyPayload represents PagerDuty webhook format
 type PagerDutyPayload struct {
-	RoutingKey  string                 `json:"routing_key"`
-	EventAction string                 `json:"event_action"`
-	DedupKey    string                 `json:"dedup_key,omitempty"`
-	Payload     PagerDutyEventPayload  `json:"payload"`
-	Links       []PagerDutyLink        `json:"links,omitempty"`
-	Images      []PagerDutyImage       `json:"images,omitempty"`
+	RoutingKey  string                `json:"routing_key"`
+	EventAction string                `json:"event_action"`
+	DedupKey    string                `json:"dedup_key,omitempty"`
+	Payload     PagerDutyEventPayload `json:"payload"`
+	Links       []PagerDutyLink       `json:"links,omitempty"`
+	Images      []PagerDutyImage      `json:"images,omitempty"`
 }
 
 // PagerDutyEventPayload represents PagerDuty event payload
@@ -159,11 +159,11 @@ type PagerDutyImage struct {
 
 // WebhookEvent represents different types of webhook events
 type WebhookEvent struct {
-	Type        string
-	Report      *PerformanceReport
-	Alert       *AlertInfo
-	Regression  *RegressionAnalysis
-	CustomData  map[string]interface{}
+	Type       string
+	Report     *PerformanceReport
+	Alert      *AlertInfo
+	Regression *RegressionAnalysis
+	CustomData map[string]interface{}
 }
 
 // NewWebhookManager creates a new webhook manager
@@ -173,31 +173,31 @@ func NewWebhookManager(logger *zap.Logger, webhooks map[string]WebhookConfig) *W
 		Name: "nephoran_webhook_requests_total",
 		Help: "Total number of webhook requests sent",
 	})
-	
+
 	webhookFailures := promauto.NewCounter(prometheus.CounterOpts{
 		Name: "nephoran_webhook_failures_total",
 		Help: "Total number of webhook failures",
 	})
-	
+
 	webhookLatency := promauto.NewHistogram(prometheus.HistogramOpts{
-		Name: "nephoran_webhook_duration_seconds",
-		Help: "Webhook request duration in seconds",
+		Name:    "nephoran_webhook_duration_seconds",
+		Help:    "Webhook request duration in seconds",
 		Buckets: prometheus.DefBuckets,
 	})
-	
+
 	webhookRetries := promauto.NewCounter(prometheus.CounterOpts{
 		Name: "nephoran_webhook_retries_total",
 		Help: "Total number of webhook retries",
 	})
 
 	return &WebhookManager{
-		logger:            logger,
-		client:            &http.Client{Timeout: 30 * time.Second},
-		webhooks:          webhooks,
-		webhookRequests:   webhookRequests,
-		webhookFailures:   webhookFailures,
-		webhookLatency:    webhookLatency,
-		webhookRetries:    webhookRetries,
+		logger:          logger,
+		client:          &http.Client{Timeout: 30 * time.Second},
+		webhooks:        webhooks,
+		webhookRequests: webhookRequests,
+		webhookFailures: webhookFailures,
+		webhookLatency:  webhookLatency,
+		webhookRetries:  webhookRetries,
 	}
 }
 
@@ -337,7 +337,7 @@ func (wm *WebhookManager) sendWebhook(ctx context.Context, name string, webhook 
 		// Set headers
 		req.Header.Set("Content-Type", contentType)
 		req.Header.Set("User-Agent", "Nephoran-Performance-Monitor/1.0")
-		
+
 		// Add custom headers
 		for key, value := range webhook.Headers {
 			req.Header.Set(key, value)
@@ -415,7 +415,7 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 		if event.Report == nil {
 			return nil, "", fmt.Errorf("missing performance report")
 		}
-		
+
 		// Determine color based on performance score
 		score := event.Report.ExecutiveSummary.OverallScore
 		if score >= 90 {
@@ -479,10 +479,10 @@ func (wm *WebhookManager) createSlackPayload(webhook WebhookConfig, event Webhoo
 				if claim.Status == "FAIL" {
 					status = "❌"
 				}
-				claimsText += fmt.Sprintf("%s %s: %s (Target: %s)\n", 
+				claimsText += fmt.Sprintf("%s %s: %s (Target: %s)\n",
 					status, claim.Name, claim.Actual, claim.Target)
 			}
-			
+
 			payload.Attachments = append(payload.Attachments, SlackAttachment{
 				Color: color,
 				Title: "Performance Claims Validation",
@@ -815,10 +815,10 @@ func (wm *WebhookManager) createPagerDutyPayload(webhook WebhookConfig, event We
 				Group:     "regression-detection",
 				Class:     "performance-regression",
 				Details: map[string]interface{}{
-					"regression_severity":  event.Regression.RegressionSeverity,
-					"performance_changes":  event.Regression.PerformanceChange,
-					"baseline_period":      event.Regression.BaselineComparison.BaselinePeriod,
-					"dashboard_url":        "https://grafana.nephoran.com/d/nephoran-regression-analysis",
+					"regression_severity": event.Regression.RegressionSeverity,
+					"performance_changes": event.Regression.PerformanceChange,
+					"baseline_period":     event.Regression.BaselineComparison.BaselinePeriod,
+					"dashboard_url":       "https://grafana.nephoran.com/d/nephoran-regression-analysis",
 				},
 			},
 			Links: []PagerDutyLink{
@@ -869,13 +869,13 @@ func (wm *WebhookManager) createJSONPayload(webhook WebhookConfig, event Webhook
 					failedClaims++
 				}
 			}
-			
+
 			if failedClaims > 0 {
 				payload.Severity = "warning"
 			} else {
 				payload.Severity = "info"
 			}
-			
+
 			payload.Summary = &event.Report.ExecutiveSummary
 			payload.Claims = event.Report.PerformanceClaims
 		}
@@ -898,7 +898,7 @@ func (wm *WebhookManager) createCustomPayload(webhook WebhookConfig, event Webho
 
 	// Load and execute template
 	tmpl := template.New(templateName)
-	
+
 	// TODO: Load template content from file or configuration
 	// This would typically load from a template file or configuration
 	templateContent := `{

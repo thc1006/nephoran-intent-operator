@@ -31,36 +31,36 @@ type ResourceRequest struct {
 }
 
 type ResourceAllocation struct {
-	AllocationID string    `json:"allocation_id"`
-	NodeID       string    `json:"node_id"`
+	AllocationID string          `json:"allocation_id"`
+	NodeID       string          `json:"node_id"`
 	Request      ResourceRequest `json:"request"`
-	AllocatedAt  time.Time `json:"allocated_at"`
+	AllocatedAt  time.Time       `json:"allocated_at"`
 }
 
 type FailoverPlan struct {
-	ID                string         `json:"id"`
-	SourceNode        string         `json:"source_node"`
-	TargetNode        string         `json:"target_node"`
-	ServicesToMigrate []EdgeService  `json:"services_to_migrate"`
-	Status            string         `json:"status"`
-	CreatedAt         time.Time      `json:"created_at"`
+	ID                string        `json:"id"`
+	SourceNode        string        `json:"source_node"`
+	TargetNode        string        `json:"target_node"`
+	ServicesToMigrate []EdgeService `json:"services_to_migrate"`
+	Status            string        `json:"status"`
+	CreatedAt         time.Time     `json:"created_at"`
 }
 
 type MLModel struct {
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Framework   string   `json:"framework"`
-	Version     string   `json:"version"`
-	SizeGB      float64  `json:"size_gb"`
-	RequiresGPU bool     `json:"requires_gpu"`
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Framework   string  `json:"framework"`
+	Version     string  `json:"version"`
+	SizeGB      float64 `json:"size_gb"`
+	RequiresGPU bool    `json:"requires_gpu"`
 }
 
 type MLDeployment struct {
-	ID       string    `json:"id"`
-	ModelID  string    `json:"model_id"`
-	NodeID   string    `json:"node_id"`
-	Status   string    `json:"status"`
-	Endpoint string    `json:"endpoint"`
+	ID         string    `json:"id"`
+	ModelID    string    `json:"model_id"`
+	NodeID     string    `json:"node_id"`
+	Status     string    `json:"status"`
+	Endpoint   string    `json:"endpoint"`
 	DeployedAt time.Time `json:"deployed_at"`
 }
 
@@ -78,9 +78,9 @@ type InferenceResult struct {
 }
 
 type MLOptimization struct {
-	ModelID         string   `json:"model_id"`
-	Recommendations []string `json:"recommendations"`
-	EstimatedSpeedup float64 `json:"estimated_speedup"`
+	ModelID          string   `json:"model_id"`
+	Recommendations  []string `json:"recommendations"`
+	EstimatedSpeedup float64  `json:"estimated_speedup"`
 }
 
 type CacheConfig struct {
@@ -107,27 +107,27 @@ type CacheStats struct {
 }
 
 type ZoneReport struct {
-	ZoneID          string  `json:"zone_id"`
-	TotalNodes      int     `json:"total_nodes"`
-	ActiveNodes     int     `json:"active_nodes"`
-	AverageLatency  float64 `json:"average_latency"`
-	TotalCapacity   EdgeResources `json:"total_capacity"`
-	UsedCapacity    EdgeResources `json:"used_capacity"`
-	HealthScore     float64 `json:"health_score"`
+	ZoneID         string        `json:"zone_id"`
+	TotalNodes     int           `json:"total_nodes"`
+	ActiveNodes    int           `json:"active_nodes"`
+	AverageLatency float64       `json:"average_latency"`
+	TotalCapacity  EdgeResources `json:"total_capacity"`
+	UsedCapacity   EdgeResources `json:"used_capacity"`
+	HealthScore    float64       `json:"health_score"`
 }
 
 type ResourcePrediction struct {
-	ZoneID          string  `json:"zone_id"`
-	TimeHorizon     time.Duration `json:"time_horizon"`
-	PredictedCPU    float64 `json:"predicted_cpu"`
-	PredictedMemory float64 `json:"predicted_memory"`
-	PredictedStorage float64 `json:"predicted_storage"`
-	Confidence      float64 `json:"confidence"`
+	ZoneID           string        `json:"zone_id"`
+	TimeHorizon      time.Duration `json:"time_horizon"`
+	PredictedCPU     float64       `json:"predicted_cpu"`
+	PredictedMemory  float64       `json:"predicted_memory"`
+	PredictedStorage float64       `json:"predicted_storage"`
+	Confidence       float64       `json:"confidence"`
 }
 
 type PlacementOptimization struct {
-	Recommendations []PlacementRecommendation `json:"recommendations"`
-	EstimatedSavings float64 `json:"estimated_savings"`
+	Recommendations  []PlacementRecommendation `json:"recommendations"`
+	EstimatedSavings float64                   `json:"estimated_savings"`
 }
 
 type PlacementRecommendation struct {
@@ -136,7 +136,6 @@ type PlacementRecommendation struct {
 	Reason   string `json:"reason"`
 	Priority int    `json:"priority"`
 }
-
 
 // Node Management Methods
 func (r *EdgeController) RegisterNode(node *EdgeNode) error {
@@ -466,8 +465,8 @@ func (r *EdgeController) InitiateFailover(sourceNodeID string) (*FailoverPlan, e
 
 		// Check if in same zone
 		if node.Zone == sourceNode.Zone {
-			avgUtilization := (node.Resources.CPUUtilization + 
-				node.Resources.MemoryUtilization + 
+			avgUtilization := (node.Resources.CPUUtilization +
+				node.Resources.MemoryUtilization +
 				node.Resources.StorageUtilization) / 3
 
 			if avgUtilization < minUtilization {
@@ -511,7 +510,7 @@ func (r *EdgeController) ExecuteFailover(plan *FailoverPlan) error {
 	// Migrate services to target node
 	targetNode.LocalServices = append(targetNode.LocalServices, plan.ServicesToMigrate...)
 
-	r.Log.Info("Executed failover", "source", plan.SourceNode, "target", plan.TargetNode, 
+	r.Log.Info("Executed failover", "source", plan.SourceNode, "target", plan.TargetNode,
 		"services", len(plan.ServicesToMigrate))
 
 	return nil
@@ -565,9 +564,9 @@ func (r *EdgeController) DeployMLModel(model *MLModel, nodeID string) (*MLDeploy
 
 	// Add to node's services
 	service := EdgeService{
-		Name:   model.Name,
-		Type:   "ml-inference",
-		Status: "running",
+		Name:     model.Name,
+		Type:     "ml-inference",
+		Status:   "running",
 		Endpoint: deployment.Endpoint,
 	}
 	node.LocalServices = append(node.LocalServices, service)
@@ -685,13 +684,13 @@ func (r *EdgeController) GenerateZoneReport(zoneID string) (*ZoneReport, error) 
 	}
 
 	report := &ZoneReport{
-		ZoneID:      zoneID,
-		TotalNodes:  0,
-		ActiveNodes: 0,
+		ZoneID:         zoneID,
+		TotalNodes:     0,
+		ActiveNodes:    0,
 		AverageLatency: 0,
-		TotalCapacity: zone.TotalCapacity,
-		UsedCapacity: zone.UtilizedCapacity,
-		HealthScore: 0,
+		TotalCapacity:  zone.TotalCapacity,
+		UsedCapacity:   zone.UtilizedCapacity,
+		HealthScore:    0,
 	}
 
 	totalLatency := 0.0
@@ -740,14 +739,14 @@ func (r *EdgeController) OptimizeNodePlacement() (*PlacementOptimization, error)
 	defer r.mutex.RUnlock()
 
 	optimization := &PlacementOptimization{
-		Recommendations: []PlacementRecommendation{},
+		Recommendations:  []PlacementRecommendation{},
 		EstimatedSavings: 0,
 	}
 
 	// Analyze node utilization and make recommendations
 	for id, node := range r.edgeNodes {
-		avgUtilization := (node.Resources.CPUUtilization + 
-			node.Resources.MemoryUtilization + 
+		avgUtilization := (node.Resources.CPUUtilization +
+			node.Resources.MemoryUtilization +
 			node.Resources.StorageUtilization) / 3
 
 		if avgUtilization < 0.2 {

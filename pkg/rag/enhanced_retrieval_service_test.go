@@ -11,26 +11,26 @@ import (
 
 var _ = Describe("EnhancedRetrievalService", func() {
 	var (
-		service    *EnhancedRetrievalService
-		mockCache  *MockRedisCache
-		ctx        context.Context
+		service   *EnhancedRetrievalService
+		mockCache *MockRedisCache
+		ctx       context.Context
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		mockCache = &MockRedisCache{}
-		
+
 		config := &EnhancedRetrievalConfig{
-			EnableSemanticReranking:  true,
+			EnableSemanticReranking: true,
 			EnableQueryExpansion:    true,
 			EnableResultFusion:      true,
 			MaxQueryExpansions:      3,
-			RerankerTopK:           20,
-			FusionAlpha:            0.7,
-			CacheEnabled:           true,
-			CacheTTL:               30 * time.Minute,
+			RerankerTopK:            20,
+			FusionAlpha:             0.7,
+			CacheEnabled:            true,
+			CacheTTL:                30 * time.Minute,
 		}
-		
+
 		service = NewEnhancedRetrievalService(config, mockCache)
 	})
 
@@ -51,9 +51,9 @@ var _ = Describe("EnhancedRetrievalService", func() {
 	Describe("EnhanceQuery", func() {
 		It("should expand query with related terms", func() {
 			originalQuery := "5G network configuration"
-			
+
 			enhanced, err := service.EnhanceQuery(ctx, originalQuery)
-			
+
 			Expect(err).ToNot(HaveOccurred())
 			Expect(enhanced).NotTo(BeNil())
 			Expect(enhanced.OriginalQuery).To(Equal(originalQuery))
@@ -72,7 +72,7 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 			for _, query := range queries {
 				enhanced, err := service.EnhanceQuery(ctx, query)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(enhanced.EnhancedQuery).To(ContainSubstring(query))
 				Expect(len(enhanced.TelecomTerms)).To(BeNumerically(">", 0))
@@ -81,30 +81,30 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 		It("should cache query expansions", func() {
 			query := "network optimization"
-			
+
 			// First call
 			enhanced1, err1 := service.EnhanceQuery(ctx, query)
 			Expect(err1).ToNot(HaveOccurred())
-			
+
 			// Second call should use cache
 			enhanced2, err2 := service.EnhanceQuery(ctx, query)
 			Expect(err2).ToNot(HaveOccurred())
-			
+
 			Expect(enhanced1.EnhancedQuery).To(Equal(enhanced2.EnhancedQuery))
 		})
 
 		It("should handle empty queries", func() {
 			enhanced, err := service.EnhanceQuery(ctx, "")
-			
+
 			Expect(err).To(HaveOccurred())
 			Expect(enhanced).To(BeNil())
 		})
 
 		It("should respect max expansions limit", func() {
 			service.config.MaxQueryExpansions = 2
-			
+
 			enhanced, err := service.EnhanceQuery(ctx, "test query")
-			
+
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(enhanced.Synonyms)).To(BeNumerically("<=", 2))
 		})
@@ -138,12 +138,12 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 		It("should rerank results based on semantic similarity", func() {
 			query := "5G gNB configuration"
-			
+
 			reranked, err := service.RerankResults(ctx, query, testResults)
-			
+
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(reranked)).To(Equal(len(testResults)))
-			
+
 			// Results should be reordered based on semantic relevance
 			// doc1 (5G gNB) should likely rank higher than doc3 (4G)
 			firstResult := reranked[0]
@@ -152,18 +152,18 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 		It("should handle empty results", func() {
 			reranked, err := service.RerankResults(ctx, "test query", []*RetrievalResult{})
-			
+
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(reranked)).To(Equal(0))
 		})
 
 		It("should preserve all result metadata", func() {
 			query := "network configuration"
-			
+
 			reranked, err := service.RerankResults(ctx, query, testResults)
-			
+
 			Expect(err).ToNot(HaveOccurred())
-			
+
 			// Check that all original metadata is preserved
 			for _, result := range reranked {
 				Expect(result.DocumentID).NotTo(BeEmpty())
@@ -175,9 +175,9 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 		It("should respect topK limit", func() {
 			service.config.RerankerTopK = 2
-			
+
 			reranked, err := service.RerankResults(ctx, "test query", testResults)
-			
+
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(reranked)).To(Equal(2))
 		})
@@ -191,7 +191,7 @@ var _ = Describe("EnhancedRetrievalService", func() {
 				{DocumentID: "doc1", Score: 0.9, Content: "Content 1"},
 				{DocumentID: "doc2", Score: 0.7, Content: "Content 2"},
 			}
-			
+
 			results2 = []*RetrievalResult{
 				{DocumentID: "doc2", Score: 0.8, Content: "Content 2"}, // Overlap
 				{DocumentID: "doc3", Score: 0.6, Content: "Content 3"},
@@ -200,12 +200,12 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 		It("should fuse multiple result sets", func() {
 			resultSets := [][]*RetrievalResult{results1, results2}
-			
+
 			fused, err := service.FuseResults(ctx, resultSets)
-			
+
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(fused)).To(Equal(3)) // doc1, doc2, doc3
-			
+
 			// Check that doc2 has been properly merged
 			doc2Found := false
 			for _, result := range fused {
@@ -220,18 +220,18 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 		It("should handle empty result sets", func() {
 			resultSets := [][]*RetrievalResult{{}, {}}
-			
+
 			fused, err := service.FuseResults(ctx, resultSets)
-			
+
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(fused)).To(Equal(0))
 		})
 
 		It("should handle single result set", func() {
 			resultSets := [][]*RetrievalResult{results1}
-			
+
 			fused, err := service.FuseResults(ctx, resultSets)
-			
+
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(fused)).To(Equal(len(results1)))
 		})
@@ -242,15 +242,15 @@ var _ = Describe("EnhancedRetrievalService", func() {
 			text1 := "5G network configuration"
 			text2 := "5G gNB setup parameters"
 			text3 := "Weather forecast today"
-			
+
 			similarity1 := service.GetSemanticSimilarity(text1, text2)
 			similarity2 := service.GetSemanticSimilarity(text1, text3)
-			
+
 			Expect(similarity1).To(BeNumerically(">", 0))
 			Expect(similarity1).To(BeNumerically("<=", 1))
 			Expect(similarity2).To(BeNumerically(">=", 0))
 			Expect(similarity2).To(BeNumerically("<=", 1))
-			
+
 			// Related texts should have higher similarity
 			Expect(similarity1).To(BeNumerically(">", similarity2))
 		})
@@ -258,7 +258,7 @@ var _ = Describe("EnhancedRetrievalService", func() {
 		It("should handle identical texts", func() {
 			text := "identical text"
 			similarity := service.GetSemanticSimilarity(text, text)
-			
+
 			Expect(similarity).To(BeNumerically("~", 1.0, 0.1))
 		})
 
@@ -266,7 +266,7 @@ var _ = Describe("EnhancedRetrievalService", func() {
 			similarity1 := service.GetSemanticSimilarity("", "text")
 			similarity2 := service.GetSemanticSimilarity("text", "")
 			similarity3 := service.GetSemanticSimilarity("", "")
-			
+
 			Expect(similarity1).To(BeNumerically(">=", 0))
 			Expect(similarity2).To(BeNumerically(">=", 0))
 			Expect(similarity3).To(BeNumerically(">=", 0))
@@ -281,7 +281,7 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 			It("should continue processing without cache", func() {
 				enhanced, err := service.EnhanceQuery(ctx, "test query")
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(enhanced).NotTo(BeNil())
 			})
@@ -291,9 +291,9 @@ var _ = Describe("EnhancedRetrievalService", func() {
 			It("should handle cancellation gracefully", func() {
 				cancelCtx, cancel := context.WithCancel(ctx)
 				cancel()
-				
+
 				enhanced, err := service.EnhanceQuery(cancelCtx, "test query")
-				
+
 				Expect(err).To(HaveOccurred())
 				Expect(enhanced).To(BeNil())
 			})
@@ -303,13 +303,13 @@ var _ = Describe("EnhancedRetrievalService", func() {
 	Describe("Configuration Validation", func() {
 		It("should handle invalid configuration values", func() {
 			config := &EnhancedRetrievalConfig{
-				MaxQueryExpansions: -1, // Invalid
-				RerankerTopK:      0,   // Invalid
-				FusionAlpha:       2.0, // Invalid (should be 0-1)
+				MaxQueryExpansions: -1,  // Invalid
+				RerankerTopK:       0,   // Invalid
+				FusionAlpha:        2.0, // Invalid (should be 0-1)
 			}
-			
+
 			service := NewEnhancedRetrievalService(config, nil)
-			
+
 			// Service should still be functional with corrected values
 			Expect(service).NotTo(BeNil())
 			Expect(service.config.MaxQueryExpansions).To(BeNumerically(">", 0))
@@ -320,14 +320,14 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 	Describe("GetHealthStatus", func() {
 		var (
-			mockWeaviateClient  *MockWeaviateClient
+			mockWeaviateClient   *MockWeaviateClient
 			mockEmbeddingService *MockEmbeddingService
 		)
 
 		BeforeEach(func() {
 			mockWeaviateClient = &MockWeaviateClient{}
 			mockEmbeddingService = &MockEmbeddingService{}
-			
+
 			// Create service with mocked dependencies
 			service.weaviateClient = mockWeaviateClient
 			service.embeddingService = mockEmbeddingService
@@ -337,10 +337,10 @@ var _ = Describe("EnhancedRetrievalService", func() {
 			BeforeEach(func() {
 				// Set up healthy weaviate
 				mockWeaviateClient.SetHealthStatus(true, time.Now())
-				
+
 				// Set up healthy embedding service
 				mockEmbeddingService.SetHealthStatus("healthy", "All providers operational", nil)
-				
+
 				// Set up healthy metrics
 				service.updateMetrics(func(m *RetrievalMetrics) {
 					m.TotalQueries = 100
@@ -351,7 +351,7 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 			It("should return healthy status", func() {
 				healthStatus, err := service.GetHealthStatus(ctx)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(healthStatus).NotTo(BeNil())
 				Expect(healthStatus.Status).To(Equal("healthy"))
@@ -367,7 +367,7 @@ var _ = Describe("EnhancedRetrievalService", func() {
 				// Set up healthy components
 				mockWeaviateClient.SetHealthStatus(true, time.Now())
 				mockEmbeddingService.SetHealthStatus("healthy", "All providers operational", nil)
-				
+
 				// Zero queries
 				service.updateMetrics(func(m *RetrievalMetrics) {
 					m.TotalQueries = 0
@@ -378,7 +378,7 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 			It("should return success_rate of 1.0", func() {
 				healthStatus, err := service.GetHealthStatus(ctx)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(healthStatus.SuccessRate).To(BeNumerically("==", 1.0))
 				Expect(healthStatus.Status).To(Equal("healthy"))
@@ -389,7 +389,7 @@ var _ = Describe("EnhancedRetrievalService", func() {
 			BeforeEach(func() {
 				mockWeaviateClient.SetHealthStatus(true, time.Now())
 				mockEmbeddingService.SetHealthStatus("unhealthy", "All providers unavailable", errors.New("connection failed"))
-				
+
 				service.updateMetrics(func(m *RetrievalMetrics) {
 					m.TotalQueries = 100
 					m.SuccessfulQueries = 90
@@ -399,7 +399,7 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 			It("should return unhealthy status", func() {
 				healthStatus, err := service.GetHealthStatus(ctx)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(healthStatus.Status).To(Equal("unhealthy"))
 				Expect(healthStatus.Components["embedding_service"].Status).To(Equal("unhealthy"))
@@ -411,17 +411,17 @@ var _ = Describe("EnhancedRetrievalService", func() {
 				// Healthy components but low success rate
 				mockWeaviateClient.SetHealthStatus(true, time.Now())
 				mockEmbeddingService.SetHealthStatus("healthy", "All providers operational", nil)
-				
+
 				service.updateMetrics(func(m *RetrievalMetrics) {
 					m.TotalQueries = 100
-					m.SuccessfulQueries = 30  // 30% success rate
+					m.SuccessfulQueries = 30 // 30% success rate
 					m.FailedQueries = 70
 				})
 			})
 
 			It("should return unhealthy status for low success rate", func() {
 				healthStatus, err := service.GetHealthStatus(ctx)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(healthStatus.Status).To(Equal("unhealthy"))
 				Expect(healthStatus.SuccessRate).To(BeNumerically("==", 0.3))
@@ -432,17 +432,17 @@ var _ = Describe("EnhancedRetrievalService", func() {
 			BeforeEach(func() {
 				mockWeaviateClient.SetHealthStatus(true, time.Now())
 				mockEmbeddingService.SetHealthStatus("healthy", "All providers operational", nil)
-				
+
 				service.updateMetrics(func(m *RetrievalMetrics) {
 					m.TotalQueries = 100
-					m.SuccessfulQueries = 70  // 70% success rate
+					m.SuccessfulQueries = 70 // 70% success rate
 					m.FailedQueries = 30
 				})
 			})
 
 			It("should return degraded status", func() {
 				healthStatus, err := service.GetHealthStatus(ctx)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(healthStatus.Status).To(Equal("degraded"))
 				Expect(healthStatus.SuccessRate).To(BeNumerically("==", 0.7))
@@ -453,9 +453,9 @@ var _ = Describe("EnhancedRetrievalService", func() {
 			It("should handle cancellation gracefully", func() {
 				cancelCtx, cancel := context.WithCancel(ctx)
 				cancel()
-				
+
 				healthStatus, err := service.GetHealthStatus(cancelCtx)
-				
+
 				// Should still complete but may have limited component checks
 				Expect(err).ToNot(HaveOccurred())
 				Expect(healthStatus).NotTo(BeNil())
@@ -466,17 +466,17 @@ var _ = Describe("EnhancedRetrievalService", func() {
 			BeforeEach(func() {
 				mockWeaviateClient.SetHealthStatus(true, time.Now())
 				mockEmbeddingService.SetHealthStatus("degraded", "Some providers unavailable", nil)
-				
+
 				service.updateMetrics(func(m *RetrievalMetrics) {
 					m.TotalQueries = 100
-					m.SuccessfulQueries = 85  // Good success rate
+					m.SuccessfulQueries = 85 // Good success rate
 					m.FailedQueries = 15
 				})
 			})
 
 			It("should return degraded status when any component is degraded", func() {
 				healthStatus, err := service.GetHealthStatus(ctx)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(healthStatus.Status).To(Equal("degraded"))
 				Expect(healthStatus.Components["embedding_service"].Status).To(Equal("degraded"))
@@ -521,7 +521,7 @@ func (m *MockEmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatu
 	if m.err != nil {
 		return nil, m.err
 	}
-	
+
 	return &ComponentStatus{
 		Status:    m.status,
 		Message:   m.message,

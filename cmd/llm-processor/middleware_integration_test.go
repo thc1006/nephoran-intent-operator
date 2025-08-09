@@ -25,23 +25,23 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	tests := []struct {
-		name           string
-		tlsEnabled     bool
-		requestHeaders map[string]string
-		expectedHeaders map[string]string
+		name              string
+		tlsEnabled        bool
+		requestHeaders    map[string]string
+		expectedHeaders   map[string]string
 		unexpectedHeaders []string
-		description    string
+		description       string
 	}{
 		{
 			name:       "Basic security headers without TLS",
 			tlsEnabled: false,
 			expectedHeaders: map[string]string{
-				"X-Frame-Options":           "DENY",
-				"X-Content-Type-Options":    "nosniff",
-				"Referrer-Policy":           "strict-origin-when-cross-origin",
-				"Content-Security-Policy":   "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
-				"Permissions-Policy":        "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
-				"X-XSS-Protection":          "1; mode=block",
+				"X-Frame-Options":         "DENY",
+				"X-Content-Type-Options":  "nosniff",
+				"Referrer-Policy":         "strict-origin-when-cross-origin",
+				"Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'",
+				"Permissions-Policy":      "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()",
+				"X-XSS-Protection":        "1; mode=block",
 			},
 			unexpectedHeaders: []string{"Strict-Transport-Security"},
 			description:       "Should set all security headers except HSTS when TLS is disabled",
@@ -64,8 +64,8 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 			description: "Should set all security headers including HSTS when TLS is enabled",
 		},
 		{
-			name:       "TLS enabled but not secure connection",
-			tlsEnabled: true,
+			name:           "TLS enabled but not secure connection",
+			tlsEnabled:     true,
 			requestHeaders: map[string]string{
 				// No TLS indicators
 			},
@@ -85,7 +85,7 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 			securityConfig := middleware.DefaultSecurityHeadersConfig()
 			securityConfig.EnableHSTS = tt.tlsEnabled
 			securityConfig.ContentSecurityPolicy = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
-			
+
 			securityHeaders := middleware.NewSecurityHeaders(securityConfig, logger)
 
 			// Create test handler
@@ -99,12 +99,12 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 
 			// Create request
 			req := httptest.NewRequest("GET", "/test", nil)
-			
+
 			// Set TLS state if needed
 			if tt.tlsEnabled && tt.requestHeaders["X-Forwarded-Proto"] == "https" {
 				req.TLS = &tls.ConnectionState{} // Simulate TLS connection
 			}
-			
+
 			// Set request headers
 			for key, value := range tt.requestHeaders {
 				req.Header.Set(key, value)
@@ -147,16 +147,16 @@ func TestRedactLoggerMiddleware(t *testing.T) {
 	}))
 
 	tests := []struct {
-		name           string
-		method         string
-		path           string
-		headers        map[string]string
-		queryParams    string
-		requestBody    string
-		shouldSkip     bool
+		name             string
+		method           string
+		path             string
+		headers          map[string]string
+		queryParams      string
+		requestBody      string
+		shouldSkip       bool
 		expectedRedacted []string
 		unexpectedInLogs []string
-		description    string
+		description      string
 	}{
 		{
 			name:   "Redact Authorization header",
@@ -172,10 +172,10 @@ func TestRedactLoggerMiddleware(t *testing.T) {
 			description:      "Authorization header should be redacted in logs",
 		},
 		{
-			name:   "Redact sensitive query parameters",
-			method: "GET",
-			path:   "/status",
-			queryParams: "token=secret123&api_key=key456&normal_param=value",
+			name:             "Redact sensitive query parameters",
+			method:           "GET",
+			path:             "/status",
+			queryParams:      "token=secret123&api_key=key456&normal_param=value",
 			expectedRedacted: []string{"[REDACTED]"},
 			unexpectedInLogs: []string{"secret123", "key456"},
 			description:      "Sensitive query parameters should be redacted",
@@ -187,16 +187,16 @@ func TestRedactLoggerMiddleware(t *testing.T) {
 			headers: map[string]string{
 				"Content-Type": "application/json",
 			},
-			requestBody: `{"intent": "Deploy function", "password": "secret-password", "api_key": "key-12345"}`,
+			requestBody:      `{"intent": "Deploy function", "password": "secret-password", "api_key": "key-12345"}`,
 			expectedRedacted: []string{"[REDACTED]"},
 			unexpectedInLogs: []string{"secret-password", "key-12345"},
 			description:      "Sensitive JSON fields should be redacted in request body",
 		},
 		{
-			name:       "Skip health check paths",
-			method:     "GET",
-			path:       "/healthz",
-			shouldSkip: true,
+			name:        "Skip health check paths",
+			method:      "GET",
+			path:        "/healthz",
+			shouldSkip:  true,
 			description: "Health check paths should be skipped from logging",
 		},
 		{
@@ -204,7 +204,7 @@ func TestRedactLoggerMiddleware(t *testing.T) {
 			method: "GET",
 			path:   "/test",
 			headers: map[string]string{
-				"Authorization":    "Bearer token123",
+				"Authorization":   "Bearer token123",
 				"X-API-Key":       "apikey456",
 				"Cookie":          "session=abc123",
 				"X-Custom-Header": "normal-value",
@@ -246,12 +246,12 @@ func TestRedactLoggerMiddleware(t *testing.T) {
 			if tt.queryParams != "" {
 				url += "?" + tt.queryParams
 			}
-			
+
 			var reqBody io.Reader
 			if tt.requestBody != "" {
 				reqBody = strings.NewReader(tt.requestBody)
 			}
-			
+
 			req := httptest.NewRequest(tt.method, url, reqBody)
 
 			// Set headers
@@ -318,12 +318,12 @@ func TestCorrelationIDGeneration(t *testing.T) {
 	}))
 
 	tests := []struct {
-		name               string
-		existingHeaderName string
+		name                string
+		existingHeaderName  string
 		existingHeaderValue string
-		expectGeneration   bool
-		expectedInResponse string
-		description        string
+		expectGeneration    bool
+		expectedInResponse  string
+		description         string
 	}{
 		{
 			name:               "Generate new correlation ID when none exists",
@@ -332,28 +332,28 @@ func TestCorrelationIDGeneration(t *testing.T) {
 			description:        "Should generate new correlation ID and set response header",
 		},
 		{
-			name:               "Use existing X-Request-ID",
-			existingHeaderName: "X-Request-ID",
+			name:                "Use existing X-Request-ID",
+			existingHeaderName:  "X-Request-ID",
 			existingHeaderValue: "existing-request-123",
-			expectGeneration:   false,
-			expectedInResponse: "existing-request-123",
-			description:        "Should use existing X-Request-ID header",
+			expectGeneration:    false,
+			expectedInResponse:  "existing-request-123",
+			description:         "Should use existing X-Request-ID header",
 		},
 		{
-			name:               "Use existing X-Correlation-ID",
-			existingHeaderName: "X-Correlation-ID",
+			name:                "Use existing X-Correlation-ID",
+			existingHeaderName:  "X-Correlation-ID",
 			existingHeaderValue: "corr-456",
-			expectGeneration:   false,
-			expectedInResponse: "corr-456",
-			description:        "Should use existing X-Correlation-ID header",
+			expectGeneration:    false,
+			expectedInResponse:  "corr-456",
+			description:         "Should use existing X-Correlation-ID header",
 		},
 		{
-			name:               "Use existing X-Trace-ID",
-			existingHeaderName: "X-Trace-ID",
+			name:                "Use existing X-Trace-ID",
+			existingHeaderName:  "X-Trace-ID",
 			existingHeaderValue: "trace-789",
-			expectGeneration:   false,
-			expectedInResponse: "trace-789",
-			description:        "Should use existing X-Trace-ID header",
+			expectGeneration:    false,
+			expectedInResponse:  "trace-789",
+			description:         "Should use existing X-Trace-ID header",
 		},
 	}
 
@@ -442,9 +442,9 @@ func TestMiddlewareOrdering(t *testing.T) {
 
 	// Create a test configuration similar to main.go
 	cfg := &config.LLMProcessorConfig{
-		TLSEnabled:    true,
-		LogLevel:     "debug",
-		CORSEnabled:  true,
+		TLSEnabled:     true,
+		LogLevel:       "debug",
+		CORSEnabled:    true,
 		AllowedOrigins: []string{"http://localhost:3000"},
 	}
 
@@ -491,15 +491,15 @@ func TestMiddlewareOrdering(t *testing.T) {
 	}).Methods("POST", "OPTIONS")
 
 	tests := []struct {
-		name           string
-		method         string
-		origin         string
-		headers        map[string]string
-		requestBody    string
-		expectedStatus int
+		name            string
+		method          string
+		origin          string
+		headers         map[string]string
+		requestBody     string
+		expectedStatus  int
 		expectedHeaders map[string]string
-		checkLogs      bool
-		description    string
+		checkLogs       bool
+		description     string
 	}{
 		{
 			name:   "CORS preflight request",
@@ -513,9 +513,9 @@ func TestMiddlewareOrdering(t *testing.T) {
 			expectedHeaders: map[string]string{
 				"Access-Control-Allow-Origin":  "http://localhost:3000",
 				"Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-				"X-Frame-Options":             "DENY",
-				"X-Content-Type-Options":      "nosniff",
-				"X-Request-ID":               "", // Should exist but value varies
+				"X-Frame-Options":              "DENY",
+				"X-Content-Type-Options":       "nosniff",
+				"X-Request-ID":                 "", // Should exist but value varies
 			},
 			checkLogs:   false, // OPTIONS requests might be skipped
 			description: "CORS preflight should work with all middlewares",
@@ -532,9 +532,9 @@ func TestMiddlewareOrdering(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedHeaders: map[string]string{
 				"Access-Control-Allow-Origin": "http://localhost:3000",
-				"X-Frame-Options":            "DENY",
-				"Content-Type":               "application/json",
-				"X-Request-ID":               "", // Should exist
+				"X-Frame-Options":             "DENY",
+				"Content-Type":                "application/json",
+				"X-Request-ID":                "", // Should exist
 			},
 			checkLogs:   true,
 			description: "POST request should have all middleware effects applied",
@@ -592,7 +592,7 @@ func TestMiddlewareOrdering(t *testing.T) {
 			// Check expected headers
 			for expectedHeader, expectedValue := range tt.expectedHeaders {
 				actualValue := rr.Header().Get(expectedHeader)
-				
+
 				if expectedValue == "" {
 					// Just check that header exists
 					if actualValue == "" {
@@ -617,7 +617,7 @@ func TestMiddlewareOrdering(t *testing.T) {
 			// Check logs if required
 			if tt.checkLogs {
 				logOutput := logBuffer.String()
-				
+
 				// Should contain correlation ID
 				correlationID := rr.Header().Get("X-Request-ID")
 				if correlationID != "" && !strings.Contains(logOutput, correlationID) {
@@ -641,14 +641,14 @@ func TestHSTSHeaderBehavior(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	tests := []struct {
-		name                 string
-		tlsEnabled           bool
-		hasHSTSConfig        bool
-		requestHasTLS        bool
-		forwardedProto       string
-		expectedHSTS         string
-		shouldHaveHSTS       bool
-		description          string
+		name           string
+		tlsEnabled     bool
+		hasHSTSConfig  bool
+		requestHasTLS  bool
+		forwardedProto string
+		expectedHSTS   string
+		shouldHaveHSTS bool
+		description    string
 	}{
 		{
 			name:           "HSTS enabled with TLS connection",
@@ -702,7 +702,7 @@ func TestHSTSHeaderBehavior(t *testing.T) {
 			config := middleware.DefaultSecurityHeadersConfig()
 			config.EnableHSTS = tt.hasHSTSConfig
 			config.HSTSMaxAge = 31536000
-			
+
 			// Special case for includeSubDomains test
 			if strings.Contains(tt.expectedHSTS, "includeSubDomains") {
 				config.HSTSIncludeSubDomains = true
@@ -770,13 +770,13 @@ func TestMiddlewareWithExistingEndpoints(t *testing.T) {
 
 	// Create configuration similar to main.go
 	cfg := &config.LLMProcessorConfig{
-		TLSEnabled:       true,
-		LogLevel:        "debug",
-		MaxRequestSize:  1024 * 1024, // 1MB
-		CORSEnabled:     true,
-		AllowedOrigins:  []string{"http://localhost:3000"},
+		TLSEnabled:            true,
+		LogLevel:              "debug",
+		MaxRequestSize:        1024 * 1024, // 1MB
+		CORSEnabled:           true,
+		AllowedOrigins:        []string{"http://localhost:3000"},
 		ExposeMetricsPublicly: false,
-		MetricsAllowedCIDRs: []string{"127.0.0.0/8"},
+		MetricsAllowedCIDRs:   []string{"127.0.0.0/8"},
 	}
 
 	// Create router with all middlewares like in main.go
@@ -840,7 +840,7 @@ func TestMiddlewareWithExistingEndpoints(t *testing.T) {
 				http.Error(w, "Invalid JSON", http.StatusBadRequest)
 				return
 			}
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"status":     "success",
@@ -870,7 +870,7 @@ func TestMiddlewareWithExistingEndpoints(t *testing.T) {
 			checkHeaders: map[string]bool{
 				"X-Frame-Options":        true,
 				"X-Content-Type-Options": true,
-				"X-Request-ID":          true,
+				"X-Request-ID":           true,
 			},
 			shouldHaveLogs: false, // Health checks are skipped
 			description:    "Health check should have security headers but minimal logging",
@@ -888,8 +888,8 @@ func TestMiddlewareWithExistingEndpoints(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			checkHeaders: map[string]bool{
 				"Access-Control-Allow-Origin": true,
-				"X-Frame-Options":            true,
-				"X-Request-ID":               true,
+				"X-Frame-Options":             true,
+				"X-Request-ID":                true,
 				"Strict-Transport-Security":   true,
 			},
 			shouldHaveLogs: true,
@@ -1038,12 +1038,12 @@ func TestMiddlewareErrorHandling(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelError}))
 
 	tests := []struct {
-		name           string
+		name            string
 		setupMiddleware func() http.Handler
-		requestSetup   func() *http.Request
-		expectedStatus int
+		requestSetup    func() *http.Request
+		expectedStatus  int
 		expectedHeaders map[string]string
-		description    string
+		description     string
 	}{
 		{
 			name: "Request size limit exceeded",
@@ -1070,11 +1070,11 @@ func TestMiddlewareErrorHandling(t *testing.T) {
 				panicHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					panic("test panic")
 				})
-				
+
 				// Wrap with security headers (should still apply headers even if handler panics)
 				securityConfig := middleware.DefaultSecurityHeadersConfig()
 				securityHeaders := middleware.NewSecurityHeaders(securityConfig, logger)
-				
+
 				// Add a basic recovery middleware
 				recoveryWrapper := func(next http.Handler) http.Handler {
 					return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1087,7 +1087,7 @@ func TestMiddlewareErrorHandling(t *testing.T) {
 						next.ServeHTTP(w, r)
 					})
 				}
-				
+
 				return recoveryWrapper(securityHeaders.Middleware(panicHandler))
 			},
 			requestSetup: func() *http.Request {

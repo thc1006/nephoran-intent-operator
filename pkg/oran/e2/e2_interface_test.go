@@ -15,7 +15,7 @@ func TestE2InterfaceComplete(t *testing.T) {
 			NodeType:     E2NodeTypegNB,
 			NodeID:       "gNB-001",
 		}
-		
+
 		setupReq := &E2SetupRequest{
 			GlobalE2NodeID: globalE2NodeID,
 			RANFunctionsList: []RANFunctionItem{
@@ -39,19 +39,19 @@ func TestE2InterfaceComplete(t *testing.T) {
 				},
 			},
 		}
-		
+
 		if setupReq.GlobalE2NodeID.NodeID != "gNB-001" {
 			t.Errorf("Expected node ID gNB-001, got %s", setupReq.GlobalE2NodeID.NodeID)
 		}
-		
+
 		if len(setupReq.RANFunctionsList) != 3 {
 			t.Errorf("Expected 3 RAN functions, got %d", len(setupReq.RANFunctionsList))
 		}
 	})
-	
+
 	t.Run("ASN1_Encoding", func(t *testing.T) {
 		codec := NewASN1Codec(true)
-		
+
 		// Create a test message
 		msg := &E2APMessage{
 			MessageType:   E2APMessageTypeSetupRequest,
@@ -74,28 +74,28 @@ func TestE2InterfaceComplete(t *testing.T) {
 				},
 			},
 		}
-		
+
 		// Encode the message
 		encoded, err := codec.EncodeE2APMessage(msg)
 		if err != nil {
 			t.Fatalf("Failed to encode E2AP message: %v", err)
 		}
-		
+
 		if len(encoded) == 0 {
 			t.Error("Encoded message is empty")
 		}
-		
+
 		// Decode the message
 		decoded, err := codec.DecodeE2APMessage(encoded)
 		if err != nil {
 			t.Fatalf("Failed to decode E2AP message: %v", err)
 		}
-		
+
 		if decoded.MessageType != msg.MessageType {
 			t.Errorf("Message type mismatch: expected %v, got %v", msg.MessageType, decoded.MessageType)
 		}
 	})
-	
+
 	t.Run("Service_Models", func(t *testing.T) {
 		// Test KPM Service Model
 		t.Run("KPM", func(t *testing.T) {
@@ -107,12 +107,12 @@ func TestE2InterfaceComplete(t *testing.T) {
 				FunctionOID:         "1.3.6.1.4.1.53148.1.2.2.100",
 				FunctionDescription: "Key Performance Measurement Service Model",
 			}
-			
+
 			if kpmRanFunction.FunctionID != 1 {
 				t.Errorf("Expected KPM function ID 1, got %d", kpmRanFunction.FunctionID)
 			}
 		})
-		
+
 		// Test RC Service Model
 		t.Run("RC", func(t *testing.T) {
 			// RC model should be available
@@ -123,12 +123,12 @@ func TestE2InterfaceComplete(t *testing.T) {
 				FunctionOID:         "1.3.6.1.4.1.53148.1.2.2.101",
 				FunctionDescription: "RAN Control Service Model",
 			}
-			
+
 			if rcRanFunction.FunctionID != 2 {
 				t.Errorf("Expected RC function ID 2, got %d", rcRanFunction.FunctionID)
 			}
 		})
-		
+
 		// Test NI Service Model (Network Interface)
 		t.Run("NI", func(t *testing.T) {
 			// NI model should be available - this is the newly added model
@@ -139,17 +139,17 @@ func TestE2InterfaceComplete(t *testing.T) {
 				FunctionOID:         "1.3.6.1.4.1.53148.1.2.2.102",
 				FunctionDescription: "Network Interface Service Model",
 			}
-			
+
 			if niRanFunction.FunctionID != 3 {
 				t.Errorf("Expected NI function ID 3, got %d", niRanFunction.FunctionID)
 			}
-			
+
 			if niRanFunction.FunctionDefinition != "E2SM-NI" {
 				t.Errorf("Expected E2SM-NI, got %s", niRanFunction.FunctionDefinition)
 			}
 		})
 	})
-	
+
 	t.Run("SCTP_Transport", func(t *testing.T) {
 		config := &SCTPConfig{
 			ListenAddress:     "0.0.0.0",
@@ -168,82 +168,82 @@ func TestE2InterfaceComplete(t *testing.T) {
 			MaxMessageSize:    8192,
 			EnableTLS:         false,
 		}
-		
+
 		codec := NewASN1Codec(true)
 		transport := NewSCTPTransport(config, codec)
-		
+
 		if transport == nil {
 			t.Fatal("Failed to create SCTP transport")
 		}
-		
+
 		// Verify transport configuration
 		if transport.config.ListenPort != 36421 {
 			t.Errorf("Expected SCTP port 36421, got %d", transport.config.ListenPort)
 		}
-		
+
 		// Test message handler setting
 		messageHandler := func(nodeID string, message *E2APMessage) error {
 			// Handle message
 			return nil
 		}
-		
+
 		transport.SetMessageHandler(messageHandler)
-		
+
 		if transport.messageHandler == nil {
 			t.Error("Message handler not set")
 		}
 	})
-	
+
 	t.Run("E2_Subscription", func(t *testing.T) {
 		// Test subscription request creation
 		requestID := RICRequestID{
 			RequestorID: 123,
 			InstanceID:  456,
 		}
-		
+
 		subscriptionReq := &RICSubscriptionRequest{
-			RequestID:     requestID,
-			RANFunctionID: 1,
+			RequestID:              requestID,
+			RANFunctionID:          1,
 			EventTriggerDefinition: []byte("event_trigger"),
 			ActionsToBeSetupList: []RICActionToBeSetupItem{
 				{
-					ActionID:   1,
-					ActionType: RICActionTypeReport,
+					ActionID:         1,
+					ActionType:       RICActionTypeReport,
 					ActionDefinition: []byte("action_definition"),
 				},
 			},
 		}
-		
+
 		if subscriptionReq.RequestID.RequestorID != 123 {
 			t.Errorf("Expected requestor ID 123, got %d", subscriptionReq.RequestID.RequestorID)
 		}
-		
+
 		if len(subscriptionReq.ActionsToBeSetupList) != 1 {
 			t.Errorf("Expected 1 action, got %d", len(subscriptionReq.ActionsToBeSetupList))
 		}
 	})
-	
+
 	t.Run("E2_Indication", func(t *testing.T) {
 		// Test indication message
 		indication := &RICIndication{
-			RequestID:     RICRequestID{RequestorID: 123, InstanceID: 456},
-			RANFunctionID: 1,
-			ActionID:      1,
-			IndicationSN:  1000,
-			IndicationType: RICIndicationTypeReport,
-			IndicationHeader: []byte("indication_header"),
+			RequestID:         RICRequestID{RequestorID: 123, InstanceID: 456},
+			RANFunctionID:     1,
+			ActionID:          1,
+			IndicationSN:      1000,
+			IndicationType:    RICIndicationTypeReport,
+			IndicationHeader:  []byte("indication_header"),
 			IndicationMessage: []byte("indication_message"),
 		}
-		
+
 		if indication.IndicationType != RICIndicationTypeReport {
 			t.Errorf("Expected indication type REPORT, got %v", indication.IndicationType)
 		}
-		
+
 		if indication.IndicationSN != 1000 {
 			t.Errorf("Expected indication SN 1000, got %d", indication.IndicationSN)
 		}
 	})
-	
+
 	t.Run("xApp_Interface", func(t *testing.T) {
 		// Test xApp SDK configuration
 		xappConfig := &XAppConfig{
@@ -267,15 +267,15 @@ func TestE2InterfaceComplete(t *testing.T) {
 				HealthEndpoint:   "/health",
 			},
 		}
-		
+
 		if xappConfig.XAppName != "test-xapp" {
 			t.Errorf("Expected xApp name test-xapp, got %s", xappConfig.XAppName)
 		}
-		
+
 		if len(xappConfig.ServiceModels) != 3 {
 			t.Errorf("Expected 3 service models, got %d", len(xappConfig.ServiceModels))
 		}
-		
+
 		// Verify NI service model is included
 		hasNI := false
 		for _, model := range xappConfig.ServiceModels {
@@ -284,19 +284,19 @@ func TestE2InterfaceComplete(t *testing.T) {
 				break
 			}
 		}
-		
+
 		if !hasNI {
 			t.Error("NI service model not found in xApp configuration")
 		}
 	})
-	
+
 	t.Run("E2_Manager_Interface", func(t *testing.T) {
 		// Test that E2ManagerInterface is properly defined
 		var mgr E2ManagerInterface
-		
+
 		// This should compile, proving the interface exists
 		_ = mgr
-		
+
 		// Test E2Node structure
 		node := &E2Node{
 			NodeID: "gNB-001",
@@ -312,16 +312,16 @@ func TestE2InterfaceComplete(t *testing.T) {
 			SubscriptionCount: 5,
 			LastSeen:          time.Now(),
 		}
-		
+
 		if node.ConnectionStatus != E2ConnectionStatusConnected {
 			t.Errorf("Expected CONNECTED status, got %s", node.ConnectionStatus)
 		}
 	})
-	
+
 	t.Run("Complete_E2AP_Flow", func(t *testing.T) {
 		// Simulate complete E2AP message flow
 		ctx := context.Background()
-		
+
 		// 1. E2 Setup
 		setupReq := CreateE2SetupRequest(
 			GlobalE2NodeID{
@@ -335,11 +335,11 @@ func TestE2InterfaceComplete(t *testing.T) {
 				{RANFunctionID: 3, RANFunctionDefinition: "NI"},
 			},
 		)
-		
+
 		if setupReq.MessageType != E2APMessageTypeSetupRequest {
 			t.Errorf("Expected SETUP_REQUEST, got %v", setupReq.MessageType)
 		}
-		
+
 		// 2. RIC Subscription
 		subscriptionReq := CreateRICSubscriptionRequest(
 			RICRequestID{RequestorID: 1, InstanceID: 1},
@@ -355,11 +355,11 @@ func TestE2InterfaceComplete(t *testing.T) {
 				},
 			},
 		)
-		
+
 		if subscriptionReq.MessageType != E2APMessageTypeRICSubscriptionRequest {
 			t.Errorf("Expected RIC_SUBSCRIPTION_REQUEST, got %v", subscriptionReq.MessageType)
 		}
-		
+
 		// 3. RIC Control
 		controlReq := CreateRICControlRequest(
 			RICRequestID{RequestorID: 1, InstanceID: 2},
@@ -367,11 +367,11 @@ func TestE2InterfaceComplete(t *testing.T) {
 			[]byte("control_header"),
 			[]byte("control_message"),
 		)
-		
+
 		if controlReq.MessageType != E2APMessageTypeRICControlRequest {
 			t.Errorf("Expected RIC_CONTROL_REQUEST, got %v", controlReq.MessageType)
 		}
-		
+
 		// Verify context is usable
 		select {
 		case <-ctx.Done():
@@ -410,7 +410,7 @@ func TestE2ServiceModelsComplete(t *testing.T) {
 			id:   3,
 		},
 	}
-	
+
 	for _, model := range serviceModels {
 		t.Run(model.name, func(t *testing.T) {
 			// Verify model can be registered
@@ -421,7 +421,7 @@ func TestE2ServiceModelsComplete(t *testing.T) {
 				FunctionRevision:    1,
 				FunctionDescription: model.name + " Service Model",
 			}
-			
+
 			if ranFunction.FunctionOID != model.oid {
 				t.Errorf("Expected OID %s, got %s", model.oid, ranFunction.FunctionOID)
 			}
@@ -448,20 +448,20 @@ func TestSCTPTransportComplete(t *testing.T) {
 		MaxMessageSize:    8192,
 		EnableTLS:         false,
 	}
-	
+
 	// Verify SCTP port is correct
 	if config.ListenPort != 36421 {
 		t.Errorf("Expected SCTP port 36421, got %d", config.ListenPort)
 	}
-	
+
 	// Create transport
 	codec := NewASN1Codec(true)
 	transport := NewSCTPTransport(config, codec)
-	
+
 	if transport == nil {
 		t.Fatal("Failed to create SCTP transport")
 	}
-	
+
 	// Verify transport metrics
 	metrics := transport.GetMetrics()
 	if metrics == nil {
@@ -492,7 +492,7 @@ func TestE2APCompleteImplementation(t *testing.T) {
 		E2APMessageTypeResetResponse,
 		E2APMessageTypeErrorIndication,
 	}
-	
+
 	for _, msgType := range requiredMessages {
 		t.Run(msgType.String(), func(t *testing.T) {
 			// Verify message type is defined

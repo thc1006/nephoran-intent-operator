@@ -24,28 +24,28 @@ import (
 
 // ChaosEngineeringTestSuite provides comprehensive chaos testing for mTLS and certificate systems
 type ChaosEngineeringTestSuite struct {
-	ctx             context.Context
-	k8sClient       client.Client
-	namespace       string
-	testSuite       *mTLSSecurityTestSuite
-	caManager       *ca.CAManager
-	chaosScenarios  []*ChaosScenario
-	metrics         *ChaosMetrics
-	faultInjector   *FaultInjector
+	ctx            context.Context
+	k8sClient      client.Client
+	namespace      string
+	testSuite      *mTLSSecurityTestSuite
+	caManager      *ca.CAManager
+	chaosScenarios []*ChaosScenario
+	metrics        *ChaosMetrics
+	faultInjector  *FaultInjector
 }
 
 // ChaosScenario defines a specific failure scenario to test
 type ChaosScenario struct {
-	Name            string
-	Description     string
-	Category        string        // CA_FAILURE, NETWORK_PARTITION, SERVICE_MESH_FAILURE, etc.
-	Duration        time.Duration
-	Impact          string        // HIGH, MEDIUM, LOW
-	RecoveryTime    time.Duration
+	Name             string
+	Description      string
+	Category         string // CA_FAILURE, NETWORK_PARTITION, SERVICE_MESH_FAILURE, etc.
+	Duration         time.Duration
+	Impact           string // HIGH, MEDIUM, LOW
+	RecoveryTime     time.Duration
 	ExpectedBehavior string
-	FaultFunction   func(*ChaosEngineeringTestSuite) error
-	ValidateFunc    func(*ChaosEngineeringTestSuite) error
-	CleanupFunc     func(*ChaosEngineeringTestSuite) error
+	FaultFunction    func(*ChaosEngineeringTestSuite) error
+	ValidateFunc     func(*ChaosEngineeringTestSuite) error
+	CleanupFunc      func(*ChaosEngineeringTestSuite) error
 }
 
 // ChaosMetrics tracks chaos engineering test results
@@ -87,11 +87,11 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		chaosSuite = &ChaosEngineeringTestSuite{
-			ctx:         context.Background(),
-			k8sClient:   utils.GetK8sClient(),
-			namespace:   utils.GetTestNamespace(),
-			testSuite:   baseSuite,
-			metrics:     &ChaosMetrics{ServiceAvailability: make(map[string]float64), ErrorRates: make(map[string]float64)},
+			ctx:           context.Background(),
+			k8sClient:     utils.GetK8sClient(),
+			namespace:     utils.GetTestNamespace(),
+			testSuite:     baseSuite,
+			metrics:       &ChaosMetrics{ServiceAvailability: make(map[string]float64), ErrorRates: make(map[string]float64)},
 			faultInjector: &FaultInjector{activeFaults: make(map[string]*ActiveFault)},
 		}
 
@@ -106,22 +106,22 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 	Context("Certificate Authority Chaos Testing", func() {
 		It("should handle CA complete failure scenario", func() {
 			scenario := &ChaosScenario{
-				Name:            "CA Complete Failure",
-				Description:     "CA service becomes completely unavailable",
-				Category:        "CA_FAILURE",
-				Duration:        30 * time.Second,
-				Impact:          "HIGH",
+				Name:             "CA Complete Failure",
+				Description:      "CA service becomes completely unavailable",
+				Category:         "CA_FAILURE",
+				Duration:         30 * time.Second,
+				Impact:           "HIGH",
 				ExpectedBehavior: "System should continue with cached certificates and gracefully degrade",
 			}
 
 			By("Starting CA failure chaos scenario")
-			
+
 			// Setup baseline - verify normal operation
 			server := chaosSuite.testSuite.createTestServer(chaosSuite.testSuite.serverCert, true)
 			defer server.Close()
 
 			client := chaosSuite.testSuite.createMTLSClient(chaosSuite.testSuite.clientCert)
-			
+
 			// Verify normal operation
 			resp, err := client.Get(server.URL)
 			Expect(err).NotTo(HaveOccurred())
@@ -129,19 +129,19 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 			// Inject CA failure
 			faultID := chaosSuite.faultInjector.injectCAFailure(scenario.Duration)
-			
+
 			// Monitor system behavior during failure
 			var successfulRequests, failedRequests int64
 			var wg sync.WaitGroup
-			
+
 			startTime := time.Now()
-			
+
 			// Simulate ongoing requests during CA failure
 			for i := 0; i < 10; i++ {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					
+
 					for time.Since(startTime) < scenario.Duration {
 						resp, err := client.Get(server.URL)
 						if err != nil {
@@ -154,7 +154,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 					}
 				}()
 			}
-			
+
 			wg.Wait()
 
 			// Stop fault injection
@@ -183,11 +183,11 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 		It("should handle CA intermittent failure scenario", func() {
 			scenario := &ChaosScenario{
-				Name:            "CA Intermittent Failure",
-				Description:     "CA service experiences intermittent failures",
-				Category:        "CA_FAILURE",
-				Duration:        60 * time.Second,
-				Impact:          "MEDIUM",
+				Name:             "CA Intermittent Failure",
+				Description:      "CA service experiences intermittent failures",
+				Category:         "CA_FAILURE",
+				Duration:         60 * time.Second,
+				Impact:           "MEDIUM",
 				ExpectedBehavior: "System should retry and eventually succeed",
 			}
 
@@ -241,11 +241,11 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 		It("should handle CA certificate corruption scenario", func() {
 			scenario := &ChaosScenario{
-				Name:            "CA Certificate Corruption",
-				Description:     "CA root certificate becomes corrupted",
-				Category:        "CA_FAILURE",
-				Duration:        45 * time.Second,
-				Impact:          "HIGH",
+				Name:             "CA Certificate Corruption",
+				Description:      "CA root certificate becomes corrupted",
+				Category:         "CA_FAILURE",
+				Duration:         45 * time.Second,
+				Impact:           "HIGH",
 				ExpectedBehavior: "System should detect corruption and trigger recovery",
 			}
 
@@ -275,11 +275,11 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 		It("should handle CA key compromise scenario", func() {
 			scenario := &ChaosScenario{
-				Name:            "CA Key Compromise",
-				Description:     "CA private key is potentially compromised",
-				Category:        "CA_SECURITY",
-				Duration:        60 * time.Second,
-				Impact:          "CRITICAL",
+				Name:             "CA Key Compromise",
+				Description:      "CA private key is potentially compromised",
+				Category:         "CA_SECURITY",
+				Duration:         60 * time.Second,
+				Impact:           "CRITICAL",
 				ExpectedBehavior: "System should revoke certificates and regenerate CA",
 			}
 
@@ -307,11 +307,11 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 			Skip("Requires Istio service mesh deployment")
 
 			scenario := &ChaosScenario{
-				Name:            "Istio Control Plane Failure",
-				Description:     "Istio pilot/citadel becomes unavailable",
-				Category:        "SERVICE_MESH_FAILURE",
-				Duration:        45 * time.Second,
-				Impact:          "HIGH",
+				Name:             "Istio Control Plane Failure",
+				Description:      "Istio pilot/citadel becomes unavailable",
+				Category:         "SERVICE_MESH_FAILURE",
+				Duration:         45 * time.Second,
+				Impact:           "HIGH",
 				ExpectedBehavior: "Existing connections continue, new connections may fail",
 			}
 
@@ -326,11 +326,11 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 			Skip("Requires service mesh deployment")
 
 			scenario := &ChaosScenario{
-				Name:            "Service Mesh Cert Rotation Failure",
-				Description:     "Service mesh certificate rotation fails",
-				Category:        "SERVICE_MESH_FAILURE",
-				Duration:        30 * time.Second,
-				Impact:          "MEDIUM",
+				Name:             "Service Mesh Cert Rotation Failure",
+				Description:      "Service mesh certificate rotation fails",
+				Category:         "SERVICE_MESH_FAILURE",
+				Duration:         30 * time.Second,
+				Impact:           "MEDIUM",
 				ExpectedBehavior: "Fallback to manual certificate management",
 			}
 
@@ -339,23 +339,23 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 		It("should handle sidecar proxy failures", func() {
 			scenario := &ChaosScenario{
-				Name:            "Sidecar Proxy Failure",
-				Description:     "Service mesh sidecar proxies fail randomly",
-				Category:        "SERVICE_MESH_FAILURE",
-				Duration:        60 * time.Second,
-				Impact:          "MEDIUM",
+				Name:             "Sidecar Proxy Failure",
+				Description:      "Service mesh sidecar proxies fail randomly",
+				Category:         "SERVICE_MESH_FAILURE",
+				Duration:         60 * time.Second,
+				Impact:           "MEDIUM",
 				ExpectedBehavior: "Traffic should be rerouted through healthy proxies",
 			}
 
 			// Simulate sidecar proxy failures
 			services := []string{"service-a", "service-b", "service-c"}
-			
+
 			for _, serviceName := range services {
 				By(fmt.Sprintf("Simulating sidecar failure for %s", serviceName))
-				
+
 				// This would kill random sidecar containers
 				chaosSuite.simulateSidecarFailure(serviceName)
-				
+
 				// Monitor service connectivity
 				Eventually(func() bool {
 					return chaosSuite.verifyServiceConnectivity(serviceName)
@@ -367,11 +367,11 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 	Context("Network Partition Chaos Testing", func() {
 		It("should handle network partition between CA and services", func() {
 			scenario := &ChaosScenario{
-				Name:            "CA Network Partition",
-				Description:     "Network partition isolates CA from services",
-				Category:        "NETWORK_PARTITION",
-				Duration:        45 * time.Second,
-				Impact:          "HIGH",
+				Name:             "CA Network Partition",
+				Description:      "Network partition isolates CA from services",
+				Category:         "NETWORK_PARTITION",
+				Duration:         45 * time.Second,
+				Impact:           "HIGH",
 				ExpectedBehavior: "Services continue with existing certificates",
 			}
 
@@ -404,7 +404,7 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 			totalRequests := successfulRequests + failedRequests
 			if totalRequests > 0 {
 				availability := float64(successfulRequests) / float64(totalRequests) * 100
-				
+
 				By(fmt.Sprintf("Network partition availability: %.1f%%", availability))
 				Expect(availability).To(BeNumerically(">=", 85.0))
 			}
@@ -412,17 +412,17 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 		It("should handle intermittent network connectivity", func() {
 			scenario := &ChaosScenario{
-				Name:            "Intermittent Network Connectivity",
-				Description:     "Network experiences packet loss and latency spikes",
-				Category:        "NETWORK_DEGRADATION",
-				Duration:        60 * time.Second,
-				Impact:          "MEDIUM",
+				Name:             "Intermittent Network Connectivity",
+				Description:      "Network experiences packet loss and latency spikes",
+				Category:         "NETWORK_DEGRADATION",
+				Duration:         60 * time.Second,
+				Impact:           "MEDIUM",
 				ExpectedBehavior: "Connections should retry and eventually succeed",
 			}
 
 			// Inject network degradation
 			faultID := chaosSuite.faultInjector.injectNetworkDegradation(
-				20, // 20% packet loss
+				20,                   // 20% packet loss
 				500*time.Millisecond, // 500ms additional latency
 				scenario.Duration,
 			)
@@ -473,28 +473,28 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 	Context("Certificate Lifecycle Chaos Testing", func() {
 		It("should handle mass certificate expiration", func() {
 			scenario := &ChaosScenario{
-				Name:            "Mass Certificate Expiration",
-				Description:     "Large number of certificates expire simultaneously",
-				Category:        "CERTIFICATE_LIFECYCLE",
-				Duration:        120 * time.Second,
-				Impact:          "HIGH",
+				Name:             "Mass Certificate Expiration",
+				Description:      "Large number of certificates expire simultaneously",
+				Category:         "CERTIFICATE_LIFECYCLE",
+				Duration:         120 * time.Second,
+				Impact:           "HIGH",
 				ExpectedBehavior: "System should prioritize and batch certificate renewals",
 			}
 
 			// Create multiple services with certificates near expiration
 			services := chaosSuite.createServicesWithExpiringCertificates(10)
-			
+
 			// Monitor renewal process
 			renewalStartTime := time.Now()
-			
+
 			Eventually(func() int {
 				return chaosSuite.countRenewedCertificates(services)
 			}, 90*time.Second, 5*time.Second).Should(Equal(len(services)))
 
 			renewalDuration := time.Since(renewalStartTime)
-			
+
 			By(fmt.Sprintf("Mass certificate renewal completed in %v", renewalDuration))
-			
+
 			// Verify all services are operational after renewal
 			for _, service := range services {
 				Eventually(func() error {
@@ -505,20 +505,20 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 
 		It("should handle certificate rotation cascade failures", func() {
 			scenario := &ChaosScenario{
-				Name:            "Certificate Rotation Cascade Failure",
-				Description:     "Certificate rotation failures cascade through the system",
-				Category:        "CERTIFICATE_LIFECYCLE",
-				Duration:        90 * time.Second,
-				Impact:          "CRITICAL",
+				Name:             "Certificate Rotation Cascade Failure",
+				Description:      "Certificate rotation failures cascade through the system",
+				Category:         "CERTIFICATE_LIFECYCLE",
+				Duration:         90 * time.Second,
+				Impact:           "CRITICAL",
 				ExpectedBehavior: "System should isolate failures and prevent cascade",
 			}
 
 			// Create service dependency chain
 			serviceChain := []string{"service-a", "service-b", "service-c", "service-d"}
-			
+
 			// Inject rotation failure in first service
 			chaosSuite.injectCertificateRotationFailure(serviceChain[0])
-			
+
 			// Monitor cascade effect
 			var failedServices []string
 			for _, service := range serviceChain[1:] {
@@ -526,10 +526,10 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 					failedServices = append(failedServices, service)
 				}
 			}
-			
+
 			// Should limit cascade impact
 			Expect(len(failedServices)).To(BeNumerically("<=", 1))
-			
+
 			// Recovery should be possible
 			Eventually(func() bool {
 				return chaosSuite.areAllServicesHealthy(serviceChain)
@@ -540,73 +540,73 @@ var _ = Describe("mTLS Chaos Engineering Test Suite", func() {
 	Context("Recovery and Resilience Testing", func() {
 		It("should test disaster recovery procedures", func() {
 			scenario := &ChaosScenario{
-				Name:            "Complete System Failure",
-				Description:     "Simulate complete system failure and recovery",
-				Category:        "DISASTER_RECOVERY",
-				Duration:        300 * time.Second, // 5 minutes
-				Impact:          "CRITICAL",
+				Name:             "Complete System Failure",
+				Description:      "Simulate complete system failure and recovery",
+				Category:         "DISASTER_RECOVERY",
+				Duration:         300 * time.Second, // 5 minutes
+				Impact:           "CRITICAL",
 				ExpectedBehavior: "System should recover from backup within SLA",
 			}
 
 			// Record baseline state
 			baselineServices := chaosSuite.recordSystemState()
-			
+
 			// Inject complete system failure
 			chaosSuite.injectCompleteSystemFailure()
-			
+
 			// Verify system is down
 			Eventually(func() bool {
 				return !chaosSuite.isSystemOperational()
 			}, 30*time.Second, 2*time.Second).Should(BeTrue())
-			
+
 			// Trigger disaster recovery
 			recoveryStartTime := time.Now()
 			chaosSuite.triggerDisasterRecovery()
-			
+
 			// Wait for system recovery
 			Eventually(func() bool {
 				return chaosSuite.isSystemOperational()
 			}, 240*time.Second, 10*time.Second).Should(BeTrue())
-			
+
 			recoveryTime := time.Since(recoveryStartTime)
-			
+
 			// Verify system state matches baseline
 			Eventually(func() bool {
 				currentState := chaosSuite.recordSystemState()
 				return chaosSuite.compareSystemStates(baselineServices, currentState)
 			}, 60*time.Second, 5*time.Second).Should(BeTrue())
-			
+
 			By(fmt.Sprintf("Disaster recovery completed in %v", recoveryTime))
-			
+
 			// Recovery should meet SLA (e.g., within 5 minutes)
 			Expect(recoveryTime).To(BeNumerically("<", 300*time.Second))
 		})
 
 		It("should test automated recovery mechanisms", func() {
 			scenario := &ChaosScenario{
-				Name:            "Automated Recovery Test",
-				Description:     "Test automated recovery from various failure scenarios",
-				Category:        "AUTOMATED_RECOVERY",
-				Duration:        180 * time.Second,
-				Impact:          "MEDIUM",
+				Name:             "Automated Recovery Test",
+				Description:      "Test automated recovery from various failure scenarios",
+				Category:         "AUTOMATED_RECOVERY",
+				Duration:         180 * time.Second,
+				Impact:           "MEDIUM",
 				ExpectedBehavior: "System should automatically recover without intervention",
 			}
 
 			failures := []string{"pod-failure", "network-failure", "certificate-corruption"}
-			
+
 			for _, failureType := range failures {
 				By(fmt.Sprintf("Testing automated recovery from %s", failureType))
-				
+
 				// Inject failure
 				faultID := chaosSuite.injectFailure(failureType, 30*time.Second)
-				
+
 				// Wait for automated recovery (no manual intervention)
 				Eventually(func() bool {
 					return chaosSuite.isSystemOperational()
 				}, 120*time.Second, 5*time.Second).Should(BeTrue())
-				
+
 				chaosSuite.faultInjector.stopFault(faultID)
-				
+
 				// Brief pause between scenarios
 				time.Sleep(5 * time.Second)
 			}
@@ -626,7 +626,7 @@ func (c *ChaosEngineeringTestSuite) initializeChaosScenarios() {
 func (c *ChaosEngineeringTestSuite) cleanup() {
 	// Stop all active faults
 	c.faultInjector.stopAllFaults()
-	
+
 	// Cleanup test resources
 	if c.testSuite != nil {
 		c.testSuite.cleanupTestCertificates()
@@ -637,7 +637,7 @@ func (c *ChaosEngineeringTestSuite) cleanup() {
 
 func (f *FaultInjector) injectCAFailure(duration time.Duration) string {
 	faultID := f.generateFaultID()
-	
+
 	fault := &ActiveFault{
 		ID:          faultID,
 		Type:        "CA_FAILURE",
@@ -645,20 +645,20 @@ func (f *FaultInjector) injectCAFailure(duration time.Duration) string {
 		Duration:    duration,
 		StopChannel: make(chan bool),
 	}
-	
+
 	f.mu.Lock()
 	f.activeFaults[faultID] = fault
 	f.mu.Unlock()
-	
+
 	// Start fault injection
 	go f.runCAFailure(fault)
-	
+
 	return faultID
 }
 
 func (f *FaultInjector) injectIntermittentCAFailure(duration time.Duration, interval time.Duration, failureRate int) string {
 	faultID := f.generateFaultID()
-	
+
 	fault := &ActiveFault{
 		ID:        faultID,
 		Type:      "INTERMITTENT_CA_FAILURE",
@@ -670,39 +670,39 @@ func (f *FaultInjector) injectIntermittentCAFailure(duration time.Duration, inte
 		},
 		StopChannel: make(chan bool),
 	}
-	
+
 	f.mu.Lock()
 	f.activeFaults[faultID] = fault
 	f.mu.Unlock()
-	
+
 	go f.runIntermittentCAFailure(fault)
-	
+
 	return faultID
 }
 
 func (f *FaultInjector) injectCertificateCorruption() string {
 	faultID := f.generateFaultID()
-	
+
 	fault := &ActiveFault{
 		ID:          faultID,
 		Type:        "CERTIFICATE_CORRUPTION",
 		StartTime:   time.Now(),
 		StopChannel: make(chan bool),
 	}
-	
+
 	f.mu.Lock()
 	f.activeFaults[faultID] = fault
 	f.mu.Unlock()
-	
+
 	// Corrupt certificate data
 	go f.runCertificateCorruption(fault)
-	
+
 	return faultID
 }
 
 func (f *FaultInjector) injectNetworkPartition(target string, duration time.Duration) string {
 	faultID := f.generateFaultID()
-	
+
 	fault := &ActiveFault{
 		ID:        faultID,
 		Type:      "NETWORK_PARTITION",
@@ -713,19 +713,19 @@ func (f *FaultInjector) injectNetworkPartition(target string, duration time.Dura
 		},
 		StopChannel: make(chan bool),
 	}
-	
+
 	f.mu.Lock()
 	f.activeFaults[faultID] = fault
 	f.mu.Unlock()
-	
+
 	go f.runNetworkPartition(fault)
-	
+
 	return faultID
 }
 
 func (f *FaultInjector) injectNetworkDegradation(packetLoss int, latency time.Duration, duration time.Duration) string {
 	faultID := f.generateFaultID()
-	
+
 	fault := &ActiveFault{
 		ID:        faultID,
 		Type:      "NETWORK_DEGRADATION",
@@ -737,20 +737,20 @@ func (f *FaultInjector) injectNetworkDegradation(packetLoss int, latency time.Du
 		},
 		StopChannel: make(chan bool),
 	}
-	
+
 	f.mu.Lock()
 	f.activeFaults[faultID] = fault
 	f.mu.Unlock()
-	
+
 	go f.runNetworkDegradation(fault)
-	
+
 	return faultID
 }
 
 func (f *FaultInjector) stopFault(faultID string) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	if fault, exists := f.activeFaults[faultID]; exists {
 		close(fault.StopChannel)
 		delete(f.activeFaults, faultID)
@@ -760,7 +760,7 @@ func (f *FaultInjector) stopFault(faultID string) {
 func (f *FaultInjector) stopAllFaults() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	for faultID, fault := range f.activeFaults {
 		close(fault.StopChannel)
 		delete(f.activeFaults, faultID)
@@ -777,7 +777,7 @@ func (f *FaultInjector) runCAFailure(fault *ActiveFault) {
 	// Simulate CA service unavailability
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-fault.StopChannel:
@@ -792,10 +792,10 @@ func (f *FaultInjector) runCAFailure(fault *ActiveFault) {
 func (f *FaultInjector) runIntermittentCAFailure(fault *ActiveFault) {
 	interval := fault.Parameters["interval"].(time.Duration)
 	failureRate := fault.Parameters["failureRate"].(int)
-	
+
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-fault.StopChannel:
@@ -816,7 +816,7 @@ func (f *FaultInjector) runCertificateCorruption(fault *ActiveFault) {
 
 func (f *FaultInjector) runNetworkPartition(fault *ActiveFault) {
 	target := fault.Parameters["target"].(string)
-	
+
 	// Implement network partition using iptables or similar
 	// This is a simplified simulation
 	_ = target // Use target for network rules
@@ -867,17 +867,25 @@ func (c *ChaosEngineeringTestSuite) verifyNewCertificatesWork() error {
 // Placeholder methods for additional chaos testing functionality
 // These would be fully implemented based on actual system architecture
 
-func (c *ChaosEngineeringTestSuite) simulateSidecarFailure(serviceName string) {}
+func (c *ChaosEngineeringTestSuite) simulateSidecarFailure(serviceName string)         {}
 func (c *ChaosEngineeringTestSuite) verifyServiceConnectivity(serviceName string) bool { return true }
-func (c *ChaosEngineeringTestSuite) createServicesWithExpiringCertificates(count int) []string { return []string{} }
-func (c *ChaosEngineeringTestSuite) countRenewedCertificates(services []string) int { return len(services) }
-func (c *ChaosEngineeringTestSuite) verifyServiceOperational(service string) error { return nil }
+func (c *ChaosEngineeringTestSuite) createServicesWithExpiringCertificates(count int) []string {
+	return []string{}
+}
+func (c *ChaosEngineeringTestSuite) countRenewedCertificates(services []string) int {
+	return len(services)
+}
+func (c *ChaosEngineeringTestSuite) verifyServiceOperational(service string) error       { return nil }
 func (c *ChaosEngineeringTestSuite) injectCertificateRotationFailure(serviceName string) {}
-func (c *ChaosEngineeringTestSuite) isServiceHealthy(serviceName string) bool { return true }
-func (c *ChaosEngineeringTestSuite) areAllServicesHealthy(services []string) bool { return true }
-func (c *ChaosEngineeringTestSuite) recordSystemState() map[string]interface{} { return nil }
-func (c *ChaosEngineeringTestSuite) injectCompleteSystemFailure() {}
-func (c *ChaosEngineeringTestSuite) isSystemOperational() bool { return true }
-func (c *ChaosEngineeringTestSuite) triggerDisasterRecovery() {}
-func (c *ChaosEngineeringTestSuite) compareSystemStates(baseline, current map[string]interface{}) bool { return true }
-func (c *ChaosEngineeringTestSuite) injectFailure(failureType string, duration time.Duration) string { return "fault-id" }
+func (c *ChaosEngineeringTestSuite) isServiceHealthy(serviceName string) bool            { return true }
+func (c *ChaosEngineeringTestSuite) areAllServicesHealthy(services []string) bool        { return true }
+func (c *ChaosEngineeringTestSuite) recordSystemState() map[string]interface{}           { return nil }
+func (c *ChaosEngineeringTestSuite) injectCompleteSystemFailure()                        {}
+func (c *ChaosEngineeringTestSuite) isSystemOperational() bool                           { return true }
+func (c *ChaosEngineeringTestSuite) triggerDisasterRecovery()                            {}
+func (c *ChaosEngineeringTestSuite) compareSystemStates(baseline, current map[string]interface{}) bool {
+	return true
+}
+func (c *ChaosEngineeringTestSuite) injectFailure(failureType string, duration time.Duration) string {
+	return "fault-id"
+}

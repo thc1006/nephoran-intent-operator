@@ -41,11 +41,11 @@ type ManagedElementCredentials struct {
 
 // ManagedElementSpec defines the desired state of ManagedElement
 type ManagedElementSpec struct {
-	DeploymentName string `json:"deploymentName"`
-	Host string `json:"host"`
-	Port int `json:"port,omitempty"`
-	Credentials ManagedElementCredentials `json:"credentials"`
-	O1Config       string `json:"o1Config,omitempty"`
+	DeploymentName string                    `json:"deploymentName"`
+	Host           string                    `json:"host"`
+	Port           int                       `json:"port,omitempty"`
+	Credentials    ManagedElementCredentials `json:"credentials"`
+	O1Config       string                    `json:"o1Config,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields
 	A1Policy runtime.RawExtension `json:"a1Policy,omitempty"`
 	// +kubebuilder:pruning:PreserveUnknownFields

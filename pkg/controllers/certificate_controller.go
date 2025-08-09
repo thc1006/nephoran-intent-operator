@@ -51,28 +51,28 @@ type CertificateAutomationReconciler struct {
 type CertificateAutomationSpec struct {
 	// ServiceName specifies the target service name
 	ServiceName string `json:"serviceName"`
-	
+
 	// Namespace specifies the target namespace
 	Namespace string `json:"namespace"`
-	
+
 	// DNSNames specifies additional DNS names for the certificate
 	DNSNames []string `json:"dnsNames,omitempty"`
-	
+
 	// IPAddresses specifies IP addresses for the certificate
 	IPAddresses []string `json:"ipAddresses,omitempty"`
-	
+
 	// Template specifies the certificate template to use
 	Template string `json:"template,omitempty"`
-	
+
 	// AutoRenewal enables automatic certificate renewal
 	AutoRenewal bool `json:"autoRenewal,omitempty"`
-	
+
 	// ValidityDuration specifies certificate validity period
 	ValidityDuration *metav1.Duration `json:"validityDuration,omitempty"`
-	
+
 	// SecretName specifies the target secret name
 	SecretName string `json:"secretName,omitempty"`
-	
+
 	// Priority specifies provisioning priority
 	Priority string `json:"priority,omitempty"`
 }
@@ -81,31 +81,31 @@ type CertificateAutomationSpec struct {
 type CertificateAutomationStatus struct {
 	// Phase represents the current phase of certificate automation
 	Phase CertificateAutomationPhase `json:"phase,omitempty"`
-	
+
 	// Conditions represents the current conditions
 	Conditions []CertificateAutomationCondition `json:"conditions,omitempty"`
-	
+
 	// CertificateSerialNumber contains the serial number of the issued certificate
 	CertificateSerialNumber string `json:"certificateSerialNumber,omitempty"`
-	
+
 	// ExpiresAt contains the certificate expiration time
 	ExpiresAt *metav1.Time `json:"expiresAt,omitempty"`
-	
+
 	// LastRenewalTime contains the last renewal time
 	LastRenewalTime *metav1.Time `json:"lastRenewalTime,omitempty"`
-	
+
 	// NextRenewalTime contains the next scheduled renewal time
 	NextRenewalTime *metav1.Time `json:"nextRenewalTime,omitempty"`
-	
+
 	// SecretRef contains reference to the created secret
 	SecretRef *v1.LocalObjectReference `json:"secretRef,omitempty"`
-	
+
 	// ValidationStatus contains certificate validation status
 	ValidationStatus *CertificateValidationStatus `json:"validationStatus,omitempty"`
-	
+
 	// RevocationStatus contains certificate revocation status
 	RevocationStatus string `json:"revocationStatus,omitempty"`
-	
+
 	// ObservedGeneration represents the generation observed by the controller
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
@@ -116,22 +116,22 @@ type CertificateAutomationPhase string
 const (
 	// CertificateAutomationPhasePending indicates the request is pending
 	CertificateAutomationPhasePending CertificateAutomationPhase = "Pending"
-	
+
 	// CertificateAutomationPhaseProvisioning indicates certificate is being provisioned
 	CertificateAutomationPhaseProvisioning CertificateAutomationPhase = "Provisioning"
-	
+
 	// CertificateAutomationPhaseReady indicates certificate is ready
 	CertificateAutomationPhaseReady CertificateAutomationPhase = "Ready"
-	
+
 	// CertificateAutomationPhaseRenewing indicates certificate is being renewed
 	CertificateAutomationPhaseRenewing CertificateAutomationPhase = "Renewing"
-	
+
 	// CertificateAutomationPhaseExpired indicates certificate has expired
 	CertificateAutomationPhaseExpired CertificateAutomationPhase = "Expired"
-	
+
 	// CertificateAutomationPhaseRevoked indicates certificate has been revoked
 	CertificateAutomationPhaseRevoked CertificateAutomationPhase = "Revoked"
-	
+
 	// CertificateAutomationPhaseFailed indicates an error occurred
 	CertificateAutomationPhaseFailed CertificateAutomationPhase = "Failed"
 )
@@ -140,16 +140,16 @@ const (
 type CertificateAutomationCondition struct {
 	// Type of condition
 	Type CertificateAutomationConditionType `json:"type"`
-	
+
 	// Status of the condition
 	Status metav1.ConditionStatus `json:"status"`
-	
+
 	// Last time the condition transitioned
 	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
-	
+
 	// Reason for the condition's last transition
 	Reason string `json:"reason,omitempty"`
-	
+
 	// Message providing details about the transition
 	Message string `json:"message,omitempty"`
 }
@@ -160,16 +160,16 @@ type CertificateAutomationConditionType string
 const (
 	// CertificateAutomationConditionReady indicates the certificate is ready
 	CertificateAutomationConditionReady CertificateAutomationConditionType = "Ready"
-	
+
 	// CertificateAutomationConditionIssued indicates the certificate has been issued
 	CertificateAutomationConditionIssued CertificateAutomationConditionType = "Issued"
-	
+
 	// CertificateAutomationConditionValidated indicates the certificate has been validated
 	CertificateAutomationConditionValidated CertificateAutomationConditionType = "Validated"
-	
+
 	// CertificateAutomationConditionRenewed indicates the certificate has been renewed
 	CertificateAutomationConditionRenewed CertificateAutomationConditionType = "Renewed"
-	
+
 	// CertificateAutomationConditionRevoked indicates the certificate has been revoked
 	CertificateAutomationConditionRevoked CertificateAutomationConditionType = "Revoked"
 )
@@ -178,19 +178,19 @@ const (
 type CertificateValidationStatus struct {
 	// Valid indicates if the certificate is valid
 	Valid bool `json:"valid"`
-	
+
 	// ChainValid indicates if the certificate chain is valid
 	ChainValid bool `json:"chainValid,omitempty"`
-	
+
 	// CTLogVerified indicates if the certificate is in CT logs
 	CTLogVerified bool `json:"ctLogVerified,omitempty"`
-	
+
 	// LastValidationTime contains the last validation time
 	LastValidationTime *metav1.Time `json:"lastValidationTime,omitempty"`
-	
+
 	// ValidationErrors contains validation errors
 	ValidationErrors []string `json:"validationErrors,omitempty"`
-	
+
 	// ValidationWarnings contains validation warnings
 	ValidationWarnings []string `json:"validationWarnings,omitempty"`
 }
@@ -260,7 +260,7 @@ func (r *CertificateAutomationReconciler) reconcileDelete(ctx context.Context, c
 	// Revoke certificate if it exists
 	if certAutomation.Status.CertificateSerialNumber != "" {
 		log.Info("Revoking certificate", "serial_number", certAutomation.Status.CertificateSerialNumber)
-		
+
 		if err := r.CAManager.RevokeCertificate(ctx, certAutomation.Status.CertificateSerialNumber, 1, "default"); err != nil {
 			log.Error(err, "Failed to revoke certificate", "serial_number", certAutomation.Status.CertificateSerialNumber)
 			// Continue with deletion even if revocation fails
@@ -288,7 +288,7 @@ func (r *CertificateAutomationReconciler) reconcileProvisioning(ctx context.Cont
 		fmt.Sprintf("%s.%s", certAutomation.Spec.ServiceName, certAutomation.Spec.Namespace),
 		certAutomation.Spec.ServiceName,
 	}
-	
+
 	// Add additional DNS names
 	dnsNames = append(dnsNames, certAutomation.Spec.DNSNames...)
 
@@ -315,7 +315,7 @@ func (r *CertificateAutomationReconciler) reconcileProvisioning(ctx context.Cont
 			"kubernetes_managed": "true",
 			"resource_name":      certAutomation.Name,
 			"resource_namespace": certAutomation.Namespace,
-			"auto_renew":        fmt.Sprintf("%v", certAutomation.Spec.AutoRenewal),
+			"auto_renew":         fmt.Sprintf("%v", certAutomation.Spec.AutoRenewal),
 		},
 	}
 
@@ -407,7 +407,7 @@ func (r *CertificateAutomationReconciler) reconcileProvisioningStatus(ctx contex
 		}
 	}
 
-	log.Info("Certificate provisioned successfully", 
+	log.Info("Certificate provisioned successfully",
 		"serial_number", certAutomation.Status.CertificateSerialNumber,
 		"expires_at", certAutomation.Status.ExpiresAt.Time)
 
@@ -427,17 +427,17 @@ func (r *CertificateAutomationReconciler) reconcileReady(ctx context.Context, ce
 	}
 
 	// Check if renewal is needed
-	if certAutomation.Spec.AutoRenewal && 
-	   certAutomation.Status.NextRenewalTime != nil && 
-	   certAutomation.Status.NextRenewalTime.Time.Before(now) {
+	if certAutomation.Spec.AutoRenewal &&
+		certAutomation.Status.NextRenewalTime != nil &&
+		certAutomation.Status.NextRenewalTime.Time.Before(now) {
 		log.Info("Initiating certificate renewal")
 		return r.initiateRenewal(ctx, certAutomation)
 	}
 
 	// Periodic validation if enabled
-	if certAutomation.Status.ValidationStatus == nil || 
-	   (certAutomation.Status.ValidationStatus.LastValidationTime != nil &&
-	    now.Sub(certAutomation.Status.ValidationStatus.LastValidationTime.Time) > 24*time.Hour) {
+	if certAutomation.Status.ValidationStatus == nil ||
+		(certAutomation.Status.ValidationStatus.LastValidationTime != nil &&
+			now.Sub(certAutomation.Status.ValidationStatus.LastValidationTime.Time) > 24*time.Hour) {
 		go r.performPeriodicValidation(ctx, certAutomation)
 	}
 
@@ -560,7 +560,7 @@ func (r *CertificateAutomationReconciler) setCondition(status *CertificateAutoma
 			return
 		}
 	}
-	
+
 	// Condition not found, add it
 	status.Conditions = append(status.Conditions, condition)
 }
@@ -587,7 +587,7 @@ func (r *CertificateAutomationReconciler) SetupWithManager(mgr ctrl.Manager) err
 // findCertificateAutomationsForService finds CertificateAutomations that reference a Service
 func (r *CertificateAutomationReconciler) findCertificateAutomationsForService(obj client.Object) []reconcile.Request {
 	service := obj.(*v1.Service)
-	
+
 	var certAutomationList nephv1alpha1.CertificateAutomationList
 	if err := r.List(context.Background(), &certAutomationList, client.InNamespace(service.Namespace)); err != nil {
 		return nil

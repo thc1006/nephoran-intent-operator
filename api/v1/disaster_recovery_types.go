@@ -22,6 +22,70 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// Priority defines the priority level for disaster recovery operations
+// +kubebuilder:validation:Enum=low;medium;high;critical
+type Priority string
+
+const (
+	// PriorityLow indicates low priority operations
+	PriorityLow Priority = "low"
+	// PriorityMedium indicates medium priority operations
+	PriorityMedium Priority = "medium"
+	// PriorityHigh indicates high priority operations
+	PriorityHigh Priority = "high"
+	// PriorityCritical indicates critical priority operations
+	PriorityCritical Priority = "critical"
+)
+
+// TargetComponent defines a component targeted for disaster recovery
+type TargetComponent struct {
+	// Name of the component
+	// +kubebuilder:validation:Required
+	Name string `json:"name"`
+
+	// Type of component (deployment, statefulset, etc.)
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Enum=deployment;statefulset;service;configmap;secret;pvc
+	Type string `json:"type"`
+
+	// Namespace of the component
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+
+	// Label selector for the component
+	// +optional
+	LabelSelector map[string]string `json:"labelSelector,omitempty"`
+
+	// Dependencies on other components
+	// +optional
+	Dependencies []string `json:"dependencies,omitempty"`
+}
+
+// ResourceConstraints defines resource constraints for operations
+type ResourceConstraints struct {
+	// CPU limits
+	// +optional
+	CPU *resource.Quantity `json:"cpu,omitempty"`
+
+	// Memory limits
+	// +optional
+	Memory *resource.Quantity `json:"memory,omitempty"`
+
+	// Storage limits
+	// +optional
+	Storage *resource.Quantity `json:"storage,omitempty"`
+
+	// Network bandwidth limits
+	// +optional
+	NetworkBandwidth *resource.Quantity `json:"networkBandwidth,omitempty"`
+
+	// Maximum concurrent operations
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:default=10
+	MaxConcurrency *int32 `json:"maxConcurrency,omitempty"`
+}
+
 // DisasterRecoveryPlan defines a comprehensive disaster recovery plan
 //
 // +kubebuilder:object:root=true

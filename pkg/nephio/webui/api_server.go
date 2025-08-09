@@ -38,13 +38,13 @@ type APIServer struct {
 
 // APIServerConfig provides configuration options for the API server
 type APIServerConfig struct {
-	Logger         *zap.Logger
-	KubeClient     kubernetes.Interface
-	TLSCertPath    string
-	TLSKeyPath     string
-	HTTPPort       int
-	HTTPSPort      int
-	ShutdownWait   time.Duration
+	Logger       *zap.Logger
+	KubeClient   kubernetes.Interface
+	TLSCertPath  string
+	TLSKeyPath   string
+	HTTPPort     int
+	HTTPSPort    int
+	ShutdownWait time.Duration
 }
 
 // NewAPIServer creates a new Nephio Web UI API server

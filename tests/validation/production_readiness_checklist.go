@@ -14,7 +14,7 @@ import (
 // Integrates all production validators to achieve 8/10 point target
 type ProductionReadinessChecklist struct {
 	reliabilityValidator *ReliabilityValidator
-	
+
 	// Checklist results
 	results *ProductionReadinessResults
 }
@@ -22,53 +22,53 @@ type ProductionReadinessChecklist struct {
 // ProductionReadinessResults contains comprehensive production readiness assessment
 type ProductionReadinessResults struct {
 	// Overall scoring (target: 8/10 points)
-	TotalScore      int
-	MaxScore        int
-	TargetScore     int
-	
+	TotalScore  int
+	MaxScore    int
+	TargetScore int
+
 	// Category breakdown
-	HighAvailabilityScore      int  // 3 points max
-	FaultToleranceScore        int  // 3 points max
+	HighAvailabilityScore        int // 3 points max
+	FaultToleranceScore          int // 3 points max
 	MonitoringObservabilityScore int // 2 points max
-	DisasterRecoveryScore      int  // 2 points max
-	
+	DisasterRecoveryScore        int // 2 points max
+
 	// Detailed checklist items
-	ChecklistItems             []*ChecklistItem
-	
+	ChecklistItems []*ChecklistItem
+
 	// Additional metrics
-	DeploymentScenariosScore   int
-	InfrastructureAsCodeScore  int
-	
+	DeploymentScenariosScore  int
+	InfrastructureAsCodeScore int
+
 	// Execution metadata
-	ExecutionTime              time.Duration
-	ValidationTimestamp        time.Time
-	
+	ExecutionTime       time.Duration
+	ValidationTimestamp time.Time
+
 	// Recommendations for improvement
-	Recommendations            []string
+	Recommendations []string
 }
 
 // ChecklistItem represents a single production readiness check
 type ChecklistItem struct {
-	Category        string
-	Name            string
-	Description     string
-	Required        bool
-	Status          CheckStatus
-	Score           int
-	MaxScore        int
-	ValidationTime  time.Duration
-	ErrorMessage    string
-	Recommendation  string
+	Category       string
+	Name           string
+	Description    string
+	Required       bool
+	Status         CheckStatus
+	Score          int
+	MaxScore       int
+	ValidationTime time.Duration
+	ErrorMessage   string
+	Recommendation string
 }
 
 // CheckStatus represents the status of a checklist item
 type CheckStatus string
 
 const (
-	CheckStatusPassed   CheckStatus = "PASSED"
-	CheckStatusFailed   CheckStatus = "FAILED"
-	CheckStatusSkipped  CheckStatus = "SKIPPED"
-	CheckStatusWarning  CheckStatus = "WARNING"
+	CheckStatusPassed        CheckStatus = "PASSED"
+	CheckStatusFailed        CheckStatus = "FAILED"
+	CheckStatusSkipped       CheckStatus = "SKIPPED"
+	CheckStatusWarning       CheckStatus = "WARNING"
 	CheckStatusNotApplicable CheckStatus = "N/A"
 )
 
@@ -77,9 +77,9 @@ func NewProductionReadinessChecklist(reliabilityValidator *ReliabilityValidator)
 	return &ProductionReadinessChecklist{
 		reliabilityValidator: reliabilityValidator,
 		results: &ProductionReadinessResults{
-			MaxScore:      10,
-			TargetScore:   8,
-			ChecklistItems: []*ChecklistItem{},
+			MaxScore:        10,
+			TargetScore:     8,
+			ChecklistItems:  []*ChecklistItem{},
 			Recommendations: []string{},
 		},
 	}
@@ -88,49 +88,49 @@ func NewProductionReadinessChecklist(reliabilityValidator *ReliabilityValidator)
 // ExecuteProductionReadinessAssessment runs comprehensive production readiness validation
 func (prc *ProductionReadinessChecklist) ExecuteProductionReadinessAssessment(ctx context.Context) (*ProductionReadinessResults, error) {
 	ginkgo.By("Starting Comprehensive Production Readiness Assessment")
-	
+
 	startTime := time.Now()
 	prc.results.ValidationTimestamp = startTime
-	
+
 	// Initialize checklist with all required items
 	prc.initializeChecklist()
-	
+
 	// Category 1: High Availability Validation (3 points)
 	haScore := prc.validateHighAvailability(ctx)
 	prc.results.HighAvailabilityScore = haScore
-	
+
 	// Category 2: Fault Tolerance Validation (3 points)
 	ftScore := prc.validateFaultTolerance(ctx)
 	prc.results.FaultToleranceScore = ftScore
-	
+
 	// Category 3: Monitoring & Observability Validation (2 points)
 	monScore := prc.validateMonitoringObservability(ctx)
 	prc.results.MonitoringObservabilityScore = monScore
-	
-	// Category 4: Disaster Recovery Validation (2 points) 
+
+	// Category 4: Disaster Recovery Validation (2 points)
 	drScore := prc.validateDisasterRecovery(ctx)
 	prc.results.DisasterRecoveryScore = drScore
-	
+
 	// Additional validations
 	prc.validateDeploymentScenarios(ctx)
 	prc.validateInfrastructureAsCode(ctx)
-	
+
 	// Calculate total score (capped at 10 points)
 	totalScore := haScore + ftScore + monScore + drScore
 	if totalScore > 10 {
 		totalScore = 10
 	}
 	prc.results.TotalScore = totalScore
-	
+
 	prc.results.ExecutionTime = time.Since(startTime)
-	
+
 	// Generate recommendations
 	prc.generateRecommendations()
-	
+
 	// Final assessment
 	passed := prc.results.TotalScore >= prc.results.TargetScore
-	
-	ginkgo.By(fmt.Sprintf("Production Readiness Assessment Complete: %d/%d points (Target: %d) - %s", 
+
+	ginkgo.By(fmt.Sprintf("Production Readiness Assessment Complete: %d/%d points (Target: %d) - %s",
 		prc.results.TotalScore, prc.results.MaxScore, prc.results.TargetScore,
 		func() string {
 			if passed {
@@ -138,7 +138,7 @@ func (prc *ProductionReadinessChecklist) ExecuteProductionReadinessAssessment(ct
 			}
 			return "FAILED"
 		}()))
-	
+
 	return prc.results, nil
 }
 
@@ -154,7 +154,7 @@ func (prc *ProductionReadinessChecklist) initializeChecklist() {
 			MaxScore:    1,
 		},
 		{
-			Category:    "High Availability", 
+			Category:    "High Availability",
 			Name:        "Automatic Failover",
 			Description: "System can automatically failover within 5 minutes",
 			Required:    true,
@@ -167,7 +167,7 @@ func (prc *ProductionReadinessChecklist) initializeChecklist() {
 			Required:    true,
 			MaxScore:    1,
 		},
-		
+
 		// Fault Tolerance Checks (3 points)
 		{
 			Category:    "Fault Tolerance",
@@ -184,13 +184,13 @@ func (prc *ProductionReadinessChecklist) initializeChecklist() {
 			MaxScore:    1,
 		},
 		{
-			Category:    "Fault Tolerance", 
+			Category:    "Fault Tolerance",
 			Name:        "Resource Constraint Resilience",
 			Description: "System operates under resource constraints",
 			Required:    true,
 			MaxScore:    1,
 		},
-		
+
 		// Monitoring & Observability Checks (2 points)
 		{
 			Category:    "Monitoring & Observability",
@@ -206,7 +206,7 @@ func (prc *ProductionReadinessChecklist) initializeChecklist() {
 			Required:    true,
 			MaxScore:    1,
 		},
-		
+
 		// Disaster Recovery Checks (2 points)
 		{
 			Category:    "Disaster Recovery",
@@ -222,7 +222,7 @@ func (prc *ProductionReadinessChecklist) initializeChecklist() {
 			Required:    true,
 			MaxScore:    1,
 		},
-		
+
 		// Additional Production Checks
 		{
 			Category:    "Deployment Scenarios",
@@ -233,7 +233,7 @@ func (prc *ProductionReadinessChecklist) initializeChecklist() {
 		},
 		{
 			Category:    "Deployment Scenarios",
-			Name:        "Canary Deployment", 
+			Name:        "Canary Deployment",
 			Description: "Canary deployment with traffic splitting is configured",
 			Required:    false,
 			MaxScore:    0,
@@ -258,41 +258,41 @@ func (prc *ProductionReadinessChecklist) initializeChecklist() {
 // validateHighAvailability executes high availability checks
 func (prc *ProductionReadinessChecklist) validateHighAvailability(ctx context.Context) int {
 	ginkgo.By("Validating High Availability Requirements")
-	
+
 	if prc.reliabilityValidator == nil {
 		return 0
 	}
-	
+
 	haMetrics := prc.reliabilityValidator.ValidateHighAvailability(ctx)
-	
+
 	// Convert availability percentage to score (0-3 points)
 	var score int
 	if haMetrics.Availability >= 99.95 {
 		score = 3 // Excellent availability
 	} else if haMetrics.Availability >= 99.9 {
-		score = 2 // Good availability 
+		score = 2 // Good availability
 	} else if haMetrics.Availability >= 99.0 {
 		score = 1 // Acceptable availability
 	} else {
 		score = 0 // Poor availability
 	}
-	
+
 	// Update checklist items
 	prc.updateChecklistItems("High Availability", score, 3, fmt.Sprintf("Measured availability: %.2f%%", haMetrics.Availability))
-	
+
 	return score
 }
 
 // validateFaultTolerance executes fault tolerance checks
 func (prc *ProductionReadinessChecklist) validateFaultTolerance(ctx context.Context) int {
 	ginkgo.By("Validating Fault Tolerance Requirements")
-	
+
 	if prc.reliabilityValidator == nil {
 		return 0
 	}
-	
+
 	passed := prc.reliabilityValidator.ValidateFaultTolerance(ctx)
-	
+
 	// Convert boolean result to score
 	var score int
 	if passed {
@@ -300,39 +300,39 @@ func (prc *ProductionReadinessChecklist) validateFaultTolerance(ctx context.Cont
 	} else {
 		score = 1 // Some fault tolerance capability exists
 	}
-	
+
 	// Update checklist items
 	prc.updateChecklistItems("Fault Tolerance", score, 3, fmt.Sprintf("Fault tolerance validation: %t", passed))
-	
+
 	return score
 }
 
 // validateMonitoringObservability executes monitoring and observability checks
 func (prc *ProductionReadinessChecklist) validateMonitoringObservability(ctx context.Context) int {
 	ginkgo.By("Validating Monitoring & Observability Requirements")
-	
+
 	if prc.reliabilityValidator == nil {
 		return 0
 	}
-	
+
 	score := prc.reliabilityValidator.ValidateMonitoringObservability(ctx)
-	
+
 	// Score is already 0-2, use directly
 	prc.updateChecklistItems("Monitoring & Observability", score, 2, fmt.Sprintf("Monitoring score: %d/2", score))
-	
+
 	return score
 }
 
 // validateDisasterRecovery executes disaster recovery checks
 func (prc *ProductionReadinessChecklist) validateDisasterRecovery(ctx context.Context) int {
 	ginkgo.By("Validating Disaster Recovery Requirements")
-	
+
 	if prc.reliabilityValidator == nil {
 		return 0
 	}
-	
+
 	passed := prc.reliabilityValidator.ValidateDisasterRecovery(ctx)
-	
+
 	// Convert boolean result to score
 	var score int
 	if passed {
@@ -340,27 +340,27 @@ func (prc *ProductionReadinessChecklist) validateDisasterRecovery(ctx context.Co
 	} else {
 		score = 0 // No disaster recovery capabilities
 	}
-	
+
 	// Update checklist items
 	prc.updateChecklistItems("Disaster Recovery", score, 2, fmt.Sprintf("Disaster recovery validation: %t", passed))
-	
+
 	return score
 }
 
 // validateDeploymentScenarios executes deployment scenarios checks
 func (prc *ProductionReadinessChecklist) validateDeploymentScenarios(ctx context.Context) {
 	ginkgo.By("Validating Deployment Scenarios (Additional)")
-	
+
 	if prc.reliabilityValidator == nil {
 		return
 	}
-	
+
 	score, err := prc.reliabilityValidator.ValidateDeploymentScenarios(ctx)
 	if err != nil {
 		ginkgo.By(fmt.Sprintf("Deployment scenarios validation error: %v", err))
 		score = 0
 	}
-	
+
 	prc.results.DeploymentScenariosScore = score
 	prc.updateChecklistItems("Deployment Scenarios", score, 3, fmt.Sprintf("Deployment scenarios score: %d", score))
 }
@@ -368,17 +368,17 @@ func (prc *ProductionReadinessChecklist) validateDeploymentScenarios(ctx context
 // validateInfrastructureAsCode executes infrastructure as code checks
 func (prc *ProductionReadinessChecklist) validateInfrastructureAsCode(ctx context.Context) {
 	ginkgo.By("Validating Infrastructure as Code (Additional)")
-	
+
 	if prc.reliabilityValidator == nil {
 		return
 	}
-	
+
 	score, err := prc.reliabilityValidator.ValidateInfrastructureAsCode(ctx)
 	if err != nil {
 		ginkgo.By(fmt.Sprintf("Infrastructure as code validation error: %v", err))
 		score = 0
 	}
-	
+
 	prc.results.InfrastructureAsCodeScore = score
 	prc.updateChecklistItems("Infrastructure as Code", score, 4, fmt.Sprintf("Infrastructure as code score: %d", score))
 }
@@ -386,7 +386,7 @@ func (prc *ProductionReadinessChecklist) validateInfrastructureAsCode(ctx contex
 // updateChecklistItems updates checklist items for a category
 func (prc *ProductionReadinessChecklist) updateChecklistItems(category string, actualScore, maxScore int, message string) {
 	itemsUpdated := 0
-	
+
 	for _, item := range prc.results.ChecklistItems {
 		if item.Category == category && item.Required {
 			// Distribute score across required items in category
@@ -405,38 +405,38 @@ func (prc *ProductionReadinessChecklist) updateChecklistItems(category string, a
 // generateRecommendations generates recommendations for improvement
 func (prc *ProductionReadinessChecklist) generateRecommendations() {
 	recommendations := []string{}
-	
+
 	// High Availability recommendations
 	if prc.results.HighAvailabilityScore < 3 {
-		recommendations = append(recommendations, 
+		recommendations = append(recommendations,
 			"Improve high availability by implementing multi-zone deployments and automatic failover")
 	}
-	
-	// Fault Tolerance recommendations  
+
+	// Fault Tolerance recommendations
 	if prc.results.FaultToleranceScore < 3 {
 		recommendations = append(recommendations,
 			"Enhance fault tolerance through chaos engineering and circuit breaker patterns")
 	}
-	
+
 	// Monitoring recommendations
 	if prc.results.MonitoringObservabilityScore < 2 {
 		recommendations = append(recommendations,
 			"Complete observability stack with metrics collection, logging, and distributed tracing")
 	}
-	
+
 	// Disaster Recovery recommendations
 	if prc.results.DisasterRecoveryScore < 2 {
 		recommendations = append(recommendations,
 			"Implement comprehensive backup and disaster recovery procedures")
 	}
-	
+
 	// Overall score recommendations
 	if prc.results.TotalScore < prc.results.TargetScore {
 		gap := prc.results.TargetScore - prc.results.TotalScore
 		recommendations = append(recommendations,
 			fmt.Sprintf("Overall production readiness gap: %d points. Focus on highest impact improvements.", gap))
 	}
-	
+
 	prc.results.Recommendations = recommendations
 }
 
@@ -450,7 +450,7 @@ func (prc *ProductionReadinessChecklist) GenerateProductionReadinessReport() str
 	if prc.results == nil {
 		return "Production readiness assessment not executed"
 	}
-	
+
 	report := fmt.Sprintf(`
 =============================================================================
 PRODUCTION READINESS ASSESSMENT REPORT
@@ -485,13 +485,13 @@ CHECKLIST RESULTS:
 		prc.results.DeploymentScenariosScore,
 		prc.results.InfrastructureAsCodeScore,
 	)
-	
+
 	// Add checklist item details
 	categories := make(map[string][]*ChecklistItem)
 	for _, item := range prc.results.ChecklistItems {
 		categories[item.Category] = append(categories[item.Category], item)
 	}
-	
+
 	for category, items := range categories {
 		report += fmt.Sprintf("\n%s:\n", category)
 		for _, item := range items {
@@ -508,16 +508,16 @@ CHECKLIST RESULTS:
 			case CheckStatusNotApplicable:
 				status = "—"
 			}
-			
+
 			required := ""
 			if item.Required {
 				required = " (Required)"
 			}
-			
+
 			report += fmt.Sprintf("  %s %-30s %s%s\n", status, item.Name, item.Description, required)
 		}
 	}
-	
+
 	// Add recommendations
 	if len(prc.results.Recommendations) > 0 {
 		report += `
@@ -527,7 +527,7 @@ RECOMMENDATIONS FOR IMPROVEMENT:
 			report += fmt.Sprintf("%d. %s\n", i+1, rec)
 		}
 	}
-	
+
 	report += fmt.Sprintf(`
 EXECUTION SUMMARY:
 ├── Assessment Duration:     %v
@@ -560,6 +560,6 @@ EXECUTION SUMMARY:
 		}(),
 		prc.results.ValidationTimestamp.Format("2006-01-02 15:04:05"),
 	)
-	
+
 	return report
 }

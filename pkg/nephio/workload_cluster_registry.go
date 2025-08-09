@@ -50,26 +50,26 @@ type WorkloadClusterConfig struct {
 
 // ClusterRegistryMetrics provides cluster registry metrics
 type ClusterRegistryMetrics struct {
-	ClusterRegistrations  prometheus.CounterVec
-	ClusterHealth         prometheus.GaugeVec
-	HealthCheckDuration   prometheus.HistogramVec
-	ClusterCapabilities   prometheus.GaugeVec
-	RegistrationErrors    prometheus.CounterVec
-	ClusterEvents         prometheus.CounterVec
+	ClusterRegistrations prometheus.CounterVec
+	ClusterHealth        prometheus.GaugeVec
+	HealthCheckDuration  prometheus.HistogramVec
+	ClusterCapabilities  prometheus.GaugeVec
+	RegistrationErrors   prometheus.CounterVec
+	ClusterEvents        prometheus.CounterVec
 }
 
 // ClusterHealth represents the health status of a workload cluster
 type ClusterHealth struct {
-	Status          string                    `json:"status"`
-	LastChecked     time.Time                 `json:"lastChecked"`
-	Components      map[string]ComponentHealth `json:"components"`
-	Resources       *ResourceHealthStatus      `json:"resources,omitempty"`
-	Connectivity    *ConnectivityStatus        `json:"connectivity,omitempty"`
-	Version         string                     `json:"version,omitempty"`
-	Uptime          time.Duration              `json:"uptime"`
-	ErrorCount      int                        `json:"errorCount"`
-	WarningCount    int                        `json:"warningCount"`
-	LastError       string                     `json:"lastError,omitempty"`
+	Status       string                     `json:"status"`
+	LastChecked  time.Time                  `json:"lastChecked"`
+	Components   map[string]ComponentHealth `json:"components"`
+	Resources    *ResourceHealthStatus      `json:"resources,omitempty"`
+	Connectivity *ConnectivityStatus        `json:"connectivity,omitempty"`
+	Version      string                     `json:"version,omitempty"`
+	Uptime       time.Duration              `json:"uptime"`
+	ErrorCount   int                        `json:"errorCount"`
+	WarningCount int                        `json:"warningCount"`
+	LastError    string                     `json:"lastError,omitempty"`
 }
 
 // ComponentHealth represents health of a cluster component
@@ -82,35 +82,35 @@ type ComponentHealth struct {
 
 // ResourceHealthStatus represents cluster resource health
 type ResourceHealthStatus struct {
-	CPUUsage      float64 `json:"cpuUsage"`
-	MemoryUsage   float64 `json:"memoryUsage"`
-	StorageUsage  float64 `json:"storageUsage"`
-	NetworkUsage  float64 `json:"networkUsage"`
-	PodCount      int     `json:"podCount"`
-	NodeCount     int     `json:"nodeCount"`
+	CPUUsage     float64 `json:"cpuUsage"`
+	MemoryUsage  float64 `json:"memoryUsage"`
+	StorageUsage float64 `json:"storageUsage"`
+	NetworkUsage float64 `json:"networkUsage"`
+	PodCount     int     `json:"podCount"`
+	NodeCount    int     `json:"nodeCount"`
 }
 
 // ConnectivityStatus represents cluster connectivity status
 type ConnectivityStatus struct {
-	APIServer     bool      `json:"apiServer"`
-	Etcd          bool      `json:"etcd"`
-	DNS           bool      `json:"dns"`
-	NetworkPolicy bool      `json:"networkPolicy"`
-	LastChecked   time.Time `json:"lastChecked"`
+	APIServer     bool          `json:"apiServer"`
+	Etcd          bool          `json:"etcd"`
+	DNS           bool          `json:"dns"`
+	NetworkPolicy bool          `json:"networkPolicy"`
+	LastChecked   time.Time     `json:"lastChecked"`
 	Latency       time.Duration `json:"latency"`
 }
 
 // ClusterConfigSync represents Config Sync configuration for a cluster
 type ClusterConfigSync struct {
-	Enabled      bool              `json:"enabled"`
-	Repository   string            `json:"repository"`
-	Branch       string            `json:"branch"`
-	Directory    string            `json:"directory"`
-	SyncPeriod   time.Duration     `json:"syncPeriod"`
-	Status       string            `json:"status"`
-	LastSync     *time.Time        `json:"lastSync,omitempty"`
-	Errors       []string          `json:"errors,omitempty"`
-	Credentials  *GitCredentials   `json:"credentials,omitempty"`
+	Enabled     bool            `json:"enabled"`
+	Repository  string          `json:"repository"`
+	Branch      string          `json:"branch"`
+	Directory   string          `json:"directory"`
+	SyncPeriod  time.Duration   `json:"syncPeriod"`
+	Status      string          `json:"status"`
+	LastSync    *time.Time      `json:"lastSync,omitempty"`
+	Errors      []string        `json:"errors,omitempty"`
+	Credentials *GitCredentials `json:"credentials,omitempty"`
 }
 
 // GitCredentials represents Git repository credentials
@@ -125,13 +125,13 @@ type GitCredentials struct {
 
 // ClusterHealthMonitor provides cluster health monitoring
 type ClusterHealthMonitor struct {
-	client       client.Client
-	registry     *WorkloadClusterRegistry
-	config       *WorkloadClusterConfig
-	metrics      *ClusterRegistryMetrics
-	tracer       trace.Tracer
-	stopCh       chan struct{}
-	mu           sync.RWMutex
+	client   client.Client
+	registry *WorkloadClusterRegistry
+	config   *WorkloadClusterConfig
+	metrics  *ClusterRegistryMetrics
+	tracer   trace.Tracer
+	stopCh   chan struct{}
+	mu       sync.RWMutex
 }
 
 // WorkloadDeployment represents a deployment to a workload cluster
@@ -150,30 +150,30 @@ type WorkloadDeployment struct {
 
 // SyncResult represents the result of a Config Sync operation
 type SyncResult struct {
-	Status        string            `json:"status"`
-	Message       string            `json:"message"`
-	Commit        string            `json:"commit"`
-	Resources     []SyncedResource  `json:"resources"`
-	Errors        []SyncError       `json:"errors,omitempty"`
-	Warnings      []string          `json:"warnings,omitempty"`
-	Duration      time.Duration     `json:"duration"`
-	Timestamp     time.Time         `json:"timestamp"`
+	Status    string           `json:"status"`
+	Message   string           `json:"message"`
+	Commit    string           `json:"commit"`
+	Resources []SyncedResource `json:"resources"`
+	Errors    []SyncError      `json:"errors,omitempty"`
+	Warnings  []string         `json:"warnings,omitempty"`
+	Duration  time.Duration    `json:"duration"`
+	Timestamp time.Time        `json:"timestamp"`
 }
 
 // SyncedResource represents a synced resource
 type SyncedResource struct {
-	Name       string `json:"name"`
-	Kind       string `json:"kind"`
-	Namespace  string `json:"namespace"`
-	Status     string `json:"status"`
-	Message    string `json:"message,omitempty"`
+	Name      string `json:"name"`
+	Kind      string `json:"kind"`
+	Namespace string `json:"namespace"`
+	Status    string `json:"status"`
+	Message   string `json:"message,omitempty"`
 }
 
 // SyncError represents a sync error
 type SyncError struct {
-	Resource  string `json:"resource"`
-	Error     string `json:"error"`
-	Severity  string `json:"severity"`
+	Resource string `json:"resource"`
+	Error    string `json:"error"`
+	Severity string `json:"severity"`
 }
 
 // Default configuration
@@ -327,10 +327,10 @@ func (wcr *WorkloadClusterRegistry) RegisterWorkloadCluster(ctx context.Context,
 
 	// Initialize health monitoring
 	cluster.Health = &ClusterHealth{
-		Status:      "Unknown",
-		LastChecked: time.Now(),
-		Components:  make(map[string]ComponentHealth),
-		ErrorCount:  0,
+		Status:       "Unknown",
+		LastChecked:  time.Now(),
+		Components:   make(map[string]ComponentHealth),
+		ErrorCount:   0,
 		WarningCount: 0,
 	}
 
@@ -343,9 +343,9 @@ func (wcr *WorkloadClusterRegistry) RegisterWorkloadCluster(ctx context.Context,
 	// Store cluster in registry
 	wcr.clusters.Store(cluster.Name, cluster)
 	wcr.registrations.Store(cluster.Name, &ClusterRegistration{
-		Cluster:       cluster,
-		RegisteredAt:  time.Now(),
-		Status:        "active",
+		Cluster:      cluster,
+		RegisteredAt: time.Now(),
+		Status:       "active",
 	})
 
 	// Update metrics
@@ -435,14 +435,14 @@ func (wcr *WorkloadClusterRegistry) GetWorkloadCluster(ctx context.Context, clus
 // ListWorkloadClusters lists all registered workload clusters
 func (wcr *WorkloadClusterRegistry) ListWorkloadClusters(ctx context.Context) ([]*WorkloadCluster, error) {
 	clusters := make([]*WorkloadCluster, 0)
-	
+
 	wcr.clusters.Range(func(key, value interface{}) bool {
 		if cluster, ok := value.(*WorkloadCluster); ok {
 			clusters = append(clusters, cluster)
 		}
 		return true
 	})
-	
+
 	return clusters, nil
 }
 
@@ -494,7 +494,7 @@ func (wcr *WorkloadClusterRegistry) CheckClusterHealth(ctx context.Context, clus
 
 	// Determine overall status
 	health.Status = wcr.calculateOverallHealth(health.Components)
-	
+
 	// Count errors and warnings
 	for _, component := range health.Components {
 		if component.Status == "Error" {
@@ -513,7 +513,7 @@ func (wcr *WorkloadClusterRegistry) CheckClusterHealth(ctx context.Context, clus
 	if health.Status != "Healthy" {
 		healthValue = 0.0
 	}
-	
+
 	wcr.metrics.ClusterHealth.WithLabelValues(
 		clusterName, cluster.Region, "overall",
 	).Set(healthValue)
@@ -548,7 +548,7 @@ func (wcr *WorkloadClusterRegistry) performConnectivityCheck(ctx context.Context
 	// 2. Verify authentication credentials
 	// 3. Test basic API operations
 	// 4. Check cluster version compatibility
-	
+
 	// For now, simulate connectivity check
 	// return nil for successful connection
 	return nil
@@ -585,12 +585,12 @@ func (wcr *WorkloadClusterRegistry) cleanupConfigSync(ctx context.Context, clust
 	if cluster.ConfigSync != nil {
 		cluster.ConfigSync.Status = "Terminating"
 	}
-	
+
 	// In a real implementation, this would:
 	// 1. Remove Config Sync components
 	// 2. Clean up repository configurations
 	// 3. Remove sync policies
-	
+
 	return nil
 }
 
@@ -651,7 +651,7 @@ func (wcr *WorkloadClusterRegistry) checkResourceHealth(ctx context.Context, clu
 func (wcr *WorkloadClusterRegistry) calculateOverallHealth(components map[string]ComponentHealth) string {
 	errorCount := 0
 	warningCount := 0
-	
+
 	for _, component := range components {
 		switch component.Status {
 		case "Error":
@@ -660,7 +660,7 @@ func (wcr *WorkloadClusterRegistry) calculateOverallHealth(components map[string
 			warningCount++
 		}
 	}
-	
+
 	if errorCount > 0 {
 		return "Unhealthy"
 	}
@@ -709,7 +709,7 @@ func (wcr *WorkloadClusterRegistry) discoverAndRegisterClusters(ctx context.Cont
 		{
 			Name:     "central-cluster-1",
 			Endpoint: "https://central-cluster-1.example.com:6443",
-			Region:   "us-west-2", 
+			Region:   "us-west-2",
 			Zone:     "us-west-2b",
 			Capabilities: []ClusterCapability{
 				{
@@ -745,9 +745,9 @@ func (wcr *WorkloadClusterRegistry) discoverAndRegisterClusters(ctx context.Cont
 
 // ClusterRegistration represents a cluster registration record
 type ClusterRegistration struct {
-	Cluster      *WorkloadCluster `json:"cluster"`
-	RegisteredAt time.Time        `json:"registeredAt"`
-	Status       string           `json:"status"`
+	Cluster      *WorkloadCluster  `json:"cluster"`
+	RegisteredAt time.Time         `json:"registeredAt"`
+	Status       string            `json:"status"`
 	Metadata     map[string]string `json:"metadata,omitempty"`
 }
 
@@ -781,13 +781,13 @@ func (chm *ClusterHealthMonitor) performHealthChecks(ctx context.Context) {
 
 	chm.registry.clusters.Range(func(key, value interface{}) bool {
 		clusterName := key.(string)
-		
+
 		go func(name string) {
 			if _, err := chm.registry.CheckClusterHealth(ctx, name); err != nil {
 				logger.Error(err, "Health check failed", "cluster", name)
 			}
 		}(clusterName)
-		
+
 		return true
 	})
 }

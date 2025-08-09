@@ -14,7 +14,7 @@ import (
 var (
 	// sourceCodeCache caches source code lines to avoid repeated file reads
 	sourceCodeCache = &sync.Map{}
-	
+
 	// stackTracePool reuses byte slices for stack traces to reduce allocations
 	stackTracePool = sync.Pool{
 		New: func() interface{} {
@@ -27,25 +27,25 @@ var (
 type StackTraceOptions struct {
 	// MaxDepth limits the number of stack frames captured
 	MaxDepth int
-	
+
 	// IncludeSource includes source code context in stack frames
 	IncludeSource bool
-	
+
 	// SourceContext specifies how many lines of context to include around the error line
 	SourceContext int
-	
+
 	// SkipFrames specifies how many stack frames to skip at the top
 	SkipFrames int
-	
+
 	// FilterPackages only includes frames from packages matching these prefixes
 	FilterPackages []string
-	
+
 	// ExcludePackages excludes frames from packages matching these prefixes
 	ExcludePackages []string
-	
+
 	// IncludeRuntime includes Go runtime frames in the stack trace
 	IncludeRuntime bool
-	
+
 	// SimplifyPaths simplifies file paths by removing GOPATH/GOROOT prefixes
 	SimplifyPaths bool
 }
@@ -61,8 +61,8 @@ func DefaultStackTraceOptions() *StackTraceOptions {
 			"runtime",
 			"testing",
 		},
-		IncludeRuntime:  false,
-		SimplifyPaths:   true,
+		IncludeRuntime: false,
+		SimplifyPaths:  true,
 	}
 }
 
@@ -94,7 +94,7 @@ func CaptureStackTraceForError(skip int) []StackFrame {
 func parseStackTrace(stackData []byte, opts *StackTraceOptions) []StackFrame {
 	lines := strings.Split(string(stackData), "\n")
 	frames := make([]StackFrame, 0, opts.MaxDepth)
-	
+
 	// Skip the first line which is "goroutine X [running]:"
 	lineIndex := 1
 	frameCount := 0
@@ -197,8 +197,8 @@ func shouldSkipFrame(frame *StackFrame, opts *StackTraceOptions) bool {
 
 	// Check exclude packages
 	for _, exclude := range opts.ExcludePackages {
-		if strings.HasPrefix(frame.Package, exclude) || 
-		   strings.Contains(frame.Function, exclude) {
+		if strings.HasPrefix(frame.Package, exclude) ||
+			strings.Contains(frame.Function, exclude) {
 			return true
 		}
 	}
@@ -207,8 +207,8 @@ func shouldSkipFrame(frame *StackFrame, opts *StackTraceOptions) bool {
 	if len(opts.FilterPackages) > 0 {
 		found := false
 		for _, filter := range opts.FilterPackages {
-			if strings.HasPrefix(frame.Package, filter) || 
-			   strings.Contains(frame.Function, filter) {
+			if strings.HasPrefix(frame.Package, filter) ||
+				strings.Contains(frame.Function, filter) {
 				found = true
 				break
 			}
@@ -226,22 +226,22 @@ func extractPackageName(funcName string) string {
 	// Remove receiver types like "(*Type).Method" -> "package.(*Type).Method"
 	if idx := strings.LastIndex(funcName, "."); idx != -1 {
 		packagePart := funcName[:idx]
-		
+
 		// Handle method calls with receivers
 		if strings.Contains(packagePart, "(") {
 			if parenIdx := strings.Index(packagePart, "("); parenIdx != -1 {
 				packagePart = packagePart[:parenIdx]
 			}
 		}
-		
+
 		// Handle nested packages
 		if lastSlash := strings.LastIndex(packagePart, "/"); lastSlash != -1 {
 			return packagePart[lastSlash+1:]
 		}
-		
+
 		return packagePart
 	}
-	
+
 	return "main"
 }
 
@@ -281,14 +281,14 @@ func getRelativeToModule(path string) string {
 				return rel
 			}
 		}
-		
+
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			break // Reached root
 		}
 		dir = parent
 	}
-	
+
 	return ""
 }
 
@@ -305,10 +305,10 @@ func getSourceContext(file string, line, context int) string {
 	}
 
 	source := readSourceContext(file, line, context)
-	
+
 	// Cache the result
 	sourceCodeCache.Store(cacheKey, source)
-	
+
 	return source
 }
 
@@ -324,7 +324,7 @@ func readSourceContext(file string, line, context int) string {
 	currentLine := 1
 	startLine := line - context
 	endLine := line + context
-	
+
 	if startLine < 1 {
 		startLine = 1
 	}
@@ -338,11 +338,11 @@ func readSourceContext(file string, line, context int) string {
 			}
 			lines = append(lines, fmt.Sprintf("%s%d: %s", prefix, currentLine, scanner.Text()))
 		}
-		
+
 		if currentLine > endLine {
 			break
 		}
-		
+
 		currentLine++
 	}
 
@@ -356,11 +356,11 @@ func readSourceContext(file string, line, context int) string {
 // FormatStackTrace formats a stack trace for human-readable output
 func FormatStackTrace(frames []StackFrame, includeSource bool) string {
 	var builder strings.Builder
-	
+
 	for i, frame := range frames {
 		builder.WriteString(fmt.Sprintf("#%d %s\n", i, frame.Function))
 		builder.WriteString(fmt.Sprintf("    at %s:%d\n", frame.File, frame.Line))
-		
+
 		if includeSource && frame.Source != "" {
 			// Indent source code
 			sourceLines := strings.Split(frame.Source, "\n")
@@ -370,12 +370,12 @@ func FormatStackTrace(frames []StackFrame, includeSource bool) string {
 				}
 			}
 		}
-		
+
 		if i < len(frames)-1 {
 			builder.WriteString("\n")
 		}
 	}
-	
+
 	return builder.String()
 }
 
@@ -396,12 +396,12 @@ func GetCallerInfo(skip int) (file string, line int, function string, ok bool) {
 	if !ok {
 		return "", 0, "", false
 	}
-	
+
 	fn := runtime.FuncForPC(pc)
 	if fn != nil {
 		function = fn.Name()
 	}
-	
+
 	return file, line, function, true
 }
 
@@ -421,16 +421,17 @@ func GetCurrentStackDepth() int {
 // IsInPackage checks if the current call stack includes frames from the specified package
 func IsInPackage(packageName string, maxDepth int) bool {
 	for i := 1; i <= maxDepth; i++ {
-		_, _, function, ok := runtime.Caller(i)
+		pc, _, _, ok := runtime.Caller(i)
 		if !ok {
 			break
 		}
-		
-		if strings.Contains(function, packageName) {
+
+		fn := runtime.FuncForPC(pc)
+		if fn != nil && strings.Contains(fn.Name(), packageName) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -443,23 +444,23 @@ var (
 	SkipRuntimeFrames StackFrameFilter = func(frame StackFrame) bool {
 		return !strings.HasPrefix(frame.Package, "runtime")
 	}
-	
+
 	// SkipTestingFrames filters out testing framework frames
 	SkipTestingFrames StackFrameFilter = func(frame StackFrame) bool {
-		return !strings.Contains(frame.Function, "testing") && 
-		       !strings.Contains(frame.Function, "ginkgo") &&
-		       !strings.Contains(frame.Function, "gomega")
+		return !strings.Contains(frame.Function, "testing") &&
+			!strings.Contains(frame.Function, "ginkgo") &&
+			!strings.Contains(frame.Function, "gomega")
 	}
-	
+
 	// OnlyApplicationFrames keeps only application frames (non-stdlib)
 	OnlyApplicationFrames StackFrameFilter = func(frame StackFrame) bool {
 		return !strings.Contains(frame.File, "$GOROOT/") &&
-		       !strings.HasPrefix(frame.Package, "runtime") &&
-		       !strings.HasPrefix(frame.Package, "net/") &&
-		       !strings.HasPrefix(frame.Package, "os/") &&
-		       !strings.HasPrefix(frame.Package, "io/") &&
-		       !strings.HasPrefix(frame.Package, "fmt") &&
-		       !strings.HasPrefix(frame.Package, "log")
+			!strings.HasPrefix(frame.Package, "runtime") &&
+			!strings.HasPrefix(frame.Package, "net/") &&
+			!strings.HasPrefix(frame.Package, "os/") &&
+			!strings.HasPrefix(frame.Package, "io/") &&
+			!strings.HasPrefix(frame.Package, "fmt") &&
+			!strings.HasPrefix(frame.Package, "log")
 	}
 )
 
@@ -477,9 +478,9 @@ func CombineFilters(filters ...StackFrameFilter) StackFrameFilter {
 
 // StackTraceAnalyzer provides analysis capabilities for stack traces
 type StackTraceAnalyzer struct {
-	packageStats map[string]int
+	packageStats  map[string]int
 	functionStats map[string]int
-	fileStats map[string]int
+	fileStats     map[string]int
 }
 
 // NewStackTraceAnalyzer creates a new stack trace analyzer

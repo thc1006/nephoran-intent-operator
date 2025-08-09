@@ -32,9 +32,8 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
-// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
+	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
+	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
 )
 
 // O-RAN Network Function Types
@@ -70,12 +69,12 @@ type ComplianceRequirement struct {
 }
 
 type NetworkSliceRequirements struct {
-	SliceType         NetworkSliceType
-	MaxLatency        time.Duration
-	MinThroughput     int64 // Mbps
-	Reliability       float64 // percentage
-	MaxPacketLoss     float64 // percentage
-	IsolationLevel    IsolationLevel
+	SliceType      NetworkSliceType
+	MaxLatency     time.Duration
+	MinThroughput  int64   // Mbps
+	Reliability    float64 // percentage
+	MaxPacketLoss  float64 // percentage
+	IsolationLevel IsolationLevel
 }
 
 type IsolationLevel string
@@ -126,20 +125,20 @@ func NewMockORanCompliantCluster(base *ClusterInfo, functions []ORanFunctionType
 func setupORanComplianceTestEnvironment(t *testing.T) *MultiClusterComponents {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(t)
-	
+
 	clusterMgr := NewClusterManager(client, logger)
 	syncEngine := NewSyncEngine(client, logger)
 	customizer := NewCustomizer(client, logger)
 	healthMonitor := NewHealthMonitor(client, logger)
 	propagator := NewPackagePropagator(client, logger, clusterMgr, syncEngine, customizer)
-	
+
 	// Create O-RAN compliant test clusters
 	testClusters := make(map[types.NamespacedName]*ClusterInfo)
 	config := &rest.Config{Host: "https://oran-cluster.example.com"}
-	
+
 	// Core Network Cluster
 	coreClusterName := types.NamespacedName{Name: "oran-core-cluster", Namespace: "default"}
 	coreCluster := &ClusterInfo{
@@ -162,7 +161,7 @@ func setupORanComplianceTestEnvironment(t *testing.T) *MultiClusterComponents {
 		},
 		HealthStatus: ClusterHealthStatus{Available: true},
 	}
-	
+
 	// RAN Cluster
 	ranClusterName := types.NamespacedName{Name: "oran-ran-cluster", Namespace: "default"}
 	ranCluster := &ClusterInfo{
@@ -185,7 +184,7 @@ func setupORanComplianceTestEnvironment(t *testing.T) *MultiClusterComponents {
 		},
 		HealthStatus: ClusterHealthStatus{Available: true},
 	}
-	
+
 	// Edge Cluster
 	edgeClusterName := types.NamespacedName{Name: "oran-edge-cluster", Namespace: "default"}
 	edgeCluster := &ClusterInfo{
@@ -208,13 +207,13 @@ func setupORanComplianceTestEnvironment(t *testing.T) *MultiClusterComponents {
 		},
 		HealthStatus: ClusterHealthStatus{Available: true},
 	}
-	
+
 	testClusters[coreClusterName] = coreCluster
 	testClusters[ranClusterName] = ranCluster
 	testClusters[edgeClusterName] = edgeCluster
-	
+
 	clusterMgr.clusters = testClusters
-	
+
 	// Setup health monitoring
 	for clusterName, cluster := range testClusters {
 		healthMonitor.clusters[clusterName] = &ClusterHealthState{
@@ -222,7 +221,7 @@ func setupORanComplianceTestEnvironment(t *testing.T) *MultiClusterComponents {
 			OverallStatus: HealthStatusHealthy,
 		}
 	}
-	
+
 	return &MultiClusterComponents{
 		ClusterMgr:    clusterMgr,
 		Propagator:    propagator,
@@ -263,38 +262,38 @@ func TestORanCompliance_5GCoreDeployment(t *testing.T) {
 						Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
 					},
 				}
-				
+
 				ctx := context.Background()
 				targetClusters := []types.NamespacedName{
 					{Name: "oran-core-cluster", Namespace: "default"},
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, amfPackage,
 				)
-				
+
 				assert.NoError(t, err)
 				assert.Len(t, selectedClusters, 1)
 				assert.Equal(t, "oran-core-cluster", selectedClusters[0].Name)
 			})
-			
+
 			// Test SMF deployment
 			t.Run("SMF_Deployment", func(t *testing.T) {
 				smfPackage := createTest5GCorePackage("SMF", "smf", "v1.0.0")
-				
+
 				ctx := context.Background()
 				targetClusters := []types.NamespacedName{
 					{Name: "oran-core-cluster", Namespace: "default"},
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, smfPackage,
 				)
-				
+
 				assert.NoError(t, err)
 				assert.Len(t, selectedClusters, 1)
 			})
-			
+
 			// Test UPF deployment to edge
 			t.Run("UPF_Edge_Deployment", func(t *testing.T) {
 				upfPackage := createTest5GCorePackage("UPF", "upf", "v1.0.0")
@@ -303,23 +302,23 @@ func TestORanCompliance_5GCoreDeployment(t *testing.T) {
 					upfPackage.Annotations = make(map[string]string)
 				}
 				upfPackage.Annotations["nephio.org/deployment-location"] = "edge"
-				
+
 				ctx := context.Background()
 				targetClusters := []types.NamespacedName{
 					{Name: "oran-edge-cluster", Namespace: "default"},
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, upfPackage,
 				)
-				
+
 				assert.NoError(t, err)
 				assert.Len(t, selectedClusters, 1)
 				assert.Equal(t, "oran-edge-cluster", selectedClusters[0].Name)
 			})
 		},
 	}
-	
+
 	t.Run(requirement.Standard+"_"+requirement.Requirement, func(t *testing.T) {
 		components := setupORanComplianceTestEnvironment(t)
 		requirement.TestFunc(t, components)
@@ -343,38 +342,38 @@ func TestORanCompliance_NetworkSlicing(t *testing.T) {
 					MaxPacketLoss:  0.1,
 					IsolationLevel: IsolationLogical,
 				}
-				
+
 				slicePackage := createNetworkSlicePackage(sliceRequirements)
-				
+
 				ctx := context.Background()
 				targetClusters := []types.NamespacedName{
 					{Name: "oran-core-cluster", Namespace: "default"},
 					{Name: "oran-ran-cluster", Namespace: "default"},
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, slicePackage,
 				)
-				
+
 				assert.NoError(t, err)
 				assert.GreaterOrEqual(t, len(selectedClusters), 1)
-				
+
 				// Validate slice can be deployed
 				deploymentOptions := DeploymentOptions{
 					Strategy:          StrategySequential,
 					MaxConcurrentDepl: 1,
 					Timeout:           10 * time.Minute,
 				}
-				
+
 				_, err = components.Propagator.DeployPackage(
 					ctx, slicePackage, selectedClusters, deploymentOptions,
 				)
-				
+
 				// Expected to fail due to incomplete mock implementation,
 				// but validates the flow
 				assert.Error(t, err)
 			})
-			
+
 			// Test URLLC slice deployment
 			t.Run("URLLC_Slice", func(t *testing.T) {
 				sliceRequirements := NetworkSliceRequirements{
@@ -385,23 +384,23 @@ func TestORanCompliance_NetworkSlicing(t *testing.T) {
 					MaxPacketLoss:  0.001,
 					IsolationLevel: IsolationPhysical,
 				}
-				
+
 				slicePackage := createNetworkSlicePackage(sliceRequirements)
-				
+
 				ctx := context.Background()
 				targetClusters := []types.NamespacedName{
 					{Name: "oran-ran-cluster", Namespace: "default"},
 					{Name: "oran-edge-cluster", Namespace: "default"},
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, slicePackage,
 				)
-				
+
 				assert.NoError(t, err)
 				assert.GreaterOrEqual(t, len(selectedClusters), 1)
 			})
-			
+
 			// Test mIOT slice deployment
 			t.Run("mIOT_Slice", func(t *testing.T) {
 				sliceRequirements := NetworkSliceRequirements{
@@ -412,24 +411,24 @@ func TestORanCompliance_NetworkSlicing(t *testing.T) {
 					MaxPacketLoss:  1.0,
 					IsolationLevel: IsolationLogical,
 				}
-				
+
 				slicePackage := createNetworkSlicePackage(sliceRequirements)
-				
+
 				ctx := context.Background()
 				targetClusters := []types.NamespacedName{
 					{Name: "oran-core-cluster", Namespace: "default"},
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, slicePackage,
 				)
-				
+
 				assert.NoError(t, err)
 				assert.Len(t, selectedClusters, 1)
 			})
 		},
 	}
-	
+
 	t.Run(requirement.Standard+"_"+requirement.Requirement, func(t *testing.T) {
 		components := setupORanComplianceTestEnvironment(t)
 		requirement.TestFunc(t, components)
@@ -446,60 +445,60 @@ func TestORanCompliance_InterfaceSupport(t *testing.T) {
 			// Test A1 Interface Support
 			t.Run("A1_Interface", func(t *testing.T) {
 				a1Package := createORanInterfacePackage(InterfaceA1)
-				
+
 				ctx := context.Background()
 				targetClusters := []types.NamespacedName{
 					{Name: "oran-ran-cluster", Namespace: "default"},
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, a1Package,
 				)
-				
+
 				assert.NoError(t, err)
 				assert.Len(t, selectedClusters, 1)
-				
+
 				// Validate A1 interface specific requirements
 				cluster := components.TestClusters[selectedClusters[0]]
 				assert.Contains(t, cluster.Capabilities.NetworkPlugins, "multus",
 					"A1 interface requires advanced networking")
 			})
-			
+
 			// Test O1 Interface Support
 			t.Run("O1_Interface", func(t *testing.T) {
 				o1Package := createORanInterfacePackage(InterfaceO1)
-				
+
 				ctx := context.Background()
 				targetClusters := make([]types.NamespacedName, 0)
 				for name := range components.TestClusters {
 					targetClusters = append(targetClusters, name)
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, o1Package,
 				)
-				
+
 				assert.NoError(t, err)
 				assert.GreaterOrEqual(t, len(selectedClusters), 1)
 			})
-			
+
 			// Test E2 Interface Support
 			t.Run("E2_Interface", func(t *testing.T) {
 				e2Package := createORanInterfacePackage(InterfaceE2)
-				
+
 				ctx := context.Background()
 				targetClusters := []types.NamespacedName{
 					{Name: "oran-ran-cluster", Namespace: "default"},
 					{Name: "oran-edge-cluster", Namespace: "default"},
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, e2Package,
 				)
-				
+
 				assert.NoError(t, err)
 				assert.GreaterOrEqual(t, len(selectedClusters), 1)
-				
+
 				// E2 interface requires high-performance networking
 				for _, clusterName := range selectedClusters {
 					cluster := components.TestClusters[clusterName]
@@ -509,7 +508,7 @@ func TestORanCompliance_InterfaceSupport(t *testing.T) {
 			})
 		},
 	}
-	
+
 	t.Run(requirement.Standard+"_"+requirement.Requirement, func(t *testing.T) {
 		components := setupORanComplianceTestEnvironment(t)
 		requirement.TestFunc(t, components)
@@ -526,19 +525,19 @@ func TestORanCompliance_ResourceManagement(t *testing.T) {
 			// Test compute resource allocation
 			t.Run("Compute_Resource_Allocation", func(t *testing.T) {
 				heavyWorkloadPackage := createHeavyWorkloadPackage()
-				
+
 				ctx := context.Background()
 				targetClusters := make([]types.NamespacedName, 0)
 				for name := range components.TestClusters {
 					targetClusters = append(targetClusters, name)
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, heavyWorkloadPackage,
 				)
-				
+
 				assert.NoError(t, err)
-				
+
 				// Should select clusters with sufficient resources
 				for _, clusterName := range selectedClusters {
 					cluster := components.TestClusters[clusterName]
@@ -548,30 +547,30 @@ func TestORanCompliance_ResourceManagement(t *testing.T) {
 						"Heavy workload requires sufficient memory")
 				}
 			})
-			
+
 			// Test network resource management
 			t.Run("Network_Resource_Management", func(t *testing.T) {
 				highBandwidthPackage := createHighBandwidthPackage()
-				
+
 				ctx := context.Background()
 				targetClusters := []types.NamespacedName{
 					{Name: "oran-ran-cluster", Namespace: "default"},
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, highBandwidthPackage,
 				)
-				
+
 				assert.NoError(t, err)
 				assert.Len(t, selectedClusters, 1)
-				
+
 				cluster := components.TestClusters[selectedClusters[0]]
 				assert.Contains(t, cluster.Capabilities.NetworkPlugins, "sriov",
 					"High bandwidth applications require SR-IOV support")
 			})
 		},
 	}
-	
+
 	t.Run(requirement.Standard+"_"+requirement.Requirement, func(t *testing.T) {
 		components := setupORanComplianceTestEnvironment(t)
 		requirement.TestFunc(t, components)
@@ -588,20 +587,20 @@ func TestORanCompliance_SecurityRequirements(t *testing.T) {
 			// Test security context requirements
 			t.Run("Security_Context", func(t *testing.T) {
 				securePackage := createSecureWorkloadPackage()
-				
+
 				ctx := context.Background()
 				targetClusters := make([]types.NamespacedName, 0)
 				for name := range components.TestClusters {
 					targetClusters = append(targetClusters, name)
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, securePackage,
 				)
-				
+
 				assert.NoError(t, err)
 				assert.GreaterOrEqual(t, len(selectedClusters), 1)
-				
+
 				// Verify security-capable clusters are selected
 				for _, clusterName := range selectedClusters {
 					cluster := components.TestClusters[clusterName]
@@ -609,27 +608,27 @@ func TestORanCompliance_SecurityRequirements(t *testing.T) {
 						"Secure workloads require encrypted storage")
 				}
 			})
-			
+
 			// Test network security
 			t.Run("Network_Security", func(t *testing.T) {
 				networkSecurePackage := createNetworkSecurePackage()
-				
+
 				ctx := context.Background()
 				targetClusters := []types.NamespacedName{
 					{Name: "oran-core-cluster", Namespace: "default"},
 					{Name: "oran-ran-cluster", Namespace: "default"},
 				}
-				
+
 				selectedClusters, err := components.ClusterMgr.SelectTargetClusters(
 					ctx, targetClusters, networkSecurePackage,
 				)
-				
+
 				assert.NoError(t, err)
 				assert.GreaterOrEqual(t, len(selectedClusters), 1)
 			})
 		},
 	}
-	
+
 	t.Run(requirement.Standard+"_"+requirement.Requirement, func(t *testing.T) {
 		components := setupORanComplianceTestEnvironment(t)
 		requirement.TestFunc(t, components)

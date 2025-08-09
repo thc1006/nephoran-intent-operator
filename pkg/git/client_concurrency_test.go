@@ -70,7 +70,7 @@ func TestConcurrentPushLimit(t *testing.T) {
 	client.beforePushHook = func() {
 		// Increment active operations counter
 		current := atomic.AddInt32(&activeOperations, 1)
-		
+
 		// Track maximum concurrent operations
 		for {
 			max := atomic.LoadInt32(&maxConcurrent)
@@ -105,14 +105,14 @@ func TestConcurrentPushLimit(t *testing.T) {
 		for atomic.LoadInt32(&startedCount) < int32(concurrentLimit) {
 			time.Sleep(10 * time.Millisecond)
 		}
-		
+
 		// Give a bit more time to ensure we're testing concurrency
 		time.Sleep(50 * time.Millisecond)
-		
+
 		// Check that we never exceed the limit
 		assert.LessOrEqual(t, atomic.LoadInt32(&maxConcurrent), int32(concurrentLimit),
 			"Maximum concurrent operations should not exceed limit")
-		
+
 		// Release the barrier to let operations complete
 		close(barrier)
 	}()
@@ -121,12 +121,12 @@ func TestConcurrentPushLimit(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			defer wg.Done()
-			
+
 			// Create unique file for this goroutine
 			files := map[string]string{
 				fmt.Sprintf("file%d.txt", id): fmt.Sprintf("Content from goroutine %d", id),
 			}
-			
+
 			// Attempt to commit and push (push will fail but that's ok for this test)
 			_, err := client.CommitAndPush(files, fmt.Sprintf("Commit from goroutine %d", id))
 			if err != nil {
@@ -221,11 +221,11 @@ func TestConcurrentPushWithErrors(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			defer wg.Done()
-			
+
 			files := map[string]string{
 				fmt.Sprintf("file%d.txt", id): fmt.Sprintf("Content %d", id),
 			}
-			
+
 			_, err := client.CommitAndPush(files, fmt.Sprintf("Commit %d", id))
 			results <- err
 		}(i)
@@ -250,7 +250,7 @@ func TestConcurrentPushWithErrors(t *testing.T) {
 	// In a real test with a mock remote, we would expect:
 	// assert.Greater(t, errorCount, 0, "Should have some errors")
 	// assert.Greater(t, successCount, 0, "Should have some successes")
-	
+
 	// For now, just verify we got the expected errors for the operations we broke
 	assert.GreaterOrEqual(t, errorCount, 3, "Should have at least the forced errors")
 
@@ -316,11 +316,11 @@ func TestConcurrentPushDeadlockPrevention(t *testing.T) {
 		for i := 0; i < numOperations; i++ {
 			go func(id int) {
 				defer wg.Done()
-				
+
 				files := map[string]string{
 					fmt.Sprintf("file%d.txt", id): fmt.Sprintf("Content %d", id),
 				}
-				
+
 				// We don't care about the error here, just that it doesn't deadlock
 				client.CommitAndPush(files, fmt.Sprintf("Commit %d", id))
 			}(i)
@@ -371,18 +371,18 @@ func TestSemaphoreAcquisitionOrder(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			defer wg.Done()
-			
+
 			// Try to acquire
 			client.acquireSemaphore(fmt.Sprintf("operation-%d", id))
-			
+
 			// Record acquisition
 			orderMutex.Lock()
 			acquisitionOrder = append(acquisitionOrder, id)
 			orderMutex.Unlock()
-			
+
 			// Wait at barrier
 			<-barrier
-			
+
 			// Release
 			client.releaseSemaphore(fmt.Sprintf("operation-%d", id))
 		}(i)
@@ -432,11 +432,11 @@ func TestConcurrentDifferentOperations(t *testing.T) {
 		dir := filepath.Join(repoPath, fmt.Sprintf("dir%d", i))
 		err = os.MkdirAll(dir, 0755)
 		require.NoError(t, err)
-		
+
 		testFile := filepath.Join(dir, "file.txt")
 		err = os.WriteFile(testFile, []byte(fmt.Sprintf("Content %d", i)), 0644)
 		require.NoError(t, err)
-		
+
 		_, err = w.Add(fmt.Sprintf("dir%d/file.txt", i))
 		require.NoError(t, err)
 	}
@@ -483,7 +483,7 @@ func TestConcurrentDifferentOperations(t *testing.T) {
 
 	// Launch different types of operations concurrently
 	var wg sync.WaitGroup
-	
+
 	// CommitAndPush operations
 	for i := 0; i < 3; i++ {
 		wg.Add(1)

@@ -53,42 +53,42 @@ type EventType string
 
 const (
 	// Authentication and Authorization Events
-	EventTypeAuthentication       EventType = "authentication"
-	EventTypeAuthenticationFailed EventType = "authentication_failed"
+	EventTypeAuthentication        EventType = "authentication"
+	EventTypeAuthenticationFailed  EventType = "authentication_failed"
 	EventTypeAuthenticationSuccess EventType = "authentication_success"
-	EventTypeAuthorization        EventType = "authorization"
-	EventTypeAuthorizationFailed  EventType = "authorization_failed"
-	EventTypeAuthorizationSuccess EventType = "authorization_success"
-	EventTypeSessionStart         EventType = "session_start"
-	EventTypeSessionEnd           EventType = "session_end"
-	EventTypePasswordChange       EventType = "password_change"
-	EventTypeTokenIssuance        EventType = "token_issuance"
-	EventTypeTokenRevocation      EventType = "token_revocation"
-	
+	EventTypeAuthorization         EventType = "authorization"
+	EventTypeAuthorizationFailed   EventType = "authorization_failed"
+	EventTypeAuthorizationSuccess  EventType = "authorization_success"
+	EventTypeSessionStart          EventType = "session_start"
+	EventTypeSessionEnd            EventType = "session_end"
+	EventTypePasswordChange        EventType = "password_change"
+	EventTypeTokenIssuance         EventType = "token_issuance"
+	EventTypeTokenRevocation       EventType = "token_revocation"
+
 	// Data Access Events
-	EventTypeDataAccess    EventType = "data_access"
-	EventTypeDataCreate    EventType = "data_create"
-	EventTypeDataRead      EventType = "data_read"
-	EventTypeDataUpdate    EventType = "data_update"
-	EventTypeDataDelete    EventType = "data_delete"
-	EventTypeDataExport    EventType = "data_export"
-	EventTypeDataImport    EventType = "data_import"
-	EventTypeDataBackup    EventType = "data_backup"
-	EventTypeDataRestore   EventType = "data_restore"
+	EventTypeDataAccess     EventType = "data_access"
+	EventTypeDataCreate     EventType = "data_create"
+	EventTypeDataRead       EventType = "data_read"
+	EventTypeDataUpdate     EventType = "data_update"
+	EventTypeDataDelete     EventType = "data_delete"
+	EventTypeDataExport     EventType = "data_export"
+	EventTypeDataImport     EventType = "data_import"
+	EventTypeDataBackup     EventType = "data_backup"
+	EventTypeDataRestore    EventType = "data_restore"
 	EventTypeDataProcessing EventType = "data_processing"
-	
+
 	// System Management Events
-	EventTypeSystemChange     EventType = "system_change"
-	EventTypeConfigChange     EventType = "config_change"
-	EventTypeUserManagement   EventType = "user_management"
-	EventTypeRoleManagement   EventType = "role_management"
-	EventTypePolicyChange     EventType = "policy_change"
-	EventTypeSystemStartup    EventType = "system_startup"
-	EventTypeSystemShutdown   EventType = "system_shutdown"
-	EventTypeServiceStart     EventType = "service_start"
-	EventTypeServiceStop      EventType = "service_stop"
-	EventTypeMaintenanceMode  EventType = "maintenance_mode"
-	
+	EventTypeSystemChange    EventType = "system_change"
+	EventTypeConfigChange    EventType = "config_change"
+	EventTypeUserManagement  EventType = "user_management"
+	EventTypeRoleManagement  EventType = "role_management"
+	EventTypePolicyChange    EventType = "policy_change"
+	EventTypeSystemStartup   EventType = "system_startup"
+	EventTypeSystemShutdown  EventType = "system_shutdown"
+	EventTypeServiceStart    EventType = "service_start"
+	EventTypeServiceStop     EventType = "service_stop"
+	EventTypeMaintenanceMode EventType = "maintenance_mode"
+
 	// Security Events
 	EventTypeSecurityViolation EventType = "security_violation"
 	EventTypeIntrusionAttempt  EventType = "intrusion_attempt"
@@ -97,15 +97,15 @@ const (
 	EventTypeComplianceCheck   EventType = "compliance_check"
 	EventTypeVulnerability     EventType = "vulnerability"
 	EventTypeIncidentResponse  EventType = "incident_response"
-	
+
 	// Network and Infrastructure Events
-	EventTypeNetworkAccess     EventType = "network_access"
-	EventTypeFirewallRule      EventType = "firewall_rule"
-	EventTypeNetworkAnomaly    EventType = "network_anomaly"
-	EventTypeResourceAccess    EventType = "resource_access"
-	EventTypeCapacityChange    EventType = "capacity_change"
-	EventTypePerformanceAlert  EventType = "performance_alert"
-	
+	EventTypeNetworkAccess    EventType = "network_access"
+	EventTypeFirewallRule     EventType = "firewall_rule"
+	EventTypeNetworkAnomaly   EventType = "network_anomaly"
+	EventTypeResourceAccess   EventType = "resource_access"
+	EventTypeCapacityChange   EventType = "capacity_change"
+	EventTypePerformanceAlert EventType = "performance_alert"
+
 	// Application-Specific Events
 	EventTypeAPICall           EventType = "api_call"
 	EventTypeWorkflowExecution EventType = "workflow_execution"
@@ -113,15 +113,15 @@ const (
 	EventTypeDeployment        EventType = "deployment"
 	EventTypeRollback          EventType = "rollback"
 	EventTypeHealthCheck       EventType = "health_check"
-	
+
 	// O-RAN Specific Events
-	EventTypeIntentProcessing  EventType = "intent_processing"
-	EventTypeNetworkFunction   EventType = "network_function"
-	EventTypeRICManagement     EventType = "ric_management"
-	EventTypeA1Interface       EventType = "a1_interface"
-	EventTypeO1Interface       EventType = "o1_interface"
-	EventTypeE2Interface       EventType = "e2_interface"
-	EventTypeSliceManagement   EventType = "slice_management"
+	EventTypeIntentProcessing EventType = "intent_processing"
+	EventTypeNetworkFunction  EventType = "network_function"
+	EventTypeRICManagement    EventType = "ric_management"
+	EventTypeA1Interface      EventType = "a1_interface"
+	EventTypeO1Interface      EventType = "o1_interface"
+	EventTypeE2Interface      EventType = "e2_interface"
+	EventTypeSliceManagement  EventType = "slice_management"
 )
 
 // EventResult represents the outcome of an audited action
@@ -152,18 +152,18 @@ const (
 
 // UserContext contains information about the user performing the action
 type UserContext struct {
-	UserID       string            `json:"user_id"`
-	Username     string            `json:"username,omitempty"`
-	Email        string            `json:"email,omitempty"`
-	Role         string            `json:"role,omitempty"`
-	Groups       []string          `json:"groups,omitempty"`
-	Permissions  []string          `json:"permissions,omitempty"`
-	SessionID    string            `json:"session_id,omitempty"`
-	ClientID     string            `json:"client_id,omitempty"`
-	ServiceAccount bool            `json:"service_account"`
-	AuthMethod   string            `json:"auth_method,omitempty"`
-	AuthProvider string            `json:"auth_provider,omitempty"`
-	Metadata     map[string]string `json:"metadata,omitempty"`
+	UserID         string            `json:"user_id"`
+	Username       string            `json:"username,omitempty"`
+	Email          string            `json:"email,omitempty"`
+	Role           string            `json:"role,omitempty"`
+	Groups         []string          `json:"groups,omitempty"`
+	Permissions    []string          `json:"permissions,omitempty"`
+	SessionID      string            `json:"session_id,omitempty"`
+	ClientID       string            `json:"client_id,omitempty"`
+	ServiceAccount bool              `json:"service_account"`
+	AuthMethod     string            `json:"auth_method,omitempty"`
+	AuthProvider   string            `json:"auth_provider,omitempty"`
+	Metadata       map[string]string `json:"metadata,omitempty"`
 }
 
 // Validate checks if the user context is valid
@@ -171,7 +171,7 @@ func (uc *UserContext) Validate() error {
 	if uc.UserID == "" {
 		return fmt.Errorf("user ID is required")
 	}
-	
+
 	// Validate email format if present
 	if uc.Email != "" {
 		emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
@@ -179,7 +179,7 @@ func (uc *UserContext) Validate() error {
 			return fmt.Errorf("invalid email format: %s", uc.Email)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -204,11 +204,11 @@ func (nc *NetworkContext) Validate() error {
 	if nc.SourcePort < 0 || nc.SourcePort > 65535 {
 		return fmt.Errorf("invalid source port: %d", nc.SourcePort)
 	}
-	
+
 	if nc.DestinationPort < 0 || nc.DestinationPort > 65535 {
 		return fmt.Errorf("invalid destination port: %d", nc.DestinationPort)
 	}
-	
+
 	return nil
 }
 
@@ -246,11 +246,11 @@ func (rc *ResourceContext) Validate() error {
 	if rc.ResourceType == "" {
 		return fmt.Errorf("resource type is required")
 	}
-	
+
 	if rc.Operation == "" {
 		return fmt.Errorf("operation is required")
 	}
-	
+
 	return nil
 }
 
@@ -260,58 +260,58 @@ type AuditEvent struct {
 	ID        string    `json:"id"`
 	Version   string    `json:"version"`
 	Timestamp time.Time `json:"timestamp"`
-	
+
 	// Event classification
-	EventType   EventType   `json:"event_type"`
-	Category    string      `json:"category,omitempty"`
-	Severity    Severity    `json:"severity"`
-	Result      EventResult `json:"result"`
-	
+	EventType EventType   `json:"event_type"`
+	Category  string      `json:"category,omitempty"`
+	Severity  Severity    `json:"severity"`
+	Result    EventResult `json:"result"`
+
 	// Core event information
 	Component   string `json:"component"`
 	Action      string `json:"action"`
 	Description string `json:"description"`
 	Message     string `json:"message,omitempty"`
-	
+
 	// Context information
 	UserContext     *UserContext     `json:"user_context,omitempty"`
 	NetworkContext  *NetworkContext  `json:"network_context,omitempty"`
 	SystemContext   *SystemContext   `json:"system_context,omitempty"`
 	ResourceContext *ResourceContext `json:"resource_context,omitempty"`
-	
+
 	// Event-specific data
 	Data map[string]interface{} `json:"data,omitempty"`
-	
+
 	// Security and compliance
-	RiskLevel           string                 `json:"risk_level,omitempty"`
-	ComplianceMetadata  map[string]interface{} `json:"compliance_metadata,omitempty"`
-	DataClassification  string                 `json:"data_classification,omitempty"`
-	RetentionPeriod     string                 `json:"retention_period,omitempty"`
-	
+	RiskLevel          string                 `json:"risk_level,omitempty"`
+	ComplianceMetadata map[string]interface{} `json:"compliance_metadata,omitempty"`
+	DataClassification string                 `json:"data_classification,omitempty"`
+	RetentionPeriod    string                 `json:"retention_period,omitempty"`
+
 	// Error information
-	Error      string            `json:"error,omitempty"`
-	ErrorCode  string            `json:"error_code,omitempty"`
-	StackTrace string            `json:"stack_trace,omitempty"`
-	Warnings   []string          `json:"warnings,omitempty"`
-	
+	Error      string   `json:"error,omitempty"`
+	ErrorCode  string   `json:"error_code,omitempty"`
+	StackTrace string   `json:"stack_trace,omitempty"`
+	Warnings   []string `json:"warnings,omitempty"`
+
 	// Performance metrics
-	Duration     time.Duration     `json:"duration,omitempty"`
-	ResponseSize int64            `json:"response_size,omitempty"`
-	RequestSize  int64            `json:"request_size,omitempty"`
+	Duration     time.Duration          `json:"duration,omitempty"`
+	ResponseSize int64                  `json:"response_size,omitempty"`
+	RequestSize  int64                  `json:"request_size,omitempty"`
 	Metrics      map[string]interface{} `json:"metrics,omitempty"`
-	
+
 	// Correlation and tracing
-	TraceID         string            `json:"trace_id,omitempty"`
-	SpanID          string            `json:"span_id,omitempty"`
-	ParentID        string            `json:"parent_id,omitempty"`
-	CorrelationID   string            `json:"correlation_id,omitempty"`
-	CausationID     string            `json:"causation_id,omitempty"`
-	RelatedEvents   []string          `json:"related_events,omitempty"`
-	
+	TraceID       string   `json:"trace_id,omitempty"`
+	SpanID        string   `json:"span_id,omitempty"`
+	ParentID      string   `json:"parent_id,omitempty"`
+	CorrelationID string   `json:"correlation_id,omitempty"`
+	CausationID   string   `json:"causation_id,omitempty"`
+	RelatedEvents []string `json:"related_events,omitempty"`
+
 	// Integrity and forensics
-	Signature       string `json:"signature,omitempty"`
-	Hash            string `json:"hash,omitempty"`
-	PreviousHash    string `json:"previous_hash,omitempty"`
+	Signature       string   `json:"signature,omitempty"`
+	Hash            string   `json:"hash,omitempty"`
+	PreviousHash    string   `json:"previous_hash,omitempty"`
 	IntegrityFields []string `json:"integrity_fields,omitempty"`
 }
 
@@ -320,48 +320,48 @@ func (ae *AuditEvent) Validate() error {
 	if ae.ID == "" {
 		return fmt.Errorf("audit event ID is required")
 	}
-	
+
 	if !isValidUUID(ae.ID) {
 		return fmt.Errorf("audit event ID must be a valid UUID")
 	}
-	
+
 	if ae.EventType == "" {
 		return fmt.Errorf("event type is required")
 	}
-	
+
 	if ae.Component == "" {
 		return fmt.Errorf("component is required")
 	}
-	
+
 	if ae.Action == "" {
 		return fmt.Errorf("action is required")
 	}
-	
+
 	if ae.Timestamp.IsZero() {
 		return fmt.Errorf("timestamp is required")
 	}
-	
+
 	// Validate network context if present
 	if ae.NetworkContext != nil {
 		if err := ae.NetworkContext.Validate(); err != nil {
 			return fmt.Errorf("invalid network context: %w", err)
 		}
 	}
-	
+
 	// Validate user context if present
 	if ae.UserContext != nil {
 		if err := ae.UserContext.Validate(); err != nil {
 			return fmt.Errorf("invalid user context: %w", err)
 		}
 	}
-	
+
 	// Validate resource context if present
 	if ae.ResourceContext != nil {
 		if err := ae.ResourceContext.Validate(); err != nil {
 			return fmt.Errorf("invalid resource context: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -381,11 +381,11 @@ func FromJSON(data []byte) (*AuditEvent, error) {
 	if err := json.Unmarshal(data, &event); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal audit event: %w", err)
 	}
-	
+
 	if err := event.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid audit event: %w", err)
 	}
-	
+
 	return &event, nil
 }
 
@@ -413,7 +413,7 @@ func (ae *AuditEvent) SetRiskLevel() {
 func (ae *AuditEvent) SetRetentionPeriod(complianceMode []ComplianceStandard) {
 	// Default retention periods based on compliance standards
 	maxRetention := "1y" // Default 1 year
-	
+
 	for _, standard := range complianceMode {
 		switch standard {
 		case ComplianceSOC2:
@@ -431,7 +431,7 @@ func (ae *AuditEvent) SetRetentionPeriod(complianceMode []ComplianceStandard) {
 			}
 		}
 	}
-	
+
 	// Security events may need longer retention
 	switch ae.EventType {
 	case EventTypeSecurityViolation, EventTypeIntrusionAttempt, EventTypeMalwareDetection:
@@ -439,7 +439,7 @@ func (ae *AuditEvent) SetRetentionPeriod(complianceMode []ComplianceStandard) {
 	case EventTypeIncidentResponse:
 		maxRetention = "10y"
 	}
-	
+
 	ae.RetentionPeriod = maxRetention
 }
 
@@ -447,40 +447,40 @@ func (ae *AuditEvent) SetRetentionPeriod(complianceMode []ComplianceStandard) {
 func (ae *AuditEvent) GetEventCategory() string {
 	switch ae.EventType {
 	case EventTypeAuthentication, EventTypeAuthenticationFailed, EventTypeAuthenticationSuccess,
-		 EventTypeAuthorization, EventTypeAuthorizationFailed, EventTypeAuthorizationSuccess,
-		 EventTypeSessionStart, EventTypeSessionEnd, EventTypePasswordChange,
-		 EventTypeTokenIssuance, EventTypeTokenRevocation:
+		EventTypeAuthorization, EventTypeAuthorizationFailed, EventTypeAuthorizationSuccess,
+		EventTypeSessionStart, EventTypeSessionEnd, EventTypePasswordChange,
+		EventTypeTokenIssuance, EventTypeTokenRevocation:
 		return "authentication_authorization"
-		
+
 	case EventTypeDataAccess, EventTypeDataCreate, EventTypeDataRead, EventTypeDataUpdate,
-		 EventTypeDataDelete, EventTypeDataExport, EventTypeDataImport, EventTypeDataBackup,
-		 EventTypeDataRestore:
+		EventTypeDataDelete, EventTypeDataExport, EventTypeDataImport, EventTypeDataBackup,
+		EventTypeDataRestore:
 		return "data_access"
-		
+
 	case EventTypeSystemChange, EventTypeConfigChange, EventTypeUserManagement,
-		 EventTypeRoleManagement, EventTypePolicyChange, EventTypeSystemStartup,
-		 EventTypeSystemShutdown, EventTypeServiceStart, EventTypeServiceStop,
-		 EventTypeMaintenanceMode:
+		EventTypeRoleManagement, EventTypePolicyChange, EventTypeSystemStartup,
+		EventTypeSystemShutdown, EventTypeServiceStart, EventTypeServiceStop,
+		EventTypeMaintenanceMode:
 		return "system_management"
-		
+
 	case EventTypeSecurityViolation, EventTypeIntrusionAttempt, EventTypeMalwareDetection,
-		 EventTypeAnomalyDetection, EventTypeComplianceCheck, EventTypeVulnerability,
-		 EventTypeIncidentResponse:
+		EventTypeAnomalyDetection, EventTypeComplianceCheck, EventTypeVulnerability,
+		EventTypeIncidentResponse:
 		return "security"
-		
+
 	case EventTypeNetworkAccess, EventTypeFirewallRule, EventTypeNetworkAnomaly,
-		 EventTypeResourceAccess, EventTypeCapacityChange, EventTypePerformanceAlert:
+		EventTypeResourceAccess, EventTypeCapacityChange, EventTypePerformanceAlert:
 		return "network_infrastructure"
-		
+
 	case EventTypeAPICall, EventTypeWorkflowExecution, EventTypeJobExecution,
-		 EventTypeDeployment, EventTypeRollback, EventTypeHealthCheck:
+		EventTypeDeployment, EventTypeRollback, EventTypeHealthCheck:
 		return "application"
-		
+
 	case EventTypeIntentProcessing, EventTypeNetworkFunction, EventTypeRICManagement,
-		 EventTypeA1Interface, EventTypeO1Interface, EventTypeE2Interface,
-		 EventTypeSliceManagement:
+		EventTypeA1Interface, EventTypeO1Interface, EventTypeE2Interface,
+		EventTypeSliceManagement:
 		return "oran_telecom"
-		
+
 	default:
 		return "general"
 	}
@@ -623,17 +623,17 @@ func AuthenticationEvent(userID, provider string, success bool, err error) *Audi
 		WithAction("login").
 		WithUser(userID, "").
 		WithData("provider", provider)
-	
+
 	if success {
 		builder.WithResult(ResultSuccess).WithSeverity(SeverityInfo)
 	} else {
 		builder.WithResult(ResultFailure).WithSeverity(SeverityWarning)
 	}
-	
+
 	if err != nil {
 		builder.WithError(err)
 	}
-	
+
 	return builder.Build()
 }
 

@@ -116,8 +116,8 @@ func (yr *YANGModelRegistry) loadORANModels() {
 									DataType: "string",
 								},
 								"state": {
-									Name:     "state",
-									Type:     "container",
+									Name: "state",
+									Type: "container",
 									Children: map[string]*YANGNode{
 										"name": {
 											Name:     "name",
@@ -644,7 +644,7 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath string, modelName string) e
 	sv.mutex.RLock()
 	model, exists := sv.registry.models[modelName]
 	sv.mutex.RUnlock()
-	
+
 	if !exists {
 		return fmt.Errorf("model %s not found for XPath validation", modelName)
 	}
@@ -684,7 +684,7 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath string, modelName string) e
 						}
 					}
 				}
-				
+
 				// Validate condition syntax if present
 				if condition != "" {
 					if err := sv.validateXPathCondition(condition, nodeSchema); err != nil {
@@ -723,31 +723,31 @@ func (sv *StandardYANGValidator) ValidateXPath(xpath string, modelName string) e
 // It supports the following XPath condition patterns:
 //
 // 1. Numeric indices: [1], [2], [3], etc.
-//    - Used for selecting the nth occurrence of an element
-//    - Example: /network-functions/function[1]
+//   - Used for selecting the nth occurrence of an element
+//   - Example: /network-functions/function[1]
 //
 // 2. Attribute conditions: [@attr='value']
-//    - Tests if an attribute equals a specific value
-//    - Validates that the attribute exists in the schema
-//    - Example: /interface[@name='eth0']
+//   - Tests if an attribute equals a specific value
+//   - Validates that the attribute exists in the schema
+//   - Example: /interface[@name='eth0']
 //
 // 3. Text content conditions: [text()='value']
-//    - Tests if the text content of a node equals a value
-//    - Example: /status[text()='active']
+//   - Tests if the text content of a node equals a value
+//   - Example: /status[text()='active']
 //
 // 4. Position conditions: [position()=N], [position()>N], [position()<N]
-//    - Tests the position of a node in its sibling set
-//    - Supports operators: =, <, >, <=, >=
-//    - Example: /item[position()<=5]
+//   - Tests the position of a node in its sibling set
+//   - Supports operators: =, <, >, <=, >=
+//   - Example: /item[position()<=5]
 //
 // 5. Last position: [last()]
-//    - Selects the last element in a node set
-//    - Example: /logs/entry[last()]
+//   - Selects the last element in a node set
+//   - Example: /logs/entry[last()]
 //
 // 6. Complex conditions: condition1 and condition2, condition1 or condition2
-//    - Combines multiple conditions with logical operators
-//    - Recursively validates each sub-condition
-//    - Example: [@type='interface' and @status='up']
+//   - Combines multiple conditions with logical operators
+//   - Recursively validates each sub-condition
+//   - Example: [@type='interface' and @status='up']
 //
 // The function performs schema validation to ensure that referenced attributes
 // exist in the YANG model schema when available.
@@ -845,11 +845,11 @@ func (yr *YANGModelRegistry) GetStatistics() map[string]interface{} {
 	modelStats := make(map[string]interface{})
 	for name, model := range yr.models {
 		modelStats[name] = map[string]interface{}{
-			"version":     model.Version,
-			"revision":    model.Revision,
-			"namespace":   model.Namespace,
-			"load_time":   model.LoadTime,
-			"has_schema":  len(model.Schema) > 0,
+			"version":    model.Version,
+			"revision":   model.Revision,
+			"namespace":  model.Namespace,
+			"load_time":  model.LoadTime,
+			"has_schema": len(model.Schema) > 0,
 		}
 	}
 	stats["models"] = modelStats

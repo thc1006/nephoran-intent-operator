@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -15,6 +16,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 )
 
 var (
@@ -24,8 +28,18 @@ var (
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	// Note: API scheme registration is commented out due to build issues
-	// This is a minimal build to get CI passing
+	utilruntime.Must(nephoranv1.AddToScheme(scheme))
+	// +kubebuilder:scaffold:scheme
+}
+
+// getEnvAsBool retrieves environment variable as boolean with fallback
+func getEnvAsBool(key string, defaultValue bool) bool {
+	if value, exists := os.LookupEnv(key); exists {
+		if boolValue, err := strconv.ParseBool(value); err == nil {
+			return boolValue
+		}
+	}
+	return defaultValue
 }
 
 func main() {
@@ -34,13 +48,17 @@ func main() {
 	var probeAddr string
 	var secureMetrics bool
 	var enableHTTP2 bool
-	
+	var enableNetworkIntent bool
+	var enableLlmIntent bool
+
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false, "Enable leader election for controller manager.")
 	flag.BoolVar(&secureMetrics, "metrics-secure", false, "If set the metrics endpoint is served securely")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false, "If set, HTTP/2 will be enabled for the webhook and metrics servers")
-	
+	flag.BoolVar(&enableNetworkIntent, "enable-network-intent", getEnvAsBool("ENABLE_NETWORK_INTENT", true), "Enable NetworkIntent controller")
+	flag.BoolVar(&enableLlmIntent, "enable-llm-intent", getEnvAsBool("ENABLE_LLM_INTENT", false), "Enable LLM Intent processing")
+
 	opts := zap.Options{
 		Development: true,
 	}
@@ -80,9 +98,27 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Note: Controller registration is commented out due to build issues
-	// This is a minimal build to get CI passing
-	setupLog.Info("controllers disabled for minimal build")
+	// Setup controllers based on feature flags
+	if enableNetworkIntent {
+		if err = (&controllers.NetworkIntentReconciler{
+			Client: mgr.GetClient(),
+			Scheme: mgr.GetScheme(),
+		}).SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "NetworkIntent")
+			os.Exit(1)
+		}
+		setupLog.Info("NetworkIntent controller enabled")
+	} else {
+		setupLog.Info("NetworkIntent controller disabled")
+	}
+
+	if enableLlmIntent {
+		setupLog.Info("LLM Intent processing enabled")
+	} else {
+		setupLog.Info("LLM Intent processing disabled")
+	}
+
+	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
 		setupLog.Error(err, "unable to set up health check")
@@ -93,9 +129,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("Nephoran Intent Operator starting (minimal build for CI)")
-	setupLog.Info("starting manager")
-	
+	fmt.Println("Nephoran Intent Operator starting")
+	setupLog.Info("starting manager", "networkIntentEnabled", enableNetworkIntent, "llmIntentEnabled", enableLlmIntent)
+
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)

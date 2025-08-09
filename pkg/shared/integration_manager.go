@@ -19,6 +19,7 @@ package shared
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -35,81 +36,81 @@ import (
 
 // IntegrationManager orchestrates all shared components and controllers
 type IntegrationManager struct {
-	logger             logr.Logger
-	manager            manager.Manager
-	client             client.Client
-	scheme             *runtime.Scheme
-	recorder           record.EventRecorder
-	
+	logger   logr.Logger
+	manager  manager.Manager
+	client   client.Client
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
+
 	// Core shared components
-	stateManager       *StateManager
-	eventBus           *EnhancedEventBus
-	coordinationManager *CoordinationManager
+	stateManager         *StateManager
+	eventBus             *EnhancedEventBus
+	coordinationManager  *CoordinationManager
 	performanceOptimizer *PerformanceOptimizer
-	recoveryManager    *RecoveryManager
-	
+	recoveryManager      *RecoveryManager
+
 	// Configuration
-	config             *IntegrationConfig
-	
+	config *IntegrationConfig
+
 	// Component registry
-	controllers        map[ComponentType]ControllerInterface
-	webhooks           map[string]WebhookInterface
-	healthCheckers     map[string]HealthChecker
-	
+	controllers    map[ComponentType]ControllerInterface
+	webhooks       map[string]WebhookInterface
+	healthCheckers map[string]HealthChecker
+
 	// Lifecycle management
-	mutex              sync.RWMutex
-	started            bool
-	components         []StartableComponent
-	
+	mutex      sync.RWMutex
+	started    bool
+	components []StartableComponent
+
 	// Monitoring and metrics
-	systemHealth       *SystemHealth
-	metricsCollector   *MetricsCollector
+	systemHealth     *SystemHealth
+	metricsCollector *MetricsCollector
 }
 
 // IntegrationConfig provides comprehensive configuration for the integration
 type IntegrationConfig struct {
 	// Manager configuration
-	MetricsAddr            string        `json:"metricsAddr"`
-	ProbeAddr             string        `json:"probeAddr"`
-	PprofAddr             string        `json:"pprofAddr"`
-	EnableLeaderElection  bool          `json:"enableLeaderElection"`
-	LeaderElectionID      string        `json:"leaderElectionID"`
-	
+	MetricsAddr          string `json:"metricsAddr"`
+	ProbeAddr            string `json:"probeAddr"`
+	PprofAddr            string `json:"pprofAddr"`
+	EnableLeaderElection bool   `json:"enableLeaderElection"`
+	LeaderElectionID     string `json:"leaderElectionID"`
+
 	// State management configuration
-	StateManager          *StateManagerConfig    `json:"stateManager,omitempty"`
-	
+	StateManager *StateManagerConfig `json:"stateManager,omitempty"`
+
 	// Event bus configuration
-	EventBus              *EventBusConfig        `json:"eventBus,omitempty"`
-	
+	EventBus *EventBusConfig `json:"eventBus,omitempty"`
+
 	// Coordination configuration
-	Coordination          *CoordinationConfig    `json:"coordination,omitempty"`
-	
+	Coordination *CoordinationConfig `json:"coordination,omitempty"`
+
 	// Performance configuration
-	Performance           *PerformanceConfig     `json:"performance,omitempty"`
-	
+	Performance *PerformanceConfig `json:"performance,omitempty"`
+
 	// Recovery configuration
-	Recovery              *RecoveryConfig        `json:"recovery,omitempty"`
-	
+	Recovery *RecoveryConfig `json:"recovery,omitempty"`
+
 	// Health and monitoring
-	HealthCheckInterval   time.Duration          `json:"healthCheckInterval"`
-	MetricsInterval       time.Duration          `json:"metricsInterval"`
-	EnableProfiling       bool                   `json:"enableProfiling"`
-	
+	HealthCheckInterval time.Duration `json:"healthCheckInterval"`
+	MetricsInterval     time.Duration `json:"metricsInterval"`
+	EnableProfiling     bool          `json:"enableProfiling"`
+
 	// Webhook configuration
-	WebhookPort           int                    `json:"webhookPort"`
-	WebhookCertDir        string                 `json:"webhookCertDir"`
-	
+	WebhookPort    int    `json:"webhookPort"`
+	WebhookCertDir string `json:"webhookCertDir"`
+
 	// Security configuration
-	EnableRBAC            bool                   `json:"enableRBAC"`
-	SecureMetrics         bool                   `json:"secureMetrics"`
+	EnableRBAC    bool `json:"enableRBAC"`
+	SecureMetrics bool `json:"secureMetrics"`
 }
 
 // DefaultIntegrationConfig returns default configuration
 func DefaultIntegrationConfig() *IntegrationConfig {
 	return &IntegrationConfig{
 		MetricsAddr:          ":8080",
-		ProbeAddr:           ":8081",
-		PprofAddr:           ":6060",
+		ProbeAddr:            ":8081",
+		PprofAddr:            ":6060",
 		EnableLeaderElection: true,
 		LeaderElectionID:     "nephoran-intent-operator-leader",
 		StateManager:         DefaultStateManagerConfig(),
@@ -149,9 +150,9 @@ type HealthChecker interface {
 
 // MetricsCollector collects and exposes metrics
 type MetricsCollector struct {
-	mutex           sync.RWMutex
-	metrics         map[string]interface{}
-	lastCollection  time.Time
+	mutex          sync.RWMutex
+	metrics        map[string]interface{}
+	lastCollection time.Time
 }
 
 // NewIntegrationManager creates a new integration manager
@@ -159,7 +160,7 @@ func NewIntegrationManager(mgr manager.Manager, config *IntegrationConfig) (*Int
 	if config == nil {
 		config = DefaultIntegrationConfig()
 	}
-	
+
 	im := &IntegrationManager{
 		logger:         ctrl.Log.WithName("integration-manager"),
 		manager:        mgr,
@@ -171,20 +172,20 @@ func NewIntegrationManager(mgr manager.Manager, config *IntegrationConfig) (*Int
 		webhooks:       make(map[string]WebhookInterface),
 		healthCheckers: make(map[string]HealthChecker),
 		components:     make([]StartableComponent, 0),
-		systemHealth:   &SystemHealth{
-			Components:     make(map[string]*ComponentStatus),
-			ResourceUsage:  ResourceUsage{},
+		systemHealth: &SystemHealth{
+			Components:    make(map[string]*ComponentStatus),
+			ResourceUsage: ResourceUsage{},
 		},
 		metricsCollector: &MetricsCollector{
 			metrics: make(map[string]interface{}),
 		},
 	}
-	
+
 	// Initialize core components
 	if err := im.initializeComponents(); err != nil {
 		return nil, fmt.Errorf("failed to initialize components: %w", err)
 	}
-	
+
 	return im, nil
 }
 
@@ -193,25 +194,25 @@ func (im *IntegrationManager) initializeComponents() error {
 	// Create event bus
 	im.eventBus = NewEnhancedEventBus(im.config.EventBus)
 	im.addComponent(im.wrapEventBus(im.eventBus))
-	
+
 	// Create state manager
 	im.stateManager = NewStateManager(im.client, im.recorder, im.logger, im.scheme, im.eventBus)
 	im.addComponent(im.wrapStateManager(im.stateManager))
-	
+
 	// Create coordination manager
 	im.coordinationManager = NewCoordinationManager(im.stateManager, im.eventBus, im.config.Coordination)
 	im.addComponent(im.wrapCoordinationManager(im.coordinationManager))
-	
+
 	// Create performance optimizer
 	im.performanceOptimizer = NewPerformanceOptimizer(im.config.Performance)
 	im.addComponent(im.wrapPerformanceOptimizer(im.performanceOptimizer))
-	
+
 	// Create recovery manager
 	im.recoveryManager = NewRecoveryManager(im.stateManager, im.eventBus)
 	im.addComponent(im.wrapRecoveryManager(im.recoveryManager))
-	
+
 	im.logger.Info("Core components initialized", "componentCount", len(im.components))
-	
+
 	return nil
 }
 
@@ -224,20 +225,20 @@ func (im *IntegrationManager) addComponent(component StartableComponent) {
 // RegisterController registers a specialized controller
 func (im *IntegrationManager) RegisterController(controller ControllerInterface) error {
 	componentType := controller.GetComponentType()
-	
+
 	im.mutex.Lock()
 	defer im.mutex.Unlock()
-	
+
 	// Register with coordination manager
 	if err := im.coordinationManager.RegisterController(controller); err != nil {
 		return fmt.Errorf("failed to register controller with coordination manager: %w", err)
 	}
-	
+
 	// Store in registry
 	im.controllers[componentType] = controller
-	
+
 	im.logger.Info("Registered controller", "componentType", componentType)
-	
+
 	return nil
 }
 
@@ -245,17 +246,17 @@ func (im *IntegrationManager) RegisterController(controller ControllerInterface)
 func (im *IntegrationManager) RegisterWebhook(name string, webhook WebhookInterface) error {
 	im.mutex.Lock()
 	defer im.mutex.Unlock()
-	
+
 	// Setup webhook with manager
 	if err := webhook.SetupWithManager(im.manager); err != nil {
 		return fmt.Errorf("failed to setup webhook with manager: %w", err)
 	}
-	
+
 	// Store in registry
 	im.webhooks[name] = webhook
-	
+
 	im.logger.Info("Registered webhook", "name", name, "path", webhook.GetPath())
-	
+
 	return nil
 }
 
@@ -263,9 +264,9 @@ func (im *IntegrationManager) RegisterWebhook(name string, webhook WebhookInterf
 func (im *IntegrationManager) RegisterHealthChecker(checker HealthChecker) {
 	im.mutex.Lock()
 	defer im.mutex.Unlock()
-	
+
 	im.healthCheckers[checker.GetName()] = checker
-	
+
 	im.logger.Info("Registered health checker", "name", checker.GetName())
 }
 
@@ -275,25 +276,25 @@ func (im *IntegrationManager) SetupWithManager() error {
 	if err := im.manager.AddHealthzCheck("healthz", im.healthzCheck); err != nil {
 		return fmt.Errorf("failed to add healthz check: %w", err)
 	}
-	
+
 	if err := im.manager.AddReadyzCheck("readyz", im.readyzCheck); err != nil {
 		return fmt.Errorf("failed to add readyz check: %w", err)
 	}
-	
+
 	// Setup webhook server if webhooks are registered
 	if len(im.webhooks) > 0 {
 		webhookServer := im.manager.GetWebhookServer()
 		webhookServer.Port = im.config.WebhookPort
 		webhookServer.CertDir = im.config.WebhookCertDir
 	}
-	
+
 	// Add integration manager as a runnable
 	if err := im.manager.Add(im); err != nil {
 		return fmt.Errorf("failed to add integration manager to controller manager: %w", err)
 	}
-	
+
 	im.logger.Info("Integration manager setup completed")
-	
+
 	return nil
 }
 
@@ -301,42 +302,42 @@ func (im *IntegrationManager) SetupWithManager() error {
 func (im *IntegrationManager) Start(ctx context.Context) error {
 	im.mutex.Lock()
 	defer im.mutex.Unlock()
-	
+
 	if im.started {
 		return fmt.Errorf("integration manager already started")
 	}
-	
+
 	im.logger.Info("Starting integration manager", "componentCount", len(im.components))
-	
+
 	// Start all components in order
 	for i, component := range im.components {
 		im.logger.Info("Starting component", "component", component.GetName(), "index", i)
-		
+
 		if err := component.Start(ctx); err != nil {
 			im.logger.Error(err, "Failed to start component", "component", component.GetName())
-			
+
 			// Stop previously started components
 			for j := i - 1; j >= 0; j-- {
 				if stopErr := im.components[j].Stop(ctx); stopErr != nil {
-					im.logger.Error(stopErr, "Failed to stop component during rollback", 
+					im.logger.Error(stopErr, "Failed to stop component during rollback",
 						"component", im.components[j].GetName())
 				}
 			}
-			
+
 			return fmt.Errorf("failed to start component %s: %w", component.GetName(), err)
 		}
-		
+
 		im.logger.Info("Component started successfully", "component", component.GetName())
 	}
-	
+
 	// Start background monitoring
 	go im.monitoringLoop(ctx)
 	go im.healthCheckLoop(ctx)
 	go im.metricsCollectionLoop(ctx)
-	
+
 	im.started = true
 	im.logger.Info("Integration manager started successfully")
-	
+
 	return nil
 }
 
@@ -344,28 +345,28 @@ func (im *IntegrationManager) Start(ctx context.Context) error {
 func (im *IntegrationManager) Stop(ctx context.Context) error {
 	im.mutex.Lock()
 	defer im.mutex.Unlock()
-	
+
 	if !im.started {
 		return nil
 	}
-	
+
 	im.logger.Info("Stopping integration manager")
-	
+
 	// Stop components in reverse order
 	for i := len(im.components) - 1; i >= 0; i-- {
 		component := im.components[i]
 		im.logger.Info("Stopping component", "component", component.GetName())
-		
+
 		if err := component.Stop(ctx); err != nil {
 			im.logger.Error(err, "Failed to stop component", "component", component.GetName())
 		} else {
 			im.logger.Info("Component stopped successfully", "component", component.GetName())
 		}
 	}
-	
+
 	im.started = false
 	im.logger.Info("Integration manager stopped")
-	
+
 	return nil
 }
 
@@ -398,16 +399,16 @@ func (im *IntegrationManager) GetRecoveryManager() *RecoveryManager {
 func (im *IntegrationManager) GetSystemHealth() *SystemHealth {
 	im.mutex.RLock()
 	defer im.mutex.RUnlock()
-	
+
 	// Create a copy to avoid concurrent access issues
 	healthCopy := *im.systemHealth
 	healthCopy.Components = make(map[string]*ComponentStatus)
-	
+
 	for name, status := range im.systemHealth.Components {
 		statusCopy := *status
 		healthCopy.Components[name] = &statusCopy
 	}
-	
+
 	return &healthCopy
 }
 
@@ -415,41 +416,41 @@ func (im *IntegrationManager) GetSystemHealth() *SystemHealth {
 func (im *IntegrationManager) GetMetrics() map[string]interface{} {
 	im.metricsCollector.mutex.RLock()
 	defer im.metricsCollector.mutex.RUnlock()
-	
+
 	// Create a copy of metrics
 	metricsCopy := make(map[string]interface{})
 	for key, value := range im.metricsCollector.metrics {
 		metricsCopy[key] = value
 	}
-	
+
 	return metricsCopy
 }
 
 // Health check implementations
 
-func (im *IntegrationManager) healthzCheck(_ *ctrl.Request) error {
+func (im *IntegrationManager) healthzCheck(_ *http.Request) error {
 	// Check if all critical components are healthy
 	for _, component := range im.components {
 		if !component.IsHealthy() {
 			return fmt.Errorf("component %s is unhealthy", component.GetName())
 		}
 	}
-	
+
 	// Check registered health checkers
 	for name, checker := range im.healthCheckers {
 		if err := checker.Check(context.Background()); err != nil {
 			return fmt.Errorf("health check %s failed: %w", name, err)
 		}
 	}
-	
+
 	return nil
 }
 
-func (im *IntegrationManager) readyzCheck(_ *ctrl.Request) error {
+func (im *IntegrationManager) readyzCheck(_ *http.Request) error {
 	if !im.started {
 		return fmt.Errorf("integration manager not started")
 	}
-	
+
 	return im.healthzCheck(nil)
 }
 
@@ -458,12 +459,12 @@ func (im *IntegrationManager) readyzCheck(_ *ctrl.Request) error {
 func (im *IntegrationManager) monitoringLoop(ctx context.Context) {
 	ticker := time.NewTicker(im.config.HealthCheckInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
 			im.updateSystemHealth(ctx)
-			
+
 		case <-ctx.Done():
 			return
 		}
@@ -473,12 +474,12 @@ func (im *IntegrationManager) monitoringLoop(ctx context.Context) {
 func (im *IntegrationManager) healthCheckLoop(ctx context.Context) {
 	ticker := time.NewTicker(im.config.HealthCheckInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
 			im.performHealthChecks(ctx)
-			
+
 		case <-ctx.Done():
 			return
 		}
@@ -488,12 +489,12 @@ func (im *IntegrationManager) healthCheckLoop(ctx context.Context) {
 func (im *IntegrationManager) metricsCollectionLoop(ctx context.Context) {
 	ticker := time.NewTicker(im.config.MetricsInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
 			im.collectMetrics(ctx)
-			
+
 		case <-ctx.Done():
 			return
 		}
@@ -503,19 +504,19 @@ func (im *IntegrationManager) metricsCollectionLoop(ctx context.Context) {
 func (im *IntegrationManager) updateSystemHealth(ctx context.Context) {
 	im.mutex.Lock()
 	defer im.mutex.Unlock()
-	
+
 	now := time.Now()
 	overallHealthy := true
-	
+
 	// Update component statuses
 	for _, component := range im.components {
 		name := component.GetName()
 		healthy := component.IsHealthy()
-		
+
 		if !healthy {
 			overallHealthy = false
 		}
-		
+
 		status := &ComponentStatus{
 			Type:       ComponentTypeLLMProcessor, // This would be properly determined
 			Name:       name,
@@ -526,19 +527,19 @@ func (im *IntegrationManager) updateSystemHealth(ctx context.Context) {
 			Metrics:    make(map[string]float64),
 			Errors:     make([]string, 0),
 		}
-		
+
 		if !healthy {
 			status.Status = "unhealthy"
 			status.Errors = append(status.Errors, "component health check failed")
 		}
-		
+
 		im.systemHealth.Components[name] = status
 	}
-	
+
 	// Update overall system health
 	im.systemHealth.Healthy = overallHealthy
 	im.systemHealth.LastUpdate = now
-	
+
 	if overallHealthy {
 		im.systemHealth.OverallStatus = "healthy"
 	} else {
@@ -553,7 +554,7 @@ func (im *IntegrationManager) performHealthChecks(ctx context.Context) {
 		checkers[name] = checker
 	}
 	im.mutex.RUnlock()
-	
+
 	for name, checker := range checkers {
 		if err := checker.Check(ctx); err != nil {
 			im.logger.Error(err, "Health check failed", "checker", name)
@@ -564,15 +565,15 @@ func (im *IntegrationManager) performHealthChecks(ctx context.Context) {
 func (im *IntegrationManager) collectMetrics(ctx context.Context) {
 	im.metricsCollector.mutex.Lock()
 	defer im.metricsCollector.mutex.Unlock()
-	
+
 	now := time.Now()
-	
+
 	// Collect metrics from all components
 	if im.stateManager != nil {
 		stats := im.stateManager.GetStatistics()
 		im.metricsCollector.metrics["state_manager"] = stats
 	}
-	
+
 	if im.eventBus != nil {
 		// Collect event bus metrics
 		im.metricsCollector.metrics["event_bus"] = map[string]interface{}{
@@ -581,16 +582,16 @@ func (im *IntegrationManager) collectMetrics(ctx context.Context) {
 			"failed_handlers":  0,
 		}
 	}
-	
+
 	if im.performanceOptimizer != nil {
 		// Collect performance metrics
 		im.metricsCollector.metrics["performance"] = map[string]interface{}{
-			"memory_usage": 0.0,
-			"cpu_usage":    0.0,
+			"memory_usage":  0.0,
+			"cpu_usage":     0.0,
 			"io_operations": 0,
 		}
 	}
-	
+
 	im.metricsCollector.lastCollection = now
 }
 
@@ -605,7 +606,7 @@ func (sma *StateManagerAdapter) GetName() string {
 	return "state-manager"
 }
 
-// EnhancedEventBusAdapter adapts EnhancedEventBus to StartableComponent interface  
+// EnhancedEventBusAdapter adapts EnhancedEventBus to StartableComponent interface
 type EnhancedEventBusAdapter struct {
 	*EnhancedEventBus
 }

@@ -290,7 +290,7 @@ type QoSRequirements struct {
 type ComplianceRequirement struct {
 	// Standard specifies the compliance standard
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:Enum=3GPP;ETSI;ORAN;FCC;CE;GDPR;HIPAA;SOC2;ISO27001
+	// +kubebuilder:validation:Enum="3GPP";"ETSI";"ORAN";"FCC";"CE";"GDPR";"HIPAA";"SOC2";"ISO27001"
 	Standard string `json:"standard"`
 
 	// Version of the standard

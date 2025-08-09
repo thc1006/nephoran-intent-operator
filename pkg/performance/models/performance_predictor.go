@@ -8,9 +8,9 @@ import (
 
 // PerformancePredictor uses machine learning techniques for performance forecasting
 type PerformancePredictor struct {
-	trainingData     *mat.Dense
-	performanceData  *mat.Dense
-	regressionModel  *LinearRegressionModel
+	trainingData    *mat.Dense
+	performanceData *mat.Dense
+	regressionModel *LinearRegressionModel
 }
 
 // LinearRegressionModel represents a simple linear regression model
@@ -58,10 +58,10 @@ func (pp *PerformancePredictor) Train() error {
 				xMinus := make([]float64, len(x))
 				copy(xPlus, x)
 				copy(xMinus, x)
-				
+
 				xPlus[j] += h
 				xMinus[j] -= h
-				
+
 				grad[j] = (optimize.Problem{Func: func(y []float64) float64 {
 					return pp.evaluateLoss(y)
 				}}.Func(xPlus) - pp.evaluateLoss(xMinus)) / (2 * h)
@@ -127,7 +127,7 @@ func flattenMatrix(matrix [][]float64) []float64 {
 
 // PerformanceForecast represents a prediction result
 type PerformanceForecast struct {
-	PredictedValue float64
+	PredictedValue     float64
 	ConfidenceInterval struct {
 		Lower float64
 		Upper float64

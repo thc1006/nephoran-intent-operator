@@ -36,8 +36,8 @@ type NetconfServer struct {
 
 // NetconfServerConfig holds server configuration
 type NetconfServerConfig struct {
-	Host                 string
-	Port                 int
+	Host                string
+	Port                int
 	TLSPort             int
 	SSHPort             int
 	TLSConfig           *tls.Config
@@ -53,19 +53,19 @@ type NetconfServerConfig struct {
 
 // NetconfSession represents an active NETCONF session
 type NetconfSession struct {
-	ID           string
-	conn         net.Conn
-	sshSession   *ssh.Session
-	decoder      *xml.Decoder
-	encoder      *xml.Encoder
-	capabilities []string
+	ID            string
+	conn          net.Conn
+	sshSession    *ssh.Session
+	decoder       *xml.Decoder
+	encoder       *xml.Encoder
+	capabilities  []string
 	authenticated bool
-	locks        map[string]string // datastore -> session-id
+	locks         map[string]string // datastore -> session-id
 	subscriptions []string
-	lastActivity time.Time
-	mutex        sync.RWMutex
-	ctx          context.Context
-	cancel       context.CancelFunc
+	lastActivity  time.Time
+	mutex         sync.RWMutex
+	ctx           context.Context
+	cancel        context.CancelFunc
 }
 
 // NetconfDatastore manages NETCONF datastores (running, candidate, startup)
@@ -107,11 +107,11 @@ type NetconfRPCRequest struct {
 
 // NetconfRPCResponse represents a NETCONF RPC response
 type NetconfRPCResponse struct {
-	XMLName   xml.Name        `xml:"rpc-reply"`
-	MessageID string          `xml:"message-id,attr"`
-	Namespace string          `xml:"xmlns,attr"`
-	Data      interface{}     `xml:"data,omitempty"`
-	OK        *struct{}       `xml:"ok,omitempty"`
+	XMLName   xml.Name         `xml:"rpc-reply"`
+	MessageID string           `xml:"message-id,attr"`
+	Namespace string           `xml:"xmlns,attr"`
+	Data      interface{}      `xml:"data,omitempty"`
+	OK        *struct{}        `xml:"ok,omitempty"`
 	Error     *NetconfRPCError `xml:"rpc-error,omitempty"`
 }
 
@@ -137,10 +137,10 @@ type NetconfEditConfig struct {
 
 // NetconfGetConfig represents get-config operation parameters
 type NetconfGetConfig struct {
-	Source         string `xml:"source>running,omitempty"`
+	Source          string `xml:"source>running,omitempty"`
 	CandidateSource string `xml:"source>candidate,omitempty"`
-	StartupSource  string `xml:"source>startup,omitempty"`
-	Filter         string `xml:"filter,innerxml"`
+	StartupSource   string `xml:"source>startup,omitempty"`
+	Filter          string `xml:"filter,innerxml"`
 }
 
 // NewNetconfServer creates a new NETCONF server instance
@@ -148,11 +148,11 @@ func NewNetconfServer(config *NetconfServerConfig) *NetconfServer {
 	if config == nil {
 		config = &NetconfServerConfig{
 			Host:                "0.0.0.0",
-			Port:               830,
-			TLSPort:            6513,
-			SSHPort:            830,
-			MaxSessions:        100,
-			SessionTimeout:     30 * time.Minute,
+			Port:                830,
+			TLSPort:             6513,
+			SSHPort:             830,
+			MaxSessions:         100,
+			SessionTimeout:      30 * time.Minute,
 			EnableNotifications: true,
 			EnableCandidate:     true,
 			EnableStartup:       true,
@@ -210,7 +210,7 @@ func (ns *NetconfServer) initializeCapabilities() {
 	// Add O-RAN specific capabilities
 	ns.capabilities = append(ns.capabilities,
 		"urn:o-ran:fm:1.0",
-		"urn:o-ran:pm:1.0", 
+		"urn:o-ran:pm:1.0",
 		"urn:o-ran:cm:1.0",
 		"urn:o-ran:sm:1.0",
 		"urn:o-ran:hardware:1.0",
@@ -354,7 +354,7 @@ func (ns *NetconfServer) acceptTLSConnections(ctx context.Context, listener net.
 // handleSSHConnection handles an SSH connection with NETCONF subsystem
 func (ns *NetconfServer) handleSSHConnection(ctx context.Context, conn net.Conn) {
 	logger := log.FromContext(ctx)
-	
+
 	// SSH handshake
 	sshConn, chans, reqs, err := ssh.NewServerConn(conn, ns.sshConfig)
 	if err != nil {
@@ -394,7 +394,7 @@ func (ns *NetconfServer) handleSSHChannel(ctx context.Context, channel ssh.Chann
 	for req := range requests {
 		if req.Type == "subsystem" && string(req.Payload[4:]) == "netconf" {
 			req.Reply(true, nil)
-			
+
 			// Create NETCONF session
 			sessionID := generateSessionID()
 			session := &NetconfSession{
@@ -537,7 +537,7 @@ func (ns *NetconfServer) sendHello(session *NetconfSession) error {
 func (ns *NetconfServer) receiveHello(session *NetconfSession) error {
 	// Read hello with timeout
 	session.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
-	
+
 	buffer := make([]byte, 4096)
 	n, err := session.conn.Read(buffer)
 	if err != nil {
@@ -578,7 +578,7 @@ func (ns *NetconfServer) negotiateCapabilities(server []string, client []string)
 // handleRPC handles a NETCONF RPC request
 func (ns *NetconfServer) handleRPC(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest) {
 	logger := log.FromContext(ctx)
-	
+
 	response := &NetconfRPCResponse{
 		MessageID: rpc.MessageID,
 		Namespace: "urn:ietf:params:xml:ns:netconf:base:1.0",
@@ -586,7 +586,7 @@ func (ns *NetconfServer) handleRPC(ctx context.Context, session *NetconfSession,
 
 	// Parse operation type
 	operation := ns.parseOperation(rpc.Operation)
-	
+
 	logger.Info("processing RPC", "sessionID", session.ID, "operation", operation, "messageID", rpc.MessageID)
 
 	switch operation {
@@ -759,7 +759,7 @@ func generateHostKey() (ssh.Signer, error) {
 b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAFwAAAAdzc2gtcn
 NhAAAAAwEAAQAAAQEAyQy...
 -----END OPENSSH PRIVATE KEY-----`
-	
+
 	return ssh.ParsePrivateKey([]byte(privateKey))
 }
 

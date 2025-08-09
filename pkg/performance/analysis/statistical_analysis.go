@@ -48,12 +48,12 @@ func (sa *StatisticalAnalyzer) DescriptiveStatistics() DescriptiveStats {
 // OutlierDetection uses multiple methods for robust outlier identification
 func (sa *StatisticalAnalyzer) OutlierDetection() OutlierResult {
 	values := sa.ExtractValues()
-	
+
 	// IQR Method
 	q1, q3 := stat.Quartile(values)
 	iqr := q3 - q1
-	lowerBound := q1 - 1.5 * iqr
-	upperBound := q3 + 1.5 * iqr
+	lowerBound := q1 - 1.5*iqr
+	upperBound := q3 + 1.5*iqr
 
 	// Z-Score Method
 	mean := stat.Mean(values, nil)
@@ -82,11 +82,11 @@ func (sa *StatisticalAnalyzer) HypothesisTesting(expectedMean float64) Hypothesi
 	values := sa.ExtractValues()
 	mean := stat.Mean(values, nil)
 	stdDev := stat.StdDev(values, nil)
-	
+
 	// One-sample t-test
 	t := (mean - expectedMean) / (stdDev / math.Sqrt(float64(len(values))))
 	df := float64(len(values) - 1)
-	
+
 	// Two-tailed test at 0.05 significance level
 	tDist := distuv.StudentsT{Nu: df}
 	pValue := 2 * (1 - tDist.CDF(math.Abs(t)))

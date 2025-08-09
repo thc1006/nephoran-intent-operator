@@ -16,16 +16,16 @@ type FakeWeaviateServer struct {
 	mu          sync.RWMutex
 	classes     map[string]*WeaviateClass
 	objects     map[string]map[string]*WeaviateObject // className -> objectID -> object
-	embeddings  map[string][]float32                   // objectID -> embedding vector
+	embeddings  map[string][]float32                  // objectID -> embedding vector
 	initialized bool
 }
 
 // WeaviateClass represents a Weaviate class schema
 type WeaviateClass struct {
-	Name        string                 `json:"class"`
-	Description string                 `json:"description"`
-	Properties  []WeaviateProperty     `json:"properties"`
-	Vectorizer  string                 `json:"vectorizer"`
+	Name         string                 `json:"class"`
+	Description  string                 `json:"description"`
+	Properties   []WeaviateProperty     `json:"properties"`
+	Vectorizer   string                 `json:"vectorizer"`
 	ModuleConfig map[string]interface{} `json:"moduleConfig"`
 }
 
@@ -42,8 +42,8 @@ type WeaviateObject struct {
 	Class      string                 `json:"class"`
 	Properties map[string]interface{} `json:"properties"`
 	Vector     []float32              `json:"vector,omitempty"`
-	CreatedAt  time.Time             `json:"createdTimeUnix"`
-	UpdatedAt  time.Time             `json:"lastUpdateTimeUnix"`
+	CreatedAt  time.Time              `json:"createdTimeUnix"`
+	UpdatedAt  time.Time              `json:"lastUpdateTimeUnix"`
 }
 
 // SearchResult represents search results from Weaviate
@@ -53,13 +53,13 @@ type SearchResult struct {
 
 // SearchObject represents an individual search result object
 type SearchObject struct {
-	ID          string                 `json:"id"`
-	Class       string                 `json:"class"`
-	Properties  map[string]interface{} `json:"properties"`
-	Vector      []float32              `json:"vector,omitempty"`
-	Score       float32                `json:"score,omitempty"`
-	Distance    float32                `json:"distance,omitempty"`
-	Certainty   float32                `json:"certainty,omitempty"`
+	ID         string                 `json:"id"`
+	Class      string                 `json:"class"`
+	Properties map[string]interface{} `json:"properties"`
+	Vector     []float32              `json:"vector,omitempty"`
+	Score      float32                `json:"score,omitempty"`
+	Distance   float32                `json:"distance,omitempty"`
+	Certainty  float32                `json:"certainty,omitempty"`
 }
 
 // NewFakeWeaviateServer creates a new fake Weaviate server
@@ -69,10 +69,10 @@ func NewFakeWeaviateServer() *FakeWeaviateServer {
 		objects:    make(map[string]map[string]*WeaviateObject),
 		embeddings: make(map[string][]float32),
 	}
-	
+
 	// Initialize with telecommunications knowledge base schema
 	server.initializeWithTelecomSchema()
-	
+
 	return server
 }
 
@@ -258,28 +258,28 @@ func (f *FakeWeaviateServer) populateSampleData() {
 		scalingPolicy          string
 	}{
 		{
-			name:        "AMF",
-			description: "Access and Mobility Management Function handles UE registration, authentication, and mobility management in 5G networks",
-			funcType:    "5GC",
-			interfaces:  []string{"N1", "N2", "N8", "N11", "N12", "N14"},
+			name:                   "AMF",
+			description:            "Access and Mobility Management Function handles UE registration, authentication, and mobility management in 5G networks",
+			funcType:               "5GC",
+			interfaces:             []string{"N1", "N2", "N8", "N11", "N12", "N14"},
 			deploymentRequirements: "High availability deployment with minimum 3 replicas, persistent storage for session state, secure communication channels",
-			scalingPolicy: "Horizontal scaling based on registered UE count and signaling load, scale-out threshold: 10000 UEs per instance",
+			scalingPolicy:          "Horizontal scaling based on registered UE count and signaling load, scale-out threshold: 10000 UEs per instance",
 		},
 		{
-			name:        "SMF",
-			description: "Session Management Function manages PDU sessions and performs IP address allocation",
-			funcType:    "5GC",
-			interfaces:  []string{"N4", "N7", "N10", "N11"},
+			name:                   "SMF",
+			description:            "Session Management Function manages PDU sessions and performs IP address allocation",
+			funcType:               "5GC",
+			interfaces:             []string{"N4", "N7", "N10", "N11"},
 			deploymentRequirements: "Stateful deployment with session persistence, integration with UPF for N4 interface",
-			scalingPolicy: "Scale based on active PDU sessions, target: 5000 sessions per instance",
+			scalingPolicy:          "Scale based on active PDU sessions, target: 5000 sessions per instance",
 		},
 		{
-			name:        "Near-RT RIC",
-			description: "Near Real-Time RAN Intelligent Controller provides sub-second control loop for RAN optimization",
-			funcType:    "O-RAN",
-			interfaces:  []string{"A1", "E2", "O1"},
+			name:                   "Near-RT RIC",
+			description:            "Near Real-Time RAN Intelligent Controller provides sub-second control loop for RAN optimization",
+			funcType:               "O-RAN",
+			interfaces:             []string{"A1", "E2", "O1"},
 			deploymentRequirements: "Low-latency deployment close to RAN, xApp runtime environment, ML inference capabilities",
-			scalingPolicy: "Vertical scaling for compute-intensive ML workloads, horizontal scaling for multiple cells coverage",
+			scalingPolicy:          "Vertical scaling for compute-intensive ML workloads, horizontal scaling for multiple cells coverage",
 		},
 	}
 
@@ -310,7 +310,7 @@ func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
 	// Simple mock embedding based on text characteristics
 	text = strings.ToLower(text)
 	embedding := make([]float32, 1536) // OpenAI embedding size
-	
+
 	// Use text characteristics to generate deterministic but varied embeddings
 	words := strings.Fields(text)
 	for i, word := range words {
@@ -324,13 +324,13 @@ func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
 		}
 		embedding[i] = float32(hash%1000-500) / 1000.0 // Normalize to [-0.5, 0.5]
 	}
-	
+
 	// Add some telecommunications domain-specific patterns
 	telecomKeywords := map[string]float32{
 		"amf": 0.8, "smf": 0.7, "upf": 0.6, "5g": 0.9, "core": 0.5,
 		"oran": 0.8, "ric": 0.7, "ran": 0.6, "deployment": 0.4, "scaling": 0.3,
 	}
-	
+
 	for keyword, weight := range telecomKeywords {
 		if strings.Contains(text, keyword) {
 			for i := range embedding[:10] {
@@ -338,7 +338,7 @@ func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
 			}
 		}
 	}
-	
+
 	// Normalize vector
 	norm := float32(0)
 	for _, val := range embedding {
@@ -350,7 +350,7 @@ func (f *FakeWeaviateServer) generateMockEmbedding(text string) []float32 {
 			embedding[i] /= norm
 		}
 	}
-	
+
 	return embedding
 }
 
@@ -365,7 +365,7 @@ func (f *FakeWeaviateServer) IsReady() bool {
 func (f *FakeWeaviateServer) GetSchema() map[string]*WeaviateClass {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	result := make(map[string]*WeaviateClass)
 	for k, v := range f.classes {
 		result[k] = v
@@ -377,27 +377,27 @@ func (f *FakeWeaviateServer) GetSchema() map[string]*WeaviateClass {
 func (f *FakeWeaviateServer) AddObject(className string, obj *WeaviateObject) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	if _, exists := f.classes[className]; !exists {
 		return fmt.Errorf("class %s does not exist", className)
 	}
-	
+
 	if obj.ID == "" {
 		obj.ID = uuid.New().String()
 	}
 	obj.Class = className
 	obj.CreatedAt = time.Now()
 	obj.UpdatedAt = time.Now()
-	
+
 	if f.objects[className] == nil {
 		f.objects[className] = make(map[string]*WeaviateObject)
 	}
-	
+
 	f.objects[className][obj.ID] = obj
 	if len(obj.Vector) > 0 {
 		f.embeddings[obj.ID] = obj.Vector
 	}
-	
+
 	return nil
 }
 
@@ -405,13 +405,13 @@ func (f *FakeWeaviateServer) AddObject(className string, obj *WeaviateObject) er
 func (f *FakeWeaviateServer) GetObject(className, objectID string) (*WeaviateObject, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	if classObjects, exists := f.objects[className]; exists {
 		if obj, exists := classObjects[objectID]; exists {
 			return obj, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("object %s not found in class %s", objectID, className)
 }
 
@@ -419,13 +419,13 @@ func (f *FakeWeaviateServer) GetObject(className, objectID string) (*WeaviateObj
 func (f *FakeWeaviateServer) DeleteObject(className, objectID string) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	if classObjects, exists := f.objects[className]; exists {
 		delete(classObjects, objectID)
 		delete(f.embeddings, objectID)
 		return nil
 	}
-	
+
 	return fmt.Errorf("object %s not found in class %s", objectID, className)
 }
 
@@ -433,14 +433,14 @@ func (f *FakeWeaviateServer) DeleteObject(className, objectID string) error {
 func (f *FakeWeaviateServer) VectorSearch(className string, vector []float32, limit int, certainty float32) (*SearchResult, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	if _, exists := f.classes[className]; !exists {
 		return nil, fmt.Errorf("class %s does not exist", className)
 	}
-	
+
 	var results []SearchObject
 	classObjects := f.objects[className]
-	
+
 	for objectID, obj := range classObjects {
 		if embedding, exists := f.embeddings[objectID]; exists {
 			similarity := f.cosineSimilarity(vector, embedding)
@@ -457,17 +457,17 @@ func (f *FakeWeaviateServer) VectorSearch(className string, vector []float32, li
 			}
 		}
 	}
-	
+
 	// Sort by similarity score (descending)
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Score > results[j].Score
 	})
-	
+
 	// Apply limit
 	if len(results) > limit {
 		results = results[:limit]
 	}
-	
+
 	return &SearchResult{Objects: results}, nil
 }
 
@@ -475,29 +475,29 @@ func (f *FakeWeaviateServer) VectorSearch(className string, vector []float32, li
 func (f *FakeWeaviateServer) HybridSearch(className string, query string, vector []float32, limit int) (*SearchResult, error) {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	if _, exists := f.classes[className]; !exists {
 		return nil, fmt.Errorf("class %s does not exist", className)
 	}
-	
+
 	var results []SearchObject
 	classObjects := f.objects[className]
 	queryLower := strings.ToLower(query)
 	queryTerms := strings.Fields(queryLower)
-	
+
 	for objectID, obj := range classObjects {
 		score := float32(0.0)
-		
+
 		// Vector similarity component (70% weight)
 		if embedding, exists := f.embeddings[objectID]; exists && len(vector) > 0 {
 			vectorScore := f.cosineSimilarity(vector, embedding)
 			score += vectorScore * 0.7
 		}
-		
+
 		// Keyword search component (30% weight)
 		keywordScore := f.calculateKeywordScore(obj, queryTerms)
 		score += keywordScore * 0.3
-		
+
 		if score > 0.1 { // Minimum threshold
 			results = append(results, SearchObject{
 				ID:         obj.ID,
@@ -510,17 +510,17 @@ func (f *FakeWeaviateServer) HybridSearch(className string, query string, vector
 			})
 		}
 	}
-	
+
 	// Sort by combined score (descending)
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Score > results[j].Score
 	})
-	
+
 	// Apply limit
 	if len(results) > limit {
 		results = results[:limit]
 	}
-	
+
 	return &SearchResult{Objects: results}, nil
 }
 
@@ -529,18 +529,18 @@ func (f *FakeWeaviateServer) cosineSimilarity(a, b []float32) float32 {
 	if len(a) != len(b) {
 		return 0
 	}
-	
+
 	var dotProduct, normA, normB float32
 	for i := range a {
 		dotProduct += a[i] * b[i]
 		normA += a[i] * a[i]
 		normB += b[i] * b[i]
 	}
-	
+
 	if normA == 0 || normB == 0 {
 		return 0
 	}
-	
+
 	return dotProduct / (float32(math.Sqrt(float64(normA))) * float32(math.Sqrt(float64(normB))))
 }
 
@@ -549,25 +549,25 @@ func (f *FakeWeaviateServer) calculateKeywordScore(obj *WeaviateObject, queryTer
 	if len(queryTerms) == 0 {
 		return 0
 	}
-	
+
 	// Convert object properties to searchable text
 	searchableText := f.extractSearchableText(obj)
 	searchableTextLower := strings.ToLower(searchableText)
-	
+
 	matchedTerms := 0
 	for _, term := range queryTerms {
 		if strings.Contains(searchableTextLower, term) {
 			matchedTerms++
 		}
 	}
-	
+
 	return float32(matchedTerms) / float32(len(queryTerms))
 }
 
 // extractSearchableText extracts searchable text from object properties
 func (f *FakeWeaviateServer) extractSearchableText(obj *WeaviateObject) string {
 	var textParts []string
-	
+
 	for _, value := range obj.Properties {
 		switch v := value.(type) {
 		case string:
@@ -582,7 +582,7 @@ func (f *FakeWeaviateServer) extractSearchableText(obj *WeaviateObject) string {
 			}
 		}
 	}
-	
+
 	return strings.Join(textParts, " ")
 }
 
@@ -590,7 +590,7 @@ func (f *FakeWeaviateServer) extractSearchableText(obj *WeaviateObject) string {
 func (f *FakeWeaviateServer) GetObjectCount(className string) int {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	if classObjects, exists := f.objects[className]; exists {
 		return len(classObjects)
 	}
@@ -601,11 +601,11 @@ func (f *FakeWeaviateServer) GetObjectCount(className string) int {
 func (f *FakeWeaviateServer) Reset() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	f.classes = make(map[string]*WeaviateClass)
 	f.objects = make(map[string]map[string]*WeaviateObject)
 	f.embeddings = make(map[string][]float32)
 	f.initialized = false
-	
+
 	f.initializeWithTelecomSchema()
 }

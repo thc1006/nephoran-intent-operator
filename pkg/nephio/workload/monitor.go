@@ -41,33 +41,33 @@ type WorkloadMonitor struct {
 
 // HealthChecker monitors cluster health
 type HealthChecker struct {
-	healthChecks   map[string]*HealthCheck
-	healthHistory  map[string][]*HealthSnapshot
-	thresholds     HealthThresholds
-	logger         logr.Logger
-	mu             sync.RWMutex
+	healthChecks  map[string]*HealthCheck
+	healthHistory map[string][]*HealthSnapshot
+	thresholds    HealthThresholds
+	logger        logr.Logger
+	mu            sync.RWMutex
 }
 
 // HealthCheck defines a health check configuration
 type HealthCheck struct {
-	Name        string        `json:"name"`
-	Type        string        `json:"type"`
-	Target      string        `json:"target"`
-	Interval    time.Duration `json:"interval"`
-	Timeout     time.Duration `json:"timeout"`
-	Retries     int           `json:"retries"`
-	Enabled     bool          `json:"enabled"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"`
+	Target     string                 `json:"target"`
+	Interval   time.Duration          `json:"interval"`
+	Timeout    time.Duration          `json:"timeout"`
+	Retries    int                    `json:"retries"`
+	Enabled    bool                   `json:"enabled"`
+	Parameters map[string]interface{} `json:"parameters"`
 }
 
 // HealthSnapshot represents a point-in-time health snapshot
 type HealthSnapshot struct {
-	Timestamp     time.Time               `json:"timestamp"`
-	ClusterID     string                  `json:"cluster_id"`
-	OverallHealth string                  `json:"overall_health"`
-	ComponentHealth map[string]string     `json:"component_health"`
-	Metrics       map[string]float64      `json:"metrics"`
-	Issues        []HealthIssue           `json:"issues"`
+	Timestamp       time.Time          `json:"timestamp"`
+	ClusterID       string             `json:"cluster_id"`
+	OverallHealth   string             `json:"overall_health"`
+	ComponentHealth map[string]string  `json:"component_health"`
+	Metrics         map[string]float64 `json:"metrics"`
+	Issues          []HealthIssue      `json:"issues"`
 }
 
 // HealthThresholds defines health check thresholds
@@ -82,36 +82,36 @@ type HealthThresholds struct {
 
 // PerformanceMonitor monitors cluster performance metrics
 type PerformanceMonitor struct {
-	metrics           map[string]*PerformanceMetrics
-	benchmarks        map[string]*PerformanceBenchmark
-	trends           map[string]*PerformanceTrend
-	baselines        map[string]*PerformanceBaseline
-	logger           logr.Logger
-	mu               sync.RWMutex
+	metrics    map[string]*PerformanceMetrics
+	benchmarks map[string]*PerformanceBenchmark
+	trends     map[string]*PerformanceTrend
+	baselines  map[string]*PerformanceBaseline
+	logger     logr.Logger
+	mu         sync.RWMutex
 }
 
 // PerformanceMetrics contains performance metrics for a cluster
 type PerformanceMetrics struct {
-	ClusterID        string                 `json:"cluster_id"`
-	Timestamp        time.Time              `json:"timestamp"`
-	CPUMetrics       CPUMetrics             `json:"cpu_metrics"`
-	MemoryMetrics    MemoryMetrics          `json:"memory_metrics"`
-	StorageMetrics   StorageMetrics         `json:"storage_metrics"`
-	NetworkMetrics   NetworkMetrics         `json:"network_metrics"`
-	PodMetrics       PodMetrics             `json:"pod_metrics"`
-	ServiceMetrics   ServiceMetrics         `json:"service_metrics"`
-	CustomMetrics    map[string]float64     `json:"custom_metrics"`
+	ClusterID      string             `json:"cluster_id"`
+	Timestamp      time.Time          `json:"timestamp"`
+	CPUMetrics     CPUMetrics         `json:"cpu_metrics"`
+	MemoryMetrics  MemoryMetrics      `json:"memory_metrics"`
+	StorageMetrics StorageMetrics     `json:"storage_metrics"`
+	NetworkMetrics NetworkMetrics     `json:"network_metrics"`
+	PodMetrics     PodMetrics         `json:"pod_metrics"`
+	ServiceMetrics ServiceMetrics     `json:"service_metrics"`
+	CustomMetrics  map[string]float64 `json:"custom_metrics"`
 }
 
 // CPUMetrics contains CPU-related metrics
 type CPUMetrics struct {
-	TotalCores      int     `json:"total_cores"`
-	UsedCores       float64 `json:"used_cores"`
+	TotalCores         int     `json:"total_cores"`
+	UsedCores          float64 `json:"used_cores"`
 	UtilizationPercent float64 `json:"utilization_percent"`
-	LoadAverage1m   float64 `json:"load_average_1m"`
-	LoadAverage5m   float64 `json:"load_average_5m"`
-	LoadAverage15m  float64 `json:"load_average_15m"`
-	ThrottledCPU    float64 `json:"throttled_cpu"`
+	LoadAverage1m      float64 `json:"load_average_1m"`
+	LoadAverage5m      float64 `json:"load_average_5m"`
+	LoadAverage15m     float64 `json:"load_average_15m"`
+	ThrottledCPU       float64 `json:"throttled_cpu"`
 }
 
 // MemoryMetrics contains memory-related metrics
@@ -141,67 +141,67 @@ type StorageMetrics struct {
 
 // NetworkMetrics contains network-related metrics
 type NetworkMetrics struct {
-	BytesReceived    int64              `json:"bytes_received"`
-	BytesTransmitted int64              `json:"bytes_transmitted"`
-	PacketsReceived  int64              `json:"packets_received"`
-	PacketsTransmitted int64            `json:"packets_transmitted"`
-	ErrorsReceived   int64              `json:"errors_received"`
-	ErrorsTransmitted int64             `json:"errors_transmitted"`
-	Latency          float64            `json:"latency"`
-	InterfaceMetrics map[string]float64 `json:"interface_metrics"`
+	BytesReceived      int64              `json:"bytes_received"`
+	BytesTransmitted   int64              `json:"bytes_transmitted"`
+	PacketsReceived    int64              `json:"packets_received"`
+	PacketsTransmitted int64              `json:"packets_transmitted"`
+	ErrorsReceived     int64              `json:"errors_received"`
+	ErrorsTransmitted  int64              `json:"errors_transmitted"`
+	Latency            float64            `json:"latency"`
+	InterfaceMetrics   map[string]float64 `json:"interface_metrics"`
 }
 
 // PodMetrics contains pod-related metrics
 type PodMetrics struct {
-	TotalPods      int                `json:"total_pods"`
-	RunningPods    int                `json:"running_pods"`
-	PendingPods    int                `json:"pending_pods"`
-	FailedPods     int                `json:"failed_pods"`
-	RestartCount   int64              `json:"restart_count"`
-	PodsByPhase    map[string]int     `json:"pods_by_phase"`
-	NamespaceMetrics map[string]int   `json:"namespace_metrics"`
+	TotalPods        int            `json:"total_pods"`
+	RunningPods      int            `json:"running_pods"`
+	PendingPods      int            `json:"pending_pods"`
+	FailedPods       int            `json:"failed_pods"`
+	RestartCount     int64          `json:"restart_count"`
+	PodsByPhase      map[string]int `json:"pods_by_phase"`
+	NamespaceMetrics map[string]int `json:"namespace_metrics"`
 }
 
 // ServiceMetrics contains service-related metrics
 type ServiceMetrics struct {
-	TotalServices    int                `json:"total_services"`
-	ExternalServices int                `json:"external_services"`
-	RequestRate      float64            `json:"request_rate"`
-	ErrorRate        float64            `json:"error_rate"`
-	ResponseTime     float64            `json:"response_time"`
-	ServicesByType   map[string]int     `json:"services_by_type"`
+	TotalServices    int            `json:"total_services"`
+	ExternalServices int            `json:"external_services"`
+	RequestRate      float64        `json:"request_rate"`
+	ErrorRate        float64        `json:"error_rate"`
+	ResponseTime     float64        `json:"response_time"`
+	ServicesByType   map[string]int `json:"services_by_type"`
 }
 
 // PerformanceBenchmark represents a performance benchmark
 type PerformanceBenchmark struct {
-	Name        string                 `json:"name"`
-	ClusterID   string                 `json:"cluster_id"`
-	Category    string                 `json:"category"`
-	Metrics     map[string]float64     `json:"metrics"`
-	Score       float64                `json:"score"`
-	Percentile  float64                `json:"percentile"`
-	Timestamp   time.Time              `json:"timestamp"`
+	Name       string             `json:"name"`
+	ClusterID  string             `json:"cluster_id"`
+	Category   string             `json:"category"`
+	Metrics    map[string]float64 `json:"metrics"`
+	Score      float64            `json:"score"`
+	Percentile float64            `json:"percentile"`
+	Timestamp  time.Time          `json:"timestamp"`
 }
 
 // PerformanceTrend represents performance trends
 type PerformanceTrend struct {
-	ClusterID     string             `json:"cluster_id"`
-	MetricName    string             `json:"metric_name"`
-	Trend         string             `json:"trend"`
-	ChangeRate    float64            `json:"change_rate"`
-	Prediction    float64            `json:"prediction"`
-	Confidence    float64            `json:"confidence"`
-	TimeRange     string             `json:"time_range"`
+	ClusterID  string  `json:"cluster_id"`
+	MetricName string  `json:"metric_name"`
+	Trend      string  `json:"trend"`
+	ChangeRate float64 `json:"change_rate"`
+	Prediction float64 `json:"prediction"`
+	Confidence float64 `json:"confidence"`
+	TimeRange  string  `json:"time_range"`
 }
 
 // PerformanceBaseline represents performance baselines
 type PerformanceBaseline struct {
-	ClusterID     string             `json:"cluster_id"`
-	MetricName    string             `json:"metric_name"`
-	BaselineValue float64            `json:"baseline_value"`
-	Tolerance     float64            `json:"tolerance"`
-	CreatedAt     time.Time          `json:"created_at"`
-	UpdatedAt     time.Time          `json:"updated_at"`
+	ClusterID     string    `json:"cluster_id"`
+	MetricName    string    `json:"metric_name"`
+	BaselineValue float64   `json:"baseline_value"`
+	Tolerance     float64   `json:"tolerance"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // ResourceMonitor monitors resource usage and availability
@@ -215,52 +215,52 @@ type ResourceMonitor struct {
 
 // ResourceUsage tracks resource usage for a cluster
 type ResourceUsage struct {
-	ClusterID       string                    `json:"cluster_id"`
-	Timestamp       time.Time                 `json:"timestamp"`
-	NodeResources   map[string]*NodeResource  `json:"node_resources"`
-	NamespaceUsage  map[string]*NamespaceUsage `json:"namespace_usage"`
-	TotalUsage      ResourceCapacity          `json:"total_usage"`
-	Efficiency      ResourceEfficiency        `json:"efficiency"`
+	ClusterID      string                     `json:"cluster_id"`
+	Timestamp      time.Time                  `json:"timestamp"`
+	NodeResources  map[string]*NodeResource   `json:"node_resources"`
+	NamespaceUsage map[string]*NamespaceUsage `json:"namespace_usage"`
+	TotalUsage     ResourceCapacity           `json:"total_usage"`
+	Efficiency     ResourceEfficiency         `json:"efficiency"`
 }
 
 // NodeResource represents resource usage for a node
 type NodeResource struct {
-	NodeName        string         `json:"node_name"`
-	CPUUsage        resource.Quantity `json:"cpu_usage"`
-	MemoryUsage     resource.Quantity `json:"memory_usage"`
-	StorageUsage    resource.Quantity `json:"storage_usage"`
-	PodCount        int            `json:"pod_count"`
-	PodCapacity     int            `json:"pod_capacity"`
+	NodeName     string            `json:"node_name"`
+	CPUUsage     resource.Quantity `json:"cpu_usage"`
+	MemoryUsage  resource.Quantity `json:"memory_usage"`
+	StorageUsage resource.Quantity `json:"storage_usage"`
+	PodCount     int               `json:"pod_count"`
+	PodCapacity  int               `json:"pod_capacity"`
 }
 
 // NamespaceUsage represents resource usage for a namespace
 type NamespaceUsage struct {
-	Namespace     string         `json:"namespace"`
-	CPUUsage      resource.Quantity `json:"cpu_usage"`
-	MemoryUsage   resource.Quantity `json:"memory_usage"`
-	StorageUsage  resource.Quantity `json:"storage_usage"`
-	PodCount      int            `json:"pod_count"`
+	Namespace    string            `json:"namespace"`
+	CPUUsage     resource.Quantity `json:"cpu_usage"`
+	MemoryUsage  resource.Quantity `json:"memory_usage"`
+	StorageUsage resource.Quantity `json:"storage_usage"`
+	PodCount     int               `json:"pod_count"`
 }
 
 // ResourceQuotas represents resource quotas for a cluster
 type ResourceQuotas struct {
-	ClusterID     string                 `json:"cluster_id"`
-	GlobalQuotas  map[string]resource.Quantity `json:"global_quotas"`
+	ClusterID       string                                  `json:"cluster_id"`
+	GlobalQuotas    map[string]resource.Quantity            `json:"global_quotas"`
 	NamespaceQuotas map[string]map[string]resource.Quantity `json:"namespace_quotas"`
-	Enforcement   string                 `json:"enforcement"`
+	Enforcement     string                                  `json:"enforcement"`
 }
 
 // ResourceRecommendation represents resource optimization recommendations
 type ResourceRecommendation struct {
-	ClusterID     string    `json:"cluster_id"`
-	Type          string    `json:"type"`
-	Resource      string    `json:"resource"`
-	Current       float64   `json:"current"`
-	Recommended   float64   `json:"recommended"`
-	Reason        string    `json:"reason"`
-	Impact        string    `json:"impact"`
-	Confidence    float64   `json:"confidence"`
-	CreatedAt     time.Time `json:"created_at"`
+	ClusterID   string    `json:"cluster_id"`
+	Type        string    `json:"type"`
+	Resource    string    `json:"resource"`
+	Current     float64   `json:"current"`
+	Recommended float64   `json:"recommended"`
+	Reason      string    `json:"reason"`
+	Impact      string    `json:"impact"`
+	Confidence  float64   `json:"confidence"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // ResourceEfficiency tracks resource efficiency metrics
@@ -274,53 +274,53 @@ type ResourceEfficiency struct {
 
 // AlertManager manages alerts and notifications
 type AlertManager struct {
-	alertRules     map[string]*AlertRule
-	activeAlerts   map[string]*Alert
-	alertHistory   map[string][]*Alert
+	alertRules           map[string]*AlertRule
+	activeAlerts         map[string]*Alert
+	alertHistory         map[string][]*Alert
 	notificationChannels map[string]*NotificationChannel
-	suppressions   map[string]*AlertSuppression
-	escalations    map[string]*AlertEscalation
-	logger         logr.Logger
-	mu             sync.RWMutex
+	suppressions         map[string]*AlertSuppression
+	escalations          map[string]*AlertEscalation
+	logger               logr.Logger
+	mu                   sync.RWMutex
 }
 
 // AlertRule defines an alert rule
 type AlertRule struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Query       string                 `json:"query"`
-	Condition   string                 `json:"condition"`
-	Threshold   float64                `json:"threshold"`
-	Duration    time.Duration          `json:"duration"`
-	Severity    string                 `json:"severity"`
-	Labels      map[string]string      `json:"labels"`
-	Annotations map[string]string      `json:"annotations"`
-	Enabled     bool                   `json:"enabled"`
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Query       string            `json:"query"`
+	Condition   string            `json:"condition"`
+	Threshold   float64           `json:"threshold"`
+	Duration    time.Duration     `json:"duration"`
+	Severity    string            `json:"severity"`
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+	Enabled     bool              `json:"enabled"`
 }
 
 // Alert represents an active alert
 type Alert struct {
-	ID          string                 `json:"id"`
-	RuleID      string                 `json:"rule_id"`
-	ClusterID   string                 `json:"cluster_id"`
-	Status      string                 `json:"status"`
-	Severity    string                 `json:"severity"`
-	Message     string                 `json:"message"`
-	Value       float64                `json:"value"`
-	Labels      map[string]string      `json:"labels"`
-	Annotations map[string]string      `json:"annotations"`
-	StartsAt    time.Time              `json:"starts_at"`
-	EndsAt      time.Time              `json:"ends_at,omitempty"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	ID          string            `json:"id"`
+	RuleID      string            `json:"rule_id"`
+	ClusterID   string            `json:"cluster_id"`
+	Status      string            `json:"status"`
+	Severity    string            `json:"severity"`
+	Message     string            `json:"message"`
+	Value       float64           `json:"value"`
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+	StartsAt    time.Time         `json:"starts_at"`
+	EndsAt      time.Time         `json:"ends_at,omitempty"`
+	UpdatedAt   time.Time         `json:"updated_at"`
 }
 
 // NotificationChannel represents a notification channel
 type NotificationChannel struct {
-	Name       string                 `json:"name"`
-	Type       string                 `json:"type"`
-	Config     map[string]interface{} `json:"config"`
-	Enabled    bool                   `json:"enabled"`
+	Name    string                 `json:"name"`
+	Type    string                 `json:"type"`
+	Config  map[string]interface{} `json:"config"`
+	Enabled bool                   `json:"enabled"`
 }
 
 // AlertSuppression represents alert suppression rules
@@ -334,16 +334,16 @@ type AlertSuppression struct {
 
 // AlertEscalation represents alert escalation rules
 type AlertEscalation struct {
-	RuleID    string        `json:"rule_id"`
-	Levels    []EscalationLevel `json:"levels"`
-	Enabled   bool          `json:"enabled"`
+	RuleID  string            `json:"rule_id"`
+	Levels  []EscalationLevel `json:"levels"`
+	Enabled bool              `json:"enabled"`
 }
 
 // EscalationLevel represents an escalation level
 type EscalationLevel struct {
-	Level     int           `json:"level"`
-	Duration  time.Duration `json:"duration"`
-	Channels  []string      `json:"channels"`
+	Level    int           `json:"level"`
+	Duration time.Duration `json:"duration"`
+	Channels []string      `json:"channels"`
 }
 
 // DashboardIntegrator integrates with monitoring dashboards
@@ -368,22 +368,22 @@ type Dashboard struct {
 
 // DataSource represents a data source configuration
 type DataSource struct {
-	Name       string                 `json:"name"`
-	Type       string                 `json:"type"`
-	URL        string                 `json:"url"`
-	Auth       map[string]interface{} `json:"auth"`
-	Settings   map[string]interface{} `json:"settings"`
+	Name     string                 `json:"name"`
+	Type     string                 `json:"type"`
+	URL      string                 `json:"url"`
+	Auth     map[string]interface{} `json:"auth"`
+	Settings map[string]interface{} `json:"settings"`
 }
 
 // Panel represents a dashboard panel
 type Panel struct {
-	ID          string                 `json:"id"`
-	Title       string                 `json:"title"`
-	Type        string                 `json:"type"`
-	Query       string                 `json:"query"`
-	DataSource  string                 `json:"data_source"`
+	ID            string                 `json:"id"`
+	Title         string                 `json:"title"`
+	Type          string                 `json:"type"`
+	Query         string                 `json:"query"`
+	DataSource    string                 `json:"data_source"`
 	Visualization map[string]interface{} `json:"visualization"`
-	Thresholds  []Threshold            `json:"thresholds"`
+	Thresholds    []Threshold            `json:"thresholds"`
 }
 
 // Threshold represents a panel threshold
@@ -404,24 +404,24 @@ type PredictiveAnalyzer struct {
 
 // PredictiveModel represents a predictive model
 type PredictiveModel struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	MetricName  string                 `json:"metric_name"`
-	Parameters  map[string]interface{} `json:"parameters"`
-	Accuracy    float64                `json:"accuracy"`
-	TrainedAt   time.Time              `json:"trained_at"`
-	LastUsed    time.Time              `json:"last_used"`
+	ID         string                 `json:"id"`
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"`
+	MetricName string                 `json:"metric_name"`
+	Parameters map[string]interface{} `json:"parameters"`
+	Accuracy   float64                `json:"accuracy"`
+	TrainedAt  time.Time              `json:"trained_at"`
+	LastUsed   time.Time              `json:"last_used"`
 }
 
 // Prediction represents a future prediction
 type Prediction struct {
-	ClusterID   string    `json:"cluster_id"`
-	MetricName  string    `json:"metric_name"`
-	Value       float64   `json:"value"`
-	Confidence  float64   `json:"confidence"`
-	Timestamp   time.Time `json:"timestamp"`
-	Horizon     time.Duration `json:"horizon"`
+	ClusterID  string        `json:"cluster_id"`
+	MetricName string        `json:"metric_name"`
+	Value      float64       `json:"value"`
+	Confidence float64       `json:"confidence"`
+	Timestamp  time.Time     `json:"timestamp"`
+	Horizon    time.Duration `json:"horizon"`
 }
 
 // Anomaly represents an anomaly detection
@@ -437,47 +437,47 @@ type Anomaly struct {
 
 // AutoRemediator provides automated remediation
 type AutoRemediator struct {
-	remediationRules map[string]*RemediationRule
+	remediationRules   map[string]*RemediationRule
 	remediationHistory map[string][]*RemediationAction
-	logger           logr.Logger
-	mu               sync.RWMutex
+	logger             logr.Logger
+	mu                 sync.RWMutex
 }
 
 // RemediationRule defines an automated remediation rule
 type RemediationRule struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Trigger     string                 `json:"trigger"`
-	Condition   string                 `json:"condition"`
-	Actions     []string               `json:"actions"`
-	Cooldown    time.Duration          `json:"cooldown"`
-	MaxRetries  int                    `json:"max_retries"`
-	Enabled     bool                   `json:"enabled"`
-	SafetyChecks []string              `json:"safety_checks"`
+	ID           string        `json:"id"`
+	Name         string        `json:"name"`
+	Trigger      string        `json:"trigger"`
+	Condition    string        `json:"condition"`
+	Actions      []string      `json:"actions"`
+	Cooldown     time.Duration `json:"cooldown"`
+	MaxRetries   int           `json:"max_retries"`
+	Enabled      bool          `json:"enabled"`
+	SafetyChecks []string      `json:"safety_checks"`
 }
 
 // RemediationAction represents a remediation action taken
 type RemediationAction struct {
-	ID         string                 `json:"id"`
-	RuleID     string                 `json:"rule_id"`
-	ClusterID  string                 `json:"cluster_id"`
-	Action     string                 `json:"action"`
-	Status     string                 `json:"status"`
-	Result     string                 `json:"result"`
-	ExecutedAt time.Time              `json:"executed_at"`
-	CompletedAt time.Time             `json:"completed_at"`
+	ID          string    `json:"id"`
+	RuleID      string    `json:"rule_id"`
+	ClusterID   string    `json:"cluster_id"`
+	Action      string    `json:"action"`
+	Status      string    `json:"status"`
+	Result      string    `json:"result"`
+	ExecutedAt  time.Time `json:"executed_at"`
+	CompletedAt time.Time `json:"completed_at"`
 }
 
 // monitoringMetrics contains Prometheus metrics for monitoring
 type monitoringMetrics struct {
-	clusterHealth         *prometheus.GaugeVec
-	performanceScore      *prometheus.GaugeVec
-	resourceUtilization   *prometheus.GaugeVec
-	activeAlerts          *prometheus.GaugeVec
-	remediationActions    *prometheus.CounterVec
-	anomalyDetections     *prometheus.CounterVec
-	predictionAccuracy    *prometheus.GaugeVec
-	healthCheckDuration   *prometheus.HistogramVec
+	clusterHealth       *prometheus.GaugeVec
+	performanceScore    *prometheus.GaugeVec
+	resourceUtilization *prometheus.GaugeVec
+	activeAlerts        *prometheus.GaugeVec
+	remediationActions  *prometheus.CounterVec
+	anomalyDetections   *prometheus.CounterVec
+	predictionAccuracy  *prometheus.GaugeVec
+	healthCheckDuration *prometheus.HistogramVec
 }
 
 // NewWorkloadMonitor creates a new workload monitor
@@ -879,25 +879,25 @@ func (wm *WorkloadMonitor) initializeDefaultDashboards() {
 func (wm *WorkloadMonitor) initializeDefaultRemediationRules() {
 	defaultRules := []*RemediationRule{
 		{
-			ID:          "restart-failed-pods",
-			Name:        "Restart Failed Pods",
-			Trigger:     "pod_failed",
-			Condition:   "status == 'Failed'",
-			Actions:     []string{"delete-pod"},
-			Cooldown:    5 * time.Minute,
-			MaxRetries:  3,
-			Enabled:     true,
+			ID:           "restart-failed-pods",
+			Name:         "Restart Failed Pods",
+			Trigger:      "pod_failed",
+			Condition:    "status == 'Failed'",
+			Actions:      []string{"delete-pod"},
+			Cooldown:     5 * time.Minute,
+			MaxRetries:   3,
+			Enabled:      true,
 			SafetyChecks: []string{"check-pod-age", "check-restart-count"},
 		},
 		{
-			ID:          "scale-up-on-high-cpu",
-			Name:        "Scale Up on High CPU",
-			Trigger:     "high_cpu_usage",
-			Condition:   "cpu_utilization > 80",
-			Actions:     []string{"scale-deployment"},
-			Cooldown:    10 * time.Minute,
-			MaxRetries:  2,
-			Enabled:     false, // Disabled by default for safety
+			ID:           "scale-up-on-high-cpu",
+			Name:         "Scale Up on High CPU",
+			Trigger:      "high_cpu_usage",
+			Condition:    "cpu_utilization > 80",
+			Actions:      []string{"scale-deployment"},
+			Cooldown:     10 * time.Minute,
+			MaxRetries:   2,
+			Enabled:      false, // Disabled by default for safety
 			SafetyChecks: []string{"check-max-replicas", "check-resource-limits"},
 		},
 	}
@@ -984,7 +984,7 @@ func (wm *WorkloadMonitor) checkClusterHealth(ctx context.Context, cluster *Clus
 		wm.healthChecker.healthHistory[cluster.Metadata.ID],
 		snapshot,
 	)
-	
+
 	// Keep only last 100 snapshots
 	history := wm.healthChecker.healthHistory[cluster.Metadata.ID]
 	if len(history) > 100 {
@@ -995,7 +995,7 @@ func (wm *WorkloadMonitor) checkClusterHealth(ctx context.Context, cluster *Clus
 	// Update metrics
 	healthScore := wm.calculateHealthScore(snapshot)
 	wm.metrics.clusterHealth.WithLabelValues(cluster.Metadata.ID, "overall").Set(healthScore)
-	
+
 	for component, health := range snapshot.ComponentHealth {
 		score := 100.0
 		if health != "healthy" {
@@ -1016,7 +1016,7 @@ func (wm *WorkloadMonitor) checkAPIServerHealth(ctx context.Context, cluster *Cl
 
 func (wm *WorkloadMonitor) checkNodeHealth(ctx context.Context, cluster *ClusterEntry) (string, map[string]float64) {
 	metrics := make(map[string]float64)
-	
+
 	nodeList, err := cluster.Clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return "unknown", metrics
@@ -1036,7 +1036,7 @@ func (wm *WorkloadMonitor) checkNodeHealth(ctx context.Context, cluster *Cluster
 
 	metrics["total_nodes"] = float64(totalNodes)
 	metrics["ready_nodes"] = float64(readyNodes)
-	
+
 	if totalNodes == 0 {
 		return "unknown", metrics
 	}
@@ -1049,13 +1049,13 @@ func (wm *WorkloadMonitor) checkNodeHealth(ctx context.Context, cluster *Cluster
 	} else if readinessRatio > 0.5 {
 		return "degraded"
 	}
-	
+
 	return "unhealthy", metrics
 }
 
 func (wm *WorkloadMonitor) checkPodHealth(ctx context.Context, cluster *ClusterEntry) (string, map[string]float64) {
 	metrics := make(map[string]float64)
-	
+
 	podList, err := cluster.Clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return "unknown", metrics
@@ -1092,7 +1092,7 @@ func (wm *WorkloadMonitor) checkPodHealth(ctx context.Context, cluster *ClusterE
 	} else if failureRate <= 0.15 {
 		return "degraded"
 	}
-	
+
 	return "unhealthy", metrics
 }
 
@@ -1115,7 +1115,7 @@ func (wm *WorkloadMonitor) checkStorageHealth(ctx context.Context, cluster *Clus
 	} else if failedPVs < 3 {
 		return "degraded"
 	}
-	
+
 	return "unhealthy"
 }
 
@@ -1140,7 +1140,7 @@ func (wm *WorkloadMonitor) calculateOverallHealth(snapshot *HealthSnapshot) stri
 	} else if ratio >= 0.5 {
 		return "degraded"
 	}
-	
+
 	return "unhealthy"
 }
 
@@ -1195,8 +1195,8 @@ func (wm *WorkloadMonitor) collectPerformanceMetrics(ctx context.Context) {
 
 func (wm *WorkloadMonitor) collectClusterPerformanceMetrics(ctx context.Context, cluster *ClusterEntry) {
 	metrics := &PerformanceMetrics{
-		ClusterID: cluster.Metadata.ID,
-		Timestamp: time.Now(),
+		ClusterID:     cluster.Metadata.ID,
+		Timestamp:     time.Now(),
 		CustomMetrics: make(map[string]float64),
 	}
 
@@ -1237,56 +1237,56 @@ func (wm *WorkloadMonitor) collectCPUMetrics(ctx context.Context, cluster *Clust
 		TotalCores:         cluster.Metadata.Resources.TotalCPU / 1000, // Convert millicores to cores
 		UsedCores:          float64(cluster.Metadata.Resources.TotalCPU-cluster.Metadata.Resources.AvailableCPU) / 1000,
 		UtilizationPercent: cluster.Metadata.Resources.Utilization * 100,
-		LoadAverage1m:      2.5,  // Placeholder
-		LoadAverage5m:      2.1,  // Placeholder
-		LoadAverage15m:     1.8,  // Placeholder
-		ThrottledCPU:       0.1,  // Placeholder
+		LoadAverage1m:      2.5, // Placeholder
+		LoadAverage5m:      2.1, // Placeholder
+		LoadAverage15m:     1.8, // Placeholder
+		ThrottledCPU:       0.1, // Placeholder
 	}
 }
 
 func (wm *WorkloadMonitor) collectMemoryMetrics(ctx context.Context, cluster *ClusterEntry) MemoryMetrics {
 	totalBytes := cluster.Metadata.Resources.TotalMemory
 	usedBytes := cluster.Metadata.Resources.TotalMemory - cluster.Metadata.Resources.AvailableMemory
-	
+
 	return MemoryMetrics{
 		TotalBytes:         totalBytes,
 		UsedBytes:          usedBytes,
 		AvailableBytes:     cluster.Metadata.Resources.AvailableMemory,
 		UtilizationPercent: float64(usedBytes) / float64(totalBytes) * 100,
-		CacheBytes:         totalBytes / 20,    // Placeholder
-		BufferBytes:        totalBytes / 50,    // Placeholder
-		SwapTotalBytes:     totalBytes / 4,     // Placeholder
-		SwapUsedBytes:      totalBytes / 100,   // Placeholder
+		CacheBytes:         totalBytes / 20,  // Placeholder
+		BufferBytes:        totalBytes / 50,  // Placeholder
+		SwapTotalBytes:     totalBytes / 4,   // Placeholder
+		SwapUsedBytes:      totalBytes / 100, // Placeholder
 	}
 }
 
 func (wm *WorkloadMonitor) collectStorageMetrics(ctx context.Context, cluster *ClusterEntry) StorageMetrics {
 	totalBytes := cluster.Metadata.Resources.TotalStorage
 	usedBytes := cluster.Metadata.Resources.TotalStorage - cluster.Metadata.Resources.AvailableStorage
-	
+
 	return StorageMetrics{
 		TotalBytes:         totalBytes,
 		UsedBytes:          usedBytes,
 		AvailableBytes:     cluster.Metadata.Resources.AvailableStorage,
 		UtilizationPercent: float64(usedBytes) / float64(totalBytes) * 100,
-		IOPSRead:           1000.0,  // Placeholder
-		IOPSWrite:          800.0,   // Placeholder
-		ThroughputRead:     50.0,    // Placeholder MB/s
-		ThroughputWrite:    40.0,    // Placeholder MB/s
+		IOPSRead:           1000.0, // Placeholder
+		IOPSWrite:          800.0,  // Placeholder
+		ThroughputRead:     50.0,   // Placeholder MB/s
+		ThroughputWrite:    40.0,   // Placeholder MB/s
 		VolumeMetrics:      make(map[string]float64),
 	}
 }
 
 func (wm *WorkloadMonitor) collectNetworkMetrics(ctx context.Context, cluster *ClusterEntry) NetworkMetrics {
 	return NetworkMetrics{
-		BytesReceived:      1024 * 1024 * 1024,  // Placeholder
-		BytesTransmitted:   800 * 1024 * 1024,   // Placeholder
-		PacketsReceived:    1000000,              // Placeholder
-		PacketsTransmitted: 950000,               // Placeholder
-		ErrorsReceived:     100,                  // Placeholder
-		ErrorsTransmitted:  50,                   // Placeholder
-		Latency:           5.2,                   // Placeholder ms
-		InterfaceMetrics:  make(map[string]float64),
+		BytesReceived:      1024 * 1024 * 1024, // Placeholder
+		BytesTransmitted:   800 * 1024 * 1024,  // Placeholder
+		PacketsReceived:    1000000,            // Placeholder
+		PacketsTransmitted: 950000,             // Placeholder
+		ErrorsReceived:     100,                // Placeholder
+		ErrorsTransmitted:  50,                 // Placeholder
+		Latency:            5.2,                // Placeholder ms
+		InterfaceMetrics:   make(map[string]float64),
 	}
 }
 
@@ -1306,7 +1306,7 @@ func (wm *WorkloadMonitor) collectPodMetrics(ctx context.Context, cluster *Clust
 	for _, pod := range podList.Items {
 		// Count pods by phase
 		metrics.PodsByPhase[string(pod.Status.Phase)]++
-		
+
 		// Count pods by namespace
 		metrics.NamespaceMetrics[pod.Namespace]++
 
@@ -1339,16 +1339,16 @@ func (wm *WorkloadMonitor) collectServiceMetrics(ctx context.Context, cluster *C
 	metrics := ServiceMetrics{
 		TotalServices:  len(serviceList.Items),
 		ServicesByType: make(map[string]int),
-		RequestRate:    1000.0,  // Placeholder
-		ErrorRate:      0.01,    // Placeholder
-		ResponseTime:   50.0,    // Placeholder ms
+		RequestRate:    1000.0, // Placeholder
+		ErrorRate:      0.01,   // Placeholder
+		ResponseTime:   50.0,   // Placeholder ms
 	}
 
 	for _, service := range serviceList.Items {
 		metrics.ServicesByType[string(service.Spec.Type)]++
-		
-		if service.Spec.Type == corev1.ServiceTypeLoadBalancer || 
-		   service.Spec.Type == corev1.ServiceTypeNodePort {
+
+		if service.Spec.Type == corev1.ServiceTypeLoadBalancer ||
+			service.Spec.Type == corev1.ServiceTypeNodePort {
 			metrics.ExternalServices++
 		}
 	}
@@ -1360,7 +1360,7 @@ func (wm *WorkloadMonitor) updatePerformanceMetrics(clusterID string, metrics *P
 	wm.metrics.performanceScore.WithLabelValues(clusterID, "cpu").Set(100 - metrics.CPUMetrics.UtilizationPercent)
 	wm.metrics.performanceScore.WithLabelValues(clusterID, "memory").Set(100 - metrics.MemoryMetrics.UtilizationPercent)
 	wm.metrics.performanceScore.WithLabelValues(clusterID, "storage").Set(100 - metrics.StorageMetrics.UtilizationPercent)
-	
+
 	wm.metrics.resourceUtilization.WithLabelValues(clusterID, "cpu").Set(metrics.CPUMetrics.UtilizationPercent)
 	wm.metrics.resourceUtilization.WithLabelValues(clusterID, "memory").Set(metrics.MemoryMetrics.UtilizationPercent)
 	wm.metrics.resourceUtilization.WithLabelValues(clusterID, "storage").Set(metrics.StorageMetrics.UtilizationPercent)
@@ -1424,11 +1424,11 @@ func (wm *WorkloadMonitor) collectResourceUsage(ctx context.Context) {
 
 func (wm *WorkloadMonitor) collectClusterResourceUsage(ctx context.Context, cluster *ClusterEntry) {
 	usage := &ResourceUsage{
-		ClusterID:       cluster.Metadata.ID,
-		Timestamp:       time.Now(),
-		NodeResources:   make(map[string]*NodeResource),
-		NamespaceUsage:  make(map[string]*NamespaceUsage),
-		TotalUsage:      cluster.Metadata.Resources,
+		ClusterID:      cluster.Metadata.ID,
+		Timestamp:      time.Now(),
+		NodeResources:  make(map[string]*NodeResource),
+		NamespaceUsage: make(map[string]*NamespaceUsage),
+		TotalUsage:     cluster.Metadata.Resources,
 	}
 
 	// Collect node resource usage
@@ -1478,13 +1478,13 @@ func (wm *WorkloadMonitor) collectNodeResourceUsage(ctx context.Context, cluster
 				MemoryUsage: *resource.NewQuantity(int64(float64(node.Status.Allocatable.Memory().Value())*0.6), resource.BinarySI),
 				PodCapacity: int(node.Status.Capacity.Pods().Value()),
 			}
-			
+
 			// Count actual pods on this node
 			podList, _ := cluster.Clientset.CoreV1().Pods("").List(ctx, metav1.ListOptions{
 				FieldSelector: "spec.nodeName=" + node.Name,
 			})
 			nodeResource.PodCount = len(podList.Items)
-			
+
 			usage.NodeResources[node.Name] = nodeResource
 		}
 		return
@@ -1691,7 +1691,7 @@ func (wm *WorkloadMonitor) evaluateAlertRules(ctx context.Context, cluster *Clus
 func (wm *WorkloadMonitor) evaluateAlertRule(ctx context.Context, cluster *ClusterEntry, rule *AlertRule) {
 	// Get current metric value
 	value := wm.getMetricValue(cluster, rule.Query)
-	
+
 	// Check condition
 	triggered := false
 	switch rule.Condition {
@@ -1713,24 +1713,24 @@ func (wm *WorkloadMonitor) evaluateAlertRule(ctx context.Context, cluster *Clust
 
 	wm.alertManager.mu.Lock()
 	existingAlert, exists := wm.alertManager.activeAlerts[alertID]
-	
+
 	if triggered {
 		if !exists {
 			// Create new alert
 			alert := &Alert{
-				ID:        alertID,
-				RuleID:    rule.ID,
-				ClusterID: cluster.Metadata.ID,
-				Status:    "firing",
-				Severity:  rule.Severity,
-				Message:   fmt.Sprintf("%s: %s (value: %.2f, threshold: %.2f)", rule.Name, rule.Description, value, rule.Threshold),
-				Value:     value,
-				Labels:    make(map[string]string),
+				ID:          alertID,
+				RuleID:      rule.ID,
+				ClusterID:   cluster.Metadata.ID,
+				Status:      "firing",
+				Severity:    rule.Severity,
+				Message:     fmt.Sprintf("%s: %s (value: %.2f, threshold: %.2f)", rule.Name, rule.Description, value, rule.Threshold),
+				Value:       value,
+				Labels:      make(map[string]string),
 				Annotations: make(map[string]string),
-				StartsAt:  time.Now(),
-				UpdatedAt: time.Now(),
+				StartsAt:    time.Now(),
+				UpdatedAt:   time.Now(),
 			}
-			
+
 			// Copy labels and annotations from rule
 			for k, v := range rule.Labels {
 				alert.Labels[k] = v
@@ -1739,12 +1739,12 @@ func (wm *WorkloadMonitor) evaluateAlertRule(ctx context.Context, cluster *Clust
 				alert.Annotations[k] = v
 			}
 			alert.Labels["cluster"] = cluster.Metadata.ID
-			
+
 			wm.alertManager.activeAlerts[alertID] = alert
-			
+
 			// Send notifications
 			wm.sendAlertNotifications(alert)
-			
+
 			// Update metrics
 			wm.metrics.activeAlerts.WithLabelValues(cluster.Metadata.ID, rule.Severity).Inc()
 		} else {
@@ -1758,30 +1758,30 @@ func (wm *WorkloadMonitor) evaluateAlertRule(ctx context.Context, cluster *Clust
 		existingAlert.Status = "resolved"
 		existingAlert.EndsAt = time.Now()
 		existingAlert.UpdatedAt = time.Now()
-		
+
 		// Move to history
 		wm.alertManager.alertHistory[cluster.Metadata.ID] = append(
 			wm.alertManager.alertHistory[cluster.Metadata.ID],
 			existingAlert,
 		)
-		
+
 		// Remove from active alerts
 		delete(wm.alertManager.activeAlerts, alertID)
-		
+
 		// Update metrics
 		wm.metrics.activeAlerts.WithLabelValues(cluster.Metadata.ID, rule.Severity).Dec()
-		
+
 		// Send resolution notification
 		wm.sendAlertResolution(existingAlert)
 	}
-	
+
 	wm.alertManager.mu.Unlock()
 }
 
 func (wm *WorkloadMonitor) getMetricValue(cluster *ClusterEntry, query string) float64 {
 	// This would typically query Prometheus or another metrics system
 	// For now, return values from our collected metrics
-	
+
 	switch query {
 	case "cpu_utilization":
 		wm.performanceMonitor.mu.RLock()
@@ -1876,14 +1876,14 @@ func (wm *WorkloadMonitor) performPredictiveAnalysis(ctx context.Context) {
 func (wm *WorkloadMonitor) analyzePredictiveMetrics(ctx context.Context, cluster *ClusterEntry) {
 	// This would implement machine learning models for prediction
 	// Placeholder implementation
-	
+
 	prediction := &Prediction{
-		ClusterID:   cluster.Metadata.ID,
-		MetricName:  "cpu_utilization",
-		Value:       cluster.Metadata.Resources.Utilization * 100 * 1.1, // Simple prediction
-		Confidence:  0.75,
-		Timestamp:   time.Now(),
-		Horizon:     1 * time.Hour,
+		ClusterID:  cluster.Metadata.ID,
+		MetricName: "cpu_utilization",
+		Value:      cluster.Metadata.Resources.Utilization * 100 * 1.1, // Simple prediction
+		Confidence: 0.75,
+		Timestamp:  time.Now(),
+		Horizon:    1 * time.Hour,
 	}
 
 	wm.predictiveAnalyzer.mu.Lock()
@@ -1895,11 +1895,11 @@ func (wm *WorkloadMonitor) analyzePredictiveMetrics(ctx context.Context, cluster
 func (wm *WorkloadMonitor) detectAnomalies(ctx context.Context, cluster *ClusterEntry) {
 	// This would implement anomaly detection algorithms
 	// Placeholder implementation
-	
+
 	wm.performanceMonitor.mu.RLock()
 	metrics, exists := wm.performanceMonitor.metrics[cluster.Metadata.ID]
 	wm.performanceMonitor.mu.RUnlock()
-	
+
 	if !exists {
 		return
 	}
@@ -2017,7 +2017,7 @@ func (wm *WorkloadMonitor) evaluateRemediationRule(ctx context.Context, cluster 
 func (wm *WorkloadMonitor) shouldTriggerRemediation(ctx context.Context, cluster *ClusterEntry, rule *RemediationRule) bool {
 	// This would implement rule evaluation logic
 	// Placeholder implementation based on rule trigger
-	
+
 	switch rule.Trigger {
 	case "pod_failed":
 		wm.performanceMonitor.mu.RLock()

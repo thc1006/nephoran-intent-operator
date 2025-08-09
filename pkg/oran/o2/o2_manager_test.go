@@ -19,12 +19,12 @@ import (
 
 func TestO2Manager_DiscoverResources(t *testing.T) {
 	tests := []struct {
-		name           string
-		setupNodes     []corev1.Node
+		name            string
+		setupNodes      []corev1.Node
 		setupNamespaces []corev1.Namespace
-		setupPods      []corev1.Pod
-		expectedError  bool
-		validateFunc   func(*testing.T, *ResourceMap)
+		setupPods       []corev1.Pod
+		expectedError   bool
+		validateFunc    func(*testing.T, *ResourceMap)
 	}{
 		{
 			name: "successful resource discovery",
@@ -62,7 +62,7 @@ func TestO2Manager_DiscoverResources(t *testing.T) {
 						Name: "node-2",
 						Labels: map[string]string{
 							"node-role.kubernetes.io/worker": "",
-							"kubernetes.io/hostname":          "node-2",
+							"kubernetes.io/hostname":         "node-2",
 						},
 					},
 					Status: corev1.NodeStatus{
@@ -143,11 +143,11 @@ func TestO2Manager_DiscoverResources(t *testing.T) {
 				// Validate node information
 				assert.Contains(t, rm.Nodes, "node-1")
 				assert.Contains(t, rm.Nodes, "node-2")
-				
+
 				node1 := rm.Nodes["node-1"]
 				assert.Equal(t, "node-1", node1.Name)
 				assert.Contains(t, node1.Roles, "control-plane")
-				
+
 				node2 := rm.Nodes["node-2"]
 				assert.Equal(t, "node-2", node2.Name)
 				assert.Contains(t, node2.Roles, "worker")
@@ -155,7 +155,7 @@ func TestO2Manager_DiscoverResources(t *testing.T) {
 				// Validate namespace information
 				assert.Contains(t, rm.Namespaces, "default")
 				assert.Contains(t, rm.Namespaces, "o-ran-vnfs")
-				
+
 				defaultNS := rm.Namespaces["default"]
 				assert.Equal(t, int32(1), defaultNS.PodCount)
 
@@ -166,11 +166,11 @@ func TestO2Manager_DiscoverResources(t *testing.T) {
 			},
 		},
 		{
-			name:           "empty cluster",
-			setupNodes:     []corev1.Node{},
+			name:            "empty cluster",
+			setupNodes:      []corev1.Node{},
 			setupNamespaces: []corev1.Namespace{},
-			setupPods:      []corev1.Pod{},
-			expectedError:  false,
+			setupPods:       []corev1.Pod{},
+			expectedError:   false,
 			validateFunc: func(t *testing.T, rm *ResourceMap) {
 				assert.NotNil(t, rm)
 				assert.Len(t, rm.Nodes, 0)
@@ -196,7 +196,7 @@ func TestO2Manager_DiscoverResources(t *testing.T) {
 			}
 
 			clientset := fake.NewSimpleClientset(objects...)
-			
+
 			// Create fake controller-runtime client
 			scheme := runtime.NewScheme()
 			_ = corev1.AddToScheme(scheme)
@@ -331,7 +331,7 @@ func TestO2Manager_ScaleWorkload(t *testing.T) {
 			}
 
 			clientset := fake.NewSimpleClientset(objects...)
-			
+
 			scheme := runtime.NewScheme()
 			_ = corev1.AddToScheme(scheme)
 			_ = appsv1.AddToScheme(scheme)
@@ -350,7 +350,7 @@ func TestO2Manager_ScaleWorkload(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				
+
 				if tt.validateFunc != nil {
 					// Get the updated deployment
 					deployment := &appsv1.Deployment{}
@@ -376,11 +376,11 @@ func TestO2Manager_DeployVNF(t *testing.T) {
 		{
 			name: "successful AMF deployment",
 			vnfSpec: &VNFDescriptor{
-				Name:    "test-amf",
-				Type:    "amf",
-				Version: "v1.0.0",
-				Vendor:  "test-vendor",
-				Image:   "test-registry/amf:v1.0.0",
+				Name:     "test-amf",
+				Type:     "amf",
+				Version:  "v1.0.0",
+				Vendor:   "test-vendor",
+				Image:    "test-registry/amf:v1.0.0",
 				Replicas: 3,
 				Resources: &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
@@ -432,10 +432,10 @@ func TestO2Manager_DeployVNF(t *testing.T) {
 		{
 			name: "successful UPF deployment with volumes",
 			vnfSpec: &VNFDescriptor{
-				Name:    "test-upf",
-				Type:    "upf",
-				Version: "v2.0.0",
-				Image:   "test-registry/upf:v2.0.0",
+				Name:     "test-upf",
+				Type:     "upf",
+				Version:  "v2.0.0",
+				Image:    "test-registry/upf:v2.0.0",
 				Replicas: 2,
 				Resources: &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
@@ -469,7 +469,7 @@ func TestO2Manager_DeployVNF(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create fake clients
 			clientset := fake.NewSimpleClientset()
-			
+
 			scheme := runtime.NewScheme()
 			_ = corev1.AddToScheme(scheme)
 			_ = appsv1.AddToScheme(scheme)
@@ -550,7 +550,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create fake clients
 			clientset := fake.NewSimpleClientset()
-			
+
 			scheme := runtime.NewScheme()
 			_ = corev1.AddToScheme(scheme)
 			_ = appsv1.AddToScheme(scheme)
@@ -610,10 +610,10 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 	adaptor := NewO2Adaptor(ctrlClient, clientset, nil)
 
 	tests := []struct {
-		name           string
-		instanceID     string
-		scaleRequest   *VNFScaleRequest
-		expectedError  bool
+		name             string
+		instanceID       string
+		scaleRequest     *VNFScaleRequest
+		expectedError    bool
 		expectedReplicas int32
 	}{
 		{
@@ -641,14 +641,14 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			
+
 			// Set initial replicas
 			err := ctrlClient.Get(ctx, client.ObjectKey{
 				Namespace: "test-ns",
 				Name:      "test-vnf",
 			}, deployment)
 			require.NoError(t, err)
-			
+
 			deployment.Spec.Replicas = int32Ptr(3)
 			err = ctrlClient.Update(ctx, deployment)
 			require.NoError(t, err)
@@ -660,7 +660,7 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				
+
 				// Verify scaling result
 				err = ctrlClient.Get(ctx, client.ObjectKey{
 					Namespace: "test-ns",
@@ -690,7 +690,7 @@ func TestO2Manager_Integration(t *testing.T) {
 	// For now, we'll use fake clients but structure it as an integration test
 
 	ctx := context.Background()
-	
+
 	// Setup
 	clientset := fake.NewSimpleClientset()
 	scheme := runtime.NewScheme()
@@ -710,10 +710,10 @@ func TestO2Manager_Integration(t *testing.T) {
 
 		// 2. Deploy VNF
 		vnfSpec := &VNFDescriptor{
-			Name:    "integration-test-vnf",
-			Type:    "amf",
-			Version: "v1.0.0",
-			Image:   "test-registry/amf:v1.0.0",
+			Name:     "integration-test-vnf",
+			Type:     "amf",
+			Version:  "v1.0.0",
+			Image:    "test-registry/amf:v1.0.0",
 			Replicas: 2,
 			Resources: &corev1.ResourceRequirements{
 				Requests: corev1.ResourceList{
@@ -813,7 +813,7 @@ func BenchmarkO2Adaptor_DeployVNF(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		deployRequest.Name = fmt.Sprintf("bench-vnf-%d", i)
 		deployRequest.Namespace = fmt.Sprintf("bench-ns-%d", i)
-		
+
 		_, err := adaptor.DeployVNF(ctx, deployRequest)
 		if err != nil {
 			b.Fatal(err)

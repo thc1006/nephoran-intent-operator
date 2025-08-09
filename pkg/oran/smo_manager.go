@@ -14,13 +14,13 @@ import (
 
 // SMOManager manages Service Management and Orchestration integration
 type SMOManager struct {
-	mu               sync.RWMutex
-	config           *SMOConfig
-	httpClient       *http.Client
-	policyManager    *PolicyManager
-	serviceRegistry  *ServiceRegistry
-	orchestrator     *ServiceOrchestrator
-	connected        bool
+	mu              sync.RWMutex
+	config          *SMOConfig
+	httpClient      *http.Client
+	policyManager   *PolicyManager
+	serviceRegistry *ServiceRegistry
+	orchestrator    *ServiceOrchestrator
+	connected       bool
 }
 
 // SMOConfig holds SMO configuration
@@ -39,29 +39,29 @@ type SMOConfig struct {
 
 // PolicyManager manages A1 policy orchestration with SMO
 type PolicyManager struct {
-	mu              sync.RWMutex
-	smoClient       *SMOClient
-	policies        map[string]*A1Policy
-	policyTypes     map[string]*A1PolicyType
-	subscriptions   map[string]*PolicySubscription
-	eventCallbacks  map[string]func(*PolicyEvent)
+	mu             sync.RWMutex
+	smoClient      *SMOClient
+	policies       map[string]*A1Policy
+	policyTypes    map[string]*A1PolicyType
+	subscriptions  map[string]*PolicySubscription
+	eventCallbacks map[string]func(*PolicyEvent)
 }
 
 // ServiceRegistry manages service discovery and registration with SMO
 type ServiceRegistry struct {
-	mu                sync.RWMutex
-	smoClient         *SMOClient
+	mu                 sync.RWMutex
+	smoClient          *SMOClient
 	registeredServices map[string]*ServiceInstance
 	discoveredServices map[string]*ServiceInstance
-	healthCheckers    map[string]*ServiceHealthChecker
+	healthCheckers     map[string]*ServiceHealthChecker
 }
 
 // ServiceOrchestrator manages Non-RT RIC service orchestration
 type ServiceOrchestrator struct {
-	mu            sync.RWMutex
-	smoClient     *SMOClient
-	rApps         map[string]*RAppInstance
-	workflows     map[string]*OrchestrationWorkflow
+	mu             sync.RWMutex
+	smoClient      *SMOClient
+	rApps          map[string]*RAppInstance
+	workflows      map[string]*OrchestrationWorkflow
 	lifecycleHooks map[string][]LifecycleHook
 }
 
@@ -75,36 +75,36 @@ type SMOClient struct {
 
 // Policy management types
 type A1Policy struct {
-	ID            string                 `json:"id"`
-	TypeID        string                 `json:"type_id"`
-	Version       string                 `json:"version"`
-	Description   string                 `json:"description"`
-	Status        string                 `json:"status"` // ACTIVE, INACTIVE, ENFORCING
-	Data          map[string]interface{} `json:"data"`
-	TargetRICs    []string               `json:"target_rics"`
-	CreatedAt     time.Time              `json:"created_at"`
-	UpdatedAt     time.Time              `json:"updated_at"`
-	EnforcedAt    *time.Time             `json:"enforced_at,omitempty"`
-	Metadata      map[string]string      `json:"metadata"`
+	ID          string                 `json:"id"`
+	TypeID      string                 `json:"type_id"`
+	Version     string                 `json:"version"`
+	Description string                 `json:"description"`
+	Status      string                 `json:"status"` // ACTIVE, INACTIVE, ENFORCING
+	Data        map[string]interface{} `json:"data"`
+	TargetRICs  []string               `json:"target_rics"`
+	CreatedAt   time.Time              `json:"created_at"`
+	UpdatedAt   time.Time              `json:"updated_at"`
+	EnforcedAt  *time.Time             `json:"enforced_at,omitempty"`
+	Metadata    map[string]string      `json:"metadata"`
 }
 
 type A1PolicyType struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	Version      string                 `json:"version"`
-	Description  string                 `json:"description"`
-	Schema       map[string]interface{} `json:"schema"`
-	SupportedRICs []string              `json:"supported_rics"`
-	CreatedAt    time.Time              `json:"created_at"`
+	ID            string                 `json:"id"`
+	Name          string                 `json:"name"`
+	Version       string                 `json:"version"`
+	Description   string                 `json:"description"`
+	Schema        map[string]interface{} `json:"schema"`
+	SupportedRICs []string               `json:"supported_rics"`
+	CreatedAt     time.Time              `json:"created_at"`
 }
 
 type PolicySubscription struct {
-	ID         string                   `json:"id"`
-	PolicyID   string                   `json:"policy_id"`
-	Subscriber string                   `json:"subscriber"`
-	Events     []string                 `json:"events"`
-	Callback   func(*PolicyEvent)       `json:"-"`
-	CreatedAt  time.Time                `json:"created_at"`
+	ID         string             `json:"id"`
+	PolicyID   string             `json:"policy_id"`
+	Subscriber string             `json:"subscriber"`
+	Events     []string           `json:"events"`
+	Callback   func(*PolicyEvent) `json:"-"`
+	CreatedAt  time.Time          `json:"created_at"`
 }
 
 type PolicyEvent struct {
@@ -119,35 +119,35 @@ type PolicyEvent struct {
 
 // Service management types
 type ServiceInstance struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Type         string            `json:"type"` // RIC, xApp, rApp
-	Version      string            `json:"version"`
-	Endpoint     string            `json:"endpoint"`
-	Status       string            `json:"status"` // REGISTERED, ACTIVE, INACTIVE, FAILED
-	Capabilities []string          `json:"capabilities"`
-	Metadata     map[string]string `json:"metadata"`
-	HealthCheck  *HealthCheckConfig `json:"health_check"`
-	RegisteredAt time.Time         `json:"registered_at"`
-	LastHeartbeat time.Time        `json:"last_heartbeat"`
+	ID            string             `json:"id"`
+	Name          string             `json:"name"`
+	Type          string             `json:"type"` // RIC, xApp, rApp
+	Version       string             `json:"version"`
+	Endpoint      string             `json:"endpoint"`
+	Status        string             `json:"status"` // REGISTERED, ACTIVE, INACTIVE, FAILED
+	Capabilities  []string           `json:"capabilities"`
+	Metadata      map[string]string  `json:"metadata"`
+	HealthCheck   *HealthCheckConfig `json:"health_check"`
+	RegisteredAt  time.Time          `json:"registered_at"`
+	LastHeartbeat time.Time          `json:"last_heartbeat"`
 }
 
 type ServiceHealthChecker struct {
-	serviceID   string
-	config      *HealthCheckConfig
-	status      string
-	lastCheck   time.Time
-	failures    int
-	stopCh      chan struct{}
+	serviceID string
+	config    *HealthCheckConfig
+	status    string
+	lastCheck time.Time
+	failures  int
+	stopCh    chan struct{}
 }
 
 type HealthCheckConfig struct {
-	Enabled         bool          `json:"enabled"`
-	Path            string        `json:"path"`
-	Interval        time.Duration `json:"interval"`
-	Timeout         time.Duration `json:"timeout"`
-	FailureThreshold int          `json:"failure_threshold"`
-	SuccessThreshold int          `json:"success_threshold"`
+	Enabled          bool          `json:"enabled"`
+	Path             string        `json:"path"`
+	Interval         time.Duration `json:"interval"`
+	Timeout          time.Duration `json:"timeout"`
+	FailureThreshold int           `json:"failure_threshold"`
+	SuccessThreshold int           `json:"success_threshold"`
 }
 
 // rApp orchestration types
@@ -167,15 +167,15 @@ type RAppInstance struct {
 }
 
 type OrchestrationWorkflow struct {
-	ID          string                   `json:"id"`
-	Name        string                   `json:"name"`
-	Description string                   `json:"description"`
-	Steps       []*WorkflowStep          `json:"steps"`
-	Status      string                   `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
-	Context     map[string]interface{}   `json:"context"`
-	CreatedAt   time.Time                `json:"created_at"`
-	StartedAt   *time.Time               `json:"started_at,omitempty"`
-	CompletedAt *time.Time               `json:"completed_at,omitempty"`
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Steps       []*WorkflowStep        `json:"steps"`
+	Status      string                 `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
+	Context     map[string]interface{} `json:"context"`
+	CreatedAt   time.Time              `json:"created_at"`
+	StartedAt   *time.Time             `json:"started_at,omitempty"`
+	CompletedAt *time.Time             `json:"completed_at,omitempty"`
 }
 
 type WorkflowStep struct {
@@ -328,7 +328,7 @@ func (sm *SMOManager) Stop() {
 // testConnection tests connection to SMO
 func (sm *SMOManager) testConnection(ctx context.Context) error {
 	url := fmt.Sprintf("%s%s", sm.config.Endpoint, sm.config.HealthCheckPath)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
@@ -526,7 +526,7 @@ func (pm *PolicyManager) pollPolicyEvents(ctx context.Context) {
 	// This is a simplified implementation
 	// In a real SMO integration, this would subscribe to actual events
 	url := fmt.Sprintf("%s/api/%s/events", pm.smoClient.baseURL, "v1")
-	
+
 	var events []*PolicyEvent
 	if err := pm.smoClient.get(ctx, url, &events); err != nil {
 		return // Silently continue on error
@@ -739,14 +739,14 @@ func (so *ServiceOrchestrator) executeLifecycleHook(ctx context.Context, hook *L
 			if err != nil {
 				return err
 			}
-			
+
 			client := &http.Client{Timeout: hook.Timeout}
 			resp, err := client.Do(req)
 			if err != nil {
 				return err
 			}
 			defer resp.Body.Close()
-			
+
 			if resp.StatusCode >= 400 {
 				return fmt.Errorf("hook HTTP call failed with status: %d", resp.StatusCode)
 			}
@@ -784,11 +784,11 @@ func (c *SMOClient) post(ctx context.Context, url string, body, result interface
 	if err != nil {
 		return err
 	}
-	
+
 	if reqBody != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	
+
 	return c.doRequest(req, result)
 }
 
@@ -802,7 +802,7 @@ func (c *SMOClient) put(ctx context.Context, url string, body, result interface{
 	if err != nil {
 		return err
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
 	return c.doRequest(req, result)
 }

@@ -20,77 +20,77 @@ import (
 
 // SLAMonitor monitors SLA compliance across infrastructure
 type SLAMonitor struct {
-	config           *InfrastructureMonitoringConfig
-	logger           *logging.StructuredLogger
-	slaDefinitions   map[string]*SLADefinition
-	violations       []SLAViolation
-	mu               sync.RWMutex
+	config         *InfrastructureMonitoringConfig
+	logger         *logging.StructuredLogger
+	slaDefinitions map[string]*SLADefinition
+	violations     []SLAViolation
+	mu             sync.RWMutex
 }
 
 // SLADefinition defines an SLA
 type SLADefinition struct {
-	ID               string                 `json:"id"`
-	Name             string                 `json:"name"`
-	Description      string                 `json:"description"`
-	Type             string                 `json:"type"` // availability, latency, throughput, error_rate
-	Target           float64                `json:"target"`
-	Unit             string                 `json:"unit"`
-	Measurement      string                 `json:"measurement"` // average, p95, p99, etc.
-	Window           time.Duration          `json:"window"`
-	EvaluationPeriod time.Duration          `json:"evaluationPeriod"`
-	Filters          map[string]string      `json:"filters,omitempty"`
-	Enabled          bool                   `json:"enabled"`
+	ID               string            `json:"id"`
+	Name             string            `json:"name"`
+	Description      string            `json:"description"`
+	Type             string            `json:"type"` // availability, latency, throughput, error_rate
+	Target           float64           `json:"target"`
+	Unit             string            `json:"unit"`
+	Measurement      string            `json:"measurement"` // average, p95, p99, etc.
+	Window           time.Duration     `json:"window"`
+	EvaluationPeriod time.Duration     `json:"evaluationPeriod"`
+	Filters          map[string]string `json:"filters,omitempty"`
+	Enabled          bool              `json:"enabled"`
 }
 
 // SLAViolation represents an SLA violation
 type SLAViolation struct {
-	ID               string                 `json:"id"`
-	SLAID            string                 `json:"slaId"`
-	Timestamp        time.Time              `json:"timestamp"`
-	ActualValue      float64                `json:"actualValue"`
-	TargetValue      float64                `json:"targetValue"`
-	Severity         string                 `json:"severity"`
-	Duration         time.Duration          `json:"duration"`
-	Status           string                 `json:"status"` // active, resolved
-	Details          map[string]interface{} `json:"details,omitempty"`
+	ID          string                 `json:"id"`
+	SLAID       string                 `json:"slaId"`
+	Timestamp   time.Time              `json:"timestamp"`
+	ActualValue float64                `json:"actualValue"`
+	TargetValue float64                `json:"targetValue"`
+	Severity    string                 `json:"severity"`
+	Duration    time.Duration          `json:"duration"`
+	Status      string                 `json:"status"` // active, resolved
+	Details     map[string]interface{} `json:"details,omitempty"`
 }
 
 // EventProcessor processes infrastructure events
 type EventProcessor struct {
-	config           *EventProcessingConfig
-	logger           *logging.StructuredLogger
-	eventQueue       chan *Event
-	batchProcessor   *BatchProcessor
-	ctx              context.Context
-	cancel           context.CancelFunc
-	wg               sync.WaitGroup
+	config         *EventProcessingConfig
+	logger         *logging.StructuredLogger
+	eventQueue     chan *Event
+	batchProcessor *BatchProcessor
+	ctx            context.Context
+	cancel         context.CancelFunc
+	wg             sync.WaitGroup
 }
 
 // BatchProcessor processes events in batches
 type BatchProcessor struct {
-	batchSize        int
-	flushInterval    time.Duration
-	currentBatch     []*Event
-	lastFlush        time.Time
-	mu               sync.Mutex
+	batchSize     int
+	flushInterval time.Duration
+	currentBatch  []*Event
+	lastFlush     time.Time
+	mu            sync.Mutex
 }
 
 // AlertProcessor processes infrastructure alerts
 type AlertProcessor struct {
-	config           *MonitoringIntegrationConfig
-	logger           *logging.StructuredLogger
-	alertRules       map[string]*AlertRule
-	activeAlerts     map[string]*Alert
-	mu               sync.RWMutex
+	config       *MonitoringIntegrationConfig
+	logger       *logging.StructuredLogger
+	alertRules   map[string]*AlertRule
+	activeAlerts map[string]*Alert
+	mu           sync.RWMutex
 }
 
 // InfrastructureHealthChecker performs infrastructure health checks
 type InfrastructureHealthChecker struct {
-	config           *InfrastructureMonitoringConfig
-	logger           *logging.StructuredLogger
-	healthChecks     map[string]HealthCheckFunc
-	lastResults      map[string]*HealthCheckResult
-	mu               sync.RWMutex
+	config       *InfrastructureMonitoringConfig
+	logger       *logging.StructuredLogger
+	healthChecks map[string]HealthCheckFunc
+	lastResults  map[string]*HealthCheckResult
+	mu           sync.RWMutex
 }
 
 // HealthCheckFunc represents a health check function
@@ -98,12 +98,12 @@ type HealthCheckFunc func(ctx context.Context) *HealthCheckResult
 
 // HealthCheckResult represents the result of a health check
 type HealthCheckResult struct {
-	Name             string                 `json:"name"`
-	Status           string                 `json:"status"` // healthy, degraded, unhealthy
-	Message          string                 `json:"message"`
-	Details          map[string]interface{} `json:"details,omitempty"`
-	Timestamp        time.Time              `json:"timestamp"`
-	Duration         time.Duration          `json:"duration"`
+	Name      string                 `json:"name"`
+	Status    string                 `json:"status"` // healthy, degraded, unhealthy
+	Message   string                 `json:"message"`
+	Details   map[string]interface{} `json:"details,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	Duration  time.Duration          `json:"duration"`
 }
 
 // DiscoveryEngine discovers infrastructure assets
@@ -116,244 +116,244 @@ type DiscoveryEngine struct {
 
 // RelationshipEngine manages asset relationships
 type RelationshipEngine struct {
-	config           *InventoryConfig
-	logger           *logging.StructuredLogger
-	relationships    map[string]*AssetRelationship
-	mu               sync.RWMutex
+	config        *InventoryConfig
+	logger        *logging.StructuredLogger
+	relationships map[string]*AssetRelationship
+	mu            sync.RWMutex
 }
 
 // AuditEngine manages audit trails
 type AuditEngine struct {
-	config           *InventoryConfig
-	logger           *logging.StructuredLogger
+	config *InventoryConfig
+	logger *logging.StructuredLogger
 }
 
 // AssetIndex provides fast asset lookups
 type AssetIndex struct {
-	byID             map[string]*Asset
-	byName           map[string]*Asset
-	byType           map[string][]*Asset
-	byProvider       map[string][]*Asset
-	mu               sync.RWMutex
+	byID       map[string]*Asset
+	byName     map[string]*Asset
+	byType     map[string][]*Asset
+	byProvider map[string][]*Asset
+	mu         sync.RWMutex
 }
 
 // RelationshipIndex provides fast relationship lookups
 type RelationshipIndex struct {
-	byID             map[string]*AssetRelationship
-	bySourceAsset    map[string][]*AssetRelationship
-	byTargetAsset    map[string][]*AssetRelationship
-	byType           map[string][]*AssetRelationship
-	mu               sync.RWMutex
+	byID          map[string]*AssetRelationship
+	bySourceAsset map[string][]*AssetRelationship
+	byTargetAsset map[string][]*AssetRelationship
+	byType        map[string][]*AssetRelationship
+	mu            sync.RWMutex
 }
 
 // PostgreSQLCMDBStorage implements CMDB storage using PostgreSQL
 type PostgresCMDBStorage struct {
-	db               *sql.DB
-	logger           *logging.StructuredLogger
+	db     *sql.DB
+	logger *logging.StructuredLogger
 }
 
 // MemoryAssetStorage implements asset storage using in-memory storage
 type MemoryAssetStorage struct {
-	assets           map[string]*Asset
-	logger           *logging.StructuredLogger
-	mu               sync.RWMutex
+	assets map[string]*Asset
+	logger *logging.StructuredLogger
+	mu     sync.RWMutex
 }
 
 // CNF Management Support Components
 
 // CNFLifecycleManager manages CNF lifecycle operations
 type CNFLifecycleManager struct {
-	config           *CNFLifecycleConfig
-	k8sClient        client.Client
-	logger           *logging.StructuredLogger
+	config    *CNFLifecycleConfig
+	k8sClient client.Client
+	logger    *logging.StructuredLogger
 }
 
 // HelmManager manages Helm operations
 type HelmManager struct {
-	config           *HelmConfig
-	logger           *logging.StructuredLogger
-	releases         map[string]*HelmRelease
-	mu               sync.RWMutex
+	config   *HelmConfig
+	logger   *logging.StructuredLogger
+	releases map[string]*HelmRelease
+	mu       sync.RWMutex
 }
 
 // HelmRelease represents a Helm release
 type HelmRelease struct {
-	Name             string                 `json:"name"`
-	Namespace        string                 `json:"namespace"`
-	Chart            string                 `json:"chart"`
-	Version          string                 `json:"version"`
-	Status           string                 `json:"status"`
-	Values           map[string]interface{} `json:"values"`
-	Resources        []runtime.Object       `json:"resources"`
-	CreatedAt        time.Time              `json:"createdAt"`
-	UpdatedAt        time.Time              `json:"updatedAt"`
+	Name      string                 `json:"name"`
+	Namespace string                 `json:"namespace"`
+	Chart     string                 `json:"chart"`
+	Version   string                 `json:"version"`
+	Status    string                 `json:"status"`
+	Values    map[string]interface{} `json:"values"`
+	Resources []runtime.Object       `json:"resources"`
+	CreatedAt time.Time              `json:"createdAt"`
+	UpdatedAt time.Time              `json:"updatedAt"`
 }
 
 // HelmDeployRequest request for Helm deployment
 type HelmDeployRequest struct {
-	ReleaseName      string                 `json:"releaseName"`
-	Namespace        string                 `json:"namespace"`
-	Repository       string                 `json:"repository"`
-	Chart            string                 `json:"chart"`
-	Version          string                 `json:"version"`
-	Values           map[string]interface{} `json:"values,omitempty"`
-	ValuesFiles      []string               `json:"valuesFiles,omitempty"`
+	ReleaseName string                 `json:"releaseName"`
+	Namespace   string                 `json:"namespace"`
+	Repository  string                 `json:"repository"`
+	Chart       string                 `json:"chart"`
+	Version     string                 `json:"version"`
+	Values      map[string]interface{} `json:"values,omitempty"`
+	ValuesFiles []string               `json:"valuesFiles,omitempty"`
 }
 
 // HelmUpgradeRequest request for Helm upgrade
 type HelmUpgradeRequest struct {
-	ReleaseName      string                 `json:"releaseName"`
-	Namespace        string                 `json:"namespace"`
-	Repository       string                 `json:"repository"`
-	Chart            string                 `json:"chart"`
-	Version          string                 `json:"version"`
-	Values           map[string]interface{} `json:"values,omitempty"`
-	ValuesFiles      []string               `json:"valuesFiles,omitempty"`
+	ReleaseName string                 `json:"releaseName"`
+	Namespace   string                 `json:"namespace"`
+	Repository  string                 `json:"repository"`
+	Chart       string                 `json:"chart"`
+	Version     string                 `json:"version"`
+	Values      map[string]interface{} `json:"values,omitempty"`
+	ValuesFiles []string               `json:"valuesFiles,omitempty"`
 }
 
 // OperatorManager manages Kubernetes operators
 type OperatorManager struct {
-	config           *OperatorConfig
-	k8sClient        client.Client
-	logger           *logging.StructuredLogger
-	operators        map[string]*OperatorInstance
-	mu               sync.RWMutex
+	config    *OperatorConfig
+	k8sClient client.Client
+	logger    *logging.StructuredLogger
+	operators map[string]*OperatorInstance
+	mu        sync.RWMutex
 }
 
 // OperatorInstance represents an operator instance
 type OperatorInstance struct {
-	Name             string                 `json:"name"`
-	Namespace        string                 `json:"namespace"`
-	Version          string                 `json:"version"`
-	Channel          string                 `json:"channel"`
-	Source           string                 `json:"source"`
-	Status           string                 `json:"status"`
-	CustomResources  []runtime.RawExtension `json:"customResources"`
-	CreatedAt        time.Time              `json:"createdAt"`
-	UpdatedAt        time.Time              `json:"updatedAt"`
+	Name            string                 `json:"name"`
+	Namespace       string                 `json:"namespace"`
+	Version         string                 `json:"version"`
+	Channel         string                 `json:"channel"`
+	Source          string                 `json:"source"`
+	Status          string                 `json:"status"`
+	CustomResources []runtime.RawExtension `json:"customResources"`
+	CreatedAt       time.Time              `json:"createdAt"`
+	UpdatedAt       time.Time              `json:"updatedAt"`
 }
 
 // OperatorDeployRequest request for operator deployment
 type OperatorDeployRequest struct {
-	Name             string                 `json:"name"`
-	Namespace        string                 `json:"namespace"`
-	OperatorName     string                 `json:"operatorName"`
-	Version          string                 `json:"version"`
-	Channel          string                 `json:"channel"`
-	Source           string                 `json:"source"`
-	CustomResources  []runtime.RawExtension `json:"customResources,omitempty"`
+	Name            string                 `json:"name"`
+	Namespace       string                 `json:"namespace"`
+	OperatorName    string                 `json:"operatorName"`
+	Version         string                 `json:"version"`
+	Channel         string                 `json:"channel"`
+	Source          string                 `json:"source"`
+	CustomResources []runtime.RawExtension `json:"customResources,omitempty"`
 }
 
 // OperatorUpdateRequest request for operator update
 type OperatorUpdateRequest struct {
-	Name             string                 `json:"name"`
-	Namespace        string                 `json:"namespace"`
-	CustomResources  []runtime.RawExtension `json:"customResources,omitempty"`
+	Name            string                 `json:"name"`
+	Namespace       string                 `json:"namespace"`
+	CustomResources []runtime.RawExtension `json:"customResources,omitempty"`
 }
 
 // ServiceMeshManager manages service mesh integration
 type ServiceMeshManager struct {
-	config           *ServiceMeshConfig
-	k8sClient        client.Client
-	logger           *logging.StructuredLogger
+	config    *ServiceMeshConfig
+	k8sClient client.Client
+	logger    *logging.StructuredLogger
 }
 
 // ContainerRegistryManager manages container registries
 type ContainerRegistryManager struct {
-	config           *RegistryConfig
-	logger           *logging.StructuredLogger
-	registries       map[string]*RegistryClient
-	mu               sync.RWMutex
+	config     *RegistryConfig
+	logger     *logging.StructuredLogger
+	registries map[string]*RegistryClient
+	mu         sync.RWMutex
 }
 
 // RegistryClient represents a container registry client
 type RegistryClient struct {
-	Name             string                 `json:"name"`
-	URL              string                 `json:"url"`
-	Username         string                 `json:"username"`
-	httpClient       *http.Client
+	Name       string `json:"name"`
+	URL        string `json:"url"`
+	Username   string `json:"username"`
+	httpClient *http.Client
 }
 
 // Monitoring Integration Support Components
 
 // GrafanaClient manages Grafana integration
 type GrafanaClient struct {
-	config           *GrafanaConfig
-	logger           *logging.StructuredLogger
-	httpClient       *http.Client
+	config     *GrafanaConfig
+	logger     *logging.StructuredLogger
+	httpClient *http.Client
 }
 
 // AlertmanagerClient manages Alertmanager integration
 type AlertmanagerClient struct {
-	config           *AlertmanagerConfig
-	logger           *logging.StructuredLogger
-	httpClient       *http.Client
+	config     *AlertmanagerConfig
+	logger     *logging.StructuredLogger
+	httpClient *http.Client
 }
 
 // JaegerClient manages Jaeger integration
 type JaegerClient struct {
-	config           *JaegerConfig
-	logger           *logging.StructuredLogger
-	httpClient       *http.Client
+	config     *JaegerConfig
+	logger     *logging.StructuredLogger
+	httpClient *http.Client
 }
 
 // DashboardManager manages Grafana dashboards
 type DashboardManager struct {
-	config           *DashboardConfig
-	grafanaClient    *GrafanaClient
-	logger           *logging.StructuredLogger
-	dashboards       map[string]*DashboardSpec
-	mu               sync.RWMutex
+	config        *DashboardConfig
+	grafanaClient *GrafanaClient
+	logger        *logging.StructuredLogger
+	dashboards    map[string]*DashboardSpec
+	mu            sync.RWMutex
 }
 
 // Metric Collectors
 
 // AWSMetricsCollector collects metrics from AWS
 type AWSMetricsCollector struct {
-	provider         providers.CloudProvider
-	config           *InfrastructureMonitoringConfig
-	logger           *logging.StructuredLogger
-	healthy          bool
+	provider providers.CloudProvider
+	config   *InfrastructureMonitoringConfig
+	logger   *logging.StructuredLogger
+	healthy  bool
 }
 
 // AzureMetricsCollector collects metrics from Azure
 type AzureMetricsCollector struct {
-	provider         providers.CloudProvider
-	config           *InfrastructureMonitoringConfig
-	logger           *logging.StructuredLogger
-	healthy          bool
+	provider providers.CloudProvider
+	config   *InfrastructureMonitoringConfig
+	logger   *logging.StructuredLogger
+	healthy  bool
 }
 
 // GCPMetricsCollector collects metrics from GCP
 type GCPMetricsCollector struct {
-	provider         providers.CloudProvider
-	config           *InfrastructureMonitoringConfig
-	logger           *logging.StructuredLogger
-	healthy          bool
+	provider providers.CloudProvider
+	config   *InfrastructureMonitoringConfig
+	logger   *logging.StructuredLogger
+	healthy  bool
 }
 
 // OpenStackMetricsCollector collects metrics from OpenStack
 type OpenStackMetricsCollector struct {
-	provider         providers.CloudProvider
-	config           *InfrastructureMonitoringConfig
-	logger           *logging.StructuredLogger
-	healthy          bool
+	provider providers.CloudProvider
+	config   *InfrastructureMonitoringConfig
+	logger   *logging.StructuredLogger
+	healthy  bool
 }
 
 // KubernetesMetricsCollector collects metrics from Kubernetes
 type KubernetesMetricsCollector struct {
-	provider         providers.CloudProvider
-	config           *InfrastructureMonitoringConfig
-	logger           *logging.StructuredLogger
-	healthy          bool
+	provider providers.CloudProvider
+	config   *InfrastructureMonitoringConfig
+	logger   *logging.StructuredLogger
+	healthy  bool
 }
 
 // GenericMetricsCollector generic metrics collector
 type GenericMetricsCollector struct {
-	provider         providers.CloudProvider
-	config           *InfrastructureMonitoringConfig
-	logger           *logging.StructuredLogger
-	healthy          bool
+	provider providers.CloudProvider
+	config   *InfrastructureMonitoringConfig
+	logger   *logging.StructuredLogger
+	healthy  bool
 }
 
 // Constructor functions
@@ -371,11 +371,11 @@ func NewSLAMonitor(config *InfrastructureMonitoringConfig, logger *logging.Struc
 // NewEventProcessor creates a new event processor
 func NewEventProcessor(config *EventProcessingConfig, logger *logging.StructuredLogger) *EventProcessor {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	return &EventProcessor{
-		config:         config,
-		logger:         logger,
-		eventQueue:     make(chan *Event, 1000),
+		config:     config,
+		logger:     logger,
+		eventQueue: make(chan *Event, 1000),
 		batchProcessor: &BatchProcessor{
 			batchSize:     config.BatchSize,
 			flushInterval: config.FlushInterval,
@@ -400,10 +400,10 @@ func NewAlertProcessor(config *MonitoringIntegrationConfig, logger *logging.Stru
 // NewInfrastructureHealthChecker creates a new infrastructure health checker
 func NewInfrastructureHealthChecker(config *InfrastructureMonitoringConfig, logger *logging.StructuredLogger) *InfrastructureHealthChecker {
 	return &InfrastructureHealthChecker{
-		config:      config,
-		logger:      logger,
+		config:       config,
+		logger:       logger,
 		healthChecks: make(map[string]HealthCheckFunc),
-		lastResults: make(map[string]*HealthCheckResult),
+		lastResults:  make(map[string]*HealthCheckResult),
 	}
 }
 
@@ -663,16 +663,16 @@ func (e *EventProcessor) ProcessEvent(ctx context.Context, event *Event) error {
 func (idx *AssetIndex) AddAsset(asset *Asset) {
 	idx.mu.Lock()
 	defer idx.mu.Unlock()
-	
+
 	idx.byID[asset.ID] = asset
 	idx.byName[asset.Name] = asset
-	
+
 	// Add to type index
 	if _, exists := idx.byType[asset.Type]; !exists {
 		idx.byType[asset.Type] = []*Asset{}
 	}
 	idx.byType[asset.Type] = append(idx.byType[asset.Type], asset)
-	
+
 	// Add to provider index
 	if _, exists := idx.byProvider[asset.Provider]; !exists {
 		idx.byProvider[asset.Provider] = []*Asset{}
@@ -688,15 +688,15 @@ func (idx *AssetIndex) UpdateAsset(asset *Asset) {
 func (idx *AssetIndex) RemoveAsset(assetID string) {
 	idx.mu.Lock()
 	defer idx.mu.Unlock()
-	
+
 	asset, exists := idx.byID[assetID]
 	if !exists {
 		return
 	}
-	
+
 	delete(idx.byID, assetID)
 	delete(idx.byName, asset.Name)
-	
+
 	// Remove from type index
 	if assets, exists := idx.byType[asset.Type]; exists {
 		for i, a := range assets {
@@ -706,7 +706,7 @@ func (idx *AssetIndex) RemoveAsset(assetID string) {
 			}
 		}
 	}
-	
+
 	// Remove from provider index
 	if assets, exists := idx.byProvider[asset.Provider]; exists {
 		for i, a := range assets {
@@ -721,7 +721,7 @@ func (idx *AssetIndex) RemoveAsset(assetID string) {
 func (idx *AssetIndex) Clear() {
 	idx.mu.Lock()
 	defer idx.mu.Unlock()
-	
+
 	idx.byID = make(map[string]*Asset)
 	idx.byName = make(map[string]*Asset)
 	idx.byType = make(map[string][]*Asset)
@@ -731,47 +731,47 @@ func (idx *AssetIndex) Clear() {
 // DiscoverAssets discovers assets from a provider
 func (d *DiscoveryEngine) DiscoverAssets(ctx context.Context, provider providers.CloudProvider) ([]*Asset, error) {
 	d.logger.Info("discovering assets", "provider", provider.GetProviderType())
-	
+
 	// Mock asset discovery - in practice this would call provider APIs
 	assets := []*Asset{
 		{
-			ID:          uuid.New().String(),
-			Name:        fmt.Sprintf("%s-compute-1", provider.GetProviderType()),
-			Type:        "compute",
-			Category:    "infrastructure",
-			Provider:    provider.GetProviderType(),
-			Status:      "active",
-			Health:      "healthy",
-			State:       "running",
-			LastSeen:    time.Now(),
-			CreatedAt:   time.Now().Add(-24 * time.Hour),
-			UpdatedAt:   time.Now(),
+			ID:        uuid.New().String(),
+			Name:      fmt.Sprintf("%s-compute-1", provider.GetProviderType()),
+			Type:      "compute",
+			Category:  "infrastructure",
+			Provider:  provider.GetProviderType(),
+			Status:    "active",
+			Health:    "healthy",
+			State:     "running",
+			LastSeen:  time.Now(),
+			CreatedAt: time.Now().Add(-24 * time.Hour),
+			UpdatedAt: time.Now(),
 			Properties: map[string]interface{}{
 				"instance_type": "m5.large",
-				"vcpus":        2,
-				"memory_gb":    8,
+				"vcpus":         2,
+				"memory_gb":     8,
 			},
 		},
 		{
-			ID:          uuid.New().String(),
-			Name:        fmt.Sprintf("%s-storage-1", provider.GetProviderType()),
-			Type:        "storage",
-			Category:    "infrastructure",
-			Provider:    provider.GetProviderType(),
-			Status:      "active",
-			Health:      "healthy",
-			State:       "available",
-			LastSeen:    time.Now(),
-			CreatedAt:   time.Now().Add(-48 * time.Hour),
-			UpdatedAt:   time.Now(),
+			ID:        uuid.New().String(),
+			Name:      fmt.Sprintf("%s-storage-1", provider.GetProviderType()),
+			Type:      "storage",
+			Category:  "infrastructure",
+			Provider:  provider.GetProviderType(),
+			Status:    "active",
+			Health:    "healthy",
+			State:     "available",
+			LastSeen:  time.Now(),
+			CreatedAt: time.Now().Add(-48 * time.Hour),
+			UpdatedAt: time.Now(),
 			Properties: map[string]interface{}{
 				"volume_type": "gp2",
-				"size_gb":    100,
-				"iops":       300,
+				"size_gb":     100,
+				"iops":        300,
 			},
 		},
 	}
-	
+
 	return assets, nil
 }
 
@@ -864,12 +864,12 @@ func (s *MemoryAssetStorage) Store(ctx context.Context, asset *Asset) error {
 func (s *MemoryAssetStorage) Retrieve(ctx context.Context, id string) (*Asset, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	asset, exists := s.assets[id]
 	if !exists {
 		return nil, fmt.Errorf("asset not found")
 	}
-	
+
 	return asset, nil
 }
 
@@ -883,12 +883,12 @@ func (s *MemoryAssetStorage) Delete(ctx context.Context, id string) error {
 func (s *MemoryAssetStorage) List(ctx context.Context, filter *AssetFilter) ([]*Asset, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	var assets []*Asset
 	for _, asset := range s.assets {
 		assets = append(assets, asset)
 	}
-	
+
 	return assets, nil
 }
 
@@ -911,27 +911,27 @@ func (h *HelmManager) Deploy(ctx context.Context, req *HelmDeployRequest) (*Helm
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	
+
 	h.mu.Lock()
 	h.releases[req.ReleaseName] = release
 	h.mu.Unlock()
-	
+
 	return release, nil
 }
 
 func (h *HelmManager) Upgrade(ctx context.Context, req *HelmUpgradeRequest) (*HelmRelease, error) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	
+
 	release, exists := h.releases[req.ReleaseName]
 	if !exists {
 		return nil, fmt.Errorf("release not found")
 	}
-	
+
 	release.Version = req.Version
 	release.Values = req.Values
 	release.UpdatedAt = time.Now()
-	
+
 	return release, nil
 }
 
@@ -961,26 +961,26 @@ func (o *OperatorManager) Deploy(ctx context.Context, req *OperatorDeployRequest
 		CreatedAt:       time.Now(),
 		UpdatedAt:       time.Now(),
 	}
-	
+
 	o.mu.Lock()
 	o.operators[req.Name] = operator
 	o.mu.Unlock()
-	
+
 	return []runtime.Object{}, nil // Mock
 }
 
 func (o *OperatorManager) Update(ctx context.Context, req *OperatorUpdateRequest) error {
 	o.mu.Lock()
 	defer o.mu.Unlock()
-	
+
 	operator, exists := o.operators[req.Name]
 	if !exists {
 		return fmt.Errorf("operator not found")
 	}
-	
+
 	operator.CustomResources = req.CustomResources
 	operator.UpdatedAt = time.Now()
-	
+
 	return nil
 }
 

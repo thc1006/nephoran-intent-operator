@@ -36,50 +36,50 @@ const (
 
 // BatchConfig configures the status batcher behavior
 type BatchConfig struct {
-	MaxBatchSize     int           // Maximum number of updates per batch
-	BatchTimeout     time.Duration // Maximum time to wait for a batch
-	FlushInterval    time.Duration // Periodic flush interval
-	MaxRetries       int           // Maximum retries per update
-	RetryDelay       time.Duration // Base delay between retries
-	EnablePriority   bool          // Whether to prioritize updates
-	MaxQueueSize     int           // Maximum queue size before dropping updates
+	MaxBatchSize   int           // Maximum number of updates per batch
+	BatchTimeout   time.Duration // Maximum time to wait for a batch
+	FlushInterval  time.Duration // Periodic flush interval
+	MaxRetries     int           // Maximum retries per update
+	RetryDelay     time.Duration // Base delay between retries
+	EnablePriority bool          // Whether to prioritize updates
+	MaxQueueSize   int           // Maximum queue size before dropping updates
 }
 
 // DefaultBatchConfig provides sensible defaults
 var DefaultBatchConfig = BatchConfig{
-	MaxBatchSize:     10,
-	BatchTimeout:     2 * time.Second,
-	FlushInterval:    5 * time.Second,
-	MaxRetries:       3,
-	RetryDelay:       1 * time.Second,
-	EnablePriority:   true,
-	MaxQueueSize:     1000,
+	MaxBatchSize:   10,
+	BatchTimeout:   2 * time.Second,
+	FlushInterval:  5 * time.Second,
+	MaxRetries:     3,
+	RetryDelay:     1 * time.Second,
+	EnablePriority: true,
+	MaxQueueSize:   1000,
 }
 
 // StatusBatcher batches status updates to reduce API server load
 type StatusBatcher struct {
-	client       client.Client
-	config       BatchConfig
-	mu           sync.RWMutex
-	updates      map[types.NamespacedName]*StatusUpdate
-	queue        []*StatusUpdate
-	flushTimer   *time.Timer
-	ctx          context.Context
-	cancel       context.CancelFunc
-	wg           sync.WaitGroup
-	
+	client     client.Client
+	config     BatchConfig
+	mu         sync.RWMutex
+	updates    map[types.NamespacedName]*StatusUpdate
+	queue      []*StatusUpdate
+	flushTimer *time.Timer
+	ctx        context.Context
+	cancel     context.CancelFunc
+	wg         sync.WaitGroup
+
 	// Metrics
-	batchesProcessed    int64
-	updatesProcessed    int64
-	updatesDropped      int64
-	updatesFailed       int64
-	averageBatchSize    float64
+	batchesProcessed int64
+	updatesProcessed int64
+	updatesDropped   int64
+	updatesFailed    int64
+	averageBatchSize float64
 }
 
 // NewStatusBatcher creates a new status batcher
 func NewStatusBatcher(client client.Client, config BatchConfig) *StatusBatcher {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	batcher := &StatusBatcher{
 		client:  client,
 		config:  config,
@@ -88,11 +88,11 @@ func NewStatusBatcher(client client.Client, config BatchConfig) *StatusBatcher {
 		ctx:     ctx,
 		cancel:  cancel,
 	}
-	
+
 	// Start background processor
 	batcher.wg.Add(1)
 	go batcher.processUpdates()
-	
+
 	return batcher
 }
 
@@ -203,15 +203,15 @@ func (sb *StatusBatcher) Flush() error {
 func (sb *StatusBatcher) Stop() error {
 	// Cancel background processing
 	sb.cancel()
-	
+
 	// Process any remaining updates
 	if err := sb.Flush(); err != nil {
 		log.Log.Error(err, "Failed to flush final batch during shutdown")
 	}
-	
+
 	// Wait for background goroutine to finish
 	sb.wg.Wait()
-	
+
 	return nil
 }
 
@@ -221,29 +221,29 @@ func (sb *StatusBatcher) GetStats() StatusBatcherStats {
 	defer sb.mu.RUnlock()
 
 	return StatusBatcherStats{
-		QueueSize:           len(sb.queue),
-		BatchesProcessed:    sb.batchesProcessed,
-		UpdatesProcessed:    sb.updatesProcessed,
-		UpdatesDropped:      sb.updatesDropped,
-		UpdatesFailed:       sb.updatesFailed,
-		AverageBatchSize:    sb.averageBatchSize,
+		QueueSize:        len(sb.queue),
+		BatchesProcessed: sb.batchesProcessed,
+		UpdatesProcessed: sb.updatesProcessed,
+		UpdatesDropped:   sb.updatesDropped,
+		UpdatesFailed:    sb.updatesFailed,
+		AverageBatchSize: sb.averageBatchSize,
 	}
 }
 
 // StatusBatcherStats contains statistics about the batcher
 type StatusBatcherStats struct {
-	QueueSize           int     `json:"queue_size"`
-	BatchesProcessed    int64   `json:"batches_processed"`
-	UpdatesProcessed    int64   `json:"updates_processed"`
-	UpdatesDropped      int64   `json:"updates_dropped"`
-	UpdatesFailed       int64   `json:"updates_failed"`
-	AverageBatchSize    float64 `json:"average_batch_size"`
+	QueueSize        int     `json:"queue_size"`
+	BatchesProcessed int64   `json:"batches_processed"`
+	UpdatesProcessed int64   `json:"updates_processed"`
+	UpdatesDropped   int64   `json:"updates_dropped"`
+	UpdatesFailed    int64   `json:"updates_failed"`
+	AverageBatchSize float64 `json:"average_batch_size"`
 }
 
 // processUpdates runs in a background goroutine to periodically flush updates
 func (sb *StatusBatcher) processUpdates() {
 	defer sb.wg.Done()
-	
+
 	ticker := time.NewTicker(sb.config.FlushInterval)
 	defer ticker.Stop()
 
@@ -271,7 +271,7 @@ func (sb *StatusBatcher) triggerFlush() {
 // processBatch processes a batch of status updates
 func (sb *StatusBatcher) processBatch() error {
 	sb.mu.Lock()
-	
+
 	if len(sb.queue) == 0 {
 		sb.mu.Unlock()
 		return nil
@@ -282,10 +282,10 @@ func (sb *StatusBatcher) processBatch() error {
 	if batchSize > sb.config.MaxBatchSize {
 		batchSize = sb.config.MaxBatchSize
 	}
-	
+
 	batch := make([]*StatusUpdate, batchSize)
 	copy(batch, sb.queue[:batchSize])
-	
+
 	// Sort by priority if enabled
 	if sb.config.EnablePriority {
 		sb.sortByPriority(batch)
@@ -295,7 +295,7 @@ func (sb *StatusBatcher) processBatch() error {
 	remaining := sb.queue[batchSize:]
 	sb.queue = make([]*StatusUpdate, 0, cap(sb.queue))
 	sb.queue = append(sb.queue, remaining...)
-	
+
 	for _, update := range batch {
 		delete(sb.updates, update.NamespacedName)
 	}
@@ -313,11 +313,11 @@ func (sb *StatusBatcher) processBatch() error {
 	for _, update := range batch {
 		if err := sb.processUpdate(update); err != nil {
 			log.Log.Error(err, "Failed to process status update", "resource", update.NamespacedName)
-			
+
 			// Retry logic for failed updates
 			if update.RetryCount < sb.config.MaxRetries {
 				update.RetryCount++
-				
+
 				// Requeue with delay
 				go func(u *StatusUpdate) {
 					time.Sleep(time.Duration(u.RetryCount) * sb.config.RetryDelay)
@@ -334,7 +334,7 @@ func (sb *StatusBatcher) processBatch() error {
 	// Update metrics
 	sb.batchesProcessed++
 	sb.updatesProcessed += int64(successCount)
-	
+
 	// Update average batch size (exponential moving average)
 	if sb.averageBatchSize == 0 {
 		sb.averageBatchSize = float64(batchSize)
@@ -350,7 +350,7 @@ func (sb *StatusBatcher) processBatch() error {
 func (sb *StatusBatcher) processUpdate(update *StatusUpdate) error {
 	// Determine object type based on the resource
 	var obj client.Object
-	
+
 	// Create appropriate object type - this is a simplified approach
 	// In practice, you might want to maintain a registry of types
 	if update.NamespacedName.Namespace != "" {

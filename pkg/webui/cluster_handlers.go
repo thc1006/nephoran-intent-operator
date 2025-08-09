@@ -37,7 +37,7 @@ type ClusterRequest struct {
 	Region       string                         `json:"region,omitempty"`
 	Zone         string                         `json:"zone,omitempty"`
 	KubeConfig   string                         `json:"kubeconfig,omitempty"` // Base64 encoded
-	EdgeLocation *multicluster.EdgeLocation    `json:"edge_location,omitempty"`
+	EdgeLocation *multicluster.EdgeLocation     `json:"edge_location,omitempty"`
 	Capabilities []string                       `json:"capabilities,omitempty"`
 	Resources    *multicluster.ResourceCapacity `json:"resources,omitempty"`
 	Labels       map[string]string              `json:"labels,omitempty"`
@@ -47,30 +47,30 @@ type ClusterRequest struct {
 // ClusterResponse represents a comprehensive cluster response
 type ClusterResponse struct {
 	*multicluster.WorkloadCluster
-	HealthStatus      *ClusterHealthStatus      `json:"health_status,omitempty"`
-	DeploymentHistory []*DeploymentHistoryItem  `json:"deployment_history,omitempty"`
-	ResourceUsage     *ResourceUsageMetrics     `json:"resource_usage,omitempty"`
-	NetworkInfo       *NetworkInformation       `json:"network_info,omitempty"`
+	HealthStatus      *ClusterHealthStatus     `json:"health_status,omitempty"`
+	DeploymentHistory []*DeploymentHistoryItem `json:"deployment_history,omitempty"`
+	ResourceUsage     *ResourceUsageMetrics    `json:"resource_usage,omitempty"`
+	NetworkInfo       *NetworkInformation      `json:"network_info,omitempty"`
 }
 
 // ClusterHealthStatus represents detailed cluster health information
 type ClusterHealthStatus struct {
-	Overall         string                    `json:"overall"`
-	Components      map[string]string         `json:"components"`
-	LastChecked     *metav1.Time             `json:"last_checked"`
-	NextCheckIn     time.Duration            `json:"next_check_in"`
-	HealthScore     float64                  `json:"health_score"` // 0-100
-	Alerts          []*HealthAlert           `json:"alerts,omitempty"`
-	Recommendations []*HealthRecommendation  `json:"recommendations,omitempty"`
+	Overall         string                  `json:"overall"`
+	Components      map[string]string       `json:"components"`
+	LastChecked     *metav1.Time            `json:"last_checked"`
+	NextCheckIn     time.Duration           `json:"next_check_in"`
+	HealthScore     float64                 `json:"health_score"` // 0-100
+	Alerts          []*HealthAlert          `json:"alerts,omitempty"`
+	Recommendations []*HealthRecommendation `json:"recommendations,omitempty"`
 }
 
 // HealthAlert represents a cluster health alert
 type HealthAlert struct {
-	Level       string    `json:"level"`       // info, warning, error, critical
-	Component   string    `json:"component"`
-	Message     string    `json:"message"`
-	Timestamp   time.Time `json:"timestamp"`
-	ActionURL   string    `json:"action_url,omitempty"`
+	Level     string    `json:"level"` // info, warning, error, critical
+	Component string    `json:"component"`
+	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp"`
+	ActionURL string    `json:"action_url,omitempty"`
 }
 
 // HealthRecommendation represents a health improvement recommendation
@@ -84,53 +84,53 @@ type HealthRecommendation struct {
 
 // DeploymentHistoryItem represents a deployment history entry
 type DeploymentHistoryItem struct {
-	PackageName   string       `json:"package_name"`
-	Version       string       `json:"version"`
-	Status        string       `json:"status"`
-	DeployedAt    *metav1.Time `json:"deployed_at"`
-	DeployedBy    string       `json:"deployed_by,omitempty"`
-	Duration      *metav1.Duration `json:"duration,omitempty"`
-	ErrorMessage  string       `json:"error_message,omitempty"`
+	PackageName  string           `json:"package_name"`
+	Version      string           `json:"version"`
+	Status       string           `json:"status"`
+	DeployedAt   *metav1.Time     `json:"deployed_at"`
+	DeployedBy   string           `json:"deployed_by,omitempty"`
+	Duration     *metav1.Duration `json:"duration,omitempty"`
+	ErrorMessage string           `json:"error_message,omitempty"`
 }
 
 // ResourceUsageMetrics represents current resource usage
 type ResourceUsageMetrics struct {
-	CPUUsage        float64   `json:"cpu_usage_percent"`
-	MemoryUsage     float64   `json:"memory_usage_percent"`
-	StorageUsage    float64   `json:"storage_usage_percent"`
-	NetworkIO       *NetworkIO `json:"network_io,omitempty"`
-	PodCount        int       `json:"pod_count"`
-	NodeCount       int       `json:"node_count"`
-	LastUpdated     *metav1.Time `json:"last_updated"`
+	CPUUsage     float64      `json:"cpu_usage_percent"`
+	MemoryUsage  float64      `json:"memory_usage_percent"`
+	StorageUsage float64      `json:"storage_usage_percent"`
+	NetworkIO    *NetworkIO   `json:"network_io,omitempty"`
+	PodCount     int          `json:"pod_count"`
+	NodeCount    int          `json:"node_count"`
+	LastUpdated  *metav1.Time `json:"last_updated"`
 }
 
 // NetworkIO represents network I/O metrics
 type NetworkIO struct {
-	BytesIn     int64 `json:"bytes_in"`
-	BytesOut    int64 `json:"bytes_out"`
-	PacketsIn   int64 `json:"packets_in"`
-	PacketsOut  int64 `json:"packets_out"`
+	BytesIn    int64 `json:"bytes_in"`
+	BytesOut   int64 `json:"bytes_out"`
+	PacketsIn  int64 `json:"packets_in"`
+	PacketsOut int64 `json:"packets_out"`
 }
 
 // NetworkInformation represents cluster network information
 type NetworkInformation struct {
-	ClusterCIDR     string            `json:"cluster_cidr,omitempty"`
-	ServiceCIDR     string            `json:"service_cidr,omitempty"`
-	PodCIDR         string            `json:"pod_cidr,omitempty"`
-	DNSClusterIP    string            `json:"dns_cluster_ip,omitempty"`
-	LoadBalancers   []*LoadBalancerInfo `json:"load_balancers,omitempty"`
+	ClusterCIDR        string                   `json:"cluster_cidr,omitempty"`
+	ServiceCIDR        string                   `json:"service_cidr,omitempty"`
+	PodCIDR            string                   `json:"pod_cidr,omitempty"`
+	DNSClusterIP       string                   `json:"dns_cluster_ip,omitempty"`
+	LoadBalancers      []*LoadBalancerInfo      `json:"load_balancers,omitempty"`
 	IngressControllers []*IngressControllerInfo `json:"ingress_controllers,omitempty"`
 }
 
 // LoadBalancerInfo represents load balancer information
 type LoadBalancerInfo struct {
-	Name         string `json:"name"`
-	Type         string `json:"type"`
-	ExternalIP   string `json:"external_ip,omitempty"`
-	Status       string `json:"status"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	ExternalIP string `json:"external_ip,omitempty"`
+	Status     string `json:"status"`
 }
 
-// IngressControllerInfo represents ingress controller information  
+// IngressControllerInfo represents ingress controller information
 type IngressControllerInfo struct {
 	Name         string `json:"name"`
 	Class        string `json:"class"`
@@ -140,24 +140,24 @@ type IngressControllerInfo struct {
 
 // DeploymentRequest represents a deployment request to clusters
 type DeploymentRequest struct {
-	PackageName       string                          `json:"package_name"`
-	TargetClusters    []string                        `json:"target_clusters,omitempty"`
-	Strategy          multicluster.DeploymentStrategy `json:"strategy,omitempty"`
-	Constraints       []multicluster.PlacementConstraint `json:"constraints,omitempty"`
-	ValidateOnly      bool                            `json:"validate_only,omitempty"`
-	DryRun            bool                            `json:"dry_run,omitempty"`
+	PackageName    string                             `json:"package_name"`
+	TargetClusters []string                           `json:"target_clusters,omitempty"`
+	Strategy       multicluster.DeploymentStrategy    `json:"strategy,omitempty"`
+	Constraints    []multicluster.PlacementConstraint `json:"constraints,omitempty"`
+	ValidateOnly   bool                               `json:"validate_only,omitempty"`
+	DryRun         bool                               `json:"dry_run,omitempty"`
 }
 
 // ClusterStatusUpdate represents a cluster status update for streaming
 type ClusterStatusUpdate struct {
-	ClusterName   string                    `json:"cluster_name"`
-	Status        multicluster.ClusterStatus `json:"status"`
+	ClusterName    string                     `json:"cluster_name"`
+	Status         multicluster.ClusterStatus `json:"status"`
 	PreviousStatus multicluster.ClusterStatus `json:"previous_status,omitempty"`
-	HealthScore   float64                   `json:"health_score"`
-	Message       string                    `json:"message,omitempty"`
-	Timestamp     time.Time                 `json:"timestamp"`
-	EventType     string                    `json:"event_type"` // registered, updated, health_changed, deployment, error
-	Alerts        []*HealthAlert            `json:"alerts,omitempty"`
+	HealthScore    float64                    `json:"health_score"`
+	Message        string                     `json:"message,omitempty"`
+	Timestamp      time.Time                  `json:"timestamp"`
+	EventType      string                     `json:"event_type"` // registered, updated, health_changed, deployment, error
+	Alerts         []*HealthAlert             `json:"alerts,omitempty"`
 }
 
 // setupClusterRoutes sets up multi-cluster management API routes
@@ -224,7 +224,7 @@ func (s *NephoranAPIServer) listClusters(w http.ResponseWriter, r *http.Request)
 	}
 
 	if s.clusterManager == nil {
-		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable", 
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable",
 			"Multi-cluster management service is not available")
 		return
 	}
@@ -235,7 +235,7 @@ func (s *NephoranAPIServer) listClusters(w http.ResponseWriter, r *http.Request)
 	// Apply filtering and pagination
 	filteredClusters := s.filterClusters(clusters, filters)
 	totalItems := len(filteredClusters)
-	
+
 	startIndex := (pagination.Page - 1) * pagination.PageSize
 	endIndex := startIndex + pagination.PageSize
 	if endIndex > totalItems {
@@ -301,7 +301,7 @@ func (s *NephoranAPIServer) getCluster(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if s.clusterManager == nil {
-		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable", 
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable",
 			"Multi-cluster management service is not available")
 		return
 	}
@@ -309,7 +309,7 @@ func (s *NephoranAPIServer) getCluster(w http.ResponseWriter, r *http.Request) {
 	// Build comprehensive cluster response
 	response := s.buildClusterResponse(ctx, clusterID)
 	if response == nil {
-		s.writeErrorResponse(w, http.StatusNotFound, "cluster_not_found", 
+		s.writeErrorResponse(w, http.StatusNotFound, "cluster_not_found",
 			fmt.Sprintf("Cluster '%s' not found", clusterID))
 		return
 	}
@@ -340,24 +340,24 @@ func (s *NephoranAPIServer) getClusterStatus(w http.ResponseWriter, r *http.Requ
 	}
 
 	if s.clusterManager == nil {
-		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable", 
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable",
 			"Multi-cluster management service is not available")
 		return
 	}
 
 	// Get cluster status - mock implementation
 	status := map[string]interface{}{
-		"cluster_id":    clusterID,
-		"status":        "Healthy",
-		"last_checked":  time.Now(),
-		"health_score":  95.5,
-		"nodes_ready":   3,
-		"nodes_total":   3,
-		"pods_running":  42,
-		"pods_total":    45,
-		"version":       "v1.28.0",
-		"provider":      "aws",
-		"region":        "us-west-2",
+		"cluster_id":   clusterID,
+		"status":       "Healthy",
+		"last_checked": time.Now(),
+		"health_score": 95.5,
+		"nodes_ready":  3,
+		"nodes_total":  3,
+		"pods_running": 42,
+		"pods_total":   45,
+		"version":      "v1.28.0",
+		"provider":     "aws",
+		"region":       "us-west-2",
 	}
 
 	// Cache with very short TTL for real-time status
@@ -374,7 +374,7 @@ func (s *NephoranAPIServer) deployToCluster(w http.ResponseWriter, r *http.Reque
 
 	// Check deployment permissions
 	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionManageSystem) {
-		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions", 
+		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 			"System management permission required for cluster deployments")
 		return
 	}
@@ -384,20 +384,20 @@ func (s *NephoranAPIServer) deployToCluster(w http.ResponseWriter, r *http.Reque
 
 	var req DeploymentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		s.writeErrorResponse(w, http.StatusBadRequest, "invalid_json", 
+		s.writeErrorResponse(w, http.StatusBadRequest, "invalid_json",
 			"Invalid JSON in request body")
 		return
 	}
 
 	// Validate request
 	if req.PackageName == "" {
-		s.writeErrorResponse(w, http.StatusBadRequest, "validation_failed", 
+		s.writeErrorResponse(w, http.StatusBadRequest, "validation_failed",
 			"package_name is required")
 		return
 	}
 
 	if s.clusterManager == nil {
-		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable", 
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable",
 			"Multi-cluster management service is not available")
 		return
 	}
@@ -418,9 +418,9 @@ func (s *NephoranAPIServer) deployToCluster(w http.ResponseWriter, r *http.Reque
 	// Perform deployment
 	result, err := s.clusterManager.PropagatePackage(ctx, req.PackageName, options)
 	if err != nil {
-		s.logger.Error(err, "Failed to deploy to cluster", 
+		s.logger.Error(err, "Failed to deploy to cluster",
 			"cluster", clusterID, "package", req.PackageName)
-		s.writeErrorResponse(w, http.StatusInternalServerError, "deployment_failed", 
+		s.writeErrorResponse(w, http.StatusInternalServerError, "deployment_failed",
 			fmt.Sprintf("Failed to deploy package: %v", err))
 		return
 	}
@@ -452,7 +452,7 @@ func (s *NephoranAPIServer) getNetworkTopology(w http.ResponseWriter, r *http.Re
 	}
 
 	if s.clusterManager == nil {
-		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable", 
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable",
 			"Multi-cluster management service is not available")
 		return
 	}
@@ -469,7 +469,7 @@ func (s *NephoranAPIServer) getNetworkTopology(w http.ResponseWriter, r *http.Re
 				"position": map[string]float64{"x": 100, "y": 100},
 			},
 			{
-				"id":       "cluster-2", 
+				"id":       "cluster-2",
 				"name":     "production-us-east-1",
 				"region":   "us-east-1",
 				"zone":     "us-east-1a",
@@ -479,11 +479,11 @@ func (s *NephoranAPIServer) getNetworkTopology(w http.ResponseWriter, r *http.Re
 		},
 		"connections": []map[string]interface{}{
 			{
-				"from":        "cluster-1",
-				"to":          "cluster-2",
-				"latency_ms":  45.2,
-				"bandwidth":   "10Gbps",
-				"status":      "active",
+				"from":       "cluster-1",
+				"to":         "cluster-2",
+				"latency_ms": 45.2,
+				"bandwidth":  "10Gbps",
+				"status":     "active",
 			},
 		},
 		"policies": []map[string]interface{}{
@@ -510,44 +510,44 @@ func (s *NephoranAPIServer) registerCluster(w http.ResponseWriter, r *http.Reque
 
 	// Check admin permissions for cluster registration
 	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionManageSystem) {
-		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions", 
+		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 			"System management permission required for cluster registration")
 		return
 	}
 
 	var req ClusterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		s.writeErrorResponse(w, http.StatusBadRequest, "invalid_json", 
+		s.writeErrorResponse(w, http.StatusBadRequest, "invalid_json",
 			"Invalid JSON in request body")
 		return
 	}
 
 	// Validate request
 	if req.Name == "" {
-		s.writeErrorResponse(w, http.StatusBadRequest, "validation_failed", 
+		s.writeErrorResponse(w, http.StatusBadRequest, "validation_failed",
 			"name is required")
 		return
 	}
 
 	if s.clusterManager == nil {
-		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable", 
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable",
 			"Multi-cluster management service is not available")
 		return
 	}
 
 	// Create workload cluster object
 	cluster := &multicluster.WorkloadCluster{
-		ID:           generateClusterID(),
-		Name:         req.Name,
-		Region:       req.Region,
-		Zone:         req.Zone,
-		EdgeLocation: req.EdgeLocation,
-		Capabilities: req.Capabilities,
-		Resources:    req.Resources,
-		Status:       multicluster.ClusterStatusHealthy,
+		ID:            generateClusterID(),
+		Name:          req.Name,
+		Region:        req.Region,
+		Zone:          req.Zone,
+		EdgeLocation:  req.EdgeLocation,
+		Capabilities:  req.Capabilities,
+		Resources:     req.Resources,
+		Status:        multicluster.ClusterStatusHealthy,
 		LastCheckedAt: time.Now(),
-		Labels:       req.Labels,
-		Annotations:  req.Annotations,
+		Labels:        req.Labels,
+		Annotations:   req.Annotations,
 	}
 
 	// Register with cluster manager
@@ -561,7 +561,7 @@ func (s *NephoranAPIServer) registerCluster(w http.ResponseWriter, r *http.Reque
 	err := s.clusterManager.RegisterCluster(ctx, cluster, options)
 	if err != nil {
 		s.logger.Error(err, "Failed to register cluster", "name", req.Name)
-		s.writeErrorResponse(w, http.StatusInternalServerError, "registration_failed", 
+		s.writeErrorResponse(w, http.StatusInternalServerError, "registration_failed",
 			fmt.Sprintf("Failed to register cluster: %v", err))
 		return
 	}
@@ -624,14 +624,14 @@ func (s *NephoranAPIServer) filterClusters(clusters []ClusterResponse, filters F
 func (s *NephoranAPIServer) buildClusterResponse(ctx context.Context, clusterID string) *ClusterResponse {
 	// Mock implementation - would integrate with actual cluster manager
 	cluster := &multicluster.WorkloadCluster{
-		ID:     clusterID,
-		Name:   fmt.Sprintf("cluster-%s", clusterID),
-		Region: "us-west-2",
-		Zone:   "us-west-2a",
-		Status: multicluster.ClusterStatusHealthy,
+		ID:            clusterID,
+		Name:          fmt.Sprintf("cluster-%s", clusterID),
+		Region:        "us-west-2",
+		Zone:          "us-west-2a",
+		Status:        multicluster.ClusterStatusHealthy,
 		LastCheckedAt: time.Now(),
 		Resources: &multicluster.ResourceCapacity{
-			CPU:       8000, // 8 cores in millicores
+			CPU:       8000,                    // 8 cores in millicores
 			Memory:    16 * 1024 * 1024 * 1024, // 16GB in bytes
 			StorageGB: 100,
 		},
@@ -649,7 +649,7 @@ func (s *NephoranAPIServer) buildClusterResponse(ctx context.Context, clusterID 
 			HealthScore: 95.5,
 			LastChecked: &metav1.Time{Time: time.Now()},
 			Components: map[string]string{
-				"api-server":         "healthy",
+				"api-server":        "healthy",
 				"etcd":              "healthy",
 				"kubelet":           "healthy",
 				"kube-proxy":        "healthy",
@@ -659,12 +659,12 @@ func (s *NephoranAPIServer) buildClusterResponse(ctx context.Context, clusterID 
 			NextCheckIn: 30 * time.Second,
 		},
 		ResourceUsage: &ResourceUsageMetrics{
-			CPUUsage:    65.2,
-			MemoryUsage: 78.5,
+			CPUUsage:     65.2,
+			MemoryUsage:  78.5,
 			StorageUsage: 45.0,
-			PodCount:    42,
-			NodeCount:   3,
-			LastUpdated: &metav1.Time{Time: time.Now()},
+			PodCount:     42,
+			NodeCount:    3,
+			LastUpdated:  &metav1.Time{Time: time.Now()},
 		},
 		NetworkInfo: &NetworkInformation{
 			ClusterCIDR:  "10.244.0.0/16",

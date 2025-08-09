@@ -302,8 +302,8 @@ func (suite *AuditTrailControllerTestSuite) TestConfigurationHandling() {
 	suite.Run("invalid configuration handling", func() {
 		invalidConfigs := []nephv1.AuditTrailSpec{
 			{
-				Enabled:      true,
-				BatchSize:    -1, // Invalid batch size
+				Enabled:       true,
+				BatchSize:     -1, // Invalid batch size
 				FlushInterval: 10,
 			},
 			{
@@ -312,10 +312,10 @@ func (suite *AuditTrailControllerTestSuite) TestConfigurationHandling() {
 				FlushInterval: -1, // Invalid flush interval
 			},
 			{
-				Enabled:      true,
-				BatchSize:    10,
+				Enabled:       true,
+				BatchSize:     10,
 				FlushInterval: 10,
-				MaxQueueSize: -1, // Invalid queue size
+				MaxQueueSize:  -1, // Invalid queue size
 			},
 		}
 
@@ -330,7 +330,7 @@ func (suite *AuditTrailControllerTestSuite) TestConfigurationHandling() {
 				}
 
 				config, err := suite.controller.buildAuditSystemConfig(context.Background(), auditTrail, suite.controller.Log)
-				
+
 				// Should either error or apply safe defaults
 				if err != nil {
 					suite.Contains(err.Error(), "invalid")
@@ -405,7 +405,7 @@ func (suite *AuditTrailControllerTestSuite) TestErrorHandling() {
 			Namespace: "default",
 		}, &updatedAuditTrail)
 		suite.NoError(err)
-		
+
 		// Status should indicate failure or error
 		if updatedAuditTrail.Status.Phase == "Failed" {
 			suite.NotEmpty(updatedAuditTrail.Status.Conditions)

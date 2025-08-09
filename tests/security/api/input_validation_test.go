@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"html"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -127,7 +129,7 @@ func TestSQLInjectionPrevention(t *testing.T) {
 							name: "JSON_Body",
 							testFunc: func(payload string) *http.Request {
 								body := map[string]interface{}{
-									"query": payload,
+									"query":  payload,
 									"filter": payload,
 								}
 								jsonBody, _ := json.Marshal(body)
@@ -165,7 +167,7 @@ func TestSQLInjectionPrevention(t *testing.T) {
 
 							// Simulate validation
 							isSQLInjection := suite.detectSQLInjection(injection.payload)
-							
+
 							if isSQLInjection {
 								w.WriteHeader(http.StatusBadRequest)
 								json.NewEncoder(w).Encode(map[string]string{
@@ -421,22 +423,22 @@ func TestCommandInjection(t *testing.T) {
 							body := map[string]string{
 								field: cmd.payload,
 							}
-							
+
 							jsonBody, _ := json.Marshal(body)
 							req := httptest.NewRequest("POST", "/api/v1/execute", bytes.NewReader(jsonBody))
 							req.Header.Set("Content-Type", "application/json")
-							
+
 							w := httptest.NewRecorder()
-							
+
 							isCommandInjection := suite.detectCommandInjection(cmd.payload)
-							
+
 							if isCommandInjection {
 								w.WriteHeader(http.StatusBadRequest)
 								json.NewEncoder(w).Encode(map[string]string{
 									"error": "Invalid input: potential command injection",
 								})
 							}
-							
+
 							assert.True(t, isCommandInjection, fmt.Sprintf("%s: %s", cmd.name, cmd.description))
 							assert.Equal(t, http.StatusBadRequest, w.Code)
 						})
@@ -735,8 +737,8 @@ func TestJSONSchemaValidation(t *testing.T) {
 		{
 			name: "Extra_Properties",
 			payload: map[string]interface{}{
-				"intent":      "Deploy SMF",
-				"extraField":  "should not be here",
+				"intent":     "Deploy SMF",
+				"extraField": "should not be here",
 			},
 			shouldPass:  false,
 			description: "Additional properties not allowed",
@@ -803,53 +805,53 @@ func TestRequestSizeLimits(t *testing.T) {
 	suite := NewInputValidationTestSuite(t)
 
 	testCases := []struct {
-		name         string
-		sizeBytes    int
-		contentType  string
-		shouldPass   bool
-		description  string
+		name        string
+		sizeBytes   int
+		contentType string
+		shouldPass  bool
+		description string
 	}{
 		{
-			name:         "Normal_JSON_Request",
-			sizeBytes:    1024,
-			contentType:  "application/json",
-			shouldPass:   true,
-			description:  "Normal sized JSON request",
+			name:        "Normal_JSON_Request",
+			sizeBytes:   1024,
+			contentType: "application/json",
+			shouldPass:  true,
+			description: "Normal sized JSON request",
 		},
 		{
-			name:         "Large_JSON_Request",
-			sizeBytes:    10 * 1024 * 1024, // 10MB
-			contentType:  "application/json",
-			shouldPass:   false,
-			description:  "JSON request exceeding size limit",
+			name:        "Large_JSON_Request",
+			sizeBytes:   10 * 1024 * 1024, // 10MB
+			contentType: "application/json",
+			shouldPass:  false,
+			description: "JSON request exceeding size limit",
 		},
 		{
-			name:         "Normal_File_Upload",
-			sizeBytes:    5 * 1024 * 1024, // 5MB
-			contentType:  "multipart/form-data",
-			shouldPass:   true,
-			description:  "Normal file upload",
+			name:        "Normal_File_Upload",
+			sizeBytes:   5 * 1024 * 1024, // 5MB
+			contentType: "multipart/form-data",
+			shouldPass:  true,
+			description: "Normal file upload",
 		},
 		{
-			name:         "Large_File_Upload",
-			sizeBytes:    100 * 1024 * 1024, // 100MB
-			contentType:  "multipart/form-data",
-			shouldPass:   false,
-			description:  "File upload exceeding size limit",
+			name:        "Large_File_Upload",
+			sizeBytes:   100 * 1024 * 1024, // 100MB
+			contentType: "multipart/form-data",
+			shouldPass:  false,
+			description: "File upload exceeding size limit",
 		},
 		{
-			name:         "XML_Bomb",
-			sizeBytes:    1024 * 1024 * 1024, // 1GB expanded
-			contentType:  "application/xml",
-			shouldPass:   false,
-			description:  "XML bomb attack",
+			name:        "XML_Bomb",
+			sizeBytes:   1024 * 1024 * 1024, // 1GB expanded
+			contentType: "application/xml",
+			shouldPass:  false,
+			description: "XML bomb attack",
 		},
 		{
-			name:         "Zip_Bomb",
-			sizeBytes:    1024, // Small compressed, huge uncompressed
-			contentType:  "application/zip",
-			shouldPass:   false,
-			description:  "Zip bomb attack",
+			name:        "Zip_Bomb",
+			sizeBytes:   1024, // Small compressed, huge uncompressed
+			contentType: "application/zip",
+			shouldPass:  false,
+			description: "Zip bomb attack",
 		},
 	}
 
@@ -857,16 +859,16 @@ func TestRequestSizeLimits(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create request with specified size
 			var body io.Reader
-			
+
 			if tc.contentType == "multipart/form-data" {
 				// Create multipart body
 				var b bytes.Buffer
 				writer := multipart.NewWriter(&b)
-				
+
 				part, _ := writer.CreateFormFile("file", "test.bin")
 				part.Write(make([]byte, tc.sizeBytes))
 				writer.Close()
-				
+
 				body = &b
 			} else {
 				// Create regular body
@@ -1070,7 +1072,7 @@ func (s *InputValidationTestSuite) detectXSS(input, context string) bool {
 
 	// Decode various encodings
 	decodedInput := s.decodeInput(input)
-	
+
 	for _, pattern := range patterns {
 		if matched, _ := regexp.MatchString(pattern, decodedInput); matched {
 			return true
@@ -1118,18 +1120,18 @@ func (s *InputValidationTestSuite) detectPathTraversal(input string) bool {
 
 	// Decode URL encoding
 	decodedInput, _ := url.QueryUnescape(input)
-	
+
 	for _, pattern := range patterns {
 		if matched, _ := regexp.MatchString(pattern, decodedInput); matched {
 			return true
 		}
 	}
-	
+
 	// Check for null bytes
 	if strings.Contains(input, "\x00") {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -1225,34 +1227,28 @@ func (s *InputValidationTestSuite) detectSSRF(input string) bool {
 func (s *InputValidationTestSuite) decodeInput(input string) string {
 	// Try URL decoding
 	decoded, _ := url.QueryUnescape(input)
-	
+
 	// Try HTML entity decoding
 	decoded = html.UnescapeString(decoded)
-	
+
 	// Try Unicode decoding
 	decoded = strings.ReplaceAll(decoded, "\\u003c", "<")
 	decoded = strings.ReplaceAll(decoded, "\\u003e", ">")
-	
+
 	return decoded
 }
 
 func (s *InputValidationTestSuite) getMaxSizeForContentType(contentType string) int64 {
 	limits := map[string]int64{
-		"application/json":     1 * 1024 * 1024,   // 1MB for JSON
-		"application/xml":      5 * 1024 * 1024,   // 5MB for XML
-		"multipart/form-data":  50 * 1024 * 1024,  // 50MB for file uploads
-		"application/zip":      10 * 1024 * 1024,  // 10MB for zip files
+		"application/json":    1 * 1024 * 1024,  // 1MB for JSON
+		"application/xml":     5 * 1024 * 1024,  // 5MB for XML
+		"multipart/form-data": 50 * 1024 * 1024, // 50MB for file uploads
+		"application/zip":     10 * 1024 * 1024, // 10MB for zip files
 	}
 
 	if limit, exists := limits[contentType]; exists {
 		return limit
 	}
-	
+
 	return 1 * 1024 * 1024 // Default 1MB
 }
-
-// Missing imports
-import (
-	"html"
-	"regexp"
-)

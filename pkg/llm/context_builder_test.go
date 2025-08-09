@@ -28,16 +28,16 @@ func (m *MockWeaviateConnectionPool) Search(ctx context.Context, query *shared.S
 	if m.searchError != nil {
 		return nil, m.searchError
 	}
-	
+
 	// Filter results based on limit
 	limit := query.Limit
 	if limit > len(m.searchResults) {
 		limit = len(m.searchResults)
 	}
-	
+
 	filteredResults := make([]*shared.SearchResult, limit)
 	copy(filteredResults, m.searchResults[:limit])
-	
+
 	return &shared.SearchResponse{
 		Results: filteredResults,
 		Took:    10,
@@ -51,16 +51,16 @@ func (m *MockWeaviateConnectionPool) Close() error {
 
 func TestContextBuilder_BuildContext(t *testing.T) {
 	tests := []struct {
-		name             string
-		intent           string
-		maxDocs          int
+		name              string
+		intent            string
+		maxDocs           int
 		mockSearchResults []*shared.SearchResult
-		mockSearchError  error
-		mockConnected    bool
-		expectedDocs     int
-		expectedError    bool
-		errorContains    string
-		validateResult   func(t *testing.T, result []map[string]any)
+		mockSearchError   error
+		mockConnected     bool
+		expectedDocs      int
+		expectedError     bool
+		errorContains     string
+		validateResult    func(t *testing.T, result []map[string]any)
 	}{
 		{
 			name:    "successful context building with multiple documents",
@@ -69,54 +69,54 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 			mockSearchResults: []*shared.SearchResult{
 				{
 					Document: &shared.TelecomDocument{
-						ID:       "doc1",
-						Title:    "5G AMF Deployment Guide",
-						Content:  "This document describes how to deploy Access and Mobility Management Function in 5G core network",
-						Source:   "3GPP TS 23.501",
-						Category: "deployment",
-						Version:  "v17.0.0",
-						Keywords: []string{"AMF", "5G", "deployment"},
+						ID:              "doc1",
+						Title:           "5G AMF Deployment Guide",
+						Content:         "This document describes how to deploy Access and Mobility Management Function in 5G core network",
+						Source:          "3GPP TS 23.501",
+						Category:        "deployment",
+						Version:         "v17.0.0",
+						Keywords:        []string{"AMF", "5G", "deployment"},
 						NetworkFunction: []string{"AMF"},
-						Technology: []string{"5G"},
-						Confidence: 0.9,
-						CreatedAt: time.Now().Add(-30 * 24 * time.Hour),
-						UpdatedAt: time.Now().Add(-1 * 24 * time.Hour),
+						Technology:      []string{"5G"},
+						Confidence:      0.9,
+						CreatedAt:       time.Now().Add(-30 * 24 * time.Hour),
+						UpdatedAt:       time.Now().Add(-1 * 24 * time.Hour),
 					},
 					Score:    0.95,
 					Distance: 0.05,
 				},
 				{
 					Document: &shared.TelecomDocument{
-						ID:       "doc2",
-						Title:    "O-RAN AMF Configuration",
-						Content:  "O-RAN specific configuration for AMF network function deployment in cloud-native environments",
-						Source:   "O-RAN.WG4.MP-v04.00",
-						Category: "configuration",
-						Version:  "v4.0",
-						Keywords: []string{"O-RAN", "AMF", "configuration"},
+						ID:              "doc2",
+						Title:           "O-RAN AMF Configuration",
+						Content:         "O-RAN specific configuration for AMF network function deployment in cloud-native environments",
+						Source:          "O-RAN.WG4.MP-v04.00",
+						Category:        "configuration",
+						Version:         "v4.0",
+						Keywords:        []string{"O-RAN", "AMF", "configuration"},
 						NetworkFunction: []string{"AMF"},
-						Technology: []string{"O-RAN", "5G"},
-						Confidence: 0.85,
-						CreatedAt: time.Now().Add(-60 * 24 * time.Hour),
-						UpdatedAt: time.Now().Add(-7 * 24 * time.Hour),
+						Technology:      []string{"O-RAN", "5G"},
+						Confidence:      0.85,
+						CreatedAt:       time.Now().Add(-60 * 24 * time.Hour),
+						UpdatedAt:       time.Now().Add(-7 * 24 * time.Hour),
 					},
 					Score:    0.88,
 					Distance: 0.12,
 				},
 				{
 					Document: &shared.TelecomDocument{
-						ID:       "doc3",
-						Title:    "Network Function Lifecycle Management",
-						Content:  "Best practices for managing lifecycle of network functions including AMF in containerized environments",
-						Source:   "ETSI NFV-MAN 001",
-						Category: "management",
-						Version:  "v3.4.1",
-						Keywords: []string{"NFV", "lifecycle", "management"},
+						ID:              "doc3",
+						Title:           "Network Function Lifecycle Management",
+						Content:         "Best practices for managing lifecycle of network functions including AMF in containerized environments",
+						Source:          "ETSI NFV-MAN 001",
+						Category:        "management",
+						Version:         "v3.4.1",
+						Keywords:        []string{"NFV", "lifecycle", "management"},
 						NetworkFunction: []string{"AMF", "SMF", "UPF"},
-						Technology: []string{"NFV", "containers"},
-						Confidence: 0.75,
-						CreatedAt: time.Now().Add(-90 * 24 * time.Hour),
-						UpdatedAt: time.Now().Add(-30 * 24 * time.Hour),
+						Technology:      []string{"NFV", "containers"},
+						Confidence:      0.75,
+						CreatedAt:       time.Now().Add(-90 * 24 * time.Hour),
+						UpdatedAt:       time.Now().Add(-30 * 24 * time.Hour),
 					},
 					Score:    0.72,
 					Distance: 0.28,
@@ -130,17 +130,17 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 					t.Errorf("Expected 3 documents, got %d", len(result))
 					return
 				}
-				
+
 				// Validate first document
 				firstDoc := result[0]
 				if title, ok := firstDoc["title"].(string); !ok || title != "5G AMF Deployment Guide" {
 					t.Errorf("Expected first doc title '5G AMF Deployment Guide', got %v", firstDoc["title"])
 				}
-				
+
 				if score, ok := firstDoc["score"].(float32); !ok || score != 0.95 {
 					t.Errorf("Expected first doc score 0.95, got %v", firstDoc["score"])
 				}
-				
+
 				// Check enhanced query fields
 				if enhancedQuery, exists := firstDoc["enhanced_query"]; !exists {
 					t.Error("Expected enhanced_query field to exist")
@@ -150,36 +150,36 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 			},
 		},
 		{
-			name:    "empty intent",
-			intent:  "",
-			maxDocs: 5,
+			name:              "empty intent",
+			intent:            "",
+			maxDocs:           5,
 			mockSearchResults: []*shared.SearchResult{},
 			mockConnected:     true,
 			expectedError:     true,
 			errorContains:     "intent cannot be empty",
 		},
 		{
-			name:    "zero maxDocs",
-			intent:  "Deploy network function",
-			maxDocs: 0,
+			name:              "zero maxDocs",
+			intent:            "Deploy network function",
+			maxDocs:           0,
 			mockSearchResults: []*shared.SearchResult{},
 			mockConnected:     true,
 			expectedError:     true,
 			errorContains:     "maxDocs must be greater than 0",
 		},
 		{
-			name:    "weaviate connection failure",
-			intent:  "Deploy AMF",
-			maxDocs: 3,
+			name:              "weaviate connection failure",
+			intent:            "Deploy AMF",
+			maxDocs:           3,
 			mockSearchResults: []*shared.SearchResult{},
 			mockConnected:     false,
 			expectedError:     true,
 			errorContains:     "weaviate connection failed",
 		},
 		{
-			name:    "search operation failure",
-			intent:  "Deploy AMF network function",
-			maxDocs: 3,
+			name:              "search operation failure",
+			intent:            "Deploy AMF network function",
+			maxDocs:           3,
 			mockSearchResults: []*shared.SearchResult{},
 			mockSearchError:   fmt.Errorf("weaviate search timeout"),
 			mockConnected:     true,
@@ -187,9 +187,9 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 			errorContains:     "weaviate search timeout",
 		},
 		{
-			name:    "no documents found",
-			intent:  "Deploy unknown network function XYZ123",
-			maxDocs: 5,
+			name:              "no documents found",
+			intent:            "Deploy unknown network function XYZ123",
+			maxDocs:           5,
 			mockSearchResults: []*shared.SearchResult{},
 			mockConnected:     true,
 			expectedDocs:      0,
@@ -207,17 +207,17 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 			mockSearchResults: []*shared.SearchResult{
 				{
 					Document: &shared.TelecomDocument{
-						ID:       "doc4",
-						Title:    "gNodeB Configuration for New Radio",
-						Content:  "Configuration procedures for gNodeB (gNB) in 5G New Radio (NR) networks following O-RAN specifications",
-						Source:   "O-RAN.WG3.RAN-v03.00",
-						Category: "configuration",
+						ID:              "doc4",
+						Title:           "gNodeB Configuration for New Radio",
+						Content:         "Configuration procedures for gNodeB (gNB) in 5G New Radio (NR) networks following O-RAN specifications",
+						Source:          "O-RAN.WG3.RAN-v03.00",
+						Category:        "configuration",
 						NetworkFunction: []string{"gNB", "DU", "CU"},
-						Technology: []string{"5G", "O-RAN", "NR"},
-						Keywords: []string{"gNodeB", "5G", "NR", "O-RAN", "configuration"},
-						Confidence: 0.92,
-						CreatedAt: time.Now().Add(-15 * 24 * time.Hour),
-						UpdatedAt: time.Now().Add(-2 * 24 * time.Hour),
+						Technology:      []string{"5G", "O-RAN", "NR"},
+						Keywords:        []string{"gNodeB", "5G", "NR", "O-RAN", "configuration"},
+						Confidence:      0.92,
+						CreatedAt:       time.Now().Add(-15 * 24 * time.Hour),
+						UpdatedAt:       time.Now().Add(-2 * 24 * time.Hour),
 					},
 					Score:    0.91,
 					Distance: 0.09,
@@ -231,7 +231,7 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 					t.Errorf("Expected 1 document, got %d", len(result))
 					return
 				}
-				
+
 				doc := result[0]
 				if enhancedQuery, exists := doc["enhanced_query"]; exists {
 					if eq, ok := enhancedQuery.(string); ok {
@@ -245,9 +245,9 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 			},
 		},
 		{
-			name:    "large document set with limit",
-			intent:  "5G core network deployment",
-			maxDocs: 2, // Limit to 2 docs
+			name:              "large document set with limit",
+			intent:            "5G core network deployment",
+			maxDocs:           2,                            // Limit to 2 docs
 			mockSearchResults: generateMockSearchResults(5), // But have 5 available
 			mockConnected:     true,
 			expectedDocs:      2, // Should return only 2
@@ -265,19 +265,19 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 			mockSearchResults: []*shared.SearchResult{
 				{
 					Document: &shared.TelecomDocument{
-						ID:       "pdf_doc",
-						Title:    "Network Slicing Architecture",
-						Content:  "Network slicing enables multiple virtual networks on a shared physical infrastructure",
-						Source:   "3GPP TS 28.530",
-						Category: "specification",
-						DocumentType: "PDF",
-						Language: "en",
-						Version:  "v16.2.0",
+						ID:              "pdf_doc",
+						Title:           "Network Slicing Architecture",
+						Content:         "Network slicing enables multiple virtual networks on a shared physical infrastructure",
+						Source:          "3GPP TS 28.530",
+						Category:        "specification",
+						DocumentType:    "PDF",
+						Language:        "en",
+						Version:         "v16.2.0",
 						NetworkFunction: []string{"NSSF", "NSSMF"},
-						Technology: []string{"5G", "Network Slicing"},
-						UseCase: []string{"eMBB", "URLLC", "mMTC"},
-						Keywords: []string{"network", "slicing", "virtual", "architecture"},
-						Confidence: 0.88,
+						Technology:      []string{"5G", "Network Slicing"},
+						UseCase:         []string{"eMBB", "URLLC", "mMTC"},
+						Keywords:        []string{"network", "slicing", "virtual", "architecture"},
+						Confidence:      0.88,
 						Metadata: map[string]interface{}{
 							"page_count": 45,
 							"format":     "PDF",
@@ -302,9 +302,9 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 					t.Errorf("Expected 1 document, got %d", len(result))
 					return
 				}
-				
+
 				doc := result[0]
-				
+
 				// Validate metadata preservation
 				if metadata, exists := doc["metadata"]; exists {
 					if metaMap, ok := metadata.(map[string]interface{}); ok {
@@ -313,7 +313,7 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 						}
 					}
 				}
-				
+
 				// Validate use case information
 				if useCases, exists := doc["use_case"]; exists {
 					if ucSlice, ok := useCases.([]string); ok && len(ucSlice) > 0 {
@@ -341,13 +341,13 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 			mockSearchResults: []*shared.SearchResult{
 				{
 					Document: &shared.TelecomDocument{
-						ID:      "low_conf_doc",
-						Title:   "Draft Network Function Guide",
-						Content: "This is a draft document about network function deployment",
-						Source:  "Internal Draft",
+						ID:         "low_conf_doc",
+						Title:      "Draft Network Function Guide",
+						Content:    "This is a draft document about network function deployment",
+						Source:     "Internal Draft",
 						Confidence: 0.3, // Low confidence
-						CreatedAt: time.Now().Add(-7 * 24 * time.Hour),
-						UpdatedAt: time.Now().Add(-1 * 24 * time.Hour),
+						CreatedAt:  time.Now().Add(-7 * 24 * time.Hour),
+						UpdatedAt:  time.Now().Add(-1 * 24 * time.Hour),
 					},
 					Score:    0.45,
 					Distance: 0.55,
@@ -361,7 +361,7 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 					t.Errorf("Expected 1 document, got %d", len(result))
 					return
 				}
-				
+
 				doc := result[0]
 				if confidence, exists := doc["confidence"]; exists {
 					if conf, ok := confidence.(float32); ok && conf != 0.3 {
@@ -377,13 +377,13 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 			mockSearchResults: []*shared.SearchResult{
 				{
 					Document: &shared.TelecomDocument{
-						ID:      "timeout_doc",
-						Title:   "Network Function Deployment",
-						Content: "Standard deployment procedures for network functions",
-						Source:  "Standard Guide",
+						ID:         "timeout_doc",
+						Title:      "Network Function Deployment",
+						Content:    "Standard deployment procedures for network functions",
+						Source:     "Standard Guide",
 						Confidence: 0.8,
-						CreatedAt: time.Now().Add(-30 * 24 * time.Hour),
-						UpdatedAt: time.Now().Add(-5 * 24 * time.Hour),
+						CreatedAt:  time.Now().Add(-30 * 24 * time.Hour),
+						UpdatedAt:  time.Now().Add(-5 * 24 * time.Hour),
 					},
 					Score:    0.75,
 					Distance: 0.25,
@@ -400,13 +400,13 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 			mockSearchResults: []*shared.SearchResult{
 				{
 					Document: &shared.TelecomDocument{
-						ID:      "edge_case_doc",
-						Title:   "Edge Case Document",
-						Content: "Document for testing edge cases",
-						Source:  "Test Source",
+						ID:         "edge_case_doc",
+						Title:      "Edge Case Document",
+						Content:    "Document for testing edge cases",
+						Source:     "Test Source",
 						Confidence: 0.5,
-						CreatedAt: time.Now(),
-						UpdatedAt: time.Now(),
+						CreatedAt:  time.Now(),
+						UpdatedAt:  time.Now(),
 					},
 					Score:    0.6,
 					Distance: 0.4,
@@ -507,32 +507,32 @@ func TestContextBuilder_Performance(t *testing.T) {
 	}
 
 	contextBuilder := NewContextBuilderWithPool(config, mockPool)
-	
+
 	// Test with various document counts
 	testCases := []int{1, 5, 10, 25, 50}
-	
+
 	for _, maxDocs := range testCases {
 		t.Run(fmt.Sprintf("maxDocs_%d", maxDocs), func(t *testing.T) {
 			start := time.Now()
-			
+
 			result, err := contextBuilder.BuildContext(context.Background(), "Deploy 5G network function", maxDocs)
-			
+
 			duration := time.Since(start)
-			
+
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 				return
 			}
-			
+
 			if len(result) != maxDocs {
 				t.Errorf("Expected %d documents, got %d", maxDocs, len(result))
 			}
-			
+
 			// Performance assertion - should complete within reasonable time
 			if duration > 5*time.Second {
 				t.Errorf("Context building took too long: %v", duration)
 			}
-			
+
 			t.Logf("Built context with %d documents in %v", maxDocs, duration)
 		})
 	}
@@ -558,11 +558,11 @@ func TestContextBuilder_ConcurrentAccess(t *testing.T) {
 	}
 
 	contextBuilder := NewContextBuilderWithPool(config, mockPool)
-	
+
 	// Run multiple goroutines concurrently
 	concurrentRequests := 10
 	results := make(chan error, concurrentRequests)
-	
+
 	for i := 0; i < concurrentRequests; i++ {
 		go func(id int) {
 			intent := fmt.Sprintf("Deploy network function %d", id)
@@ -570,7 +570,7 @@ func TestContextBuilder_ConcurrentAccess(t *testing.T) {
 			results <- err
 		}(i)
 	}
-	
+
 	// Collect results
 	for i := 0; i < concurrentRequests; i++ {
 		err := <-results
@@ -583,35 +583,35 @@ func TestContextBuilder_ConcurrentAccess(t *testing.T) {
 // Helper functions
 
 func contains(haystack, needle string) bool {
-	return len(needle) == 0 || (len(haystack) > 0 && len(needle) <= len(haystack) && haystack[len(haystack)-len(needle):] == needle) || 
-		   (len(haystack) >= len(needle) && haystack[:len(needle)] == needle) ||
-		   (len(haystack) > len(needle) && strings.Contains(haystack, needle))
+	return len(needle) == 0 || (len(haystack) > 0 && len(needle) <= len(haystack) && haystack[len(haystack)-len(needle):] == needle) ||
+		(len(haystack) >= len(needle) && haystack[:len(needle)] == needle) ||
+		(len(haystack) > len(needle) && strings.Contains(haystack, needle))
 }
 
 func generateMockSearchResults(count int) []*shared.SearchResult {
 	results := make([]*shared.SearchResult, count)
-	
+
 	for i := 0; i < count; i++ {
 		results[i] = &shared.SearchResult{
 			Document: &shared.TelecomDocument{
-				ID:      fmt.Sprintf("doc_%d", i),
-				Title:   fmt.Sprintf("Document %d", i),
-				Content: fmt.Sprintf("Content for document %d with various telecom terms like 5G, AMF, and network functions", i),
-				Source:  fmt.Sprintf("Source %d", i),
-				Category: "test",
-				Version:  "v1.0",
-				Keywords: []string{"test", "document", fmt.Sprintf("doc%d", i)},
+				ID:              fmt.Sprintf("doc_%d", i),
+				Title:           fmt.Sprintf("Document %d", i),
+				Content:         fmt.Sprintf("Content for document %d with various telecom terms like 5G, AMF, and network functions", i),
+				Source:          fmt.Sprintf("Source %d", i),
+				Category:        "test",
+				Version:         "v1.0",
+				Keywords:        []string{"test", "document", fmt.Sprintf("doc%d", i)},
 				NetworkFunction: []string{"AMF", "SMF"},
-				Technology: []string{"5G", "test"},
-				Confidence: 0.5 + float32(i%5)*0.1,
-				CreatedAt: time.Now().Add(-time.Duration(i*24) * time.Hour),
-				UpdatedAt: time.Now().Add(-time.Duration(i*12) * time.Hour),
+				Technology:      []string{"5G", "test"},
+				Confidence:      0.5 + float32(i%5)*0.1,
+				CreatedAt:       time.Now().Add(-time.Duration(i*24) * time.Hour),
+				UpdatedAt:       time.Now().Add(-time.Duration(i*12) * time.Hour),
 			},
 			Score:    0.9 - float32(i)*0.05,
 			Distance: float32(i) * 0.05,
 		}
 	}
-	
+
 	return results
 }
 
@@ -624,7 +624,7 @@ func generateLongIntent() string {
 	intent += "specifications and enterprise-grade security policies including mutual TLS authentication, "
 	intent += "role-based access control, and audit logging capabilities for telecommunications operators "
 	intent += "in production environments with 99.99% availability requirements and sub-millisecond latency targets"
-	
+
 	return intent
 }
 
@@ -645,9 +645,9 @@ func NewContextBuilderWithPool(config *ContextBuilderConfig, pool interface{}) *
 	}
 
 	return &ContextBuilder{
-		config:      config,
-		pool:        pool, // Use the mock pool
-		metrics:     &ContextBuilderMetrics{},
-		logger:      slog.Default().With("component", "context-builder"),
+		config:  config,
+		pool:    pool, // Use the mock pool
+		metrics: &ContextBuilderMetrics{},
+		logger:  slog.Default().With("component", "context-builder"),
 	}
 }

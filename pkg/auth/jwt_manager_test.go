@@ -40,8 +40,8 @@ func TestNewJWTManager(t *testing.T) {
 			},
 		},
 		{
-			name: "Nil configuration uses defaults",
-			config: nil,
+			name:        "Nil configuration uses defaults",
+			config:      nil,
 			expectError: false,
 			checkConfig: func(t *testing.T, manager *JWTManager) {
 				assert.Equal(t, "nephoran-intent-operator", manager.issuer)
@@ -153,7 +153,7 @@ func TestJWTManager_GenerateToken(t *testing.T) {
 			expectError: false,
 			checkToken: func(t *testing.T, tokenStr string) {
 				assert.NotEmpty(t, tokenStr)
-				
+
 				// Parse and validate token
 				token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 					return tc.PublicKey, nil
@@ -180,32 +180,32 @@ func TestJWTManager_GenerateToken(t *testing.T) {
 					return tc.PublicKey, nil
 				})
 				require.NoError(t, err)
-				
+
 				claims := token.Claims.(jwt.MapClaims)
 				assert.Equal(t, "custom_value", claims["custom_field"])
-				
+
 				roles, ok := claims["roles"].([]interface{})
 				assert.True(t, ok)
 				assert.Len(t, roles, 2)
 			},
 		},
 		{
-			name:     "Token with custom TTL",
-			userInfo: user,
-			ttl:      &[]time.Duration{30 * time.Minute}[0],
+			name:        "Token with custom TTL",
+			userInfo:    user,
+			ttl:         &[]time.Duration{30 * time.Minute}[0],
 			expectError: false,
 			checkToken: func(t *testing.T, tokenStr string) {
 				token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 					return tc.PublicKey, nil
 				})
 				require.NoError(t, err)
-				
+
 				claims := token.Claims.(jwt.MapClaims)
 				exp := claims["exp"].(float64)
 				iat := claims["iat"].(float64)
-				
+
 				// Check that the expiration is approximately 30 minutes from issued time
-				expectedExp := iat + (30 * 60) // 30 minutes in seconds
+				expectedExp := iat + (30 * 60)          // 30 minutes in seconds
 				assert.InDelta(t, expectedExp, exp, 60) // Allow 1 minute tolerance
 			},
 		},
@@ -324,7 +324,7 @@ func TestJWTManager_RefreshToken(t *testing.T) {
 
 	manager := tc.SetupJWTManager()
 	uf := testutil.NewUserFactory()
-	
+
 	user := uf.CreateBasicUser()
 
 	// Generate initial tokens
@@ -348,7 +348,7 @@ func TestJWTManager_RefreshToken(t *testing.T) {
 				assert.NotEmpty(t, newRefresh)
 				assert.NotEqual(t, accessToken, newAccess)
 				assert.NotEqual(t, refreshTokenStr, newRefresh)
-				
+
 				// Validate new access token
 				claims, err := manager.ValidateToken(newAccess)
 				assert.NoError(t, err)
@@ -392,7 +392,7 @@ func TestJWTManager_BlacklistToken(t *testing.T) {
 
 	manager := tc.SetupJWTManager()
 	uf := testutil.NewUserFactory()
-	
+
 	user := uf.CreateBasicUser()
 	token, err := manager.GenerateToken(user, nil)
 	require.NoError(t, err)
@@ -429,11 +429,11 @@ func TestJWTManager_BlacklistToken(t *testing.T) {
 			}
 
 			assert.NoError(t, err)
-			
+
 			// Verify token is blacklisted
 			isBlacklisted := manager.IsTokenBlacklisted(tt.token)
 			assert.True(t, isBlacklisted)
-			
+
 			// Verify blacklisted token fails validation
 			_, err = manager.ValidateToken(tt.token)
 			assert.Error(t, err)
@@ -497,7 +497,7 @@ func TestJWTManager_GetJWKS(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, jwks)
 	assert.Len(t, jwks.Keys, 1)
-	
+
 	key := jwks.Keys[0]
 	assert.Equal(t, "RSA", key.KeyType)
 	assert.Equal(t, tc.KeyID, key.KeyID)
@@ -510,24 +510,24 @@ func TestJWTManager_RotateKeys(t *testing.T) {
 	defer tc.Cleanup()
 
 	manager := tc.SetupJWTManager()
-	
+
 	// Get initial key ID
 	initialKeyID := manager.keyID
-	
+
 	// Rotate keys
 	err := manager.RotateKeys()
 	assert.NoError(t, err)
-	
+
 	// Verify key ID changed
 	assert.NotEqual(t, initialKeyID, manager.keyID)
-	
+
 	// Verify we can still generate and validate tokens
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
-	
+
 	token, err := manager.GenerateToken(user, nil)
 	assert.NoError(t, err)
-	
+
 	claims, err := manager.ValidateToken(token)
 	assert.NoError(t, err)
 	assert.Equal(t, user.Subject, claims["sub"])
@@ -539,22 +539,22 @@ func TestJWTManager_ExtractClaims(t *testing.T) {
 
 	manager := tc.SetupJWTManager()
 	uf := testutil.NewUserFactory()
-	
+
 	user := uf.CreateBasicUser()
 	customClaims := map[string]interface{}{
 		"roles":       []string{"admin", "user"},
 		"permissions": []string{"read", "write"},
 		"department":  "engineering",
 	}
-	
+
 	token, err := manager.GenerateToken(user, customClaims)
 	require.NoError(t, err)
 
 	tests := []struct {
-		name          string
-		token         string
-		expectedKeys  []string
-		expectError   bool
+		name         string
+		token        string
+		expectedKeys []string
+		expectError  bool
 	}{
 		{
 			name:         "Valid token extraction",
@@ -581,11 +581,11 @@ func TestJWTManager_ExtractClaims(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.NotNil(t, claims)
-			
+
 			for _, key := range tt.expectedKeys {
 				assert.Contains(t, claims, key, "Expected claim %s not found", key)
 			}
-			
+
 			// Verify custom claims
 			assert.Equal(t, []interface{}{"admin", "user"}, claims["roles"])
 			assert.Equal(t, []interface{}{"read", "write"}, claims["permissions"])
@@ -600,7 +600,7 @@ func TestJWTManager_GenerateTokenPair(t *testing.T) {
 
 	manager := tc.SetupJWTManager()
 	uf := testutil.NewUserFactory()
-	
+
 	user := uf.CreateBasicUser()
 
 	tests := []struct {
@@ -618,12 +618,12 @@ func TestJWTManager_GenerateTokenPair(t *testing.T) {
 				assert.NotEmpty(t, accessToken)
 				assert.NotEmpty(t, refreshToken)
 				assert.NotEqual(t, accessToken, refreshToken)
-				
+
 				// Validate access token
 				accessClaims, err := manager.ValidateToken(accessToken)
 				assert.NoError(t, err)
 				assert.Equal(t, user.Subject, accessClaims["sub"])
-				
+
 				// Validate refresh token structure (without expiration validation)
 				refreshClaims, err := manager.ExtractClaims(refreshToken)
 				assert.NoError(t, err)
@@ -641,7 +641,7 @@ func TestJWTManager_GenerateTokenPair(t *testing.T) {
 			checkTokens: func(t *testing.T, accessToken, refreshToken string) {
 				accessClaims, err := manager.ValidateToken(accessToken)
 				assert.NoError(t, err)
-				
+
 				roles, ok := accessClaims["roles"].([]interface{})
 				assert.True(t, ok)
 				assert.Equal(t, "admin", roles[0])
@@ -679,7 +679,7 @@ func TestJWTManager_TokenValidationWithContext(t *testing.T) {
 
 	manager := tc.SetupJWTManager()
 	uf := testutil.NewUserFactory()
-	
+
 	user := uf.CreateBasicUser()
 	token, err := manager.GenerateToken(user, nil)
 	require.NoError(t, err)
@@ -741,21 +741,21 @@ func TestJWTManager_CleanupBlacklist(t *testing.T) {
 
 	manager := tc.SetupJWTManager()
 	uf := testutil.NewUserFactory()
-	
+
 	user := uf.CreateBasicUser()
 
 	// Generate tokens with short TTL
 	shortTTL := 100 * time.Millisecond
 	token1, err := manager.GenerateTokenWithTTL(user, nil, shortTTL)
 	require.NoError(t, err)
-	
+
 	token2, err := manager.GenerateTokenWithTTL(user, nil, time.Hour)
 	require.NoError(t, err)
 
 	// Blacklist both tokens
 	err = manager.BlacklistToken(token1)
 	require.NoError(t, err)
-	
+
 	err = manager.BlacklistToken(token2)
 	require.NoError(t, err)
 
@@ -867,7 +867,7 @@ func createJWTManagerForTest(t *testing.T) (*JWTManager, *testutil.TestContext) 
 func generateTestTokenWithClaims(t *testing.T, manager *JWTManager, claims map[string]interface{}) string {
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
-	
+
 	token, err := manager.GenerateToken(user, claims)
 	require.NoError(t, err)
 	return token

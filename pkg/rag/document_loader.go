@@ -36,40 +36,40 @@ type DocumentLoader struct {
 // DocumentLoaderConfig holds configuration for the document loader
 type DocumentLoaderConfig struct {
 	// Source directories and URLs
-	LocalPaths       []string `json:"local_paths"`
-	RemoteURLs       []string `json:"remote_urls"`
-	
+	LocalPaths []string `json:"local_paths"`
+	RemoteURLs []string `json:"remote_urls"`
+
 	// PDF processing configuration
-	MaxFileSize        int64    `json:"max_file_size"`        // Maximum file size in bytes
-	PDFTextExtractor   string   `json:"pdf_text_extractor"`   // "native", "hybrid", "pdfcpu", or "ocr"
-	OCREnabled         bool     `json:"ocr_enabled"`
-	OCRLanguage        string   `json:"ocr_language"`
-	StreamingEnabled   bool     `json:"streaming_enabled"`    // Enable streaming for large files
-	StreamingThreshold int64    `json:"streaming_threshold"`  // File size threshold for streaming
-	MaxMemoryUsage     int64    `json:"max_memory_usage"`     // Maximum memory usage in bytes
-	PageProcessingBatch int     `json:"page_processing_batch"` // Pages to process in one batch
-	EnableTableExtraction bool  `json:"enable_table_extraction"` // Enhanced table extraction
-	EnableFigureExtraction bool `json:"enable_figure_extraction"` // Enhanced figure extraction
-	
+	MaxFileSize            int64  `json:"max_file_size"`      // Maximum file size in bytes
+	PDFTextExtractor       string `json:"pdf_text_extractor"` // "native", "hybrid", "pdfcpu", or "ocr"
+	OCREnabled             bool   `json:"ocr_enabled"`
+	OCRLanguage            string `json:"ocr_language"`
+	StreamingEnabled       bool   `json:"streaming_enabled"`        // Enable streaming for large files
+	StreamingThreshold     int64  `json:"streaming_threshold"`      // File size threshold for streaming
+	MaxMemoryUsage         int64  `json:"max_memory_usage"`         // Maximum memory usage in bytes
+	PageProcessingBatch    int    `json:"page_processing_batch"`    // Pages to process in one batch
+	EnableTableExtraction  bool   `json:"enable_table_extraction"`  // Enhanced table extraction
+	EnableFigureExtraction bool   `json:"enable_figure_extraction"` // Enhanced figure extraction
+
 	// Content filtering
 	MinContentLength int      `json:"min_content_length"`
 	MaxContentLength int      `json:"max_content_length"`
 	LanguageFilter   []string `json:"language_filter"`
-	
+
 	// Caching configuration
-	EnableCaching    bool          `json:"enable_caching"`
-	CacheDirectory   string        `json:"cache_directory"`
-	CacheTTL         time.Duration `json:"cache_ttl"`
-	
+	EnableCaching  bool          `json:"enable_caching"`
+	CacheDirectory string        `json:"cache_directory"`
+	CacheTTL       time.Duration `json:"cache_ttl"`
+
 	// Processing configuration
-	BatchSize        int           `json:"batch_size"`
-	MaxConcurrency   int           `json:"max_concurrency"`
+	BatchSize         int           `json:"batch_size"`
+	MaxConcurrency    int           `json:"max_concurrency"`
 	ProcessingTimeout time.Duration `json:"processing_timeout"`
-	
+
 	// Retry configuration
-	MaxRetries       int           `json:"max_retries"`
-	RetryDelay       time.Duration `json:"retry_delay"`
-	
+	MaxRetries int           `json:"max_retries"`
+	RetryDelay time.Duration `json:"retry_delay"`
+
 	// 3GPP and O-RAN specific settings
 	PreferredSources map[string]int `json:"preferred_sources"` // source -> priority mapping
 	TechnicalDomains []string       `json:"technical_domains"`
@@ -77,62 +77,62 @@ type DocumentLoaderConfig struct {
 
 // LoadedDocument represents a processed document ready for embedding
 type LoadedDocument struct {
-	ID              string                 `json:"id"`
-	SourcePath      string                 `json:"source_path"`
-	Filename        string                 `json:"filename"`
-	Title           string                 `json:"title"`
-	Content         string                 `json:"content"`
-	RawContent      string                 `json:"raw_content"`
-	Metadata        *DocumentMetadata      `json:"metadata"`
-	LoadedAt        time.Time              `json:"loaded_at"`
-	ProcessingTime  time.Duration          `json:"processing_time"`
-	Hash            string                 `json:"hash"`
-	Size            int64                  `json:"size"`
-	Language        string                 `json:"language"`
+	ID             string            `json:"id"`
+	SourcePath     string            `json:"source_path"`
+	Filename       string            `json:"filename"`
+	Title          string            `json:"title"`
+	Content        string            `json:"content"`
+	RawContent     string            `json:"raw_content"`
+	Metadata       *DocumentMetadata `json:"metadata"`
+	LoadedAt       time.Time         `json:"loaded_at"`
+	ProcessingTime time.Duration     `json:"processing_time"`
+	Hash           string            `json:"hash"`
+	Size           int64             `json:"size"`
+	Language       string            `json:"language"`
 }
 
 // DocumentMetadata contains extracted metadata from telecom specifications
 type DocumentMetadata struct {
 	// Standard document metadata
-	Source          string            `json:"source"`          // 3GPP, O-RAN, ETSI, ITU, etc.
-	DocumentType    string            `json:"document_type"`   // TS, TR, WID, etc.
-	Version         string            `json:"version"`         // Rel-17, v1.5.0, etc.
-	WorkingGroup    string            `json:"working_group"`   // RAN1, SA2, WG1, etc.
-	Category        string            `json:"category"`        // RAN, Core, Transport, etc.
-	Subcategory     string            `json:"subcategory"`
-	
+	Source       string `json:"source"`        // 3GPP, O-RAN, ETSI, ITU, etc.
+	DocumentType string `json:"document_type"` // TS, TR, WID, etc.
+	Version      string `json:"version"`       // Rel-17, v1.5.0, etc.
+	WorkingGroup string `json:"working_group"` // RAN1, SA2, WG1, etc.
+	Category     string `json:"category"`      // RAN, Core, Transport, etc.
+	Subcategory  string `json:"subcategory"`
+
 	// Technical metadata
-	Technologies    []string          `json:"technologies"`    // 5G, 4G, O-RAN, etc.
-	NetworkFunctions []string         `json:"network_functions"` // gNB, AMF, SMF, etc.
-	UseCases        []string          `json:"use_cases"`       // eMBB, URLLC, mMTC, etc.
-	Keywords        []string          `json:"keywords"`
-	
+	Technologies     []string `json:"technologies"`      // 5G, 4G, O-RAN, etc.
+	NetworkFunctions []string `json:"network_functions"` // gNB, AMF, SMF, etc.
+	UseCases         []string `json:"use_cases"`         // eMBB, URLLC, mMTC, etc.
+	Keywords         []string `json:"keywords"`
+
 	// Document structure
-	PageCount       int               `json:"page_count"`
-	SectionCount    int               `json:"section_count"`
-	TableCount      int               `json:"table_count"`
-	FigureCount     int               `json:"figure_count"`
-	
+	PageCount    int `json:"page_count"`
+	SectionCount int `json:"section_count"`
+	TableCount   int `json:"table_count"`
+	FigureCount  int `json:"figure_count"`
+
 	// Quality indicators
-	Confidence      float32           `json:"confidence"`
-	Language        string            `json:"language"`
-	ProcessingNotes []string          `json:"processing_notes"`
-	
+	Confidence      float32  `json:"confidence"`
+	Language        string   `json:"language"`
+	ProcessingNotes []string `json:"processing_notes"`
+
 	// Custom metadata
-	Custom          map[string]interface{} `json:"custom,omitempty"`
+	Custom map[string]interface{} `json:"custom,omitempty"`
 }
 
 // LoaderMetrics tracks document loading performance and statistics
 type LoaderMetrics struct {
-	TotalDocuments    int64         `json:"total_documents"`
-	SuccessfulLoads   int64         `json:"successful_loads"`
-	FailedLoads       int64         `json:"failed_loads"`
-	CacheHits         int64         `json:"cache_hits"`
-	CacheMisses       int64         `json:"cache_misses"`
-	AverageLoadTime   time.Duration `json:"average_load_time"`
+	TotalDocuments      int64         `json:"total_documents"`
+	SuccessfulLoads     int64         `json:"successful_loads"`
+	FailedLoads         int64         `json:"failed_loads"`
+	CacheHits           int64         `json:"cache_hits"`
+	CacheMisses         int64         `json:"cache_misses"`
+	AverageLoadTime     time.Duration `json:"average_load_time"`
 	TotalProcessingTime time.Duration `json:"total_processing_time"`
-	LastProcessedAt   time.Time     `json:"last_processed_at"`
-	mutex             sync.RWMutex
+	LastProcessedAt     time.Time     `json:"last_processed_at"`
+	mutex               sync.RWMutex
 }
 
 // NewDocumentLoader creates a new document loader with the specified configuration
@@ -145,16 +145,16 @@ func NewDocumentLoader(config *DocumentLoaderConfig) *DocumentLoader {
 	httpClient := &http.Client{
 		Timeout: config.ProcessingTimeout,
 		Transport: &http.Transport{
-			MaxIdleConns:        100,
-			MaxConnsPerHost:     10,
-			IdleConnTimeout:     90 * time.Second,
-			DisableCompression:  false,
+			MaxIdleConns:       100,
+			MaxConnsPerHost:    10,
+			IdleConnTimeout:    90 * time.Second,
+			DisableCompression: false,
 		},
 	}
 
 	// Create memory monitor
 	memoryMonitor := NewMemoryMonitor(config.MaxMemoryUsage)
-	
+
 	// Create processing pool
 	processingPool := NewProcessingPool(config.MaxConcurrency)
 
@@ -168,7 +168,6 @@ func NewDocumentLoader(config *DocumentLoaderConfig) *DocumentLoader {
 		processingPool: processingPool,
 	}
 }
-
 
 // LoadDocuments loads documents from configured sources
 func (dl *DocumentLoader) LoadDocuments(ctx context.Context) ([]*LoadedDocument, error) {
@@ -439,8 +438,8 @@ func (dl *DocumentLoader) processPDF(ctx context.Context, filePath string) (stri
 
 // processPDFStreaming processes large PDF files using enhanced streaming approach
 func (dl *DocumentLoader) processPDFStreaming(ctx context.Context, filePath string, fileSize int64) (string, string, *DocumentMetadata, error) {
-	dl.logger.Info("Processing large PDF with enhanced streaming", 
-		"file", filePath, 
+	dl.logger.Info("Processing large PDF with enhanced streaming",
+		"file", filePath,
 		"size", fileSize,
 		"threshold", dl.config.StreamingThreshold,
 	)
@@ -479,23 +478,23 @@ func (dl *DocumentLoader) processPDFStreaming(ctx context.Context, filePath stri
 func (dl *DocumentLoader) estimateMemoryRequirement(fileSize int64) int64 {
 	// Base memory requirement: 15% of file size for PDF parsing overhead
 	baseMemory := fileSize * 15 / 100
-	
+
 	// Additional memory for text extraction and processing
 	processingOverhead := int64(50 * 1024 * 1024) // 50MB base overhead
-	
+
 	// Scale with file size but cap at reasonable limits
 	totalMemory := baseMemory + processingOverhead
 	maxMemory := int64(500 * 1024 * 1024) // 500MB max
-	
+
 	if totalMemory > maxMemory {
 		return maxMemory
 	}
-	
+
 	minMemory := int64(20 * 1024 * 1024) // 20MB minimum
 	if totalMemory < minMemory {
 		return minMemory
 	}
-	
+
 	return totalMemory
 }
 
@@ -512,12 +511,12 @@ func (dl *DocumentLoader) processPDFStreamingAdvanced(ctx context.Context, fileP
 
 	// Create a streaming PDF processor
 	processor := &StreamingPDFProcessor{
-		file:           file,
-		logger:         dl.logger,
-		config:         dl.config,
-		memoryMonitor:  dl.memoryMonitor,
-		pageBuffer:     make(chan *PDFPageResult, dl.config.PageProcessingBatch),
-		resultBuffer:   strings.Builder{},
+		file:          file,
+		logger:        dl.logger,
+		config:        dl.config,
+		memoryMonitor: dl.memoryMonitor,
+		pageBuffer:    make(chan *PDFPageResult, dl.config.PageProcessingBatch),
+		resultBuffer:  strings.Builder{},
 		rawBuffer:     strings.Builder{},
 	}
 
@@ -531,10 +530,10 @@ func (dl *DocumentLoader) processPDFStreamingAdvanced(ctx context.Context, fileP
 	metadata := dl.extractTelecomMetadata(result.Content, filepath.Base(filePath))
 	metadata.PageCount = result.PageCount
 	metadata.ProcessingNotes = append(metadata.ProcessingNotes, "Processed with advanced streaming")
-	
+
 	// Add quality metrics
 	metadata.Confidence = dl.calculateProcessingConfidence(result.Content, result.PageCount, len(result.ProcessingErrors))
-	
+
 	return result.Content, result.RawContent, metadata, nil
 }
 
@@ -770,7 +769,7 @@ func (dl *DocumentLoader) extractAdvancedTables(content string) []ExtractedTable
 				table.Headers, table.Rows = dl.parseTableContent(tableContent)
 
 				tables = append(tables, table)
-				
+
 				// Limit extraction to prevent excessive processing
 				if i >= 50 {
 					break
@@ -797,18 +796,18 @@ func (dl *DocumentLoader) extractAdvancedFigures(content string) []ExtractedFigu
 		for i, match := range matches {
 			if len(match) >= 3 {
 				figure := ExtractedFigure{
-					PageNumber:  -1, // Unknown without page context
-					Caption:     strings.TrimSpace(match[2]),
-					FigureType:  "diagram", // Default type
-					Quality:     0.8,
-					Metadata:    make(map[string]interface{}),
+					PageNumber: -1, // Unknown without page context
+					Caption:    strings.TrimSpace(match[2]),
+					FigureType: "diagram", // Default type
+					Quality:    0.8,
+					Metadata:   make(map[string]interface{}),
 				}
 
 				// Determine figure type based on caption
 				figure.FigureType = dl.determineFigureType(figure.Caption)
 
 				figures = append(figures, figure)
-				
+
 				// Limit extraction to prevent excessive processing
 				if i >= 30 {
 					break
@@ -899,7 +898,7 @@ func (dl *DocumentLoader) extractTelecomMetadata(content, filename string) *Docu
 		Keywords:         []string{},
 		ProcessingNotes:  []string{},
 		Custom:           make(map[string]interface{}),
-		Confidence:       0.8, // Default confidence
+		Confidence:       0.8,  // Default confidence
 		Language:         "en", // Default to English
 	}
 
@@ -974,7 +973,7 @@ func (dl *DocumentLoader) extractDocumentTypeAndVersion(content, filename string
 
 	// O-RAN patterns
 	oranVersionPattern := regexp.MustCompile(`(?i)\bv(\d+\.\d+(?:\.\d+)?)\b`)
-	
+
 	var docType, version string
 
 	// Check for 3GPP document types
@@ -1053,14 +1052,14 @@ func (dl *DocumentLoader) extractCategory(content string) (string, string) {
 
 	// Main categories
 	categoryPatterns := map[string][]string{
-		"RAN": {"radio access", "base station", "gnb", "enb", "ue", "radio", "antenna", "rf"},
-		"Core": {"core network", "5gc", "epc", "amf", "smf", "upf", "ausf", "udm", "nrf"},
-		"Transport": {"transport", "backhaul", "fronthaul", "xhaul", "ethernet", "ip"},
+		"RAN":        {"radio access", "base station", "gnb", "enb", "ue", "radio", "antenna", "rf"},
+		"Core":       {"core network", "5gc", "epc", "amf", "smf", "upf", "ausf", "udm", "nrf"},
+		"Transport":  {"transport", "backhaul", "fronthaul", "xhaul", "ethernet", "ip"},
 		"Management": {"management", "orchestration", "oam", "configuration", "monitoring"},
-		"Security": {"security", "authentication", "encryption", "privacy", "key"},
-		"QoS": {"quality of service", "qos", "latency", "throughput", "reliability"},
-		"Slicing": {"network slice", "slicing", "slice", "tenant"},
-		"Edge": {"edge computing", "mec", "mobile edge", "edge"},
+		"Security":   {"security", "authentication", "encryption", "privacy", "key"},
+		"QoS":        {"quality of service", "qos", "latency", "throughput", "reliability"},
+		"Slicing":    {"network slice", "slicing", "slice", "tenant"},
+		"Edge":       {"edge computing", "mec", "mobile edge", "edge"},
 	}
 
 	for category, keywords := range categoryPatterns {
@@ -1081,10 +1080,10 @@ func (dl *DocumentLoader) extractSubcategory(content, category string) string {
 	subcategoryPatterns := map[string]map[string][]string{
 		"RAN": {
 			"Physical Layer": {"physical layer", "phy", "modulation", "coding"},
-			"MAC": {"mac", "medium access control", "scheduling"},
-			"RLC": {"rlc", "radio link control"},
-			"PDCP": {"pdcp", "packet data convergence"},
-			"RRC": {"rrc", "radio resource control"},
+			"MAC":            {"mac", "medium access control", "scheduling"},
+			"RLC":            {"rlc", "radio link control"},
+			"PDCP":           {"pdcp", "packet data convergence"},
+			"RRC":            {"rrc", "radio resource control"},
 		},
 		"Core": {
 			"AMF": {"amf", "access and mobility"},
@@ -1095,8 +1094,8 @@ func (dl *DocumentLoader) extractSubcategory(content, category string) string {
 		},
 		"Management": {
 			"Configuration": {"configuration", "config", "provisioning"},
-			"Performance": {"performance", "kpi", "monitoring"},
-			"Fault": {"fault", "alarm", "error", "failure"},
+			"Performance":   {"performance", "kpi", "monitoring"},
+			"Fault":         {"fault", "alarm", "error", "failure"},
 		},
 	}
 
@@ -1120,16 +1119,16 @@ func (dl *DocumentLoader) extractTechnologies(content string) []string {
 	techMap := make(map[string]bool)
 
 	techPatterns := map[string][]string{
-		"5G": {"5g", "5g-nr", "nr", "new radio"},
-		"4G": {"4g", "lte", "lte-a", "lte-advanced"},
-		"O-RAN": {"o-ran", "open ran", "oran"},
+		"5G":        {"5g", "5g-nr", "nr", "new radio"},
+		"4G":        {"4g", "lte", "lte-a", "lte-advanced"},
+		"O-RAN":     {"o-ran", "open ran", "oran"},
 		"Cloud RAN": {"c-ran", "cloud ran", "centralized ran"},
-		"vRAN": {"vran", "virtualized ran", "virtual ran"},
-		"SON": {"son", "self-organizing", "self-optimizing"},
-		"NFV": {"nfv", "network function virtualization"},
-		"SDN": {"sdn", "software defined network"},
-		"MANO": {"mano", "management and orchestration"},
-		"ETSI": {"etsi", "european telecommunications"},
+		"vRAN":      {"vran", "virtualized ran", "virtual ran"},
+		"SON":       {"son", "self-organizing", "self-optimizing"},
+		"NFV":       {"nfv", "network function virtualization"},
+		"SDN":       {"sdn", "software defined network"},
+		"MANO":      {"mano", "management and orchestration"},
+		"ETSI":      {"etsi", "european telecommunications"},
 	}
 
 	for tech, patterns := range techPatterns {
@@ -1152,22 +1151,22 @@ func (dl *DocumentLoader) extractNetworkFunctions(content string) []string {
 	funcMap := make(map[string]bool)
 
 	funcPatterns := map[string][]string{
-		"gNB": {"gnb", "g-nb", "next generation nodeb"},
-		"eNB": {"enb", "e-nb", "evolved nodeb"},
-		"AMF": {"amf", "access and mobility management function"},
-		"SMF": {"smf", "session management function"},
-		"UPF": {"upf", "user plane function"},
-		"PCF": {"pcf", "policy control function"},
-		"UDM": {"udm", "unified data management"},
-		"UDR": {"udr", "unified data repository"},
+		"gNB":  {"gnb", "g-nb", "next generation nodeb"},
+		"eNB":  {"enb", "e-nb", "evolved nodeb"},
+		"AMF":  {"amf", "access and mobility management function"},
+		"SMF":  {"smf", "session management function"},
+		"UPF":  {"upf", "user plane function"},
+		"PCF":  {"pcf", "policy control function"},
+		"UDM":  {"udm", "unified data management"},
+		"UDR":  {"udr", "unified data repository"},
 		"AUSF": {"ausf", "authentication server function"},
-		"NRF": {"nrf", "network repository function"},
+		"NRF":  {"nrf", "network repository function"},
 		"NSSF": {"nssf", "network slice selection function"},
-		"NEF": {"nef", "network exposure function"},
-		"AF": {"af", "application function"},
-		"DU": {"du", "distributed unit"},
-		"CU": {"cu", "centralized unit", "central unit"},
-		"RU": {"ru", "radio unit"},
+		"NEF":  {"nef", "network exposure function"},
+		"AF":   {"af", "application function"},
+		"DU":   {"du", "distributed unit"},
+		"CU":   {"cu", "centralized unit", "central unit"},
+		"RU":   {"ru", "radio unit"},
 	}
 
 	for function, patterns := range funcPatterns {
@@ -1190,14 +1189,14 @@ func (dl *DocumentLoader) extractUseCases(content string) []string {
 	ucMap := make(map[string]bool)
 
 	ucPatterns := map[string][]string{
-		"eMBB": {"embb", "enhanced mobile broadband"},
-		"URLLC": {"urllc", "ultra-reliable low latency"},
-		"mMTC": {"mmtc", "massive machine type communication"},
-		"IoT": {"iot", "internet of things"},
-		"V2X": {"v2x", "vehicle to everything", "v2v", "v2i"},
-		"AR/VR": {"augmented reality", "virtual reality", "ar", "vr"},
+		"eMBB":         {"embb", "enhanced mobile broadband"},
+		"URLLC":        {"urllc", "ultra-reliable low latency"},
+		"mMTC":         {"mmtc", "massive machine type communication"},
+		"IoT":          {"iot", "internet of things"},
+		"V2X":          {"v2x", "vehicle to everything", "v2v", "v2i"},
+		"AR/VR":        {"augmented reality", "virtual reality", "ar", "vr"},
 		"Industry 4.0": {"industry 4.0", "industrial automation"},
-		"Smart City": {"smart city", "smart cities"},
+		"Smart City":   {"smart city", "smart cities"},
 		"Telemedicine": {"telemedicine", "remote healthcare"},
 	}
 
@@ -1219,7 +1218,7 @@ func (dl *DocumentLoader) extractKeywords(content string) []string {
 	// This would implement more sophisticated keyword extraction
 	// For now, return a basic set based on content analysis
 	keywords := []string{}
-	
+
 	// Basic keyword extraction based on frequency and telecom relevance
 	commonTelecomTerms := []string{
 		"bandwidth", "latency", "throughput", "coverage", "capacity",
@@ -1247,7 +1246,7 @@ func (dl *DocumentLoader) extractKeywords(content string) []string {
 func (dl *DocumentLoader) isSupportedFile(filePath string) bool {
 	ext := strings.ToLower(filepath.Ext(filePath))
 	supportedExtensions := []string{".pdf"}
-	
+
 	for _, supported := range supportedExtensions {
 		if ext == supported {
 			return true
@@ -1276,31 +1275,31 @@ func (dl *DocumentLoader) generateFileHash(filePath string) (string, error) {
 func (dl *DocumentLoader) cleanTextContent(content string) string {
 	// Remove excessive whitespace
 	content = regexp.MustCompile(`\s+`).ReplaceAllString(content, " ")
-	
+
 	// Remove common PDF artifacts
 	content = regexp.MustCompile(`(?i)page\s+\d+\s+of\s+\d+`).ReplaceAllString(content, "")
 	content = regexp.MustCompile(`(?i)© \d{4}`).ReplaceAllString(content, "")
-	
+
 	// Normalize line breaks
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 	content = strings.ReplaceAll(content, "\r", "\n")
-	
+
 	// Remove excessive line breaks
 	content = regexp.MustCompile(`\n{3,}`).ReplaceAllString(content, "\n\n")
-	
+
 	return strings.TrimSpace(content)
 }
 
 // extractTitle attempts to extract a meaningful title from content or metadata
 func (dl *DocumentLoader) extractTitle(content string, metadata *DocumentMetadata) string {
 	lines := strings.Split(content, "\n")
-	
+
 	// Look for title in the first few lines
 	for i, line := range lines {
 		if i > 10 { // Don't look too far
 			break
 		}
-		
+
 		line = strings.TrimSpace(line)
 		if len(line) > 10 && len(line) < 200 {
 			// Check if this looks like a title
@@ -1309,37 +1308,37 @@ func (dl *DocumentLoader) extractTitle(content string, metadata *DocumentMetadat
 			}
 		}
 	}
-	
+
 	// Fallback to document type and version if available
 	if metadata.DocumentType != "" && metadata.Version != "" {
 		return fmt.Sprintf("%s %s", metadata.DocumentType, metadata.Version)
 	}
-	
+
 	return "Telecom Document"
 }
 
 // looksLikeTitle determines if a line looks like a document title
 func (dl *DocumentLoader) looksLikeTitle(line string) bool {
 	line = strings.ToLower(line)
-	
+
 	// Title indicators
 	titleIndicators := []string{
 		"technical specification", "technical report", "standard",
 		"specification", "requirements", "architecture",
 		"protocol", "interface", "procedures",
 	}
-	
+
 	for _, indicator := range titleIndicators {
 		if strings.Contains(line, indicator) {
 			return true
 		}
 	}
-	
+
 	// Check if it contains version or release information
 	if matched, _ := regexp.MatchString(`(?i)\bv?\d+\.\d+|\brel(?:ease)?[-\s]*\d+`, line); matched {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -1347,24 +1346,24 @@ func (dl *DocumentLoader) looksLikeTitle(line string) bool {
 func (dl *DocumentLoader) detectLanguage(content string) string {
 	// Simple language detection based on common words
 	// In production, you might want to use a proper language detection library
-	
+
 	if len(content) < 100 {
 		return "unknown"
 	}
-	
+
 	sample := strings.ToLower(content[:1000]) // Use first 1000 chars
-	
+
 	englishWords := []string{"the", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with"}
 	englishCount := 0
-	
+
 	for _, word := range englishWords {
 		englishCount += strings.Count(sample, " "+word+" ")
 	}
-	
+
 	if englishCount > 5 {
 		return "en"
 	}
-	
+
 	return "unknown"
 }
 
@@ -1374,7 +1373,7 @@ func (dl *DocumentLoader) detectLanguage(content string) string {
 func (dl *DocumentLoader) getCachedDocument(filePath string, modTime time.Time) *LoadedDocument {
 	dl.cacheMutex.RLock()
 	defer dl.cacheMutex.RUnlock()
-	
+
 	if cached, exists := dl.cache[filePath]; exists {
 		// Check if cache is still valid
 		if time.Since(cached.LoadedAt) < dl.config.CacheTTL {
@@ -1383,7 +1382,7 @@ func (dl *DocumentLoader) getCachedDocument(filePath string, modTime time.Time) 
 		// Cache expired, remove it
 		delete(dl.cache, filePath)
 	}
-	
+
 	return nil
 }
 
@@ -1391,7 +1390,7 @@ func (dl *DocumentLoader) getCachedDocument(filePath string, modTime time.Time) 
 func (dl *DocumentLoader) cacheDocument(doc *LoadedDocument) {
 	dl.cacheMutex.Lock()
 	defer dl.cacheMutex.Unlock()
-	
+
 	dl.cache[doc.SourcePath] = doc
 }
 
@@ -1406,7 +1405,7 @@ func (dl *DocumentLoader) updateMetrics(updater func(*LoaderMetrics)) {
 func (dl *DocumentLoader) GetMetrics() *LoaderMetrics {
 	dl.metrics.mutex.RLock()
 	defer dl.metrics.mutex.RUnlock()
-	
+
 	// Return a copy
 	metrics := *dl.metrics
 	return &metrics
@@ -1478,7 +1477,7 @@ func (mm *MemoryMonitor) GetMemoryUsage() (int64, int64) {
 
 // ProcessingPool manages concurrent PDF processing tasks
 type ProcessingPool struct {
-	workers   chan struct{}
+	workers     chan struct{}
 	activeTasks sync.WaitGroup
 }
 
@@ -1519,23 +1518,23 @@ type PDFProcessingResult struct {
 
 // ExtractedTable represents a table extracted from PDF
 type ExtractedTable struct {
-	PageNumber int               `json:"page_number"`
-	Caption    string            `json:"caption"`
-	Headers    []string          `json:"headers"`
-	Rows       [][]string        `json:"rows"`
-	Bounds     Rectangle         `json:"bounds"`
-	Quality    float64           `json:"quality"`
+	PageNumber int                    `json:"page_number"`
+	Caption    string                 `json:"caption"`
+	Headers    []string               `json:"headers"`
+	Rows       [][]string             `json:"rows"`
+	Bounds     Rectangle              `json:"bounds"`
+	Quality    float64                `json:"quality"`
 	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 // ExtractedFigure represents a figure extracted from PDF
 type ExtractedFigure struct {
-	PageNumber  int               `json:"page_number"`
-	Caption     string            `json:"caption"`
-	Description string            `json:"description"`
-	Bounds      Rectangle         `json:"bounds"`
-	FigureType  string            `json:"figure_type"`
-	Quality     float64           `json:"quality"`
+	PageNumber  int                    `json:"page_number"`
+	Caption     string                 `json:"caption"`
+	Description string                 `json:"description"`
+	Bounds      Rectangle              `json:"bounds"`
+	FigureType  string                 `json:"figure_type"`
+	Quality     float64                `json:"quality"`
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
@@ -1563,26 +1562,26 @@ type StreamingPDFProcessor struct {
 
 // PDFPageResult holds the result of processing a single PDF page
 type PDFPageResult struct {
-	PageNumber      int
-	Content         string
-	RawContent      string
-	Tables          []ExtractedTable
-	Figures         []ExtractedFigure
-	ProcessingTime  time.Duration
-	Error           error
-	MemoryUsed      int64
+	PageNumber     int
+	Content        string
+	RawContent     string
+	Tables         []ExtractedTable
+	Figures        []ExtractedFigure
+	ProcessingTime time.Duration
+	Error          error
+	MemoryUsed     int64
 }
 
 // StreamingProcessingResult holds the complete result of streaming PDF processing
 type StreamingProcessingResult struct {
-	Content           string
-	RawContent        string
-	PageCount         int
-	ProcessingErrors  []error
+	Content             string
+	RawContent          string
+	PageCount           int
+	ProcessingErrors    []error
 	TotalProcessingTime time.Duration
-	PeakMemoryUsage   int64
-	Tables            []ExtractedTable
-	Figures           []ExtractedFigure
+	PeakMemoryUsage     int64
+	Tables              []ExtractedTable
+	Figures             []ExtractedFigure
 }
 
 // ProcessStreamingPDF processes a PDF using streaming approach with memory management
@@ -1745,7 +1744,7 @@ func (spp *StreamingPDFProcessor) processBatch(ctx context.Context, startPage, e
 // processPage processes a single PDF page
 func (spp *StreamingPDFProcessor) processPage(ctx context.Context, pageNumber int) *PDFPageResult {
 	startTime := time.Now()
-	
+
 	result := &PDFPageResult{
 		PageNumber: pageNumber,
 		Tables:     []ExtractedTable{},
@@ -1816,7 +1815,7 @@ func (spp *StreamingPDFProcessor) extractPageContent(pageNumber int) (string, st
 
 	// Clean the text
 	cleanContent := spp.cleanPageContent(text)
-	
+
 	return cleanContent, text, nil
 }
 
@@ -1824,22 +1823,22 @@ func (spp *StreamingPDFProcessor) extractPageContent(pageNumber int) (string, st
 func (spp *StreamingPDFProcessor) cleanPageContent(content string) string {
 	// Remove excessive whitespace
 	content = regexp.MustCompile(`\s+`).ReplaceAllString(content, " ")
-	
+
 	// Remove page headers/footers patterns
 	content = regexp.MustCompile(`(?i)page\s+\d+\s+of\s+\d+`).ReplaceAllString(content, "")
 	content = regexp.MustCompile(`(?i)© \d{4}.*?(?:\n|$)`).ReplaceAllString(content, "")
-	
+
 	// Remove document headers that appear on every page
 	content = regexp.MustCompile(`(?i)3GPP TS \d+\.\d+.*?(?:\n|$)`).ReplaceAllString(content, "")
 	content = regexp.MustCompile(`(?i)O-RAN Alliance.*?(?:\n|$)`).ReplaceAllString(content, "")
-	
+
 	// Normalize line breaks
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 	content = strings.ReplaceAll(content, "\r", "\n")
-	
+
 	// Remove excessive line breaks but preserve paragraph structure
 	content = regexp.MustCompile(`\n{3,}`).ReplaceAllString(content, "\n\n")
-	
+
 	return strings.TrimSpace(content)
 }
 
@@ -1866,9 +1865,9 @@ func (spp *StreamingPDFProcessor) extractTablesFromPage(content string, pageNumb
 				table := ExtractedTable{
 					PageNumber: pageNumber,
 					Quality:    0.8,
-					Metadata:   map[string]interface{}{
+					Metadata: map[string]interface{}{
 						"extraction_method": fmt.Sprintf("pattern_%d", i),
-						"match_index":      j,
+						"match_index":       j,
 					},
 				}
 
@@ -1922,7 +1921,7 @@ func (spp *StreamingPDFProcessor) extractFiguresFromPage(content string, pageNum
 					Quality:    0.8,
 					Metadata: map[string]interface{}{
 						"extraction_method": fmt.Sprintf("pattern_%d", i),
-						"match_index":      j,
+						"match_index":       j,
 					},
 				}
 
@@ -2212,7 +2211,7 @@ func (dl *DocumentLoader) LoadDocument(ctx context.Context, docPath string) (*Lo
 	// Process document based on file type
 	var content, rawContent string
 	var metadata *DocumentMetadata
-	
+
 	ext := strings.ToLower(filepath.Ext(docPath))
 	switch ext {
 	case ".pdf":
@@ -2281,7 +2280,7 @@ func (dl *DocumentLoader) processTextFile(ctx context.Context, filePath string) 
 
 	textContent := string(content)
 	metadata := dl.extractTelecomMetadata(textContent, filepath.Base(filePath))
-	
+
 	return textContent, textContent, metadata, nil
 }
 

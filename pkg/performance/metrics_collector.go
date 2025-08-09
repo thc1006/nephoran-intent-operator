@@ -24,10 +24,10 @@ func NewMetricsCollector() *MetricsCollector {
 		analyzer: NewMetricsAnalyzer(),
 		stopChan: make(chan struct{}),
 	}
-	
+
 	// Start background collection
 	go mc.collectMetrics()
-	
+
 	return mc
 }
 

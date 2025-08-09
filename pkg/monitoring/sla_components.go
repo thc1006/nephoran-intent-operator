@@ -13,12 +13,12 @@ import (
 
 // AvailabilityStatus represents current availability metrics
 type AvailabilityStatus struct {
-	ComponentAvailability   float64   `json:"component_availability"`
-	ServiceAvailability     float64   `json:"service_availability"`
-	UserJourneyAvailability float64   `json:"user_journey_availability"`
-	CompliancePercentage    float64   `json:"compliance_percentage"`
-	ErrorBudgetRemaining    float64   `json:"error_budget_remaining"`
-	ErrorBudgetBurnRate     float64   `json:"error_budget_burn_rate"`
+	ComponentAvailability   float64 `json:"component_availability"`
+	ServiceAvailability     float64 `json:"service_availability"`
+	UserJourneyAvailability float64 `json:"user_journey_availability"`
+	CompliancePercentage    float64 `json:"compliance_percentage"`
+	ErrorBudgetRemaining    float64 `json:"error_budget_remaining"`
+	ErrorBudgetBurnRate     float64 `json:"error_budget_burn_rate"`
 }
 
 // LatencyStatus represents current latency metrics
@@ -34,10 +34,10 @@ type LatencyStatus struct {
 // ThroughputStatus represents current throughput metrics
 type ThroughputStatus struct {
 	CurrentThroughput    float64 `json:"current_throughput"`
-	PeakThroughput      float64 `json:"peak_throughput"`
-	SustainedThroughput float64 `json:"sustained_throughput"`
-	CapacityUtilization float64 `json:"capacity_utilization"`
-	QueueDepth          int     `json:"queue_depth"`
+	PeakThroughput       float64 `json:"peak_throughput"`
+	SustainedThroughput  float64 `json:"sustained_throughput"`
+	CapacityUtilization  float64 `json:"capacity_utilization"`
+	QueueDepth           int     `json:"queue_depth"`
 	CompliancePercentage float64 `json:"compliance_percentage"`
 }
 
@@ -46,51 +46,51 @@ type ErrorBudgetStatus struct {
 	TotalErrorBudget     float64 `json:"total_error_budget"`
 	ConsumedErrorBudget  float64 `json:"consumed_error_budget"`
 	RemainingErrorBudget float64 `json:"remaining_error_budget"`
-	BurnRate            float64 `json:"burn_rate"`
-	BusinessImpactScore float64 `json:"business_impact_score"`
+	BurnRate             float64 `json:"burn_rate"`
+	BusinessImpactScore  float64 `json:"business_impact_score"`
 }
 
 // PredictedViolation represents a predicted SLA violation
 type PredictedViolation struct {
-	ViolationType    string        `json:"violation_type"`
-	PredictedTime   time.Time     `json:"predicted_time"`
-	Confidence      float64       `json:"confidence"`
-	EstimatedImpact float64       `json:"estimated_impact"`
-	Recommendations []string      `json:"recommendations"`
+	ViolationType   string    `json:"violation_type"`
+	PredictedTime   time.Time `json:"predicted_time"`
+	Confidence      float64   `json:"confidence"`
+	EstimatedImpact float64   `json:"estimated_impact"`
+	Recommendations []string  `json:"recommendations"`
 }
 
 // SLARecommendation represents automated optimization recommendations
 type SLARecommendation struct {
-	Type            string    `json:"type"`
-	Priority        string    `json:"priority"`
-	Description     string    `json:"description"`
-	EstimatedImpact float64   `json:"estimated_impact"`
+	Type               string  `json:"type"`
+	Priority           string  `json:"priority"`
+	Description        string  `json:"description"`
+	EstimatedImpact    float64 `json:"estimated_impact"`
 	ImplementationCost float64 `json:"implementation_cost"`
-	ROI             float64   `json:"roi"`
+	ROI                float64 `json:"roi"`
 }
 
 // StreamingMetricsCollector provides ultra-low latency metric collection
 type StreamingMetricsCollector struct {
-	metricsBuffer   chan *MetricsSample
-	processingRate  prometheus.Gauge
+	metricsBuffer     chan *MetricsSample
+	processingRate    prometheus.Gauge
 	bufferUtilization prometheus.Gauge
 	collectionLatency *prometheus.HistogramVec
-	
-	batchSize      int
-	flushInterval  time.Duration
-	maxBufferSize  int
-	
-	mu sync.RWMutex
+
+	batchSize     int
+	flushInterval time.Duration
+	maxBufferSize int
+
+	mu     sync.RWMutex
 	logger *zap.Logger
 }
 
 // MetricsSample represents a single metrics sample
 type MetricsSample struct {
-	Timestamp   time.Time
-	MetricName  string
-	Value       float64
-	Labels      map[string]string
-	SampleType  string
+	Timestamp  time.Time
+	MetricName string
+	Value      float64
+	Labels     map[string]string
+	SampleType string
 }
 
 // NewStreamingMetricsCollector creates a high-performance streaming collector
@@ -100,20 +100,20 @@ func NewStreamingMetricsCollector(bufferSize int, batchSize int, flushInterval t
 		batchSize:     batchSize,
 		flushInterval: flushInterval,
 		maxBufferSize: bufferSize,
-		
+
 		processingRate: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "sla_streaming_collector_processing_rate",
 			Help: "Current processing rate of streaming collector",
 		}),
-		
+
 		bufferUtilization: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "sla_streaming_collector_buffer_utilization",
 			Help: "Buffer utilization percentage",
 		}),
-		
+
 		collectionLatency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name: "sla_streaming_collector_latency_seconds",
-			Help: "Latency of metrics collection operations",
+			Name:    "sla_streaming_collector_latency_seconds",
+			Help:    "Latency of metrics collection operations",
 			Buckets: prometheus.ExponentialBuckets(0.0001, 2, 10), // 0.1ms to ~100ms
 		}, []string{"operation"}),
 	}
@@ -125,10 +125,10 @@ func (smc *StreamingMetricsCollector) Start(ctx context.Context) error {
 	for i := 0; i < 4; i++ { // 4 parallel processors for high throughput
 		go smc.processBatch(ctx)
 	}
-	
+
 	// Start buffer monitoring
 	go smc.monitorBuffer(ctx)
-	
+
 	return nil
 }
 
@@ -138,7 +138,7 @@ func (smc *StreamingMetricsCollector) CollectMetric(sample *MetricsSample) error
 	defer func() {
 		smc.collectionLatency.WithLabelValues("collect").Observe(time.Since(start).Seconds())
 	}()
-	
+
 	select {
 	case smc.metricsBuffer <- sample:
 		return nil
@@ -153,19 +153,19 @@ func (smc *StreamingMetricsCollector) processBatch(ctx context.Context) {
 	batch := make([]*MetricsSample, 0, smc.batchSize)
 	ticker := time.NewTicker(smc.flushInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case sample := <-smc.metricsBuffer:
 			batch = append(batch, sample)
-			
+
 			if len(batch) >= smc.batchSize {
 				smc.processBatchData(batch)
 				batch = batch[:0] // Clear batch
 			}
-			
+
 		case <-ticker.C:
 			if len(batch) > 0 {
 				smc.processBatchData(batch)
@@ -182,7 +182,7 @@ func (smc *StreamingMetricsCollector) processBatchData(batch []*MetricsSample) {
 		smc.collectionLatency.WithLabelValues("batch_process").Observe(time.Since(start).Seconds())
 		smc.processingRate.Set(float64(len(batch)) / time.Since(start).Seconds())
 	}()
-	
+
 	// Process batch with parallel workers for high throughput
 	// This would integrate with Prometheus, time series DB, etc.
 }
@@ -191,7 +191,7 @@ func (smc *StreamingMetricsCollector) processBatchData(batch []*MetricsSample) {
 func (smc *StreamingMetricsCollector) monitorBuffer(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -208,10 +208,10 @@ type CardinalityManager struct {
 	maxCardinality     int
 	currentCardinality map[string]int
 	cardinalityLimits  map[string]int
-	
-	cardinalityMetric  *prometheus.GaugeVec
-	droppedMetrics     *prometheus.CounterVec
-	
+
+	cardinalityMetric *prometheus.GaugeVec
+	droppedMetrics    *prometheus.CounterVec
+
 	mu sync.RWMutex
 }
 
@@ -221,12 +221,12 @@ func NewCardinalityManager(maxCardinality int) *CardinalityManager {
 		maxCardinality:     maxCardinality,
 		currentCardinality: make(map[string]int),
 		cardinalityLimits:  make(map[string]int),
-		
+
 		cardinalityMetric: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "sla_metrics_cardinality",
 			Help: "Current cardinality by metric family",
 		}, []string{"metric_family"}),
-		
+
 		droppedMetrics: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "sla_dropped_metrics_total",
 			Help: "Total number of dropped metrics due to cardinality limits",
@@ -238,22 +238,22 @@ func NewCardinalityManager(maxCardinality int) *CardinalityManager {
 func (cm *CardinalityManager) ShouldAcceptMetric(metricName string, labels map[string]string) bool {
 	cm.mu.RLock()
 	defer cm.mu.RUnlock()
-	
+
 	// Calculate metric key for cardinality tracking
 	metricKey := cm.generateMetricKey(metricName, labels)
-	
+
 	// Check if metric already exists
 	if _, exists := cm.currentCardinality[metricKey]; exists {
 		return true
 	}
-	
+
 	// Check total cardinality limit
 	totalCardinality := cm.getTotalCardinality()
 	if totalCardinality >= cm.maxCardinality {
 		cm.droppedMetrics.WithLabelValues(metricName, "total_limit").Inc()
 		return false
 	}
-	
+
 	// Check per-metric family limit
 	if limit, exists := cm.cardinalityLimits[metricName]; exists {
 		familyCardinality := cm.getFamilyCardinality(metricName)
@@ -262,7 +262,7 @@ func (cm *CardinalityManager) ShouldAcceptMetric(metricName string, labels map[s
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -306,52 +306,52 @@ func (cm *CardinalityManager) getFamilyCardinality(metricName string) int {
 type RealTimeSLICalculator struct {
 	// Availability calculation
 	availabilityCalculator *AvailabilityCalculator
-	
-	// Latency calculation  
+
+	// Latency calculation
 	latencyCalculator *LatencyCalculator
-	
+
 	// Throughput calculation
 	throughputCalculator *ThroughputCalculator
-	
+
 	// Error rate calculation
 	errorRateCalculator *ErrorRateCalculator
-	
+
 	// Real-time state
 	currentState *SLIState
 	stateHistory *CircularBuffer
-	
+
 	// Performance metrics
 	calculationLatency *prometheus.HistogramVec
 	calculationRate    prometheus.Gauge
-	
+
 	mu sync.RWMutex
 }
 
 // SLIState represents the current state of all SLIs
 type SLIState struct {
-	Timestamp         time.Time
-	Availability      float64
-	P95Latency       time.Duration
-	P99Latency       time.Duration
-	Throughput       float64
-	ErrorRate        float64
-	ErrorBudgetBurn  float64
+	Timestamp       time.Time
+	Availability    float64
+	P95Latency      time.Duration
+	P99Latency      time.Duration
+	Throughput      float64
+	ErrorRate       float64
+	ErrorBudgetBurn float64
 }
 
 // AvailabilityCalculator computes multi-dimensional availability
 type AvailabilityCalculator struct {
 	// Component availability tracking
-	componentStates map[string]bool
+	componentStates  map[string]bool
 	componentWeights map[string]float64
-	
+
 	// Dependency tracking
-	dependencyStates map[string]bool
+	dependencyStates  map[string]bool
 	dependencyWeights map[string]float64
-	
+
 	// User journey tracking
 	journeySuccessRates map[string]float64
-	journeyWeights map[string]float64
-	
+	journeyWeights      map[string]float64
+
 	// Historical data for trend analysis
 	availabilityHistory *TimeSeries
 }
@@ -360,21 +360,21 @@ type AvailabilityCalculator struct {
 func (ac *AvailabilityCalculator) CalculateAvailability(timestamp time.Time) float64 {
 	// Component availability weighted calculation
 	componentAvailability := ac.calculateComponentAvailability()
-	
-	// Dependency availability weighted calculation  
+
+	// Dependency availability weighted calculation
 	dependencyAvailability := ac.calculateDependencyAvailability()
-	
+
 	// User journey success rate weighted calculation
 	journeyAvailability := ac.calculateJourneyAvailability()
-	
+
 	// Composite availability calculation with weights
-	compositeAvailability := (componentAvailability * 0.4) + 
-		(dependencyAvailability * 0.3) + 
+	compositeAvailability := (componentAvailability * 0.4) +
+		(dependencyAvailability * 0.3) +
 		(journeyAvailability * 0.3)
-	
+
 	// Store in history for trend analysis
 	ac.availabilityHistory.Add(timestamp, compositeAvailability)
-	
+
 	return compositeAvailability
 }
 
@@ -382,20 +382,20 @@ func (ac *AvailabilityCalculator) CalculateAvailability(timestamp time.Time) flo
 func (ac *AvailabilityCalculator) calculateComponentAvailability() float64 {
 	totalWeight := 0.0
 	weightedSum := 0.0
-	
+
 	for component, available := range ac.componentStates {
 		weight := ac.componentWeights[component]
 		totalWeight += weight
-		
+
 		if available {
 			weightedSum += weight
 		}
 	}
-	
+
 	if totalWeight == 0 {
 		return 1.0 // Default to available if no components tracked
 	}
-	
+
 	return weightedSum / totalWeight
 }
 
@@ -403,20 +403,20 @@ func (ac *AvailabilityCalculator) calculateComponentAvailability() float64 {
 func (ac *AvailabilityCalculator) calculateDependencyAvailability() float64 {
 	totalWeight := 0.0
 	weightedSum := 0.0
-	
+
 	for dependency, available := range ac.dependencyStates {
 		weight := ac.dependencyWeights[dependency]
 		totalWeight += weight
-		
+
 		if available {
 			weightedSum += weight
 		}
 	}
-	
+
 	if totalWeight == 0 {
 		return 1.0
 	}
-	
+
 	return weightedSum / totalWeight
 }
 
@@ -424,32 +424,32 @@ func (ac *AvailabilityCalculator) calculateDependencyAvailability() float64 {
 func (ac *AvailabilityCalculator) calculateJourneyAvailability() float64 {
 	totalWeight := 0.0
 	weightedSum := 0.0
-	
+
 	for journey, successRate := range ac.journeySuccessRates {
 		weight := ac.journeyWeights[journey]
 		totalWeight += weight
 		weightedSum += weight * successRate
 	}
-	
+
 	if totalWeight == 0 {
 		return 1.0
 	}
-	
+
 	return weightedSum / totalWeight
 }
 
 // LatencyCalculator computes real-time latency percentiles
 type LatencyCalculator struct {
 	// Latency tracking by component
-	endToEndLatencies    *LatencyTracker
+	endToEndLatencies   *LatencyTracker
 	llmLatencies        *LatencyTracker
 	ragLatencies        *LatencyTracker
 	gitopsLatencies     *LatencyTracker
 	deploymentLatencies *LatencyTracker
-	
+
 	// Percentile calculation
 	percentileCalculator *PercentileCalculator
-	
+
 	// SLA compliance tracking
 	slaComplianceTracker *SLAComplianceTracker
 }
@@ -458,7 +458,7 @@ type LatencyCalculator struct {
 type LatencyTracker struct {
 	measurements *CircularBuffer
 	histogram    *prometheus.HistogramVec
-	
+
 	// Real-time percentiles (using quantile estimator)
 	quantileEstimator *QuantileEstimator
 }
@@ -473,11 +473,11 @@ type QuantileEstimator struct {
 
 // P2Estimator implements the P² algorithm for quantile estimation
 type P2Estimator struct {
-	quantile    float64
-	markers     [5]float64
-	positions   [5]int
-	increments  [5]float64
-	count       int
+	quantile   float64
+	markers    [5]float64
+	positions  [5]int
+	increments [5]float64
+	count      int
 }
 
 // NewP2Estimator creates a new P² quantile estimator
@@ -485,19 +485,19 @@ func NewP2Estimator(quantile float64) *P2Estimator {
 	p2 := &P2Estimator{
 		quantile: quantile,
 	}
-	
+
 	// Initialize positions
 	for i := 0; i < 5; i++ {
 		p2.positions[i] = i
 	}
-	
+
 	// Initialize increments
 	p2.increments[0] = 0
 	p2.increments[1] = quantile / 2
 	p2.increments[2] = quantile
 	p2.increments[3] = (1 + quantile) / 2
 	p2.increments[4] = 1
-	
+
 	return p2
 }
 
@@ -507,7 +507,7 @@ func (p2 *P2Estimator) Add(value float64) {
 		// Initialization phase
 		p2.markers[p2.count] = value
 		p2.count++
-		
+
 		if p2.count == 5 {
 			// Sort markers
 			for i := 0; i < 4; i++ {
@@ -520,7 +520,7 @@ func (p2 *P2Estimator) Add(value float64) {
 		}
 		return
 	}
-	
+
 	// Find cell k such that markers[k] <= value < markers[k+1]
 	k := 0
 	if value < p2.markers[0] {
@@ -537,40 +537,40 @@ func (p2 *P2Estimator) Add(value float64) {
 			}
 		}
 	}
-	
+
 	// Increment positions
 	for i := k + 1; i < 5; i++ {
 		p2.positions[i]++
 	}
 	p2.count++
-	
+
 	// Update desired positions
 	for i := 0; i < 5; i++ {
 		p2.increments[i] = float64(p2.count-1) * p2.getDesiredPosition(i)
 	}
-	
+
 	// Adjust heights of markers if necessary
 	for i := 1; i < 4; i++ {
 		diff := p2.increments[i] - float64(p2.positions[i])
-		
+
 		if (diff >= 1 && p2.positions[i+1]-p2.positions[i] > 1) ||
 			(diff <= -1 && p2.positions[i-1]-p2.positions[i] < -1) {
-			
+
 			d := 1.0
 			if diff < 0 {
 				d = -1.0
 			}
-			
+
 			// Parabolic formula
 			newHeight := p2.parabolic(i, d)
-			
+
 			if p2.markers[i-1] < newHeight && newHeight < p2.markers[i+1] {
 				p2.markers[i] = newHeight
 			} else {
 				// Linear formula
 				p2.markers[i] = p2.linear(i, d)
 			}
-			
+
 			p2.positions[i] += int(d)
 		}
 	}
@@ -586,7 +586,7 @@ func (p2 *P2Estimator) GetQuantile() float64 {
 		// Simple approximation for small samples
 		return p2.markers[int(p2.quantile*float64(p2.count-1))]
 	}
-	
+
 	return p2.markers[2] // Middle marker contains the quantile estimate
 }
 
@@ -644,12 +644,12 @@ func NewCircularBuffer(capacity int) *CircularBuffer {
 func (cb *CircularBuffer) Add(timestamp time.Time, value float64) {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	cb.data[cb.head] = value
 	cb.times[cb.head] = timestamp
-	
+
 	cb.head = (cb.head + 1) % cb.capacity
-	
+
 	if cb.size < cb.capacity {
 		cb.size++
 	} else {
@@ -661,20 +661,20 @@ func (cb *CircularBuffer) Add(timestamp time.Time, value float64) {
 func (cb *CircularBuffer) GetRecent(n int) ([]time.Time, []float64) {
 	cb.mu.RLock()
 	defer cb.mu.RUnlock()
-	
+
 	if n > cb.size {
 		n = cb.size
 	}
-	
+
 	times := make([]time.Time, n)
 	values := make([]float64, n)
-	
+
 	for i := 0; i < n; i++ {
 		idx := (cb.head - 1 - i + cb.capacity) % cb.capacity
 		times[n-1-i] = cb.times[idx]
 		values[n-1-i] = cb.data[idx]
 	}
-	
+
 	return times, values
 }
 
@@ -685,9 +685,9 @@ var (
 
 // TimeSeries represents a time series for historical data tracking
 type TimeSeries struct {
-	points []TimePoint
+	points    []TimePoint
 	maxPoints int
-	mu sync.RWMutex
+	mu        sync.RWMutex
 }
 
 // TimePoint represents a single point in time series
@@ -699,7 +699,7 @@ type TimePoint struct {
 // NewTimeSeries creates a new time series
 func NewTimeSeries(maxPoints int) *TimeSeries {
 	return &TimeSeries{
-		points: make([]TimePoint, 0, maxPoints),
+		points:    make([]TimePoint, 0, maxPoints),
 		maxPoints: maxPoints,
 	}
 }
@@ -708,14 +708,14 @@ func NewTimeSeries(maxPoints int) *TimeSeries {
 func (ts *TimeSeries) Add(timestamp time.Time, value float64) {
 	ts.mu.Lock()
 	defer ts.mu.Unlock()
-	
+
 	point := TimePoint{
 		Timestamp: timestamp,
 		Value:     value,
 	}
-	
+
 	ts.points = append(ts.points, point)
-	
+
 	// Remove old points if exceeding maximum
 	if len(ts.points) > ts.maxPoints {
 		ts.points = ts.points[1:]
@@ -726,13 +726,13 @@ func (ts *TimeSeries) Add(timestamp time.Time, value float64) {
 func (ts *TimeSeries) GetTrend(duration time.Duration) float64 {
 	ts.mu.RLock()
 	defer ts.mu.RUnlock()
-	
+
 	if len(ts.points) < 2 {
 		return 0
 	}
-	
+
 	cutoff := time.Now().Add(-duration)
-	
+
 	// Find relevant points
 	var relevantPoints []TimePoint
 	for _, point := range ts.points {
@@ -740,11 +740,11 @@ func (ts *TimeSeries) GetTrend(duration time.Duration) float64 {
 			relevantPoints = append(relevantPoints, point)
 		}
 	}
-	
+
 	if len(relevantPoints) < 2 {
 		return 0
 	}
-	
+
 	// Calculate linear regression slope
 	return ts.calculateSlope(relevantPoints)
 }
@@ -752,27 +752,27 @@ func (ts *TimeSeries) GetTrend(duration time.Duration) float64 {
 // calculateSlope calculates the slope using linear regression
 func (ts *TimeSeries) calculateSlope(points []TimePoint) float64 {
 	n := float64(len(points))
-	
+
 	// Convert timestamps to seconds for calculation
 	baseTime := points[0].Timestamp.Unix()
-	
+
 	var sumX, sumY, sumXY, sumXX float64
-	
+
 	for _, point := range points {
 		x := float64(point.Timestamp.Unix() - baseTime)
 		y := point.Value
-		
+
 		sumX += x
 		sumY += y
 		sumXY += x * y
 		sumXX += x * x
 	}
-	
+
 	// Linear regression: slope = (n*sumXY - sumX*sumY) / (n*sumXX - sumX*sumX)
 	denominator := n*sumXX - sumX*sumX
 	if math.Abs(denominator) < 1e-10 {
 		return 0
 	}
-	
+
 	return (n*sumXY - sumX*sumY) / denominator
 }

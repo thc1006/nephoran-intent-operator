@@ -20,44 +20,44 @@ import (
 
 // BenchmarkRunner provides a unified interface for running all Nephoran Intent Operator benchmarks
 type BenchmarkRunner struct {
-	config        *BenchmarkConfig
-	results       *BenchmarkResults
-	prometheus    *prometheus.Registry
-	pusher        *push.Pusher
-	mu            sync.RWMutex
+	config     *BenchmarkConfig
+	results    *BenchmarkResults
+	prometheus *prometheus.Registry
+	pusher     *push.Pusher
+	mu         sync.RWMutex
 }
 
 // BenchmarkConfig holds configuration for benchmark execution
 type BenchmarkConfig struct {
 	// Execution settings
-	Iterations    int           `json:"iterations"`
-	Timeout       time.Duration `json:"timeout"`
-	Concurrency   int           `json:"concurrency"`
-	
+	Iterations  int           `json:"iterations"`
+	Timeout     time.Duration `json:"timeout"`
+	Concurrency int           `json:"concurrency"`
+
 	// Component selection
-	EnabledSuites []string      `json:"enabled_suites"`
-	
+	EnabledSuites []string `json:"enabled_suites"`
+
 	// Performance targets
-	Targets       *PerformanceTargets `json:"targets"`
-	
+	Targets *PerformanceTargets `json:"targets"`
+
 	// Output settings
-	OutputFormat  string        `json:"output_format"`
-	OutputFile    string        `json:"output_file"`
+	OutputFormat  string         `json:"output_format"`
+	OutputFile    string         `json:"output_file"`
 	MetricsExport *MetricsConfig `json:"metrics_export"`
-	
+
 	// Go 1.24+ specific settings
-	EnablePprof   bool          `json:"enable_pprof"`
-	PprofDir      string        `json:"pprof_dir"`
-	EnableTrace   bool          `json:"enable_trace"`
-	TraceFile     string        `json:"trace_file"`
-	
+	EnablePprof bool   `json:"enable_pprof"`
+	PprofDir    string `json:"pprof_dir"`
+	EnableTrace bool   `json:"enable_trace"`
+	TraceFile   string `json:"trace_file"`
+
 	// Memory settings
-	GCPercent     int           `json:"gc_percent"`
-	MaxHeapSize   int64         `json:"max_heap_size_mb"`
-	
+	GCPercent   int   `json:"gc_percent"`
+	MaxHeapSize int64 `json:"max_heap_size_mb"`
+
 	// Reporting
-	BaselineFile  string        `json:"baseline_file"`
-	CompareResults bool         `json:"compare_results"`
+	BaselineFile   string `json:"baseline_file"`
+	CompareResults bool   `json:"compare_results"`
 }
 
 // PerformanceTargets defines expected performance characteristics
@@ -68,23 +68,23 @@ type PerformanceTargets struct {
 	NephioDeploymentLatency  float64 `json:"nephio_deployment_latency_ms"`
 	JWTValidationLatency     float64 `json:"jwt_validation_latency_us"`
 	DatabaseOperationLatency float64 `json:"database_operation_latency_ms"`
-	
+
 	// Throughput targets
-	IntentProcessingThroughput float64 `json:"intent_processing_throughput_rps"`
+	IntentProcessingThroughput  float64 `json:"intent_processing_throughput_rps"`
 	DatabaseOperationThroughput float64 `json:"database_operation_throughput_ops"`
-	AuthenticationThroughput   float64 `json:"authentication_throughput_auths"`
-	
+	AuthenticationThroughput    float64 `json:"authentication_throughput_auths"`
+
 	// Resource targets
-	MaxMemoryUsageMB         float64 `json:"max_memory_usage_mb"`
-	MaxCPUUsagePercent       float64 `json:"max_cpu_usage_percent"`
-	MaxGoroutineCount        int     `json:"max_goroutine_count"`
-	
+	MaxMemoryUsageMB   float64 `json:"max_memory_usage_mb"`
+	MaxCPUUsagePercent float64 `json:"max_cpu_usage_percent"`
+	MaxGoroutineCount  int     `json:"max_goroutine_count"`
+
 	// Success rate targets
-	MinSuccessRatePercent    float64 `json:"min_success_rate_percent"`
-	MaxErrorRatePercent      float64 `json:"max_error_rate_percent"`
-	
+	MinSuccessRatePercent float64 `json:"min_success_rate_percent"`
+	MaxErrorRatePercent   float64 `json:"max_error_rate_percent"`
+
 	// Cache efficiency targets
-	MinCacheHitRatePercent   float64 `json:"min_cache_hit_rate_percent"`
+	MinCacheHitRatePercent float64 `json:"min_cache_hit_rate_percent"`
 }
 
 // MetricsConfig configures metrics export
@@ -99,75 +99,75 @@ type MetricsConfig struct {
 
 // BenchmarkResults holds all benchmark execution results
 type BenchmarkResults struct {
-	ExecutionInfo  *ExecutionInfo             `json:"execution_info"`
-	SuiteResults   map[string]*SuiteResult    `json:"suite_results"`
-	OverallSummary *OverallSummary           `json:"overall_summary"`
-	TargetAnalysis *TargetAnalysis           `json:"target_analysis"`
-	Baseline       *BaselineComparison       `json:"baseline_comparison,omitempty"`
-	
+	ExecutionInfo  *ExecutionInfo          `json:"execution_info"`
+	SuiteResults   map[string]*SuiteResult `json:"suite_results"`
+	OverallSummary *OverallSummary         `json:"overall_summary"`
+	TargetAnalysis *TargetAnalysis         `json:"target_analysis"`
+	Baseline       *BaselineComparison     `json:"baseline_comparison,omitempty"`
+
 	// Go 1.24+ runtime information
-	RuntimeInfo    *RuntimeInfo              `json:"runtime_info"`
+	RuntimeInfo *RuntimeInfo `json:"runtime_info"`
 }
 
 // ExecutionInfo contains metadata about benchmark execution
 type ExecutionInfo struct {
-	StartTime    time.Time `json:"start_time"`
-	EndTime      time.Time `json:"end_time"`
+	StartTime    time.Time     `json:"start_time"`
+	EndTime      time.Time     `json:"end_time"`
 	Duration     time.Duration `json:"duration"`
-	GoVersion    string    `json:"go_version"`
-	OS           string    `json:"os"`
-	Architecture string    `json:"architecture"`
-	CPUCount     int       `json:"cpu_count"`
-	ConfigHash   string    `json:"config_hash"`
+	GoVersion    string        `json:"go_version"`
+	OS           string        `json:"os"`
+	Architecture string        `json:"architecture"`
+	CPUCount     int           `json:"cpu_count"`
+	ConfigHash   string        `json:"config_hash"`
 }
 
 // SuiteResult contains results for a specific benchmark suite
 type SuiteResult struct {
-	Name            string                    `json:"name"`
-	StartTime       time.Time                 `json:"start_time"`
-	EndTime         time.Time                 `json:"end_time"`
-	Duration        time.Duration             `json:"duration"`
-	BenchmarkCount  int                       `json:"benchmark_count"`
-	SuccessCount    int                       `json:"success_count"`
-	FailureCount    int                       `json:"failure_count"`
-	Results         map[string]*BenchResult   `json:"results"`
-	ResourceUsage   *ResourceUsage            `json:"resource_usage"`
+	Name           string                  `json:"name"`
+	StartTime      time.Time               `json:"start_time"`
+	EndTime        time.Time               `json:"end_time"`
+	Duration       time.Duration           `json:"duration"`
+	BenchmarkCount int                     `json:"benchmark_count"`
+	SuccessCount   int                     `json:"success_count"`
+	FailureCount   int                     `json:"failure_count"`
+	Results        map[string]*BenchResult `json:"results"`
+	ResourceUsage  *ResourceUsage          `json:"resource_usage"`
 }
 
 // BenchResult contains individual benchmark results
 type BenchResult struct {
-	Name               string            `json:"name"`
-	Iterations         int               `json:"iterations"`
-	Duration           time.Duration     `json:"duration"`
-	NsPerOp            int64             `json:"ns_per_op"`
-	AllocsPerOp        int64             `json:"allocs_per_op"`
-	BytesPerOp         int64             `json:"bytes_per_op"`
-	CustomMetrics      map[string]float64 `json:"custom_metrics"`
-	Success            bool              `json:"success"`
-	Error              string            `json:"error,omitempty"`
-	
+	Name          string             `json:"name"`
+	Iterations    int                `json:"iterations"`
+	Duration      time.Duration      `json:"duration"`
+	NsPerOp       int64              `json:"ns_per_op"`
+	AllocsPerOp   int64              `json:"allocs_per_op"`
+	BytesPerOp    int64              `json:"bytes_per_op"`
+	CustomMetrics map[string]float64 `json:"custom_metrics"`
+	Success       bool               `json:"success"`
+	Error         string             `json:"error,omitempty"`
+
 	// Go 1.24+ enhanced metrics
-	MemoryProfile      *MemoryProfile    `json:"memory_profile,omitempty"`
-	CPUProfile         *CPUProfile       `json:"cpu_profile,omitempty"`
+	MemoryProfile *MemoryProfile `json:"memory_profile,omitempty"`
+	CPUProfile    *CPUProfile    `json:"cpu_profile,omitempty"`
 }
 
 // MemoryProfile contains detailed memory usage information
 type MemoryProfile struct {
-	HeapAlloc       uint64        `json:"heap_alloc"`
-	HeapSys         uint64        `json:"heap_sys"`
-	HeapInuse       uint64        `json:"heap_inuse"`
-	HeapReleased    uint64        `json:"heap_released"`
-	HeapObjects     uint64        `json:"heap_objects"`
-	StackInuse      uint64        `json:"stack_inuse"`
-	StackSys        uint64        `json:"stack_sys"`
-	MSpanInuse      uint64        `json:"mspan_inuse"`
-	MSpanSys        uint64        `json:"mspan_sys"`
-	MCacheInuse     uint64        `json:"mcache_inuse"`
-	MCacheSys       uint64        `json:"mcache_sys"`
-	GCCPUFraction   float64       `json:"gc_cpu_fraction"`
-	NumGC           uint32        `json:"num_gc"`
-	NumForcedGC     uint32        `json:"num_forced_gc"`
-	GCPauseTotal    time.Duration `json:"gc_pause_total"`
+	HeapAlloc     uint64        `json:"heap_alloc"`
+	HeapSys       uint64        `json:"heap_sys"`
+	HeapInuse     uint64        `json:"heap_inuse"`
+	HeapReleased  uint64        `json:"heap_released"`
+	HeapObjects   uint64        `json:"heap_objects"`
+	StackInuse    uint64        `json:"stack_inuse"`
+	StackSys      uint64        `json:"stack_sys"`
+	MSpanInuse    uint64        `json:"mspan_inuse"`
+	MSpanSys      uint64        `json:"mspan_sys"`
+	MCacheInuse   uint64        `json:"mcache_inuse"`
+	MCacheSys     uint64        `json:"mcache_sys"`
+	GCCPUFraction float64       `json:"gc_cpu_fraction"`
+	NumGC         uint32        `json:"num_gc"`
+	NumForcedGC   uint32        `json:"num_forced_gc"`
+	GCPauseTotal  time.Duration `json:"gc_pause_total"`
 }
 
 // CPUProfile contains CPU usage information
@@ -180,75 +180,75 @@ type CPUProfile struct {
 
 // ResourceUsage tracks resource consumption during benchmark
 type ResourceUsage struct {
-	PeakMemoryMB    float64 `json:"peak_memory_mb"`
-	AvgMemoryMB     float64 `json:"avg_memory_mb"`
-	PeakCPUPercent  float64 `json:"peak_cpu_percent"`
-	AvgCPUPercent   float64 `json:"avg_cpu_percent"`
-	MaxGoroutines   int     `json:"max_goroutines"`
-	NetworkBytesIO  int64   `json:"network_bytes_io"`
-	DiskBytesIO     int64   `json:"disk_bytes_io"`
+	PeakMemoryMB   float64 `json:"peak_memory_mb"`
+	AvgMemoryMB    float64 `json:"avg_memory_mb"`
+	PeakCPUPercent float64 `json:"peak_cpu_percent"`
+	AvgCPUPercent  float64 `json:"avg_cpu_percent"`
+	MaxGoroutines  int     `json:"max_goroutines"`
+	NetworkBytesIO int64   `json:"network_bytes_io"`
+	DiskBytesIO    int64   `json:"disk_bytes_io"`
 }
 
 // OverallSummary provides high-level summary of all benchmarks
 type OverallSummary struct {
-	TotalBenchmarks     int           `json:"total_benchmarks"`
-	TotalDuration       time.Duration `json:"total_duration"`
-	SuccessRate         float64       `json:"success_rate_percent"`
-	AvgLatency          time.Duration `json:"avg_latency"`
-	TotalAllocations    int64         `json:"total_allocations"`
-	TotalGCPauses       int           `json:"total_gc_pauses"`
-	OverallThroughput   float64       `json:"overall_throughput_ops"`
-	PerformanceScore    float64       `json:"performance_score"`
+	TotalBenchmarks   int           `json:"total_benchmarks"`
+	TotalDuration     time.Duration `json:"total_duration"`
+	SuccessRate       float64       `json:"success_rate_percent"`
+	AvgLatency        time.Duration `json:"avg_latency"`
+	TotalAllocations  int64         `json:"total_allocations"`
+	TotalGCPauses     int           `json:"total_gc_pauses"`
+	OverallThroughput float64       `json:"overall_throughput_ops"`
+	PerformanceScore  float64       `json:"performance_score"`
 }
 
 // TargetAnalysis compares results against performance targets
 type TargetAnalysis struct {
-	MetTargets         int                    `json:"met_targets"`
-	TotalTargets       int                    `json:"total_targets"`
-	ComplianceRate     float64                `json:"compliance_rate_percent"`
-	TargetResults      map[string]*TargetResult `json:"target_results"`
-	Recommendations    []string               `json:"recommendations"`
+	MetTargets      int                      `json:"met_targets"`
+	TotalTargets    int                      `json:"total_targets"`
+	ComplianceRate  float64                  `json:"compliance_rate_percent"`
+	TargetResults   map[string]*TargetResult `json:"target_results"`
+	Recommendations []string                 `json:"recommendations"`
 }
 
 // TargetResult contains analysis for a specific target
 type TargetResult struct {
-	TargetName     string  `json:"target_name"`
-	TargetValue    float64 `json:"target_value"`
-	ActualValue    float64 `json:"actual_value"`
-	Met            bool    `json:"met"`
-	Deviation      float64 `json:"deviation_percent"`
-	Severity       string  `json:"severity"`
+	TargetName  string  `json:"target_name"`
+	TargetValue float64 `json:"target_value"`
+	ActualValue float64 `json:"actual_value"`
+	Met         bool    `json:"met"`
+	Deviation   float64 `json:"deviation_percent"`
+	Severity    string  `json:"severity"`
 }
 
 // BaselineComparison compares current results with baseline
 type BaselineComparison struct {
-	BaselineFile       string                     `json:"baseline_file"`
+	BaselineFile       string                       `json:"baseline_file"`
 	ComparisonResults  map[string]*ComparisonResult `json:"comparison_results"`
-	OverallImprovement float64                    `json:"overall_improvement_percent"`
-	Regressions        []string                   `json:"regressions"`
-	Improvements       []string                   `json:"improvements"`
+	OverallImprovement float64                      `json:"overall_improvement_percent"`
+	Regressions        []string                     `json:"regressions"`
+	Improvements       []string                     `json:"improvements"`
 }
 
 // ComparisonResult contains comparison data for a specific benchmark
 type ComparisonResult struct {
-	BenchmarkName      string  `json:"benchmark_name"`
-	BaselineValue      float64 `json:"baseline_value"`
-	CurrentValue       float64 `json:"current_value"`
-	ChangePercent      float64 `json:"change_percent"`
-	Improved           bool    `json:"improved"`
-	Significant        bool    `json:"significant"`
+	BenchmarkName string  `json:"benchmark_name"`
+	BaselineValue float64 `json:"baseline_value"`
+	CurrentValue  float64 `json:"current_value"`
+	ChangePercent float64 `json:"change_percent"`
+	Improved      bool    `json:"improved"`
+	Significant   bool    `json:"significant"`
 }
 
 // RuntimeInfo contains Go runtime information
 type RuntimeInfo struct {
-	GoVersion       string `json:"go_version"`
-	GOMAXPROCS      int    `json:"gomaxprocs"`
-	NumCPU          int    `json:"num_cpu"`
-	NumGoroutine    int    `json:"num_goroutine"`
-	Compiler        string `json:"compiler"`
-	GOARCH          string `json:"goarch"`
-	GOOS            string `json:"goos"`
-	CGOEnabled      bool   `json:"cgo_enabled"`
+	GoVersion    string `json:"go_version"`
+	GOMAXPROCS   int    `json:"gomaxprocs"`
+	NumCPU       int    `json:"num_cpu"`
+	NumGoroutine int    `json:"num_goroutine"`
+	Compiler     string `json:"compiler"`
+	GOARCH       string `json:"goarch"`
+	GOOS         string `json:"goos"`
+	CGOEnabled   bool   `json:"cgo_enabled"`
 }
 
 // NewBenchmarkRunner creates a new benchmark runner with configuration
@@ -260,23 +260,23 @@ func NewBenchmarkRunner(config *BenchmarkConfig) *BenchmarkRunner {
 		},
 		prometheus: prometheus.NewRegistry(),
 	}
-	
+
 	// Configure Prometheus pusher if enabled
 	if config.MetricsExport != nil && config.MetricsExport.PushGatewayURL != "" {
 		runner.pusher = push.New(config.MetricsExport.PushGatewayURL, config.MetricsExport.JobName).
 			Gatherer(runner.prometheus)
 	}
-	
+
 	return runner
 }
 
 // RunAllBenchmarks executes all enabled benchmark suites
 func (br *BenchmarkRunner) RunAllBenchmarks(ctx context.Context) error {
 	startTime := time.Now()
-	
+
 	// Configure Go runtime based on settings
 	br.configureRuntime()
-	
+
 	// Initialize results
 	br.results.ExecutionInfo = &ExecutionInfo{
 		StartTime:    startTime,
@@ -286,9 +286,9 @@ func (br *BenchmarkRunner) RunAllBenchmarks(ctx context.Context) error {
 		CPUCount:     runtime.NumCPU(),
 		ConfigHash:   br.calculateConfigHash(),
 	}
-	
+
 	br.results.RuntimeInfo = br.captureRuntimeInfo()
-	
+
 	// Load baseline if configured
 	if br.config.BaselineFile != "" {
 		err := br.loadBaseline()
@@ -296,26 +296,26 @@ func (br *BenchmarkRunner) RunAllBenchmarks(ctx context.Context) error {
 			fmt.Printf("Warning: Could not load baseline: %v\n", err)
 		}
 	}
-	
+
 	// Run each enabled suite
 	for _, suiteName := range br.config.EnabledSuites {
 		fmt.Printf("Running benchmark suite: %s\n", suiteName)
-		
+
 		err := br.runBenchmarkSuite(ctx, suiteName)
 		if err != nil {
 			fmt.Printf("Suite %s failed: %v\n", suiteName, err)
 			continue
 		}
 	}
-	
+
 	// Finalize results
 	br.results.ExecutionInfo.EndTime = time.Now()
 	br.results.ExecutionInfo.Duration = br.results.ExecutionInfo.EndTime.Sub(startTime)
-	
+
 	// Generate summary and analysis
 	br.generateOverallSummary()
 	br.analyzePerformanceTargets()
-	
+
 	// Export metrics if configured
 	if br.config.MetricsExport != nil {
 		err := br.exportMetrics()
@@ -323,7 +323,7 @@ func (br *BenchmarkRunner) RunAllBenchmarks(ctx context.Context) error {
 			fmt.Printf("Warning: Could not export metrics: %v\n", err)
 		}
 	}
-	
+
 	// Save results
 	return br.saveResults()
 }
@@ -333,7 +333,7 @@ func (br *BenchmarkRunner) configureRuntime() {
 	if br.config.GCPercent > 0 {
 		debug.SetGCPercent(br.config.GCPercent)
 	}
-	
+
 	if br.config.MaxHeapSize > 0 {
 		debug.SetMemoryLimit(br.config.MaxHeapSize * 1024 * 1024)
 	}
@@ -342,25 +342,25 @@ func (br *BenchmarkRunner) configureRuntime() {
 // runBenchmarkSuite executes a specific benchmark suite
 func (br *BenchmarkRunner) runBenchmarkSuite(ctx context.Context, suiteName string) error {
 	suiteStart := time.Now()
-	
+
 	suiteResult := &SuiteResult{
-		Name:      suiteName,
-		StartTime: suiteStart,
-		Results:   make(map[string]*BenchResult),
+		Name:          suiteName,
+		StartTime:     suiteStart,
+		Results:       make(map[string]*BenchResult),
 		ResourceUsage: &ResourceUsage{},
 	}
-	
+
 	// Start resource monitoring
 	resourceMonitor := br.startResourceMonitoring(ctx)
 	defer func() {
 		resourceUsage := resourceMonitor.Stop()
 		suiteResult.ResourceUsage = resourceUsage
 	}()
-	
+
 	// Create testing environment
 	testEnv := setupComprehensiveTestEnvironment()
 	defer testEnv.Cleanup()
-	
+
 	// Run benchmarks based on suite name
 	var err error
 	switch suiteName {
@@ -385,11 +385,11 @@ func (br *BenchmarkRunner) runBenchmarkSuite(ctx context.Context, suiteName stri
 	default:
 		return fmt.Errorf("unknown benchmark suite: %s", suiteName)
 	}
-	
+
 	suiteResult.EndTime = time.Now()
 	suiteResult.Duration = suiteResult.EndTime.Sub(suiteStart)
 	suiteResult.BenchmarkCount = len(suiteResult.Results)
-	
+
 	// Count successes and failures
 	for _, result := range suiteResult.Results {
 		if result.Success {
@@ -398,11 +398,11 @@ func (br *BenchmarkRunner) runBenchmarkSuite(ctx context.Context, suiteName stri
 			suiteResult.FailureCount++
 		}
 	}
-	
+
 	br.mu.Lock()
 	br.results.SuiteResults[suiteName] = suiteResult
 	br.mu.Unlock()
-	
+
 	return err
 }
 
@@ -410,17 +410,17 @@ func (br *BenchmarkRunner) runBenchmarkSuite(ctx context.Context, suiteName stri
 func (br *BenchmarkRunner) runLLMBenchmarks(ctx context.Context, testEnv *ComprehensiveTestEnvironment, suiteResult *SuiteResult) error {
 	// This would run the actual LLM benchmarks from the advanced_benchmarks_test.go
 	// For now, we'll simulate the execution
-	
+
 	llmBenchmarks := []string{
-		"SingleRequest", "ConcurrentRequests", "MemoryEfficiency", 
+		"SingleRequest", "ConcurrentRequests", "MemoryEfficiency",
 		"CircuitBreakerBehavior", "CachePerformance", "WorkerPoolEfficiency",
 	}
-	
+
 	for _, benchName := range llmBenchmarks {
 		result := br.simulateBenchmarkExecution(benchName, "llm")
 		suiteResult.Results[benchName] = result
 	}
-	
+
 	return nil
 }
 
@@ -431,12 +431,12 @@ func (br *BenchmarkRunner) runRAGBenchmarks(ctx context.Context, testEnv *Compre
 		"ContextGeneration", "EmbeddingGeneration", "ConcurrentRetrieval",
 		"MemoryUsageUnderLoad", "ChunkingEfficiency",
 	}
-	
+
 	for _, benchName := range ragBenchmarks {
 		result := br.simulateBenchmarkExecution(benchName, "rag")
 		suiteResult.Results[benchName] = result
 	}
-	
+
 	return nil
 }
 
@@ -447,12 +447,12 @@ func (br *BenchmarkRunner) runNephioBenchmarks(ctx context.Context, testEnv *Com
 		"GitOpsOperations", "MultiClusterDeployment", "ConfigSyncPerformance",
 		"PolicyEnforcement", "ResourceManagement",
 	}
-	
+
 	for _, benchName := range nephioBenchmarks {
 		result := br.simulateBenchmarkExecution(benchName, "nephio")
 		suiteResult.Results[benchName] = result
 	}
-	
+
 	return nil
 }
 
@@ -463,12 +463,12 @@ func (br *BenchmarkRunner) runAuthBenchmarks(ctx context.Context, testEnv *Compr
 		"OAuth2TokenExchange", "SessionManagement", "ConcurrentAuthentication",
 		"TokenCaching", "PermissionMatrix",
 	}
-	
+
 	for _, benchName := range authBenchmarks {
 		result := br.simulateBenchmarkExecution(benchName, "auth")
 		suiteResult.Results[benchName] = result
 	}
-	
+
 	return nil
 }
 
@@ -478,12 +478,12 @@ func (br *BenchmarkRunner) runDatabaseBenchmarks(ctx context.Context, testEnv *C
 		"SingleInsert", "BatchInsert", "ConcurrentInsert", "SingleRead",
 		"ConcurrentRead", "ComplexQuery", "Transaction", "ConnectionPool",
 	}
-	
+
 	for _, benchName := range dbBenchmarks {
 		result := br.simulateBenchmarkExecution(benchName, "database")
 		suiteResult.Results[benchName] = result
 	}
-	
+
 	return nil
 }
 
@@ -493,12 +493,12 @@ func (br *BenchmarkRunner) runConcurrencyBenchmarks(ctx context.Context, testEnv
 		"WorkerPool", "Pipeline", "FanOutFanIn", "ProducerConsumer",
 		"SelectPattern", "ContextCancellation",
 	}
-	
+
 	for _, benchName := range concurrencyBenchmarks {
 		result := br.simulateBenchmarkExecution(benchName, "concurrency")
 		suiteResult.Results[benchName] = result
 	}
-	
+
 	return nil
 }
 
@@ -508,19 +508,19 @@ func (br *BenchmarkRunner) runMemoryBenchmarks(ctx context.Context, testEnv *Com
 		"SmallAllocs", "MediumAllocs", "LargeAllocs", "PooledSmall",
 		"PooledMedium", "SliceGrowth", "MapOperations", "StringBuilding",
 	}
-	
+
 	for _, benchName := range memoryBenchmarks {
 		result := br.simulateBenchmarkExecution(benchName, "memory")
 		result.MemoryProfile = &MemoryProfile{
-			HeapAlloc:     1024 * 1024,
-			HeapSys:       2048 * 1024,
-			HeapObjects:   1000,
-			NumGC:         5,
-			GCPauseTotal:  5 * time.Millisecond,
+			HeapAlloc:    1024 * 1024,
+			HeapSys:      2048 * 1024,
+			HeapObjects:  1000,
+			NumGC:        5,
+			GCPauseTotal: 5 * time.Millisecond,
 		}
 		suiteResult.Results[benchName] = result
 	}
-	
+
 	return nil
 }
 
@@ -530,12 +530,12 @@ func (br *BenchmarkRunner) runIntegrationBenchmarks(ctx context.Context, testEnv
 		"SimpleDeployment", "ComplexOrchestration", "MultiClusterDeployment",
 		"DisasterRecovery", "AutoScaling",
 	}
-	
+
 	for _, benchName := range integrationBenchmarks {
 		result := br.simulateBenchmarkExecution(benchName, "integration")
 		suiteResult.Results[benchName] = result
 	}
-	
+
 	return nil
 }
 
@@ -546,12 +546,12 @@ func (br *BenchmarkRunner) runComprehensiveBenchmarks(ctx context.Context, testE
 		"GarbageCollection", "IntegrationWorkflows", "ControllerPerformance",
 		"NetworkIO", "SystemResourceUsage",
 	}
-	
+
 	for _, benchName := range comprehensiveBenchmarks {
 		result := br.simulateBenchmarkExecution(benchName, "comprehensive")
 		suiteResult.Results[benchName] = result
 	}
-	
+
 	return nil
 }
 
@@ -559,7 +559,7 @@ func (br *BenchmarkRunner) runComprehensiveBenchmarks(ctx context.Context, testE
 func (br *BenchmarkRunner) simulateBenchmarkExecution(benchName, suite string) *BenchResult {
 	// Simulate realistic benchmark results
 	baseLatency := int64(1000000) // 1ms in nanoseconds
-	
+
 	switch suite {
 	case "llm":
 		baseLatency *= 50 // 50ms for LLM operations
@@ -572,11 +572,11 @@ func (br *BenchmarkRunner) simulateBenchmarkExecution(benchName, suite string) *
 	case "database":
 		baseLatency *= 5 // 5ms for database operations
 	}
-	
+
 	// Add some variance
 	variance := int64(float64(baseLatency) * 0.2 * (float64(time.Now().UnixNano()%100)/100.0 - 0.5))
 	actualLatency := baseLatency + variance
-	
+
 	result := &BenchResult{
 		Name:        benchName,
 		Iterations:  br.config.Iterations,
@@ -585,44 +585,44 @@ func (br *BenchmarkRunner) simulateBenchmarkExecution(benchName, suite string) *
 		AllocsPerOp: int64(1000 + time.Now().UnixNano()%5000),
 		BytesPerOp:  int64(512 + time.Now().UnixNano()%2048),
 		CustomMetrics: map[string]float64{
-			"throughput_rps":        1000000000.0 / float64(actualLatency),
-			"success_rate_percent":  95.0 + float64(time.Now().UnixNano()%5),
+			"throughput_rps":         1000000000.0 / float64(actualLatency),
+			"success_rate_percent":   95.0 + float64(time.Now().UnixNano()%5),
 			"cache_hit_rate_percent": 70.0 + float64(time.Now().UnixNano()%20),
 		},
 		Success: true,
 	}
-	
+
 	return result
 }
 
 // generateOverallSummary creates a high-level summary of all results
 func (br *BenchmarkRunner) generateOverallSummary() {
 	summary := &OverallSummary{}
-	
+
 	var totalDuration time.Duration
 	var totalAllocations int64
 	var totalBenchmarks int
 	var successfulBenchmarks int
-	
+
 	for _, suite := range br.results.SuiteResults {
 		totalDuration += suite.Duration
 		totalBenchmarks += suite.BenchmarkCount
 		successfulBenchmarks += suite.SuccessCount
-		
+
 		for _, result := range suite.Results {
 			totalAllocations += result.AllocsPerOp * int64(result.Iterations)
 		}
 	}
-	
+
 	summary.TotalBenchmarks = totalBenchmarks
 	summary.TotalDuration = totalDuration
 	summary.SuccessRate = float64(successfulBenchmarks) / float64(totalBenchmarks) * 100
 	summary.TotalAllocations = totalAllocations
 	summary.OverallThroughput = float64(totalBenchmarks) / totalDuration.Seconds()
-	
+
 	// Calculate performance score (0-100)
 	summary.PerformanceScore = br.calculatePerformanceScore()
-	
+
 	br.results.OverallSummary = summary
 }
 
@@ -631,40 +631,40 @@ func (br *BenchmarkRunner) analyzePerformanceTargets() {
 	if br.config.Targets == nil {
 		return
 	}
-	
+
 	analysis := &TargetAnalysis{
 		TargetResults: make(map[string]*TargetResult),
 	}
-	
+
 	targets := br.getPerformanceTargetChecks()
-	
+
 	for targetName, check := range targets {
 		targetResult := check()
 		analysis.TargetResults[targetName] = targetResult
-		
+
 		if targetResult.Met {
 			analysis.MetTargets++
 		}
 	}
-	
+
 	analysis.TotalTargets = len(targets)
 	analysis.ComplianceRate = float64(analysis.MetTargets) / float64(analysis.TotalTargets) * 100
-	
+
 	// Generate recommendations
 	analysis.Recommendations = br.generateRecommendations(analysis.TargetResults)
-	
+
 	br.results.TargetAnalysis = analysis
 }
 
 // getPerformanceTargetChecks returns a map of target check functions
 func (br *BenchmarkRunner) getPerformanceTargetChecks() map[string]func() *TargetResult {
 	targets := make(map[string]func() *TargetResult)
-	
+
 	// Add target checks for each performance metric
 	targets["llm_processing_latency"] = func() *TargetResult {
 		actual := br.getAverageLatency("llm")
 		target := br.config.Targets.LLMProcessingLatency
-		
+
 		return &TargetResult{
 			TargetName:  "LLM Processing Latency",
 			TargetValue: target,
@@ -674,12 +674,12 @@ func (br *BenchmarkRunner) getPerformanceTargetChecks() map[string]func() *Targe
 			Severity:    br.calculateSeverity(actual, target, false),
 		}
 	}
-	
+
 	// Add more target checks...
 	targets["success_rate"] = func() *TargetResult {
 		actual := br.results.OverallSummary.SuccessRate
 		target := br.config.Targets.MinSuccessRatePercent
-		
+
 		return &TargetResult{
 			TargetName:  "Success Rate",
 			TargetValue: target,
@@ -689,7 +689,7 @@ func (br *BenchmarkRunner) getPerformanceTargetChecks() map[string]func() *Targe
 			Severity:    br.calculateSeverity(actual, target, true),
 		}
 	}
-	
+
 	return targets
 }
 
@@ -707,10 +707,10 @@ func (br *BenchmarkRunner) exportMetrics() error {
 					},
 					[]string{"suite", "benchmark"},
 				)
-				
+
 				latencyGauge.WithLabelValues(suiteName, benchName).Set(float64(result.NsPerOp) / 1e9)
 				br.prometheus.MustRegister(latencyGauge)
-				
+
 				// Create throughput metric
 				throughputGauge := prometheus.NewGaugeVec(
 					prometheus.GaugeOpts{
@@ -719,11 +719,11 @@ func (br *BenchmarkRunner) exportMetrics() error {
 					},
 					[]string{"suite", "benchmark"},
 				)
-				
+
 				throughput := 1e9 / float64(result.NsPerOp)
 				throughputGauge.WithLabelValues(suiteName, benchName).Set(throughput)
 				br.prometheus.MustRegister(throughputGauge)
-				
+
 				// Add custom metrics
 				for metricName, value := range result.CustomMetrics {
 					customGauge := prometheus.NewGaugeVec(
@@ -733,17 +733,17 @@ func (br *BenchmarkRunner) exportMetrics() error {
 						},
 						[]string{"suite", "benchmark"},
 					)
-					
+
 					customGauge.WithLabelValues(suiteName, benchName).Set(value)
 					br.prometheus.MustRegister(customGauge)
 				}
 			}
 		}
-		
+
 		// Push metrics to gateway
 		return br.pusher.Push()
 	}
-	
+
 	return nil
 }
 
@@ -751,7 +751,7 @@ func (br *BenchmarkRunner) exportMetrics() error {
 func (br *BenchmarkRunner) saveResults() error {
 	var data []byte
 	var err error
-	
+
 	switch br.config.OutputFormat {
 	case "json":
 		data, err = json.MarshalIndent(br.results, "", "  ")
@@ -761,15 +761,15 @@ func (br *BenchmarkRunner) saveResults() error {
 	default:
 		data, err = json.MarshalIndent(br.results, "", "  ")
 	}
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to marshal results: %w", err)
 	}
-	
+
 	if br.config.OutputFile == "" {
 		br.config.OutputFile = "benchmark_results.json"
 	}
-	
+
 	return os.WriteFile(br.config.OutputFile, data, 0644)
 }
 
@@ -807,7 +807,7 @@ func (br *BenchmarkRunner) calculatePerformanceScore() float64 {
 	if br.results.TargetAnalysis == nil {
 		return 50.0 // Neutral score if no targets
 	}
-	
+
 	return br.results.TargetAnalysis.ComplianceRate
 }
 
@@ -816,12 +816,12 @@ func (br *BenchmarkRunner) getAverageLatency(suite string) float64 {
 	if suiteResult == nil || len(suiteResult.Results) == 0 {
 		return 0
 	}
-	
+
 	var totalLatency float64
 	for _, result := range suiteResult.Results {
 		totalLatency += float64(result.NsPerOp) / 1e6 // Convert to milliseconds
 	}
-	
+
 	return totalLatency / float64(len(suiteResult.Results))
 }
 
@@ -832,7 +832,7 @@ func (br *BenchmarkRunner) calculateSeverity(actual, target float64, higherIsBet
 	} else {
 		deviation = (actual - target) / target * 100
 	}
-	
+
 	switch {
 	case deviation <= 5:
 		return "low"
@@ -845,26 +845,26 @@ func (br *BenchmarkRunner) calculateSeverity(actual, target float64, higherIsBet
 
 func (br *BenchmarkRunner) generateRecommendations(targetResults map[string]*TargetResult) []string {
 	var recommendations []string
-	
+
 	for _, result := range targetResults {
 		if !result.Met {
 			switch result.Severity {
 			case "high":
-				recommendations = append(recommendations, 
-					fmt.Sprintf("CRITICAL: %s is %.1f%% worse than target - immediate optimization required", 
+				recommendations = append(recommendations,
+					fmt.Sprintf("CRITICAL: %s is %.1f%% worse than target - immediate optimization required",
 						result.TargetName, result.Deviation))
 			case "medium":
-				recommendations = append(recommendations, 
-					fmt.Sprintf("WARNING: %s is %.1f%% worse than target - optimization recommended", 
+				recommendations = append(recommendations,
+					fmt.Sprintf("WARNING: %s is %.1f%% worse than target - optimization recommended",
 						result.TargetName, result.Deviation))
 			case "low":
-				recommendations = append(recommendations, 
-					fmt.Sprintf("INFO: %s is slightly worse than target (%.1f%%) - monitor closely", 
+				recommendations = append(recommendations,
+					fmt.Sprintf("INFO: %s is slightly worse than target (%.1f%%) - monitor closely",
 						result.TargetName, result.Deviation))
 			}
 		}
 	}
-	
+
 	sort.Strings(recommendations)
 	return recommendations
 }
@@ -876,34 +876,34 @@ func GetDefaultConfig() *BenchmarkConfig {
 		Timeout:     time.Minute * 30,
 		Concurrency: 10,
 		EnabledSuites: []string{
-			"llm", "rag", "nephio", "auth", "database", 
+			"llm", "rag", "nephio", "auth", "database",
 			"concurrency", "memory", "integration", "comprehensive",
 		},
 		Targets: &PerformanceTargets{
-			LLMProcessingLatency:       2000,  // 2 seconds
-			RAGRetrievalLatency:        200,   // 200ms
-			NephioDeploymentLatency:    5000,  // 5 seconds
-			JWTValidationLatency:       100,   // 100 microseconds
-			DatabaseOperationLatency:   10,    // 10ms
-			IntentProcessingThroughput: 10,    // 10 req/sec
+			LLMProcessingLatency:        2000, // 2 seconds
+			RAGRetrievalLatency:         200,  // 200ms
+			NephioDeploymentLatency:     5000, // 5 seconds
+			JWTValidationLatency:        100,  // 100 microseconds
+			DatabaseOperationLatency:    10,   // 10ms
+			IntentProcessingThroughput:  10,   // 10 req/sec
 			DatabaseOperationThroughput: 1000, // 1000 ops/sec
-			AuthenticationThroughput:   500,   // 500 auths/sec
-			MaxMemoryUsageMB:          2000,   // 2GB
-			MaxCPUUsagePercent:        80,     // 80%
-			MaxGoroutineCount:         1000,   // 1000 goroutines
-			MinSuccessRatePercent:     95,     // 95%
-			MaxErrorRatePercent:       5,      // 5%
-			MinCacheHitRatePercent:    70,     // 70%
+			AuthenticationThroughput:    500,  // 500 auths/sec
+			MaxMemoryUsageMB:            2000, // 2GB
+			MaxCPUUsagePercent:          80,   // 80%
+			MaxGoroutineCount:           1000, // 1000 goroutines
+			MinSuccessRatePercent:       95,   // 95%
+			MaxErrorRatePercent:         5,    // 5%
+			MinCacheHitRatePercent:      70,   // 70%
 		},
 		OutputFormat: "json",
 		OutputFile:   "nephoran_benchmark_results.json",
 		MetricsExport: &MetricsConfig{
 			PrometheusEnabled: false,
-			JobName:          "nephoran-benchmarks",
+			JobName:           "nephoran-benchmarks",
 		},
-		EnablePprof:     false,
-		EnableTrace:     false,
-		GCPercent:       100,
-		CompareResults:  false,
+		EnablePprof:    false,
+		EnableTrace:    false,
+		GCPercent:      100,
+		CompareResults: false,
 	}
 }

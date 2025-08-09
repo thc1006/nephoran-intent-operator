@@ -9,9 +9,8 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
-// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
+	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
+	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
 )
 
 // PackagePropagator manages multi-cluster package deployment
@@ -42,8 +41,8 @@ type DeploymentOptions struct {
 
 // DeployPackage propagates a package across multiple clusters
 func (p *PackagePropagator) DeployPackage(
-	ctx context.Context, 
-	packageRevision *porchv1alpha1.PackageRevision, 
+	ctx context.Context,
+	packageRevision *porchv1alpha1.PackageRevision,
 	targetClusters []types.NamespacedName,
 	opts DeploymentOptions,
 ) (*nephiov1alpha1.MultiClusterDeploymentStatus, error) {
@@ -122,7 +121,7 @@ func (p *PackagePropagator) deployParallel(
 	}
 	var mu sync.Mutex
 	var wg sync.WaitGroup
-	
+
 	// Use semaphore to limit concurrent deployments
 	sem := make(chan struct{}, opts.MaxConcurrentDepl)
 

@@ -17,19 +17,19 @@ import (
 
 // WebSocketServer manages WebSocket connections and event distribution
 type WebSocketServer struct {
-	logger       *zap.Logger
-	upgrader     websocket.Upgrader
-	clients      map[*websocket.Conn]bool
-	broadcaster  chan WebSocketMessage
-	stopChan     chan struct{}
-	clientsMutex sync.RWMutex
-	kubeClient   kubernetes.Interface
+	logger          *zap.Logger
+	upgrader        websocket.Upgrader
+	clients         map[*websocket.Conn]bool
+	broadcaster     chan WebSocketMessage
+	stopChan        chan struct{}
+	clientsMutex    sync.RWMutex
+	kubeClient      kubernetes.Interface
 	informerFactory informers.SharedInformerFactory
 }
 
 // NewWebSocketServer creates a new WebSocket server
 func NewWebSocketServer(
-	logger *zap.Logger, 
+	logger *zap.Logger,
 	kubeClient kubernetes.Interface,
 ) *WebSocketServer {
 	ws := &WebSocketServer{
@@ -42,10 +42,10 @@ func NewWebSocketServer(
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
 		},
-		clients:      make(map[*websocket.Conn]bool),
-		broadcaster:  make(chan WebSocketMessage, 100),
-		stopChan:     make(chan struct{}),
-		kubeClient:   kubeClient,
+		clients:         make(map[*websocket.Conn]bool),
+		broadcaster:     make(chan WebSocketMessage, 100),
+		stopChan:        make(chan struct{}),
+		kubeClient:      kubeClient,
 		informerFactory: informers.NewSharedInformerFactory(kubeClient, 30*time.Minute),
 	}
 	return ws

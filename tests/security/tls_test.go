@@ -98,11 +98,11 @@ var _ = Describe("TLS/mTLS Security Tests", func() {
 						// Check for certificate monitoring annotations
 						if expiryDate, exists := secret.Annotations["cert.nephoran.io/expiry-date"]; exists {
 							By(fmt.Sprintf("Certificate %s expires: %s", secret.Name, expiryDate))
-							
+
 							// Parse and validate expiry date
 							parsedDate, err := time.Parse(time.RFC3339, expiryDate)
 							Expect(err).NotTo(HaveOccurred())
-							
+
 							// Should not be expired
 							Expect(parsedDate.After(time.Now())).To(BeTrue(),
 								"Certificate should not be expired")
@@ -149,7 +149,7 @@ var _ = Describe("TLS/mTLS Security Tests", func() {
 
 						// Verify CA properties
 						Expect(caCert.IsCA).To(BeTrue(), "CA certificate must have CA flag")
-						Expect(caCert.KeyUsage & x509.KeyUsageCertSign).NotTo(Equal(0),
+						Expect(caCert.KeyUsage&x509.KeyUsageCertSign).NotTo(Equal(0),
 							"CA must have certificate signing capability")
 
 						// Verify CA is not expired
@@ -302,9 +302,9 @@ var _ = Describe("TLS/mTLS Security Tests", func() {
 	Context("Mutual TLS (mTLS) Authentication", func() {
 		It("should verify mTLS is configured for inter-service communication", func() {
 			interServiceConnections := map[string][]string{
-				"rag-api":        {"llm-processor", "weaviate"},
-				"llm-processor":  {"rag-api"},
-				"nephio-bridge":  {"nephoran-operator"},
+				"rag-api":       {"llm-processor", "weaviate"},
+				"llm-processor": {"rag-api"},
+				"nephio-bridge": {"nephoran-operator"},
 			}
 
 			for sourceService, targetServices := range interServiceConnections {
@@ -513,10 +513,10 @@ var _ = Describe("TLS/mTLS Security Tests", func() {
 		It("should verify secure TLS configuration", func() {
 			// Test TLS configuration against security best practices
 			securityChecks := map[string]bool{
-				"tls-1.2-minimum":       false,
-				"secure-cipher-suites":  false,
-				"hsts-headers":          false,
-				"certificate-pinning":   false,
+				"tls-1.2-minimum":      false,
+				"secure-cipher-suites": false,
+				"hsts-headers":         false,
+				"certificate-pinning":  false,
 			}
 
 			// This would check actual TLS configuration
@@ -593,7 +593,7 @@ func validateCertificate(cert *x509.Certificate, secretName string) {
 		"Certificate should not be expired (expires %v)", cert.NotAfter)
 
 	// Check key usage
-	Expect(cert.KeyUsage & x509.KeyUsageDigitalSignature).NotTo(Equal(0),
+	Expect(cert.KeyUsage&x509.KeyUsageDigitalSignature).NotTo(Equal(0),
 		"Certificate should have digital signature usage")
 
 	// Check algorithm
@@ -625,7 +625,7 @@ func validateKeyPair(cert *x509.Certificate, keyData []byte, secretName string) 
 
 	// This would validate that the private key matches the certificate
 	// Implementation would depend on the key type (RSA, ECDSA, etc.)
-	
+
 	// For now, we'll just verify the key can be parsed
 	switch cert.PublicKeyAlgorithm {
 	case x509.RSA:
@@ -671,7 +671,7 @@ func testTLSConnectivity(endpoint string, expectedCert *x509.Certificate) error 
 	// Verify certificate chain
 	if resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {
 		serverCert := resp.TLS.PeerCertificates[0]
-		
+
 		// Compare with expected certificate if provided
 		if expectedCert != nil && !serverCert.Equal(expectedCert) {
 			return fmt.Errorf("server certificate does not match expected certificate")

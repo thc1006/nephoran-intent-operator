@@ -10,18 +10,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // MockLLMService simulates LLM service behavior
 type MockLLMService struct {
-	mu               sync.RWMutex
-	responses        map[string]string
-	errors           map[string]error
+	mu                sync.RWMutex
+	responses         map[string]string
+	errors            map[string]error
 	latencySimulation time.Duration
-	callCount        int
-	failureRate      float64
+	callCount         int
+	failureRate       float64
 }
 
 // NewMockLLMService creates a new mock LLM service
@@ -29,12 +29,12 @@ func NewMockLLMService() *MockLLMService {
 	return &MockLLMService{
 		responses: map[string]string{
 			"network_slice_creation": "To create a network slice, you need to configure the slice parameters including bandwidth, latency, and service type...",
-			"configuration_request": "Network slicing configuration involves setting up dedicated virtual network segments with specific QoS parameters...",
-			"knowledge_request":     "The O-RAN E2 interface is a standardized interface that connects the Near-RT RIC to E2 nodes...",
-			"creation_intent":       "Creating a network slice for IoT devices requires specific configuration for low-power, wide-area connectivity...",
+			"configuration_request":  "Network slicing configuration involves setting up dedicated virtual network segments with specific QoS parameters...",
+			"knowledge_request":      "The O-RAN E2 interface is a standardized interface that connects the Near-RT RIC to E2 nodes...",
+			"creation_intent":        "Creating a network slice for IoT devices requires specific configuration for low-power, wide-area connectivity...",
 		},
 		latencySimulation: 100 * time.Millisecond,
-		failureRate:      0.0,
+		failureRate:       0.0,
 	}
 }
 
@@ -42,28 +42,28 @@ func NewMockLLMService() *MockLLMService {
 func (m *MockLLMService) ProcessRequest(ctx context.Context, request *llm.ProcessingRequest) (*llm.ProcessingResponse, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.callCount++
-	
+
 	// Simulate latency
 	time.Sleep(m.latencySimulation)
-	
+
 	// Simulate random failures
 	if rand.Float64() < m.failureRate {
 		return nil, errors.New("simulated LLM service failure")
 	}
-	
+
 	// Check for configured errors
 	if err, exists := m.errors[request.IntentType]; exists {
 		return nil, err
 	}
-	
+
 	// Generate response
 	responseText, exists := m.responses[request.IntentType]
 	if !exists {
 		responseText = fmt.Sprintf("Generated response for: %s", request.Query)
 	}
-	
+
 	return &llm.ProcessingResponse{
 		GeneratedText:   responseText,
 		ConfidenceScore: 0.8 + rand.Float64()*0.2, // 0.8-1.0
@@ -113,14 +113,14 @@ func (m *MockLLMService) GetCallCount() int {
 
 // MockWeaviateService simulates Weaviate vector database
 type MockWeaviateService struct {
-	mu              sync.RWMutex
-	documents       map[string]rag.Document
-	vectors         map[string][]float32
-	searchResults   map[string][]rag.RetrievedDocument
-	errors          map[string]error
-	latency         time.Duration
-	queryCount      int
-	failureRate     float64
+	mu            sync.RWMutex
+	documents     map[string]rag.Document
+	vectors       map[string][]float32
+	searchResults map[string][]rag.RetrievedDocument
+	errors        map[string]error
+	latency       time.Duration
+	queryCount    int
+	failureRate   float64
 }
 
 // NewMockWeaviateService creates a new mock Weaviate service
@@ -139,30 +139,30 @@ func NewMockWeaviateService() *MockWeaviateService {
 func (m *MockWeaviateService) StoreDocument(ctx context.Context, doc rag.Document) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	// Simulate latency
 	time.Sleep(m.latency)
-	
+
 	// Check for configured errors
 	if err, exists := m.errors["store"]; exists {
 		return err
 	}
-	
+
 	// Simulate random failures
 	if rand.Float64() < m.failureRate {
 		return errors.New("simulated Weaviate storage failure")
 	}
-	
+
 	// Store document
 	m.documents[doc.ID] = doc
-	
+
 	// Generate mock vector
 	vector := make([]float32, 384) // Typical sentence transformer dimension
 	for i := range vector {
 		vector[i] = rand.Float32()*2 - 1 // Random values between -1 and 1
 	}
 	m.vectors[doc.ID] = vector
-	
+
 	return nil
 }
 
@@ -170,20 +170,20 @@ func (m *MockWeaviateService) StoreDocument(ctx context.Context, doc rag.Documen
 func (m *MockWeaviateService) GetDocument(ctx context.Context, docID string) (*rag.Document, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	// Simulate latency
 	time.Sleep(m.latency / 2)
-	
+
 	// Check for configured errors
 	if err, exists := m.errors["get"]; exists {
 		return nil, err
 	}
-	
+
 	doc, exists := m.documents[docID]
 	if !exists {
 		return nil, errors.New("document not found")
 	}
-	
+
 	return &doc, nil
 }
 
@@ -191,43 +191,43 @@ func (m *MockWeaviateService) GetDocument(ctx context.Context, docID string) (*r
 func (m *MockWeaviateService) SearchSimilar(ctx context.Context, query string, limit int) ([]rag.RetrievedDocument, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.queryCount++
-	
+
 	// Simulate latency
 	time.Sleep(m.latency)
-	
+
 	// Check for configured errors
 	if err, exists := m.errors["search"]; exists {
 		return nil, err
 	}
-	
+
 	// Simulate random failures
 	if rand.Float64() < m.failureRate {
 		return nil, errors.New("simulated Weaviate search failure")
 	}
-	
+
 	// Check for pre-configured results
 	if results, exists := m.searchResults[query]; exists {
 		return results, nil
 	}
-	
+
 	// Generate mock search results
 	var results []rag.RetrievedDocument
-	
+
 	// Return a subset of stored documents with random scores
 	count := 0
 	for _, doc := range m.documents {
 		if count >= limit {
 			break
 		}
-		
+
 		// Simple keyword matching for more realistic results
 		score := m.calculateSimilarityScore(query, doc.Content)
-		
+
 		if score > 0.3 { // Minimum relevance threshold
 			results = append(results, rag.RetrievedDocument{
-				DocumentID:      doc.ID,
+				DocumentID:     doc.ID,
 				Title:          doc.Title,
 				Content:        doc.Content,
 				Score:          score,
@@ -238,7 +238,7 @@ func (m *MockWeaviateService) SearchSimilar(ctx context.Context, query string, l
 			count++
 		}
 	}
-	
+
 	// Sort by score (descending)
 	for i := 0; i < len(results)-1; i++ {
 		for j := i + 1; j < len(results); j++ {
@@ -247,7 +247,7 @@ func (m *MockWeaviateService) SearchSimilar(ctx context.Context, query string, l
 			}
 		}
 	}
-	
+
 	return results, nil
 }
 
@@ -256,7 +256,7 @@ func (m *MockWeaviateService) calculateSimilarityScore(query, content string) fl
 	// Simple keyword matching
 	queryWords := strings.Fields(strings.ToLower(query))
 	contentWords := strings.Fields(strings.ToLower(content))
-	
+
 	matches := 0
 	for _, qword := range queryWords {
 		for _, cword := range contentWords {
@@ -266,13 +266,13 @@ func (m *MockWeaviateService) calculateSimilarityScore(query, content string) fl
 			}
 		}
 	}
-	
+
 	if len(queryWords) == 0 {
 		return 0.0
 	}
-	
+
 	baseScore := float64(matches) / float64(len(queryWords))
-	
+
 	// Add some randomness to make it more realistic
 	return baseScore + (rand.Float64()-0.5)*0.2
 }
@@ -341,26 +341,26 @@ func NewMockRedisService() *MockRedisService {
 func (m *MockRedisService) Get(ctx context.Context, key string) (interface{}, bool, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	// Simulate latency
 	time.Sleep(m.latency)
-	
+
 	// Check for configured errors
 	if err, exists := m.errors["get"]; exists {
 		return nil, false, err
 	}
-	
+
 	// Simulate random failures
 	if rand.Float64() < m.failureRate {
 		return nil, false, errors.New("simulated Redis get failure")
 	}
-	
+
 	value, exists := m.cache[key]
 	if exists {
 		m.hitCount++
 		return value, true, nil
 	}
-	
+
 	m.missCount++
 	return nil, false, nil
 }
@@ -369,22 +369,22 @@ func (m *MockRedisService) Get(ctx context.Context, key string) (interface{}, bo
 func (m *MockRedisService) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	// Simulate latency
 	time.Sleep(m.latency)
-	
+
 	// Check for configured errors
 	if err, exists := m.errors["set"]; exists {
 		return err
 	}
-	
+
 	// Simulate random failures
 	if rand.Float64() < m.failureRate {
 		return errors.New("simulated Redis set failure")
 	}
-	
+
 	m.cache[key] = value
-	
+
 	// Simulate expiration (simplified)
 	if expiration > 0 {
 		go func() {
@@ -394,7 +394,7 @@ func (m *MockRedisService) Set(ctx context.Context, key string, value interface{
 			delete(m.cache, key)
 		}()
 	}
-	
+
 	return nil
 }
 
@@ -402,15 +402,15 @@ func (m *MockRedisService) Set(ctx context.Context, key string, value interface{
 func (m *MockRedisService) Delete(ctx context.Context, key string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	// Simulate latency
 	time.Sleep(m.latency)
-	
+
 	// Check for configured errors
 	if err, exists := m.errors["delete"]; exists {
 		return err
 	}
-	
+
 	delete(m.cache, key)
 	return nil
 }
@@ -419,12 +419,12 @@ func (m *MockRedisService) Delete(ctx context.Context, key string) error {
 func (m *MockRedisService) GetHitRate() float64 {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	total := m.hitCount + m.missCount
 	if total == 0 {
 		return 0.0
 	}
-	
+
 	return float64(m.hitCount) / float64(total)
 }
 
@@ -432,11 +432,11 @@ func (m *MockRedisService) GetHitRate() float64 {
 func (m *MockRedisService) GetStats() map[string]interface{} {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	return map[string]interface{}{
-		"hits":      m.hitCount,
-		"misses":    m.missCount,
-		"hit_rate":  m.GetHitRate(),
+		"hits":       m.hitCount,
+		"misses":     m.missCount,
+		"hit_rate":   m.GetHitRate(),
 		"cache_size": len(m.cache),
 	}
 }
@@ -506,61 +506,61 @@ func NewMockEmbeddingService() *MockEmbeddingService {
 func (m *MockEmbeddingService) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.callCount++
-	
+
 	// Simulate latency proportional to input size
 	processingTime := time.Duration(len(texts)) * m.latency
 	time.Sleep(processingTime)
-	
+
 	// Check for configured errors
 	if err, exists := m.errors["generate"]; exists {
 		return nil, err
 	}
-	
+
 	// Simulate random failures
 	if rand.Float64() < m.failureRate {
 		return nil, errors.New("simulated embedding generation failure")
 	}
-	
+
 	var results [][]float32
-	
+
 	for _, text := range texts {
 		// Check cache first
 		if embedding, exists := m.embeddings[text]; exists {
 			results = append(results, embedding)
 			continue
 		}
-		
+
 		// Generate new embedding
 		embedding := make([]float32, 384) // Standard sentence transformer size
-		
+
 		// Simple deterministic generation based on text content
 		hash := simpleHash(text)
 		rand.Seed(int64(hash))
-		
+
 		for i := range embedding {
 			embedding[i] = rand.Float32()*2 - 1 // Values between -1 and 1
 		}
-		
+
 		// Normalize to unit vector
 		norm := float32(0)
 		for _, val := range embedding {
 			norm += val * val
 		}
 		norm = float32(math.Sqrt(float64(norm)))
-		
+
 		if norm > 0 {
 			for i := range embedding {
 				embedding[i] /= norm
 			}
 		}
-		
+
 		// Cache the embedding
 		m.embeddings[text] = embedding
 		results = append(results, embedding)
 	}
-	
+
 	return results, nil
 }
 

@@ -72,69 +72,69 @@ type PackageRevisionManager interface {
 // packageRevisionManager implements comprehensive PackageRevision lifecycle orchestration
 type packageRevisionManager struct {
 	// Core dependencies
-	porchClient        porch.PorchClient
-	lifecycleManager   porch.LifecycleManager
-	templateEngine     templates.TemplateEngine
-	yangValidator      yang.YANGValidator
-	approvalEngine     ApprovalEngine
-	driftDetector      DriftDetector
-	logger             logr.Logger
+	porchClient      porch.PorchClient
+	lifecycleManager porch.LifecycleManager
+	templateEngine   templates.TemplateEngine
+	yangValidator    yang.YANGValidator
+	approvalEngine   ApprovalEngine
+	driftDetector    DriftDetector
+	logger           logr.Logger
 
 	// Configuration
-	config             *ManagerConfig
-	metrics            *ManagerMetrics
+	config  *ManagerConfig
+	metrics *ManagerMetrics
 
 	// State management
-	activeTransitions  map[string]*ActiveTransition
-	transitionMutex    sync.RWMutex
+	activeTransitions map[string]*ActiveTransition
+	transitionMutex   sync.RWMutex
 
 	// Background processing
-	shutdown           chan struct{}
-	wg                 sync.WaitGroup
+	shutdown chan struct{}
+	wg       sync.WaitGroup
 }
 
 // Core data structures
 
 // TransitionOptions configures lifecycle transitions
 type TransitionOptions struct {
-	SkipValidation         bool                  `json:"skipValidation,omitempty"`
-	SkipApproval          bool                  `json:"skipApproval,omitempty"`
-	CreateRollbackPoint   bool                  `json:"createRollbackPoint,omitempty"`
-	RollbackDescription   string                `json:"rollbackDescription,omitempty"`
-	ForceTransition       bool                  `json:"forceTransition,omitempty"`
-	ValidationPolicy      *ValidationPolicy     `json:"validationPolicy,omitempty"`
-	ApprovalPolicy        *ApprovalPolicy       `json:"approvalPolicy,omitempty"`
-	NotificationTargets   []string              `json:"notificationTargets,omitempty"`
-	Metadata              map[string]string     `json:"metadata,omitempty"`
-	Timeout               time.Duration         `json:"timeout,omitempty"`
-	DryRun                bool                  `json:"dryRun,omitempty"`
+	SkipValidation      bool              `json:"skipValidation,omitempty"`
+	SkipApproval        bool              `json:"skipApproval,omitempty"`
+	CreateRollbackPoint bool              `json:"createRollbackPoint,omitempty"`
+	RollbackDescription string            `json:"rollbackDescription,omitempty"`
+	ForceTransition     bool              `json:"forceTransition,omitempty"`
+	ValidationPolicy    *ValidationPolicy `json:"validationPolicy,omitempty"`
+	ApprovalPolicy      *ApprovalPolicy   `json:"approvalPolicy,omitempty"`
+	NotificationTargets []string          `json:"notificationTargets,omitempty"`
+	Metadata            map[string]string `json:"metadata,omitempty"`
+	Timeout             time.Duration     `json:"timeout,omitempty"`
+	DryRun              bool              `json:"dryRun,omitempty"`
 }
 
 // TransitionResult contains lifecycle transition results
 type TransitionResult struct {
-	Success               bool                        `json:"success"`
-	PreviousStage         porch.PackageRevisionLifecycle `json:"previousStage"`
-	NewStage             porch.PackageRevisionLifecycle `json:"newStage"`
-	TransitionTime       time.Time                   `json:"transitionTime"`
-	Duration             time.Duration               `json:"duration"`
-	ValidationResults    []*ValidationResult         `json:"validationResults,omitempty"`
-	ApprovalResults      []*ApprovalResult          `json:"approvalResults,omitempty"`
-	RollbackPoint        *porch.RollbackPoint       `json:"rollbackPoint,omitempty"`
-	GeneratedResources   []*porch.KRMResource       `json:"generatedResources,omitempty"`
-	Warnings             []string                   `json:"warnings,omitempty"`
-	Notifications        []*NotificationResult      `json:"notifications,omitempty"`
-	Metadata             map[string]interface{}     `json:"metadata,omitempty"`
+	Success            bool                           `json:"success"`
+	PreviousStage      porch.PackageRevisionLifecycle `json:"previousStage"`
+	NewStage           porch.PackageRevisionLifecycle `json:"newStage"`
+	TransitionTime     time.Time                      `json:"transitionTime"`
+	Duration           time.Duration                  `json:"duration"`
+	ValidationResults  []*ValidationResult            `json:"validationResults,omitempty"`
+	ApprovalResults    []*ApprovalResult              `json:"approvalResults,omitempty"`
+	RollbackPoint      *porch.RollbackPoint           `json:"rollbackPoint,omitempty"`
+	GeneratedResources []*porch.KRMResource           `json:"generatedResources,omitempty"`
+	Warnings           []string                       `json:"warnings,omitempty"`
+	Notifications      []*NotificationResult          `json:"notifications,omitempty"`
+	Metadata           map[string]interface{}         `json:"metadata,omitempty"`
 }
 
 // ValidationResult contains configuration validation results
 type ValidationResult struct {
-	Valid                 bool                    `json:"valid"`
-	Errors               []*ValidationError      `json:"errors,omitempty"`
-	Warnings             []*ValidationWarning    `json:"warnings,omitempty"`
-	YANGValidationResult *yang.ValidationResult  `json:"yangValidationResult,omitempty"`
-	PolicyValidation     []*PolicyValidation     `json:"policyValidation,omitempty"`
-	ComplianceChecks     []*ComplianceCheck      `json:"complianceChecks,omitempty"`
-	SecurityValidation   *SecurityValidation     `json:"securityValidation,omitempty"`
+	Valid                bool                   `json:"valid"`
+	Errors               []*ValidationError     `json:"errors,omitempty"`
+	Warnings             []*ValidationWarning   `json:"warnings,omitempty"`
+	YANGValidationResult *yang.ValidationResult `json:"yangValidationResult,omitempty"`
+	PolicyValidation     []*PolicyValidation    `json:"policyValidation,omitempty"`
+	ComplianceChecks     []*ComplianceCheck     `json:"complianceChecks,omitempty"`
+	SecurityValidation   *SecurityValidation    `json:"securityValidation,omitempty"`
 }
 
 // ValidationError represents a validation error
@@ -149,19 +149,19 @@ type ValidationError struct {
 
 // ValidationWarning represents a validation warning
 type ValidationWarning struct {
-	Code        string `json:"code"`
-	Path        string `json:"path"`
-	Message     string `json:"message"`
-	Suggestion  string `json:"suggestion,omitempty"`
-	Source      string `json:"source"`
+	Code       string `json:"code"`
+	Path       string `json:"path"`
+	Message    string `json:"message"`
+	Suggestion string `json:"suggestion,omitempty"`
+	Source     string `json:"source"`
 }
 
 // PolicyValidation contains policy validation results
 type PolicyValidation struct {
-	PolicyName   string `json:"policyName"`
-	PolicyType   string `json:"policyType"`
-	Valid        bool   `json:"valid"`
-	Violations   []PolicyViolation `json:"violations,omitempty"`
+	PolicyName string            `json:"policyName"`
+	PolicyType string            `json:"policyType"`
+	Valid      bool              `json:"valid"`
+	Violations []PolicyViolation `json:"violations,omitempty"`
 }
 
 // PolicyViolation represents a policy violation
@@ -174,11 +174,11 @@ type PolicyViolation struct {
 
 // ComplianceCheck contains O-RAN compliance validation
 type ComplianceCheck struct {
-	Standard    string              `json:"standard"` // O-RAN, 3GPP, etc.
-	Version     string              `json:"version"`
-	Interface   string              `json:"interface,omitempty"` // A1, O1, O2, E2
-	Compliant   bool               `json:"compliant"`
-	Issues      []ComplianceIssue  `json:"issues,omitempty"`
+	Standard  string            `json:"standard"` // O-RAN, 3GPP, etc.
+	Version   string            `json:"version"`
+	Interface string            `json:"interface,omitempty"` // A1, O1, O2, E2
+	Compliant bool              `json:"compliant"`
+	Issues    []ComplianceIssue `json:"issues,omitempty"`
 }
 
 // ComplianceIssue represents a compliance violation
@@ -192,8 +192,8 @@ type ComplianceIssue struct {
 
 // SecurityValidation contains security validation results
 type SecurityValidation struct {
-	Valid           bool                `json:"valid"`
-	SecurityChecks  []SecurityCheck     `json:"securityChecks"`
+	Valid              bool                `json:"valid"`
+	SecurityChecks     []SecurityCheck     `json:"securityChecks"`
 	VulnerabilityScans []VulnerabilityScan `json:"vulnerabilityScans,omitempty"`
 }
 
@@ -208,8 +208,8 @@ type SecurityCheck struct {
 
 // VulnerabilityScan represents vulnerability scan results
 type VulnerabilityScan struct {
-	Scanner      string            `json:"scanner"`
-	ImageName    string            `json:"imageName"`
+	Scanner         string          `json:"scanner"`
+	ImageName       string          `json:"imageName"`
 	Vulnerabilities []Vulnerability `json:"vulnerabilities"`
 }
 
@@ -223,35 +223,35 @@ type Vulnerability struct {
 
 // ApprovalResult contains approval workflow results
 type ApprovalResult struct {
-	WorkflowID      string             `json:"workflowId"`
-	Stage           string             `json:"stage"`
-	Status          string             `json:"status"` // pending, approved, rejected
-	Approver        string             `json:"approver,omitempty"`
-	ApprovalTime    *metav1.Time       `json:"approvalTime,omitempty"`
-	Comments        string             `json:"comments,omitempty"`
-	RequiredApprovals int              `json:"requiredApprovals"`
-	ReceivedApprovals int              `json:"receivedApprovals"`
+	WorkflowID        string       `json:"workflowId"`
+	Stage             string       `json:"stage"`
+	Status            string       `json:"status"` // pending, approved, rejected
+	Approver          string       `json:"approver,omitempty"`
+	ApprovalTime      *metav1.Time `json:"approvalTime,omitempty"`
+	Comments          string       `json:"comments,omitempty"`
+	RequiredApprovals int          `json:"requiredApprovals"`
+	ReceivedApprovals int          `json:"receivedApprovals"`
 }
 
 // RollbackResult contains rollback operation results
 type RollbackResult struct {
-	Success         bool               `json:"success"`
-	RollbackPoint   *porch.RollbackPoint `json:"rollbackPoint"`
-	PreviousStage   porch.PackageRevisionLifecycle `json:"previousStage"`
-	RestoredStage   porch.PackageRevisionLifecycle `json:"restoredStage"`
-	Duration        time.Duration      `json:"duration"`
-	RestoredResources []*porch.KRMResource `json:"restoredResources,omitempty"`
-	Warnings        []string           `json:"warnings,omitempty"`
+	Success           bool                           `json:"success"`
+	RollbackPoint     *porch.RollbackPoint           `json:"rollbackPoint"`
+	PreviousStage     porch.PackageRevisionLifecycle `json:"previousStage"`
+	RestoredStage     porch.PackageRevisionLifecycle `json:"restoredStage"`
+	Duration          time.Duration                  `json:"duration"`
+	RestoredResources []*porch.KRMResource           `json:"restoredResources,omitempty"`
+	Warnings          []string                       `json:"warnings,omitempty"`
 }
 
 // DriftDetectionResult contains configuration drift detection results
 type DriftDetectionResult struct {
-	HasDrift        bool                  `json:"hasDrift"`
-	DetectionTime   time.Time             `json:"detectionTime"`
-	DriftDetails    []*DriftDetail        `json:"driftDetails"`
-	Severity        string                `json:"severity"` // low, medium, high, critical
-	AutoCorrectible bool                  `json:"autoCorrectible"`
-	CorrectionPlan  *DriftCorrectionPlan  `json:"correctionPlan,omitempty"`
+	HasDrift        bool                 `json:"hasDrift"`
+	DetectionTime   time.Time            `json:"detectionTime"`
+	DriftDetails    []*DriftDetail       `json:"driftDetails"`
+	Severity        string               `json:"severity"` // low, medium, high, critical
+	AutoCorrectible bool                 `json:"autoCorrectible"`
+	CorrectionPlan  *DriftCorrectionPlan `json:"correctionPlan,omitempty"`
 }
 
 // DriftDetail represents a specific configuration drift
@@ -268,40 +268,40 @@ type DriftDetail struct {
 
 // DriftCorrectionPlan contains the plan to correct configuration drift
 type DriftCorrectionPlan struct {
-	CorrectionSteps []*CorrectionStep `json:"correctionSteps"`
-	RequiresApproval bool             `json:"requiresApproval"`
-	EstimatedTime   time.Duration     `json:"estimatedTime"`
-	RiskLevel       string           `json:"riskLevel"`
+	CorrectionSteps  []*CorrectionStep `json:"correctionSteps"`
+	RequiresApproval bool              `json:"requiresApproval"`
+	EstimatedTime    time.Duration     `json:"estimatedTime"`
+	RiskLevel        string            `json:"riskLevel"`
 }
 
 // CorrectionStep represents a single drift correction action
 type CorrectionStep struct {
-	ID          string      `json:"id"`
-	Action      string      `json:"action"` // create, update, delete
-	ResourceType string     `json:"resourceType"`
-	ResourceName string     `json:"resourceName"`
-	Changes     interface{} `json:"changes"`
-	RiskLevel   string      `json:"riskLevel"`
+	ID           string      `json:"id"`
+	Action       string      `json:"action"` // create, update, delete
+	ResourceType string      `json:"resourceType"`
+	ResourceName string      `json:"resourceName"`
+	Changes      interface{} `json:"changes"`
+	RiskLevel    string      `json:"riskLevel"`
 }
 
 // LifecycleStatus contains current lifecycle status information
 type LifecycleStatus struct {
-	CurrentStage     porch.PackageRevisionLifecycle `json:"currentStage"`
-	StageStartTime   time.Time                      `json:"stageStartTime"`
-	StageHistory     []*StageHistoryEntry          `json:"stageHistory"`
-	PendingActions   []*PendingAction              `json:"pendingActions,omitempty"`
-	BlockingIssues   []*BlockingIssue              `json:"blockingIssues,omitempty"`
+	CurrentStage       porch.PackageRevisionLifecycle   `json:"currentStage"`
+	StageStartTime     time.Time                        `json:"stageStartTime"`
+	StageHistory       []*StageHistoryEntry             `json:"stageHistory"`
+	PendingActions     []*PendingAction                 `json:"pendingActions,omitempty"`
+	BlockingIssues     []*BlockingIssue                 `json:"blockingIssues,omitempty"`
 	NextPossibleStages []porch.PackageRevisionLifecycle `json:"nextPossibleStages"`
 }
 
 // StageHistoryEntry represents a lifecycle stage transition
 type StageHistoryEntry struct {
-	FromStage       porch.PackageRevisionLifecycle `json:"fromStage"`
-	ToStage         porch.PackageRevisionLifecycle `json:"toStage"`
-	TransitionTime  time.Time                      `json:"transitionTime"`
-	Duration        time.Duration                  `json:"duration"`
-	User            string                         `json:"user,omitempty"`
-	Reason          string                         `json:"reason,omitempty"`
+	FromStage      porch.PackageRevisionLifecycle `json:"fromStage"`
+	ToStage        porch.PackageRevisionLifecycle `json:"toStage"`
+	TransitionTime time.Time                      `json:"transitionTime"`
+	Duration       time.Duration                  `json:"duration"`
+	User           string                         `json:"user,omitempty"`
+	Reason         string                         `json:"reason,omitempty"`
 }
 
 // PendingAction represents an action waiting to be completed
@@ -326,80 +326,80 @@ type BlockingIssue struct {
 
 // PackageMetrics contains metrics for a specific package
 type PackageMetrics struct {
-	PackageRef              *porch.PackageReference `json:"packageRef"`
-	TotalTransitions        int64                   `json:"totalTransitions"`
-	TransitionsByStage      map[porch.PackageRevisionLifecycle]int64 `json:"transitionsByStage"`
-	AverageTransitionTime   time.Duration           `json:"averageTransitionTime"`
-	FailedTransitions       int64                   `json:"failedTransitions"`
-	ValidationFailures      int64                   `json:"validationFailures"`
-	ApprovalCycles          int64                   `json:"approvalCycles"`
-	DriftDetections         int64                   `json:"driftDetections"`
-	AutoCorrections         int64                   `json:"autoCorrections"`
-	TimeInCurrentStage      time.Duration           `json:"timeInCurrentStage"`
-	LastActivity            time.Time               `json:"lastActivity"`
+	PackageRef            *porch.PackageReference                  `json:"packageRef"`
+	TotalTransitions      int64                                    `json:"totalTransitions"`
+	TransitionsByStage    map[porch.PackageRevisionLifecycle]int64 `json:"transitionsByStage"`
+	AverageTransitionTime time.Duration                            `json:"averageTransitionTime"`
+	FailedTransitions     int64                                    `json:"failedTransitions"`
+	ValidationFailures    int64                                    `json:"validationFailures"`
+	ApprovalCycles        int64                                    `json:"approvalCycles"`
+	DriftDetections       int64                                    `json:"driftDetections"`
+	AutoCorrections       int64                                    `json:"autoCorrections"`
+	TimeInCurrentStage    time.Duration                            `json:"timeInCurrentStage"`
+	LastActivity          time.Time                                `json:"lastActivity"`
 }
 
 // BatchOptions configures batch operations
 type BatchOptions struct {
-	Concurrency           int           `json:"concurrency"`
-	ContinueOnError       bool          `json:"continueOnError"`
-	ValidationPolicy      *ValidationPolicy `json:"validationPolicy,omitempty"`
-	ApprovalPolicy        *ApprovalPolicy   `json:"approvalPolicy,omitempty"`
-	CreateRollbackPoints  bool          `json:"createRollbackPoints"`
-	Timeout               time.Duration `json:"timeout"`
-	DryRun                bool          `json:"dryRun"`
+	Concurrency          int               `json:"concurrency"`
+	ContinueOnError      bool              `json:"continueOnError"`
+	ValidationPolicy     *ValidationPolicy `json:"validationPolicy,omitempty"`
+	ApprovalPolicy       *ApprovalPolicy   `json:"approvalPolicy,omitempty"`
+	CreateRollbackPoints bool              `json:"createRollbackPoints"`
+	Timeout              time.Duration     `json:"timeout"`
+	DryRun               bool              `json:"dryRun"`
 }
 
 // BatchResult contains batch operation results
 type BatchResult struct {
-	TotalRequests       int                      `json:"totalRequests"`
-	SuccessfulOperations int                     `json:"successfulOperations"`
-	FailedOperations    int                      `json:"failedOperations"`
-	Results             []*PackageOperationResult `json:"results"`
-	Duration            time.Duration            `json:"duration"`
-	OverallSuccess      bool                     `json:"overallSuccess"`
+	TotalRequests        int                       `json:"totalRequests"`
+	SuccessfulOperations int                       `json:"successfulOperations"`
+	FailedOperations     int                       `json:"failedOperations"`
+	Results              []*PackageOperationResult `json:"results"`
+	Duration             time.Duration             `json:"duration"`
+	OverallSuccess       bool                      `json:"overallSuccess"`
 }
 
 // PackageOperationResult contains individual package operation result
 type PackageOperationResult struct {
-	Intent         *nephoranv1.NetworkIntent `json:"intent"`
-	PackageRef     *porch.PackageReference   `json:"packageRef,omitempty"`
-	Success        bool                      `json:"success"`
-	Result         interface{}               `json:"result,omitempty"`
-	Error          string                    `json:"error,omitempty"`
-	Duration       time.Duration             `json:"duration"`
+	Intent     *nephoranv1.NetworkIntent `json:"intent"`
+	PackageRef *porch.PackageReference   `json:"packageRef,omitempty"`
+	Success    bool                      `json:"success"`
+	Result     interface{}               `json:"result,omitempty"`
+	Error      string                    `json:"error,omitempty"`
+	Duration   time.Duration             `json:"duration"`
 }
 
 // ManagerHealth contains manager health information
 type ManagerHealth struct {
-	Status              string            `json:"status"`
-	ActiveTransitions   int               `json:"activeTransitions"`
-	QueuedOperations    int               `json:"queuedOperations"`
-	ComponentHealth     map[string]string `json:"componentHealth"`
-	LastActivity        time.Time         `json:"lastActivity"`
-	Metrics             *ManagerMetrics   `json:"metrics,omitempty"`
+	Status            string            `json:"status"`
+	ActiveTransitions int               `json:"activeTransitions"`
+	QueuedOperations  int               `json:"queuedOperations"`
+	ComponentHealth   map[string]string `json:"componentHealth"`
+	LastActivity      time.Time         `json:"lastActivity"`
+	Metrics           *ManagerMetrics   `json:"metrics,omitempty"`
 }
 
 // ActiveTransition represents an ongoing lifecycle transition
 type ActiveTransition struct {
-	ID             string                    `json:"id"`
-	PackageRef     *porch.PackageReference   `json:"packageRef"`
-	TargetStage    porch.PackageRevisionLifecycle `json:"targetStage"`
-	StartTime      time.Time                 `json:"startTime"`
-	LastUpdate     time.Time                 `json:"lastUpdate"`
-	Status         string                    `json:"status"`
-	Progress       int                       `json:"progress"` // 0-100
-	CurrentStep    string                    `json:"currentStep"`
-	Options        *TransitionOptions        `json:"options"`
+	ID          string                         `json:"id"`
+	PackageRef  *porch.PackageReference        `json:"packageRef"`
+	TargetStage porch.PackageRevisionLifecycle `json:"targetStage"`
+	StartTime   time.Time                      `json:"startTime"`
+	LastUpdate  time.Time                      `json:"lastUpdate"`
+	Status      string                         `json:"status"`
+	Progress    int                            `json:"progress"` // 0-100
+	CurrentStep string                         `json:"currentStep"`
+	Options     *TransitionOptions             `json:"options"`
 }
 
 // NotificationResult contains notification sending results
 type NotificationResult struct {
-	Target   string    `json:"target"`
-	Success  bool      `json:"success"`
-	Message  string    `json:"message"`
-	SentAt   time.Time `json:"sentAt"`
-	Error    string    `json:"error,omitempty"`
+	Target  string    `json:"target"`
+	Success bool      `json:"success"`
+	Message string    `json:"message"`
+	SentAt  time.Time `json:"sentAt"`
+	Error   string    `json:"error,omitempty"`
 }
 
 // Configuration types
@@ -407,77 +407,77 @@ type NotificationResult struct {
 // ManagerConfig contains manager configuration
 type ManagerConfig struct {
 	// General settings
-	DefaultRepository       string        `yaml:"defaultRepository"`
-	DefaultTimeout          time.Duration `yaml:"defaultTimeout"`
-	MaxConcurrentTransitions int          `yaml:"maxConcurrentTransitions"`
+	DefaultRepository        string        `yaml:"defaultRepository"`
+	DefaultTimeout           time.Duration `yaml:"defaultTimeout"`
+	MaxConcurrentTransitions int           `yaml:"maxConcurrentTransitions"`
 
 	// Validation settings
-	EnableYANGValidation    bool          `yaml:"enableYANGValidation"`
-	EnablePolicyValidation  bool          `yaml:"enablePolicyValidation"`
-	EnableSecurityValidation bool         `yaml:"enableSecurityValidation"`
-	EnableComplianceChecks  bool          `yaml:"enableComplianceChecks"`
-	ValidationTimeout       time.Duration `yaml:"validationTimeout"`
+	EnableYANGValidation     bool          `yaml:"enableYANGValidation"`
+	EnablePolicyValidation   bool          `yaml:"enablePolicyValidation"`
+	EnableSecurityValidation bool          `yaml:"enableSecurityValidation"`
+	EnableComplianceChecks   bool          `yaml:"enableComplianceChecks"`
+	ValidationTimeout        time.Duration `yaml:"validationTimeout"`
 
 	// Approval settings
-	EnableApprovalWorkflow  bool          `yaml:"enableApprovalWorkflow"`
-	DefaultApprovalPolicy   string        `yaml:"defaultApprovalPolicy"`
-	ApprovalTimeout         time.Duration `yaml:"approvalTimeout"`
+	EnableApprovalWorkflow bool          `yaml:"enableApprovalWorkflow"`
+	DefaultApprovalPolicy  string        `yaml:"defaultApprovalPolicy"`
+	ApprovalTimeout        time.Duration `yaml:"approvalTimeout"`
 
 	// Drift detection settings
-	EnableDriftDetection    bool          `yaml:"enableDriftDetection"`
-	DriftDetectionInterval  time.Duration `yaml:"driftDetectionInterval"`
-	AutoCorrectDrift        bool          `yaml:"autoCorrectDrift"`
+	EnableDriftDetection   bool          `yaml:"enableDriftDetection"`
+	DriftDetectionInterval time.Duration `yaml:"driftDetectionInterval"`
+	AutoCorrectDrift       bool          `yaml:"autoCorrectDrift"`
 
 	// Template settings
 	TemplateRepository      string        `yaml:"templateRepository"`
 	TemplateRefreshInterval time.Duration `yaml:"templateRefreshInterval"`
 
 	// Metrics and monitoring
-	EnableMetrics           bool          `yaml:"enableMetrics"`
-	MetricsInterval         time.Duration `yaml:"metricsInterval"`
+	EnableMetrics   bool          `yaml:"enableMetrics"`
+	MetricsInterval time.Duration `yaml:"metricsInterval"`
 
 	// Notification settings
-	EnableNotifications     bool          `yaml:"enableNotifications"`
-	NotificationChannels    []string      `yaml:"notificationChannels"`
+	EnableNotifications  bool     `yaml:"enableNotifications"`
+	NotificationChannels []string `yaml:"notificationChannels"`
 }
 
 // ValidationPolicy defines validation requirements
 type ValidationPolicy struct {
-	RequireYANGValidation    bool     `json:"requireYangValidation"`
-	RequirePolicyValidation  bool     `json:"requirePolicyValidation"`
-	RequireSecurityValidation bool    `json:"requireSecurityValidation"`
-	RequireComplianceChecks  bool     `json:"requireComplianceChecks"`
-	AllowedStandards        []string  `json:"allowedStandards,omitempty"`
-	SecurityScanners        []string  `json:"securityScanners,omitempty"`
-	FailOnWarnings          bool      `json:"failOnWarnings"`
+	RequireYANGValidation     bool     `json:"requireYangValidation"`
+	RequirePolicyValidation   bool     `json:"requirePolicyValidation"`
+	RequireSecurityValidation bool     `json:"requireSecurityValidation"`
+	RequireComplianceChecks   bool     `json:"requireComplianceChecks"`
+	AllowedStandards          []string `json:"allowedStandards,omitempty"`
+	SecurityScanners          []string `json:"securityScanners,omitempty"`
+	FailOnWarnings            bool     `json:"failOnWarnings"`
 }
 
 // ApprovalPolicy defines approval requirements
 type ApprovalPolicy struct {
-	RequiredApprovals       int      `json:"requiredApprovals"`
-	ApprovalStages         []string  `json:"approvalStages"`
-	Approvers              []string  `json:"approvers"`
-	AutoApproveForStages   []string  `json:"autoApproveForStages,omitempty"`
-	EscalationPolicy       *EscalationPolicy `json:"escalationPolicy,omitempty"`
+	RequiredApprovals    int               `json:"requiredApprovals"`
+	ApprovalStages       []string          `json:"approvalStages"`
+	Approvers            []string          `json:"approvers"`
+	AutoApproveForStages []string          `json:"autoApproveForStages,omitempty"`
+	EscalationPolicy     *EscalationPolicy `json:"escalationPolicy,omitempty"`
 }
 
 // EscalationPolicy defines approval escalation rules
 type EscalationPolicy struct {
-	EscalationTimeout      time.Duration `json:"escalationTimeout"`
-	EscalationApprovers    []string      `json:"escalationApprovers"`
-	MaxEscalationLevel     int           `json:"maxEscalationLevel"`
+	EscalationTimeout   time.Duration `json:"escalationTimeout"`
+	EscalationApprovers []string      `json:"escalationApprovers"`
+	MaxEscalationLevel  int           `json:"maxEscalationLevel"`
 }
 
 // ManagerMetrics contains manager performance metrics
 type ManagerMetrics struct {
-	TotalPackagesManaged    prometheus.Counter   `json:"totalPackagesManaged"`
-	TransitionsTotal        *prometheus.CounterVec `json:"transitionsTotal"`
-	TransitionDuration      *prometheus.HistogramVec `json:"transitionDuration"`
-	ValidationResults       *prometheus.CounterVec `json:"validationResults"`
-	ApprovalLatency         prometheus.Histogram `json:"approvalLatency"`
-	DriftDetections         prometheus.Counter   `json:"driftDetections"`
-	ActiveTransitions       prometheus.Gauge     `json:"activeTransitions"`
-	QueueSize               prometheus.Gauge     `json:"queueSize"`
+	TotalPackagesManaged prometheus.Counter       `json:"totalPackagesManaged"`
+	TransitionsTotal     *prometheus.CounterVec   `json:"transitionsTotal"`
+	TransitionDuration   *prometheus.HistogramVec `json:"transitionDuration"`
+	ValidationResults    *prometheus.CounterVec   `json:"validationResults"`
+	ApprovalLatency      prometheus.Histogram     `json:"approvalLatency"`
+	DriftDetections      prometheus.Counter       `json:"driftDetections"`
+	ActiveTransitions    prometheus.Gauge         `json:"activeTransitions"`
+	QueueSize            prometheus.Gauge         `json:"queueSize"`
 }
 
 // NewPackageRevisionManager creates a new PackageRevision manager
@@ -539,8 +539,8 @@ func NewPackageRevisionManager(
 
 // CreateFromIntent creates a new PackageRevision from a NetworkIntent
 func (m *packageRevisionManager) CreateFromIntent(ctx context.Context, intent *nephoranv1.NetworkIntent) (*porch.PackageRevision, error) {
-	m.logger.Info("Creating PackageRevision from NetworkIntent", 
-		"intent", intent.Name, 
+	m.logger.Info("Creating PackageRevision from NetworkIntent",
+		"intent", intent.Name,
 		"namespace", intent.Namespace)
 
 	startTime := time.Now()
@@ -615,7 +615,7 @@ func (m *packageRevisionManager) CreateFromIntent(ctx context.Context, intent *n
 	m.metrics.TotalPackagesManaged.Inc()
 	m.metrics.ValidationResults.WithLabelValues("create", "success").Inc()
 
-	m.logger.Info("PackageRevision created successfully", 
+	m.logger.Info("PackageRevision created successfully",
 		"package", createdPkg.Spec.PackageName,
 		"revision", createdPkg.Spec.Revision,
 		"lifecycle", createdPkg.Spec.Lifecycle)
@@ -628,15 +628,15 @@ func (m *packageRevisionManager) TransitionToProposed(ctx context.Context, ref *
 	return m.performLifecycleTransition(ctx, ref, porch.PackageRevisionLifecycleProposed, opts)
 }
 
-// TransitionToPublished transitions a PackageRevision to Published stage  
+// TransitionToPublished transitions a PackageRevision to Published stage
 func (m *packageRevisionManager) TransitionToPublished(ctx context.Context, ref *porch.PackageReference, opts *TransitionOptions) (*TransitionResult, error) {
 	return m.performLifecycleTransition(ctx, ref, porch.PackageRevisionLifecyclePublished, opts)
 }
 
 // performLifecycleTransition performs the actual lifecycle transition
 func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context, ref *porch.PackageReference, targetStage porch.PackageRevisionLifecycle, opts *TransitionOptions) (*TransitionResult, error) {
-	m.logger.Info("Performing lifecycle transition", 
-		"package", ref.GetPackageKey(), 
+	m.logger.Info("Performing lifecycle transition",
+		"package", ref.GetPackageKey(),
 		"targetStage", targetStage)
 
 	if opts == nil {
@@ -697,7 +697,7 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 			result.Success = false
 			result.ValidationResults = []*ValidationResult{validationResult}
 			result.Duration = time.Since(startTime)
-			
+
 			if !opts.ForceTransition {
 				return result, fmt.Errorf("validation failed for transition to %s", targetStage)
 			}
@@ -715,7 +715,7 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 		if err != nil {
 			result.Success = false
 			result.Duration = time.Since(startTime)
-			
+
 			if !opts.ForceTransition {
 				return result, fmt.Errorf("approval workflow failed: %w", err)
 			}
@@ -734,8 +734,8 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 			CreateRollbackPoint: opts.CreateRollbackPoint,
 			RollbackDescription: opts.RollbackDescription,
 			ForceTransition:     opts.ForceTransition,
-			Timeout:            opts.Timeout,
-			DryRun:             opts.DryRun,
+			Timeout:             opts.Timeout,
+			DryRun:              opts.DryRun,
 		}
 
 		var lifecycleResult *porch.TransitionResult
@@ -783,7 +783,7 @@ func (m *packageRevisionManager) performLifecycleTransition(ctx context.Context,
 	m.metrics.TransitionsTotal.WithLabelValues(string(targetStage), "success").Inc()
 	m.metrics.TransitionDuration.WithLabelValues(string(targetStage)).Observe(result.Duration.Seconds())
 
-	m.logger.Info("Lifecycle transition completed successfully", 
+	m.logger.Info("Lifecycle transition completed successfully",
 		"package", ref.GetPackageKey(),
 		"from", result.PreviousStage,
 		"to", targetStage,
@@ -809,19 +809,19 @@ func (m *packageRevisionManager) validateNetworkIntent(intent *nephoranv1.Networ
 
 func (m *packageRevisionManager) extractParametersFromIntent(intent *nephoranv1.NetworkIntent) (map[string]interface{}, error) {
 	params := make(map[string]interface{})
-	
+
 	// Extract basic parameters
 	params["intentText"] = intent.Spec.Intent
 	params["intentType"] = string(intent.Spec.IntentType)
 	params["priority"] = string(intent.Spec.Priority)
 	params["targetComponents"] = intent.Spec.TargetComponents
 	params["namespace"] = intent.Spec.Namespace
-	
+
 	// Extract resource constraints if specified
 	if intent.Spec.ResourceConstraints != nil {
 		params["resourceConstraints"] = intent.Spec.ResourceConstraints
 	}
-	
+
 	// Extract processed parameters if available
 	if intent.Spec.ProcessedParameters != nil {
 		if intent.Spec.ProcessedParameters.NetworkFunction != "" {
@@ -829,33 +829,33 @@ func (m *packageRevisionManager) extractParametersFromIntent(intent *nephoranv1.
 		}
 		// Add other processed parameters as needed
 	}
-	
+
 	return params, nil
 }
 
 func (m *packageRevisionManager) selectTemplateForIntent(ctx context.Context, intent *nephoranv1.NetworkIntent, params map[string]interface{}) (*templates.BlueprintTemplate, error) {
 	// Get the primary target component
 	primaryComponent := intent.Spec.TargetComponents[0]
-	
+
 	// Get available templates for the component
 	availableTemplates, err := m.GetAvailableTemplates(ctx, primaryComponent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get available templates for component %s: %w", primaryComponent, err)
 	}
-	
+
 	if len(availableTemplates) == 0 {
 		return nil, fmt.Errorf("no templates available for component %s", primaryComponent)
 	}
-	
+
 	// For now, select the first available template
 	// In a more sophisticated implementation, this could use ML or rules-based selection
 	selectedTemplate := availableTemplates[0]
-	
-	m.logger.Info("Selected template for intent", 
+
+	m.logger.Info("Selected template for intent",
 		"template", selectedTemplate.Name,
 		"version", selectedTemplate.Version,
 		"component", primaryComponent)
-	
+
 	return selectedTemplate, nil
 }
 
@@ -870,11 +870,11 @@ func (m *packageRevisionManager) generateLabelsForIntent(intent *nephoranv1.Netw
 	labels[porch.LabelIntentType] = string(intent.Spec.IntentType)
 	labels["nephoran.com/intent-name"] = intent.Name
 	labels["nephoran.com/intent-namespace"] = intent.Namespace
-	
+
 	if len(intent.Spec.TargetComponents) > 0 {
 		labels[porch.LabelTargetComponent] = string(intent.Spec.TargetComponents[0])
 	}
-	
+
 	return labels
 }
 
@@ -884,14 +884,14 @@ func (m *packageRevisionManager) generateAnnotationsForIntent(intent *nephoranv1
 	annotations[porch.AnnotationGeneratedBy] = "package-revision-manager"
 	annotations["nephoran.com/original-intent"] = intent.Spec.Intent
 	annotations["nephoran.com/intent-uid"] = string(intent.UID)
-	
+
 	return annotations
 }
 
 func (m *packageRevisionManager) updateTransitionProgress(transitionID, step string, progress int) {
 	m.transitionMutex.Lock()
 	defer m.transitionMutex.Unlock()
-	
+
 	if transition, exists := m.activeTransitions[transitionID]; exists {
 		transition.LastUpdate = time.Now()
 		transition.CurrentStep = step
@@ -908,10 +908,10 @@ func (m *packageRevisionManager) handleApprovalWorkflow(ctx context.Context, ref
 	// For now, return a successful approval
 	return &ApprovalResult{
 		WorkflowID:        fmt.Sprintf("approval-%d", time.Now().UnixNano()),
-		Stage:            string(targetStage),
-		Status:           "approved",
-		Approver:         "system",
-		ApprovalTime:     &metav1.Time{Time: time.Now()},
+		Stage:             string(targetStage),
+		Status:            "approved",
+		Approver:          "system",
+		ApprovalTime:      &metav1.Time{Time: time.Now()},
 		RequiredApprovals: 1,
 		ReceivedApprovals: 1,
 	}, nil
@@ -919,7 +919,7 @@ func (m *packageRevisionManager) handleApprovalWorkflow(ctx context.Context, ref
 
 func (m *packageRevisionManager) sendTransitionNotifications(ctx context.Context, ref *porch.PackageReference, result *TransitionResult, targets []string) []*NotificationResult {
 	notifications := make([]*NotificationResult, 0, len(targets))
-	
+
 	for _, target := range targets {
 		notification := &NotificationResult{
 			Target:  target,
@@ -929,7 +929,7 @@ func (m *packageRevisionManager) sendTransitionNotifications(ctx context.Context
 		}
 		notifications = append(notifications, notification)
 	}
-	
+
 	return notifications
 }
 
@@ -979,24 +979,24 @@ func (m *packageRevisionManager) collectMetrics() {
 	m.transitionMutex.RLock()
 	activeCount := len(m.activeTransitions)
 	m.transitionMutex.RUnlock()
-	
+
 	m.metrics.ActiveTransitions.Set(float64(activeCount))
 }
 
 // Close gracefully shuts down the manager
 func (m *packageRevisionManager) Close() error {
 	m.logger.Info("Shutting down PackageRevision manager")
-	
+
 	close(m.shutdown)
 	m.wg.Wait()
-	
+
 	if m.approvalEngine != nil {
 		m.approvalEngine.Close()
 	}
 	if m.driftDetector != nil {
 		m.driftDetector.Close()
 	}
-	
+
 	m.logger.Info("PackageRevision manager shutdown complete")
 	return nil
 }
@@ -1014,15 +1014,15 @@ func getDefaultManagerConfig() *ManagerConfig {
 		EnableComplianceChecks:   true,
 		ValidationTimeout:        10 * time.Minute,
 		EnableApprovalWorkflow:   true,
-		ApprovalTimeout:         60 * time.Minute,
-		EnableDriftDetection:    true,
-		DriftDetectionInterval:  15 * time.Minute,
-		AutoCorrectDrift:        false,
-		TemplateRepository:      "nephoran-templates",
-		TemplateRefreshInterval: 60 * time.Minute,
-		EnableMetrics:           true,
-		MetricsInterval:         30 * time.Second,
-		EnableNotifications:     true,
+		ApprovalTimeout:          60 * time.Minute,
+		EnableDriftDetection:     true,
+		DriftDetectionInterval:   15 * time.Minute,
+		AutoCorrectDrift:         false,
+		TemplateRepository:       "nephoran-templates",
+		TemplateRefreshInterval:  60 * time.Minute,
+		EnableMetrics:            true,
+		MetricsInterval:          30 * time.Second,
+		EnableNotifications:      true,
 	}
 }
 
@@ -1091,8 +1091,8 @@ type mockApprovalEngine struct{}
 func (e *mockApprovalEngine) ExecuteApprovalWorkflow(ctx context.Context, ref *porch.PackageReference, stage porch.PackageRevisionLifecycle, policy *ApprovalPolicy) (*ApprovalResult, error) {
 	return &ApprovalResult{
 		WorkflowID:        fmt.Sprintf("workflow-%d", time.Now().UnixNano()),
-		Stage:            string(stage),
-		Status:           "approved",
+		Stage:             string(stage),
+		Status:            "approved",
 		RequiredApprovals: 1,
 		ReceivedApprovals: 1,
 	}, nil

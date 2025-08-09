@@ -26,13 +26,13 @@ import (
 // LLMProcessorHandlerTestSuite provides comprehensive test coverage for LLMProcessorHandler
 type LLMProcessorHandlerTestSuite struct {
 	suite.Suite
-	handler            *LLMProcessorHandler
-	mockCtrl           *gomock.Controller
-	mockProcessor      *MockIntentProcessor
-	mockHealthChecker  *MockHealthChecker
-	mockTokenManager   *MockTokenManager
-	logger             *slog.Logger
-	config             *config.LLMProcessorConfig
+	handler           *LLMProcessorHandler
+	mockCtrl          *gomock.Controller
+	mockProcessor     *MockIntentProcessor
+	mockHealthChecker *MockHealthChecker
+	mockTokenManager  *MockTokenManager
+	logger            *slog.Logger
+	config            *config.LLMProcessorConfig
 }
 
 func TestLLMProcessorHandlerSuite(t *testing.T) {
@@ -48,7 +48,7 @@ func (suite *LLMProcessorHandlerTestSuite) SetupTest() {
 	suite.mockProcessor = NewMockIntentProcessor(suite.mockCtrl)
 	suite.mockHealthChecker = NewMockHealthChecker(suite.mockCtrl)
 	suite.mockTokenManager = NewMockTokenManager(suite.mockCtrl)
-	
+
 	suite.config = &config.LLMProcessorConfig{
 		Enabled:     true,
 		APIEndpoint: "http://localhost:8080",
@@ -58,10 +58,10 @@ func (suite *LLMProcessorHandlerTestSuite) SetupTest() {
 		Temperature: 0.7,
 		Timeout:     30 * time.Second,
 		RetryConfig: config.RetryConfig{
-			MaxRetries:      3,
-			InitialDelay:    100 * time.Millisecond,
-			BackoffFactor:   2.0,
-			MaxDelay:        10 * time.Second,
+			MaxRetries:    3,
+			InitialDelay:  100 * time.Millisecond,
+			BackoffFactor: 2.0,
+			MaxDelay:      10 * time.Second,
 		},
 		RateLimiting: config.RateLimitConfig{
 			RequestsPerSecond: 10,
@@ -69,7 +69,7 @@ func (suite *LLMProcessorHandlerTestSuite) SetupTest() {
 			BurstSize:         20,
 		},
 	}
-	
+
 	suite.handler = &LLMProcessorHandler{
 		config:        suite.config,
 		processor:     suite.mockProcessor,
@@ -93,9 +93,9 @@ func (suite *LLMProcessorHandlerTestSuite) TestNewLLMProcessorHandler_Success() 
 		MaxTokens:   4000,
 		Temperature: 0.7,
 	}
-	
+
 	handler, err := NewLLMProcessorHandler(config, suite.logger)
-	
+
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), handler)
 	assert.Equal(suite.T(), config, handler.config)
@@ -152,11 +152,11 @@ func (suite *LLMProcessorHandlerTestSuite) TestNewLLMProcessorHandler_InvalidCon
 			errorMsg: "max tokens must be greater than 0",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			handler, err := NewLLMProcessorHandler(tc.config, suite.logger)
-			
+
 			assert.Error(suite.T(), err)
 			assert.Nil(suite.T(), handler)
 			assert.Contains(suite.T(), err.Error(), tc.errorMsg)
@@ -172,10 +172,10 @@ func (suite *LLMProcessorHandlerTestSuite) TestProcessIntentHandler_Success() {
 			"priority":  "high",
 		},
 	}
-	
+
 	expectedResponse := &ProcessIntentResult{
-		Result:      "Successfully processed intent: Deploy AMF with HA configuration",
-		RequestID:   "req-123",
+		Result:         "Successfully processed intent: Deploy AMF with HA configuration",
+		RequestID:      "req-123",
 		ProcessingTime: 250 * time.Millisecond,
 		Metadata: map[string]interface{}{
 			"extracted_entities": map[string]interface{}{
@@ -186,30 +186,30 @@ func (suite *LLMProcessorHandlerTestSuite) TestProcessIntentHandler_Success() {
 		},
 		Status: "success",
 	}
-	
+
 	suite.mockProcessor.EXPECT().
 		ProcessIntent(gomock.Any(), request.Intent, request.Metadata).
 		Return(expectedResponse, nil).
 		Times(1)
-	
+
 	body, err := json.Marshal(request)
 	require.NoError(suite.T(), err)
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/process", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Request-ID", "test-request-123")
-	
+
 	recorder := httptest.NewRecorder()
-	
+
 	handler := http.HandlerFunc(suite.handler.ProcessIntentHandler)
 	handler.ServeHTTP(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusOK, recorder.Code)
-	
+
 	var response ProcessIntentResponse
 	err = json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), expectedResponse.Result, response.Result)
 	assert.Equal(suite.T(), expectedResponse.Status, response.Status)
 	assert.Equal(suite.T(), "test-request-123", response.RequestID)
@@ -219,21 +219,21 @@ func (suite *LLMProcessorHandlerTestSuite) TestProcessIntentHandler_Success() {
 
 func (suite *LLMProcessorHandlerTestSuite) TestProcessIntentHandler_InvalidJSON() {
 	invalidJSON := `{"intent": "test", "metadata": invalid}`
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/process", strings.NewReader(invalidJSON))
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	recorder := httptest.NewRecorder()
-	
+
 	handler := http.HandlerFunc(suite.handler.ProcessIntentHandler)
 	handler.ServeHTTP(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusBadRequest, recorder.Code)
-	
+
 	var response ProcessIntentResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), "error", response.Status)
 	assert.Contains(suite.T(), response.Error, "invalid JSON")
 }
@@ -245,24 +245,24 @@ func (suite *LLMProcessorHandlerTestSuite) TestProcessIntentHandler_EmptyIntent(
 			"test": "value",
 		},
 	}
-	
+
 	body, err := json.Marshal(request)
 	require.NoError(suite.T(), err)
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/process", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	recorder := httptest.NewRecorder()
-	
+
 	handler := http.HandlerFunc(suite.handler.ProcessIntentHandler)
 	handler.ServeHTTP(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusBadRequest, recorder.Code)
-	
+
 	var response ProcessIntentResponse
 	err = json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), "error", response.Status)
 	assert.Contains(suite.T(), response.Error, "intent cannot be empty")
 }
@@ -274,31 +274,31 @@ func (suite *LLMProcessorHandlerTestSuite) TestProcessIntentHandler_ProcessingEr
 			"test": "value",
 		},
 	}
-	
+
 	processingError := fmt.Errorf("failed to process intent: invalid configuration")
-	
+
 	suite.mockProcessor.EXPECT().
 		ProcessIntent(gomock.Any(), request.Intent, request.Metadata).
 		Return(nil, processingError).
 		Times(1)
-	
+
 	body, err := json.Marshal(request)
 	require.NoError(suite.T(), err)
-	
+
 	req := httptest.NewRequest(http.MethodPost, "/process", bytes.NewBuffer(body))
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	recorder := httptest.NewRecorder()
-	
+
 	handler := http.HandlerFunc(suite.handler.ProcessIntentHandler)
 	handler.ServeHTTP(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusInternalServerError, recorder.Code)
-	
+
 	var response ProcessIntentResponse
 	err = json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), "error", response.Status)
 	assert.Contains(suite.T(), response.Error, "failed to process intent")
 }
@@ -308,19 +308,19 @@ func (suite *LLMProcessorHandlerTestSuite) TestHealthHandler_Healthy() {
 		CheckHealth(gomock.Any()).
 		Return(true, nil).
 		Times(1)
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	handler := http.HandlerFunc(suite.handler.HealthHandler)
 	handler.ServeHTTP(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusOK, recorder.Code)
-	
+
 	var response HealthResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), "healthy", response.Status)
 	assert.Equal(suite.T(), "1.0.0", response.Version)
 	assert.NotEmpty(suite.T(), response.Uptime)
@@ -329,24 +329,24 @@ func (suite *LLMProcessorHandlerTestSuite) TestHealthHandler_Healthy() {
 
 func (suite *LLMProcessorHandlerTestSuite) TestHealthHandler_Unhealthy() {
 	healthError := fmt.Errorf("LLM API endpoint not responding")
-	
+
 	suite.mockHealthChecker.EXPECT().
 		CheckHealth(gomock.Any()).
 		Return(false, healthError).
 		Times(1)
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	handler := http.HandlerFunc(suite.handler.HealthHandler)
 	handler.ServeHTTP(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusServiceUnavailable, recorder.Code)
-	
+
 	var response HealthResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), "unhealthy", response.Status)
 	assert.Contains(suite.T(), response.Details, "LLM API endpoint not responding")
 }
@@ -356,43 +356,43 @@ func (suite *LLMProcessorHandlerTestSuite) TestReadinessHandler_Ready() {
 		IsReady(gomock.Any()).
 		Return(true, nil).
 		Times(1)
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	handler := http.HandlerFunc(suite.handler.ReadinessHandler)
 	handler.ServeHTTP(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusOK, recorder.Code)
-	
+
 	var response ReadinessResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), "ready", response.Status)
 	assert.True(suite.T(), response.Ready)
 }
 
 func (suite *LLMProcessorHandlerTestSuite) TestReadinessHandler_NotReady() {
 	readinessError := fmt.Errorf("initializing connection to vector database")
-	
+
 	suite.mockHealthChecker.EXPECT().
 		IsReady(gomock.Any()).
 		Return(false, readinessError).
 		Times(1)
-	
+
 	req := httptest.NewRequest(http.MethodGet, "/ready", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	handler := http.HandlerFunc(suite.handler.ReadinessHandler)
 	handler.ServeHTTP(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusServiceUnavailable, recorder.Code)
-	
+
 	var response ReadinessResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), "not ready", response.Status)
 	assert.False(suite.T(), response.Ready)
 	assert.Contains(suite.T(), response.Message, "initializing connection")
@@ -401,13 +401,13 @@ func (suite *LLMProcessorHandlerTestSuite) TestReadinessHandler_NotReady() {
 func (suite *LLMProcessorHandlerTestSuite) TestMetricsHandler() {
 	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	handler := http.HandlerFunc(suite.handler.MetricsHandler)
 	handler.ServeHTTP(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusOK, recorder.Code)
 	assert.Contains(suite.T(), recorder.Header().Get("Content-Type"), "text/plain")
-	
+
 	// Check for Prometheus metrics format
 	body := recorder.Body.String()
 	assert.Contains(suite.T(), body, "# HELP")
@@ -417,16 +417,16 @@ func (suite *LLMProcessorHandlerTestSuite) TestMetricsHandler() {
 func (suite *LLMProcessorHandlerTestSuite) TestVersionHandler() {
 	req := httptest.NewRequest(http.MethodGet, "/version", nil)
 	recorder := httptest.NewRecorder()
-	
+
 	handler := http.HandlerFunc(suite.handler.VersionHandler)
 	handler.ServeHTTP(recorder, req)
-	
+
 	assert.Equal(suite.T(), http.StatusOK, recorder.Code)
-	
+
 	var response VersionResponse
 	err := json.Unmarshal(recorder.Body.Bytes(), &response)
 	require.NoError(suite.T(), err)
-	
+
 	assert.Equal(suite.T(), "1.0.0", response.Version)
 	assert.Equal(suite.T(), "main", response.GitCommit)
 	assert.NotEmpty(suite.T(), response.BuildTime)
@@ -436,11 +436,11 @@ func (suite *LLMProcessorHandlerTestSuite) TestVersionHandler() {
 // Table-driven tests for various request scenarios
 func (suite *LLMProcessorHandlerTestSuite) TestProcessIntentHandler_TableDriven() {
 	testCases := []struct {
-		name            string
-		request         ProcessIntentRequest
-		mockSetup       func()
-		expectedStatus  int
-		expectedError   string
+		name             string
+		request          ProcessIntentRequest
+		mockSetup        func()
+		expectedStatus   int
+		expectedError    string
 		validateResponse func(*ProcessIntentResponse)
 	}{
 		{
@@ -547,29 +547,29 @@ func (suite *LLMProcessorHandlerTestSuite) TestProcessIntentHandler_TableDriven(
 			expectedError:  "LLM service unavailable",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			tc.mockSetup()
-			
+
 			body, err := json.Marshal(tc.request)
 			require.NoError(suite.T(), err)
-			
+
 			req := httptest.NewRequest(http.MethodPost, "/process", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("X-Request-ID", fmt.Sprintf("test-%s", tc.name))
-			
+
 			recorder := httptest.NewRecorder()
-			
+
 			handler := http.HandlerFunc(suite.handler.ProcessIntentHandler)
 			handler.ServeHTTP(recorder, req)
-			
+
 			assert.Equal(suite.T(), tc.expectedStatus, recorder.Code)
-			
+
 			var response ProcessIntentResponse
 			err = json.Unmarshal(recorder.Body.Bytes(), &response)
 			require.NoError(suite.T(), err)
-			
+
 			if tc.expectedError != "" {
 				assert.Equal(suite.T(), "error", response.Status)
 				assert.Contains(suite.T(), response.Error, tc.expectedError)
@@ -583,9 +583,9 @@ func (suite *LLMProcessorHandlerTestSuite) TestProcessIntentHandler_TableDriven(
 // Edge cases and error handling tests
 func (suite *LLMProcessorHandlerTestSuite) TestEdgeCases() {
 	testCases := []struct {
-		name        string
-		setupFunc   func() (*http.Request, *httptest.ResponseRecorder)
-		handlerFunc func(http.ResponseWriter, *http.Request)
+		name         string
+		setupFunc    func() (*http.Request, *httptest.ResponseRecorder)
+		handlerFunc  func(http.ResponseWriter, *http.Request)
 		validateFunc func(*httptest.ResponseRecorder)
 	}{
 		{
@@ -638,12 +638,12 @@ func (suite *LLMProcessorHandlerTestSuite) TestEdgeCases() {
 				body, _ := json.Marshal(request)
 				req := httptest.NewRequest(http.MethodPost, "/process", bytes.NewBuffer(body))
 				req.Header.Set("Content-Type", "application/json")
-				
+
 				// Create a context with immediate cancellation
 				ctx, cancel := context.WithCancel(req.Context())
 				cancel() // Cancel immediately to simulate timeout
 				req = req.WithContext(ctx)
-				
+
 				return req, httptest.NewRecorder()
 			},
 			handlerFunc: suite.handler.ProcessIntentHandler,
@@ -653,11 +653,11 @@ func (suite *LLMProcessorHandlerTestSuite) TestEdgeCases() {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			req, recorder := tc.setupFunc()
-			
+
 			// Setup mock expectations for cases that reach the processor
 			if strings.Contains(tc.name, "Large request") {
 				suite.mockProcessor.EXPECT().
@@ -668,10 +668,10 @@ func (suite *LLMProcessorHandlerTestSuite) TestEdgeCases() {
 					}, nil).
 					MaxTimes(1)
 			}
-			
+
 			handler := http.HandlerFunc(tc.handlerFunc)
 			handler.ServeHTTP(recorder, req)
-			
+
 			tc.validateFunc(recorder)
 		})
 	}
@@ -688,28 +688,28 @@ func BenchmarkProcessIntentHandler(b *testing.B) {
 		MaxTokens:   4000,
 		Temperature: 0.7,
 	}
-	
+
 	handler, err := NewLLMProcessorHandler(config, logger)
 	require.NoError(b, err)
-	
+
 	request := ProcessIntentRequest{
 		Intent: "Deploy AMF for production use",
 		Metadata: map[string]string{
 			"environment": "production",
 		},
 	}
-	
+
 	body, err := json.Marshal(request)
 	require.NoError(b, err)
-	
+
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			req := httptest.NewRequest(http.MethodPost, "/process", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
-			
+
 			recorder := httptest.NewRecorder()
-			
+
 			handlerFunc := http.HandlerFunc(handler.ProcessIntentHandler)
 			handlerFunc.ServeHTTP(recorder, req)
 		}
@@ -807,27 +807,27 @@ func NewLLMProcessorHandler(config *config.LLMProcessorConfig, logger *slog.Logg
 	if config == nil {
 		return nil, fmt.Errorf("config cannot be nil")
 	}
-	
+
 	if config.APIEndpoint == "" {
 		return nil, fmt.Errorf("API endpoint cannot be empty")
 	}
-	
+
 	if config.APIKey == "" {
 		return nil, fmt.Errorf("API key cannot be empty")
 	}
-	
+
 	if config.Temperature < 0 || config.Temperature > 2 {
 		return nil, fmt.Errorf("temperature must be between 0 and 2")
 	}
-	
+
 	if config.MaxTokens <= 0 {
 		return nil, fmt.Errorf("max tokens must be greater than 0")
 	}
-	
+
 	// Create mock processor and health checker for testing
 	processor := &MockIntentProcessorImpl{}
 	healthChecker := &health.HealthChecker{}
-	
+
 	return &LLMProcessorHandler{
 		config:        config,
 		processor:     processor,
@@ -853,19 +853,19 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	contentType := r.Header.Get("Content-Type")
 	if contentType != "application/json" {
 		http.Error(w, "Unsupported media type", http.StatusUnsupportedMediaType)
 		return
 	}
-	
+
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	var request ProcessIntentRequest
 	if err := json.Unmarshal(body, &request); err != nil {
 		response := ProcessIntentResponse{
@@ -877,7 +877,7 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 		json.NewEncoder(w).Encode(response)
 		return
 	}
-	
+
 	if request.Intent == "" {
 		response := ProcessIntentResponse{
 			Status: "error",
@@ -888,22 +888,22 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 		json.NewEncoder(w).Encode(response)
 		return
 	}
-	
+
 	start := time.Now()
 	result, err := h.processor.ProcessIntent(r.Context(), request.Intent, request.Metadata)
 	processingTime := time.Since(start)
-	
+
 	requestID := r.Header.Get("X-Request-ID")
 	if requestID == "" {
 		requestID = fmt.Sprintf("req-%d", time.Now().UnixNano())
 	}
-	
+
 	if err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "rate limit") {
 			status = http.StatusTooManyRequests
 		}
-		
+
 		response := ProcessIntentResponse{
 			Status:         "error",
 			Error:          err.Error(),
@@ -915,7 +915,7 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 		json.NewEncoder(w).Encode(response)
 		return
 	}
-	
+
 	response := ProcessIntentResponse{
 		Result:         result.Result,
 		ProcessingTime: processingTime.String(),
@@ -924,7 +924,7 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 		Metadata:       result.Metadata,
 		Status:         result.Status,
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteStatus(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
@@ -932,13 +932,13 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 
 func (h *LLMProcessorHandler) HealthHandler(w http.ResponseWriter, r *http.Request) {
 	healthy, err := h.healthChecker.CheckHealth(r.Context())
-	
+
 	response := HealthResponse{
 		Version:   "1.0.0",
 		Uptime:    time.Since(h.startTime).String(),
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
-	
+
 	if healthy {
 		response.Status = "healthy"
 		w.WriteStatus(http.StatusOK)
@@ -949,18 +949,18 @@ func (h *LLMProcessorHandler) HealthHandler(w http.ResponseWriter, r *http.Reque
 		}
 		w.WriteStatus(http.StatusServiceUnavailable)
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
 func (h *LLMProcessorHandler) ReadinessHandler(w http.ResponseWriter, r *http.Request) {
 	ready, err := h.healthChecker.IsReady(r.Context())
-	
+
 	response := ReadinessResponse{
 		Ready: ready,
 	}
-	
+
 	if ready {
 		response.Status = "ready"
 		w.WriteStatus(http.StatusOK)
@@ -971,7 +971,7 @@ func (h *LLMProcessorHandler) ReadinessHandler(w http.ResponseWriter, r *http.Re
 		}
 		w.WriteStatus(http.StatusServiceUnavailable)
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -979,7 +979,7 @@ func (h *LLMProcessorHandler) ReadinessHandler(w http.ResponseWriter, r *http.Re
 func (h *LLMProcessorHandler) MetricsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4; charset=utf-8")
 	w.WriteStatus(http.StatusOK)
-	
+
 	// Mock Prometheus metrics output
 	fmt.Fprintf(w, `# HELP http_requests_total Total number of HTTP requests
 # TYPE http_requests_total counter
@@ -1004,7 +1004,7 @@ func (h *LLMProcessorHandler) VersionHandler(w http.ResponseWriter, r *http.Requ
 		BuildTime: "2025-01-08T10:00:00Z",
 		GoVersion: "go1.24",
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteStatus(http.StatusOK)
 	json.NewEncoder(w).Encode(response)

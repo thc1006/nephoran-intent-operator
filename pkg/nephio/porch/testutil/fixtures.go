@@ -71,7 +71,7 @@ func NewTestFixture(ctx context.Context) *TestFixture {
 		Build()
 
 	config := NewTestConfig()
-	
+
 	fixture := &TestFixture{
 		Client:       fakeClient,
 		Config:       config,
@@ -99,10 +99,10 @@ func NewTestConfig() *porch.Config {
 				BackoffDelay: &metav1.Duration{Duration: 1 * time.Second},
 			},
 			CircuitBreaker: &porch.CircuitBreakerConfiguration{
-				Enabled:           true,
-				FailureThreshold:  5,
-				Timeout:           &metav1.Duration{Duration: 60 * time.Second},
-				HalfOpenMaxCalls:  3,
+				Enabled:          true,
+				FailureThreshold: 5,
+				Timeout:          &metav1.Duration{Duration: 60 * time.Second},
+				HalfOpenMaxCalls: 3,
 			},
 			RateLimit: &porch.RateLimitConfiguration{
 				Enabled:           true,
@@ -582,8 +582,8 @@ func (f *TestFixture) Cleanup() {
 func AssertCondition(conditions []metav1.Condition, conditionType string, status metav1.ConditionStatus, reason string) bool {
 	for _, condition := range conditions {
 		if condition.Type == conditionType &&
-		   condition.Status == status &&
-		   condition.Reason == reason {
+			condition.Status == status &&
+			condition.Reason == reason {
 			return true
 		}
 	}
@@ -623,63 +623,63 @@ func GetTestKubeConfig() *rest.Config {
 // CreateMultipleTestPackages creates multiple test packages for bulk testing
 func (f *TestFixture) CreateMultipleTestPackages(count int, namePrefix string) []*porch.PackageRevision {
 	packages := make([]*porch.PackageRevision, count)
-	
+
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("%s-%d", namePrefix, i)
 		revision := fmt.Sprintf("v1.0.%d", i)
 		packages[i] = f.CreateTestPackageRevision(name, revision)
 	}
-	
+
 	return packages
 }
 
 // CreateMultipleTestRepositories creates multiple test repositories for bulk testing
 func (f *TestFixture) CreateMultipleTestRepositories(count int, namePrefix string) []*porch.Repository {
 	repositories := make([]*porch.Repository, count)
-	
+
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("%s-%d", namePrefix, i)
 		repositories[i] = f.CreateTestRepository(name)
 	}
-	
+
 	return repositories
 }
 
 // ValidatePackageRevision performs basic validation on a package revision
 func ValidatePackageRevision(pkg *porch.PackageRevision) []string {
 	var errors []string
-	
+
 	if pkg.Spec.PackageName == "" {
 		errors = append(errors, "package name is required")
 	}
-	
+
 	if pkg.Spec.Repository == "" {
 		errors = append(errors, "repository is required")
 	}
-	
+
 	if pkg.Spec.Revision == "" {
 		errors = append(errors, "revision is required")
 	}
-	
+
 	if !porch.IsValidLifecycle(pkg.Spec.Lifecycle) {
 		errors = append(errors, "invalid lifecycle")
 	}
-	
+
 	return errors
 }
 
 // ValidateRepository performs basic validation on a repository
 func ValidateRepository(repo *porch.Repository) []string {
 	var errors []string
-	
+
 	if repo.Spec.URL == "" {
 		errors = append(errors, "repository URL is required")
 	}
-	
+
 	if repo.Spec.Type == "" {
 		errors = append(errors, "repository type is required")
 	}
-	
+
 	validTypes := []string{"git", "oci"}
 	typeValid := false
 	for _, validType := range validTypes {
@@ -691,6 +691,6 @@ func ValidateRepository(repo *porch.Repository) []string {
 	if !typeValid {
 		errors = append(errors, "invalid repository type")
 	}
-	
+
 	return errors
 }

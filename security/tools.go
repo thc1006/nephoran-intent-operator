@@ -6,9 +6,9 @@ package tools
 
 import (
 	// Security scanning tools
-	_ "golang.org/x/vuln/cmd/govulncheck"
 	_ "github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod"
-	
+	_ "golang.org/x/vuln/cmd/govulncheck"
+
 	// Code quality and complexity
 	_ "honnef.co/go/tools/cmd/staticcheck"
 )

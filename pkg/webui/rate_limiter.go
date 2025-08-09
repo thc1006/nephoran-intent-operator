@@ -39,32 +39,32 @@ type RateLimiter struct {
 
 // rateLimitBucket represents a token bucket for rate limiting
 type rateLimitBucket struct {
-	tokens       int
-	lastRefill   time.Time
-	requests     []time.Time
-	mutex        sync.Mutex
+	tokens     int
+	lastRefill time.Time
+	requests   []time.Time
+	mutex      sync.Mutex
 }
 
 // RateLimitStats provides rate limiting statistics
 type RateLimitStats struct {
-	TotalRequests      int64
-	AllowedRequests    int64
-	DeniedRequests     int64
-	ActiveBuckets      int64
-	ExpiredBuckets     int64
-	AvgRequestsPerMin  float64
-	mutex              sync.RWMutex
+	TotalRequests     int64
+	AllowedRequests   int64
+	DeniedRequests    int64
+	ActiveBuckets     int64
+	ExpiredBuckets    int64
+	AvgRequestsPerMin float64
+	mutex             sync.RWMutex
 }
 
 // RateLimitConfig holds rate limiter configuration
 type RateLimitConfig struct {
-	RequestsPerMin      int
-	BurstSize          int
-	Window             time.Duration
-	CleanupInterval    time.Duration
-	MaxBuckets         int
-	WhitelistIPs       []string
-	WhitelistUserIDs   []string
+	RequestsPerMin   int
+	BurstSize        int
+	Window           time.Duration
+	CleanupInterval  time.Duration
+	MaxBuckets       int
+	WhitelistIPs     []string
+	WhitelistUserIDs []string
 }
 
 // NewRateLimiter creates a new rate limiter instance
@@ -234,7 +234,7 @@ func (rl *RateLimiter) GetLimit(identifier string) *RateLimitInfo {
 func (rl *RateLimiter) Stats() RateLimitStats {
 	rl.stats.mutex.RLock()
 	defer rl.stats.mutex.RUnlock()
-	
+
 	stats := *rl.stats // Create a copy
 	return stats
 }
@@ -245,7 +245,7 @@ func (rl *RateLimiter) Reset() {
 	defer rl.mutex.Unlock()
 
 	rl.limits = make(map[string]*rateLimitBucket)
-	
+
 	rl.updateStats(func(s *RateLimitStats) {
 		s.ActiveBuckets = 0
 	})
@@ -269,7 +269,7 @@ type RateLimitInfo struct {
 func (rl *RateLimiter) refillTokens(bucket *rateLimitBucket, now time.Time) {
 	elapsed := now.Sub(bucket.lastRefill)
 	tokensToAdd := int(elapsed.Minutes() * float64(rl.requestsPerMin))
-	
+
 	if tokensToAdd > 0 {
 		bucket.tokens += tokensToAdd
 		if bucket.tokens > rl.burstSize {
@@ -281,7 +281,7 @@ func (rl *RateLimiter) refillTokens(bucket *rateLimitBucket, now time.Time) {
 
 func (rl *RateLimiter) cleanOldRequests(bucket *rateLimitBucket, now time.Time) {
 	cutoff := now.Add(-rl.window)
-	
+
 	// Remove requests older than the window
 	validRequests := bucket.requests[:0]
 	for _, requestTime := range bucket.requests {
@@ -315,18 +315,18 @@ func (rl *RateLimiter) performCleanup() {
 
 	for identifier, bucket := range rl.limits {
 		bucket.mutex.Lock()
-		
+
 		// Check if bucket is inactive (no recent requests)
 		cutoff := now.Add(-2 * rl.window)
 		hasRecentActivity := false
-		
+
 		for _, requestTime := range bucket.requests {
 			if requestTime.After(cutoff) {
 				hasRecentActivity = true
 				break
 			}
 		}
-		
+
 		if !hasRecentActivity && bucket.lastRefill.Before(cutoff) {
 			bucket.mutex.Unlock()
 			delete(rl.limits, identifier)
@@ -348,7 +348,7 @@ func (rl *RateLimiter) updateStats(updateFn func(*RateLimitStats)) {
 	rl.stats.mutex.Lock()
 	defer rl.stats.mutex.Unlock()
 	updateFn(rl.stats)
-	
+
 	// Calculate average requests per minute
 	if rl.stats.TotalRequests > 0 {
 		// This is a simplified calculation - in production, you'd track this over time
@@ -372,17 +372,17 @@ func (s *NephoranAPIServer) rateLimitMiddleware(next http.Handler) http.Handler 
 		// Check rate limit
 		if !s.rateLimiter.Allow(identifier) {
 			s.metrics.RateLimitExceeded.Inc()
-			
+
 			// Get limit info for headers
 			limitInfo := s.rateLimiter.GetLimit(identifier)
-			
+
 			// Set rate limit headers
 			w.Header().Set("X-RateLimit-Limit", strconv.Itoa(limitInfo.Limit))
 			w.Header().Set("X-RateLimit-Remaining", strconv.Itoa(limitInfo.Remaining))
 			w.Header().Set("X-RateLimit-Reset", strconv.FormatInt(limitInfo.ResetTime.Unix(), 10))
 			w.Header().Set("Retry-After", strconv.FormatInt(int64(limitInfo.ResetTime.Sub(time.Now()).Seconds()), 10))
-			
-			s.writeErrorResponse(w, http.StatusTooManyRequests, "rate_limit_exceeded", 
+
+			s.writeErrorResponse(w, http.StatusTooManyRequests, "rate_limit_exceeded",
 				"Rate limit exceeded. Please try again later.")
 			return
 		}

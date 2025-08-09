@@ -14,13 +14,13 @@ import (
 
 // RAGEnhancedProcessor provides LLM processing enhanced with RAG capabilities
 type RAGEnhancedProcessor struct {
-	baseClient    Client
-	ragService    *rag.RAGService
+	baseClient     Client
+	ragService     *rag.RAGService
 	weaviateClient *rag.WeaviateClient
-	config        *RAGProcessorConfig
-	logger        *slog.Logger
-	metrics       *ProcessorMetrics
-	mutex         sync.RWMutex
+	config         *RAGProcessorConfig
+	logger         *slog.Logger
+	metrics        *ProcessorMetrics
+	mutex          sync.RWMutex
 }
 
 // RAGProcessorConfig holds configuration for the RAG-enhanced processor
@@ -29,18 +29,18 @@ type RAGProcessorConfig struct {
 	EnableRAG              bool    `json:"enable_rag"`
 	RAGConfidenceThreshold float32 `json:"rag_confidence_threshold"`
 	FallbackToBase         bool    `json:"fallback_to_base"`
-	
+
 	// Query classification
-	EnableQueryClassification bool `json:"enable_query_classification"`
+	EnableQueryClassification bool    `json:"enable_query_classification"`
 	ClassificationThreshold   float32 `json:"classification_threshold"`
-	
+
 	// Performance settings
 	MaxConcurrentQueries int           `json:"max_concurrent_queries"`
 	QueryTimeout         time.Duration `json:"query_timeout"`
-	
+
 	// Intent type mappings
 	IntentTypeMapping map[string]string `json:"intent_type_mapping"`
-	
+
 	// Telecom domain settings
 	TelecomKeywords []string `json:"telecom_keywords"`
 	RequiredSources []string `json:"required_sources"`
@@ -62,13 +62,13 @@ type ProcessorMetrics struct {
 
 // EnhancedResponse represents a response with RAG metadata
 type EnhancedResponse struct {
-	Content         string                 `json:"content"`
-	UsedRAG         bool                   `json:"used_rag"`
-	Confidence      float32                `json:"confidence"`
-	Sources         []*rag.SearchResult    `json:"sources,omitempty"`
-	ProcessingTime  time.Duration          `json:"processing_time"`
-	IntentType      string                 `json:"intent_type,omitempty"`
-	Metadata        map[string]interface{} `json:"metadata,omitempty"`
+	Content        string                 `json:"content"`
+	UsedRAG        bool                   `json:"used_rag"`
+	Confidence     float32                `json:"confidence"`
+	Sources        []*rag.SearchResult    `json:"sources,omitempty"`
+	ProcessingTime time.Duration          `json:"processing_time"`
+	IntentType     string                 `json:"intent_type,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // NewRAGEnhancedProcessor creates a new RAG-enhanced LLM processor
@@ -97,11 +97,11 @@ func getDefaultRAGProcessorConfig() *RAGProcessorConfig {
 	return &RAGProcessorConfig{
 		EnableRAG:                 true,
 		RAGConfidenceThreshold:    0.6,
-		FallbackToBase:           true,
+		FallbackToBase:            true,
 		EnableQueryClassification: true,
 		ClassificationThreshold:   0.7,
-		MaxConcurrentQueries:     10,
-		QueryTimeout:             60 * time.Second,
+		MaxConcurrentQueries:      10,
+		QueryTimeout:              60 * time.Second,
 		IntentTypeMapping: map[string]string{
 			"configure":    "configuration",
 			"optimize":     "optimization",
@@ -125,7 +125,7 @@ func getDefaultRAGProcessorConfig() *RAGProcessorConfig {
 // ProcessIntent processes an intent using RAG enhancement when appropriate
 func (rep *RAGEnhancedProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	startTime := time.Now()
-	
+
 	// Update metrics
 	rep.updateMetrics(func(m *ProcessorMetrics) {
 		m.TotalRequests++
@@ -133,7 +133,7 @@ func (rep *RAGEnhancedProcessor) ProcessIntent(ctx context.Context, intent strin
 
 	// Classify the query to determine if RAG is beneficial
 	shouldUseRAG := rep.shouldUseRAG(intent)
-	
+
 	var response *EnhancedResponse
 	var err error
 
@@ -178,13 +178,13 @@ func (rep *RAGEnhancedProcessor) ProcessIntent(ctx context.Context, intent strin
 // ProcessIntentEnhanced processes an intent and returns enhanced response with metadata
 func (rep *RAGEnhancedProcessor) ProcessIntentEnhanced(ctx context.Context, intent string) (*EnhancedResponse, error) {
 	startTime := time.Now()
-	
+
 	rep.updateMetrics(func(m *ProcessorMetrics) {
 		m.TotalRequests++
 	})
 
 	shouldUseRAG := rep.shouldUseRAG(intent)
-	
+
 	var response *EnhancedResponse
 	var err error
 
@@ -232,7 +232,7 @@ func (rep *RAGEnhancedProcessor) shouldUseRAG(intent string) bool {
 	// Check if the query contains telecom-specific keywords
 	intentLower := strings.ToLower(intent)
 	keywordCount := 0
-	
+
 	for _, keyword := range rep.config.TelecomKeywords {
 		if strings.Contains(intentLower, strings.ToLower(keyword)) {
 			keywordCount++
@@ -269,12 +269,12 @@ func (rep *RAGEnhancedProcessor) processWithRAG(ctx context.Context, intent stri
 
 	// Create RAG request
 	ragRequest := &rag.RAGRequest{
-		Query:           intent,
-		IntentType:      intentType,
-		MaxResults:      10,
-		MinConfidence:   rep.config.RAGConfidenceThreshold,
-		UseHybridSearch: true,
-		EnableReranking: true,
+		Query:             intent,
+		IntentType:        intentType,
+		MaxResults:        10,
+		MinConfidence:     rep.config.RAGConfidenceThreshold,
+		UseHybridSearch:   true,
+		EnableReranking:   true,
 		IncludeSourceRefs: true,
 	}
 
@@ -298,7 +298,7 @@ func (rep *RAGEnhancedProcessor) processWithRAG(ctx context.Context, intent stri
 			"confidence", ragResponse.Confidence,
 			"threshold", rep.config.RAGConfidenceThreshold,
 		)
-		
+
 		if rep.config.FallbackToBase {
 			return rep.processWithBase(ctx, intent)
 		}
@@ -388,9 +388,9 @@ func (rep *RAGEnhancedProcessor) SearchKnowledgeBase(ctx context.Context, query 
 // GetHealth returns the health status of the processor and its dependencies
 func (rep *RAGEnhancedProcessor) GetHealth() map[string]interface{} {
 	health := map[string]interface{}{
-		"status": "healthy",
+		"status":      "healthy",
 		"rag_enabled": rep.config.EnableRAG,
-		"metrics": rep.GetMetrics(),
+		"metrics":     rep.GetMetrics(),
 	}
 
 	// Add base client health if available
@@ -420,7 +420,7 @@ func (rep *RAGEnhancedProcessor) GetHealth() map[string]interface{} {
 func (rep *RAGEnhancedProcessor) GetMetrics() *ProcessorMetrics {
 	rep.metrics.mutex.RLock()
 	defer rep.metrics.mutex.RUnlock()
-	
+
 	// Return a copy
 	metrics := *rep.metrics
 	return &metrics
@@ -461,7 +461,7 @@ func (rep *RAGEnhancedProcessor) ValidateConfig() error {
 // Close cleans up resources
 func (rep *RAGEnhancedProcessor) Close() error {
 	rep.logger.Info("Closing RAG enhanced processor")
-	
+
 	if rep.weaviateClient != nil {
 		if err := rep.weaviateClient.Close(); err != nil {
 			rep.logger.Error("Failed to close Weaviate client", "error", err)

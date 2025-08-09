@@ -55,60 +55,60 @@ type SelfHealingManager struct {
 
 // SelfHealingConfig defines self-healing configuration
 type SelfHealingConfig struct {
-	Enabled                    bool                        `json:"enabled"`
-	MonitoringInterval         time.Duration               `json:"monitoring_interval"`
-	PredictiveAnalysisEnabled  bool                        `json:"predictive_analysis_enabled"`
-	AutoRemediationEnabled     bool                        `json:"auto_remediation_enabled"`
-	MaxConcurrentRemediations  int                         `json:"max_concurrent_remediations"`
-	HealthCheckTimeout         time.Duration               `json:"health_check_timeout"`
-	FailureDetectionThreshold  float64                     `json:"failure_detection_threshold"`
-	ComponentConfigs           map[string]*ComponentConfig `json:"component_configs"`
-	NotificationConfig         *NotificationConfig         `json:"notification_config"`
-	BackupBeforeRemediation    bool                        `json:"backup_before_remediation"`
-	RollbackOnFailure          bool                        `json:"rollback_on_failure"`
-	LearningEnabled            bool                        `json:"learning_enabled"`
+	Enabled                   bool                        `json:"enabled"`
+	MonitoringInterval        time.Duration               `json:"monitoring_interval"`
+	PredictiveAnalysisEnabled bool                        `json:"predictive_analysis_enabled"`
+	AutoRemediationEnabled    bool                        `json:"auto_remediation_enabled"`
+	MaxConcurrentRemediations int                         `json:"max_concurrent_remediations"`
+	HealthCheckTimeout        time.Duration               `json:"health_check_timeout"`
+	FailureDetectionThreshold float64                     `json:"failure_detection_threshold"`
+	ComponentConfigs          map[string]*ComponentConfig `json:"component_configs"`
+	NotificationConfig        *NotificationConfig         `json:"notification_config"`
+	BackupBeforeRemediation   bool                        `json:"backup_before_remediation"`
+	RollbackOnFailure         bool                        `json:"rollback_on_failure"`
+	LearningEnabled           bool                        `json:"learning_enabled"`
 }
 
 // ComponentConfig defines component-specific healing configuration
 type ComponentConfig struct {
-	Name                 string                 `json:"name"`
-	HealthCheckEndpoint  string                 `json:"health_check_endpoint"`
-	CriticalityLevel     string                 `json:"criticality_level"` // LOW, MEDIUM, HIGH, CRITICAL
-	AutoHealingEnabled   bool                   `json:"auto_healing_enabled"`
-	MaxRestartAttempts   int                    `json:"max_restart_attempts"`
-	RestartCooldown      time.Duration          `json:"restart_cooldown"`
-	ScalingEnabled       bool                   `json:"scaling_enabled"`
-	MinReplicas          int32                  `json:"min_replicas"`
-	MaxReplicas          int32                  `json:"max_replicas"`
-	CustomRemediations   []*CustomRemediation   `json:"custom_remediations"`
-	DependsOn            []string               `json:"depends_on"`
-	ResourceLimits       *ResourceLimits        `json:"resource_limits"`
+	Name                  string                 `json:"name"`
+	HealthCheckEndpoint   string                 `json:"health_check_endpoint"`
+	CriticalityLevel      string                 `json:"criticality_level"` // LOW, MEDIUM, HIGH, CRITICAL
+	AutoHealingEnabled    bool                   `json:"auto_healing_enabled"`
+	MaxRestartAttempts    int                    `json:"max_restart_attempts"`
+	RestartCooldown       time.Duration          `json:"restart_cooldown"`
+	ScalingEnabled        bool                   `json:"scaling_enabled"`
+	MinReplicas           int32                  `json:"min_replicas"`
+	MaxReplicas           int32                  `json:"max_replicas"`
+	CustomRemediations    []*CustomRemediation   `json:"custom_remediations"`
+	DependsOn             []string               `json:"depends_on"`
+	ResourceLimits        *ResourceLimits        `json:"resource_limits"`
 	PerformanceThresholds *PerformanceThresholds `json:"performance_thresholds"`
 }
 
 // CustomRemediation defines custom remediation actions
 type CustomRemediation struct {
-	Name        string                 `json:"name"`
-	Trigger     string                 `json:"trigger"` // HEALTH_CHECK_FAILURE, HIGH_ERROR_RATE, etc.
-	Action      string                 `json:"action"`  // RESTART, SCALE, REDEPLOY, CUSTOM_SCRIPT
-	Parameters  map[string]interface{} `json:"parameters"`
+	Name        string                  `json:"name"`
+	Trigger     string                  `json:"trigger"` // HEALTH_CHECK_FAILURE, HIGH_ERROR_RATE, etc.
+	Action      string                  `json:"action"`  // RESTART, SCALE, REDEPLOY, CUSTOM_SCRIPT
+	Parameters  map[string]interface{}  `json:"parameters"`
 	Conditions  []*RemediationCondition `json:"conditions"`
-	Timeout     time.Duration          `json:"timeout"`
-	RetryPolicy *RetryPolicy           `json:"retry_policy"`
+	Timeout     time.Duration           `json:"timeout"`
+	RetryPolicy *RetryPolicy            `json:"retry_policy"`
 }
 
 type RemediationCondition struct {
-	Metric    string  `json:"metric"`
-	Operator  string  `json:"operator"` // GT, LT, EQ, NE
-	Threshold float64 `json:"threshold"`
+	Metric    string        `json:"metric"`
+	Operator  string        `json:"operator"` // GT, LT, EQ, NE
+	Threshold float64       `json:"threshold"`
 	Duration  time.Duration `json:"duration"`
 }
 
 type RetryPolicy struct {
-	MaxAttempts     int           `json:"max_attempts"`
-	InitialDelay    time.Duration `json:"initial_delay"`
-	MaxDelay        time.Duration `json:"max_delay"`
-	BackoffMultiplier float64     `json:"backoff_multiplier"`
+	MaxAttempts       int           `json:"max_attempts"`
+	InitialDelay      time.Duration `json:"initial_delay"`
+	MaxDelay          time.Duration `json:"max_delay"`
+	BackoffMultiplier float64       `json:"backoff_multiplier"`
 }
 
 type ResourceLimits struct {
@@ -118,10 +118,10 @@ type ResourceLimits struct {
 }
 
 type PerformanceThresholds struct {
-	MaxLatency     time.Duration `json:"max_latency"`
-	MaxErrorRate   float64       `json:"max_error_rate"`
-	MinThroughput  float64       `json:"min_throughput"`
-	MaxQueueDepth  int64         `json:"max_queue_depth"`
+	MaxLatency    time.Duration `json:"max_latency"`
+	MaxErrorRate  float64       `json:"max_error_rate"`
+	MinThroughput float64       `json:"min_throughput"`
+	MaxQueueDepth int64         `json:"max_queue_depth"`
 }
 
 // HealthMonitor continuously monitors system health
@@ -137,80 +137,80 @@ type HealthMonitor struct {
 
 // ComponentHealthChecker monitors individual component health
 type ComponentHealthChecker struct {
-	component       *ComponentConfig
-	lastCheck       time.Time
+	component           *ComponentConfig
+	lastCheck           time.Time
 	consecutiveFailures int
-	currentStatus   HealthStatus
-	metrics         *ComponentMetrics
-	restartHistory  []*RestartEvent
+	currentStatus       HealthStatus
+	metrics             *ComponentMetrics
+	restartHistory      []*RestartEvent
 }
 
 type HealthStatus string
 
 const (
-	HealthStatusHealthy    HealthStatus = "HEALTHY"
-	HealthStatusDegraded   HealthStatus = "DEGRADED"
-	HealthStatusUnhealthy  HealthStatus = "UNHEALTHY"
-	HealthStatusCritical   HealthStatus = "CRITICAL"
+	HealthStatusHealthy   HealthStatus = "HEALTHY"
+	HealthStatusDegraded  HealthStatus = "DEGRADED"
+	HealthStatusUnhealthy HealthStatus = "UNHEALTHY"
+	HealthStatusCritical  HealthStatus = "CRITICAL"
 )
 
 // FailurePrediction uses ML models to predict system failures
 type FailurePrediction struct {
-	mu                    sync.RWMutex
-	config                *SelfHealingConfig
-	logger                *slog.Logger
-	predictionModels      map[string]*PredictionModel
-	historicalData        *HistoricalDataStore
-	anomalyDetector       *AnomalyDetector
-	failureProbabilities  map[string]float64
-	predictionAccuracy    map[string]float64
+	mu                   sync.RWMutex
+	config               *SelfHealingConfig
+	logger               *slog.Logger
+	predictionModels     map[string]*PredictionModel
+	historicalData       *HistoricalDataStore
+	anomalyDetector      *AnomalyDetector
+	failureProbabilities map[string]float64
+	predictionAccuracy   map[string]float64
 }
 
 type PredictionModel struct {
-	Name           string             `json:"name"`
-	Component      string             `json:"component"`
-	ModelType      string             `json:"model_type"` // LINEAR_REGRESSION, NEURAL_NETWORK, ARIMA
-	Features       []string           `json:"features"`
-	Accuracy       float64            `json:"accuracy"`
-	LastTraining   time.Time          `json:"last_training"`
-	PredictionWindow time.Duration    `json:"prediction_window"`
-	Thresholds     map[string]float64 `json:"thresholds"`
+	Name             string             `json:"name"`
+	Component        string             `json:"component"`
+	ModelType        string             `json:"model_type"` // LINEAR_REGRESSION, NEURAL_NETWORK, ARIMA
+	Features         []string           `json:"features"`
+	Accuracy         float64            `json:"accuracy"`
+	LastTraining     time.Time          `json:"last_training"`
+	PredictionWindow time.Duration      `json:"prediction_window"`
+	Thresholds       map[string]float64 `json:"thresholds"`
 }
 
 // AutomatedRemediation is defined in automated_remediation.go
 
 type RemediationSession struct {
-	ID              string                 `json:"id"`
-	Component       string                 `json:"component"`
-	Strategy        string                 `json:"strategy"`
-	Status          string                 `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
-	StartTime       time.Time              `json:"start_time"`
-	EndTime         *time.Time             `json:"end_time,omitempty"`
-	Actions         []*RemediationAction   `json:"actions"`
-	Results         map[string]interface{} `json:"results"`
-	BackupID        string                 `json:"backup_id,omitempty"`
-	RollbackPlan    *RollbackPlan          `json:"rollback_plan,omitempty"`
+	ID           string                 `json:"id"`
+	Component    string                 `json:"component"`
+	Strategy     string                 `json:"strategy"`
+	Status       string                 `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
+	StartTime    time.Time              `json:"start_time"`
+	EndTime      *time.Time             `json:"end_time,omitempty"`
+	Actions      []*RemediationAction   `json:"actions"`
+	Results      map[string]interface{} `json:"results"`
+	BackupID     string                 `json:"backup_id,omitempty"`
+	RollbackPlan *RollbackPlan          `json:"rollback_plan,omitempty"`
 }
 
 type RemediationAction struct {
-	Type        string                 `json:"type"`
-	Target      string                 `json:"target"`
-	Parameters  map[string]interface{} `json:"parameters"`
-	Status      string                 `json:"status"`
-	StartTime   time.Time              `json:"start_time"`
-	EndTime     *time.Time             `json:"end_time,omitempty"`
-	Result      string                 `json:"result,omitempty"`
-	Error       string                 `json:"error,omitempty"`
+	Type       string                 `json:"type"`
+	Target     string                 `json:"target"`
+	Parameters map[string]interface{} `json:"parameters"`
+	Status     string                 `json:"status"`
+	StartTime  time.Time              `json:"start_time"`
+	EndTime    *time.Time             `json:"end_time,omitempty"`
+	Result     string                 `json:"result,omitempty"`
+	Error      string                 `json:"error,omitempty"`
 }
 
 type RemediationStrategy struct {
-	Name          string                    `json:"name"`
-	Conditions    []*RemediationCondition   `json:"conditions"`
-	Actions       []*RemediationActionTemplate `json:"actions"`
-	Priority      int                       `json:"priority"`
-	Success       int                       `json:"success"`
-	Total         int                       `json:"total"`
-	SuccessRate   float64                   `json:"success_rate"`
+	Name        string                       `json:"name"`
+	Conditions  []*RemediationCondition      `json:"conditions"`
+	Actions     []*RemediationActionTemplate `json:"actions"`
+	Priority    int                          `json:"priority"`
+	Success     int                          `json:"success"`
+	Total       int                          `json:"total"`
+	SuccessRate float64                      `json:"success_rate"`
 }
 
 type RemediationActionTemplate struct {
@@ -223,41 +223,41 @@ type RemediationActionTemplate struct {
 
 // Supporting types
 type SystemHealthMetrics struct {
-	OverallHealth      HealthStatus           `json:"overall_health"`
-	ComponentHealth    map[string]HealthStatus `json:"component_health"`
-	ActiveIncidents    int                    `json:"active_incidents"`
-	ResolvedIncidents  int                    `json:"resolved_incidents"`
-	PredictedFailures  map[string]float64     `json:"predicted_failures"`
-	SystemLoad         float64                `json:"system_load"`
-	ResourceUtilization map[string]float64    `json:"resource_utilization"`
-	PerformanceMetrics map[string]float64     `json:"performance_metrics"`
+	OverallHealth       HealthStatus            `json:"overall_health"`
+	ComponentHealth     map[string]HealthStatus `json:"component_health"`
+	ActiveIncidents     int                     `json:"active_incidents"`
+	ResolvedIncidents   int                     `json:"resolved_incidents"`
+	PredictedFailures   map[string]float64      `json:"predicted_failures"`
+	SystemLoad          float64                 `json:"system_load"`
+	ResourceUtilization map[string]float64      `json:"resource_utilization"`
+	PerformanceMetrics  map[string]float64      `json:"performance_metrics"`
 }
 
 type ComponentMetrics struct {
-	ResponseTime       time.Duration `json:"response_time"`
-	ErrorRate          float64       `json:"error_rate"`
-	Throughput         float64       `json:"throughput"`
-	CPUUsage          float64       `json:"cpu_usage"`
-	MemoryUsage       float64       `json:"memory_usage"`
-	RestartCount      int           `json:"restart_count"`
-	LastRestart       *time.Time    `json:"last_restart,omitempty"`
+	ResponseTime time.Duration `json:"response_time"`
+	ErrorRate    float64       `json:"error_rate"`
+	Throughput   float64       `json:"throughput"`
+	CPUUsage     float64       `json:"cpu_usage"`
+	MemoryUsage  float64       `json:"memory_usage"`
+	RestartCount int           `json:"restart_count"`
+	LastRestart  *time.Time    `json:"last_restart,omitempty"`
 }
 
 type RestartEvent struct {
-	Timestamp time.Time `json:"timestamp"`
-	Reason    string    `json:"reason"`
-	Success   bool      `json:"success"`
+	Timestamp time.Time     `json:"timestamp"`
+	Reason    string        `json:"reason"`
+	Success   bool          `json:"success"`
 	Duration  time.Duration `json:"duration"`
 }
 
 type SelfHealingMetrics struct {
-	TotalHealingOperations     int64              `json:"total_healing_operations"`
-	SuccessfulHealingOperations int64             `json:"successful_healing_operations"`
-	FailedHealingOperations    int64              `json:"failed_healing_operations"`
-	AverageHealingTime         time.Duration      `json:"average_healing_time"`
-	ComponentAvailability      map[string]float64 `json:"component_availability"`
-	MTTR                       time.Duration      `json:"mttr"` // Mean Time To Recovery
-	MTBF                       time.Duration      `json:"mtbf"` // Mean Time Between Failures
+	TotalHealingOperations      int64              `json:"total_healing_operations"`
+	SuccessfulHealingOperations int64              `json:"successful_healing_operations"`
+	FailedHealingOperations     int64              `json:"failed_healing_operations"`
+	AverageHealingTime          time.Duration      `json:"average_healing_time"`
+	ComponentAvailability       map[string]float64 `json:"component_availability"`
+	MTTR                        time.Duration      `json:"mttr"` // Mean Time To Recovery
+	MTBF                        time.Duration      `json:"mtbf"` // Mean Time Between Failures
 }
 
 // NewSelfHealingManager creates a new self-healing manager
@@ -415,7 +415,7 @@ func (shm *SelfHealingManager) performHealthCheck(ctx context.Context) {
 	for component, health := range systemHealth.ComponentHealth {
 		if health == HealthStatusUnhealthy || health == HealthStatusCritical {
 			shm.logger.Warn("Unhealthy component detected", "component", component, "status", health)
-			
+
 			if shm.automatedRemediation != nil {
 				err := shm.automatedRemediation.InitiateRemediation(ctx, component, string(health))
 				if err != nil {
@@ -433,14 +433,14 @@ func (shm *SelfHealingManager) performHealthCheck(ctx context.Context) {
 		predictions := shm.failurePrediction.GetFailureProbabilities()
 		for component, probability := range predictions {
 			if probability > shm.config.FailureDetectionThreshold {
-				shm.logger.Warn("High failure probability detected", 
+				shm.logger.Warn("High failure probability detected",
 					"component", component, "probability", probability)
-				
+
 				// Proactive remediation
 				if shm.automatedRemediation != nil {
 					err := shm.automatedRemediation.InitiatePreventiveRemediation(ctx, component, probability)
 					if err != nil {
-						shm.logger.Error("Failed to initiate preventive remediation", 
+						shm.logger.Error("Failed to initiate preventive remediation",
 							"component", component, "error", err)
 					}
 				}
@@ -484,7 +484,7 @@ func (shm *SelfHealingManager) GetRemediationStatus() map[string]*RemediationSes
 func (shm *SelfHealingManager) GetMetrics() *SelfHealingMetrics {
 	shm.mu.RLock()
 	defer shm.mu.RUnlock()
-	
+
 	metrics := *shm.metrics
 	return &metrics
 }
@@ -492,10 +492,10 @@ func (shm *SelfHealingManager) GetMetrics() *SelfHealingMetrics {
 // ForceHealing manually triggers healing for a specific component
 func (shm *SelfHealingManager) ForceHealing(ctx context.Context, component string, reason string) error {
 	shm.logger.Info("Forcing healing for component", "component", component, "reason", reason)
-	
+
 	if shm.automatedRemediation == nil {
 		return fmt.Errorf("automated remediation is not enabled")
 	}
-	
+
 	return shm.automatedRemediation.InitiateRemediation(ctx, component, reason)
 }

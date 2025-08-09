@@ -26,9 +26,9 @@ func (sv *StatisticalValidator) OneTailedTTest(data []float64, target float64, d
 	n := len(data)
 	if n < sv.config.MinSampleSize {
 		return &HypothesisTest{
-			Claim:         description,
-			Conclusion:    fmt.Sprintf("Insufficient sample size: %d (minimum %d required)", n, sv.config.MinSampleSize),
-			SampleSize:    n,
+			Claim:      description,
+			Conclusion: fmt.Sprintf("Insufficient sample size: %d (minimum %d required)", n, sv.config.MinSampleSize),
+			SampleSize: n,
 		}
 	}
 
@@ -40,10 +40,10 @@ func (sv *StatisticalValidator) OneTailedTTest(data []float64, target float64, d
 
 	// Calculate t-statistic
 	tStatistic := (mean - target) / standardError
-	
+
 	// Degrees of freedom
 	df := n - 1
-	
+
 	// Create t-distribution
 	tDist := distuv.StudentsT{
 		Mu:    0,
@@ -54,7 +54,7 @@ func (sv *StatisticalValidator) OneTailedTTest(data []float64, target float64, d
 	// Calculate p-value based on direction
 	var pValue float64
 	var nullHypothesis, altHypothesis string
-	
+
 	switch direction {
 	case "less":
 		pValue = tDist.CDF(tStatistic)
@@ -120,7 +120,7 @@ func (sv *StatisticalValidator) OneTailedTTest(data []float64, target float64, d
 // TwoSampleTTest performs a two-sample t-test comparing two groups
 func (sv *StatisticalValidator) TwoSampleTTest(group1, group2 []float64, description string) *HypothesisTest {
 	n1, n2 := len(group1), len(group2)
-	
+
 	if n1 < sv.config.MinSampleSize || n2 < sv.config.MinSampleSize {
 		return &HypothesisTest{
 			Claim:      description,
@@ -141,10 +141,10 @@ func (sv *StatisticalValidator) TwoSampleTTest(group1, group2 []float64, descrip
 
 	// Calculate t-statistic
 	tStatistic := (mean1 - mean2) / standardError
-	
+
 	// Degrees of freedom
 	df := n1 + n2 - 2
-	
+
 	// Create t-distribution
 	tDist := distuv.StudentsT{
 		Mu:    0,
@@ -154,7 +154,7 @@ func (sv *StatisticalValidator) TwoSampleTTest(group1, group2 []float64, descrip
 
 	// Two-tailed test
 	pValue := 2 * (1 - tDist.CDF(math.Abs(tStatistic)))
-	
+
 	alpha := sv.config.SignificanceLevel
 	criticalValue := tDist.Quantile(1 - alpha/2)
 
@@ -195,29 +195,29 @@ func (sv *StatisticalValidator) ProportionTest(successes, trials int, targetProp
 
 	// Calculate sample proportion
 	sampleProportion := float64(successes) / float64(trials)
-	
+
 	// Standard error for proportion
 	standardError := math.Sqrt(targetProportion * (1 - targetProportion) / float64(trials))
-	
+
 	// Z-statistic (for large samples)
 	zStatistic := (sampleProportion - targetProportion) / standardError
-	
+
 	// Standard normal distribution
 	normalDist := distuv.Normal{Mu: 0, Sigma: 1}
-	
+
 	// Two-tailed test
 	pValue := 2 * (1 - normalDist.CDF(math.Abs(zStatistic)))
-	
+
 	alpha := sv.config.SignificanceLevel
 	criticalValue := normalDist.Quantile(1 - alpha/2)
-	
+
 	// Determine conclusion
 	var conclusion string
 	if pValue < alpha {
-		conclusion = fmt.Sprintf("Reject null hypothesis (p=%.6f < α=%.3f). Proportion significantly different from %.4f", 
+		conclusion = fmt.Sprintf("Reject null hypothesis (p=%.6f < α=%.3f). Proportion significantly different from %.4f",
 			pValue, alpha, targetProportion)
 	} else {
-		conclusion = fmt.Sprintf("Fail to reject null hypothesis (p=%.6f >= α=%.3f). Proportion not significantly different from %.4f", 
+		conclusion = fmt.Sprintf("Fail to reject null hypothesis (p=%.6f >= α=%.3f). Proportion not significantly different from %.4f",
 			pValue, alpha, targetProportion)
 	}
 
@@ -278,19 +278,19 @@ func (sv *StatisticalValidator) calculateConfidenceInterval(data []float64, conf
 func (sv *StatisticalValidator) calculateStatisticalPower(effectSize, sampleSize, alpha float64) float64 {
 	// Simplified power calculation using normal approximation
 	// This is an approximation and may not be exact for all cases
-	
+
 	zAlpha := distuv.Normal{Mu: 0, Sigma: 1}.Quantile(1 - alpha/2)
 	zBeta := zAlpha - (effectSize * math.Sqrt(sampleSize/2))
-	
+
 	power := 1 - distuv.Normal{Mu: 0, Sigma: 1}.CDF(zBeta)
-	
+
 	// Ensure power is between 0 and 1
 	if power < 0 {
 		power = 0
 	} else if power > 1 {
 		power = 1
 	}
-	
+
 	return power
 }
 
@@ -319,7 +319,7 @@ func (sv *StatisticalValidator) shapiroWilkTest(data []float64) *StatisticalTest
 	// For demonstration purposes, we'll use a simplified approach
 	return &StatisticalTest{
 		TestStatistic: 0.95, // Placeholder
-		PValue:        0.15,  // Placeholder
+		PValue:        0.15, // Placeholder
 		Conclusion:    "Data appears to follow normal distribution (simplified test)",
 	}
 }
@@ -328,8 +328,8 @@ func (sv *StatisticalValidator) shapiroWilkTest(data []float64) *StatisticalTest
 func (sv *StatisticalValidator) andersonDarlingTest(data []float64) *StatisticalTest {
 	// Simplified implementation
 	return &StatisticalTest{
-		TestStatistic: 0.5,   // Placeholder
-		PValue:        0.25,  // Placeholder
+		TestStatistic: 0.5,  // Placeholder
+		PValue:        0.25, // Placeholder
 		Conclusion:    "Data appears to follow normal distribution (simplified test)",
 	}
 }
@@ -338,8 +338,8 @@ func (sv *StatisticalValidator) andersonDarlingTest(data []float64) *Statistical
 func (sv *StatisticalValidator) kolmogorovSmirnovTest(data []float64) *StatisticalTest {
 	// Simplified implementation
 	return &StatisticalTest{
-		TestStatistic: 0.08,  // Placeholder
-		PValue:        0.20,  // Placeholder
+		TestStatistic: 0.08, // Placeholder
+		PValue:        0.20, // Placeholder
 		Conclusion:    "Data appears to follow normal distribution (simplified test)",
 	}
 }
@@ -349,27 +349,27 @@ func (sv *StatisticalValidator) CalculateSampleSize(effectSize, power, alpha flo
 	// Simplified sample size calculation for two-sample t-test
 	zAlpha := distuv.Normal{Mu: 0, Sigma: 1}.Quantile(1 - alpha/2)
 	zBeta := distuv.Normal{Mu: 0, Sigma: 1}.Quantile(power)
-	
+
 	// Formula for two-sample t-test
 	n := 2 * math.Pow((zAlpha+zBeta)/effectSize, 2)
-	
+
 	return int(math.Ceil(n))
 }
 
 // ValidateSampleSizeAdequacy checks if sample size is adequate for given effect size
 func (sv *StatisticalValidator) ValidateSampleSizeAdequacy(sampleSize int, effectSize float64) *SampleSizeValidation {
 	requiredSize := sv.CalculateSampleSize(effectSize, sv.config.PowerThreshold, sv.config.SignificanceLevel)
-	
+
 	adequate := sampleSize >= requiredSize
 	actualPower := sv.calculateStatisticalPower(effectSize, float64(sampleSize), sv.config.SignificanceLevel)
-	
+
 	return &SampleSizeValidation{
-		SampleSize:    sampleSize,
-		RequiredSize:  requiredSize,
-		Adequate:      adequate,
-		ActualPower:   actualPower,
-		TargetPower:   sv.config.PowerThreshold,
-		EffectSize:    effectSize,
+		SampleSize:   sampleSize,
+		RequiredSize: requiredSize,
+		Adequate:     adequate,
+		ActualPower:  actualPower,
+		TargetPower:  sv.config.PowerThreshold,
+		EffectSize:   effectSize,
 	}
 }
 
@@ -399,45 +399,45 @@ func (sv *StatisticalValidator) ApplyMultipleComparisonsCorrection(pValues []flo
 func (sv *StatisticalValidator) bonferroniCorrection(pValues []float64) []float64 {
 	corrected := make([]float64, len(pValues))
 	m := float64(len(pValues))
-	
+
 	for i, p := range pValues {
 		corrected[i] = math.Min(p*m, 1.0)
 	}
-	
+
 	return corrected
 }
 
 // benjaminiHochbergCorrection applies Benjamini-Hochberg FDR correction
 func (sv *StatisticalValidator) benjaminiHochbergCorrection(pValues []float64) []float64 {
 	n := len(pValues)
-	
+
 	// Create index-value pairs and sort by p-value
 	type indexValue struct {
 		index int
 		value float64
 	}
-	
+
 	pairs := make([]indexValue, n)
 	for i, p := range pValues {
 		pairs[i] = indexValue{index: i, value: p}
 	}
-	
+
 	sort.Slice(pairs, func(i, j int) bool {
 		return pairs[i].value < pairs[j].value
 	})
-	
+
 	// Apply correction
 	corrected := make([]float64, n)
 	for i := n - 1; i >= 0; i-- {
 		rank := i + 1
 		correctedP := pairs[i].value * float64(n) / float64(rank)
-		
+
 		if i < n-1 {
 			correctedP = math.Min(correctedP, corrected[pairs[i+1].index])
 		}
-		
+
 		corrected[pairs[i].index] = math.Min(correctedP, 1.0)
 	}
-	
+
 	return corrected
 }

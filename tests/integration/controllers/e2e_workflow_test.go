@@ -8,8 +8,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -19,9 +19,9 @@ import (
 
 var _ = Describe("End-to-End Workflow Integration Tests", func() {
 	var (
-		namespace         *corev1.Namespace
-		testCtx           context.Context
-		workflowTracker   *E2EWorkflowTracker
+		namespace       *corev1.Namespace
+		testCtx         context.Context
+		workflowTracker *E2EWorkflowTracker
 	)
 
 	BeforeEach(func() {
@@ -42,21 +42,21 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 						Name:      "e2e-5g-core-deployment",
 						Namespace: namespace.Name,
 						Labels: map[string]string{
-							"test":                        "e2e",
-							"deployment-type":             "5g-core",
-							"nephoran.com/priority":       "high",
-							"nephoran.com/test-scenario":  "production-deployment",
+							"test":                       "e2e",
+							"deployment-type":            "5g-core",
+							"nephoran.com/priority":      "high",
+							"nephoran.com/test-scenario": "production-deployment",
 						},
 						Annotations: map[string]string{
-							"nephoran.com/description":        "E2E test for complete 5G Core deployment workflow",
-							"nephoran.com/expected-duration":  "10m",
+							"nephoran.com/description":         "E2E test for complete 5G Core deployment workflow",
+							"nephoran.com/expected-duration":   "10m",
 							"nephoran.com/deployment-strategy": "blue-green",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
 						Intent: "Deploy a complete production-ready 5G Core network with AMF, SMF, UPF, and NSSF components, " +
-								"including high availability, auto-scaling, comprehensive monitoring, security policies, " +
-								"and integration with O-RAN interfaces for intelligent RAN management",
+							"including high availability, auto-scaling, comprehensive monitoring, security policies, " +
+							"and integration with O-RAN interfaces for intelligent RAN management",
 						IntentType: nephoranv1.IntentTypeDeployment,
 						Priority:   nephoranv1.PriorityHigh,
 						TargetComponents: []nephoranv1.TargetComponent{
@@ -66,10 +66,10 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 							nephoranv1.TargetComponentNSSF,
 						},
 						ResourceConstraints: &nephoranv1.ResourceConstraints{
-							CPU:       resource.NewQuantity(2000, resource.DecimalSI),    // 2000m
-							Memory:    resource.NewQuantity(4294967296, resource.BinarySI), // 4Gi
+							CPU:       resource.NewQuantity(2000, resource.DecimalSI),       // 2000m
+							Memory:    resource.NewQuantity(4294967296, resource.BinarySI),  // 4Gi
 							Storage:   resource.NewQuantity(21474836480, resource.BinarySI), // 20Gi
-							MaxCPU:    resource.NewQuantity(8000, resource.DecimalSI),      // 8000m
+							MaxCPU:    resource.NewQuantity(8000, resource.DecimalSI),       // 8000m
 							MaxMemory: resource.NewQuantity(17179869184, resource.BinarySI), // 16Gi
 						},
 						TargetNamespace: "production-5g",
@@ -125,10 +125,10 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 					if err != nil {
 						return false
 					}
-					
+
 					// Check if we have processing phase details
 					if createdIntent.Status.ProcessingPhase != "" {
-						workflowTracker.RecordPhase(intent.Name, 
+						workflowTracker.RecordPhase(intent.Name,
 							fmt.Sprintf("processing-%s", createdIntent.Status.ProcessingPhase), "active")
 						return true
 					}
@@ -143,11 +143,11 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 					if err != nil {
 						return false
 					}
-					
-					return createdIntent.Status.GitCommitHash != "" || 
-						   createdIntent.Status.DeploymentStartTime != nil ||
-						   createdIntent.Status.Phase == "Deploying" ||
-						   createdIntent.Status.Phase == "Ready"
+
+					return createdIntent.Status.GitCommitHash != "" ||
+						createdIntent.Status.DeploymentStartTime != nil ||
+						createdIntent.Status.Phase == "Deploying" ||
+						createdIntent.Status.Phase == "Ready"
 				}, 150*time.Second, 5*time.Second).Should(BeTrue())
 
 				if createdIntent.Status.GitCommitHash != "" {
@@ -172,14 +172,14 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 				By("Phase 6: Validating final deployment state and metrics")
 				if createdIntent.Status.Phase == "Ready" {
 					workflowTracker.RecordPhase(intent.Name, "deployment", "completed")
-					
+
 					// Verify completion timestamps
 					Expect(createdIntent.Status.ProcessingCompletionTime).NotTo(BeNil())
 					if createdIntent.Status.DeploymentCompletionTime != nil {
-						Expect(createdIntent.Status.DeploymentCompletionTime.Time).To(BeTemporally(">=", 
+						Expect(createdIntent.Status.DeploymentCompletionTime.Time).To(BeTemporally(">=",
 							createdIntent.Status.ProcessingStartTime.Time))
 					}
-					
+
 					// Verify deployed components tracking
 					Expect(createdIntent.Status.DeployedComponents).To(ContainElements(
 						nephoranv1.TargetComponentAMF,
@@ -192,22 +192,22 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 				configMaps := &corev1.ConfigMapList{}
 				err := k8sClient.List(testCtx, configMaps, client.InNamespace(namespace.Name))
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				secrets := &corev1.SecretList{}
 				err = k8sClient.List(testCtx, secrets, client.InNamespace(namespace.Name))
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				// Should not create excessive resources in test environment
 				totalResources := len(configMaps.Items) + len(secrets.Items)
 				Expect(totalResources).To(BeNumerically("<=", 20))
 
 				By("Phase 8: Verifying workflow completion metrics")
 				workflowTracker.CompleteWorkflow(intent.Name, createdIntent.Status.Phase == "Ready")
-				
+
 				workflow := workflowTracker.GetWorkflow(intent.Name)
 				Expect(workflow).NotTo(BeNil())
 				Expect(workflow.CompletedPhases).To(ContainElement("validation"))
-				
+
 				// Verify timing expectations
 				if workflow.Completed {
 					Expect(workflow.TotalDuration).To(BeNumerically("<", 15*time.Minute))
@@ -232,15 +232,15 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 						Name:      "e2e-oran-deployment",
 						Namespace: namespace.Name,
 						Labels: map[string]string{
-							"test":                       "e2e",
-							"deployment-type":            "o-ran",
-							"nephoran.com/complexity":    "high",
+							"test":                    "e2e",
+							"deployment-type":         "o-ran",
+							"nephoran.com/complexity": "high",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
 						Intent: "Deploy intelligent O-RAN architecture with Near-RT RIC, O-DU, O-CU components, " +
-								"xApp runtime environment, E2 interface simulation with 50 nodes, A1 policy management, " +
-								"and ML-based RAN optimization capabilities",
+							"xApp runtime environment, E2 interface simulation with 50 nodes, A1 policy management, " +
+							"and ML-based RAN optimization capabilities",
 						IntentType: nephoranv1.IntentTypeDeployment,
 						Priority:   nephoranv1.PriorityHigh,
 						TargetComponents: []nephoranv1.TargetComponent{
@@ -249,8 +249,8 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 							nephoranv1.TargetComponentOCUCP,
 							nephoranv1.TargetComponentOCUUP,
 						},
-						TargetCluster: "edge-cluster",
-						Region:        "us-west-2",
+						TargetCluster:  "edge-cluster",
+						Region:         "us-west-2",
 						TimeoutSeconds: &[]int32{1200}[0], // 20 minutes for complex deployment
 						MaxRetries:     &[]int32{5}[0],
 					},
@@ -261,7 +261,7 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 
 				By("monitoring O-RAN specific deployment phases")
 				createdIntent := &nephoranv1.NetworkIntent{}
-				
+
 				// Wait for initial processing
 				Eventually(func() string {
 					err := k8sClient.Get(testCtx, types.NamespacedName{
@@ -282,7 +282,7 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 						Namespace: namespace.Name,
 						Labels: map[string]string{
 							"nephoran.com/related-intent": intent.Name,
-							"test": "e2e",
+							"test":                        "e2e",
 						},
 					},
 					Spec: nephoranv1.E2NodeSetSpec{
@@ -387,8 +387,8 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 						Name:      "e2e-failure-recovery",
 						Namespace: namespace.Name,
 						Labels: map[string]string{
-							"test":                          "e2e",
-							"scenario":                      "failure-recovery",
+							"test":                         "e2e",
+							"scenario":                     "failure-recovery",
 							"nephoran.com/test-resilience": "true",
 						},
 						Annotations: map[string]string{
@@ -413,7 +413,7 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 
 				By("monitoring workflow through failure and recovery cycles")
 				createdIntent := &nephoranv1.NetworkIntent{}
-				
+
 				// Track retry attempts
 				retryCount := 0
 				Eventually(func() bool {
@@ -423,23 +423,23 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 					if err != nil {
 						return false
 					}
-					
+
 					if createdIntent.Status.RetryCount > 0 {
 						if int(createdIntent.Status.RetryCount) > retryCount {
 							retryCount = int(createdIntent.Status.RetryCount)
-							workflowTracker.RecordPhase(intent.Name, 
+							workflowTracker.RecordPhase(intent.Name,
 								fmt.Sprintf("retry-%d", retryCount), "completed")
 						}
 					}
-					
-					return createdIntent.Status.Phase == "Ready" || 
-						   createdIntent.Status.Phase == "Failed" ||
-						   time.Since(createdIntent.CreationTimestamp.Time) > 8*time.Minute
+
+					return createdIntent.Status.Phase == "Ready" ||
+						createdIntent.Status.Phase == "Failed" ||
+						time.Since(createdIntent.CreationTimestamp.Time) > 8*time.Minute
 				}, 600*time.Second, 5*time.Second).Should(BeTrue())
 
 				By("analyzing failure recovery behavior")
 				workflowTracker.RecordPhase(intent.Name, "failure-analysis", "completed")
-				
+
 				// Check if retries were attempted
 				if createdIntent.Status.RetryCount > 0 {
 					Expect(createdIntent.Status.RetryCount).To(BeNumerically("<=", 5))
@@ -450,7 +450,7 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 				By("verifying final state after recovery attempts")
 				finalPhase := createdIntent.Status.Phase
 				workflowTracker.CompleteWorkflow(intent.Name, finalPhase == "Ready")
-				
+
 				// Log recovery metrics
 				GinkgoWriter.Printf("=== Failure Recovery Analysis ===\n")
 				GinkgoWriter.Printf("Final Phase: %s\n", finalPhase)
@@ -467,7 +467,7 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 			It("should handle multiple NetworkIntents concurrently without interference", func() {
 				By("creating multiple NetworkIntents for concurrent processing")
 				intents := make([]*nephoranv1.NetworkIntent, 0, 5)
-				
+
 				intentSpecs := []struct {
 					name      string
 					component nephoranv1.TargetComponent
@@ -486,10 +486,10 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 							Name:      fmt.Sprintf("e2e-%s-%d", spec.name, i),
 							Namespace: namespace.Name,
 							Labels: map[string]string{
-								"test":                         "e2e",
-								"scenario":                     "concurrent",
-								"nephoran.com/batch":           "concurrent-batch-1",
-								"nephoran.com/component":       string(spec.component),
+								"test":                   "e2e",
+								"scenario":               "concurrent",
+								"nephoran.com/batch":     "concurrent-batch-1",
+								"nephoran.com/component": string(spec.component),
 							},
 						},
 						Spec: nephoranv1.NetworkIntentSpec{
@@ -503,7 +503,7 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 							MaxRetries:     &[]int32{2}[0],
 						},
 					}
-					
+
 					intents = append(intents, intent)
 					workflowTracker.StartWorkflow(intent.Name, "concurrent-deployment")
 					Expect(k8sClient.Create(testCtx, intent)).To(Succeed())
@@ -520,12 +520,12 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 						}, currentIntent)
 						if err == nil && currentIntent.Status.Phase != "Pending" {
 							currentProcessed++
-							
+
 							// Record phase progression for each intent
-							if currentIntent.Status.Phase == "Processing" || 
-							   currentIntent.Status.Phase == "Deploying" || 
-							   currentIntent.Status.Phase == "Ready" ||
-							   currentIntent.Status.Phase == "Failed" {
+							if currentIntent.Status.Phase == "Processing" ||
+								currentIntent.Status.Phase == "Deploying" ||
+								currentIntent.Status.Phase == "Ready" ||
+								currentIntent.Status.Phase == "Failed" {
 								workflowTracker.RecordPhase(intent.Name, "concurrent-processing", "active")
 							}
 						}
@@ -558,7 +558,7 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 				By("analyzing concurrent processing results")
 				successfulIntents := 0
 				failedIntents := 0
-				
+
 				for intentName, phase := range completedIntents {
 					if phase == "Ready" {
 						successfulIntents++
@@ -571,7 +571,7 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 				By("verifying concurrent processing quality")
 				totalCompleted := successfulIntents + failedIntents
 				Expect(totalCompleted).To(BeNumerically(">=", 3))
-				
+
 				// Success rate should be reasonable in integration test environment
 				if totalCompleted > 0 {
 					successRate := float64(successfulIntents) / float64(totalCompleted)
@@ -593,16 +593,16 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 		Context("when orchestrating complex multi-component scenarios", func() {
 			It("should coordinate NetworkIntent and E2NodeSet for complete RAN deployment", func() {
 				By("creating coordinated NetworkIntent and E2NodeSet deployment")
-				
+
 				// First create the main intent
 				mainIntent := &nephoranv1.NetworkIntent{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "e2e-coordinated-ran",
 						Namespace: namespace.Name,
 						Labels: map[string]string{
-							"test":                           "e2e",
-							"scenario":                       "coordinated-deployment",
-							"nephoran.com/coordination":      "enabled",
+							"test":                      "e2e",
+							"scenario":                  "coordinated-deployment",
+							"nephoran.com/coordination": "enabled",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
@@ -641,9 +641,9 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 						Name:      "coordinated-e2-nodes",
 						Namespace: namespace.Name,
 						Labels: map[string]string{
-							"test":                           "e2e",
-							"nephoran.com/parent-intent":     mainIntent.Name,
-							"nephoran.com/coordination":      "enabled",
+							"test":                       "e2e",
+							"nephoran.com/parent-intent": mainIntent.Name,
+							"nephoran.com/coordination":  "enabled",
 						},
 						Annotations: map[string]string{
 							"nephoran.com/related-intent": mainIntent.Name,
@@ -706,7 +706,7 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 
 				By("monitoring coordinated deployment progress")
 				createdE2NodeSet := &nephoranv1.E2NodeSet{}
-				
+
 				// Wait for E2NodeSet to start processing
 				Eventually(func() int32 {
 					err := k8sClient.Get(testCtx, types.NamespacedName{
@@ -763,18 +763,18 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 					}
 
 					// Check if both have reached meaningful states
-					intentCompleted := createdIntent.Status.Phase == "Ready" || 
-									  createdIntent.Status.Phase == "Failed" ||
-									  createdIntent.Status.Phase == "Deploying"
-					
+					intentCompleted := createdIntent.Status.Phase == "Ready" ||
+						createdIntent.Status.Phase == "Failed" ||
+						createdIntent.Status.Phase == "Deploying"
+
 					e2NodesDeployed := createdE2NodeSet.Status.ReadyReplicas > 0 ||
-									   createdE2NodeSet.Status.CurrentReplicas > 0
+						createdE2NodeSet.Status.CurrentReplicas > 0
 
 					return intentCompleted && e2NodesDeployed
 				}, 480*time.Second, 15*time.Second).Should(BeTrue())
 
 				By("validating coordination results")
-				workflowTracker.CompleteWorkflow(mainIntent.Name, 
+				workflowTracker.CompleteWorkflow(mainIntent.Name,
 					createdIntent.Status.Phase == "Ready")
 
 				// Verify coordination success metrics
@@ -788,7 +788,7 @@ var _ = Describe("End-to-End Workflow Integration Tests", func() {
 
 				GinkgoWriter.Printf("=== Coordination Results ===\n")
 				GinkgoWriter.Printf("Main Intent Phase: %s\n", createdIntent.Status.Phase)
-				GinkgoWriter.Printf("E2NodeSet Replicas: %d/%d\n", 
+				GinkgoWriter.Printf("E2NodeSet Replicas: %d/%d\n",
 					createdE2NodeSet.Status.ReadyReplicas, createdE2NodeSet.Status.CurrentReplicas)
 				GinkgoWriter.Printf("Deployed Components: %v\n", createdIntent.Status.DeployedComponents)
 				GinkgoWriter.Printf("===========================\n")
@@ -870,7 +870,7 @@ func (ewt *E2EWorkflowTracker) RecordPhase(workflowName, phaseName, status strin
 	if status == "completed" || status == "failed" {
 		phase.EndTime = &now
 		phase.Duration = now.Sub(phase.StartTime)
-		
+
 		// Add to completed phases if not already there
 		found := false
 		for _, completed := range workflow.CompletedPhases {

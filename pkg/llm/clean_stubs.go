@@ -132,11 +132,11 @@ func (sp *StreamingProcessor) Shutdown(ctx context.Context) error {
 
 // ContextBuilder provides RAG context building capabilities
 type ContextBuilder struct {
-	weaviatePool   *rag.WeaviateConnectionPool
-	logger         *slog.Logger
-	config         *ContextBuilderConfig
-	metrics        *ContextBuilderMetrics
-	mutex          sync.RWMutex
+	weaviatePool *rag.WeaviateConnectionPool
+	logger       *slog.Logger
+	config       *ContextBuilderConfig
+	metrics      *ContextBuilderMetrics
+	mutex        sync.RWMutex
 }
 
 // ContextBuilderConfig holds configuration for the context builder
@@ -197,7 +197,7 @@ func NewContextBuilderWithPool(pool *rag.WeaviateConnectionPool) *ContextBuilder
 // BuildContext retrieves and builds context from the RAG system using semantic search
 func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDocs int) ([]map[string]any, error) {
 	startTime := time.Now()
-	
+
 	// Update metrics
 	cb.updateMetrics(func(m *ContextBuilderMetrics) {
 		m.TotalQueries++
@@ -339,7 +339,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 		}
 
 		doc := result.Document
-		
+
 		// Check content length limits
 		if totalContentLength+len(doc.Content) > cb.config.MaxContextLength {
 			cb.logger.Debug("Context length limit reached, truncating results",
@@ -351,17 +351,17 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 
 		// Build context document
 		contextDoc := map[string]any{
-			"id":           doc.ID,
-			"title":        doc.Title,
-			"content":      doc.Content,
-			"source":       doc.Source,
-			"category":     doc.Category,
-			"version":      doc.Version,
-			"language":     doc.Language,
+			"id":            doc.ID,
+			"title":         doc.Title,
+			"content":       doc.Content,
+			"source":        doc.Source,
+			"category":      doc.Category,
+			"version":       doc.Version,
+			"language":      doc.Language,
 			"document_type": doc.DocumentType,
-			"confidence":   doc.Confidence,
-			"score":        result.Score,
-			"distance":     result.Distance,
+			"confidence":    doc.Confidence,
+			"score":         result.Score,
+			"distance":      result.Distance,
 		}
 
 		// Add array fields if they exist
@@ -417,7 +417,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 func (cb *ContextBuilder) expandQuery(query string) string {
 	// Convert to lowercase for matching
 	lowerQuery := strings.ToLower(query)
-	
+
 	// Find relevant telecom keywords that might enhance the query
 	var relevantKeywords []string
 	for _, keyword := range cb.config.TelecomKeywords {
@@ -452,15 +452,15 @@ func (cb *ContextBuilder) expandQuery(query string) string {
 func (cb *ContextBuilder) isRelatedKeyword(query, keyword string) bool {
 	// Define keyword relationships for telecom domain
 	relations := map[string][]string{
-		"deploy":     {"orchestration", "5G", "Core", "RAN"},
-		"create":     {"deployment", "network", "function"},
-		"configure":  {"QoS", "bearer", "session", "interface"},
-		"network":    {"5G", "4G", "Core", "RAN", "slice"},
-		"function":   {"AMF", "SMF", "UPF", "network"},
-		"slice":      {"network slice", "slicing", "QoS", "orchestration"},
-		"amf":        {"5G", "Core", "session", "mobility"},
-		"smf":        {"5G", "Core", "PDU", "session"},
-		"upf":        {"5G", "Core", "user plane", "bearer"},
+		"deploy":    {"orchestration", "5G", "Core", "RAN"},
+		"create":    {"deployment", "network", "function"},
+		"configure": {"QoS", "bearer", "session", "interface"},
+		"network":   {"5G", "4G", "Core", "RAN", "slice"},
+		"function":  {"AMF", "SMF", "UPF", "network"},
+		"slice":     {"network slice", "slicing", "QoS", "orchestration"},
+		"amf":       {"5G", "Core", "session", "mobility"},
+		"smf":       {"5G", "Core", "PDU", "session"},
+		"upf":       {"5G", "Core", "user plane", "bearer"},
 	}
 
 	lowerKeyword := strings.ToLower(keyword)
@@ -489,21 +489,21 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	defer cb.mutex.RUnlock()
 
 	return map[string]interface{}{
-		"context_builder_enabled":     true,
-		"status":                     "active",
-		"total_queries":              cb.metrics.TotalQueries,
-		"successful_queries":         cb.metrics.SuccessfulQueries,
-		"failed_queries":             cb.metrics.FailedQueries,
-		"success_rate":               cb.getSuccessRate(),
-		"average_query_duration_ms":  cb.metrics.AverageQueryDuration.Milliseconds(),
-		"average_documents_found":    cb.metrics.AverageDocumentsFound,
+		"context_builder_enabled":   true,
+		"status":                    "active",
+		"total_queries":             cb.metrics.TotalQueries,
+		"successful_queries":        cb.metrics.SuccessfulQueries,
+		"failed_queries":            cb.metrics.FailedQueries,
+		"success_rate":              cb.getSuccessRate(),
+		"average_query_duration_ms": cb.metrics.AverageQueryDuration.Milliseconds(),
+		"average_documents_found":   cb.metrics.AverageDocumentsFound,
 		"cache_hit_rate":            cb.getCacheHitRate(),
 		"config": map[string]interface{}{
-			"default_max_docs":         cb.config.DefaultMaxDocs,
-			"max_context_length":       cb.config.MaxContextLength,
-			"min_confidence_score":     cb.config.MinConfidenceScore,
-			"enable_hybrid_search":     cb.config.EnableHybridSearch,
-			"query_expansion_enabled":  cb.config.QueryExpansionEnabled,
+			"default_max_docs":        cb.config.DefaultMaxDocs,
+			"max_context_length":      cb.config.MaxContextLength,
+			"min_confidence_score":    cb.config.MinConfidenceScore,
+			"enable_hybrid_search":    cb.config.EnableHybridSearch,
+			"query_expansion_enabled": cb.config.QueryExpansionEnabled,
 		},
 	}
 }

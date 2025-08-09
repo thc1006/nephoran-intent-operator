@@ -21,47 +21,47 @@ import (
 
 // MTLSConfig holds mutual TLS configuration
 type MTLSConfig struct {
-	Enabled                bool                    `json:"enabled"`
-	CertFile              string                  `json:"cert_file"`
-	KeyFile               string                  `json:"key_file"`
-	CAFile                string                  `json:"ca_file"`
-	ClientCAFiles         []string                `json:"client_ca_files"`
-	RequireClientCert     bool                    `json:"require_client_cert"`
-	VerifyClientCert      bool                    `json:"verify_client_cert"`
-	ClientAuthType        tls.ClientAuthType      `json:"client_auth_type"`
-	MinTLSVersion         uint16                  `json:"min_tls_version"`
-	MaxTLSVersion         uint16                  `json:"max_tls_version"`
-	CipherSuites          []uint16                `json:"cipher_suites"`
-	PreferServerCiphers   bool                    `json:"prefer_server_ciphers"`
-	SessionTicketsDisabled bool                   `json:"session_tickets_disabled"`
-	SNIRequired           bool                    `json:"sni_required"`
-	CertPinning           *CertPinningConfig      `json:"cert_pinning,omitempty"`
-	OCSPConfig            *OCSPConfig             `json:"ocsp_config,omitempty"`
-	CRLConfig             *CRLConfig              `json:"crl_config,omitempty"`
-	AutoRotation          *CertRotationConfig     `json:"auto_rotation,omitempty"`
-	MultiTenant           *MultiTenantConfig      `json:"multi_tenant,omitempty"`
+	Enabled                bool                `json:"enabled"`
+	CertFile               string              `json:"cert_file"`
+	KeyFile                string              `json:"key_file"`
+	CAFile                 string              `json:"ca_file"`
+	ClientCAFiles          []string            `json:"client_ca_files"`
+	RequireClientCert      bool                `json:"require_client_cert"`
+	VerifyClientCert       bool                `json:"verify_client_cert"`
+	ClientAuthType         tls.ClientAuthType  `json:"client_auth_type"`
+	MinTLSVersion          uint16              `json:"min_tls_version"`
+	MaxTLSVersion          uint16              `json:"max_tls_version"`
+	CipherSuites           []uint16            `json:"cipher_suites"`
+	PreferServerCiphers    bool                `json:"prefer_server_ciphers"`
+	SessionTicketsDisabled bool                `json:"session_tickets_disabled"`
+	SNIRequired            bool                `json:"sni_required"`
+	CertPinning            *CertPinningConfig  `json:"cert_pinning,omitempty"`
+	OCSPConfig             *OCSPConfig         `json:"ocsp_config,omitempty"`
+	CRLConfig              *CRLConfig          `json:"crl_config,omitempty"`
+	AutoRotation           *CertRotationConfig `json:"auto_rotation,omitempty"`
+	MultiTenant            *MultiTenantConfig  `json:"multi_tenant,omitempty"`
 }
 
 // CertPinningConfig holds certificate pinning configuration
 type CertPinningConfig struct {
-	Enabled          bool              `json:"enabled"`
-	Pins             map[string]string `json:"pins"` // hostname -> pin (SHA256)
-	EnforceForAll    bool              `json:"enforce_for_all"`
-	ReportOnly       bool              `json:"report_only"`
-	MaxAge           time.Duration     `json:"max_age"`
-	IncludeSubdomains bool             `json:"include_subdomains"`
+	Enabled           bool              `json:"enabled"`
+	Pins              map[string]string `json:"pins"` // hostname -> pin (SHA256)
+	EnforceForAll     bool              `json:"enforce_for_all"`
+	ReportOnly        bool              `json:"report_only"`
+	MaxAge            time.Duration     `json:"max_age"`
+	IncludeSubdomains bool              `json:"include_subdomains"`
 }
 
 // OCSPConfig holds OCSP configuration
 type OCSPConfig struct {
-	Enabled           bool          `json:"enabled"`
-	Stapling          bool          `json:"stapling"`
-	StaplingCache     bool          `json:"stapling_cache"`
-	StaplingCacheTTL  time.Duration `json:"stapling_cache_ttl"`
-	RequireStapling   bool          `json:"require_stapling"`
-	ResponderURL      string        `json:"responder_url"`
-	Timeout           time.Duration `json:"timeout"`
-	FailOpen          bool          `json:"fail_open"`
+	Enabled          bool          `json:"enabled"`
+	Stapling         bool          `json:"stapling"`
+	StaplingCache    bool          `json:"stapling_cache"`
+	StaplingCacheTTL time.Duration `json:"stapling_cache_ttl"`
+	RequireStapling  bool          `json:"require_stapling"`
+	ResponderURL     string        `json:"responder_url"`
+	Timeout          time.Duration `json:"timeout"`
+	FailOpen         bool          `json:"fail_open"`
 }
 
 // CRLConfig holds CRL configuration
@@ -77,52 +77,52 @@ type CRLConfig struct {
 
 // CertRotationConfig holds certificate rotation configuration
 type CertRotationConfig struct {
-	Enabled          bool          `json:"enabled"`
-	CheckInterval    time.Duration `json:"check_interval"`
-	RotationDays     int           `json:"rotation_days"`
-	WarnDays         int           `json:"warn_days"`
-	AutoRenew        bool          `json:"auto_renew"`
-	RenewProvider    string        `json:"renew_provider"`
-	BackupEnabled    bool          `json:"backup_enabled"`
-	BackupPath       string        `json:"backup_path"`
-	NotificationURL  string        `json:"notification_url"`
+	Enabled         bool          `json:"enabled"`
+	CheckInterval   time.Duration `json:"check_interval"`
+	RotationDays    int           `json:"rotation_days"`
+	WarnDays        int           `json:"warn_days"`
+	AutoRenew       bool          `json:"auto_renew"`
+	RenewProvider   string        `json:"renew_provider"`
+	BackupEnabled   bool          `json:"backup_enabled"`
+	BackupPath      string        `json:"backup_path"`
+	NotificationURL string        `json:"notification_url"`
 }
 
 // MultiTenantConfig holds multi-tenant configuration
 type MultiTenantConfig struct {
-	Enabled         bool                       `json:"enabled"`
-	DefaultTenant   string                     `json:"default_tenant"`
-	TenantMappings  map[string]*TenantConfig   `json:"tenant_mappings"`
-	SNIRouting      bool                       `json:"sni_routing"`
-	HeaderRouting   bool                       `json:"header_routing"`
-	HeaderName      string                     `json:"header_name"`
+	Enabled        bool                     `json:"enabled"`
+	DefaultTenant  string                   `json:"default_tenant"`
+	TenantMappings map[string]*TenantConfig `json:"tenant_mappings"`
+	SNIRouting     bool                     `json:"sni_routing"`
+	HeaderRouting  bool                     `json:"header_routing"`
+	HeaderName     string                   `json:"header_name"`
 }
 
 // TenantConfig holds per-tenant TLS configuration
 type TenantConfig struct {
-	TenantID      string   `json:"tenant_id"`
-	CertFile      string   `json:"cert_file"`
-	KeyFile       string   `json:"key_file"`
-	CAFile        string   `json:"ca_file"`
-	AllowedCNs    []string `json:"allowed_cns"`
-	AllowedSANs   []string `json:"allowed_sans"`
-	CustomConfig  *tls.Config `json:"-"`
+	TenantID     string      `json:"tenant_id"`
+	CertFile     string      `json:"cert_file"`
+	KeyFile      string      `json:"key_file"`
+	CAFile       string      `json:"ca_file"`
+	AllowedCNs   []string    `json:"allowed_cns"`
+	AllowedSANs  []string    `json:"allowed_sans"`
+	CustomConfig *tls.Config `json:"-"`
 }
 
 // MTLSManager manages mutual TLS operations
 type MTLSManager struct {
-	config           *MTLSConfig
-	logger           *logging.StructuredLogger
-	tlsConfig        *tls.Config
-	certPool         *x509.CertPool
-	clientCertPool   *x509.CertPool
-	ocspCache        *OCSPCache
-	crlCache         *CRLCache
-	certPins         map[string][]byte
-	tenantConfigs    map[string]*tls.Config
-	mu               sync.RWMutex
-	certWatcher      *CertificateWatcher
-	rotationManager  *CertRotationManager
+	config          *MTLSConfig
+	logger          *logging.StructuredLogger
+	tlsConfig       *tls.Config
+	certPool        *x509.CertPool
+	clientCertPool  *x509.CertPool
+	ocspCache       *OCSPCache
+	crlCache        *CRLCache
+	certPins        map[string][]byte
+	tenantConfigs   map[string]*tls.Config
+	mu              sync.RWMutex
+	certWatcher     *CertificateWatcher
+	rotationManager *CertRotationManager
 }
 
 // OCSPCache caches OCSP responses
@@ -149,12 +149,12 @@ type CertificateWatcher struct {
 
 // CertRotationManager manages certificate rotation
 type CertRotationManager struct {
-	config         *CertRotationConfig
-	logger         *logging.StructuredLogger
-	currentCert    *tls.Certificate
-	nextCert       *tls.Certificate
-	rotationTime   time.Time
-	mu             sync.RWMutex
+	config       *CertRotationConfig
+	logger       *logging.StructuredLogger
+	currentCert  *tls.Certificate
+	nextCert     *tls.Certificate
+	rotationTime time.Time
+	mu           sync.RWMutex
 }
 
 // NewMTLSManager creates a new mTLS manager
@@ -236,11 +236,11 @@ func (m *MTLSManager) initializeTLSConfig() error {
 
 	// Create TLS config
 	m.tlsConfig = &tls.Config{
-		Certificates:           []tls.Certificate{cert},
-		MinVersion:            m.config.MinTLSVersion,
-		MaxVersion:            m.config.MaxTLSVersion,
+		Certificates:             []tls.Certificate{cert},
+		MinVersion:               m.config.MinTLSVersion,
+		MaxVersion:               m.config.MaxTLSVersion,
 		PreferServerCipherSuites: m.config.PreferServerCiphers,
-		SessionTicketsDisabled: m.config.SessionTicketsDisabled,
+		SessionTicketsDisabled:   m.config.SessionTicketsDisabled,
 	}
 
 	// Set TLS 1.3 as minimum if not specified

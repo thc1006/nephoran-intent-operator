@@ -44,11 +44,11 @@ type RecoveryStep struct {
 
 // StateValidationResult represents state validation after recovery
 type StateValidationResult struct {
-	ConfigurationValid bool
-	DataConsistent     bool
-	ServicesHealthy    bool
+	ConfigurationValid  bool
+	DataConsistent      bool
+	ServicesHealthy     bool
 	NetworkConnectivity bool
-	Issues             []string
+	Issues              []string
 }
 
 // RecoveryStrategy defines how to recover from failures
@@ -81,14 +81,14 @@ type AutomaticTrigger struct {
 type RecoveryAction string
 
 const (
-	RecoveryActionRestartPod       RecoveryAction = "restart-pod"
-	RecoveryActionScaleUp          RecoveryAction = "scale-up"
-	RecoveryActionScaleDown        RecoveryAction = "scale-down"
-	RecoveryActionRollback         RecoveryAction = "rollback"
+	RecoveryActionRestartPod          RecoveryAction = "restart-pod"
+	RecoveryActionScaleUp             RecoveryAction = "scale-up"
+	RecoveryActionScaleDown           RecoveryAction = "scale-down"
+	RecoveryActionRollback            RecoveryAction = "rollback"
 	RecoveryActionResetCircuitBreaker RecoveryAction = "reset-circuit-breaker"
-	RecoveryActionClearCache       RecoveryAction = "clear-cache"
-	RecoveryActionReconnectDatabase RecoveryAction = "reconnect-database"
-	RecoveryActionRestoreBackup    RecoveryAction = "restore-backup"
+	RecoveryActionClearCache          RecoveryAction = "clear-cache"
+	RecoveryActionReconnectDatabase   RecoveryAction = "reconnect-database"
+	RecoveryActionRestoreBackup       RecoveryAction = "restore-backup"
 )
 
 // ManualStep defines a manual recovery step
@@ -296,7 +296,7 @@ func (r *RecoveryTester) TestRecovery(ctx context.Context, experiment *Experimen
 		zap.String("injection", injection.InjectionID))
 
 	result := &RecoveryResult{
-		RecoverySteps:   []RecoveryStep{},
+		RecoverySteps:    []RecoveryStep{},
 		DegradedServices: []string{},
 	}
 
@@ -388,7 +388,7 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 		wg.Add(1)
 		go func(t AutomaticTrigger) {
 			defer wg.Done()
-			
+
 			step := RecoveryStep{
 				Name:        t.Name,
 				Description: fmt.Sprintf("Waiting for %s", t.Condition),
@@ -408,7 +408,7 @@ func (r *RecoveryTester) waitForAutomaticRecovery(ctx context.Context, experimen
 			if r.checkTriggerCondition(timeoutCtx, experiment, t.Condition) {
 				r.logger.Info("Automatic recovery trigger activated",
 					zap.String("trigger", t.Name))
-				
+
 				// Execute recovery action
 				if err := r.executeRecoveryAction(timeoutCtx, experiment, t.Action); err != nil {
 					step.Error = err
@@ -507,8 +507,8 @@ func (r *RecoveryTester) checkPodsCrashed(ctx context.Context, namespace string)
 	}
 
 	for _, pod := range podList.Items {
-		if pod.Status.Phase == corev1.PodPhaseFailed || 
-		   pod.Status.Phase == corev1.PodPhaseUnknown {
+		if pod.Status.Phase == corev1.PodPhaseFailed ||
+			pod.Status.Phase == corev1.PodPhaseUnknown {
 			return true
 		}
 		for _, containerStatus := range pod.Status.ContainerStatuses {
@@ -569,7 +569,7 @@ func (r *RecoveryTester) checkServiceUnavailable(ctx context.Context, namespace 
 func (r *RecoveryTester) restartPods(ctx context.Context, namespace string, labelSelector map[string]string) error {
 	podList := &corev1.PodList{}
 	selector := labels.SelectorFromSet(labelSelector)
-	if err := r.client.List(ctx, podList, 
+	if err := r.client.List(ctx, podList,
 		client.InNamespace(namespace),
 		client.MatchingLabelsSelector{Selector: selector}); err != nil {
 		return err
@@ -1019,7 +1019,7 @@ func (r *RecoveryTester) getDefaultStrategy() *RecoveryStrategy {
 func (r *RecoveryTester) GetRecoveryHistory() []RecoveryResult {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	history := make([]RecoveryResult, len(r.recoveryHistory))
 	copy(history, r.recoveryHistory)
 	return history

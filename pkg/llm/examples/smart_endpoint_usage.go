@@ -57,7 +57,7 @@ func SmartEndpointUsageExample() error {
 
 	tokenManager := llm.NewTokenManager()
 	streamingProcessor := llm.NewStreamingProcessor(autoDetectClient, tokenManager, streamingConfig)
-	
+
 	// Configure RAG endpoints for streaming
 	streamingProcessor.SetRAGEndpoints("http://rag-api:5001")
 	defer streamingProcessor.Close()
@@ -79,7 +79,7 @@ func SmartEndpointUsageExample() error {
 	}
 
 	for _, tc := range testCases {
-		logger.Info("Testing configuration", 
+		logger.Info("Testing configuration",
 			slog.String("name", tc.name),
 			slog.String("url", tc.url),
 		)
@@ -87,14 +87,14 @@ func SmartEndpointUsageExample() error {
 		// Each client will automatically use the correct endpoint
 		result, err := tc.client.ProcessIntent(ctx, "Deploy a high-availability AMF instance")
 		if err != nil {
-			logger.Error("Client test failed", 
+			logger.Error("Client test failed",
 				slog.String("name", tc.name),
 				slog.String("error", err.Error()),
 			)
 			continue
 		}
 
-		logger.Info("Client test successful", 
+		logger.Info("Client test successful",
 			slog.String("name", tc.name),
 			slog.String("result_preview", truncate(result, 100)),
 		)
@@ -106,7 +106,7 @@ func SmartEndpointUsageExample() error {
 	if err != nil {
 		logger.Error("ProcessingEngine test failed", slog.String("error", err.Error()))
 	} else {
-		logger.Info("ProcessingEngine test successful", 
+		logger.Info("ProcessingEngine test successful",
 			slog.String("result_preview", truncate(processingResult.Content, 100)),
 			slog.Duration("processing_time", processingResult.ProcessingTime),
 			slog.Bool("cache_hit", processingResult.CacheHit),
@@ -130,7 +130,7 @@ func ConfigurationFromEnvironmentExample() error {
 
 	// Load configuration from environment
 	// This demonstrates how the LLMProcessorConfig integrates with smart endpoints
-	
+
 	// Example environment variables:
 	// RAG_API_URL=http://rag-api:5001                    # Auto-detects to /process
 	// RAG_API_URL=http://rag-api:5001/process_intent     # Uses legacy endpoint

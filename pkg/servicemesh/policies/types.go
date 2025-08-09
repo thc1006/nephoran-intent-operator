@@ -29,15 +29,15 @@ const (
 
 // Policy represents a service mesh policy
 type Policy struct {
-	Name        string                        `json:"name" yaml:"name"`
-	Type        PolicyType                    `json:"type" yaml:"type"`
-	Namespace   string                        `json:"namespace" yaml:"namespace"`
-	Description string                        `json:"description,omitempty" yaml:"description,omitempty"`
-	Labels      map[string]string             `json:"labels,omitempty" yaml:"labels,omitempty"`
-	Selector    *abstraction.LabelSelector    `json:"selector,omitempty" yaml:"selector,omitempty"`
-	Spec        PolicySpec                    `json:"spec" yaml:"spec"`
-	Priority    int                           `json:"priority,omitempty" yaml:"priority,omitempty"`
-	Enabled     bool                          `json:"enabled" yaml:"enabled"`
+	Name        string                     `json:"name" yaml:"name"`
+	Type        PolicyType                 `json:"type" yaml:"type"`
+	Namespace   string                     `json:"namespace" yaml:"namespace"`
+	Description string                     `json:"description,omitempty" yaml:"description,omitempty"`
+	Labels      map[string]string          `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Selector    *abstraction.LabelSelector `json:"selector,omitempty" yaml:"selector,omitempty"`
+	Spec        PolicySpec                 `json:"spec" yaml:"spec"`
+	Priority    int                        `json:"priority,omitempty" yaml:"priority,omitempty"`
+	Enabled     bool                       `json:"enabled" yaml:"enabled"`
 }
 
 // PolicySpec contains the specification for a policy
@@ -77,12 +77,12 @@ type PolicySet struct {
 
 // ZeroTrustConfig represents zero-trust configuration
 type ZeroTrustConfig struct {
-	Namespace             string                  `json:"namespace" yaml:"namespace"`
-	EnforceStrictMTLS     bool                    `json:"enforceStrictMtls" yaml:"enforceStrictMtls"`
-	DefaultDenyAll        bool                    `json:"defaultDenyAll" yaml:"defaultDenyAll"`
-	AllowedCommunications []AllowedCommunication  `json:"allowedCommunications" yaml:"allowedCommunications"`
-	NetworkSegments       []NetworkSegment        `json:"networkSegments,omitempty" yaml:"networkSegments,omitempty"`
-	AuditLogging          bool                    `json:"auditLogging" yaml:"auditLogging"`
+	Namespace             string                 `json:"namespace" yaml:"namespace"`
+	EnforceStrictMTLS     bool                   `json:"enforceStrictMtls" yaml:"enforceStrictMtls"`
+	DefaultDenyAll        bool                   `json:"defaultDenyAll" yaml:"defaultDenyAll"`
+	AllowedCommunications []AllowedCommunication `json:"allowedCommunications" yaml:"allowedCommunications"`
+	NetworkSegments       []NetworkSegment       `json:"networkSegments,omitempty" yaml:"networkSegments,omitempty"`
+	AuditLogging          bool                   `json:"auditLogging" yaml:"auditLogging"`
 }
 
 // AllowedCommunication represents allowed service-to-service communication
@@ -309,7 +309,7 @@ func (v *PolicyValidator) CheckConflicts(policies []Policy) []string {
 			namespace := policy.Namespace
 			if existingMode, exists := mtlsModes[namespace]; exists {
 				if existingMode != policy.Spec.MTLSMode {
-					conflicts = append(conflicts, 
+					conflicts = append(conflicts,
 						fmt.Sprintf("Conflicting mTLS modes in namespace %s: %s vs %s",
 							namespace, existingMode, policy.Spec.MTLSMode))
 				}
@@ -352,7 +352,7 @@ func getSelectorKey(selector *abstraction.LabelSelector) string {
 	if selector == nil || len(selector.MatchLabels) == 0 {
 		return "default"
 	}
-	
+
 	key := ""
 	for k, v := range selector.MatchLabels {
 		if key != "" {

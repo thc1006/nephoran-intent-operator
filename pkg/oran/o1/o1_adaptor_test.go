@@ -52,7 +52,7 @@ func TestNewO1Adaptor(t *testing.T) {
 			assert.NotNil(t, got.yangRegistry)
 			assert.NotNil(t, got.subscriptions)
 			assert.NotNil(t, got.metricCollectors)
-			
+
 			if tt.config != nil {
 				assert.Equal(t, tt.config, got.config)
 			} else {
@@ -69,7 +69,7 @@ func TestNewO1Adaptor(t *testing.T) {
 
 func TestO1Adaptor_IsConnected(t *testing.T) {
 	adaptor := NewO1Adaptor(nil, nil)
-	
+
 	me := &nephoranv1.ManagedElement{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-element",
@@ -137,18 +137,18 @@ func TestO1Adaptor_parseAlarmData(t *testing.T) {
 	adaptor := NewO1Adaptor(nil, nil)
 
 	tests := []struct {
-		name              string
-		xmlData           string
-		managedElementID  string
+		name               string
+		xmlData            string
+		managedElementID   string
 		expectedAlarmCount int
-		wantErr           bool
+		wantErr            bool
 	}{
 		{
-			name:              "empty XML data",
-			xmlData:           "",
-			managedElementID:  "test-element",
+			name:               "empty XML data",
+			xmlData:            "",
+			managedElementID:   "test-element",
 			expectedAlarmCount: 0,
-			wantErr:           false,
+			wantErr:            false,
 		},
 		{
 			name: "valid O-RAN alarm data",
@@ -164,9 +164,9 @@ func TestO1Adaptor_parseAlarmData(t *testing.T) {
 					</active-alarms>
 				</active-alarm-list>
 			</data>`,
-			managedElementID:  "test-element",
+			managedElementID:   "test-element",
 			expectedAlarmCount: 1,
-			wantErr:           false,
+			wantErr:            false,
 		},
 		{
 			name: "cleared alarm should be filtered",
@@ -182,29 +182,29 @@ func TestO1Adaptor_parseAlarmData(t *testing.T) {
 					</active-alarms>
 				</active-alarm-list>
 			</data>`,
-			managedElementID:  "test-element",
+			managedElementID:   "test-element",
 			expectedAlarmCount: 0,
-			wantErr:           false,
+			wantErr:            false,
 		},
 		{
-			name:              "generic alarm data",
-			xmlData:           "<alarm><type>fault</type><description>Generic alarm</description></alarm>",
-			managedElementID:  "test-element",
+			name:               "generic alarm data",
+			xmlData:            "<alarm><type>fault</type><description>Generic alarm</description></alarm>",
+			managedElementID:   "test-element",
 			expectedAlarmCount: 1,
-			wantErr:           false,
+			wantErr:            false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			alarms, err := adaptor.parseAlarmData(tt.xmlData, tt.managedElementID)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 				assert.Len(t, alarms, tt.expectedAlarmCount)
-				
+
 				// Verify alarm properties if alarms exist
 				for _, alarm := range alarms {
 					assert.Equal(t, tt.managedElementID, alarm.ManagedElementID)
@@ -220,16 +220,16 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 	adaptor := NewO1Adaptor(nil, nil)
 
 	tests := []struct {
-		name              string
-		event             *NetconfEvent
-		managedElementID  string
-		expectedAlarm     bool
+		name             string
+		event            *NetconfEvent
+		managedElementID string
+		expectedAlarm    bool
 	}{
 		{
-			name:              "nil event",
-			event:             nil,
-			managedElementID:  "test-element",
-			expectedAlarm:     false,
+			name:             "nil event",
+			event:            nil,
+			managedElementID: "test-element",
+			expectedAlarm:    false,
 		},
 		{
 			name: "valid event",
@@ -238,8 +238,8 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 				Timestamp: time.Now(),
 				Source:    "test-source",
 				Data: map[string]interface{}{
-					"event_type": "alarm",
-					"severity":   "major",
+					"event_type":  "alarm",
+					"severity":    "major",
 					"description": "Test alarm event",
 				},
 			},
@@ -263,7 +263,7 @@ func TestO1Adaptor_convertEventToAlarm(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			alarm := adaptor.convertEventToAlarm(tt.event, tt.managedElementID)
-			
+
 			if tt.expectedAlarm {
 				assert.NotNil(t, alarm)
 				assert.Equal(t, tt.managedElementID, alarm.ManagedElementID)
@@ -325,7 +325,7 @@ func TestO1Adaptor_parseMetricValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			value, err := adaptor.parseMetricValue(tt.xmlData, tt.metricName)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -379,7 +379,7 @@ func TestO1Adaptor_buildSecurityConfiguration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := adaptor.buildSecurityConfiguration(tt.policy)
-			
+
 			if tt.policy == nil {
 				assert.Empty(t, result)
 			} else {
@@ -394,13 +394,13 @@ func TestO1Adaptor_buildSecurityConfiguration(t *testing.T) {
 
 func TestMetricCollector(t *testing.T) {
 	collector := &MetricCollector{
-		ID:              "test-collector",
-		ManagedElement:  "test-element",
-		MetricNames:     []string{"cpu_usage", "memory_usage"},
+		ID:               "test-collector",
+		ManagedElement:   "test-element",
+		MetricNames:      []string{"cpu_usage", "memory_usage"},
 		CollectionPeriod: 30 * time.Second,
-		ReportingPeriod: 60 * time.Second,
-		Active:          true,
-		LastCollection:  time.Now(),
+		ReportingPeriod:  60 * time.Second,
+		Active:           true,
+		LastCollection:   time.Now(),
 	}
 
 	assert.Equal(t, "test-collector", collector.ID)

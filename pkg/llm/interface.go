@@ -28,11 +28,11 @@ type IntentRequest struct {
 
 // IntentResponse represents the response from intent processing
 type IntentResponse struct {
-	Response    string                 `json:"response"`
-	Confidence  float64                `json:"confidence"`
-	Tokens      int                    `json:"tokens"`
-	Duration    time.Duration          `json:"duration"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Response   string                 `json:"response"`
+	Confidence float64                `json:"confidence"`
+	Tokens     int                    `json:"tokens"`
+	Duration   time.Duration          `json:"duration"`
+	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 // ProcessIntent processes a NetworkIntent with the LLM
@@ -59,7 +59,7 @@ func NewClient(config *Config) (*Client, error) {
 	// This would use the existing Client constructor
 	// For now, return a basic client
 	return &Client{
-		url:     config.Endpoint,
-		apiKey:  config.APIKey,
+		url:    config.Endpoint,
+		apiKey: config.APIKey,
 	}, nil
 }

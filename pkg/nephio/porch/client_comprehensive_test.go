@@ -87,7 +87,7 @@ func TestClientCreation(t *testing.T) {
 				assert.NotNil(t, client)
 				assert.NotNil(t, client.config)
 				assert.NotNil(t, client.circuitBreaker)
-				
+
 				// Cleanup
 				defer client.Close()
 			}
@@ -102,12 +102,12 @@ func TestRepositoryOperations(t *testing.T) {
 
 	// Create a mock client for testing
 	mockClient := testutil.NewMockPorchClient()
-	
+
 	t.Run("create_repository", func(t *testing.T) {
 		repo := fixture.CreateTestRepository("test-repo")
-		
+
 		created, err := mockClient.CreateRepository(fixture.Context, repo)
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, created)
 		assert.Equal(t, repo.Name, created.Name)
@@ -120,9 +120,9 @@ func TestRepositoryOperations(t *testing.T) {
 		// Add repository to mock
 		repo := fixture.CreateTestRepository("get-repo")
 		mockClient.AddRepository(repo)
-		
+
 		retrieved, err := mockClient.GetRepository(fixture.Context, "get-repo")
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, retrieved)
 		assert.Equal(t, "get-repo", retrieved.Name)
@@ -131,7 +131,7 @@ func TestRepositoryOperations(t *testing.T) {
 
 	t.Run("get_nonexistent_repository", func(t *testing.T) {
 		retrieved, err := mockClient.GetRepository(fixture.Context, "nonexistent")
-		
+
 		assert.Error(t, err)
 		assert.Nil(t, retrieved)
 		assert.Contains(t, err.Error(), "not found")
@@ -143,9 +143,9 @@ func TestRepositoryOperations(t *testing.T) {
 			repo := fixture.CreateTestRepository("")
 			mockClient.AddRepository(repo)
 		}
-		
+
 		list, err := mockClient.ListRepositories(fixture.Context, &ListOptions{})
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, list)
 		assert.True(t, len(list.Items) >= 5)
@@ -156,12 +156,12 @@ func TestRepositoryOperations(t *testing.T) {
 		// Create and add repository
 		repo := fixture.CreateTestRepository("update-repo")
 		mockClient.AddRepository(repo)
-		
+
 		// Update repository
 		repo.Spec.Branch = "updated-branch"
-		
+
 		updated, err := mockClient.UpdateRepository(fixture.Context, repo)
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, updated)
 		assert.Equal(t, "updated-branch", updated.Spec.Branch)
@@ -172,12 +172,12 @@ func TestRepositoryOperations(t *testing.T) {
 		// Create and add repository
 		repo := fixture.CreateTestRepository("delete-repo")
 		mockClient.AddRepository(repo)
-		
+
 		err := mockClient.DeleteRepository(fixture.Context, "delete-repo")
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, 1, mockClient.GetCallCount("DeleteRepository"))
-		
+
 		// Verify deletion
 		retrieved, err := mockClient.GetRepository(fixture.Context, "delete-repo")
 		assert.Error(t, err)
@@ -188,9 +188,9 @@ func TestRepositoryOperations(t *testing.T) {
 		// Create and add repository
 		repo := fixture.CreateTestRepository("sync-repo")
 		mockClient.AddRepository(repo)
-		
+
 		err := mockClient.SyncRepository(fixture.Context, "sync-repo")
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, 1, mockClient.GetCallCount("SyncRepository"))
 	})
@@ -205,9 +205,9 @@ func TestPackageRevisionOperations(t *testing.T) {
 
 	t.Run("create_package_revision", func(t *testing.T) {
 		pkg := fixture.CreateTestPackageRevision("test-package", "v1.0.0")
-		
+
 		created, err := mockClient.CreatePackageRevision(fixture.Context, pkg)
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, created)
 		assert.Equal(t, pkg.Spec.PackageName, created.Spec.PackageName)
@@ -219,9 +219,9 @@ func TestPackageRevisionOperations(t *testing.T) {
 		// Add package to mock
 		pkg := fixture.CreateTestPackageRevision("get-package", "v1.0.0")
 		mockClient.AddPackageRevision(pkg)
-		
+
 		retrieved, err := mockClient.GetPackageRevision(fixture.Context, "get-package", "v1.0.0")
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, retrieved)
 		assert.Equal(t, "get-package", retrieved.Spec.PackageName)
@@ -235,9 +235,9 @@ func TestPackageRevisionOperations(t *testing.T) {
 		for _, pkg := range packages {
 			mockClient.AddPackageRevision(pkg)
 		}
-		
+
 		list, err := mockClient.ListPackageRevisions(fixture.Context, &ListOptions{})
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, list)
 		assert.True(t, len(list.Items) >= 3)
@@ -248,12 +248,12 @@ func TestPackageRevisionOperations(t *testing.T) {
 		// Create and add package
 		pkg := fixture.CreateTestPackageRevision("update-package", "v1.0.0")
 		mockClient.AddPackageRevision(pkg)
-		
+
 		// Update package
 		pkg.Spec.Lifecycle = PackageRevisionLifecycleProposed
-		
+
 		updated, err := mockClient.UpdatePackageRevision(fixture.Context, pkg)
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, updated)
 		assert.Equal(t, PackageRevisionLifecycleProposed, updated.Spec.Lifecycle)
@@ -264,12 +264,12 @@ func TestPackageRevisionOperations(t *testing.T) {
 		// Create and add package
 		pkg := fixture.CreateTestPackageRevision("delete-package", "v1.0.0")
 		mockClient.AddPackageRevision(pkg)
-		
+
 		err := mockClient.DeletePackageRevision(fixture.Context, "delete-package", "v1.0.0")
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, 1, mockClient.GetCallCount("DeletePackageRevision"))
-		
+
 		// Verify deletion
 		retrieved, err := mockClient.GetPackageRevision(fixture.Context, "delete-package", "v1.0.0")
 		assert.Error(t, err)
@@ -285,11 +285,11 @@ func TestPackageLifecycleTransitions(t *testing.T) {
 	mockClient := testutil.NewMockPorchClient()
 
 	testCases := []struct {
-		name           string
-		initialState   PackageRevisionLifecycle
-		operation      func(context.Context, string, string) error
-		expectedState  PackageRevisionLifecycle
-		expectError    bool
+		name          string
+		initialState  PackageRevisionLifecycle
+		operation     func(context.Context, string, string) error
+		expectedState PackageRevisionLifecycle
+		expectError   bool
 	}{
 		{
 			name:          "draft_to_proposed",
@@ -306,9 +306,9 @@ func TestPackageLifecycleTransitions(t *testing.T) {
 			expectError:   false,
 		},
 		{
-			name:          "proposed_to_draft",
-			initialState:  PackageRevisionLifecycleProposed,
-			operation:     func(ctx context.Context, name, revision string) error {
+			name:         "proposed_to_draft",
+			initialState: PackageRevisionLifecycleProposed,
+			operation: func(ctx context.Context, name, revision string) error {
 				return mockClient.RejectPackageRevision(ctx, name, revision, "test rejection")
 			},
 			expectedState: PackageRevisionLifecycleDraft,
@@ -322,15 +322,15 @@ func TestPackageLifecycleTransitions(t *testing.T) {
 			pkg := fixture.CreateTestPackageRevision("lifecycle-test", "v1.0.0",
 				testutil.WithPackageLifecycle(tc.initialState))
 			mockClient.AddPackageRevision(pkg)
-			
+
 			// Perform operation
 			err := tc.operation(fixture.Context, "lifecycle-test", "v1.0.0")
-			
+
 			if tc.expectError {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				
+
 				// Verify state transition
 				retrieved, getErr := mockClient.GetPackageRevision(fixture.Context, "lifecycle-test", "v1.0.0")
 				assert.NoError(t, getErr)
@@ -351,9 +351,9 @@ func TestPackageContentOperations(t *testing.T) {
 		// Create and add package
 		pkg := fixture.CreateTestPackageRevision("content-test", "v1.0.0")
 		mockClient.AddPackageRevision(pkg)
-		
+
 		contents, err := mockClient.GetPackageContents(fixture.Context, "content-test", "v1.0.0")
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, contents)
 		assert.True(t, len(contents) > 0)
@@ -364,16 +364,16 @@ func TestPackageContentOperations(t *testing.T) {
 		// Create and add package
 		pkg := fixture.CreateTestPackageRevision("update-content", "v1.0.0")
 		mockClient.AddPackageRevision(pkg)
-		
+
 		newContents := map[string][]byte{
 			"new-file.yaml": []byte("apiVersion: v1\nkind: ConfigMap"),
 		}
-		
+
 		err := mockClient.UpdatePackageContents(fixture.Context, "update-content", "v1.0.0", newContents)
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, 1, mockClient.GetCallCount("UpdatePackageContents"))
-		
+
 		// Verify contents were updated
 		contents, getErr := mockClient.GetPackageContents(fixture.Context, "update-content", "v1.0.0")
 		assert.NoError(t, getErr)
@@ -384,9 +384,9 @@ func TestPackageContentOperations(t *testing.T) {
 		// Create and add package
 		pkg := fixture.CreateTestPackageRevision("render-test", "v1.0.0")
 		mockClient.AddPackageRevision(pkg)
-		
+
 		result, err := mockClient.RenderPackage(fixture.Context, "render-test", "v1.0.0")
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.True(t, len(result.Resources) > 0)
@@ -413,9 +413,9 @@ func TestFunctionOperations(t *testing.T) {
 				testutil.GenerateTestResource("v1", "ConfigMap", "test-cm", "default"),
 			},
 		}
-		
+
 		response, err := mockClient.RunFunction(fixture.Context, request)
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
 		assert.Equal(t, len(request.Resources), len(response.Resources))
@@ -427,9 +427,9 @@ func TestFunctionOperations(t *testing.T) {
 		// Create and add package
 		pkg := fixture.CreateTestPackageRevision("validate-test", "v1.0.0")
 		mockClient.AddPackageRevision(pkg)
-		
+
 		result, err := mockClient.ValidatePackage(fixture.Context, "validate-test", "v1.0.0")
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.True(t, result.Valid)
@@ -438,7 +438,7 @@ func TestFunctionOperations(t *testing.T) {
 
 	t.Run("validate_nonexistent_package", func(t *testing.T) {
 		result, err := mockClient.ValidatePackage(fixture.Context, "nonexistent", "v1.0.0")
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
 		assert.False(t, result.Valid)
@@ -455,9 +455,9 @@ func TestWorkflowOperations(t *testing.T) {
 
 	t.Run("create_workflow", func(t *testing.T) {
 		workflow := fixture.CreateTestWorkflow("test-workflow")
-		
+
 		created, err := mockClient.CreateWorkflow(fixture.Context, workflow)
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, created)
 		assert.Equal(t, workflow.Name, created.Name)
@@ -469,9 +469,9 @@ func TestWorkflowOperations(t *testing.T) {
 		// Add workflow to mock
 		workflow := fixture.CreateTestWorkflow("get-workflow")
 		mockClient.AddWorkflow(workflow)
-		
+
 		retrieved, err := mockClient.GetWorkflow(fixture.Context, "get-workflow")
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, retrieved)
 		assert.Equal(t, "get-workflow", retrieved.Name)
@@ -484,9 +484,9 @@ func TestWorkflowOperations(t *testing.T) {
 			workflow := fixture.CreateTestWorkflow("")
 			mockClient.AddWorkflow(workflow)
 		}
-		
+
 		list, err := mockClient.ListWorkflows(fixture.Context, &ListOptions{})
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, list)
 		assert.True(t, len(list.Items) >= 3)
@@ -500,9 +500,9 @@ func TestCircuitBreakerBehavior(t *testing.T) {
 
 	t.Run("circuit_breaker_open", func(t *testing.T) {
 		mockClient.SetCircuitBreakerOpen(true)
-		
+
 		_, err := mockClient.GetRepository(context.Background(), "test")
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "circuit breaker")
 	})
@@ -512,9 +512,9 @@ func TestCircuitBreakerBehavior(t *testing.T) {
 		mockClient.AddRepository(&Repository{
 			ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		})
-		
+
 		_, err := mockClient.GetRepository(context.Background(), "test")
-		
+
 		assert.NoError(t, err)
 	})
 }
@@ -525,9 +525,9 @@ func TestRateLimiting(t *testing.T) {
 
 	t.Run("rate_limited", func(t *testing.T) {
 		mockClient.SetRateLimited(true)
-		
+
 		_, err := mockClient.GetRepository(context.Background(), "test")
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "rate limit")
 	})
@@ -537,9 +537,9 @@ func TestRateLimiting(t *testing.T) {
 		mockClient.AddRepository(&Repository{
 			ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		})
-		
+
 		_, err := mockClient.GetRepository(context.Background(), "test")
-		
+
 		assert.NoError(t, err)
 	})
 }
@@ -550,9 +550,9 @@ func TestHealthAndStatus(t *testing.T) {
 
 	t.Run("health_check_success", func(t *testing.T) {
 		mockClient.SetHealthCheckFails(false)
-		
+
 		health, err := mockClient.Health(context.Background())
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, health)
 		assert.Equal(t, "healthy", health.Status)
@@ -562,9 +562,9 @@ func TestHealthAndStatus(t *testing.T) {
 
 	t.Run("health_check_failure", func(t *testing.T) {
 		mockClient.SetHealthCheckFails(true)
-		
+
 		health, err := mockClient.Health(context.Background())
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, health)
 		assert.Equal(t, "unhealthy", health.Status)
@@ -574,7 +574,7 @@ func TestHealthAndStatus(t *testing.T) {
 
 	t.Run("version_info", func(t *testing.T) {
 		version, err := mockClient.Version(context.Background())
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, version)
 		assert.NotEmpty(t, version.Version)
@@ -589,9 +589,9 @@ func TestErrorHandling(t *testing.T) {
 
 	t.Run("simulated_errors", func(t *testing.T) {
 		mockClient.SetSimulateErrors(true)
-		
+
 		_, err := mockClient.GetRepository(context.Background(), "test")
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "simulated error")
 	})
@@ -599,9 +599,9 @@ func TestErrorHandling(t *testing.T) {
 	t.Run("context_cancellation", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
-		
+
 		_, err := mockClient.GetRepository(ctx, "test")
-		
+
 		// Mock doesn't actually check context cancellation, but in real implementation it would
 		// For now, we'll just verify the call was made
 		assert.Equal(t, 1, mockClient.GetCallCount("GetRepository"))
@@ -610,11 +610,11 @@ func TestErrorHandling(t *testing.T) {
 	t.Run("timeout_handling", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 		defer cancel()
-		
+
 		time.Sleep(2 * time.Nanosecond) // Ensure timeout
-		
+
 		_, err := mockClient.GetRepository(ctx, "test")
-		
+
 		// Mock doesn't handle timeouts, but in real implementation it would
 		assert.Equal(t, 1, mockClient.GetCallCount("GetRepository"))
 	})
@@ -637,7 +637,7 @@ func TestConcurrentOperations(t *testing.T) {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
-				
+
 				for j := 0; j < operationsPerGoroutine; j++ {
 					repo := fixture.CreateTestRepository("")
 					_, err := mockClient.CreateRepository(fixture.Context, repo)
@@ -673,12 +673,12 @@ func TestConcurrentOperations(t *testing.T) {
 
 		const numReaders = 20
 		var wg sync.WaitGroup
-		
+
 		for i := 0; i < numReaders; i++ {
 			wg.Add(1)
 			go func(id int) {
 				defer wg.Done()
-				
+
 				_, err := mockClient.ListRepositories(fixture.Context, &ListOptions{})
 				assert.NoError(t, err)
 			}(i)
@@ -749,12 +749,12 @@ func TestMetricsAndObservability(t *testing.T) {
 	t.Run("call_counting", func(t *testing.T) {
 		// Reset counters
 		mockClient.ResetCallCounts()
-		
+
 		// Make various calls
 		mockClient.Health(context.Background())
 		mockClient.Version(context.Background())
 		mockClient.ListRepositories(context.Background(), nil)
-		
+
 		// Verify counts
 		assert.Equal(t, 1, mockClient.GetCallCount("Health"))
 		assert.Equal(t, 1, mockClient.GetCallCount("Version"))
@@ -766,7 +766,7 @@ func TestMetricsAndObservability(t *testing.T) {
 		// Make some calls
 		mockClient.Health(context.Background())
 		mockClient.Version(context.Background())
-		
+
 		// Reset and verify
 		mockClient.ResetCallCounts()
 		assert.Equal(t, 0, mockClient.GetCallCount("Health"))
@@ -777,9 +777,9 @@ func TestMetricsAndObservability(t *testing.T) {
 // TestLifecycleValidation tests package lifecycle validation
 func TestLifecycleValidation(t *testing.T) {
 	testCases := []struct {
-		name         string
-		current      PackageRevisionLifecycle
-		target       PackageRevisionLifecycle
+		name          string
+		current       PackageRevisionLifecycle
+		target        PackageRevisionLifecycle
 		canTransition bool
 	}{
 		{"draft_to_proposed", PackageRevisionLifecycleDraft, PackageRevisionLifecycleProposed, true},
@@ -884,19 +884,19 @@ func TestPerformanceCharacteristics(t *testing.T) {
 
 	t.Run("bulk_operations_performance", func(t *testing.T) {
 		const numOperations = 100
-		
+
 		start := time.Now()
-		
+
 		// Create multiple repositories
 		for i := 0; i < numOperations; i++ {
 			repo := fixture.CreateTestRepository("")
 			_, err := mockClient.CreateRepository(fixture.Context, repo)
 			assert.NoError(t, err)
 		}
-		
+
 		elapsed := time.Since(start)
 		avgLatency := elapsed / numOperations
-		
+
 		t.Logf("Created %d repositories in %v (avg: %v per operation)", numOperations, elapsed, avgLatency)
 		assert.True(t, avgLatency < 10*time.Millisecond, "Average latency too high: %v", avgLatency)
 	})
@@ -946,7 +946,7 @@ func TestDataConsistency(t *testing.T) {
 		// Create multiple items
 		const numItems = 5
 		names := make([]string, numItems)
-		
+
 		for i := 0; i < numItems; i++ {
 			name := fmt.Sprintf("list-test-%d", i)
 			names[i] = name
@@ -958,7 +958,7 @@ func TestDataConsistency(t *testing.T) {
 		// List and verify all items are present
 		list, err := mockClient.ListRepositories(fixture.Context, &ListOptions{})
 		require.NoError(t, err)
-		
+
 		found := 0
 		for _, item := range list.Items {
 			for _, expectedName := range names {
@@ -968,7 +968,7 @@ func TestDataConsistency(t *testing.T) {
 				}
 			}
 		}
-		
+
 		assert.Equal(t, numItems, found, "Not all created items found in list")
 	})
 }
@@ -995,7 +995,7 @@ func BenchmarkClientOperations(b *testing.B) {
 		// Setup
 		repo := fixture.CreateTestRepository("bench-get-repo")
 		mockClient.AddRepository(repo)
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_, err := mockClient.GetRepository(fixture.Context, "bench-get-repo")
@@ -1011,7 +1011,7 @@ func BenchmarkClientOperations(b *testing.B) {
 			repo := fixture.CreateTestRepository(fmt.Sprintf("bench-list-repo-%d", i))
 			mockClient.AddRepository(repo)
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_, err := mockClient.ListRepositories(fixture.Context, &ListOptions{})
@@ -1106,7 +1106,7 @@ func TestComplexScenarios(t *testing.T) {
 
 		// Simulate deployment order based on dependencies
 		deploymentOrder := []string{"5g-core-base", "5g-amf", "5g-smf", "5g-upf", "5g-nssf"}
-		
+
 		for _, pkgName := range deploymentOrder {
 			// Validate package
 			validation, err := mockClient.ValidatePackage(fixture.Context, pkgName, "v1.0.0")

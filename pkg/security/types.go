@@ -31,14 +31,14 @@ var (
 
 // StoredKey represents a stored cryptographic key
 type StoredKey struct {
-	ID          string            `json:"id"`
-	Type        string            `json:"type"`        // "rsa", "ecdsa", etc.
-	Bits        int               `json:"bits"`        // Key size in bits
-	PublicKey   []byte            `json:"publicKey"`   // Public key bytes
-	PrivateKey  []byte            `json:"privateKey"`  // Encrypted private key bytes
-	CreatedAt   time.Time         `json:"createdAt"`
-	ExpiresAt   time.Time         `json:"expiresAt,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	ID         string            `json:"id"`
+	Type       string            `json:"type"`       // "rsa", "ecdsa", etc.
+	Bits       int               `json:"bits"`       // Key size in bits
+	PublicKey  []byte            `json:"publicKey"`  // Public key bytes
+	PrivateKey []byte            `json:"privateKey"` // Encrypted private key bytes
+	CreatedAt  time.Time         `json:"createdAt"`
+	ExpiresAt  time.Time         `json:"expiresAt,omitempty"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
 // RSAKey returns the RSA private key if this is an RSA key
@@ -88,19 +88,19 @@ func (dkm *DefaultKeyManager) RotateKey(keyID string) (*StoredKey, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Generate new key with same properties
 	newKey, err := dkm.GenerateKey(oldKey.Type, oldKey.Bits)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Store new key
 	err = dkm.StoreKey(newKey)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return newKey, nil
 }
 

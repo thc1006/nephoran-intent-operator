@@ -14,48 +14,48 @@ import (
 // for distributed tracing, request correlation, and performance monitoring
 type EnhancedContext struct {
 	context.Context
-	
+
 	// Request correlation
 	requestID    string
 	traceID      string
 	spanID       string
 	parentSpanID string
-	
+
 	// User and session context
 	userID    string
 	sessionID string
 	tenantID  string
-	
+
 	// Component context
 	serviceName   string
 	componentName string
 	operationName string
-	
+
 	// Performance tracking
-	startTime     time.Time
-	deadlineTime  time.Time
-	timeoutDur    time.Duration
-	
+	startTime    time.Time
+	deadlineTime time.Time
+	timeoutDur   time.Duration
+
 	// Resource tracking
 	resourceType string
 	resourceID   string
 	resourceName string
-	
+
 	// Metadata and tags
 	metadata map[string]interface{}
 	tags     map[string]string
-	
+
 	// Cancellation enhancements
-	cancelFunc    context.CancelFunc
-	cancelReason  string
-	cancelledAt   time.Time
-	
+	cancelFunc   context.CancelFunc
+	cancelReason string
+	cancelledAt  time.Time
+
 	// Error context
 	errors []error
-	
+
 	// Performance metrics
 	metrics *ContextMetrics
-	
+
 	// Thread safety
 	mu sync.RWMutex
 }
@@ -93,7 +93,7 @@ func NewContextBuilder(parent context.Context) *ContextBuilder {
 	if parent == nil {
 		parent = context.Background()
 	}
-	
+
 	return &ContextBuilder{
 		parent:   parent,
 		metadata: make(map[string]interface{}),
@@ -161,7 +161,7 @@ func (b *ContextBuilder) WithTag(key, value string) *ContextBuilder {
 func (b *ContextBuilder) Build() *EnhancedContext {
 	var ctx context.Context
 	var cancel context.CancelFunc
-	
+
 	// Apply timeout or deadline
 	if !b.deadline.IsZero() {
 		ctx, cancel = context.WithDeadline(b.parent, b.deadline)
@@ -170,7 +170,7 @@ func (b *ContextBuilder) Build() *EnhancedContext {
 	} else {
 		ctx, cancel = context.WithCancel(b.parent)
 	}
-	
+
 	// Generate IDs if not provided
 	if b.requestID == "" {
 		b.requestID = uuid.New().String()
@@ -181,7 +181,7 @@ func (b *ContextBuilder) Build() *EnhancedContext {
 	if b.spanID == "" {
 		b.spanID = uuid.New().String()
 	}
-	
+
 	enhanced := &EnhancedContext{
 		Context:       ctx,
 		requestID:     b.requestID,
@@ -203,7 +203,7 @@ func (b *ContextBuilder) Build() *EnhancedContext {
 			CreatedAt: time.Now(),
 		},
 	}
-	
+
 	// Copy metadata and tags
 	for k, v := range b.metadata {
 		enhanced.metadata[k] = v
@@ -211,7 +211,7 @@ func (b *ContextBuilder) Build() *EnhancedContext {
 	for k, v := range b.tags {
 		enhanced.tags[k] = v
 	}
-	
+
 	return enhanced
 }
 
@@ -319,7 +319,7 @@ func (c *EnhancedContext) SetMetadata(key string, value interface{}) {
 func (c *EnhancedContext) GetAllMetadata() map[string]interface{} {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	result := make(map[string]interface{})
 	for k, v := range c.metadata {
 		result[k] = v
@@ -348,7 +348,7 @@ func (c *EnhancedContext) SetTag(key, value string) {
 func (c *EnhancedContext) GetAllTags() map[string]string {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	result := make(map[string]string)
 	for k, v := range c.tags {
 		result[k] = v
@@ -364,7 +364,7 @@ func (c *EnhancedContext) CancelWithReason(reason string) {
 	c.cancelReason = reason
 	c.cancelledAt = time.Now()
 	c.mu.Unlock()
-	
+
 	if c.cancelFunc != nil {
 		c.cancelFunc()
 	}
@@ -391,7 +391,7 @@ func (c *EnhancedContext) AddError(err error) {
 	if err == nil {
 		return
 	}
-	
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.errors = append(c.errors, err)
@@ -402,7 +402,7 @@ func (c *EnhancedContext) AddError(err error) {
 func (c *EnhancedContext) GetErrors() []error {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	result := make([]error, len(c.errors))
 	copy(result, c.errors)
 	return result
@@ -420,16 +420,16 @@ func (c *EnhancedContext) HasErrors() bool {
 // WithChildSpan creates a child context with a new span
 func (c *EnhancedContext) WithChildSpan(operationName string) *EnhancedContext {
 	builder := NewContextBuilder(c.Context)
-	
+
 	// Inherit parent information
 	builder.WithRequestID(c.requestID)
 	builder.WithTrace(c.traceID, uuid.New().String())
 	builder.WithUser(c.userID, c.sessionID, c.tenantID)
 	builder.WithComponent(c.serviceName, c.componentName, operationName)
-	
+
 	child := builder.Build()
 	child.parentSpanID = c.spanID
-	
+
 	c.metrics.ChildContexts.Add(1)
 	return child
 }
@@ -437,16 +437,16 @@ func (c *EnhancedContext) WithChildSpan(operationName string) *EnhancedContext {
 // WithChildOperation creates a child context for a specific operation
 func (c *EnhancedContext) WithChildOperation(componentName, operationName string) *EnhancedContext {
 	builder := NewContextBuilder(c.Context)
-	
+
 	// Inherit parent information
 	builder.WithRequestID(c.requestID)
 	builder.WithTrace(c.traceID, uuid.New().String())
 	builder.WithUser(c.userID, c.sessionID, c.tenantID)
 	builder.WithComponent(c.serviceName, componentName, operationName)
-	
+
 	child := builder.Build()
 	child.parentSpanID = c.spanID
-	
+
 	// Inherit metadata and tags
 	c.mu.RLock()
 	for k, v := range c.metadata {
@@ -456,7 +456,7 @@ func (c *EnhancedContext) WithChildOperation(componentName, operationName string
 		child.tags[k] = v
 	}
 	c.mu.RUnlock()
-	
+
 	c.metrics.ChildContexts.Add(1)
 	return child
 }
@@ -487,7 +487,7 @@ func (c *EnhancedContext) String() string {
 func (c *EnhancedContext) ToMap() map[string]interface{} {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	result := map[string]interface{}{
 		"request_id":     c.requestID,
 		"trace_id":       c.traceID,
@@ -503,17 +503,17 @@ func (c *EnhancedContext) ToMap() map[string]interface{} {
 		"duration":       c.Duration(),
 		"cancel_reason":  c.cancelReason,
 	}
-	
+
 	// Add metadata
 	for k, v := range c.metadata {
 		result["meta_"+k] = v
 	}
-	
+
 	// Add tags
 	for k, v := range c.tags {
 		result["tag_"+k] = v
 	}
-	
+
 	return result
 }
 
@@ -561,7 +561,7 @@ func (m *ContextMiddleware) Handler(next func(*EnhancedContext)) func(context.Co
 			WithComponent(m.serviceName, m.componentName, "http_request").
 			WithRequestID("").
 			Build()
-		
+
 		next(enhanced)
 	}
 }

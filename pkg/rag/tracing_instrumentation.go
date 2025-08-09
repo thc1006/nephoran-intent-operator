@@ -10,30 +10,30 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/trace"
-	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/exporters/jaeger"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // TracingManager handles distributed tracing for RAG components
 type TracingManager struct {
-	tracer        trace.Tracer
+	tracer         trace.Tracer
 	tracerProvider *sdktrace.TracerProvider
-	serviceName   string
-	version       string
+	serviceName    string
+	version        string
 }
 
 // TracingConfig holds tracing configuration
 type TracingConfig struct {
-	ServiceName     string  `json:"service_name"`
-	ServiceVersion  string  `json:"service_version"`
-	JaegerEndpoint  string  `json:"jaeger_endpoint"`
-	SamplingRate    float64 `json:"sampling_rate"`
-	Environment     string  `json:"environment"`
-	EnableTracing   bool    `json:"enable_tracing"`
+	ServiceName    string  `json:"service_name"`
+	ServiceVersion string  `json:"service_version"`
+	JaegerEndpoint string  `json:"jaeger_endpoint"`
+	SamplingRate   float64 `json:"sampling_rate"`
+	Environment    string  `json:"environment"`
+	EnableTracing  bool    `json:"enable_tracing"`
 }
 
 // NewTracingManager creates a new tracing manager
@@ -109,10 +109,10 @@ func (tm *TracingManager) StartSpan(ctx context.Context, operationName string, o
 			attribute.String("nephoran.operation", operationName),
 		),
 	}
-	
+
 	// Merge with provided options
 	allOpts := append(defaultOpts, opts...)
-	
+
 	return tm.tracer.Start(ctx, operationName, allOpts...)
 }
 
@@ -128,9 +128,9 @@ func (tm *TracingManager) InstrumentDocumentProcessing(ctx context.Context, docI
 	defer span.End()
 
 	startTime := time.Now()
-	
+
 	err := fn(ctx)
-	
+
 	duration := time.Since(startTime)
 	span.SetAttributes(
 		attribute.Int64("document.processing_duration_ms", duration.Milliseconds()),
@@ -159,9 +159,9 @@ func (tm *TracingManager) InstrumentChunking(ctx context.Context, docID string, 
 	defer span.End()
 
 	startTime := time.Now()
-	
+
 	chunks, err := fn(ctx)
-	
+
 	duration := time.Since(startTime)
 	span.SetAttributes(
 		attribute.Int64("chunking.duration_ms", duration.Milliseconds()),
@@ -174,7 +174,7 @@ func (tm *TracingManager) InstrumentChunking(ctx context.Context, docID string, 
 		span.SetAttributes(attribute.String("error.type", "chunking_error"))
 	} else {
 		span.SetStatus(codes.Ok, "document chunked successfully")
-		
+
 		// Add chunk statistics
 		if len(chunks) > 0 {
 			totalSize := 0
@@ -182,7 +182,7 @@ func (tm *TracingManager) InstrumentChunking(ctx context.Context, docID string, 
 				totalSize += len(chunk.Content)
 			}
 			avgChunkSize := totalSize / len(chunks)
-			
+
 			span.SetAttributes(
 				attribute.Int("chunking.total_content_size", totalSize),
 				attribute.Int("chunking.avg_chunk_size", avgChunkSize),
@@ -205,9 +205,9 @@ func (tm *TracingManager) InstrumentEmbeddingGeneration(ctx context.Context, mod
 	defer span.End()
 
 	startTime := time.Now()
-	
+
 	embeddings, err := fn(ctx)
-	
+
 	duration := time.Since(startTime)
 	span.SetAttributes(
 		attribute.Int64("embedding.generation_duration_ms", duration.Milliseconds()),
@@ -220,7 +220,7 @@ func (tm *TracingManager) InstrumentEmbeddingGeneration(ctx context.Context, mod
 			totalInputLength += len(text)
 		}
 		avgInputLength := totalInputLength / len(inputTexts)
-		
+
 		span.SetAttributes(
 			attribute.Int("embedding.total_input_length", totalInputLength),
 			attribute.Int("embedding.avg_input_length", avgInputLength),
@@ -233,7 +233,7 @@ func (tm *TracingManager) InstrumentEmbeddingGeneration(ctx context.Context, mod
 		span.SetAttributes(attribute.String("error.type", "embedding_error"))
 	} else {
 		span.SetStatus(codes.Ok, "embeddings generated successfully")
-		
+
 		if len(embeddings) > 0 && len(embeddings[0]) > 0 {
 			span.SetAttributes(
 				attribute.Int("embedding.vector_dimension", len(embeddings[0])),
@@ -256,9 +256,9 @@ func (tm *TracingManager) InstrumentVectorStore(ctx context.Context, operation s
 	defer span.End()
 
 	startTime := time.Now()
-	
+
 	err := fn(ctx)
-	
+
 	duration := time.Since(startTime)
 	span.SetAttributes(
 		attribute.Int64("vector_store.operation_duration_ms", duration.Milliseconds()),
@@ -288,9 +288,9 @@ func (tm *TracingManager) InstrumentRetrieval(ctx context.Context, query string,
 	defer span.End()
 
 	startTime := time.Now()
-	
+
 	documents, err := fn(ctx)
-	
+
 	duration := time.Since(startTime)
 	span.SetAttributes(
 		attribute.Int64("retrieval.duration_ms", duration.Milliseconds()),
@@ -303,7 +303,7 @@ func (tm *TracingManager) InstrumentRetrieval(ctx context.Context, query string,
 		span.SetAttributes(attribute.String("error.type", "retrieval_error"))
 	} else {
 		span.SetStatus(codes.Ok, "documents retrieved successfully")
-		
+
 		// Add retrieval quality metrics
 		if len(documents) > 0 {
 			totalScore := 0.0
@@ -311,7 +311,7 @@ func (tm *TracingManager) InstrumentRetrieval(ctx context.Context, query string,
 				totalScore += float64(doc.Score)
 			}
 			avgScore := totalScore / float64(len(documents))
-			
+
 			span.SetAttributes(
 				attribute.Float64("retrieval.avg_score", avgScore),
 				attribute.Float64("retrieval.top_score", float64(documents[0].Score)),
@@ -334,9 +334,9 @@ func (tm *TracingManager) InstrumentContextAssembly(ctx context.Context, documen
 	defer span.End()
 
 	startTime := time.Now()
-	
+
 	context_str, err := fn(ctx)
-	
+
 	duration := time.Since(startTime)
 	span.SetAttributes(
 		attribute.Int64("context.assembly_duration_ms", duration.Milliseconds()),
@@ -349,14 +349,14 @@ func (tm *TracingManager) InstrumentContextAssembly(ctx context.Context, documen
 		span.SetAttributes(attribute.String("error.type", "context_assembly_error"))
 	} else {
 		span.SetStatus(codes.Ok, "context assembled successfully")
-		
+
 		// Calculate compression ratio
 		if len(documents) > 0 {
 			totalInputLength := 0
 			for _, doc := range documents {
 				totalInputLength += len(doc.Content)
 			}
-			
+
 			compressionRatio := float64(len(context_str)) / float64(totalInputLength)
 			span.SetAttributes(
 				attribute.Int("context.total_input_length", totalInputLength),
@@ -381,9 +381,9 @@ func (tm *TracingManager) InstrumentRAGQuery(ctx context.Context, query string, 
 	defer span.End()
 
 	startTime := time.Now()
-	
+
 	response, err := fn(ctx)
-	
+
 	duration := time.Since(startTime)
 	span.SetAttributes(
 		attribute.Int64("rag.total_duration_ms", duration.Milliseconds()),
@@ -395,14 +395,14 @@ func (tm *TracingManager) InstrumentRAGQuery(ctx context.Context, query string, 
 		span.SetAttributes(attribute.String("error.type", "rag_query_error"))
 	} else {
 		span.SetStatus(codes.Ok, "RAG query completed successfully")
-		
+
 		if response != nil {
 			span.SetAttributes(
 				attribute.Int("rag.response_length", len(response.Answer)),
 				attribute.Int("rag.sources_used", len(response.SourceDocuments)),
 				attribute.Float64("rag.confidence_score", float64(response.Confidence)),
 			)
-			
+
 			// Add source quality metrics
 			if len(response.SourceDocuments) > 0 {
 				totalScore := 0.0
@@ -410,7 +410,7 @@ func (tm *TracingManager) InstrumentRAGQuery(ctx context.Context, query string, 
 					totalScore += float64(source.Score)
 				}
 				avgRelevance := totalScore / float64(len(response.SourceDocuments))
-				
+
 				span.SetAttributes(
 					attribute.Float64("rag.avg_source_relevance", avgRelevance),
 				)
@@ -433,9 +433,9 @@ func (tm *TracingManager) InstrumentCacheOperation(ctx context.Context, operatio
 	defer span.End()
 
 	startTime := time.Now()
-	
+
 	value, hit, err := fn(ctx)
-	
+
 	duration := time.Since(startTime)
 	span.SetAttributes(
 		attribute.Int64("cache.operation_duration_ms", duration.Milliseconds()),
@@ -448,7 +448,7 @@ func (tm *TracingManager) InstrumentCacheOperation(ctx context.Context, operatio
 		span.SetAttributes(attribute.String("error.type", "cache_error"))
 	} else {
 		span.SetStatus(codes.Ok, "cache operation completed successfully")
-		
+
 		if hit {
 			span.SetAttributes(attribute.String("cache.status", "hit"))
 		} else {
@@ -500,11 +500,11 @@ func (tm *TracingManager) CreateChildSpan(ctx context.Context, operationName str
 // GetDefaultTracingConfig returns default tracing configuration
 func GetDefaultTracingConfig() *TracingConfig {
 	return &TracingConfig{
-		ServiceName:     "nephoran-rag-service",
-		ServiceVersion:  "1.0.0",
-		JaegerEndpoint:  "http://jaeger-collector:14268/api/traces",
-		SamplingRate:    0.1,
-		Environment:     "production",
-		EnableTracing:   true,
+		ServiceName:    "nephoran-rag-service",
+		ServiceVersion: "1.0.0",
+		JaegerEndpoint: "http://jaeger-collector:14268/api/traces",
+		SamplingRate:   0.1,
+		Environment:    "production",
+		EnableTracing:  true,
 	}
 }

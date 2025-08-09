@@ -9,8 +9,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	networkingv1 "k8s.io/api/networking/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -47,14 +47,14 @@ var _ = Describe("Network Policy Security Tests", func() {
 			for _, policy := range networkPolicies.Items {
 				if strings.Contains(policy.Name, "deny-all") || strings.Contains(policy.Name, "default-deny") {
 					foundDenyAll = true
-					
+
 					By(fmt.Sprintf("Found deny-all policy: %s", policy.Name))
 
 					// Verify it's a proper deny-all policy
 					spec := policy.Spec
-					
+
 					// Should select all pods
-					Expect(spec.PodSelector.MatchLabels).To(BeEmpty(), 
+					Expect(spec.PodSelector.MatchLabels).To(BeEmpty(),
 						"Deny-all policy should select all pods with empty selector")
 
 					// Should have empty ingress and egress rules (deny all)
@@ -77,7 +77,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 
 			if !foundDenyAll {
 				By("Warning: No default deny-all network policy found")
-				
+
 				// Create one for testing
 				err := policyManager.CreateDefaultDenyAllPolicy(ctx)
 				if err != nil {
@@ -92,7 +92,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 			expectedComponents := []string{
 				"nephoran-operator",
 				"rag-api",
-				"llm-processor", 
+				"llm-processor",
 				"weaviate",
 				"nephio-bridge",
 			}
@@ -106,19 +106,19 @@ var _ = Describe("Network Policy Security Tests", func() {
 				for _, policy := range networkPolicies.Items {
 					if strings.Contains(policy.Name, component) {
 						foundPolicy = true
-						
+
 						By(fmt.Sprintf("Found network policy for component %s: %s", component, policy.Name))
-						
+
 						// Verify policy has proper selectors
 						Expect(policy.Spec.PodSelector.MatchLabels).NotTo(BeEmpty(),
 							"Component policy should have pod selector")
-						
+
 						// Check if component label exists
 						if appLabel, exists := policy.Spec.PodSelector.MatchLabels["app"]; exists {
 							Expect(strings.Contains(appLabel, component)).To(BeTrue(),
 								"Policy selector should match component")
 						}
-						
+
 						break
 					}
 				}
@@ -132,7 +132,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 		It("should verify O-RAN interface network policies", func() {
 			oranInterfaces := []string{
 				"a1-policy",
-				"o1-management", 
+				"o1-management",
 				"o2-cloud",
 				"e2-control",
 			}
@@ -145,16 +145,16 @@ var _ = Describe("Network Policy Security Tests", func() {
 				for _, policy := range networkPolicies.Items {
 					if strings.Contains(policy.Name, oranInterface) {
 						By(fmt.Sprintf("Found O-RAN interface policy: %s", policy.Name))
-						
+
 						// Verify O-RAN specific configurations
 						spec := policy.Spec
-						
+
 						// Should have specific ingress/egress rules for O-RAN ports
 						if len(spec.Ingress) > 0 {
 							for _, ingress := range spec.Ingress {
 								if len(ingress.Ports) > 0 {
 									for _, port := range ingress.Ports {
-										By(fmt.Sprintf("O-RAN policy %s allows ingress on port %v", 
+										By(fmt.Sprintf("O-RAN policy %s allows ingress on port %v",
 											policy.Name, port.Port))
 									}
 								}
@@ -171,9 +171,9 @@ var _ = Describe("Network Policy Security Tests", func() {
 			// Test communication patterns for known component interactions
 			communicationPatterns := map[string][]string{
 				"nephoran-operator": {"rag-api", "llm-processor", "weaviate"},
-				"rag-api":          {"weaviate", "llm-processor"},
-				"llm-processor":    {"rag-api"},
-				"nephio-bridge":    {"nephoran-operator"},
+				"rag-api":           {"weaviate", "llm-processor"},
+				"llm-processor":     {"rag-api"},
+				"nephio-bridge":     {"nephoran-operator"},
 			}
 
 			var networkPolicies networkingv1.NetworkPolicyList
@@ -184,7 +184,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 				for _, policy := range networkPolicies.Items {
 					if strings.Contains(policy.Name, sourceComponent) {
 						By(fmt.Sprintf("Checking communication policy for %s", sourceComponent))
-						
+
 						// Check egress rules
 						for _, egress := range policy.Spec.Egress {
 							if len(egress.To) > 0 {
@@ -200,12 +200,12 @@ var _ = Describe("Network Policy Security Tests", func() {
 													break
 												}
 											}
-											
+
 											if isAllowed {
-												By(fmt.Sprintf("✓ %s correctly allows communication to %s", 
+												By(fmt.Sprintf("✓ %s correctly allows communication to %s",
 													sourceComponent, targetApp))
 											} else {
-												By(fmt.Sprintf("Warning: %s has unexpected communication to %s", 
+												By(fmt.Sprintf("Warning: %s has unexpected communication to %s",
 													sourceComponent, targetApp))
 											}
 										}
@@ -220,7 +220,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 
 		It("should verify database access is restricted", func() {
 			databaseComponents := []string{"weaviate", "redis", "postgres"}
-			
+
 			var networkPolicies networkingv1.NetworkPolicyList
 			err := k8sClient.List(ctx, &networkPolicies, client.InNamespace(namespace))
 			Expect(err).NotTo(HaveOccurred())
@@ -229,16 +229,16 @@ var _ = Describe("Network Policy Security Tests", func() {
 				for _, policy := range networkPolicies.Items {
 					if strings.Contains(policy.Name, dbComponent) {
 						By(fmt.Sprintf("Checking database access policy for %s", dbComponent))
-						
+
 						// Database should have restrictive ingress policies
 						Expect(len(policy.Spec.Ingress)).To(BeNumerically(">=", 0))
-						
+
 						for _, ingress := range policy.Spec.Ingress {
 							// Should have specific sources, not allow all
 							if len(ingress.From) == 0 {
 								By(fmt.Sprintf("Warning: Database %s allows ingress from all sources", dbComponent))
 							} else {
-								By(fmt.Sprintf("Database %s has %d allowed ingress sources", 
+								By(fmt.Sprintf("Database %s has %d allowed ingress sources",
 									dbComponent, len(ingress.From)))
 							}
 						}
@@ -250,9 +250,9 @@ var _ = Describe("Network Policy Security Tests", func() {
 		It("should verify external API access is controlled", func() {
 			// Components that need external access
 			externalAccessComponents := []string{
-				"llm-processor",    // Needs OpenAI API access
-				"nephio-bridge",    // Needs Nephio API access
-				"rag-api",         // May need external document sources
+				"llm-processor", // Needs OpenAI API access
+				"nephio-bridge", // Needs Nephio API access
+				"rag-api",       // May need external document sources
 			}
 
 			var networkPolicies networkingv1.NetworkPolicyList
@@ -263,7 +263,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 				for _, policy := range networkPolicies.Items {
 					if strings.Contains(policy.Name, component) {
 						By(fmt.Sprintf("Checking external access policy for %s", component))
-						
+
 						hasExternalEgress := false
 						for _, egress := range policy.Spec.Egress {
 							// Check for egress rules that allow external traffic
@@ -279,7 +279,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 								}
 							}
 						}
-						
+
 						if hasExternalEgress {
 							By(fmt.Sprintf("Component %s has external egress access", component))
 						} else {
@@ -304,7 +304,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 						if port.Port != nil && port.Port.IntVal == 53 {
 							dnsFound = true
 							By(fmt.Sprintf("Policy %s allows DNS access (port 53)", policy.Name))
-							
+
 							// Verify protocol
 							if port.Protocol != nil {
 								Expect(*port.Protocol).To(BeElementOf(corev1.ProtocolUDP, corev1.ProtocolTCP))
@@ -321,7 +321,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 
 		It("should verify HTTPS egress is configured for external APIs", func() {
 			httpsComponents := []string{"llm-processor", "rag-api", "nephio-bridge"}
-			
+
 			var networkPolicies networkingv1.NetworkPolicyList
 			err := k8sClient.List(ctx, &networkPolicies, client.InNamespace(namespace))
 			Expect(err).NotTo(HaveOccurred())
@@ -335,7 +335,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 								if port.Port != nil && (port.Port.IntVal == 443 || port.Port.IntVal == 8443) {
 									httpsFound = true
 									By(fmt.Sprintf("Component %s has HTTPS egress access", component))
-									
+
 									// Verify it's TCP
 									if port.Protocol != nil {
 										Expect(*port.Protocol).To(Equal(corev1.ProtocolTCP))
@@ -345,7 +345,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 						}
 					}
 				}
-				
+
 				if !httpsFound {
 					By(fmt.Sprintf("Warning: Component %s may not have HTTPS egress access", component))
 				}
@@ -363,7 +363,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 					if len(egress.To) == 0 && len(egress.Ports) == 0 {
 						By(fmt.Sprintf("Warning: Policy %s has unrestricted egress rule", policy.Name))
 					}
-					
+
 					// Check for egress to all IPs
 					for _, to := range egress.To {
 						if to.IPBlock != nil && to.IPBlock.CIDR == "0.0.0.0/0" {
@@ -395,7 +395,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 
 			for _, policy := range crossNamespacePolicies {
 				By(fmt.Sprintf("Cross-namespace policy found: %s", policy.Name))
-				
+
 				// Verify namespace selectors are restrictive
 				for _, ingress := range policy.Spec.Ingress {
 					for _, from := range ingress.From {
@@ -403,7 +403,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 							if len(from.NamespaceSelector.MatchLabels) == 0 {
 								By(fmt.Sprintf("Warning: Policy %s allows traffic from all namespaces", policy.Name))
 							} else {
-								By(fmt.Sprintf("Policy %s restricts cross-namespace access to specific namespaces", 
+								By(fmt.Sprintf("Policy %s restricts cross-namespace access to specific namespaces",
 									policy.Name))
 							}
 						}
@@ -431,7 +431,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 							for _, sysNs := range systemNamespaces {
 								if namespaceSelector, exists := to.NamespaceSelector.MatchLabels["name"]; exists {
 									if namespaceSelector == sysNs {
-										By(fmt.Sprintf("Policy %s allows egress to system namespace %s", 
+										By(fmt.Sprintf("Policy %s allows egress to system namespace %s",
 											policy.Name, sysNs))
 									}
 								}
@@ -474,7 +474,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 						istioAwarePolicies = append(istioAwarePolicies, policy)
 					}
 				}
-				
+
 				// Check for Istio proxy ports
 				for _, ingress := range policy.Spec.Ingress {
 					for _, port := range ingress.Ports {
@@ -579,7 +579,7 @@ var _ = Describe("Network Policy Security Tests", func() {
 			for _, component := range oranComponents {
 				// This would test component-specific policy creation
 				By(fmt.Sprintf("Testing policy template for O-RAN component: %s", component))
-				
+
 				// In a real test, you would call the network policy manager
 				// to create component-specific policies and verify them
 			}
@@ -603,7 +603,7 @@ func ValidateNetworkPolicy(policy *networkingv1.NetworkPolicy) []string {
 		if len(ingress.From) == 0 {
 			issues = append(issues, "Ingress rule allows traffic from all sources")
 		}
-		
+
 		if len(ingress.Ports) == 0 {
 			issues = append(issues, "Ingress rule allows traffic on all ports")
 		}
@@ -613,7 +613,7 @@ func ValidateNetworkPolicy(policy *networkingv1.NetworkPolicy) []string {
 		if len(egress.To) == 0 {
 			issues = append(issues, "Egress rule allows traffic to all destinations")
 		}
-		
+
 		if len(egress.Ports) == 0 {
 			issues = append(issues, "Egress rule allows traffic on all ports")
 		}
@@ -626,12 +626,12 @@ func ValidateNetworkPolicy(policy *networkingv1.NetworkPolicy) []string {
 func TestNetworkConnectivity(ctx context.Context, k8sClient client.Client, namespace string) error {
 	// This would test actual network connectivity between pods
 	// given the current network policies
-	
+
 	// Implementation would:
 	// 1. Create test pods
 	// 2. Attempt connections between them
 	// 3. Verify that allowed connections work and denied connections fail
-	
+
 	return nil
 }
 
@@ -640,7 +640,7 @@ func BenchmarkNetworkPolicyOperations(b *testing.B) {
 	ctx := context.Background()
 	k8sClient := utils.GetK8sClient()
 	namespace := utils.GetTestNamespace()
-	
+
 	policyManager := security.NewNetworkPolicyManager(k8sClient, namespace)
 
 	b.Run("CreateDenyAllPolicy", func(b *testing.B) {

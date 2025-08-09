@@ -35,7 +35,7 @@ func (m *MockClient) Get(ctx context.Context, key client.ObjectKey, obj client.O
 	if args.Get(0) != nil {
 		return args.Error(0)
 	}
-	
+
 	// Call the real client for successful cases
 	if m.Client != nil {
 		return m.Client.Get(ctx, key, obj, opts...)
@@ -63,7 +63,7 @@ func (m *MockClient) List(ctx context.Context, list client.ObjectList, opts ...c
 	if args.Get(0) != nil {
 		return args.Error(0)
 	}
-	
+
 	// Call the real client for successful cases
 	if m.Client != nil {
 		return m.Client.List(ctx, list, opts...)
@@ -185,9 +185,9 @@ func TestCalculateExponentialBackoff(t *testing.T) {
 			// Run multiple times to account for jitter randomness
 			for i := 0; i < 10; i++ {
 				delay := calculateExponentialBackoff(tt.retryCount, tt.baseDelay, tt.maxDelay)
-				assert.True(t, delay >= tt.expectRange.min, 
+				assert.True(t, delay >= tt.expectRange.min,
 					"Delay %v should be >= %v", delay, tt.expectRange.min)
-				assert.True(t, delay <= tt.expectRange.max, 
+				assert.True(t, delay <= tt.expectRange.max,
 					"Delay %v should be <= %v", delay, tt.expectRange.max)
 			}
 		})
@@ -196,9 +196,9 @@ func TestCalculateExponentialBackoff(t *testing.T) {
 
 func TestCalculateExponentialBackoffForOperation(t *testing.T) {
 	tests := []struct {
-		name       string
-		operation  string
-		retryCount int
+		name          string
+		operation     string
+		retryCount    int
 		expectedRange struct {
 			min time.Duration
 			max time.Duration
@@ -259,9 +259,9 @@ func TestCalculateExponentialBackoffForOperation(t *testing.T) {
 			// Run multiple times to account for jitter randomness
 			for i := 0; i < 5; i++ {
 				delay := calculateExponentialBackoffForOperation(tt.retryCount, tt.operation)
-				assert.True(t, delay >= tt.expectedRange.min, 
+				assert.True(t, delay >= tt.expectedRange.min,
 					"Delay %v should be >= %v for operation %s", delay, tt.expectedRange.min, tt.operation)
-				assert.True(t, delay <= tt.expectedRange.max, 
+				assert.True(t, delay <= tt.expectedRange.max,
 					"Delay %v should be <= %v for operation %s", delay, tt.expectedRange.max, tt.operation)
 			}
 		})
@@ -433,7 +433,7 @@ func TestConfigMapUpdateErrorHandling(t *testing.T) {
 	_ = corev1.AddToScheme(scheme)
 
 	e2nodeSet := createTestE2NodeSet("test-update-error", "default", 1)
-	
+
 	// Create an existing ConfigMap to trigger update path
 	existingCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -656,7 +656,7 @@ func TestFinalizerNotRemovedUntilCleanupSuccess(t *testing.T) {
 	err = fakeClient.Get(ctx, namespacedName, &updatedE2NodeSet)
 	require.NoError(t, err)
 
-	assert.True(t, controllerutil.ContainsFinalizer(&updatedE2NodeSet, E2NodeSetFinalizer), 
+	assert.True(t, controllerutil.ContainsFinalizer(&updatedE2NodeSet, E2NodeSetFinalizer),
 		"Finalizer should not be removed until cleanup succeeds")
 
 	// Verify cleanup retry count was incremented
@@ -773,7 +773,7 @@ func TestIdempotentReconciliation(t *testing.T) {
 	// Verify idempotency
 	assert.Equal(t, result1, result2, "Results should be identical")
 	assert.Equal(t, len(configMapList1.Items), len(configMapList2.Items), "ConfigMap count should be identical")
-	assert.Equal(t, e2nodeSetAfterFirst.Status.CurrentReplicas, e2nodeSetAfterSecond.Status.CurrentReplicas, 
+	assert.Equal(t, e2nodeSetAfterFirst.Status.CurrentReplicas, e2nodeSetAfterSecond.Status.CurrentReplicas,
 		"Replica status should be identical")
 
 	// Third reconciliation to ensure continued idempotency
@@ -796,10 +796,10 @@ func TestSetReadyCondition(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name      string
-		status    metav1.ConditionStatus
-		reason    string
-		message   string
+		name    string
+		status  metav1.ConditionStatus
+		reason  string
+		message string
 	}{
 		{
 			name:    "ready condition true",

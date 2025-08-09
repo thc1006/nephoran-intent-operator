@@ -17,110 +17,110 @@ import (
 // connection pooling, comprehensive error handling, and detailed metrics
 type OptimizedRAGService struct {
 	// Core components
-	weaviatePool     *WeaviateConnectionPool
-	llmClient        shared.ClientInterface
-	config           *OptimizedRAGConfig
-	logger           *slog.Logger
-	
+	weaviatePool *WeaviateConnectionPool
+	llmClient    shared.ClientInterface
+	config       *OptimizedRAGConfig
+	logger       *slog.Logger
+
 	// Multi-level caching
-	memoryCache      *MemoryCache
-	redisCache       *RedisCache
-	
+	memoryCache *MemoryCache
+	redisCache  *RedisCache
+
 	// Error handling and resilience
-	errorHandler     *ErrorHandler
-	
+	errorHandler *ErrorHandler
+
 	// Metrics and monitoring
 	prometheusMetrics *PrometheusMetrics
 	metricsCollector  *MetricsCollector
-	ragMetrics       *OptimizedRAGMetrics
-	
+	ragMetrics        *OptimizedRAGMetrics
+
 	// Thread safety
-	mutex            sync.RWMutex
-	
+	mutex sync.RWMutex
+
 	// Lifecycle management
-	startTime        time.Time
-	shutdownChan     chan struct{}
+	startTime    time.Time
+	shutdownChan chan struct{}
 }
 
 // OptimizedRAGConfig extends the original RAG configuration with optimization settings
 type OptimizedRAGConfig struct {
 	// Original RAG settings
 	*RAGConfig
-	
+
 	// Connection pool settings
-	WeaviatePoolConfig  *PoolConfig           `json:"weaviate_pool_config"`
-	
+	WeaviatePoolConfig *PoolConfig `json:"weaviate_pool_config"`
+
 	// Multi-level cache settings
-	MemoryCacheConfig   *MemoryCacheConfig    `json:"memory_cache_config"`
-	RedisCacheConfig    *RedisCacheConfig     `json:"redis_cache_config"`
-	CacheStrategy       string                `json:"cache_strategy"` // "write-through", "write-back", "write-around"
-	
+	MemoryCacheConfig *MemoryCacheConfig `json:"memory_cache_config"`
+	RedisCacheConfig  *RedisCacheConfig  `json:"redis_cache_config"`
+	CacheStrategy     string             `json:"cache_strategy"` // "write-through", "write-back", "write-around"
+
 	// Error handling settings
-	ErrorHandlingConfig *ErrorHandlingConfig  `json:"error_handling_config"`
-	
+	ErrorHandlingConfig *ErrorHandlingConfig `json:"error_handling_config"`
+
 	// Performance optimization settings
-	EnableQueryOptimization   bool    `json:"enable_query_optimization"`
-	EnableParallelProcessing  bool    `json:"enable_parallel_processing"`
-	MaxConcurrentQueries      int     `json:"max_concurrent_queries"`
-	QueryTimeoutMs           int     `json:"query_timeout_ms"`
-	
+	EnableQueryOptimization  bool `json:"enable_query_optimization"`
+	EnableParallelProcessing bool `json:"enable_parallel_processing"`
+	MaxConcurrentQueries     int  `json:"max_concurrent_queries"`
+	QueryTimeoutMs           int  `json:"query_timeout_ms"`
+
 	// Advanced features
-	EnableQueryPrediction     bool    `json:"enable_query_prediction"`
-	EnableAdaptiveCaching     bool    `json:"enable_adaptive_caching"`
-	EnableIntelligentPrefetch bool    `json:"enable_intelligent_prefetch"`
-	
+	EnableQueryPrediction     bool `json:"enable_query_prediction"`
+	EnableAdaptiveCaching     bool `json:"enable_adaptive_caching"`
+	EnableIntelligentPrefetch bool `json:"enable_intelligent_prefetch"`
+
 	// Quality and reliability
-	EnableQualityMetrics      bool    `json:"enable_quality_metrics"`
-	MinQualityThreshold       float64 `json:"min_quality_threshold"`
-	EnableCircuitBreaker      bool    `json:"enable_circuit_breaker"`
-	
+	EnableQualityMetrics bool    `json:"enable_quality_metrics"`
+	MinQualityThreshold  float64 `json:"min_quality_threshold"`
+	EnableCircuitBreaker bool    `json:"enable_circuit_breaker"`
+
 	// Monitoring and observability
-	EnableDetailedMetrics     bool    `json:"enable_detailed_metrics"`
+	EnableDetailedMetrics     bool          `json:"enable_detailed_metrics"`
 	MetricsCollectionInterval time.Duration `json:"metrics_collection_interval"`
-	EnableDistributedTracing  bool    `json:"enable_distributed_tracing"`
+	EnableDistributedTracing  bool          `json:"enable_distributed_tracing"`
 }
 
 // OptimizedRAGMetrics provides comprehensive metrics for the optimized RAG service
 type OptimizedRAGMetrics struct {
 	// Performance metrics
-	TotalQueries          int64         `json:"total_queries"`
-	SuccessfulQueries     int64         `json:"successful_queries"`
-	FailedQueries         int64         `json:"failed_queries"`
-	AverageLatency        time.Duration `json:"average_latency"`
-	P95Latency            time.Duration `json:"p95_latency"`
-	P99Latency            time.Duration `json:"p99_latency"`
-	
+	TotalQueries      int64         `json:"total_queries"`
+	SuccessfulQueries int64         `json:"successful_queries"`
+	FailedQueries     int64         `json:"failed_queries"`
+	AverageLatency    time.Duration `json:"average_latency"`
+	P95Latency        time.Duration `json:"p95_latency"`
+	P99Latency        time.Duration `json:"p99_latency"`
+
 	// Cache performance
-	MemoryCacheHitRate    float64       `json:"memory_cache_hit_rate"`
-	RedisCacheHitRate     float64       `json:"redis_cache_hit_rate"`
-	OverallCacheHitRate   float64       `json:"overall_cache_hit_rate"`
-	CacheLatency          time.Duration `json:"cache_latency"`
-	
+	MemoryCacheHitRate  float64       `json:"memory_cache_hit_rate"`
+	RedisCacheHitRate   float64       `json:"redis_cache_hit_rate"`
+	OverallCacheHitRate float64       `json:"overall_cache_hit_rate"`
+	CacheLatency        time.Duration `json:"cache_latency"`
+
 	// Connection pool performance
 	PoolUtilization       float64       `json:"pool_utilization"`
 	AvgConnectionWaitTime time.Duration `json:"avg_connection_wait_time"`
 	ConnectionFailures    int64         `json:"connection_failures"`
-	
+
 	// Query optimization metrics
-	QueryOptimizations    int64         `json:"query_optimizations"`
-	ParallelQueriesCount  int64         `json:"parallel_queries_count"`
-	
+	QueryOptimizations   int64 `json:"query_optimizations"`
+	ParallelQueriesCount int64 `json:"parallel_queries_count"`
+
 	// Quality metrics
-	AverageResponseQuality float64      `json:"average_response_quality"`
-	QualityDistribution   map[string]int64 `json:"quality_distribution"`
-	
+	AverageResponseQuality float64          `json:"average_response_quality"`
+	QualityDistribution    map[string]int64 `json:"quality_distribution"`
+
 	// Error and reliability metrics
-	CircuitBreakerTrips   int64         `json:"circuit_breaker_trips"`
-	RetryAttempts         int64         `json:"retry_attempts"`
-	RecoveryEvents        int64         `json:"recovery_events"`
-	
+	CircuitBreakerTrips int64 `json:"circuit_breaker_trips"`
+	RetryAttempts       int64 `json:"retry_attempts"`
+	RecoveryEvents      int64 `json:"recovery_events"`
+
 	// Timing breakdown
-	RetrievalLatency      time.Duration `json:"retrieval_latency"`
-	CacheLatencies        map[string]time.Duration `json:"cache_latencies"`
-	ProcessingLatency     time.Duration `json:"processing_latency"`
-	
-	LastUpdated           time.Time     `json:"last_updated"`
-	mutex                 sync.RWMutex
+	RetrievalLatency  time.Duration            `json:"retrieval_latency"`
+	CacheLatencies    map[string]time.Duration `json:"cache_latencies"`
+	ProcessingLatency time.Duration            `json:"processing_latency"`
+
+	LastUpdated time.Time `json:"last_updated"`
+	mutex       sync.RWMutex
 }
 
 // CacheLevel represents different cache levels
@@ -134,15 +134,15 @@ const (
 
 // CacheEntry represents a cached item with metadata
 type OptimizedCacheEntry struct {
-	Key           string                 `json:"key"`
-	Value         interface{}            `json:"value"`
-	Level         CacheLevel            `json:"level"`
-	CreatedAt     time.Time             `json:"created_at"`
-	LastAccessed  time.Time             `json:"last_accessed"`
-	AccessCount   int64                 `json:"access_count"`
-	TTL           time.Duration         `json:"ttl"`
-	Quality       float64               `json:"quality"`
-	Metadata      map[string]interface{} `json:"metadata"`
+	Key          string                 `json:"key"`
+	Value        interface{}            `json:"value"`
+	Level        CacheLevel             `json:"level"`
+	CreatedAt    time.Time              `json:"created_at"`
+	LastAccessed time.Time              `json:"last_accessed"`
+	AccessCount  int64                  `json:"access_count"`
+	TTL          time.Duration          `json:"ttl"`
+	Quality      float64                `json:"quality"`
+	Metadata     map[string]interface{} `json:"metadata"`
 }
 
 // NewOptimizedRAGService creates a new optimized RAG service
@@ -183,8 +183,8 @@ func NewOptimizedRAGService(
 		errorHandler:      errorHandler,
 		prometheusMetrics: prometheusMetrics,
 		ragMetrics: &OptimizedRAGMetrics{
-			LastUpdated:       time.Now(),
-			CacheLatencies:    make(map[string]time.Duration),
+			LastUpdated:         time.Now(),
+			CacheLatencies:      make(map[string]time.Duration),
 			QualityDistribution: make(map[string]int64),
 		},
 		startTime:    time.Now(),
@@ -210,44 +210,44 @@ func NewOptimizedRAGService(
 // ProcessQuery processes a RAG query with comprehensive optimization
 func (ors *OptimizedRAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*RAGResponse, error) {
 	startTime := time.Now()
-	
+
 	// Generate cache key for the request
 	cacheKey := ors.generateCacheKey(request)
-	
+
 	// Update metrics
 	ors.updateMetrics(func(m *OptimizedRAGMetrics) {
 		m.TotalQueries++
 	})
-	
+
 	// Record query metrics
 	ors.prometheusMetrics.RecordQueryProcessed(request.IntentType, "started")
-	
+
 	// Try multi-level cache lookup
 	if response := ors.tryMultiLevelCache(ctx, cacheKey, request); response != nil {
 		// Cache hit - update metrics and return
 		processingTime := time.Since(startTime)
 		response.ProcessingTime = processingTime
 		response.UsedCache = true
-		
+
 		ors.updateMetrics(func(m *OptimizedRAGMetrics) {
 			m.SuccessfulQueries++
 			m.updateLatency(processingTime)
 		})
-		
+
 		ors.prometheusMetrics.RecordQueryLatency(
-			request.IntentType, 
-			"enhanced", 
-			"true", 
+			request.IntentType,
+			"enhanced",
+			"true",
 			processingTime,
 		)
-		
+
 		return response, nil
 	}
-	
+
 	// Cache miss - process query with error handling
 	response, err := ors.errorHandler.ExecuteWithErrorHandling(
-		ctx, 
-		"rag-service", 
+		ctx,
+		"rag-service",
 		"ProcessQuery",
 		func(ctx context.Context) error {
 			var processErr error
@@ -255,7 +255,7 @@ func (ors *OptimizedRAGService) ProcessQuery(ctx context.Context, request *RAGRe
 			return processErr
 		},
 	)
-	
+
 	if err != nil {
 		ors.updateMetrics(func(m *OptimizedRAGMetrics) {
 			m.FailedQueries++
@@ -263,19 +263,19 @@ func (ors *OptimizedRAGService) ProcessQuery(ctx context.Context, request *RAGRe
 		ors.prometheusMetrics.RecordQueryProcessed(request.IntentType, "failed")
 		return nil, err
 	}
-	
+
 	// Store in multi-level cache
 	if response != nil {
 		ors.storeInMultiLevelCache(ctx, cacheKey, response, request)
-		
+
 		processingTime := time.Since(startTime)
 		response.ProcessingTime = processingTime
-		
+
 		ors.updateMetrics(func(m *OptimizedRAGMetrics) {
 			m.SuccessfulQueries++
 			m.updateLatency(processingTime)
 		})
-		
+
 		ors.prometheusMetrics.RecordQueryLatency(
 			request.IntentType,
 			"enhanced",
@@ -284,7 +284,7 @@ func (ors *OptimizedRAGService) ProcessQuery(ctx context.Context, request *RAGRe
 		)
 		ors.prometheusMetrics.RecordQueryProcessed(request.IntentType, "success")
 	}
-	
+
 	return response, nil
 }
 
@@ -296,16 +296,16 @@ func (ors *OptimizedRAGService) processQueryWithOptimizations(ctx context.Contex
 		ctx, cancel = context.WithTimeout(ctx, time.Duration(ors.config.QueryTimeoutMs)*time.Millisecond)
 		defer cancel()
 	}
-	
+
 	// Optimize query if enabled
 	if ors.config.EnableQueryOptimization {
 		request = ors.optimizeQuery(request)
 	}
-	
+
 	// Step 1: Retrieve relevant documents with connection pooling
 	retrievalStart := time.Now()
 	searchQuery := ors.buildSearchQuery(request)
-	
+
 	var searchResponse *SearchResponse
 	err := ors.weaviatePool.ExecuteWithRetry(ctx, func(client *weaviate.Client) error {
 		// This would use the actual Weaviate client to perform the search
@@ -318,24 +318,24 @@ func (ors *OptimizedRAGService) processQueryWithOptimizations(ctx context.Contex
 		}
 		return nil
 	})
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("weaviate search failed: %w", err)
 	}
-	
+
 	retrievalTime := time.Since(retrievalStart)
 	ors.updateMetrics(func(m *OptimizedRAGMetrics) {
 		m.RetrievalLatency = retrievalTime
 	})
-	
+
 	// Step 2: Convert results and prepare context
 	sharedResults := ors.convertToSharedResults(searchResponse.Results)
 	context, contextMetadata := ors.prepareOptimizedContext(sharedResults, request)
-	
+
 	// Step 3: Generate response using LLM with error handling
 	generationStart := time.Now()
 	llmPrompt := ors.buildEnhancedLLMPrompt(request.Query, context, request.IntentType)
-	
+
 	var llmResponse string
 	err = ors.errorHandler.ExecuteWithErrorHandling(
 		ctx,
@@ -347,18 +347,18 @@ func (ors *OptimizedRAGService) processQueryWithOptimizations(ctx context.Contex
 			return llmErr
 		},
 	)
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
 	}
-	
+
 	generationTime := time.Since(generationStart)
-	
+
 	// Step 4: Post-process and enhance response
 	enhancedResponse := ors.enhanceResponseWithQuality(llmResponse, sharedResults, request)
 	confidence := ors.calculateAdvancedConfidence(sharedResults, enhancedResponse)
 	quality := ors.calculateResponseQuality(enhancedResponse, request)
-	
+
 	// Create optimized RAG response
 	ragResponse := &RAGResponse{
 		Answer:          enhancedResponse,
@@ -372,28 +372,28 @@ func (ors *OptimizedRAGService) processQueryWithOptimizations(ctx context.Contex
 		IntentType:      request.IntentType,
 		ProcessedAt:     time.Now(),
 		Metadata: map[string]interface{}{
-			"context_length":           len(context),
-			"documents_used":           len(searchResponse.Results),
-			"search_took":              searchResponse.Took,
-			"context_metadata":         contextMetadata,
-			"response_quality":         quality,
-			"optimization_applied":     ors.config.EnableQueryOptimization,
-			"parallel_processing":      ors.config.EnableParallelProcessing,
-			"cache_strategy":           ors.config.CacheStrategy,
+			"context_length":       len(context),
+			"documents_used":       len(searchResponse.Results),
+			"search_took":          searchResponse.Took,
+			"context_metadata":     contextMetadata,
+			"response_quality":     quality,
+			"optimization_applied": ors.config.EnableQueryOptimization,
+			"parallel_processing":  ors.config.EnableParallelProcessing,
+			"cache_strategy":       ors.config.CacheStrategy,
 		},
 	}
-	
+
 	// Record quality metrics
 	ors.updateMetrics(func(m *OptimizedRAGMetrics) {
 		m.updateQuality(quality)
 	})
-	
+
 	ors.prometheusMetrics.RecordResponseQuality(
 		request.IntentType,
 		fmt.Sprintf("%v", ors.config.EnableQueryOptimization),
 		quality,
 	)
-	
+
 	return ragResponse, nil
 }
 
@@ -411,7 +411,7 @@ func (ors *OptimizedRAGService) tryMultiLevelCache(ctx context.Context, cacheKey
 		}
 	}
 	ors.prometheusMetrics.RecordMemoryCacheMiss("query_result")
-	
+
 	// Try Redis cache if available
 	if ors.redisCache != nil {
 		if results, found := ors.redisCache.GetQueryResults(ctx, request.Query, request.SearchFilters); found {
@@ -423,20 +423,20 @@ func (ors *OptimizedRAGService) tryMultiLevelCache(ctx context.Context, cacheKey
 				IntentType:      request.IntentType,
 				ProcessedAt:     time.Now(),
 			}
-			
+
 			// Store in memory cache for faster future access
 			ors.memoryCache.SetWithCategory(cacheKey, response, "query_result", ors.config.DefaultTTL, nil)
-			
+
 			ors.prometheusMetrics.RecordRedisCacheHit("query_result")
 			ors.updateMetrics(func(m *OptimizedRAGMetrics) {
 				m.RedisCacheHitRate++
 			})
-			
+
 			return response
 		}
 	}
 	ors.prometheusMetrics.RecordRedisCacheMiss("query_result")
-	
+
 	return nil
 }
 
@@ -449,7 +449,7 @@ func (ors *OptimizedRAGService) storeInMultiLevelCache(ctx context.Context, cach
 	if err != nil {
 		ors.logger.Debug("Failed to store in memory cache", "error", err)
 	}
-	
+
 	// Store in Redis cache if available
 	if ors.redisCache != nil {
 		enhancedResults := ors.convertSharedToEnhancedResults(response.SourceDocuments)
@@ -464,22 +464,22 @@ func (ors *OptimizedRAGService) storeInMultiLevelCache(ctx context.Context, cach
 
 func (ors *OptimizedRAGService) optimizeQuery(request *RAGRequest) *RAGRequest {
 	optimized := *request // Copy
-	
+
 	// Apply query expansion
 	if len(optimized.Query) < 50 {
 		optimized.Query = ors.expandQuery(optimized.Query, optimized.IntentType)
 	}
-	
+
 	// Optimize search parameters
 	if optimized.MaxResults == 0 || optimized.MaxResults > 20 {
 		optimized.MaxResults = ors.getOptimalResultCount(optimized.IntentType)
 	}
-	
+
 	// Enable hybrid search for complex queries
 	if len(optimized.Query) > 100 {
 		optimized.UseHybridSearch = true
 	}
-	
+
 	// Apply intent-specific optimizations
 	switch optimized.IntentType {
 	case "troubleshooting":
@@ -492,11 +492,11 @@ func (ors *OptimizedRAGService) optimizeQuery(request *RAGRequest) *RAGRequest {
 		optimized.EnableReranking = true
 		optimized.MaxResults = 15
 	}
-	
+
 	ors.updateMetrics(func(m *OptimizedRAGMetrics) {
 		m.QueryOptimizations++
 	})
-	
+
 	return &optimized
 }
 
@@ -508,7 +508,7 @@ func (ors *OptimizedRAGService) expandQuery(query, intentType string) string {
 		"optimization":    {"optimize", "performance", "improve", "tuning", "efficiency"},
 		"monitoring":      {"monitor", "metric", "alert", "dashboard", "observability"},
 	}
-	
+
 	if terms, exists := expansions[intentType]; exists {
 		for _, term := range terms {
 			if !strings.Contains(strings.ToLower(query), term) {
@@ -517,7 +517,7 @@ func (ors *OptimizedRAGService) expandQuery(query, intentType string) string {
 			}
 		}
 	}
-	
+
 	return query
 }
 
@@ -541,30 +541,30 @@ func (ors *OptimizedRAGService) prepareOptimizedContext(results []*shared.Search
 	var totalTokens int
 	documentsUsed := 0
 	qualityScore := 0.0
-	
+
 	metadata := map[string]interface{}{
 		"documents_considered": len(results),
-		"context_truncated":   false,
+		"context_truncated":    false,
 		"optimization_applied": true,
 	}
-	
+
 	// Sort results by relevance and quality
 	sortedResults := ors.sortResultsByQuality(results)
-	
+
 	for i, result := range sortedResults {
 		if result.Document == nil {
 			continue
 		}
-		
+
 		// Enhanced token estimation
 		contentTokens := ors.estimateTokens(result.Document.Content)
-		
+
 		// Check context limits
 		if totalTokens+contentTokens > ors.config.MaxContextLength {
 			metadata["context_truncated"] = true
 			break
 		}
-		
+
 		// Format document with enhanced metadata
 		docContext := ors.formatDocumentForOptimizedContext(result, i+1)
 		contextParts = append(contextParts, docContext)
@@ -572,25 +572,25 @@ func (ors *OptimizedRAGService) prepareOptimizedContext(results []*shared.Search
 		documentsUsed++
 		qualityScore += float64(result.Score)
 	}
-	
+
 	metadata["documents_used"] = documentsUsed
 	metadata["estimated_tokens"] = totalTokens
 	metadata["average_quality"] = qualityScore / float64(len(results))
-	
+
 	// Add contextual headers based on intent type
 	context := ors.addContextualHeaders(request.IntentType, strings.Join(contextParts, "\n\n---\n\n"))
-	
+
 	// Add user context if provided
 	if request.Context != "" {
 		context = request.Context + "\n\n" + context
 	}
-	
+
 	return context, metadata
 }
 
 func (ors *OptimizedRAGService) buildEnhancedLLMPrompt(query, context, intentType string) string {
 	var promptParts []string
-	
+
 	// Enhanced system prompt with optimization context
 	systemPrompt := `You are an expert telecommunications engineer and system administrator with deep knowledge of 5G, 4G, O-RAN, and network infrastructure. Your responses are enhanced with advanced RAG optimization techniques.
 
@@ -602,9 +602,9 @@ Advanced Guidelines:
 5. Include practical implementation details when relevant
 6. Reference specific standards, specifications, or working groups with precision
 7. Adapt response complexity to match the query sophistication`
-	
+
 	promptParts = append(promptParts, systemPrompt)
-	
+
 	// Intent-specific enhanced instructions
 	if intentType != "" {
 		switch strings.ToLower(intentType) {
@@ -615,7 +615,7 @@ Configuration Focus:
 - Include parameter validation and verification steps
 - Mention compatibility considerations and prerequisites
 - Highlight potential configuration conflicts or dependencies`)
-			
+
 		case "troubleshooting":
 			promptParts = append(promptParts, `
 Troubleshooting Focus:
@@ -623,7 +623,7 @@ Troubleshooting Focus:
 - Provide diagnostic commands and expected outputs
 - Include escalation paths for complex issues
 - Mention preventive measures to avoid future occurrences`)
-			
+
 		case "optimization":
 			promptParts = append(promptParts, `
 Optimization Focus:
@@ -631,7 +631,7 @@ Optimization Focus:
 - Provide before/after comparison criteria
 - Include monitoring recommendations to validate improvements
 - Consider trade-offs and potential side effects`)
-			
+
 		case "monitoring":
 			promptParts = append(promptParts, `
 Monitoring Focus:
@@ -641,17 +641,17 @@ Monitoring Focus:
 - Mention integration with existing monitoring systems`)
 		}
 	}
-	
+
 	// Context section with quality indicators
 	if context != "" {
 		promptParts = append(promptParts, "\n\nHigh-Quality Technical Documentation:")
 		promptParts = append(promptParts, context)
 	}
-	
+
 	// Enhanced query section
 	promptParts = append(promptParts, "\n\nUser Question (Optimized):")
 	promptParts = append(promptParts, query)
-	
+
 	// Response instruction with quality requirements
 	promptParts = append(promptParts, `
 
@@ -661,7 +661,7 @@ Requirements:
 - Provide confidence levels for recommendations
 - Structure response for clarity and actionability
 - Include relevant technical details without overwhelming non-experts`)
-	
+
 	return strings.Join(promptParts, "\n")
 }
 
@@ -671,27 +671,27 @@ func (ors *OptimizedRAGService) calculateAdvancedConfidence(results []*shared.Se
 	if len(results) == 0 {
 		return 0.0
 	}
-	
+
 	// Base confidence from search results
 	var totalScore float32
 	var weights float32
-	
+
 	for i, result := range results {
 		// Exponential decay weighting
 		weight := float32(1.0) / float32(i+1)
 		totalScore += result.Score * weight
 		weights += weight
 	}
-	
+
 	baseConfidence := totalScore / weights
-	
+
 	// Adjust based on response characteristics
 	responseLength := len(response)
 	lengthBonus := float32(0.0)
 	if responseLength > 200 && responseLength < 2000 {
 		lengthBonus = 0.1 // Moderate length responses get bonus
 	}
-	
+
 	// Check for technical indicators
 	technicalBonus := float32(0.0)
 	technicalTerms := []string{"3GPP", "O-RAN", "ETSI", "ITU", "specification", "standard"}
@@ -703,26 +703,26 @@ func (ors *OptimizedRAGService) calculateAdvancedConfidence(results []*shared.Se
 	if technicalBonus > 0.2 {
 		technicalBonus = 0.2 // Cap technical bonus
 	}
-	
+
 	// Combine factors
 	finalConfidence := baseConfidence + lengthBonus + technicalBonus
-	
+
 	// Penalties
 	if len(results) < 3 {
 		finalConfidence *= 0.9 // Reduce confidence for few results
 	}
-	
+
 	// Normalize to 0-1 range
 	if finalConfidence > 1.0 {
 		finalConfidence = 1.0
 	}
-	
+
 	return finalConfidence
 }
 
 func (ors *OptimizedRAGService) calculateResponseQuality(response string, request *RAGRequest) float64 {
 	quality := 0.5 // Base quality
-	
+
 	// Length-based quality (optimal range)
 	responseLength := len(response)
 	if responseLength >= 200 && responseLength <= 2000 {
@@ -730,13 +730,13 @@ func (ors *OptimizedRAGService) calculateResponseQuality(response string, reques
 	} else if responseLength > 2000 && responseLength <= 4000 {
 		quality += 0.1
 	}
-	
+
 	// Technical content quality
 	technicalIndicators := []string{
 		"specification", "standard", "protocol", "configuration",
 		"parameter", "algorithm", "implementation", "interface",
 	}
-	
+
 	technicalScore := 0.0
 	for _, indicator := range technicalIndicators {
 		if strings.Contains(strings.ToLower(response), indicator) {
@@ -744,7 +744,7 @@ func (ors *OptimizedRAGService) calculateResponseQuality(response string, reques
 		}
 	}
 	quality += math.Min(technicalScore, 0.2)
-	
+
 	// Structure quality (presence of sections, lists, etc.)
 	structureScore := 0.0
 	if strings.Contains(response, "1.") || strings.Contains(response, "•") {
@@ -754,7 +754,7 @@ func (ors *OptimizedRAGService) calculateResponseQuality(response string, reques
 		structureScore += 0.05 // Has sections/explanations
 	}
 	quality += structureScore
-	
+
 	// Intent-specific quality
 	switch strings.ToLower(request.IntentType) {
 	case "troubleshooting":
@@ -762,19 +762,19 @@ func (ors *OptimizedRAGService) calculateResponseQuality(response string, reques
 			quality += 0.1
 		}
 	case "configuration":
-		if strings.Contains(strings.ToLower(response), "configure") || 
-		   strings.Contains(strings.ToLower(response), "setting") {
+		if strings.Contains(strings.ToLower(response), "configure") ||
+			strings.Contains(strings.ToLower(response), "setting") {
 			quality += 0.1
 		}
 	}
-	
+
 	// Ensure quality is in valid range
 	if quality > 1.0 {
 		quality = 1.0
 	} else if quality < 0.0 {
 		quality = 0.0
 	}
-	
+
 	return quality
 }
 
@@ -790,14 +790,14 @@ func (ors *OptimizedRAGService) generateCacheKey(request *RAGRequest) string {
 		fmt.Sprintf("%v", request.UseHybridSearch),
 		fmt.Sprintf("%v", request.EnableReranking),
 	}
-	
+
 	// Add filter components
 	if len(request.SearchFilters) > 0 {
 		for k, v := range request.SearchFilters {
 			keyComponents = append(keyComponents, fmt.Sprintf("%s:%v", k, v))
 		}
 	}
-	
+
 	combinedKey := strings.Join(keyComponents, "|")
 	return fmt.Sprintf("rag:query:%x", hash(combinedKey))
 }
@@ -820,13 +820,13 @@ func (ors *OptimizedRAGService) convertToSharedResults(results []*SearchResult) 
 	for i, result := range results {
 		sharedResults[i] = &shared.SearchResult{
 			Document: &shared.TelecomDocument{
-				ID:      result.Document.ID,
-				Content: result.Document.Content,
-				Source:  result.Document.Source,
-				Title:   result.Document.Title,
-				Category: result.Document.Category,
-				Version: result.Document.Version,
-				Technology: result.Document.Technology,
+				ID:              result.Document.ID,
+				Content:         result.Document.Content,
+				Source:          result.Document.Source,
+				Title:           result.Document.Title,
+				Category:        result.Document.Category,
+				Version:         result.Document.Version,
+				Technology:      result.Document.Technology,
 				NetworkFunction: result.Document.NetworkFunction,
 			},
 			Score: result.Score,
@@ -840,7 +840,7 @@ func (ors *OptimizedRAGService) sortResultsByQuality(results []*shared.SearchRes
 	// In production, this would use more sophisticated quality metrics
 	sortedResults := make([]*shared.SearchResult, len(results))
 	copy(sortedResults, results)
-	
+
 	// Sort by score (descending)
 	for i := 0; i < len(sortedResults); i++ {
 		for j := i + 1; j < len(sortedResults); j++ {
@@ -849,7 +849,7 @@ func (ors *OptimizedRAGService) sortResultsByQuality(results []*shared.SearchRes
 			}
 		}
 	}
-	
+
 	return sortedResults
 }
 
@@ -858,51 +858,51 @@ func (ors *OptimizedRAGService) estimateTokens(text string) int {
 	// Account for whitespace, punctuation, and technical terms
 	words := strings.Fields(text)
 	tokens := len(words)
-	
+
 	// Adjust for technical terms (often longer tokens)
 	for _, word := range words {
 		if len(word) > 10 {
 			tokens++ // Technical terms often split into multiple tokens
 		}
 	}
-	
+
 	return tokens
 }
 
 func (ors *OptimizedRAGService) formatDocumentForOptimizedContext(result *shared.SearchResult, index int) string {
 	doc := result.Document
 	var parts []string
-	
+
 	// Enhanced document header with quality indicators
 	parts = append(parts, fmt.Sprintf("📄 Document %d (Relevance: %.3f):", index, result.Score))
-	
+
 	if doc.Title != "" {
 		parts = append(parts, fmt.Sprintf("📋 Title: %s", doc.Title))
 	}
-	
+
 	if doc.Source != "" {
 		parts = append(parts, fmt.Sprintf("🏢 Source: %s", doc.Source))
 	}
-	
+
 	if doc.Category != "" {
 		parts = append(parts, fmt.Sprintf("📁 Category: %s", doc.Category))
 	}
-	
+
 	if doc.Version != "" {
 		parts = append(parts, fmt.Sprintf("🔖 Version: %s", doc.Version))
 	}
-	
+
 	if len(doc.Technology) > 0 {
 		parts = append(parts, fmt.Sprintf("⚡ Technologies: %s", strings.Join(doc.Technology, ", ")))
 	}
-	
+
 	if len(doc.NetworkFunction) > 0 {
 		parts = append(parts, fmt.Sprintf("🌐 Network Functions: %s", strings.Join(doc.NetworkFunction, ", ")))
 	}
-	
+
 	parts = append(parts, "")
 	parts = append(parts, doc.Content)
-	
+
 	return strings.Join(parts, "\n")
 }
 
@@ -926,17 +926,17 @@ func (ors *OptimizedRAGService) addContextualHeaders(intentType, context string)
 func (ors *OptimizedRAGService) startBackgroundServices() {
 	// Start metrics collection
 	ors.metricsCollector.Start()
-	
+
 	// Start adaptive caching if enabled
 	if ors.config.EnableAdaptiveCaching {
 		go ors.startAdaptiveCaching()
 	}
-	
+
 	// Start intelligent prefetching if enabled
 	if ors.config.EnableIntelligentPrefetch {
 		go ors.startIntelligentPrefetch()
 	}
-	
+
 	// Start periodic cache optimization
 	go ors.startCacheOptimization()
 }
@@ -944,7 +944,7 @@ func (ors *OptimizedRAGService) startBackgroundServices() {
 func (ors *OptimizedRAGService) startAdaptiveCaching() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -963,7 +963,7 @@ func (ors *OptimizedRAGService) startIntelligentPrefetch() {
 func (ors *OptimizedRAGService) startCacheOptimization() {
 	ticker := time.NewTicker(10 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -977,7 +977,7 @@ func (ors *OptimizedRAGService) startCacheOptimization() {
 func (ors *OptimizedRAGService) optimizeCacheStrategy() {
 	// Analyze cache performance and adjust strategy
 	memoryStats := ors.memoryCache.GetStats()
-	
+
 	// Adjust cache sizes based on hit rates
 	if memoryStats.HitRate < 0.5 && ors.redisCache != nil {
 		// Low memory cache hit rate, consider increasing Redis usage
@@ -1010,7 +1010,7 @@ func (m *OptimizedRAGMetrics) updateLatency(latency time.Duration) {
 	} else {
 		m.AverageLatency = time.Duration(float64(m.AverageLatency)*(1-alpha) + float64(latency)*alpha)
 	}
-	
+
 	// Update percentile approximations (simplified)
 	if latency > m.P95Latency {
 		m.P95Latency = latency
@@ -1028,7 +1028,7 @@ func (m *OptimizedRAGMetrics) updateQuality(quality float64) {
 		alpha := 0.1
 		m.AverageResponseQuality = m.AverageResponseQuality*(1-alpha) + quality*alpha
 	}
-	
+
 	// Update quality distribution
 	qualityBucket := fmt.Sprintf("%.1f-%.1f", math.Floor(quality*10)/10, math.Ceil(quality*10)/10)
 	m.QualityDistribution[qualityBucket]++
@@ -1039,41 +1039,41 @@ func (m *OptimizedRAGMetrics) updateQuality(quality float64) {
 func (ors *OptimizedRAGService) GetOptimizedMetrics() *OptimizedRAGMetrics {
 	ors.ragMetrics.mutex.RLock()
 	defer ors.ragMetrics.mutex.RUnlock()
-	
+
 	// Return a copy
 	metrics := *ors.ragMetrics
-	
+
 	// Deep copy maps
 	metrics.CacheLatencies = make(map[string]time.Duration)
 	for k, v := range ors.ragMetrics.CacheLatencies {
 		metrics.CacheLatencies[k] = v
 	}
-	
+
 	metrics.QualityDistribution = make(map[string]int64)
 	for k, v := range ors.ragMetrics.QualityDistribution {
 		metrics.QualityDistribution[k] = v
 	}
-	
+
 	return &metrics
 }
 
 func (ors *OptimizedRAGService) GetHealth() map[string]interface{} {
 	health := map[string]interface{}{
-		"status":    "healthy",
-		"uptime":    time.Since(ors.startTime).String(),
-		"version":   "optimized-v1.0",
+		"status":  "healthy",
+		"uptime":  time.Since(ors.startTime).String(),
+		"version": "optimized-v1.0",
 	}
-	
+
 	// Check component health
 	if ors.weaviatePool != nil {
 		poolMetrics := ors.weaviatePool.GetMetrics()
 		health["weaviate_pool"] = map[string]interface{}{
 			"active_connections": poolMetrics.ActiveConnections,
 			"total_connections":  poolMetrics.TotalConnections,
-			"healthy":           poolMetrics.ConnectionFailures < 10,
+			"healthy":            poolMetrics.ConnectionFailures < 10,
 		}
 	}
-	
+
 	if ors.memoryCache != nil {
 		memoryStats := ors.memoryCache.GetStats()
 		health["memory_cache"] = map[string]interface{}{
@@ -1082,46 +1082,46 @@ func (ors *OptimizedRAGService) GetHealth() map[string]interface{} {
 			"healthy":       memoryStats.HitRate > 0.3,
 		}
 	}
-	
+
 	if ors.redisCache != nil {
 		redisHealth := ors.redisCache.GetHealthStatus(context.Background())
 		health["redis_cache"] = redisHealth
 	}
-	
+
 	metrics := ors.GetOptimizedMetrics()
 	health["metrics"] = map[string]interface{}{
-		"total_queries":           metrics.TotalQueries,
+		"total_queries":          metrics.TotalQueries,
 		"success_rate":           float64(metrics.SuccessfulQueries) / float64(metrics.TotalQueries),
 		"average_latency":        metrics.AverageLatency.String(),
 		"overall_cache_hit_rate": metrics.OverallCacheHitRate,
 	}
-	
+
 	return health
 }
 
 func (ors *OptimizedRAGService) Shutdown(ctx context.Context) error {
 	ors.logger.Info("Shutting down optimized RAG service")
-	
+
 	// Signal shutdown to background services
 	close(ors.shutdownChan)
-	
+
 	// Stop metrics collection
 	ors.metricsCollector.Stop()
-	
+
 	// Close caches
 	if ors.memoryCache != nil {
 		ors.memoryCache.Close()
 	}
-	
+
 	if ors.redisCache != nil {
 		ors.redisCache.Close()
 	}
-	
+
 	// Stop connection pool
 	if ors.weaviatePool != nil {
 		ors.weaviatePool.Stop()
 	}
-	
+
 	ors.logger.Info("Optimized RAG service shutdown completed")
 	return nil
 }
@@ -1130,25 +1130,25 @@ func (ors *OptimizedRAGService) Shutdown(ctx context.Context) error {
 
 func getDefaultOptimizedRAGConfig() *OptimizedRAGConfig {
 	return &OptimizedRAGConfig{
-		RAGConfig:               getDefaultRAGConfig(),
-		WeaviatePoolConfig:      DefaultPoolConfig(),
-		MemoryCacheConfig:       getDefaultMemoryCacheConfig(),
-		RedisCacheConfig:        getDefaultRedisCacheConfig(),
-		ErrorHandlingConfig:     getDefaultErrorHandlingConfig(),
-		CacheStrategy:           "write-through",
-		EnableQueryOptimization: true,
-		EnableParallelProcessing: true,
-		MaxConcurrentQueries:    10,
-		QueryTimeoutMs:          30000,
-		EnableQueryPrediction:   false,
-		EnableAdaptiveCaching:   true,
+		RAGConfig:                 getDefaultRAGConfig(),
+		WeaviatePoolConfig:        DefaultPoolConfig(),
+		MemoryCacheConfig:         getDefaultMemoryCacheConfig(),
+		RedisCacheConfig:          getDefaultRedisCacheConfig(),
+		ErrorHandlingConfig:       getDefaultErrorHandlingConfig(),
+		CacheStrategy:             "write-through",
+		EnableQueryOptimization:   true,
+		EnableParallelProcessing:  true,
+		MaxConcurrentQueries:      10,
+		QueryTimeoutMs:            30000,
+		EnableQueryPrediction:     false,
+		EnableAdaptiveCaching:     true,
 		EnableIntelligentPrefetch: false,
-		EnableQualityMetrics:    true,
-		MinQualityThreshold:     0.7,
-		EnableCircuitBreaker:    true,
-		EnableDetailedMetrics:   true,
+		EnableQualityMetrics:      true,
+		MinQualityThreshold:       0.7,
+		EnableCircuitBreaker:      true,
+		EnableDetailedMetrics:     true,
 		MetricsCollectionInterval: 30 * time.Second,
-		EnableDistributedTracing: false, // Can be enabled for detailed observability
+		EnableDistributedTracing:  false, // Can be enabled for detailed observability
 	}
 }
 
@@ -1172,7 +1172,7 @@ func (ors *OptimizedRAGService) convertSharedToEnhancedResults(results []*shared
 func (ors *OptimizedRAGService) enhanceResponseWithQuality(response string, results []*shared.SearchResult, request *RAGRequest) string {
 	// Enhanced response processing with quality improvements
 	enhanced := response
-	
+
 	// Add confidence indicators
 	if len(results) > 0 {
 		avgScore := float32(0)
@@ -1180,21 +1180,21 @@ func (ors *OptimizedRAGService) enhanceResponseWithQuality(response string, resu
 			avgScore += result.Score
 		}
 		avgScore /= float32(len(results))
-		
+
 		if avgScore > 0.8 {
 			enhanced = "High confidence: " + enhanced
 		} else if avgScore > 0.6 {
 			enhanced = "Moderate confidence: " + enhanced
 		}
 	}
-	
+
 	return enhanced
 }
 
 // Define missing types for compilation
 type OptimizedSearchResult struct {
-	Document *TelecomDocument `json:"document"`
-	Score    float32          `json:"score"`
+	Document *TelecomDocument       `json:"document"`
+	Score    float32                `json:"score"`
 	Metadata map[string]interface{} `json:"metadata"`
 }
 

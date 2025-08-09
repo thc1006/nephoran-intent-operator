@@ -15,20 +15,20 @@ type MTLSMonitor struct {
 	logger     *logging.StructuredLogger
 	collectors []MetricCollector
 	alerts     []AlertRule
-	
+
 	// Connection tracking
 	connections map[string]*ConnectionInfo
 	connMu      sync.RWMutex
-	
+
 	// Certificate tracking
 	certificates map[string]*CertificateMonitorInfo
 	certMu       sync.RWMutex
-	
+
 	// Monitoring state
-	ctx             context.Context
-	cancel          context.CancelFunc
+	ctx              context.Context
+	cancel           context.CancelFunc
 	monitoringTicker *time.Ticker
-	alertTicker     *time.Ticker
+	alertTicker      *time.Ticker
 }
 
 // ConnectionInfo tracks information about mTLS connections
@@ -84,11 +84,11 @@ type CertificateMonitorInfo struct {
 type CertificateHealth string
 
 const (
-	CertHealthHealthy   CertificateHealth = "healthy"
-	CertHealthWarning   CertificateHealth = "warning"
-	CertHealthCritical  CertificateHealth = "critical"
-	CertHealthExpired   CertificateHealth = "expired"
-	CertHealthInvalid   CertificateHealth = "invalid"
+	CertHealthHealthy  CertificateHealth = "healthy"
+	CertHealthWarning  CertificateHealth = "warning"
+	CertHealthCritical CertificateHealth = "critical"
+	CertHealthExpired  CertificateHealth = "expired"
+	CertHealthInvalid  CertificateHealth = "invalid"
 )
 
 // MetricCollector defines the interface for metric collection
@@ -121,9 +121,9 @@ type AlertType string
 const (
 	AlertTypeCertificateExpiry       AlertType = "certificate_expiry"
 	AlertTypeConnectionFailure       AlertType = "connection_failure"
-	AlertTypeHighErrorRate          AlertType = "high_error_rate"
+	AlertTypeHighErrorRate           AlertType = "high_error_rate"
 	AlertTypeCertificateRotationFail AlertType = "certificate_rotation_fail"
-	AlertTypeSecurityViolation      AlertType = "security_violation"
+	AlertTypeSecurityViolation       AlertType = "security_violation"
 )
 
 // AlertSeverity represents alert severity levels
@@ -148,14 +148,14 @@ type Metric struct {
 
 // Alert represents a triggered alert
 type Alert struct {
-	Name        string                 `json:"name"`
-	Severity    AlertSeverity          `json:"severity"`
-	Message     string                 `json:"message"`
-	Labels      map[string]string      `json:"labels"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Resolved    bool                   `json:"resolved"`
-	ResolvedAt  *time.Time             `json:"resolved_at,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Name       string                 `json:"name"`
+	Severity   AlertSeverity          `json:"severity"`
+	Message    string                 `json:"message"`
+	Labels     map[string]string      `json:"labels"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Resolved   bool                   `json:"resolved"`
+	ResolvedAt *time.Time             `json:"resolved_at,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 // NewMTLSMonitor creates a new mTLS monitor
@@ -163,9 +163,9 @@ func NewMTLSMonitor(logger *logging.StructuredLogger) *MTLSMonitor {
 	if logger == nil {
 		logger = logging.NewStructuredLogger()
 	}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	monitor := &MTLSMonitor{
 		logger:       logger,
 		connections:  make(map[string]*ConnectionInfo),
@@ -175,17 +175,17 @@ func NewMTLSMonitor(logger *logging.StructuredLogger) *MTLSMonitor {
 		ctx:          ctx,
 		cancel:       cancel,
 	}
-	
+
 	// Add default metric collectors
 	monitor.AddCollector(&ConnectionMetricCollector{})
 	monitor.AddCollector(&CertificateMetricCollector{})
 	monitor.AddCollector(&SecurityMetricCollector{})
-	
+
 	// Start monitoring routines
 	monitor.startMonitoring()
-	
+
 	logger.Info("mTLS monitor initialized")
-	
+
 	return monitor
 }
 
@@ -193,22 +193,22 @@ func NewMTLSMonitor(logger *logging.StructuredLogger) *MTLSMonitor {
 func (m *MTLSMonitor) TrackConnection(connID, serviceName, remoteAddr, localAddr string, tlsInfo *TLSConnectionInfo) {
 	m.connMu.Lock()
 	defer m.connMu.Unlock()
-	
+
 	connInfo := &ConnectionInfo{
-		ID:            connID,
-		ServiceName:   serviceName,
-		RemoteAddr:    remoteAddr,
-		LocalAddr:     localAddr,
-		Protocol:      "TLS",
-		CipherSuite:   tlsInfo.CipherSuite,
-		TLSVersion:    tlsInfo.Version,
-		ConnectedAt:   time.Now(),
-		LastActivity:  time.Now(),
-		RequestCount:  0,
-		ErrorCount:    0,
-		Metadata:      make(map[string]interface{}),
+		ID:           connID,
+		ServiceName:  serviceName,
+		RemoteAddr:   remoteAddr,
+		LocalAddr:    localAddr,
+		Protocol:     "TLS",
+		CipherSuite:  tlsInfo.CipherSuite,
+		TLSVersion:   tlsInfo.Version,
+		ConnectedAt:  time.Now(),
+		LastActivity: time.Now(),
+		RequestCount: 0,
+		ErrorCount:   0,
+		Metadata:     make(map[string]interface{}),
 	}
-	
+
 	// Extract certificate information if available
 	if tlsInfo.PeerCertificate != nil {
 		connInfo.CertificateInfo = &ConnectionCertInfo{
@@ -221,9 +221,9 @@ func (m *MTLSMonitor) TrackConnection(connID, serviceName, remoteAddr, localAddr
 			ExpiresIn:    int64(time.Until(tlsInfo.PeerCertificate.NotAfter).Seconds()),
 		}
 	}
-	
+
 	m.connections[connID] = connInfo
-	
+
 	m.logger.Debug("tracking new mTLS connection",
 		"connection_id", connID,
 		"service_name", serviceName,
@@ -236,7 +236,7 @@ func (m *MTLSMonitor) TrackConnection(connID, serviceName, remoteAddr, localAddr
 func (m *MTLSMonitor) UpdateConnectionActivity(connID string, bytesSent, bytesReceived int64, requestCount int64, errorCount int64) {
 	m.connMu.Lock()
 	defer m.connMu.Unlock()
-	
+
 	if conn, exists := m.connections[connID]; exists {
 		conn.LastActivity = time.Now()
 		conn.BytesSent += bytesSent
@@ -250,17 +250,17 @@ func (m *MTLSMonitor) UpdateConnectionActivity(connID string, bytesSent, bytesRe
 func (m *MTLSMonitor) CloseConnection(connID string) {
 	m.connMu.Lock()
 	defer m.connMu.Unlock()
-	
+
 	if conn, exists := m.connections[connID]; exists {
 		duration := time.Since(conn.ConnectedAt)
-		
+
 		m.logger.Debug("closing tracked mTLS connection",
 			"connection_id", connID,
 			"service_name", conn.ServiceName,
 			"duration", duration,
 			"requests", conn.RequestCount,
 			"errors", conn.ErrorCount)
-		
+
 		delete(m.connections, connID)
 	}
 }
@@ -269,12 +269,12 @@ func (m *MTLSMonitor) CloseConnection(connID string) {
 func (m *MTLSMonitor) TrackCertificate(serviceName string, role ServiceRole, certPath string, cert *x509.Certificate) {
 	m.certMu.Lock()
 	defer m.certMu.Unlock()
-	
+
 	key := fmt.Sprintf("%s-%s", serviceName, role)
-	
+
 	expiresInDays := int(time.Until(cert.NotAfter).Hours() / 24)
 	healthStatus := m.calculateCertificateHealth(cert)
-	
+
 	certInfo := &CertificateMonitorInfo{
 		ServiceName:     serviceName,
 		Role:            role,
@@ -291,7 +291,7 @@ func (m *MTLSMonitor) TrackCertificate(serviceName string, role ServiceRole, cer
 		HealthStatus:    healthStatus,
 		Metadata:        make(map[string]interface{}),
 	}
-	
+
 	// Update rotation count if certificate exists
 	if existing, exists := m.certificates[key]; exists {
 		if existing.SerialNumber != certInfo.SerialNumber {
@@ -300,9 +300,9 @@ func (m *MTLSMonitor) TrackCertificate(serviceName string, role ServiceRole, cer
 			certInfo.RotationCount = existing.RotationCount
 		}
 	}
-	
+
 	m.certificates[key] = certInfo
-	
+
 	m.logger.Debug("tracking certificate",
 		"service_name", serviceName,
 		"role", role,
@@ -315,36 +315,36 @@ func (m *MTLSMonitor) TrackCertificate(serviceName string, role ServiceRole, cer
 func (m *MTLSMonitor) GetConnectionStats() *ConnectionStats {
 	m.connMu.RLock()
 	defer m.connMu.RUnlock()
-	
+
 	stats := &ConnectionStats{
 		TotalConnections: len(m.connections),
 		ServiceCounts:    make(map[string]int),
 		TLSVersionCounts: make(map[uint16]int),
 		CipherCounts:     make(map[uint16]int),
 	}
-	
+
 	var totalRequests, totalErrors, totalBytesSent, totalBytesReceived int64
-	
+
 	for _, conn := range m.connections {
 		stats.ServiceCounts[conn.ServiceName]++
 		stats.TLSVersionCounts[conn.TLSVersion]++
 		stats.CipherCounts[conn.CipherSuite]++
-		
+
 		totalRequests += conn.RequestCount
 		totalErrors += conn.ErrorCount
 		totalBytesSent += conn.BytesSent
 		totalBytesReceived += conn.BytesReceived
 	}
-	
+
 	stats.TotalRequests = totalRequests
 	stats.TotalErrors = totalErrors
 	stats.TotalBytesSent = totalBytesSent
 	stats.TotalBytesReceived = totalBytesReceived
-	
+
 	if totalRequests > 0 {
 		stats.ErrorRate = float64(totalErrors) / float64(totalRequests)
 	}
-	
+
 	return stats
 }
 
@@ -352,45 +352,45 @@ func (m *MTLSMonitor) GetConnectionStats() *ConnectionStats {
 func (m *MTLSMonitor) GetCertificateStats() *CertificateStats {
 	m.certMu.RLock()
 	defer m.certMu.RUnlock()
-	
+
 	stats := &CertificateStats{
 		TotalCertificates: len(m.certificates),
 		HealthCounts:      make(map[CertificateHealth]int),
 		ServiceCounts:     make(map[string]int),
 		RoleCounts:        make(map[ServiceRole]int),
 	}
-	
+
 	var expiredCount, expiringCount int
-	
+
 	for _, cert := range m.certificates {
 		stats.HealthCounts[cert.HealthStatus]++
 		stats.ServiceCounts[cert.ServiceName]++
 		stats.RoleCounts[cert.Role]++
-		
+
 		if cert.IsExpired {
 			expiredCount++
 		} else if cert.ExpiresInDays <= 7 {
 			expiringCount++
 		}
 	}
-	
+
 	stats.ExpiredCount = expiredCount
 	stats.ExpiringCount = expiringCount
-	
+
 	return stats
 }
 
 // AddCollector adds a metric collector
 func (m *MTLSMonitor) AddCollector(collector MetricCollector) {
 	m.collectors = append(m.collectors, collector)
-	
+
 	m.logger.Debug("added metric collector", "name", collector.GetName())
 }
 
 // GetMetrics collects metrics from all collectors
 func (m *MTLSMonitor) GetMetrics() ([]*Metric, error) {
 	var allMetrics []*Metric
-	
+
 	for _, collector := range m.collectors {
 		metrics, err := collector.CollectMetrics(m)
 		if err != nil {
@@ -401,27 +401,27 @@ func (m *MTLSMonitor) GetMetrics() ([]*Metric, error) {
 		}
 		allMetrics = append(allMetrics, metrics...)
 	}
-	
+
 	return allMetrics, nil
 }
 
 // calculateCertificateHealth calculates the health status of a certificate
 func (m *MTLSMonitor) calculateCertificateHealth(cert *x509.Certificate) CertificateHealth {
 	now := time.Now()
-	
+
 	if now.After(cert.NotAfter) {
 		return CertHealthExpired
 	}
-	
+
 	timeUntilExpiry := time.Until(cert.NotAfter)
 	daysUntilExpiry := timeUntilExpiry.Hours() / 24
-	
+
 	if daysUntilExpiry <= 1 {
 		return CertHealthCritical
 	} else if daysUntilExpiry <= 7 {
 		return CertHealthWarning
 	}
-	
+
 	return CertHealthHealthy
 }
 
@@ -430,7 +430,7 @@ func (m *MTLSMonitor) startMonitoring() {
 	// Monitor certificates every 5 minutes
 	m.monitoringTicker = time.NewTicker(5 * time.Minute)
 	go m.monitoringLoop()
-	
+
 	// Check alerts every minute
 	m.alertTicker = time.NewTicker(1 * time.Minute)
 	go m.alertLoop()
@@ -439,7 +439,7 @@ func (m *MTLSMonitor) startMonitoring() {
 // monitoringLoop runs the main monitoring loop
 func (m *MTLSMonitor) monitoringLoop() {
 	defer m.monitoringTicker.Stop()
-	
+
 	for {
 		select {
 		case <-m.ctx.Done():
@@ -453,7 +453,7 @@ func (m *MTLSMonitor) monitoringLoop() {
 // alertLoop runs the alerting loop
 func (m *MTLSMonitor) alertLoop() {
 	defer m.alertTicker.Stop()
-	
+
 	for {
 		select {
 		case <-m.ctx.Done():
@@ -468,14 +468,14 @@ func (m *MTLSMonitor) alertLoop() {
 func (m *MTLSMonitor) performHealthChecks() {
 	m.certMu.Lock()
 	defer m.certMu.Unlock()
-	
+
 	for key, cert := range m.certificates {
 		oldHealth := cert.HealthStatus
 		cert.HealthStatus = m.calculateCertificateHealth(cert.Certificate)
 		cert.LastChecked = time.Now()
 		cert.IsExpired = time.Now().After(cert.NotAfter)
 		cert.ExpiresInDays = int(time.Until(cert.NotAfter).Hours() / 24)
-		
+
 		if oldHealth != cert.HealthStatus {
 			m.logger.Info("certificate health status changed",
 				"service_name", cert.ServiceName,
@@ -493,7 +493,7 @@ func (m *MTLSMonitor) checkAlerts() {
 		if !rule.Enabled {
 			continue
 		}
-		
+
 		if alert := m.evaluateAlertRule(&rule); alert != nil {
 			m.triggerAlert(alert)
 		}
@@ -518,35 +518,35 @@ func (m *MTLSMonitor) evaluateAlertRule(rule *AlertRule) *Alert {
 func (m *MTLSMonitor) checkCertificateExpiryAlert(rule *AlertRule) *Alert {
 	m.certMu.RLock()
 	defer m.certMu.RUnlock()
-	
+
 	for _, cert := range m.certificates {
 		if cert.ExpiresInDays <= int(rule.Condition.Threshold) {
 			return &Alert{
-				Name:      rule.Name,
-				Severity:  rule.Severity,
-				Message:   fmt.Sprintf("Certificate for %s (%s) expires in %d days", cert.ServiceName, cert.Role, cert.ExpiresInDays),
+				Name:     rule.Name,
+				Severity: rule.Severity,
+				Message:  fmt.Sprintf("Certificate for %s (%s) expires in %d days", cert.ServiceName, cert.Role, cert.ExpiresInDays),
 				Labels: map[string]string{
-					"service_name":   cert.ServiceName,
+					"service_name":  cert.ServiceName,
 					"role":          string(cert.Role),
 					"serial_number": cert.SerialNumber,
 				},
 				Timestamp: time.Now(),
 				Metadata: map[string]interface{}{
 					"certificate_path": cert.CertificatePath,
-					"expires_at":      cert.NotAfter,
-					"expires_in_days": cert.ExpiresInDays,
+					"expires_at":       cert.NotAfter,
+					"expires_in_days":  cert.ExpiresInDays,
 				},
 			}
 		}
 	}
-	
+
 	return nil
 }
 
 // checkConnectionFailureAlert checks for connection failure alerts
 func (m *MTLSMonitor) checkConnectionFailureAlert(rule *AlertRule) *Alert {
 	stats := m.GetConnectionStats()
-	
+
 	if stats.ErrorRate > rule.Condition.Threshold {
 		return &Alert{
 			Name:     rule.Name,
@@ -563,7 +563,7 @@ func (m *MTLSMonitor) checkConnectionFailureAlert(rule *AlertRule) *Alert {
 			},
 		}
 	}
-	
+
 	return nil
 }
 
@@ -579,7 +579,7 @@ func (m *MTLSMonitor) triggerAlert(alert *Alert) {
 		"severity", alert.Severity,
 		"message", alert.Message,
 		"labels", alert.Labels)
-	
+
 	// Here you would typically send the alert to your alerting system
 	// For now, we just log it
 }
@@ -587,17 +587,17 @@ func (m *MTLSMonitor) triggerAlert(alert *Alert) {
 // Close stops the monitor and cleans up resources
 func (m *MTLSMonitor) Close() error {
 	m.logger.Info("shutting down mTLS monitor")
-	
+
 	m.cancel()
-	
+
 	if m.monitoringTicker != nil {
 		m.monitoringTicker.Stop()
 	}
-	
+
 	if m.alertTicker != nil {
 		m.alertTicker.Stop()
 	}
-	
+
 	return nil
 }
 
@@ -646,23 +646,23 @@ type TLSConnectionInfo struct {
 
 // ConnectionStats holds connection statistics
 type ConnectionStats struct {
-	TotalConnections   int             `json:"total_connections"`
-	TotalRequests      int64           `json:"total_requests"`
-	TotalErrors        int64           `json:"total_errors"`
-	TotalBytesSent     int64           `json:"total_bytes_sent"`
-	TotalBytesReceived int64           `json:"total_bytes_received"`
-	ErrorRate          float64         `json:"error_rate"`
-	ServiceCounts      map[string]int  `json:"service_counts"`
-	TLSVersionCounts   map[uint16]int  `json:"tls_version_counts"`
-	CipherCounts       map[uint16]int  `json:"cipher_counts"`
+	TotalConnections   int            `json:"total_connections"`
+	TotalRequests      int64          `json:"total_requests"`
+	TotalErrors        int64          `json:"total_errors"`
+	TotalBytesSent     int64          `json:"total_bytes_sent"`
+	TotalBytesReceived int64          `json:"total_bytes_received"`
+	ErrorRate          float64        `json:"error_rate"`
+	ServiceCounts      map[string]int `json:"service_counts"`
+	TLSVersionCounts   map[uint16]int `json:"tls_version_counts"`
+	CipherCounts       map[uint16]int `json:"cipher_counts"`
 }
 
 // CertificateStats holds certificate statistics
 type CertificateStats struct {
-	TotalCertificates int                           `json:"total_certificates"`
-	ExpiredCount      int                           `json:"expired_count"`
-	ExpiringCount     int                           `json:"expiring_count"`
-	HealthCounts      map[CertificateHealth]int     `json:"health_counts"`
-	ServiceCounts     map[string]int                `json:"service_counts"`
-	RoleCounts        map[ServiceRole]int           `json:"role_counts"`
+	TotalCertificates int                       `json:"total_certificates"`
+	ExpiredCount      int                       `json:"expired_count"`
+	ExpiringCount     int                       `json:"expiring_count"`
+	HealthCounts      map[CertificateHealth]int `json:"health_counts"`
+	ServiceCounts     map[string]int            `json:"service_counts"`
+	RoleCounts        map[ServiceRole]int       `json:"role_counts"`
 }

@@ -96,7 +96,7 @@ func (suite *O2APITestSuite) TestServiceInformationEndpoint() {
 		suite.Assert().Equal("v1.0.0", serviceInfo["version"])
 		suite.Assert().Equal("v1.0", serviceInfo["apiVersion"])
 		suite.Assert().Equal("O-RAN.WG6.O2ims-Interface-v01.01", serviceInfo["specification"])
-		
+
 		// Validate capabilities
 		capabilities, ok := serviceInfo["capabilities"].([]interface{})
 		suite.Require().True(ok)
@@ -113,13 +113,13 @@ func (suite *O2APITestSuite) TestResourcePoolCRUD() {
 	suite.Run("Create resource pool", func() {
 		pool := &models.ResourcePool{
 			ResourcePoolID: poolID,
-			Name:          "Integration Test Pool",
-			Description:   "Resource pool for integration testing",
-			Location:      "us-west-2",
-			OCloudID:      "test-ocloud-1",
-			Provider:      "kubernetes",
-			Region:        "us-west-2",
-			Zone:          "us-west-2a",
+			Name:           "Integration Test Pool",
+			Description:    "Resource pool for integration testing",
+			Location:       "us-west-2",
+			OCloudID:       "test-ocloud-1",
+			Provider:       "kubernetes",
+			Region:         "us-west-2",
+			Zone:           "us-west-2a",
 			Capacity: &models.ResourceCapacity{
 				CPU: &models.ResourceMetric{
 					Total:       "100",
@@ -208,7 +208,7 @@ func (suite *O2APITestSuite) TestResourcePoolCRUD() {
 		updatedJSON, err := json.Marshal(pool)
 		suite.Require().NoError(err)
 
-		req, err := http.NewRequest("PUT", 
+		req, err := http.NewRequest("PUT",
 			suite.server.URL+"/o2ims/v1/resourcePools/"+poolID,
 			bytes.NewBuffer(updatedJSON))
 		suite.Require().NoError(err)
@@ -234,7 +234,7 @@ func (suite *O2APITestSuite) TestResourcePoolCRUD() {
 	})
 
 	suite.Run("Delete resource pool", func() {
-		req, err := http.NewRequest("DELETE", 
+		req, err := http.NewRequest("DELETE",
 			suite.server.URL+"/o2ims/v1/resourcePools/"+poolID, nil)
 		suite.Require().NoError(err)
 
@@ -257,27 +257,27 @@ func (suite *O2APITestSuite) TestResourceTypeCRUD() {
 	suite.Run("Create resource type", func() {
 		resourceType := &models.ResourceType{
 			ResourceTypeID: typeID,
-			Name:          "5G AMF Resource Type",
-			Description:   "Access and Mobility Management Function resource type",
-			Vendor:        "Nephoran",
-			Model:         "AMF-Standard-v1",
-			Version:       "1.2.0",
+			Name:           "5G AMF Resource Type",
+			Description:    "Access and Mobility Management Function resource type",
+			Vendor:         "Nephoran",
+			Model:          "AMF-Standard-v1",
+			Version:        "1.2.0",
 			Specifications: &models.ResourceTypeSpec{
 				Category:    "CNF",
 				SubCategory: "5G_CORE",
 				MinResources: map[string]string{
-					"cpu":              "1000m",
-					"memory":           "2Gi",
+					"cpu":               "1000m",
+					"memory":            "2Gi",
 					"ephemeral-storage": "10Gi",
 				},
 				MaxResources: map[string]string{
-					"cpu":              "8000m",
-					"memory":           "32Gi",
+					"cpu":               "8000m",
+					"memory":            "32Gi",
 					"ephemeral-storage": "100Gi",
 				},
 				DefaultResources: map[string]string{
-					"cpu":              "2000m",
-					"memory":           "4Gi",
+					"cpu":               "2000m",
+					"memory":            "4Gi",
 					"ephemeral-storage": "20Gi",
 				},
 				RequiredPorts: []models.PortSpec{
@@ -357,7 +357,7 @@ func (suite *O2APITestSuite) TestResourceTypeCRUD() {
 
 	// Cleanup
 	suite.Run("Delete resource type", func() {
-		req, err := http.NewRequest("DELETE", 
+		req, err := http.NewRequest("DELETE",
 			suite.server.URL+"/o2ims/v1/resourceTypes/"+typeID, nil)
 		suite.Require().NoError(err)
 
@@ -371,18 +371,18 @@ func (suite *O2APITestSuite) TestResourceTypeCRUD() {
 func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 	suite.Run("Create and manage resource instances", func() {
 		instanceID := "test-instance-" + strconv.FormatInt(time.Now().UnixNano(), 10)
-		
+
 		// Create resource instance
 		instance := &models.ResourceInstance{
-			ResourceInstanceID: instanceID,
-			ResourceTypeID:     "amf-resource-type",
-			ResourcePoolID:     "test-pool-1",
-			Name:               "test-amf-instance",
-			Description:        "Test AMF instance for integration testing",
-			State:              "INSTANTIATED",
-			OperationalStatus:  "ENABLED",
+			ResourceInstanceID:   instanceID,
+			ResourceTypeID:       "amf-resource-type",
+			ResourcePoolID:       "test-pool-1",
+			Name:                 "test-amf-instance",
+			Description:          "Test AMF instance for integration testing",
+			State:                "INSTANTIATED",
+			OperationalStatus:    "ENABLED",
 			AdministrativeStatus: "UNLOCKED",
-			UsageStatus:        "ACTIVE",
+			UsageStatus:          "ACTIVE",
 			Metadata: map[string]interface{}{
 				"deployment": "test-amf",
 				"namespace":  "o-ran-vnfs",
@@ -430,7 +430,7 @@ func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 		updatedJSON, err := json.Marshal(retrieved)
 		suite.Require().NoError(err)
 
-		req, err := http.NewRequest("PUT", 
+		req, err := http.NewRequest("PUT",
 			suite.server.URL+"/o2ims/v1/resourceInstances/"+instanceID,
 			bytes.NewBuffer(updatedJSON))
 		suite.Require().NoError(err)
@@ -454,7 +454,7 @@ func (suite *O2APITestSuite) TestResourceInstanceOperations() {
 		suite.Assert().Equal(float64(1), updated.Metadata["replicas"])
 
 		// Delete resource instance
-		req, err = http.NewRequest("DELETE", 
+		req, err = http.NewRequest("DELETE",
 			suite.server.URL+"/o2ims/v1/resourceInstances/"+instanceID, nil)
 		suite.Require().NoError(err)
 
@@ -470,24 +470,24 @@ func (suite *O2APITestSuite) TestQueryParametersAndFiltering() {
 	pools := []models.ResourcePool{
 		{
 			ResourcePoolID: "filter-test-1",
-			Name:          "Filter Test Pool 1",
-			Provider:      "kubernetes",
-			Location:      "us-east-1",
-			Zone:          "us-east-1a",
+			Name:           "Filter Test Pool 1",
+			Provider:       "kubernetes",
+			Location:       "us-east-1",
+			Zone:           "us-east-1a",
 		},
 		{
-			ResourcePoolID: "filter-test-2", 
-			Name:          "Filter Test Pool 2",
-			Provider:      "openstack",
-			Location:      "us-east-1",
-			Zone:          "us-east-1b",
+			ResourcePoolID: "filter-test-2",
+			Name:           "Filter Test Pool 2",
+			Provider:       "openstack",
+			Location:       "us-east-1",
+			Zone:           "us-east-1b",
 		},
 		{
 			ResourcePoolID: "filter-test-3",
-			Name:          "Filter Test Pool 3", 
-			Provider:      "kubernetes",
-			Location:      "us-west-2",
-			Zone:          "us-west-2a",
+			Name:           "Filter Test Pool 3",
+			Provider:       "kubernetes",
+			Location:       "us-west-2",
+			Zone:           "us-west-2a",
 		},
 	}
 
@@ -574,7 +574,7 @@ func (suite *O2APITestSuite) TestQueryParametersAndFiltering() {
 
 	// Cleanup
 	for _, pool := range pools {
-		req, _ := http.NewRequest("DELETE", 
+		req, _ := http.NewRequest("DELETE",
 			suite.server.URL+"/o2ims/v1/resourcePools/"+pool.ResourcePoolID, nil)
 		suite.client.Do(req) // Best effort cleanup
 	}
@@ -597,7 +597,7 @@ func (suite *O2APITestSuite) TestErrorHandling() {
 		var errorResp map[string]interface{}
 		err = json.Unmarshal(body, &errorResp)
 		suite.Require().NoError(err)
-		
+
 		suite.Assert().Equal("about:blank", errorResp["type"])
 		suite.Assert().Equal("Bad Request", errorResp["title"])
 		suite.Assert().Equal(float64(400), errorResp["status"])
@@ -615,7 +615,7 @@ func (suite *O2APITestSuite) TestErrorHandling() {
 		var errorResp map[string]interface{}
 		err = json.Unmarshal(body, &errorResp)
 		suite.Require().NoError(err)
-		
+
 		suite.Assert().Equal(float64(404), errorResp["status"])
 		suite.Assert().Equal("Not Found", errorResp["title"])
 	})
@@ -649,13 +649,13 @@ func (suite *O2APITestSuite) TestConcurrentOperations() {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
-				
+
 				poolID := fmt.Sprintf("concurrent-test-%d-%d", index, time.Now().UnixNano())
 				pool := &models.ResourcePool{
 					ResourcePoolID: poolID,
-					Name:          fmt.Sprintf("Concurrent Pool %d", index),
-					Provider:      "kubernetes",
-					OCloudID:      "test-ocloud",
+					Name:           fmt.Sprintf("Concurrent Pool %d", index),
+					Provider:       "kubernetes",
+					OCloudID:       "test-ocloud",
 				}
 
 				poolJSON, err := json.Marshal(pool)
@@ -689,13 +689,13 @@ func (suite *O2APITestSuite) TestConcurrentOperations() {
 
 		errorCount := len(errors)
 		successCount := len(successes)
-		
+
 		suite.Assert().LessOrEqual(errorCount, 2, "Should have minimal concurrent operation errors")
 		suite.Assert().GreaterOrEqual(successCount, 18, "Should have mostly successful operations")
 
 		// Cleanup
 		for poolID := range successes {
-			req, _ := http.NewRequest("DELETE", 
+			req, _ := http.NewRequest("DELETE",
 				suite.server.URL+"/o2ims/v1/resourcePools/"+poolID, nil)
 			suite.client.Do(req)
 		}

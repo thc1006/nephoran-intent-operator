@@ -183,20 +183,20 @@ func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 	if err != nil {
 		return err
 	}
-	
+
 	chunk := &shared.StreamingChunk{
 		Content:   response,
 		IsLast:    true,
 		Metadata:  make(map[string]interface{}),
 		Timestamp: time.Now(),
 	}
-	
+
 	select {
 	case chunks <- chunk:
 	case <-ctx.Done():
 		return ctx.Err()
 	}
-	
+
 	return nil
 }
 

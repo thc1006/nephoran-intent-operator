@@ -18,21 +18,21 @@ import (
 
 // AuditConfig holds audit logging configuration
 type AuditConfig struct {
-	Enabled              bool                    `json:"enabled"`
-	Level                AuditLevel              `json:"level"`
-	Destinations         []AuditDestination      `json:"destinations"`
-	BufferSize           int                     `json:"buffer_size"`
-	FlushInterval        time.Duration           `json:"flush_interval"`
-	IncludeRequestBody   bool                    `json:"include_request_body"`
-	IncludeResponseBody  bool                    `json:"include_response_body"`
-	MaskSensitiveData    bool                    `json:"mask_sensitive_data"`
-	SensitiveFields      []string                `json:"sensitive_fields"`
-	RetentionDays        int                     `json:"retention_days"`
-	SignEvents           bool                    `json:"sign_events"`
-	EncryptEvents        bool                    `json:"encrypt_events"`
-	ComplianceMode       ComplianceStandard      `json:"compliance_mode"`
-	AlertOnViolation     bool                    `json:"alert_on_violation"`
-	AlertThresholds      *AlertThresholds        `json:"alert_thresholds"`
+	Enabled             bool               `json:"enabled"`
+	Level               AuditLevel         `json:"level"`
+	Destinations        []AuditDestination `json:"destinations"`
+	BufferSize          int                `json:"buffer_size"`
+	FlushInterval       time.Duration      `json:"flush_interval"`
+	IncludeRequestBody  bool               `json:"include_request_body"`
+	IncludeResponseBody bool               `json:"include_response_body"`
+	MaskSensitiveData   bool               `json:"mask_sensitive_data"`
+	SensitiveFields     []string           `json:"sensitive_fields"`
+	RetentionDays       int                `json:"retention_days"`
+	SignEvents          bool               `json:"sign_events"`
+	EncryptEvents       bool               `json:"encrypt_events"`
+	ComplianceMode      ComplianceStandard `json:"compliance_mode"`
+	AlertOnViolation    bool               `json:"alert_on_violation"`
+	AlertThresholds     *AlertThresholds   `json:"alert_thresholds"`
 }
 
 // AuditLevel represents the audit logging level
@@ -48,13 +48,13 @@ const (
 
 // AuditDestination represents where audit logs are sent
 type AuditDestination struct {
-	Type           DestinationType           `json:"type"`
-	Endpoint       string                    `json:"endpoint"`
-	Format         AuditFormat               `json:"format"`
-	BatchSize      int                       `json:"batch_size"`
-	Timeout        time.Duration             `json:"timeout"`
-	RetryAttempts  int                       `json:"retry_attempts"`
-	Authentication map[string]string         `json:"authentication"`
+	Type           DestinationType   `json:"type"`
+	Endpoint       string            `json:"endpoint"`
+	Format         AuditFormat       `json:"format"`
+	BatchSize      int               `json:"batch_size"`
+	Timeout        time.Duration     `json:"timeout"`
+	RetryAttempts  int               `json:"retry_attempts"`
+	Authentication map[string]string `json:"authentication"`
 }
 
 // DestinationType represents the type of audit destination
@@ -75,8 +75,8 @@ type AuditFormat string
 
 const (
 	FormatJSON   AuditFormat = "json"
-	FormatCEF    AuditFormat = "cef"    // Common Event Format
-	FormatLEEF   AuditFormat = "leef"   // Log Event Extended Format
+	FormatCEF    AuditFormat = "cef"  // Common Event Format
+	FormatLEEF   AuditFormat = "leef" // Log Event Extended Format
 	FormatSyslog AuditFormat = "syslog"
 )
 
@@ -84,22 +84,22 @@ const (
 type ComplianceStandard string
 
 const (
-	ComplianceNone      ComplianceStandard = "none"
-	ComplianceSOC2      ComplianceStandard = "soc2"
-	ComplianceISO27001  ComplianceStandard = "iso27001"
-	CompliancePCIDSS    ComplianceStandard = "pci-dss"
-	ComplianceHIPAA     ComplianceStandard = "hipaa"
-	ComplianceGDPR      ComplianceStandard = "gdpr"
-	ComplianceNIST      ComplianceStandard = "nist"
+	ComplianceNone     ComplianceStandard = "none"
+	ComplianceSOC2     ComplianceStandard = "soc2"
+	ComplianceISO27001 ComplianceStandard = "iso27001"
+	CompliancePCIDSS   ComplianceStandard = "pci-dss"
+	ComplianceHIPAA    ComplianceStandard = "hipaa"
+	ComplianceGDPR     ComplianceStandard = "gdpr"
+	ComplianceNIST     ComplianceStandard = "nist"
 )
 
 // AlertThresholds defines thresholds for security alerts
 type AlertThresholds struct {
-	FailedAuthAttempts   int           `json:"failed_auth_attempts"`
-	TimeWindow           time.Duration `json:"time_window"`
-	SuspiciousPatterns   int           `json:"suspicious_patterns"`
-	RateLimitViolations  int           `json:"rate_limit_violations"`
-	UnauthorizedAccess   int           `json:"unauthorized_access"`
+	FailedAuthAttempts  int           `json:"failed_auth_attempts"`
+	TimeWindow          time.Duration `json:"time_window"`
+	SuspiciousPatterns  int           `json:"suspicious_patterns"`
+	RateLimitViolations int           `json:"rate_limit_violations"`
+	UnauthorizedAccess  int           `json:"unauthorized_access"`
 }
 
 // AuditEvent represents a security audit event
@@ -137,32 +137,32 @@ type EventType string
 
 const (
 	EventTypeAuthentication    EventType = "authentication"
-	EventTypeAuthorization      EventType = "authorization"
-	EventTypePolicyCreate       EventType = "policy_create"
-	EventTypePolicyUpdate       EventType = "policy_update"
-	EventTypePolicyDelete       EventType = "policy_delete"
-	EventTypePolicyAccess       EventType = "policy_access"
-	EventTypeDataAccess         EventType = "data_access"
-	EventTypeDataModification   EventType = "data_modification"
-	EventTypeConfigChange       EventType = "config_change"
-	EventTypeSecurityViolation  EventType = "security_violation"
-	EventTypeRateLimitExceeded  EventType = "rate_limit_exceeded"
-	EventTypeMaliciousActivity  EventType = "malicious_activity"
-	EventTypeSystemError        EventType = "system_error"
-	EventTypeAdminAction        EventType = "admin_action"
+	EventTypeAuthorization     EventType = "authorization"
+	EventTypePolicyCreate      EventType = "policy_create"
+	EventTypePolicyUpdate      EventType = "policy_update"
+	EventTypePolicyDelete      EventType = "policy_delete"
+	EventTypePolicyAccess      EventType = "policy_access"
+	EventTypeDataAccess        EventType = "data_access"
+	EventTypeDataModification  EventType = "data_modification"
+	EventTypeConfigChange      EventType = "config_change"
+	EventTypeSecurityViolation EventType = "security_violation"
+	EventTypeRateLimitExceeded EventType = "rate_limit_exceeded"
+	EventTypeMaliciousActivity EventType = "malicious_activity"
+	EventTypeSystemError       EventType = "system_error"
+	EventTypeAdminAction       EventType = "admin_action"
 )
 
 // EventSeverity represents the severity of an event
 type EventSeverity string
 
 const (
-	SeverityDebug    EventSeverity = "debug"
-	SeverityInfo     EventSeverity = "info"
-	SeverityNotice   EventSeverity = "notice"
-	SeverityWarning  EventSeverity = "warning"
-	SeverityError    EventSeverity = "error"
-	SeverityCritical EventSeverity = "critical"
-	SeverityAlert    EventSeverity = "alert"
+	SeverityDebug     EventSeverity = "debug"
+	SeverityInfo      EventSeverity = "info"
+	SeverityNotice    EventSeverity = "notice"
+	SeverityWarning   EventSeverity = "warning"
+	SeverityError     EventSeverity = "error"
+	SeverityCritical  EventSeverity = "critical"
+	SeverityAlert     EventSeverity = "alert"
 	SeverityEmergency EventSeverity = "emergency"
 )
 
@@ -179,13 +179,13 @@ const (
 
 // Actor represents who performed the action
 type Actor struct {
-	Type         ActorType         `json:"type"`
-	ID           string            `json:"id"`
-	Username     string            `json:"username,omitempty"`
-	Email        string            `json:"email,omitempty"`
-	ServiceName  string            `json:"service_name,omitempty"`
-	Roles        []string          `json:"roles,omitempty"`
-	Attributes   map[string]string `json:"attributes,omitempty"`
+	Type        ActorType         `json:"type"`
+	ID          string            `json:"id"`
+	Username    string            `json:"username,omitempty"`
+	Email       string            `json:"email,omitempty"`
+	ServiceName string            `json:"service_name,omitempty"`
+	Roles       []string          `json:"roles,omitempty"`
+	Attributes  map[string]string `json:"attributes,omitempty"`
 }
 
 // ActorType represents the type of actor
@@ -216,26 +216,26 @@ type Resource struct {
 
 // SecurityContext contains security-related context
 type SecurityContext struct {
-	ThreatLevel      string            `json:"threat_level,omitempty"`
-	RiskScore        float64           `json:"risk_score,omitempty"`
-	Violations       []string          `json:"violations,omitempty"`
-	ComplianceStatus map[string]bool   `json:"compliance_status,omitempty"`
-	Indicators       []string          `json:"indicators,omitempty"`
+	ThreatLevel      string          `json:"threat_level,omitempty"`
+	RiskScore        float64         `json:"risk_score,omitempty"`
+	Violations       []string        `json:"violations,omitempty"`
+	ComplianceStatus map[string]bool `json:"compliance_status,omitempty"`
+	Indicators       []string        `json:"indicators,omitempty"`
 }
 
 // AuditLogger manages security audit logging
 type AuditLogger struct {
-	config        *AuditConfig
-	logger        *logging.StructuredLogger
-	buffer        chan *AuditEvent
-	destinations  []AuditWriter
-	encryptor     EventEncryptor
-	signer        EventSigner
-	mu            sync.RWMutex
-	stats         *AuditStats
-	alertManager  *AlertManager
-	shutdown      chan bool
-	wg            sync.WaitGroup
+	config       *AuditConfig
+	logger       *logging.StructuredLogger
+	buffer       chan *AuditEvent
+	destinations []AuditWriter
+	encryptor    EventEncryptor
+	signer       EventSigner
+	mu           sync.RWMutex
+	stats        *AuditStats
+	alertManager *AlertManager
+	shutdown     chan bool
+	wg           sync.WaitGroup
 }
 
 // AuditWriter interface for writing audit events
@@ -258,13 +258,13 @@ type EventSigner interface {
 
 // AuditStats tracks audit logging statistics
 type AuditStats struct {
-	mu                sync.RWMutex
-	EventsLogged      int64
-	EventsDropped     int64
-	EventsByType      map[EventType]int64
-	EventsBySeverity  map[EventSeverity]int64
-	FailedWrites      int64
-	LastEventTime     time.Time
+	mu               sync.RWMutex
+	EventsLogged     int64
+	EventsDropped    int64
+	EventsByType     map[EventType]int64
+	EventsBySeverity map[EventSeverity]int64
+	FailedWrites     int64
+	LastEventTime    time.Time
 }
 
 // AlertManager manages security alerts
@@ -277,10 +277,10 @@ type AlertManager struct {
 
 // ViolationTracker tracks security violations
 type ViolationTracker struct {
-	Count      int
-	FirstSeen  time.Time
-	LastSeen   time.Time
-	Alerted    bool
+	Count     int
+	FirstSeen time.Time
+	LastSeen  time.Time
+	Alerted   bool
 }
 
 // NewAuditLogger creates a new audit logger

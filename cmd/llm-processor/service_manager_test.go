@@ -110,10 +110,10 @@ type MockStreamingProcessor struct {
 
 // StreamingRequest represents the structure expected by the streaming handler
 type StreamingRequest struct {
-	Query      string `json:"query"`
-	ModelName  string `json:"model_name"`
-	EnableRAG  bool   `json:"enable_rag"`
-	MaxTokens  int    `json:"max_tokens,omitempty"`
+	Query       string  `json:"query"`
+	ModelName   string  `json:"model_name"`
+	EnableRAG   bool    `json:"enable_rag"`
+	MaxTokens   int     `json:"max_tokens,omitempty"`
 	Temperature float64 `json:"temperature,omitempty"`
 }
 
@@ -126,10 +126,10 @@ type TestServiceManager struct {
 
 // Config represents the minimal configuration needed for testing
 type Config struct {
-	ServiceVersion    string
-	LLMModelName      string
-	LLMMaxTokens      int
-	StreamingEnabled  bool
+	ServiceVersion   string
+	LLMModelName     string
+	LLMMaxTokens     int
+	StreamingEnabled bool
 }
 
 // HandleStreamingRequest implements the streaming processor interface
@@ -240,8 +240,8 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 			// Create test configuration
 			config := &Config{
 				ServiceVersion:   "test-v1.0.0",
-				LLMModelName:    "gpt-4o-mini",
-				LLMMaxTokens:    2048,
+				LLMModelName:     "gpt-4o-mini",
+				LLMMaxTokens:     2048,
 				StreamingEnabled: true,
 			}
 
@@ -289,7 +289,7 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 
 			// Parse captured log entries
 			logOutput := logBuffer.String()
-			
+
 			// For empty query test, handler returns early with error, so no streaming log is generated
 			if strings.Contains(tt.name, "Empty query") && tt.expectError {
 				// Should have error log but no streaming request log
@@ -299,7 +299,7 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 				}
 				return // Skip the rest of the checks for this case
 			}
-			
+
 			require.NotEmpty(t, logOutput, "Expected log output to be captured")
 
 			// Split log entries by newlines and parse each JSON entry
@@ -322,30 +322,30 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 						foundStartingLog = true
 
 						// Verify structured attributes are present and correct
-						assert.Equal(t, tt.expectedQuery, logEntry["query"], 
+						assert.Equal(t, tt.expectedQuery, logEntry["query"],
 							"Query attribute should match expected value")
-						assert.Equal(t, tt.expectedModel, logEntry["model"], 
+						assert.Equal(t, tt.expectedModel, logEntry["model"],
 							"Model attribute should match expected value")
-						assert.Equal(t, tt.expectedEnableRAG, logEntry["enable_rag"], 
+						assert.Equal(t, tt.expectedEnableRAG, logEntry["enable_rag"],
 							"EnableRAG attribute should match expected value")
 
 						// Verify attribute types
-						assert.IsType(t, "", logEntry["query"], 
+						assert.IsType(t, "", logEntry["query"],
 							"Query should be serialized as string")
-						assert.IsType(t, "", logEntry["model"], 
+						assert.IsType(t, "", logEntry["model"],
 							"Model should be serialized as string")
-						assert.IsType(t, false, logEntry["enable_rag"], 
+						assert.IsType(t, false, logEntry["enable_rag"],
 							"EnableRAG should be serialized as boolean")
 
 						// Verify log level
-						assert.Equal(t, "INFO", logEntry["level"], 
+						assert.Equal(t, "INFO", logEntry["level"],
 							"Starting streaming request should be logged at INFO level")
 					}
 
 					// Check for error log entries if expected
 					if tt.expectError && strings.Contains(message, "Streaming request failed") {
 						foundErrorLog = true
-						assert.Equal(t, "ERROR", logEntry["level"], 
+						assert.Equal(t, "ERROR", logEntry["level"],
 							"Error should be logged at ERROR level")
 						assert.Contains(t, logEntry["error"], "mock streaming processor error",
 							"Error message should contain the mock error")
@@ -354,11 +354,11 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 			}
 
 			// Verify that the expected log entries were found
-			assert.True(t, foundStartingLog, 
+			assert.True(t, foundStartingLog,
 				"Should find 'Starting streaming request' log entry with structured attributes")
 
 			if tt.expectError {
-				assert.True(t, foundErrorLog, 
+				assert.True(t, foundErrorLog,
 					"Should find error log entry when streaming processor returns error")
 			}
 
@@ -375,9 +375,9 @@ func TestStructuredLoggingInStreamingHandler(t *testing.T) {
 						continue
 					}
 
-					if message, ok := logEntry["message"].(string); ok && 
+					if message, ok := logEntry["message"].(string); ok &&
 						strings.Contains(message, "Starting streaming request") {
-						
+
 						// Test that slog.String() attributes are properly serialized
 						queryAttr, queryExists := logEntry["query"]
 						require.True(t, queryExists, "Query attribute should exist")
@@ -425,7 +425,7 @@ func TestStreamingHandlerLoggingEdgeCases(t *testing.T) {
 		}
 
 		// Send malformed JSON
-		req := httptest.NewRequest(http.MethodPost, "/stream", 
+		req := httptest.NewRequest(http.MethodPost, "/stream",
 			bytes.NewBufferString(`{"invalid": json}`))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -513,8 +513,8 @@ func TestBufferLogHandlerFunctionality(t *testing.T) {
 		handler := NewBufferLogHandler(buffer)
 		logger := slog.New(handler)
 
-		logger.Info("Test message", 
-			slog.String("key1", "value1"), 
+		logger.Info("Test message",
+			slog.String("key1", "value1"),
 			slog.Int("key2", 42),
 			slog.Bool("key3", true))
 
@@ -703,16 +703,16 @@ func (m *MockCircuitBreakerManager) GetAllStats() map[string]interface{} {
 // TestCircuitBreakerHealthValidation tests the circuit breaker health check functionality
 func TestCircuitBreakerHealthValidation(t *testing.T) {
 	tests := []struct {
-		name           string
-		stats          map[string]interface{}
-		expectedStatus health.Status
+		name            string
+		stats           map[string]interface{}
+		expectedStatus  health.Status
 		expectedMessage string
 		expectUnhealthy bool
 	}{
 		{
-			name:           "No circuit breakers registered",
-			stats:          map[string]interface{}{},
-			expectedStatus: health.StatusHealthy,
+			name:            "No circuit breakers registered",
+			stats:           map[string]interface{}{},
+			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "No circuit breakers registered",
 			expectUnhealthy: false,
 		},
@@ -720,15 +720,15 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			name: "All circuit breakers operational (closed)",
 			stats: map[string]interface{}{
 				"service-a": map[string]interface{}{
-					"state": "closed",
+					"state":    "closed",
 					"failures": 0,
 				},
 				"service-b": map[string]interface{}{
-					"state": "closed",
+					"state":    "closed",
 					"failures": 1,
 				},
 			},
-			expectedStatus: health.StatusHealthy,
+			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
 			expectUnhealthy: false,
 		},
@@ -736,23 +736,23 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			name: "All circuit breakers half-open (should be operational)",
 			stats: map[string]interface{}{
 				"service-a": map[string]interface{}{
-					"state": "half-open",
+					"state":    "half-open",
 					"failures": 2,
 				},
 			},
-			expectedStatus: health.StatusHealthy,
-			expectedMessage: "All circuit breakers operational", 
+			expectedStatus:  health.StatusHealthy,
+			expectedMessage: "All circuit breakers operational",
 			expectUnhealthy: false,
 		},
 		{
 			name: "Single circuit breaker open",
 			stats: map[string]interface{}{
 				"service-a": map[string]interface{}{
-					"state": "open",
+					"state":    "open",
 					"failures": 5,
 				},
 			},
-			expectedStatus: health.StatusUnhealthy,
+			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-a]",
 			expectUnhealthy: true,
 		},
@@ -760,19 +760,19 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			name: "Multiple circuit breakers with one open",
 			stats: map[string]interface{}{
 				"service-a": map[string]interface{}{
-					"state": "closed",
+					"state":    "closed",
 					"failures": 0,
 				},
 				"service-b": map[string]interface{}{
-					"state": "open",
+					"state":    "open",
 					"failures": 5,
 				},
 				"service-c": map[string]interface{}{
-					"state": "half-open",
+					"state":    "half-open",
 					"failures": 2,
 				},
 			},
-			expectedStatus: health.StatusUnhealthy,
+			expectedStatus:  health.StatusUnhealthy,
 			expectedMessage: "Circuit breakers in open state: [service-b]",
 			expectUnhealthy: true,
 		},
@@ -780,15 +780,15 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			name: "Multiple open circuit breakers (should return all open breakers)",
 			stats: map[string]interface{}{
 				"service-a": map[string]interface{}{
-					"state": "open",
+					"state":    "open",
 					"failures": 3,
 				},
 				"service-b": map[string]interface{}{
-					"state": "open",
+					"state":    "open",
 					"failures": 7,
 				},
 			},
-			expectedStatus: health.StatusUnhealthy,
+			expectedStatus:  health.StatusUnhealthy,
 			expectUnhealthy: true,
 			// Message should contain all open breakers in array format
 		},
@@ -800,7 +800,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 					// Missing "state" field
 				},
 			},
-			expectedStatus: health.StatusHealthy,
+			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
 			expectUnhealthy: false,
 		},
@@ -809,11 +809,11 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			stats: map[string]interface{}{
 				"service-a": "invalid-data",
 				"service-b": map[string]interface{}{
-					"state": "closed",
+					"state":    "closed",
 					"failures": 0,
 				},
 			},
-			expectedStatus: health.StatusHealthy,
+			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All circuit breakers operational",
 			expectUnhealthy: false,
 		},
@@ -829,7 +829,7 @@ func TestCircuitBreakerHealthValidation(t *testing.T) {
 			// Create mock health checker
 			healthChecker := &health.HealthChecker{}
 
-			// Create service manager with mock components  
+			// Create service manager with mock components
 			sm := &ServiceManager{
 				circuitBreakerMgr: mockCBMgr,
 				healthChecker:     healthChecker,
@@ -875,7 +875,7 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 		mockCBMgr := &MockCircuitBreakerManager{
 			stats: map[string]interface{}{
 				"test-service": map[string]interface{}{
-					"state": "closed",
+					"state":    "closed",
 					"failures": 0,
 				},
 			},
@@ -893,7 +893,7 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 		// Verify circuit breaker health check was registered
 		ctx := context.Background()
 		result := sm.healthChecker.RunCheck(ctx, "circuit_breaker")
-		
+
 		require.NotNil(t, result)
 		assert.Equal(t, health.StatusHealthy, result.Status)
 		assert.Equal(t, "All circuit breakers operational", result.Message)
@@ -912,7 +912,7 @@ func TestRegisterHealthChecksIntegration(t *testing.T) {
 		// Verify circuit breaker health check was NOT registered
 		ctx := context.Background()
 		result := sm.healthChecker.RunCheck(ctx, "circuit_breaker")
-		
+
 		// Should be nil since the check wasn't registered
 		assert.Nil(t, result)
 	})
@@ -924,7 +924,7 @@ func BenchmarkCircuitBreakerHealthCheck(b *testing.B) {
 	stats := make(map[string]interface{})
 	for i := 0; i < 100; i++ {
 		stats[fmt.Sprintf("service-%d", i)] = map[string]interface{}{
-			"state": "closed",
+			"state":    "closed",
 			"failures": 0,
 		}
 	}

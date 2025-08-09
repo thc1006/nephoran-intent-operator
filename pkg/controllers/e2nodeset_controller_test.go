@@ -20,8 +20,6 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/testutils"
 )
 
-
-
 var _ = Describe("E2NodeSet Controller", func() {
 	var (
 		testNamespace string
@@ -65,7 +63,7 @@ var _ = Describe("E2NodeSet Controller", func() {
 
 			By("verifying ProvisionNode was called")
 			Expect(fakeManager.GetProvisionCallCount()).To(Equal(1))
-			
+
 			By("verifying the correct spec was passed to ProvisionNode")
 			lastSpec := fakeManager.GetLastProvisionedSpec()
 			Expect(lastSpec.Replicas).To(Equal(int32(3)))

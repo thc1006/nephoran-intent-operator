@@ -35,30 +35,30 @@ const (
 // O1InterfaceController reconciles O1Interface objects
 type O1InterfaceController struct {
 	client.Client
-	Log                    logr.Logger
-	Scheme                 *runtime.Scheme
-	o1AdapterManager       *O1AdapterManager
-	streamingService       *StreamingService
-	netconfServerManager   *NetconfServerManager
-	performanceManager     *CompletePerformanceManager
-	faultManager           *EnhancedFaultManager
-	configManager          *AdvancedConfigurationManager
-	securityManager        *ComprehensiveSecurityManager
-	accountingManager      *ComprehensiveAccountingManager
-	smoIntegration         *SMOIntegrationLayer
-	metrics                *O1ControllerMetrics
-	config                 *O1ControllerConfig
+	Log                  logr.Logger
+	Scheme               *runtime.Scheme
+	o1AdapterManager     *O1AdapterManager
+	streamingService     *StreamingService
+	netconfServerManager *NetconfServerManager
+	performanceManager   *CompletePerformanceManager
+	faultManager         *EnhancedFaultManager
+	configManager        *AdvancedConfigurationManager
+	securityManager      *ComprehensiveSecurityManager
+	accountingManager    *ComprehensiveAccountingManager
+	smoIntegration       *SMOIntegrationLayer
+	metrics              *O1ControllerMetrics
+	config               *O1ControllerConfig
 }
 
 // O1ControllerConfig holds configuration for the O1 controller
 type O1ControllerConfig struct {
-	ReconcileInterval      time.Duration `yaml:"reconcile_interval"`
-	MaxConcurrentReconciles int          `yaml:"max_concurrent_reconciles"`
-	EnableMetrics          bool         `yaml:"enable_metrics"`
-	EnableWebhooks         bool         `yaml:"enable_webhooks"`
-	DefaultO1Config        *O1Config    `yaml:"default_o1_config"`
-	HealthCheckInterval    time.Duration `yaml:"health_check_interval"`
-	StatusUpdateInterval   time.Duration `yaml:"status_update_interval"`
+	ReconcileInterval       time.Duration `yaml:"reconcile_interval"`
+	MaxConcurrentReconciles int           `yaml:"max_concurrent_reconciles"`
+	EnableMetrics           bool          `yaml:"enable_metrics"`
+	EnableWebhooks          bool          `yaml:"enable_webhooks"`
+	DefaultO1Config         *O1Config     `yaml:"default_o1_config"`
+	HealthCheckInterval     time.Duration `yaml:"health_check_interval"`
+	StatusUpdateInterval    time.Duration `yaml:"status_update_interval"`
 }
 
 // O1Config represents O1 interface configuration
@@ -77,40 +77,40 @@ type O1Config struct {
 
 // PerformanceConfig holds performance management configuration
 type PerformanceConfig struct {
-	Enabled           bool          `yaml:"enabled"`
+	Enabled            bool          `yaml:"enabled"`
 	CollectionInterval time.Duration `yaml:"collection_interval"`
-	RetentionPeriod   time.Duration `yaml:"retention_period"`
-	Metrics           []string      `yaml:"metrics"`
+	RetentionPeriod    time.Duration `yaml:"retention_period"`
+	Metrics            []string      `yaml:"metrics"`
 }
 
 // FaultConfig holds fault management configuration
 type FaultConfig struct {
-	Enabled               bool          `yaml:"enabled"`
-	AlarmForwarding       bool          `yaml:"alarm_forwarding"`
-	CorrelationEnabled    bool          `yaml:"correlation_enabled"`
-	NotificationTargets   []string      `yaml:"notification_targets"`
-	SeverityFilters       []string      `yaml:"severity_filters"`
+	Enabled             bool     `yaml:"enabled"`
+	AlarmForwarding     bool     `yaml:"alarm_forwarding"`
+	CorrelationEnabled  bool     `yaml:"correlation_enabled"`
+	NotificationTargets []string `yaml:"notification_targets"`
+	SeverityFilters     []string `yaml:"severity_filters"`
 }
 
 // SecurityConfig holds security configuration
 type SecurityConfig struct {
-	EnableAuthentication bool     `yaml:"enable_authentication"`
-	EnableAuthorization  bool     `yaml:"enable_authorization"`
-	RequiredRoles        []string `yaml:"required_roles"`
-	CertificateValidation bool    `yaml:"certificate_validation"`
-	AuditLogging         bool     `yaml:"audit_logging"`
+	EnableAuthentication  bool     `yaml:"enable_authentication"`
+	EnableAuthorization   bool     `yaml:"enable_authorization"`
+	RequiredRoles         []string `yaml:"required_roles"`
+	CertificateValidation bool     `yaml:"certificate_validation"`
+	AuditLogging          bool     `yaml:"audit_logging"`
 }
 
 // O1ControllerMetrics holds Prometheus metrics for the controller
 type O1ControllerMetrics struct {
-	ReconciliationsTotal    prometheus.CounterVec
-	ReconciliationDuration  prometheus.HistogramVec
-	ReconciliationErrors    prometheus.CounterVec
-	ActiveO1Interfaces      prometheus.Gauge
-	O1ConnectionsActive     prometheus.GaugeVec
-	ConfigurationChanges    prometheus.CounterVec
+	ReconciliationsTotal   prometheus.CounterVec
+	ReconciliationDuration prometheus.HistogramVec
+	ReconciliationErrors   prometheus.CounterVec
+	ActiveO1Interfaces     prometheus.Gauge
+	O1ConnectionsActive    prometheus.GaugeVec
+	ConfigurationChanges   prometheus.CounterVec
 	AlarmsSent             prometheus.CounterVec
-	PerformanceDataPoints   prometheus.CounterVec
+	PerformanceDataPoints  prometheus.CounterVec
 }
 
 // O1AdapterManager manages O1 adapter instances
@@ -136,13 +136,13 @@ type O1AdaptorInstance struct {
 
 // O1InstanceStatus represents the status of an O1 adapter instance
 type O1InstanceStatus struct {
-	Phase               O1InstancePhase `json:"phase"`
-	Message             string          `json:"message,omitempty"`
-	LastTransitionTime  metav1.Time     `json:"lastTransitionTime,omitempty"`
-	ActiveConnections   int32           `json:"activeConnections"`
-	ProcessedAlarms     int64           `json:"processedAlarms"`
-	ProcessedPerfData   int64           `json:"processedPerfData"`
-	ConfigurationVersion string         `json:"configurationVersion"`
+	Phase                O1InstancePhase `json:"phase"`
+	Message              string          `json:"message,omitempty"`
+	LastTransitionTime   metav1.Time     `json:"lastTransitionTime,omitempty"`
+	ActiveConnections    int32           `json:"activeConnections"`
+	ProcessedAlarms      int64           `json:"processedAlarms"`
+	ProcessedPerfData    int64           `json:"processedPerfData"`
+	ConfigurationVersion string          `json:"configurationVersion"`
 }
 
 // O1InstancePhase represents the phase of an O1 instance
@@ -269,14 +269,14 @@ func NewO1InterfaceController(
 	streamingService := NewStreamingService(streamingConfig, logger.WithName("streaming"))
 
 	return &O1InterfaceController{
-		Client:                 client,
-		Log:                   logger,
-		Scheme:                scheme,
-		o1AdapterManager:      o1AdapterManager,
-		streamingService:      streamingService,
-		netconfServerManager:  netconfServerManager,
-		metrics:               metrics,
-		config:                config,
+		Client:               client,
+		Log:                  logger,
+		Scheme:               scheme,
+		o1AdapterManager:     o1AdapterManager,
+		streamingService:     streamingService,
+		netconfServerManager: netconfServerManager,
+		metrics:              metrics,
+		config:               config,
 	}
 }
 
@@ -500,12 +500,12 @@ func (r *O1InterfaceController) getOrCreateAdapterInstance(ctx context.Context, 
 
 	// Create new O1 adapter configuration
 	o1Config := &O1AdaptorConfig{
-		NetworkFunction:       o1Interface.Spec.NetworkFunction,
-		NetconfServerConfig:   r.buildNetconfServerConfig(o1Interface),
-		PerformanceConfig:     r.buildPerformanceConfig(o1Interface),
-		FaultConfig:          r.buildFaultConfig(o1Interface),
-		SecurityConfig:       r.buildSecurityConfig(o1Interface),
-		StreamingConfig:      r.buildStreamingConfig(o1Interface),
+		NetworkFunction:     o1Interface.Spec.NetworkFunction,
+		NetconfServerConfig: r.buildNetconfServerConfig(o1Interface),
+		PerformanceConfig:   r.buildPerformanceConfig(o1Interface),
+		FaultConfig:         r.buildFaultConfig(o1Interface),
+		SecurityConfig:      r.buildSecurityConfig(o1Interface),
+		StreamingConfig:     r.buildStreamingConfig(o1Interface),
 	}
 
 	// Create O1 adapter
@@ -516,16 +516,16 @@ func (r *O1InterfaceController) getOrCreateAdapterInstance(ctx context.Context, 
 
 	// Create adapter instance
 	instance := &O1AdaptorInstance{
-		Name:             o1Interface.Name,
-		Namespace:        o1Interface.Namespace,
-		NetworkFunction:  o1Interface.Spec.NetworkFunction,
-		O1Adaptor:        o1Adaptor,
+		Name:            o1Interface.Name,
+		Namespace:       o1Interface.Namespace,
+		NetworkFunction: o1Interface.Spec.NetworkFunction,
+		O1Adaptor:       o1Adaptor,
 		Config:          &o1Interface.Spec.O1Config,
 		CreatedAt:       time.Now(),
 		LastUpdate:      time.Now(),
 		Status: O1InstanceStatus{
-			Phase:               O1InstancePhasePending,
-			LastTransitionTime:  metav1.Now(),
+			Phase:                O1InstancePhasePending,
+			LastTransitionTime:   metav1.Now(),
 			ConfigurationVersion: "1",
 		},
 	}
@@ -585,10 +585,10 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 	if o1Interface.Spec.O1Config.FaultManagement.Enabled {
 		faultConfig := &EnhancedFaultManagerConfig{
 			EnableRealTimeStreaming: true,
-			EnableCorrelation:      o1Interface.Spec.O1Config.FaultManagement.CorrelationEnabled,
+			EnableCorrelation:       o1Interface.Spec.O1Config.FaultManagement.CorrelationEnabled,
 			EnableRootCauseAnalysis: true,
-			NotificationTargets:    o1Interface.Spec.O1Config.FaultManagement.NotificationTargets,
-			SeverityFilters:        o1Interface.Spec.O1Config.FaultManagement.SeverityFilters,
+			NotificationTargets:     o1Interface.Spec.O1Config.FaultManagement.NotificationTargets,
+			SeverityFilters:         o1Interface.Spec.O1Config.FaultManagement.SeverityFilters,
 		}
 
 		faultManager, err := NewEnhancedFaultManager(faultConfig, r.Log.WithName("fault-manager"))
@@ -603,12 +603,12 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 	// Initialize performance manager
 	if o1Interface.Spec.O1Config.PerformanceCollection.Enabled {
 		perfConfig := &CompletePerformanceManagerConfig{
-			CollectionInterval:    o1Interface.Spec.O1Config.PerformanceCollection.CollectionInterval,
-			RetentionPeriod:      o1Interface.Spec.O1Config.PerformanceCollection.RetentionPeriod,
-			EnableRealTimeStreaming: true,
-			EnableAnomalyDetection: true,
+			CollectionInterval:       o1Interface.Spec.O1Config.PerformanceCollection.CollectionInterval,
+			RetentionPeriod:          o1Interface.Spec.O1Config.PerformanceCollection.RetentionPeriod,
+			EnableRealTimeStreaming:  true,
+			EnableAnomalyDetection:   true,
 			EnableGrafanaIntegration: true,
-			Metrics:              o1Interface.Spec.O1Config.PerformanceCollection.Metrics,
+			Metrics:                  o1Interface.Spec.O1Config.PerformanceCollection.Metrics,
 		}
 
 		perfManager, err := NewCompletePerformanceManager(perfConfig, r.Log.WithName("performance-manager"))
@@ -622,11 +622,11 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 
 	// Initialize configuration manager
 	configMgrConfig := &AdvancedConfigurationManagerConfig{
-		EnableVersioning:      true,
+		EnableVersioning:        true,
 		EnableGitOpsIntegration: true,
-		EnableDriftDetection: true,
-		EnableBulkOperations: true,
-		MaxVersionHistory:    100,
+		EnableDriftDetection:    true,
+		EnableBulkOperations:    true,
+		MaxVersionHistory:       100,
 	}
 
 	configManager, err := NewAdvancedConfigurationManager(configMgrConfig, r.Log.WithName("config-manager"))
@@ -641,12 +641,12 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 	if o1Interface.Spec.O1Config.SecurityPolicies.EnableAuthentication {
 		securityConfig := &ComprehensiveSecurityManagerConfig{
 			EnableCertificateManagement: true,
-			EnableIntrusionDetection:   true,
-			EnableComplianceMonitoring: true,
-			EnableIncidentResponse:     true,
-			RequiredRoles:             o1Interface.Spec.O1Config.SecurityPolicies.RequiredRoles,
-			CertificateValidation:     o1Interface.Spec.O1Config.SecurityPolicies.CertificateValidation,
-			AuditLogging:             o1Interface.Spec.O1Config.SecurityPolicies.AuditLogging,
+			EnableIntrusionDetection:    true,
+			EnableComplianceMonitoring:  true,
+			EnableIncidentResponse:      true,
+			RequiredRoles:               o1Interface.Spec.O1Config.SecurityPolicies.RequiredRoles,
+			CertificateValidation:       o1Interface.Spec.O1Config.SecurityPolicies.CertificateValidation,
+			AuditLogging:                o1Interface.Spec.O1Config.SecurityPolicies.AuditLogging,
 		}
 
 		securityManager, err := NewComprehensiveSecurityManager(securityConfig, r.Log.WithName("security-manager"))
@@ -661,11 +661,11 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 	// Initialize accounting manager
 	accountingConfig := &ComprehensiveAccountingManagerConfig{
 		EnableUsageTracking:   true,
-		EnableBilling:        true,
-		EnableFraudDetection: true,
+		EnableBilling:         true,
+		EnableFraudDetection:  true,
 		EnableRevenueTracking: true,
-		BillingInterval:      time.Hour,
-		ReportingInterval:    24 * time.Hour,
+		BillingInterval:       time.Hour,
+		ReportingInterval:     24 * time.Hour,
 	}
 
 	accountingManager, err := NewComprehensiveAccountingManager(accountingConfig, r.Log.WithName("accounting-manager"))

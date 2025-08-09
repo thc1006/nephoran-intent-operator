@@ -20,93 +20,93 @@ import (
 
 // PolicyEngine enforces certificate security policies
 type PolicyEngine struct {
-	config          *PolicyConfig
-	logger          *logging.StructuredLogger
-	rules           map[string]PolicyRule
-	pinningStore    *CertificatePinningStore
+	config           *PolicyConfig
+	logger           *logging.StructuredLogger
+	rules            map[string]PolicyRule
+	pinningStore     *CertificatePinningStore
 	customValidators map[string]CustomPolicyValidator
-	oranValidator   *ORANPolicyValidator
-	metrics         *PolicyMetrics
-	mu              sync.RWMutex
+	oranValidator    *ORANPolicyValidator
+	metrics          *PolicyMetrics
+	mu               sync.RWMutex
 }
 
 // PolicyConfig configures the policy engine
 type PolicyConfig struct {
-	Enabled                   bool                `yaml:"enabled"`
-	Rules                     []PolicyRule        `yaml:"rules"`
-	CertificatePinning        bool                `yaml:"certificate_pinning"`
-	AlgorithmStrengthCheck    bool                `yaml:"algorithm_strength_check"`
-	MinimumRSAKeySize         int                 `yaml:"minimum_rsa_key_size"`
-	AllowedECCurves          []string            `yaml:"allowed_ec_curves"`
-	RequireExtendedValidation bool                `yaml:"require_extended_validation"`
-	ServicePolicies          map[string]*ServicePolicy `yaml:"service_policies"`
-	EnforcementMode          string              `yaml:"enforcement_mode"` // strict, permissive, audit
-	CustomValidators         []string            `yaml:"custom_validators"`
-	ORANCompliance          *ORANComplianceConfig `yaml:"oran_compliance"`
+	Enabled                   bool                      `yaml:"enabled"`
+	Rules                     []PolicyRule              `yaml:"rules"`
+	CertificatePinning        bool                      `yaml:"certificate_pinning"`
+	AlgorithmStrengthCheck    bool                      `yaml:"algorithm_strength_check"`
+	MinimumRSAKeySize         int                       `yaml:"minimum_rsa_key_size"`
+	AllowedECCurves           []string                  `yaml:"allowed_ec_curves"`
+	RequireExtendedValidation bool                      `yaml:"require_extended_validation"`
+	ServicePolicies           map[string]*ServicePolicy `yaml:"service_policies"`
+	EnforcementMode           string                    `yaml:"enforcement_mode"` // strict, permissive, audit
+	CustomValidators          []string                  `yaml:"custom_validators"`
+	ORANCompliance            *ORANComplianceConfig     `yaml:"oran_compliance"`
 }
 
 // ServicePolicy defines policies for specific services
 type ServicePolicy struct {
-	ServiceName           string              `yaml:"service_name"`
-	Namespace            string              `yaml:"namespace"`
-	PinnedCertificates   []string            `yaml:"pinned_certificates"`
-	RequiredKeyUsage     []x509.KeyUsage     `yaml:"required_key_usage"`
-	RequiredExtKeyUsage  []x509.ExtKeyUsage  `yaml:"required_ext_key_usage"`
-	AllowedDNSNames      []string            `yaml:"allowed_dns_names"`
-	AllowedIPAddresses   []string            `yaml:"allowed_ip_addresses"`
-	MinimumValidityDays  int                 `yaml:"minimum_validity_days"`
-	MaximumValidityDays  int                 `yaml:"maximum_validity_days"`
-	CustomRules          []PolicyRule        `yaml:"custom_rules"`
+	ServiceName         string             `yaml:"service_name"`
+	Namespace           string             `yaml:"namespace"`
+	PinnedCertificates  []string           `yaml:"pinned_certificates"`
+	RequiredKeyUsage    []x509.KeyUsage    `yaml:"required_key_usage"`
+	RequiredExtKeyUsage []x509.ExtKeyUsage `yaml:"required_ext_key_usage"`
+	AllowedDNSNames     []string           `yaml:"allowed_dns_names"`
+	AllowedIPAddresses  []string           `yaml:"allowed_ip_addresses"`
+	MinimumValidityDays int                `yaml:"minimum_validity_days"`
+	MaximumValidityDays int                `yaml:"maximum_validity_days"`
+	CustomRules         []PolicyRule       `yaml:"custom_rules"`
 }
 
 // ORANComplianceConfig configures O-RAN compliance checking
 type ORANComplianceConfig struct {
-	Enabled                bool     `yaml:"enabled"`
-	RequiredExtensions     []string `yaml:"required_extensions"`
-	ComponentValidation    bool     `yaml:"component_validation"`
-	NamingConvention      string   `yaml:"naming_convention"`
-	MinimumSecurityLevel  int      `yaml:"minimum_security_level"`
-	ForbiddenAlgorithms   []string `yaml:"forbidden_algorithms"`
-	RequireHSMProtection  bool     `yaml:"require_hsm_protection"`
+	Enabled              bool     `yaml:"enabled"`
+	RequiredExtensions   []string `yaml:"required_extensions"`
+	ComponentValidation  bool     `yaml:"component_validation"`
+	NamingConvention     string   `yaml:"naming_convention"`
+	MinimumSecurityLevel int      `yaml:"minimum_security_level"`
+	ForbiddenAlgorithms  []string `yaml:"forbidden_algorithms"`
+	RequireHSMProtection bool     `yaml:"require_hsm_protection"`
 }
 
 // CertificatePinningStore manages certificate pins
 type CertificatePinningStore struct {
-	pins            map[string]*CertificatePin
-	dynamicPins     map[string]*DynamicPin
-	backupPins      map[string][]*CertificatePin
+	pins             map[string]*CertificatePin
+	dynamicPins      map[string]*DynamicPin
+	backupPins       map[string][]*CertificatePin
 	rotationSchedule map[string]*PinRotationSchedule
-	mu              sync.RWMutex
+	mu               sync.RWMutex
 }
 
 // CertificatePin represents a pinned certificate
 type CertificatePin struct {
-	ServiceName      string    `json:"service_name"`
-	Fingerprint      string    `json:"fingerprint"`
-	PublicKeyHash    string    `json:"public_key_hash"`
-	Algorithm        string    `json:"algorithm"`
-	CreatedAt        time.Time `json:"created_at"`
-	ExpiresAt        time.Time `json:"expires_at"`
-	AllowSubdomains  bool      `json:"allow_subdomains"`
-	IncludeBackup    bool      `json:"include_backup"`
+	ServiceName     string    `json:"service_name"`
+	Fingerprint     string    `json:"fingerprint"`
+	PublicKeyHash   string    `json:"public_key_hash"`
+	Algorithm       string    `json:"algorithm"`
+	CreatedAt       time.Time `json:"created_at"`
+	ExpiresAt       time.Time `json:"expires_at"`
+	AllowSubdomains bool      `json:"allow_subdomains"`
+	IncludeBackup   bool      `json:"include_backup"`
 }
 
 // DynamicPin represents a dynamically updated pin
 type DynamicPin struct {
-	Pattern         string    `json:"pattern"`
+	Pattern         string        `json:"pattern"`
 	UpdateInterval  time.Duration `json:"update_interval"`
-	LastUpdate      time.Time `json:"last_update"`
-	CurrentPins     []string  `json:"current_pins"`
+	LastUpdate      time.Time     `json:"last_update"`
+	CurrentPins     []string      `json:"current_pins"`
 	ValidationCount atomic.Uint64
 }
 
 // PinRotationSchedule manages pin rotation
 type PinRotationSchedule struct {
-	ServiceName     string        `json:"service_name"`
+	ServiceName      string        `json:"service_name"`
 	RotationInterval time.Duration `json:"rotation_interval"`
-	NextRotation    time.Time     `json:"next_rotation"`
-	BackupPinCount  int           `json:"backup_pin_count"`
-	AutoRotate      bool          `json:"auto_rotate"`
+	NextRotation     time.Time     `json:"next_rotation"`
+	BackupPinCount   int           `json:"backup_pin_count"`
+	AutoRotate       bool          `json:"auto_rotate"`
 }
 
 // CustomPolicyValidator interface for custom validators
@@ -127,12 +127,12 @@ type ORANPolicyValidator struct {
 
 // ComponentRule defines rules for O-RAN components
 type ComponentRule struct {
-	ComponentType    string   `yaml:"component_type"`
-	RequiredSANs     []string `yaml:"required_sans"`
-	ForbiddenSANs    []string `yaml:"forbidden_sans"`
-	MinKeySize       int      `yaml:"min_key_size"`
-	RequiredOUs      []string `yaml:"required_ous"`
-	ValidityPeriod   int      `yaml:"validity_period"`
+	ComponentType  string   `yaml:"component_type"`
+	RequiredSANs   []string `yaml:"required_sans"`
+	ForbiddenSANs  []string `yaml:"forbidden_sans"`
+	MinKeySize     int      `yaml:"min_key_size"`
+	RequiredOUs    []string `yaml:"required_ous"`
+	ValidityPeriod int      `yaml:"validity_period"`
 }
 
 // NamingConventionValidator validates naming conventions
@@ -157,23 +157,23 @@ type SecurityLevelAnalyzer struct {
 
 // SecurityCriterion defines security level criteria
 type SecurityCriterion struct {
-	Name        string      `yaml:"name"`
+	Name        string `yaml:"name"`
 	Check       func(*x509.Certificate) bool
-	Weight      float64     `yaml:"weight"`
-	Required    bool        `yaml:"required"`
-	Description string      `yaml:"description"`
+	Weight      float64 `yaml:"weight"`
+	Required    bool    `yaml:"required"`
+	Description string  `yaml:"description"`
 }
 
 // PolicyMetrics tracks policy enforcement metrics
 type PolicyMetrics struct {
 	TotalValidations    atomic.Uint64
 	PolicyViolations    atomic.Uint64
-	PinningHits        atomic.Uint64
-	PinningMisses      atomic.Uint64
+	PinningHits         atomic.Uint64
+	PinningMisses       atomic.Uint64
 	AlgorithmViolations atomic.Uint64
-	ORANViolations     atomic.Uint64
-	CustomViolations   atomic.Uint64
-	EnforcementActions atomic.Uint64
+	ORANViolations      atomic.Uint64
+	CustomViolations    atomic.Uint64
+	EnforcementActions  atomic.Uint64
 }
 
 // NewPolicyEngine creates a new policy engine
@@ -203,7 +203,7 @@ func NewPolicyEngine(config *PolicyConfig, logger *logging.StructuredLogger) (*P
 			backupPins:       make(map[string][]*CertificatePin),
 			rotationSchedule: make(map[string]*PinRotationSchedule),
 		}
-		
+
 		// Load initial pins from service policies
 		engine.loadServicePins()
 	}
@@ -211,11 +211,11 @@ func NewPolicyEngine(config *PolicyConfig, logger *logging.StructuredLogger) (*P
 	// Initialize O-RAN validator
 	if config.ORANCompliance != nil && config.ORANCompliance.Enabled {
 		engine.oranValidator = &ORANPolicyValidator{
-			config:          config.ORANCompliance,
-			componentRules:  make(map[string]*ComponentRule),
-			namingValidator: engine.createNamingValidator(),
+			config:           config.ORANCompliance,
+			componentRules:   make(map[string]*ComponentRule),
+			namingValidator:  engine.createNamingValidator(),
 			securityAnalyzer: engine.createSecurityAnalyzer(),
-			logger:          logger,
+			logger:           logger,
 		}
 	}
 
@@ -338,10 +338,10 @@ func (pe *PolicyEngine) ValidateServiceCertificate(ctx context.Context, cert *x5
 func (pe *PolicyEngine) validateAlgorithmStrength(cert *x509.Certificate, result *PolicyValidationResult) {
 	// Check signature algorithm
 	weakAlgorithms := map[x509.SignatureAlgorithm]bool{
-		x509.MD2WithRSA:  true,
-		x509.MD5WithRSA:  true,
-		x509.SHA1WithRSA: true,
-		x509.DSAWithSHA1: true,
+		x509.MD2WithRSA:    true,
+		x509.MD5WithRSA:    true,
+		x509.SHA1WithRSA:   true,
+		x509.DSAWithSHA1:   true,
 		x509.ECDSAWithSHA1: true,
 	}
 
@@ -459,7 +459,7 @@ func (pe *PolicyEngine) checkDynamicPins(cert *x509.Certificate, result *PolicyV
 		matched, _ := regexp.MatchString(pattern, cert.Subject.CommonName)
 		if matched {
 			dynamicPin.ValidationCount.Add(1)
-			
+
 			fingerprint := pe.calculateFingerprint(cert)
 			found := false
 			for _, pin := range dynamicPin.CurrentPins {
@@ -468,7 +468,7 @@ func (pe *PolicyEngine) checkDynamicPins(cert *x509.Certificate, result *PolicyV
 					break
 				}
 			}
-			
+
 			if !found {
 				warning := PolicyWarning{
 					Field:       "dynamic_pin",
@@ -488,7 +488,7 @@ func (pe *PolicyEngine) checkDynamicPins(cert *x509.Certificate, result *PolicyV
 func (pe *PolicyEngine) validateExtendedValidation(cert *x509.Certificate, result *PolicyValidationResult) {
 	// Check for EV OID in certificate policies
 	evOIDs := []string{
-		"2.23.140.1.1",     // CA/Browser Forum EV OID
+		"2.23.140.1.1",          // CA/Browser Forum EV OID
 		"1.3.6.1.4.1.34697.1.1", // Example vendor EV OID
 	}
 
@@ -560,7 +560,7 @@ func (pe *PolicyEngine) validateORANCompliance(ctx context.Context, cert *x509.C
 				break
 			}
 		}
-		
+
 		if !hasExtension {
 			violation := PolicyViolation{
 				Severity:    SeverityError,
@@ -624,7 +624,7 @@ func (pe *PolicyEngine) validateORANCompliance(ctx context.Context, cert *x509.C
 
 func (pe *PolicyEngine) validateORANNaming(cert *x509.Certificate, result *PolicyValidationResult) {
 	validator := pe.oranValidator.namingValidator
-	
+
 	for _, rule := range validator.rules {
 		var value string
 		switch rule.Field {
@@ -676,7 +676,7 @@ func (pe *PolicyEngine) validateHSMProtection(cert *x509.Certificate, result *Po
 	// Check for HSM protection indicators
 	// This might be in custom extensions or key usage
 	// Simplified implementation
-	
+
 	hasHSMIndicator := false
 	for _, ext := range cert.Extensions {
 		// Check for HSM protection OID (vendor-specific)
@@ -785,7 +785,7 @@ func (pe *PolicyEngine) validateAllowedDNSNames(cert *x509.Certificate, policy *
 
 func (pe *PolicyEngine) validateValidityPeriod(cert *x509.Certificate, policy *ServicePolicy, result *PolicyValidationResult) {
 	validityDays := int(cert.NotAfter.Sub(cert.NotBefore).Hours() / 24)
-	
+
 	if policy.MinimumValidityDays > 0 && validityDays < policy.MinimumValidityDays {
 		violation := PolicyViolation{
 			Severity:    SeverityWarning,
@@ -797,7 +797,7 @@ func (pe *PolicyEngine) validateValidityPeriod(cert *x509.Certificate, policy *S
 		result.Violations = append(result.Violations, violation)
 		result.Score -= 5.0
 	}
-	
+
 	if policy.MaximumValidityDays > 0 && validityDays > policy.MaximumValidityDays {
 		violation := PolicyViolation{
 			Severity:    SeverityError,
@@ -823,7 +823,7 @@ func (pe *PolicyEngine) applyPolicyRule(cert *x509.Certificate, rule *PolicyRule
 func (pe *PolicyEngine) getServicePolicy(serviceName, namespace string) *ServicePolicy {
 	pe.mu.RLock()
 	defer pe.mu.RUnlock()
-	
+
 	key := fmt.Sprintf("%s/%s", namespace, serviceName)
 	return pe.config.ServicePolicies[key]
 }
@@ -832,9 +832,9 @@ func (pe *PolicyEngine) loadServicePins() {
 	for _, policy := range pe.config.ServicePolicies {
 		for _, pinHash := range policy.PinnedCertificates {
 			pin := &CertificatePin{
-				ServiceName:   policy.ServiceName,
-				Fingerprint:   pinHash,
-				CreatedAt:     time.Now(),
+				ServiceName: policy.ServiceName,
+				Fingerprint: pinHash,
+				CreatedAt:   time.Now(),
 			}
 			pe.pinningStore.pins[policy.ServiceName] = pin
 		}
@@ -866,7 +866,7 @@ func (pe *PolicyEngine) createSecurityAnalyzer() *SecurityLevelAnalyzer {
 		criteria: make(map[int][]SecurityCriterion),
 		weights:  make(map[string]float64),
 	}
-	
+
 	// Define security level criteria
 	analyzer.criteria[1] = []SecurityCriterion{
 		{
@@ -889,13 +889,13 @@ func (pe *PolicyEngine) createSecurityAnalyzer() *SecurityLevelAnalyzer {
 			Required: true,
 		},
 	}
-	
+
 	return analyzer
 }
 
 func (sa *SecurityLevelAnalyzer) AnalyzeSecurityLevel(cert *x509.Certificate) int {
 	maxLevel := 0
-	
+
 	for level, criteria := range sa.criteria {
 		passed := true
 		for _, criterion := range criteria {
@@ -908,7 +908,7 @@ func (sa *SecurityLevelAnalyzer) AnalyzeSecurityLevel(cert *x509.Certificate) in
 			maxLevel = level
 		}
 	}
-	
+
 	return maxLevel
 }
 
@@ -921,18 +921,18 @@ func (pe *PolicyEngine) registerCustomValidator(name string) error {
 func (pe *PolicyEngine) mergeValidationResults(target, source *PolicyValidationResult) {
 	target.Violations = append(target.Violations, source.Violations...)
 	target.Warnings = append(target.Warnings, source.Warnings...)
-	
+
 	if !source.Valid {
 		target.Valid = false
 	}
-	
+
 	// Merge scores (weighted average)
 	target.Score = (target.Score + source.Score) / 2
 }
 
 func (pe *PolicyEngine) calculateScore(result *PolicyValidationResult) float64 {
 	score := 100.0
-	
+
 	for _, violation := range result.Violations {
 		switch violation.Severity {
 		case SeverityCritical:
@@ -943,21 +943,21 @@ func (pe *PolicyEngine) calculateScore(result *PolicyValidationResult) float64 {
 			score -= 5.0
 		}
 	}
-	
+
 	for range result.Warnings {
 		score -= 2.0
 	}
-	
+
 	if score < 0 {
 		score = 0
 	}
-	
+
 	return score
 }
 
 func (pe *PolicyEngine) enforcePolicy(cert *x509.Certificate, result *PolicyValidationResult) {
 	pe.metrics.EnforcementActions.Add(1)
-	
+
 	switch pe.config.EnforcementMode {
 	case "strict":
 		// Block certificate usage
@@ -982,20 +982,20 @@ func (pe *PolicyEngine) enforcePolicy(cert *x509.Certificate, result *PolicyVali
 func (ps *CertificatePinningStore) GetPin(serviceName string) *CertificatePin {
 	ps.mu.RLock()
 	defer ps.mu.RUnlock()
-	
+
 	return ps.pins[serviceName]
 }
 
 func (ps *CertificatePinningStore) AddPin(pin *CertificatePin) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
-	
+
 	ps.pins[pin.ServiceName] = pin
-	
+
 	// Add to backup pins if configured
 	if pin.IncludeBackup {
 		ps.backupPins[pin.ServiceName] = append(ps.backupPins[pin.ServiceName], pin)
-		
+
 		// Keep only last 3 backup pins
 		if len(ps.backupPins[pin.ServiceName]) > 3 {
 			ps.backupPins[pin.ServiceName] = ps.backupPins[pin.ServiceName][1:]
@@ -1006,14 +1006,14 @@ func (ps *CertificatePinningStore) AddPin(pin *CertificatePin) {
 func (ps *CertificatePinningStore) RemovePin(serviceName string) {
 	ps.mu.Lock()
 	defer ps.mu.Unlock()
-	
+
 	delete(ps.pins, serviceName)
 }
 
 func (ps *CertificatePinningStore) GetBackupPins(serviceName string) []*CertificatePin {
 	ps.mu.RLock()
 	defer ps.mu.RUnlock()
-	
+
 	return ps.backupPins[serviceName]
 }
 
@@ -1021,7 +1021,7 @@ func (ps *CertificatePinningStore) GetBackupPins(serviceName string) []*Certific
 func (pe *PolicyEngine) AddPolicyRule(rule PolicyRule) {
 	pe.mu.Lock()
 	defer pe.mu.Unlock()
-	
+
 	pe.rules[rule.Name] = rule
 	pe.logger.Info("policy rule added", "rule", rule.Name)
 }
@@ -1030,7 +1030,7 @@ func (pe *PolicyEngine) AddPolicyRule(rule PolicyRule) {
 func (pe *PolicyEngine) RemovePolicyRule(name string) {
 	pe.mu.Lock()
 	defer pe.mu.Unlock()
-	
+
 	delete(pe.rules, name)
 	pe.logger.Info("policy rule removed", "rule", name)
 }
@@ -1040,11 +1040,11 @@ func (pe *PolicyEngine) GetMetrics() map[string]uint64 {
 	return map[string]uint64{
 		"total_validations":    pe.metrics.TotalValidations.Load(),
 		"policy_violations":    pe.metrics.PolicyViolations.Load(),
-		"pinning_hits":        pe.metrics.PinningHits.Load(),
-		"pinning_misses":      pe.metrics.PinningMisses.Load(),
+		"pinning_hits":         pe.metrics.PinningHits.Load(),
+		"pinning_misses":       pe.metrics.PinningMisses.Load(),
 		"algorithm_violations": pe.metrics.AlgorithmViolations.Load(),
-		"oran_violations":     pe.metrics.ORANViolations.Load(),
-		"custom_violations":   pe.metrics.CustomViolations.Load(),
-		"enforcement_actions": pe.metrics.EnforcementActions.Load(),
+		"oran_violations":      pe.metrics.ORANViolations.Load(),
+		"custom_violations":    pe.metrics.CustomViolations.Load(),
+		"enforcement_actions":  pe.metrics.EnforcementActions.Load(),
 	}
 }

@@ -123,13 +123,13 @@ func (m *MockKubernetesTemplateEngine) ProcessTemplate(templateType, nfType stri
 	if m.shouldReturnError {
 		return "", fmt.Errorf("mock template engine error")
 	}
-	
+
 	if m.processingDelay > 0 {
 		time.Sleep(m.processingDelay)
 	}
-	
+
 	templateName := fmt.Sprintf("%s-%s", templateType, nfType)
-	
+
 	// Try specific template first
 	templateContent, exists := m.templates[templateName]
 	if !exists {
@@ -141,10 +141,10 @@ func (m *MockKubernetesTemplateEngine) ProcessTemplate(templateType, nfType stri
 		}
 		templateName = genericName
 	}
-	
+
 	// Track usage
 	m.templateUsageCount[templateName]++
-	
+
 	// Simple template processing (replace basic variables)
 	result := templateContent
 	if name, ok := variables["Name"].(string); ok {
@@ -162,7 +162,7 @@ func (m *MockKubernetesTemplateEngine) ProcessTemplate(templateType, nfType stri
 	if replicas, ok := variables["Replicas"].(int32); ok {
 		result = strings.ReplaceAll(result, "{{ .Replicas }}", fmt.Sprintf("%d", replicas))
 	}
-	
+
 	// Handle resources
 	if resources, ok := variables["Resources"].(interfaces.ResourceSpec); ok {
 		if resources.Requests.CPU != "" {
@@ -172,12 +172,12 @@ func (m *MockKubernetesTemplateEngine) ProcessTemplate(templateType, nfType stri
 			result = strings.ReplaceAll(result, "{{ .Resources.Requests.Memory }}", resources.Requests.Memory)
 		}
 	}
-	
+
 	// Remove template directives for simple mock
 	result = strings.ReplaceAll(result, "{{- range .Ports }}", "")
 	result = strings.ReplaceAll(result, "{{- end }}", "")
 	result = strings.ReplaceAll(result, "{{- range $key, $value := .Configuration }}", "")
-	
+
 	return result, nil
 }
 
@@ -198,10 +198,10 @@ func (m *MockKubernetesTemplateEngine) SetTemplate(name, content string) {
 }
 
 type MockManifestValidator struct {
-	shouldReturnError     bool
-	validationDelay       time.Duration
-	validationErrors      map[string][]string
-	validationWarnings    map[string][]string
+	shouldReturnError  bool
+	validationDelay    time.Duration
+	validationErrors   map[string][]string
+	validationWarnings map[string][]string
 }
 
 func NewMockManifestValidator() *MockManifestValidator {
@@ -217,13 +217,13 @@ func (m *MockManifestValidator) ValidateManifests(ctx context.Context, manifests
 	if m.shouldReturnError {
 		return nil, fmt.Errorf("mock manifest validator error")
 	}
-	
+
 	if m.validationDelay > 0 {
 		time.Sleep(m.validationDelay)
 	}
-	
+
 	var results []ValidationResult
-	
+
 	for name, manifest := range manifests {
 		result := ValidationResult{
 			ManifestName: name,
@@ -231,7 +231,7 @@ func (m *MockManifestValidator) ValidateManifests(ctx context.Context, manifests
 			Errors:       []string{},
 			Warnings:     []string{},
 		}
-		
+
 		// Check for basic YAML structure
 		if !strings.Contains(manifest, "apiVersion") {
 			result.Valid = false
@@ -245,21 +245,21 @@ func (m *MockManifestValidator) ValidateManifests(ctx context.Context, manifests
 			result.Valid = false
 			result.Errors = append(result.Errors, "missing metadata field")
 		}
-		
+
 		// Add configured validation errors
 		if errors, exists := m.validationErrors[name]; exists {
 			result.Valid = false
 			result.Errors = append(result.Errors, errors...)
 		}
-		
+
 		// Add configured validation warnings
 		if warnings, exists := m.validationWarnings[name]; exists {
 			result.Warnings = append(result.Warnings, warnings...)
 		}
-		
+
 		results = append(results, result)
 	}
-	
+
 	return results, nil
 }
 
@@ -276,10 +276,10 @@ func (m *MockManifestValidator) SetValidationWarnings(manifestName string, warni
 }
 
 type MockManifestPolicyEnforcer struct {
-	shouldReturnError   bool
-	enforcementDelay    time.Duration
-	policyViolations    map[string][]string
-	modifiedManifests   map[string]string
+	shouldReturnError bool
+	enforcementDelay  time.Duration
+	policyViolations  map[string][]string
+	modifiedManifests map[string]string
 }
 
 func NewMockManifestPolicyEnforcer() *MockManifestPolicyEnforcer {
@@ -295,14 +295,14 @@ func (m *MockManifestPolicyEnforcer) EnforcePolicies(ctx context.Context, manife
 	if m.shouldReturnError {
 		return nil, nil, fmt.Errorf("mock policy enforcer error")
 	}
-	
+
 	if m.enforcementDelay > 0 {
 		time.Sleep(m.enforcementDelay)
 	}
-	
+
 	var results []PolicyResult
 	modifiedManifests := make(map[string]string)
-	
+
 	// Process each rule
 	for _, rule := range rules {
 		result := PolicyResult{
@@ -312,7 +312,7 @@ func (m *MockManifestPolicyEnforcer) EnforcePolicies(ctx context.Context, manife
 			Violations: []string{},
 			Action:     rule.ViolationAction,
 		}
-		
+
 		// Check for configured violations
 		for manifestName := range manifests {
 			if violations, exists := m.policyViolations[manifestName]; exists {
@@ -320,15 +320,15 @@ func (m *MockManifestPolicyEnforcer) EnforcePolicies(ctx context.Context, manife
 				result.Violations = append(result.Violations, violations...)
 			}
 		}
-		
+
 		results = append(results, result)
 	}
-	
+
 	// Add any modified manifests
 	for name, content := range m.modifiedManifests {
 		modifiedManifests[name] = content
 	}
-	
+
 	return results, modifiedManifests, nil
 }
 
@@ -362,13 +362,13 @@ func (m *MockManifestOptimizer) OptimizeManifests(ctx context.Context, manifests
 	if m.shouldReturnError {
 		return nil, fmt.Errorf("mock manifest optimizer error")
 	}
-	
+
 	if m.optimizationDelay > 0 {
 		time.Sleep(m.optimizationDelay)
 	}
-	
+
 	optimized := make(map[string]string)
-	
+
 	for name, manifest := range manifests {
 		// Apply any configured optimizations
 		if optimizedContent, exists := m.optimizationChanges[name]; exists {
@@ -378,7 +378,7 @@ func (m *MockManifestOptimizer) OptimizeManifests(ctx context.Context, manifests
 			optimized[name] = strings.ReplaceAll(strings.TrimSpace(manifest), "\n\n", "\n")
 		}
 	}
-	
+
 	return optimized, nil
 }
 
@@ -392,46 +392,46 @@ func (m *MockManifestOptimizer) SetOptimizedManifest(manifestName, content strin
 
 var _ = Describe("SpecializedManifestGenerationController", func() {
 	var (
-		ctx                          context.Context
-		controller                   *SpecializedManifestGenerationController
-		fakeClient                   client.Client
-		logger                       logr.Logger
-		scheme                       *runtime.Scheme
-		fakeRecorder                 *record.FakeRecorder
-		networkIntent                *nephoranv1.NetworkIntent
-		mockTemplateEngine           *MockKubernetesTemplateEngine
-		mockManifestValidator        *MockManifestValidator
-		mockPolicyEnforcer          *MockManifestPolicyEnforcer
-		mockManifestOptimizer       *MockManifestOptimizer
-		config                      ManifestGenerationConfig
-		sampleResourcePlan          *interfaces.ResourcePlan
+		ctx                   context.Context
+		controller            *SpecializedManifestGenerationController
+		fakeClient            client.Client
+		logger                logr.Logger
+		scheme                *runtime.Scheme
+		fakeRecorder          *record.FakeRecorder
+		networkIntent         *nephoranv1.NetworkIntent
+		mockTemplateEngine    *MockKubernetesTemplateEngine
+		mockManifestValidator *MockManifestValidator
+		mockPolicyEnforcer    *MockManifestPolicyEnforcer
+		mockManifestOptimizer *MockManifestOptimizer
+		config                ManifestGenerationConfig
+		sampleResourcePlan    *interfaces.ResourcePlan
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		logger = zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true))
-		
+
 		// Create scheme and add types
 		scheme = runtime.NewScheme()
 		Expect(corev1.AddToScheme(scheme)).To(Succeed())
 		Expect(nephoranv1.AddToScheme(scheme)).To(Succeed())
-		
+
 		// Create fake client and recorder
 		fakeClient = fake.NewClientBuilder().
 			WithScheme(scheme).
 			Build()
 		fakeRecorder = record.NewFakeRecorder(100)
-		
+
 		// Create mock services
 		mockTemplateEngine = NewMockKubernetesTemplateEngine()
 		mockManifestValidator = NewMockManifestValidator()
 		mockPolicyEnforcer = NewMockManifestPolicyEnforcer()
 		mockManifestOptimizer = NewMockManifestOptimizer()
-		
+
 		// Create configuration
 		config = ManifestGenerationConfig{
-			TemplateDirectory:    "/templates",
-			DefaultNamespace:     "nephoran-system",
+			TemplateDirectory:   "/templates",
+			DefaultNamespace:    "nephoran-system",
 			EnableHelm:          false,
 			EnableKustomize:     false,
 			ValidateManifests:   true,
@@ -443,22 +443,22 @@ var _ = Describe("SpecializedManifestGenerationController", func() {
 			EnforcePolicies:     true,
 			SecurityPolicies:    true,
 			ResourcePolicies:    true,
-			CacheEnabled:       true,
-			CacheTTL:          30 * time.Minute,
-			MaxCacheEntries:   1000,
-			MaxGenerationTime: 5 * time.Minute,
-			ParallelGeneration: false,
+			CacheEnabled:        true,
+			CacheTTL:            30 * time.Minute,
+			MaxCacheEntries:     1000,
+			MaxGenerationTime:   5 * time.Minute,
+			ParallelGeneration:  false,
 			ConcurrentTemplates: 3,
 		}
-		
+
 		// Create controller with mock dependencies
 		controller = &SpecializedManifestGenerationController{
-			Client:                fakeClient,
-			Scheme:                scheme,
+			Client:               fakeClient,
+			Scheme:               scheme,
 			Recorder:             fakeRecorder,
-			Logger:                logger,
-			TemplateEngine:        mockTemplateEngine,
-			ManifestValidator:     mockManifestValidator,
+			Logger:               logger,
+			TemplateEngine:       mockTemplateEngine,
+			ManifestValidator:    mockManifestValidator,
 			PolicyEnforcer:       mockPolicyEnforcer,
 			ManifestOptimizer:    mockManifestOptimizer,
 			HelmIntegration:      nil, // Not enabled in config
@@ -474,22 +474,22 @@ var _ = Describe("SpecializedManifestGenerationController", func() {
 				LastChecked: time.Now(),
 			},
 		}
-		
+
 		// Initialize cache
 		controller.manifestCache = &ManifestCache{
 			entries:    make(map[string]*ManifestCacheEntry),
 			ttl:        config.CacheTTL,
 			maxEntries: config.MaxCacheEntries,
 		}
-		
+
 		// Create sample resource plan
 		sampleResourcePlan = &interfaces.ResourcePlan{
 			NetworkFunctions: []interfaces.PlannedNetworkFunction{
 				{
-					Name:    "amf-deployment",
-					Type:    "amf",
-					Image:   "nephoran/amf",
-					Version: "v1.0.0",
+					Name:     "amf-deployment",
+					Type:     "amf",
+					Image:    "nephoran/amf",
+					Version:  "v1.0.0",
 					Replicas: 3,
 					Resources: interfaces.ResourceSpec{
 						Requests: interfaces.ResourceRequirements{
@@ -524,10 +524,10 @@ var _ = Describe("SpecializedManifestGenerationController", func() {
 					},
 				},
 				{
-					Name:    "smf-deployment",
-					Type:    "smf",
-					Image:   "nephoran/smf",
-					Version: "v1.0.0",
+					Name:     "smf-deployment",
+					Type:     "smf",
+					Image:    "nephoran/smf",
+					Version:  "v1.0.0",
 					Replicas: 2,
 					Resources: interfaces.ResourceSpec{
 						Requests: interfaces.ResourceRequirements{
@@ -545,7 +545,7 @@ var _ = Describe("SpecializedManifestGenerationController", func() {
 			},
 			DeploymentPattern: "high-availability",
 		}
-		
+
 		// Create test NetworkIntent
 		networkIntent = &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
@@ -602,7 +602,7 @@ var _ = Describe("SpecializedManifestGenerationController", func() {
 			err := controller.Start(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controller.started).To(BeTrue())
-			
+
 			err = controller.Stop(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(controller.started).To(BeFalse())
@@ -625,24 +625,24 @@ var _ = Describe("SpecializedManifestGenerationController", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeTrue())
 			Expect(result.NextPhase).To(Equal(interfaces.PhaseGitOpsCommit))
-			
+
 			// Verify response data
 			Expect(result.Data).To(HaveKey("generatedManifests"))
 			Expect(result.Data).To(HaveKey("manifestMetadata"))
 			Expect(result.Data).To(HaveKey("correlationId"))
 			Expect(result.Data).To(HaveKey("networkFunctions"))
-			
+
 			// Verify metrics
 			Expect(result.Metrics).To(HaveKey("generation_time_ms"))
 			Expect(result.Metrics).To(HaveKey("template_processing_time_ms"))
 			Expect(result.Metrics).To(HaveKey("validation_time_ms"))
 			Expect(result.Metrics).To(HaveKey("policy_check_time_ms"))
 			Expect(result.Metrics).To(HaveKey("manifests_generated"))
-			
+
 			// Verify generated manifests
 			generatedManifests := result.Data["generatedManifests"].(map[string]string)
 			Expect(len(generatedManifests)).To(BeNumerically(">=", 2))
-			
+
 			// Verify deployment manifests exist
 			deploymentFound := false
 			serviceFound := false
@@ -678,7 +678,7 @@ var _ = Describe("SpecializedManifestGenerationController", func() {
 		It("should handle invalid resource plan data", func() {
 			invalidIntent := networkIntent.DeepCopy()
 			invalidIntent.Status.ResourcePlan = "invalid-string-data"
-			
+
 			result, err := controller.ProcessPhase(ctx, invalidIntent, interfaces.PhaseManifestGeneration)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeFalse())
@@ -700,19 +700,19 @@ var _ = Describe("SpecializedManifestGenerationController", func() {
 					},
 				},
 			}
-			
+
 			manifests, metadata, err := controller.generateNetworkFunctionManifests(ctx, nf, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(manifests)).To(BeNumerically(">=", 1))
 			Expect(metadata).NotTo(BeNil())
-			
+
 			// Verify deployment manifest
 			deploymentManifest, exists := manifests["test-amf-deployment.yaml"]
 			Expect(exists).To(BeTrue())
 			Expect(deploymentManifest).To(ContainSubstring("kind: Deployment"))
 			Expect(deploymentManifest).To(ContainSubstring("test-amf"))
 			Expect(deploymentManifest).To(ContainSubstring("replicas: 2"))
-			
+
 			// Verify template engine was used
 			Expect(mockTemplateEngine.GetTemplateUsageCount("deployment-amf")).To(BeNumerically(">=", 1))
 		})
@@ -733,14 +733,14 @@ var _ = Describe("SpecializedManifestGenerationController", func() {
 					},
 				},
 			}
-			
+
 			manifests, _, err := controller.generateNetworkFunctionManifests(ctx, nf, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Should have both deployment and service manifests
 			deploymentManifest, deploymentExists := manifests["test-with-service-deployment.yaml"]
 			serviceManifest, serviceExists := manifests["test-with-service-service.yaml"]
-			
+
 			Expect(deploymentExists).To(BeTrue())
 			Expect(serviceExists).To(BeTrue())
 			Expect(deploymentManifest).To(ContainSubstring("kind: Deployment"))
@@ -755,15 +755,15 @@ var _ = Describe("SpecializedManifestGenerationController", func() {
 				Version:  "v1.0.0",
 				Replicas: 1,
 				Configuration: map[string]interface{}{
-					"plmn_id":     "00101",
-					"nf_type":     "AMF",
-					"log_level":   "INFO",
+					"plmn_id":   "00101",
+					"nf_type":   "AMF",
+					"log_level": "INFO",
 				},
 			}
-			
+
 			manifests, _, err := controller.generateNetworkFunctionManifests(ctx, nf, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Should have deployment and configmap manifests
 			configMapManifest, exists := manifests["test-with-config-configmap.yaml"]
 			Expect(exists).To(BeTrue())
@@ -784,7 +784,7 @@ metadata:
 kind: ClusterRoleBinding
 metadata:
   name: {{ .Name }}-binding`)
-			
+
 			nf := &interfaces.PlannedNetworkFunction{
 				Name:     "test-amf-rbac",
 				Type:     "amf", // AMF requires RBAC
@@ -792,13 +792,13 @@ metadata:
 				Version:  "v1.0.0",
 				Replicas: 1,
 			}
-			
+
 			manifests, _, err := controller.generateNetworkFunctionManifests(ctx, nf, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Should have RBAC manifests
 			Expect(len(manifests)).To(BeNumerically(">=", 4)) // deployment + 3 RBAC manifests
-			
+
 			// Verify RBAC manifest names
 			rbacFound := false
 			for name := range manifests {
@@ -823,7 +823,7 @@ metadata:
 				NetworkFunctions: sampleResourcePlan.NetworkFunctions,
 				ResourcePlan:     sampleResourcePlan,
 			}
-			
+
 			manifests, metadata, err := controller.generateManifestsSequential(ctx, session)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(manifests)).To(BeNumerically(">=", 2))
@@ -834,13 +834,13 @@ metadata:
 		It("should generate manifests in parallel when enabled", func() {
 			controller.Config.ParallelGeneration = true
 			controller.Config.ConcurrentTemplates = 2
-			
+
 			session := &GenerationSession{
 				IntentID:         networkIntent.Name,
 				NetworkFunctions: sampleResourcePlan.NetworkFunctions,
 				ResourcePlan:     sampleResourcePlan,
 			}
-			
+
 			manifests, metadata, err := controller.generateManifestsParallel(ctx, session)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(manifests)).To(BeNumerically(">=", 2))
@@ -851,20 +851,20 @@ metadata:
 		It("should handle parallel generation with limited concurrency", func() {
 			controller.Config.ParallelGeneration = true
 			controller.Config.ConcurrentTemplates = 1 // Limit to 1 concurrent template
-			
+
 			// Add processing delay to test concurrency control
 			mockTemplateEngine.SetProcessingDelay(10 * time.Millisecond)
-			
+
 			session := &GenerationSession{
 				IntentID:         networkIntent.Name,
 				NetworkFunctions: sampleResourcePlan.NetworkFunctions,
 				ResourcePlan:     sampleResourcePlan,
 			}
-			
+
 			startTime := time.Now()
 			manifests, _, err := controller.generateManifestsParallel(ctx, session)
 			duration := time.Since(startTime)
-			
+
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(manifests)).To(BeNumerically(">=", 2))
 			// With concurrency limit of 1, should take at least the sum of processing delays
@@ -873,20 +873,20 @@ metadata:
 
 		It("should handle context cancellation during parallel generation", func() {
 			controller.Config.ParallelGeneration = true
-			
+
 			// Set long processing delay
 			mockTemplateEngine.SetProcessingDelay(100 * time.Millisecond)
-			
+
 			session := &GenerationSession{
 				IntentID:         networkIntent.Name,
 				NetworkFunctions: sampleResourcePlan.NetworkFunctions,
 				ResourcePlan:     sampleResourcePlan,
 			}
-			
+
 			// Create context with short timeout
 			cancelCtx, cancel := context.WithTimeout(ctx, 10*time.Millisecond)
 			defer cancel()
-			
+
 			_, _, err := controller.generateManifestsParallel(cancelCtx, session)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(context.DeadlineExceeded))
@@ -915,7 +915,7 @@ spec:
   ports:
   - port: 80`,
 			}
-			
+
 			err := controller.ValidateManifests(ctx, manifests)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -924,13 +924,13 @@ spec:
 			manifests := map[string]string{
 				"invalid-manifest.yaml": `invalid: yaml: content`,
 			}
-			
+
 			mockManifestValidator.SetValidationErrors("invalid-manifest.yaml", []string{"missing required field"})
-			
+
 			result, err := controller.generateManifestsFromResourcePlan(ctx, networkIntent, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeTrue()) // Should succeed with warnings
-			
+
 			// Check validation results in data
 			if validationResults, exists := result.Data["validationResults"]; exists {
 				results := validationResults.([]ValidationResult)
@@ -947,22 +947,22 @@ spec:
 
 		It("should skip validation when disabled", func() {
 			controller.Config.ValidateManifests = false
-			
+
 			manifests := map[string]string{
 				"invalid-manifest.yaml": "completely invalid yaml content",
 			}
-			
+
 			err := controller.ValidateManifests(ctx, manifests)
 			Expect(err).NotTo(HaveOccurred()) // Should not validate when disabled
 		})
 
 		It("should handle validation service failure", func() {
 			mockManifestValidator.SetShouldReturnError(true)
-			
+
 			result, err := controller.generateManifestsFromResourcePlan(ctx, networkIntent, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeTrue()) // Should continue with warnings
-			
+
 			// Check warnings were added
 			// Implementation may add warnings for validation failures
 		})
@@ -990,18 +990,18 @@ spec:
             cpu: 100m
             memory: 128Mi`,
 			}
-			
+
 			results, modifiedManifests, err := controller.enforcePolicies(ctx, manifests)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(results)).To(BeNumerically(">=", 1))
-			
+
 			// Check policy compliance
 			for _, result := range results {
 				if result.PolicyName == "Resource Limits Required" {
 					Expect(result.Compliant).To(BeTrue())
 				}
 			}
-			
+
 			// No modifications expected for compliant manifests
 			Expect(len(modifiedManifests)).To(Equal(0))
 		})
@@ -1010,13 +1010,13 @@ spec:
 			manifests := map[string]string{
 				"violation-deployment.yaml": "test-manifest-content",
 			}
-			
+
 			mockPolicyEnforcer.SetPolicyViolations("violation-deployment.yaml", []string{"missing resource limits"})
-			
+
 			result, err := controller.generateManifestsFromResourcePlan(ctx, networkIntent, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeTrue()) // Should succeed with warnings
-			
+
 			// Check policy results in data
 			if policyResults, exists := result.Data["policyResults"]; exists {
 				results := policyResults.([]PolicyResult)
@@ -1035,13 +1035,13 @@ spec:
 			manifests := map[string]string{
 				"modifiable-manifest.yaml": "original-content",
 			}
-			
+
 			mockPolicyEnforcer.SetModifiedManifest("modifiable-manifest.yaml", "modified-content")
-			
+
 			result, err := controller.generateManifestsFromResourcePlan(ctx, networkIntent, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeTrue())
-			
+
 			// Modified manifests should be used in final result
 			generatedManifests := result.Data["generatedManifests"].(map[string]string)
 			// Check if any manifest was modified (mock may not match actual names)
@@ -1050,11 +1050,11 @@ spec:
 
 		It("should skip policy enforcement when disabled", func() {
 			controller.Config.EnforcePolicies = false
-			
+
 			manifests := map[string]string{
 				"test-manifest.yaml": "test-content",
 			}
-			
+
 			results, modifiedManifests, err := controller.enforcePolicies(ctx, manifests)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(results).To(BeNil())
@@ -1063,7 +1063,7 @@ spec:
 
 		It("should handle policy enforcement failure", func() {
 			mockPolicyEnforcer.SetShouldReturnError(true)
-			
+
 			result, err := controller.generateManifestsFromResourcePlan(ctx, networkIntent, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeTrue()) // Should continue with warnings
@@ -1087,11 +1087,11 @@ metadata:
 spec:
   replicas: 1`,
 			}
-			
+
 			optimized, err := controller.OptimizeManifests(ctx, manifests)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(optimized)).To(Equal(len(manifests)))
-			
+
 			// Verify optimization (mock removes extra whitespace)
 			optimizedManifest := optimized["unoptimized-manifest.yaml"]
 			Expect(optimizedManifest).NotTo(ContainSubstring("\n\n"))
@@ -1101,9 +1101,9 @@ spec:
 			manifests := map[string]string{
 				"custom-manifest.yaml": "original-content",
 			}
-			
+
 			mockManifestOptimizer.SetOptimizedManifest("custom-manifest.yaml", "optimized-content")
-			
+
 			optimized, err := controller.OptimizeManifests(ctx, manifests)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(optimized["custom-manifest.yaml"]).To(Equal("optimized-content"))
@@ -1111,11 +1111,11 @@ spec:
 
 		It("should skip optimization when disabled", func() {
 			controller.Config.OptimizeManifests = false
-			
+
 			manifests := map[string]string{
 				"test-manifest.yaml": "original-content",
 			}
-			
+
 			optimized, err := controller.OptimizeManifests(ctx, manifests)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(optimized).To(Equal(manifests)) // Should return original manifests
@@ -1123,7 +1123,7 @@ spec:
 
 		It("should handle optimization failure", func() {
 			mockManifestOptimizer.SetShouldReturnError(true)
-			
+
 			result, err := controller.generateManifestsFromResourcePlan(ctx, networkIntent, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeTrue()) // Should continue with warnings
@@ -1142,7 +1142,7 @@ spec:
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result1.Success).To(BeTrue())
 			Expect(result1.Metrics["cache_hit"]).To(Equal(float64(0)))
-			
+
 			// Second generation - should use cache
 			result2, err := controller.generateManifestsFromResourcePlan(ctx, networkIntent, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
@@ -1153,15 +1153,15 @@ spec:
 		It("should handle cache expiration", func() {
 			// Set very short cache TTL
 			controller.manifestCache.ttl = 1 * time.Millisecond
-			
+
 			// First generation
 			result1, err := controller.generateManifestsFromResourcePlan(ctx, networkIntent, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result1.Success).To(BeTrue())
-			
+
 			// Wait for cache to expire
 			time.Sleep(5 * time.Millisecond)
-			
+
 			// Second generation - should not use cache
 			result2, err := controller.generateManifestsFromResourcePlan(ctx, networkIntent, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
@@ -1172,12 +1172,12 @@ spec:
 		It("should handle cache size limit", func() {
 			// Set small cache size limit
 			controller.manifestCache.maxEntries = 1
-			
+
 			// Generate for first resource plan
 			result1, err := controller.generateManifestsFromResourcePlan(ctx, networkIntent, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result1.Success).To(BeTrue())
-			
+
 			// Generate for different resource plan
 			differentResourcePlan := &interfaces.ResourcePlan{
 				NetworkFunctions: []interfaces.PlannedNetworkFunction{
@@ -1191,11 +1191,11 @@ spec:
 				},
 				DeploymentPattern: "edge",
 			}
-			
+
 			result2, err := controller.generateManifestsFromResourcePlan(ctx, nil, differentResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result2.Success).To(BeTrue())
-			
+
 			// Cache should be limited to 1 entry
 			Expect(len(controller.manifestCache.entries)).To(Equal(1))
 		})
@@ -1234,9 +1234,9 @@ spec:
 					"key2": "value2",
 				},
 			}
-			
+
 			variables := controller.prepareTemplateVariables(nf, sampleResourcePlan)
-			
+
 			Expect(variables).To(HaveKey("NetworkFunction"))
 			Expect(variables).To(HaveKey("ResourcePlan"))
 			Expect(variables).To(HaveKey("Namespace"))
@@ -1251,7 +1251,7 @@ spec:
 			Expect(variables).To(HaveKey("Configuration"))
 			Expect(variables).To(HaveKey("DeploymentPattern"))
 			Expect(variables).To(HaveKey("Labels"))
-			
+
 			// Verify values
 			Expect(variables["Name"]).To(Equal("test-nf"))
 			Expect(variables["Type"]).To(Equal("amf"))
@@ -1260,7 +1260,7 @@ spec:
 			Expect(variables["Replicas"]).To(Equal(int32(3)))
 			Expect(variables["Namespace"]).To(Equal(controller.Config.DefaultNamespace))
 			Expect(variables["DeploymentPattern"]).To(Equal(sampleResourcePlan.DeploymentPattern))
-			
+
 			// Verify labels
 			labels := variables["Labels"].(map[string]string)
 			Expect(labels["app.kubernetes.io/name"]).To(Equal("test-nf"))
@@ -1271,11 +1271,11 @@ spec:
 		It("should identify network functions requiring RBAC correctly", func() {
 			rbacRequiredTypes := []string{"amf", "smf", "nrf", "ausf", "udm", "udr", "pcf"}
 			nonRbacTypes := []string{"upf", "generic", "monitoring"}
-			
+
 			for _, nfType := range rbacRequiredTypes {
 				Expect(controller.requiresRBAC(nfType)).To(BeTrue(), "NF type %s should require RBAC", nfType)
 			}
-			
+
 			for _, nfType := range nonRbacTypes {
 				Expect(controller.requiresRBAC(nfType)).To(BeFalse(), "NF type %s should not require RBAC", nfType)
 			}
@@ -1290,7 +1290,7 @@ spec:
 
 		It("should handle template engine failure", func() {
 			mockTemplateEngine.SetShouldReturnError(true)
-			
+
 			result, err := controller.generateManifestsFromResourcePlan(ctx, networkIntent, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeFalse())
@@ -1302,7 +1302,7 @@ spec:
 			invalidResourcePlanData := map[string]interface{}{
 				"invalidField": "invalidValue",
 			}
-			
+
 			_, err := controller.convertToResourcePlan(invalidResourcePlanData)
 			Expect(err).NotTo(HaveOccurred()) // Should create empty plan, not fail
 		})
@@ -1313,11 +1313,11 @@ spec:
 				DeploymentPattern:    "standard",
 				ResourceRequirements: interfaces.ResourceRequirements{},
 			}
-			
+
 			result, err := controller.generateManifestsFromResourcePlan(ctx, networkIntent, emptyResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result.Success).To(BeTrue())
-			
+
 			// Should generate empty manifests map
 			generatedManifests := result.Data["generatedManifests"].(map[string]string)
 			Expect(len(generatedManifests)).To(Equal(0))
@@ -1357,21 +1357,21 @@ spec:
 			initialMetrics, err := controller.GetMetrics(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			initialTotal := initialMetrics["total_generated"]
-			
+
 			// Perform generation
 			_, err = controller.generateManifestsFromResourcePlan(ctx, networkIntent, sampleResourcePlan)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			updatedMetrics, err := controller.GetMetrics(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			updatedTotal := updatedMetrics["total_generated"]
-			
+
 			Expect(updatedTotal).To(Equal(initialTotal + 1))
 		})
 
 		It("should track session metrics", func() {
 			intentID := networkIntent.Name
-			
+
 			// Create a generation session
 			session := &GenerationSession{
 				IntentID:    intentID,
@@ -1380,7 +1380,7 @@ spec:
 				CurrentStep: "validating_manifests",
 			}
 			controller.activeGeneration.Store(intentID, session)
-			
+
 			status, err := controller.GetPhaseStatus(ctx, intentID)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(status.Phase).To(Equal(interfaces.PhaseManifestGeneration))
@@ -1412,7 +1412,7 @@ spec:
 		It("should handle phase errors", func() {
 			intentID := networkIntent.Name
 			testError := fmt.Errorf("test generation error")
-			
+
 			err := controller.HandlePhaseError(ctx, intentID, testError)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("test generation error"))
@@ -1429,12 +1429,12 @@ spec:
 			numRequests := 5
 			results := make(chan interfaces.ProcessingResult, numRequests)
 			errors := make(chan error, numRequests)
-			
+
 			// Create different resource plans for concurrent testing
 			for i := 0; i < numRequests; i++ {
 				go func(index int) {
 					defer GinkgoRecover()
-					
+
 					resourcePlan := &interfaces.ResourcePlan{
 						NetworkFunctions: []interfaces.PlannedNetworkFunction{
 							{
@@ -1453,7 +1453,7 @@ spec:
 						},
 						DeploymentPattern: "standard",
 					}
-					
+
 					result, err := controller.generateManifestsFromResourcePlan(ctx, nil, resourcePlan)
 					if err != nil {
 						errors <- err
@@ -1462,12 +1462,12 @@ spec:
 					}
 				}(i)
 			}
-			
+
 			// Collect results
 			successCount := 0
 			errorCount := 0
 			timeout := time.After(30 * time.Second)
-			
+
 			for i := 0; i < numRequests; i++ {
 				select {
 				case result := <-results:
@@ -1480,7 +1480,7 @@ spec:
 					Fail("Timeout waiting for concurrent generation to complete")
 				}
 			}
-			
+
 			// Verify all requests were processed
 			Expect(successCount + errorCount).To(Equal(numRequests))
 			// Most should succeed
@@ -1490,12 +1490,12 @@ spec:
 		It("should maintain thread safety under concurrent load", func() {
 			numGoroutines := 20
 			done := make(chan bool, numGoroutines)
-			
+
 			for i := 0; i < numGoroutines; i++ {
 				go func(index int) {
 					defer GinkgoRecover()
 					defer func() { done <- true }()
-					
+
 					// Mix of operations to test thread safety
 					switch index % 3 {
 					case 0:
@@ -1510,7 +1510,7 @@ spec:
 					}
 				}(i)
 			}
-			
+
 			// Wait for all goroutines to complete
 			for i := 0; i < numGoroutines; i++ {
 				Eventually(done).Should(Receive())
@@ -1526,21 +1526,21 @@ spec:
 
 		It("should perform session cleanup", func() {
 			intentID := "cleanup-test-intent"
-			
+
 			// Create an old session
 			oldSession := &GenerationSession{
 				IntentID:  intentID,
 				StartTime: time.Now().Add(-2 * time.Hour),
 			}
 			controller.activeGeneration.Store(intentID, oldSession)
-			
+
 			// Verify session exists
 			_, exists := controller.activeGeneration.Load(intentID)
 			Expect(exists).To(BeTrue())
-			
+
 			// Trigger cleanup
 			controller.cleanupExpiredSessions()
-			
+
 			// Verify session was removed
 			_, exists = controller.activeGeneration.Load(intentID)
 			Expect(exists).To(BeFalse())
@@ -1552,23 +1552,23 @@ spec:
 			controller.manifestCache.entries[expiredHash] = &ManifestCacheEntry{
 				Timestamp: time.Now().Add(-1 * time.Hour),
 			}
-			
+
 			// Verify entry exists
 			Expect(controller.manifestCache.entries).To(HaveKey(expiredHash))
-			
+
 			// Trigger cache cleanup
 			controller.cleanupExpiredCache()
-			
+
 			// Verify expired entry was removed
 			Expect(controller.manifestCache.entries).NotTo(HaveKey(expiredHash))
 		})
 
 		It("should perform health monitoring", func() {
 			initialHealth := controller.healthStatus
-			
+
 			// Trigger health check
 			controller.performHealthCheck()
-			
+
 			// Verify health status was updated
 			Expect(controller.healthStatus.LastChecked).To(BeTemporally(">", initialHealth.LastChecked))
 		})

@@ -22,35 +22,35 @@ import (
 
 func TestDefaultPorchConfig(t *testing.T) {
 	config := DefaultPorchConfig()
-	
+
 	if config == nil {
 		t.Fatal("Expected config but got nil")
 	}
-	
+
 	if config.PorchConfig == nil {
 		t.Fatal("Expected PorchConfig but got nil")
 	}
-	
+
 	if config.PorchConfig.DefaultNamespace != "default" {
 		t.Errorf("Expected default namespace 'default' but got '%s'", config.PorchConfig.DefaultNamespace)
 	}
-	
+
 	if config.PorchConfig.DefaultRepository != "default" {
 		t.Errorf("Expected default repository 'default' but got '%s'", config.PorchConfig.DefaultRepository)
 	}
-	
+
 	if config.PorchConfig.CircuitBreaker == nil {
 		t.Fatal("Expected CircuitBreaker config but got nil")
 	}
-	
+
 	if !config.PorchConfig.CircuitBreaker.Enabled {
 		t.Error("Expected CircuitBreaker to be enabled")
 	}
-	
+
 	if config.PorchConfig.RateLimit == nil {
 		t.Fatal("Expected RateLimit config but got nil")
 	}
-	
+
 	if !config.PorchConfig.RateLimit.Enabled {
 		t.Error("Expected RateLimit to be enabled")
 	}
@@ -134,7 +134,7 @@ func TestPackageRevisionLifecycle_CanTransitionTo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := tt.from.CanTransitionTo(tt.to)
 			if result != tt.expected {
-				t.Errorf("CanTransitionTo() = %v, want %v for %s -> %s", 
+				t.Errorf("CanTransitionTo() = %v, want %v for %s -> %s",
 					result, tt.expected, tt.from, tt.to)
 			}
 		})
@@ -145,21 +145,21 @@ func TestGetPackageReference(t *testing.T) {
 	repository := "test-repo"
 	packageName := "test-package"
 	revision := "v1.0.0"
-	
+
 	ref := GetPackageReference(repository, packageName, revision)
-	
+
 	if ref == nil {
 		t.Fatal("Expected PackageReference but got nil")
 	}
-	
+
 	if ref.Repository != repository {
 		t.Errorf("Expected repository '%s' but got '%s'", repository, ref.Repository)
 	}
-	
+
 	if ref.PackageName != packageName {
 		t.Errorf("Expected packageName '%s' but got '%s'", packageName, ref.PackageName)
 	}
-	
+
 	if ref.Revision != revision {
 		t.Errorf("Expected revision '%s' but got '%s'", revision, ref.Revision)
 	}
@@ -171,10 +171,10 @@ func TestPackageReference_GetPackageKey(t *testing.T) {
 		PackageName: "test-package",
 		Revision:    "v1.0.0",
 	}
-	
+
 	expected := "test-repo/test-package@v1.0.0"
 	result := ref.GetPackageKey()
-	
+
 	if result != expected {
 		t.Errorf("GetPackageKey() = '%s', want '%s'", result, expected)
 	}
@@ -198,7 +198,7 @@ func TestConvertKRMResourceToYAML(t *testing.T) {
 	if err != nil {
 		t.Fatalf("convertKRMResourceToYAML() error = %v", err)
 	}
-	
+
 	if len(yamlData) == 0 {
 		t.Error("Expected non-empty YAML data")
 	}
@@ -221,19 +221,19 @@ func TestConvertYAMLToKRMResource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("convertYAMLToKRMResource() error = %v", err)
 	}
-	
+
 	if resource == nil {
 		t.Fatal("Expected resource but got nil")
 	}
-	
+
 	if resource.APIVersion != "v1" {
 		t.Errorf("Expected APIVersion 'v1' but got '%s'", resource.APIVersion)
 	}
-	
+
 	if resource.Kind != "ConfigMap" {
 		t.Errorf("Expected Kind 'ConfigMap' but got '%s'", resource.Kind)
 	}
-	
+
 	if name, ok := resource.Metadata["name"]; !ok || name != "test-config" {
 		t.Errorf("Expected metadata name 'test-config' but got '%v'", name)
 	}
@@ -268,7 +268,7 @@ func TestGenerateResourceFilename(t *testing.T) {
 		{
 			name: "resource without name",
 			resource: KRMResource{
-				Kind: "Service",
+				Kind:     "Service",
 				Metadata: map[string]interface{}{},
 			},
 			expected: "service-resource.yaml",

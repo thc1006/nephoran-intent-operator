@@ -246,7 +246,7 @@ var _ = Describe("Documentation Completeness Tests", func() {
 						Expect(err).NotTo(HaveOccurred())
 
 						apiContent := string(content)
-						
+
 						// Look for struct definitions (potential API types)
 						structRegex := regexp.MustCompile(`type\s+(\w+)\s+struct\s*\{`)
 						structs := structRegex.FindAllStringSubmatch(apiContent, -1)
@@ -256,12 +256,12 @@ var _ = Describe("Documentation Completeness Tests", func() {
 							// Check for documentation comment before struct
 							commentRegex := regexp.MustCompile(`//\s*` + structName + `\s+[^\n]*\ntype\s+` + structName)
 							hasComment := commentRegex.MatchString(apiContent)
-							
+
 							if !hasComment {
 								// Allow some exceptions for generated or internal types
 								if !strings.Contains(strings.ToLower(structName), "list") &&
-								   !strings.Contains(strings.ToLower(structName), "status") &&
-								   !strings.HasSuffix(structName, "Spec") {
+									!strings.Contains(strings.ToLower(structName), "status") &&
+									!strings.HasSuffix(structName, "Spec") {
 									GinkgoWriter.Printf("Warning: API type %s in %s may lack documentation comment\n", structName, apiFile)
 								}
 							}
@@ -278,12 +278,12 @@ var _ = Describe("Documentation Completeness Tests", func() {
 				if err != nil {
 					return err
 				}
-				
+
 				// Skip certain directories
 				if strings.Contains(path, "/.git/") ||
-				   strings.Contains(path, "/vendor/") ||
-				   strings.Contains(path, "/node_modules/") ||
-				   strings.Contains(path, "/.excellence-reports/") {
+					strings.Contains(path, "/vendor/") ||
+					strings.Contains(path, "/node_modules/") ||
+					strings.Contains(path, "/.excellence-reports/") {
 					if info.IsDir() {
 						return filepath.SkipDir
 					}
@@ -320,9 +320,9 @@ var _ = Describe("Documentation Completeness Tests", func() {
 							if firstChar >= 'a' && firstChar <= 'z' {
 								// Allow some exceptions
 								if !strings.HasPrefix(headingText, "kubectl") &&
-								   !strings.HasPrefix(headingText, "go") &&
-								   !strings.HasPrefix(headingText, "docker") &&
-								   !strings.HasPrefix(headingText, "api") {
+									!strings.HasPrefix(headingText, "go") &&
+									!strings.HasPrefix(headingText, "docker") &&
+									!strings.HasPrefix(headingText, "api") {
 									formattingIssues++
 									GinkgoWriter.Printf("Heading should start with capital letter in %s at line %d: %s\n", mdFile, i+1, line)
 								}
@@ -349,9 +349,9 @@ var _ = Describe("Documentation Completeness Tests", func() {
 
 				// Skip certain directories
 				if strings.Contains(path, "/.git/") ||
-				   strings.Contains(path, "/vendor/") ||
-				   strings.Contains(path, "/node_modules/") ||
-				   strings.Contains(path, "/.excellence-reports/") {
+					strings.Contains(path, "/vendor/") ||
+					strings.Contains(path, "/node_modules/") ||
+					strings.Contains(path, "/.excellence-reports/") {
 					if info.IsDir() {
 						return filepath.SkipDir
 					}
@@ -405,13 +405,13 @@ var _ = Describe("Documentation Completeness Tests", func() {
 		It("should generate a documentation completeness report", func() {
 			// Generate a JSON report of documentation completeness
 			report := map[string]interface{}{
-				"timestamp":    "test-run",
-				"project":      "nephoran-intent-operator",
-				"test_type":    "documentation_completeness",
+				"timestamp": "test-run",
+				"project":   "nephoran-intent-operator",
+				"test_type": "documentation_completeness",
 				"results": map[string]interface{}{
 					"required_files_present": true,
 					"documentation_quality":  "good",
-					"coverage_score":        85,
+					"coverage_score":         85,
 					"recommendations": []string{
 						"Continue maintaining comprehensive documentation",
 						"Ensure API documentation stays current with code changes",

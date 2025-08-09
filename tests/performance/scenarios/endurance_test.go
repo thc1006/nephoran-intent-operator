@@ -20,13 +20,13 @@ func TestLongRunningStability(t *testing.T) {
 
 	// Test configurations for different durations
 	configs := []struct {
-		Name           string
-		Duration       time.Duration
-		WorkloadRate   int // Requests per second
-		CheckInterval  time.Duration
-		MaxMemGrowth   float64 // Maximum allowed memory growth percentage
-		MaxGoroutines  int
-		MaxErrorRate   float64
+		Name          string
+		Duration      time.Duration
+		WorkloadRate  int // Requests per second
+		CheckInterval time.Duration
+		MaxMemGrowth  float64 // Maximum allowed memory growth percentage
+		MaxGoroutines int
+		MaxErrorRate  float64
 	}{
 		{
 			Name:          "10 Minute Stability",
@@ -69,17 +69,17 @@ func TestLongRunningStability(t *testing.T) {
 
 			// Validate results
 			if result.MemoryLeakDetected {
-				t.Errorf("%s: Memory leak detected - growth: %.2f%%", 
+				t.Errorf("%s: Memory leak detected - growth: %.2f%%",
 					config.Name, result.MemoryGrowthPercent)
 			}
 
 			if result.GoroutineLeakDetected {
-				t.Errorf("%s: Goroutine leak detected - peak: %d", 
+				t.Errorf("%s: Goroutine leak detected - peak: %d",
 					config.Name, result.PeakGoroutines)
 			}
 
 			if result.ErrorRate > config.MaxErrorRate {
-				t.Errorf("%s: Error rate %.2f%% exceeded threshold %.2f%%", 
+				t.Errorf("%s: Error rate %.2f%% exceeded threshold %.2f%%",
 					config.Name, result.ErrorRate*100, config.MaxErrorRate*100)
 			}
 
@@ -103,7 +103,7 @@ func TestLongRunningStability(t *testing.T) {
 // TestMemoryLeakDetection specifically tests for memory leaks
 func TestMemoryLeakDetection(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Run memory-intensive operations
 	workload := func() error {
 		// Simulate operations that might leak memory
@@ -111,10 +111,10 @@ func TestMemoryLeakDetection(t *testing.T) {
 		for i := range data {
 			data[i] = byte(i % 256)
 		}
-		
+
 		// Process data (simulate work)
 		time.Sleep(10 * time.Millisecond)
-		
+
 		// In a leak scenario, we might forget to release resources
 		// Here we properly let it go out of scope
 		return nil
@@ -122,7 +122,7 @@ func TestMemoryLeakDetection(t *testing.T) {
 
 	suite := performance.NewBenchmarkSuite()
 	result, err := suite.RunMemoryStabilityBenchmark(ctx, 10*time.Minute, workload)
-	
+
 	if err != nil {
 		t.Fatalf("Memory stability test failed: %v", err)
 	}
@@ -145,7 +145,7 @@ func TestMemoryLeakDetection(t *testing.T) {
 	if len(leaks) > 0 {
 		t.Errorf("Detected %d potential memory leaks:", len(leaks))
 		for _, leak := range leaks {
-			t.Logf("  - %s: %d bytes at %s", 
+			t.Logf("  - %s: %d bytes at %s",
 				leak.Description, leak.AllocBytes, leak.Location)
 		}
 	}
@@ -194,7 +194,7 @@ func TestGoroutineLeakDetection(t *testing.T) {
 
 	if leaked > 10 { // Allow small variance
 		t.Errorf("Goroutine leak detected: %d goroutines leaked", leaked)
-		
+
 		// Capture goroutine profile for debugging
 		profiler := performance.NewProfiler()
 		profile, err := profiler.CaptureGoroutineProfile()
@@ -203,14 +203,14 @@ func TestGoroutineLeakDetection(t *testing.T) {
 		}
 	}
 
-	t.Logf("Goroutines - Initial: %d, Final: %d, Leaked: %d", 
+	t.Logf("Goroutines - Initial: %d, Final: %d, Leaked: %d",
 		initialGoroutines, finalGoroutines, leaked)
 }
 
 // TestResourceExhaustion tests system behavior under resource exhaustion
 func TestResourceExhaustion(t *testing.T) {
 	ctx := context.Background()
-	
+
 	scenarios := []struct {
 		Name         string
 		ResourceType string
@@ -254,12 +254,12 @@ func TestResourceExhaustion(t *testing.T) {
 			result := testResourceExhaustion(ctx, scenario)
 
 			if !result.Survived {
-				t.Errorf("%s: System crashed under %s exhaustion", 
+				t.Errorf("%s: System crashed under %s exhaustion",
 					scenario.Name, scenario.ResourceType)
 			}
 
 			if result.RecoveryTime > scenario.MaxRecovery {
-				t.Errorf("%s: Recovery time %v exceeded max %v", 
+				t.Errorf("%s: Recovery time %v exceeded max %v",
 					scenario.Name, result.RecoveryTime, scenario.MaxRecovery)
 			}
 
@@ -332,25 +332,25 @@ func TestPerformanceDegradation(t *testing.T) {
 type EnduranceTestResult struct {
 	ActualDuration        time.Duration
 	TotalRequests         int64
-	ErrorRate            float64
-	MemoryGrowthPercent  float64
-	MemoryLeakDetected   bool
+	ErrorRate             float64
+	MemoryGrowthPercent   float64
+	MemoryLeakDetected    bool
 	GoroutineLeakDetected bool
-	PeakGoroutines       int
-	AvgResponseTime      time.Duration
-	P99ResponseTime      time.Duration
-	PerformanceStable    bool
-	CheckpointMetrics    []CheckpointMetric
+	PeakGoroutines        int
+	AvgResponseTime       time.Duration
+	P99ResponseTime       time.Duration
+	PerformanceStable     bool
+	CheckpointMetrics     []CheckpointMetric
 }
 
 // CheckpointMetric captures metrics at a checkpoint
 type CheckpointMetric struct {
-	Timestamp      time.Time
-	MemoryMB       float64
-	Goroutines     int
-	AvgLatency     time.Duration
-	ErrorRate      float64
-	Throughput     float64
+	Timestamp  time.Time
+	MemoryMB   float64
+	Goroutines int
+	AvgLatency time.Duration
+	ErrorRate  float64
+	Throughput float64
 }
 
 // ResourceExhaustionResult captures resource exhaustion test results
@@ -363,13 +363,13 @@ type ResourceExhaustionResult struct {
 
 // runEnduranceTest executes a long-running stability test
 func runEnduranceTest(ctx context.Context, suite *performance.BenchmarkSuite, config struct {
-	Name           string
-	Duration       time.Duration
-	WorkloadRate   int
-	CheckInterval  time.Duration
-	MaxMemGrowth   float64
-	MaxGoroutines  int
-	MaxErrorRate   float64
+	Name          string
+	Duration      time.Duration
+	WorkloadRate  int
+	CheckInterval time.Duration
+	MaxMemGrowth  float64
+	MaxGoroutines int
+	MaxErrorRate  float64
 }) EnduranceTestResult {
 
 	result := EnduranceTestResult{
@@ -452,7 +452,7 @@ func runEnduranceTest(ctx context.Context, suite *performance.BenchmarkSuite, co
 	performanceStable := true
 
 	// Monitor loop
-	monitorLoop:
+monitorLoop:
 	for {
 		select {
 		case <-ctx.Done():
@@ -555,7 +555,7 @@ func testResourceExhaustion(ctx context.Context, scenario struct {
 	result := ResourceExhaustionResult{
 		Survived:         true,
 		DegradedServices: []string{},
-		Errors:          []error{},
+		Errors:           []error{},
 	}
 
 	// Start monitoring
@@ -585,7 +585,7 @@ func testResourceExhaustion(ctx context.Context, scenario struct {
 	// Exhaust resource
 	klog.Infof("Exhausting %s", scenario.ResourceType)
 	exhaustStart := time.Now()
-	
+
 	if err := scenario.ExhaustFunc(ctx); err != nil {
 		result.Errors = append(result.Errors, err)
 		result.Survived = false
@@ -594,7 +594,7 @@ func testResourceExhaustion(ctx context.Context, scenario struct {
 	// Try to recover
 	klog.Infof("Recovering from %s exhaustion", scenario.ResourceType)
 	recoverStart := time.Now()
-	
+
 	if err := scenario.RecoverFunc(); err != nil {
 		result.Errors = append(result.Errors, err)
 	}
@@ -652,17 +652,17 @@ func recoverCPU() error {
 func exhaustMemory(ctx context.Context) error {
 	// Allocate large amounts of memory
 	allocations := [][]byte{}
-	
+
 	for i := 0; i < 100; i++ {
 		// Allocate 10MB chunks
 		data := make([]byte, 10*1024*1024)
 		allocations = append(allocations, data)
-		
+
 		// Fill with data to ensure allocation
 		for j := range data {
 			data[j] = byte(j % 256)
 		}
-		
+
 		time.Sleep(100 * time.Millisecond)
 	}
 

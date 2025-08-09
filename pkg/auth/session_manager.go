@@ -17,44 +17,44 @@ import (
 type SessionManager struct {
 	// Session storage
 	sessions map[string]*UserSession
-	
+
 	// Components
 	jwtManager  *JWTManager
 	rbacManager *RBACManager
 	providers   map[string]providers.OAuthProvider
-	
+
 	// Configuration
 	config *SessionConfig
-	
+
 	// State management
-	stateStore  map[string]*AuthState // CSRF state management
-	
+	stateStore map[string]*AuthState // CSRF state management
+
 	logger *slog.Logger
 	mutex  sync.RWMutex
 }
 
 // UserSession represents an active user session
 type UserSession struct {
-	ID            string                 `json:"id"`
-	UserID        string                 `json:"user_id"`
-	UserInfo      *providers.UserInfo    `json:"user_info"`
-	Provider      string                 `json:"provider"`
-	AccessToken   string                 `json:"access_token"`
-	RefreshToken  string                 `json:"refresh_token"`
-	IDToken       string                 `json:"id_token,omitempty"`
-	CreatedAt     time.Time              `json:"created_at"`
-	LastActivity  time.Time              `json:"last_activity"`
-	ExpiresAt     time.Time              `json:"expires_at"`
-	IPAddress     string                 `json:"ip_address"`
-	UserAgent     string                 `json:"user_agent"`
-	Roles         []string               `json:"roles"`
-	Permissions   []string               `json:"permissions"`
-	Attributes    map[string]interface{} `json:"attributes,omitempty"`
-	
+	ID           string                 `json:"id"`
+	UserID       string                 `json:"user_id"`
+	UserInfo     *providers.UserInfo    `json:"user_info"`
+	Provider     string                 `json:"provider"`
+	AccessToken  string                 `json:"access_token"`
+	RefreshToken string                 `json:"refresh_token"`
+	IDToken      string                 `json:"id_token,omitempty"`
+	CreatedAt    time.Time              `json:"created_at"`
+	LastActivity time.Time              `json:"last_activity"`
+	ExpiresAt    time.Time              `json:"expires_at"`
+	IPAddress    string                 `json:"ip_address"`
+	UserAgent    string                 `json:"user_agent"`
+	Roles        []string               `json:"roles"`
+	Permissions  []string               `json:"permissions"`
+	Attributes   map[string]interface{} `json:"attributes,omitempty"`
+
 	// SSO state
-	SSOEnabled    bool              `json:"sso_enabled"`
+	SSOEnabled     bool              `json:"sso_enabled"`
 	LinkedSessions map[string]string `json:"linked_sessions,omitempty"` // provider -> session_id
-	
+
 	// Security
 	CSRFToken     string `json:"csrf_token"`
 	SecureContext bool   `json:"secure_context"`
@@ -62,51 +62,51 @@ type UserSession struct {
 
 // AuthState represents OAuth2 authorization state
 type AuthState struct {
-	State         string                 `json:"state"`
-	Provider      string                 `json:"provider"`
-	RedirectURI   string                 `json:"redirect_uri"`
+	State         string                   `json:"state"`
+	Provider      string                   `json:"provider"`
+	RedirectURI   string                   `json:"redirect_uri"`
 	PKCEChallenge *providers.PKCEChallenge `json:"pkce_challenge,omitempty"`
-	CreatedAt     time.Time              `json:"created_at"`
-	ExpiresAt     time.Time              `json:"expires_at"`
-	IPAddress     string                 `json:"ip_address"`
-	UserAgent     string                 `json:"user_agent"`
-	
+	CreatedAt     time.Time                `json:"created_at"`
+	ExpiresAt     time.Time                `json:"expires_at"`
+	IPAddress     string                   `json:"ip_address"`
+	UserAgent     string                   `json:"user_agent"`
+
 	// Custom parameters
 	CustomParams map[string]string `json:"custom_params,omitempty"`
 }
 
 // SessionConfig represents session configuration
 type SessionConfig struct {
-	SessionTimeout    time.Duration `json:"session_timeout"`
-	RefreshThreshold  time.Duration `json:"refresh_threshold"`
-	MaxSessions       int           `json:"max_sessions"`
-	SecureCookies     bool          `json:"secure_cookies"`
-	SameSiteCookies   string        `json:"same_site_cookies"`
-	CookieDomain      string        `json:"cookie_domain"`
-	CookiePath        string        `json:"cookie_path"`
-	
+	SessionTimeout   time.Duration `json:"session_timeout"`
+	RefreshThreshold time.Duration `json:"refresh_threshold"`
+	MaxSessions      int           `json:"max_sessions"`
+	SecureCookies    bool          `json:"secure_cookies"`
+	SameSiteCookies  string        `json:"same_site_cookies"`
+	CookieDomain     string        `json:"cookie_domain"`
+	CookiePath       string        `json:"cookie_path"`
+
 	// SSO settings
-	EnableSSO         bool          `json:"enable_sso"`
-	SSODomain         string        `json:"sso_domain"`
-	CrossDomainSSO    bool          `json:"cross_domain_sso"`
-	
+	EnableSSO      bool   `json:"enable_sso"`
+	SSODomain      string `json:"sso_domain"`
+	CrossDomainSSO bool   `json:"cross_domain_sso"`
+
 	// Security settings
-	EnableCSRF        bool          `json:"enable_csrf"`
-	StateTimeout      time.Duration `json:"state_timeout"`
-	RequireHTTPS      bool          `json:"require_https"`
-	
+	EnableCSRF   bool          `json:"enable_csrf"`
+	StateTimeout time.Duration `json:"state_timeout"`
+	RequireHTTPS bool          `json:"require_https"`
+
 	// Session cleanup
-	CleanupInterval   time.Duration `json:"cleanup_interval"`
+	CleanupInterval time.Duration `json:"cleanup_interval"`
 }
 
 // LoginRequest represents a login initiation request
 type LoginRequest struct {
-	Provider     string            `json:"provider"`
-	RedirectURI  string            `json:"redirect_uri,omitempty"`
-	State        string            `json:"state,omitempty"`
-	Options      map[string]string `json:"options,omitempty"`
-	IPAddress    string            `json:"ip_address"`
-	UserAgent    string            `json:"user_agent"`
+	Provider    string            `json:"provider"`
+	RedirectURI string            `json:"redirect_uri,omitempty"`
+	State       string            `json:"state,omitempty"`
+	Options     map[string]string `json:"options,omitempty"`
+	IPAddress   string            `json:"ip_address"`
+	UserAgent   string            `json:"user_agent"`
 }
 
 // LoginResponse represents login initiation response
@@ -119,12 +119,12 @@ type LoginResponse struct {
 
 // CallbackRequest represents OAuth2 callback request
 type CallbackRequest struct {
-	Provider     string `json:"provider"`
-	Code         string `json:"code"`
-	State        string `json:"state"`
-	RedirectURI  string `json:"redirect_uri"`
-	IPAddress    string `json:"ip_address"`
-	UserAgent    string `json:"user_agent"`
+	Provider    string `json:"provider"`
+	Code        string `json:"code"`
+	State       string `json:"state"`
+	RedirectURI string `json:"redirect_uri"`
+	IPAddress   string `json:"ip_address"`
+	UserAgent   string `json:"user_agent"`
 }
 
 // CallbackResponse represents OAuth2 callback response
@@ -192,10 +192,10 @@ func NewSessionManager(config *SessionConfig, jwtManager *JWTManager, rbacManage
 func (sm *SessionManager) RegisterProvider(provider providers.OAuthProvider) {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
-	
+
 	name := provider.GetProviderName()
 	sm.providers[name] = provider
-	
+
 	sm.logger.Info("OAuth2 provider registered",
 		"provider", name,
 		"features", provider.GetConfiguration().Features)
@@ -387,25 +387,25 @@ func (sm *SessionManager) createUserSession(ctx context.Context, userInfo *provi
 
 	// Create session
 	session := &UserSession{
-		ID:            sessionID,
-		UserID:        userInfo.Subject,
-		UserInfo:      userInfo,
-		Provider:      userInfo.Provider,
-		AccessToken:   tokenResponse.AccessToken,
-		RefreshToken:  tokenResponse.RefreshToken,
-		IDToken:       tokenResponse.IDToken,
-		CreatedAt:     time.Now(),
-		LastActivity:  time.Now(),
-		ExpiresAt:     time.Now().Add(sm.config.SessionTimeout),
-		IPAddress:     request.IPAddress,
-		UserAgent:     request.UserAgent,
-		Roles:         roles,
-		Permissions:   permissions,
-		Attributes:    userInfo.Attributes,
-		SSOEnabled:    sm.config.EnableSSO,
+		ID:             sessionID,
+		UserID:         userInfo.Subject,
+		UserInfo:       userInfo,
+		Provider:       userInfo.Provider,
+		AccessToken:    tokenResponse.AccessToken,
+		RefreshToken:   tokenResponse.RefreshToken,
+		IDToken:        tokenResponse.IDToken,
+		CreatedAt:      time.Now(),
+		LastActivity:   time.Now(),
+		ExpiresAt:      time.Now().Add(sm.config.SessionTimeout),
+		IPAddress:      request.IPAddress,
+		UserAgent:      request.UserAgent,
+		Roles:          roles,
+		Permissions:    permissions,
+		Attributes:     userInfo.Attributes,
+		SSOEnabled:     sm.config.EnableSSO,
 		LinkedSessions: make(map[string]string),
-		CSRFToken:     csrfToken,
-		SecureContext: sm.config.RequireHTTPS,
+		CSRFToken:      csrfToken,
+		SecureContext:  sm.config.RequireHTTPS,
 	}
 
 	// Check session limits
@@ -584,14 +584,14 @@ func (sm *SessionManager) RevokeUserSessions(ctx context.Context, userID string)
 
 	for _, sessionID := range sessionIDs {
 		session := sm.sessions[sessionID]
-		
+
 		// Revoke tokens with provider
 		if provider, exists := sm.providers[session.Provider]; exists {
 			if provider.SupportsFeature(providers.FeatureTokenRevocation) {
 				provider.RevokeToken(ctx, session.AccessToken)
 			}
 		}
-		
+
 		delete(sm.sessions, sessionID)
 	}
 
@@ -655,14 +655,14 @@ func (sm *SessionManager) GetSessionMetrics(ctx context.Context) map[string]inte
 	}
 
 	return map[string]interface{}{
-		"active_sessions":   activeSessions,
-		"expired_sessions":  expiredSessions,
-		"total_sessions":    len(sm.sessions),
-		"provider_counts":   providerCounts,
-		"active_states":     len(sm.stateStore),
+		"active_sessions":      activeSessions,
+		"expired_sessions":     expiredSessions,
+		"total_sessions":       len(sm.sessions),
+		"provider_counts":      providerCounts,
+		"active_states":        len(sm.stateStore),
 		"registered_providers": len(sm.providers),
-		"sso_enabled":       sm.config.EnableSSO,
-		"session_timeout":   sm.config.SessionTimeout,
+		"sso_enabled":          sm.config.EnableSSO,
+		"session_timeout":      sm.config.SessionTimeout,
 	}
 }
 
@@ -693,7 +693,7 @@ func (sm *SessionManager) enforceSessionLimits(userID string) error {
 
 	userSessionCount := 0
 	now := time.Now()
-	
+
 	for _, session := range sm.sessions {
 		if session.UserID == userID && now.Before(session.ExpiresAt) {
 			userSessionCount++

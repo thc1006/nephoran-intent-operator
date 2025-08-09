@@ -15,106 +15,106 @@ import (
 
 // CAIntegration provides integration between CA management and existing security components
 type CAIntegration struct {
-	caManager       *CAManager
-	tlsManager      *security.TLSManager
-	client          client.Client
-	logger          *logging.StructuredLogger
-	config          *IntegrationConfig
+	caManager  *CAManager
+	tlsManager *security.TLSManager
+	client     client.Client
+	logger     *logging.StructuredLogger
+	config     *IntegrationConfig
 }
 
 // IntegrationConfig configures CA integration with existing systems
 type IntegrationConfig struct {
 	// TLS integration
-	TLSIntegration     *TLSIntegrationConfig     `yaml:"tls_integration"`
-	
+	TLSIntegration *TLSIntegrationConfig `yaml:"tls_integration"`
+
 	// RBAC integration
-	RBACIntegration    *RBACIntegrationConfig    `yaml:"rbac_integration"`
-	
+	RBACIntegration *RBACIntegrationConfig `yaml:"rbac_integration"`
+
 	// Secret management
-	SecretIntegration  *SecretIntegrationConfig  `yaml:"secret_integration"`
-	
+	SecretIntegration *SecretIntegrationConfig `yaml:"secret_integration"`
+
 	// Service mesh integration
-	ServiceMeshConfig  *ServiceMeshIntegration   `yaml:"service_mesh"`
-	
+	ServiceMeshConfig *ServiceMeshIntegration `yaml:"service_mesh"`
+
 	// Ingress integration
-	IngressConfig      *IngressIntegration       `yaml:"ingress"`
-	
+	IngressConfig *IngressIntegration `yaml:"ingress"`
+
 	// Operator integration
-	OperatorConfig     *OperatorIntegration      `yaml:"operator"`
+	OperatorConfig *OperatorIntegration `yaml:"operator"`
 }
 
 // TLSIntegrationConfig configures TLS integration
 type TLSIntegrationConfig struct {
-	Enabled                 bool     `yaml:"enabled"`
-	AutoUpdateTLSConfig     bool     `yaml:"auto_update_tls_config"`
-	TLSConfigSecretName     string   `yaml:"tls_config_secret_name"`
-	CertificateNamespaces   []string `yaml:"certificate_namespaces"`
-	DefaultCertificateTTL   time.Duration `yaml:"default_certificate_ttl"`
-	HotReloadEnabled        bool     `yaml:"hot_reload_enabled"`
+	Enabled               bool          `yaml:"enabled"`
+	AutoUpdateTLSConfig   bool          `yaml:"auto_update_tls_config"`
+	TLSConfigSecretName   string        `yaml:"tls_config_secret_name"`
+	CertificateNamespaces []string      `yaml:"certificate_namespaces"`
+	DefaultCertificateTTL time.Duration `yaml:"default_certificate_ttl"`
+	HotReloadEnabled      bool          `yaml:"hot_reload_enabled"`
 }
 
 // RBACIntegrationConfig configures RBAC integration
 type RBACIntegrationConfig struct {
-	Enabled                 bool     `yaml:"enabled"`
-	CertificateBasedAuth    bool     `yaml:"certificate_based_auth"`
-	ClientCertNamespace     string   `yaml:"client_cert_namespace"`
+	Enabled                   bool   `yaml:"enabled"`
+	CertificateBasedAuth      bool   `yaml:"certificate_based_auth"`
+	ClientCertNamespace       string `yaml:"client_cert_namespace"`
 	ServiceAccountIntegration bool   `yaml:"service_account_integration"`
 }
 
 // SecretIntegrationConfig configures secret management integration
 type SecretIntegrationConfig struct {
-	Enabled                 bool     `yaml:"enabled"`
-	AutoCreateSecrets       bool     `yaml:"auto_create_secrets"`
-	SecretNameTemplate      string   `yaml:"secret_name_template"`
-	SecretLabels            map[string]string `yaml:"secret_labels"`
-	SecretAnnotations       map[string]string `yaml:"secret_annotations"`
-	EncryptionEnabled       bool     `yaml:"encryption_enabled"`
+	Enabled            bool              `yaml:"enabled"`
+	AutoCreateSecrets  bool              `yaml:"auto_create_secrets"`
+	SecretNameTemplate string            `yaml:"secret_name_template"`
+	SecretLabels       map[string]string `yaml:"secret_labels"`
+	SecretAnnotations  map[string]string `yaml:"secret_annotations"`
+	EncryptionEnabled  bool              `yaml:"encryption_enabled"`
 }
 
 // ServiceMeshIntegration configures service mesh integration
 type ServiceMeshIntegration struct {
-	Enabled                 bool     `yaml:"enabled"`
-	MeshType               string   `yaml:"mesh_type"` // istio, linkerd, consul
-	AutoInjectCertificates  bool     `yaml:"auto_inject_certificates"`
-	NamespaceSelector       map[string]string `yaml:"namespace_selector"`
-	WorkloadSelector        map[string]string `yaml:"workload_selector"`
-	CertificateTemplate     string   `yaml:"certificate_template"`
+	Enabled                bool              `yaml:"enabled"`
+	MeshType               string            `yaml:"mesh_type"` // istio, linkerd, consul
+	AutoInjectCertificates bool              `yaml:"auto_inject_certificates"`
+	NamespaceSelector      map[string]string `yaml:"namespace_selector"`
+	WorkloadSelector       map[string]string `yaml:"workload_selector"`
+	CertificateTemplate    string            `yaml:"certificate_template"`
 }
 
 // IngressIntegration configures ingress integration
 type IngressIntegration struct {
-	Enabled                 bool     `yaml:"enabled"`
-	IngressClass           string   `yaml:"ingress_class"`
-	AutoGenerateCerts      bool     `yaml:"auto_generate_certs"`
-	CertificateAnnotation  string   `yaml:"certificate_annotation"`
-	TLSSecretTemplate      string   `yaml:"tls_secret_template"`
+	Enabled               bool   `yaml:"enabled"`
+	IngressClass          string `yaml:"ingress_class"`
+	AutoGenerateCerts     bool   `yaml:"auto_generate_certs"`
+	CertificateAnnotation string `yaml:"certificate_annotation"`
+	TLSSecretTemplate     string `yaml:"tls_secret_template"`
 }
 
 // OperatorIntegration configures operator-level integration
 type OperatorIntegration struct {
-	Enabled                 bool     `yaml:"enabled"`
-	WebhookCertificates     bool     `yaml:"webhook_certificates"`
-	OperatorNamespace       string   `yaml:"operator_namespace"`
-	WebhookServiceName      string   `yaml:"webhook_service_name"`
-	CertRotationDays        int      `yaml:"cert_rotation_days"`
+	Enabled             bool   `yaml:"enabled"`
+	WebhookCertificates bool   `yaml:"webhook_certificates"`
+	OperatorNamespace   string `yaml:"operator_namespace"`
+	WebhookServiceName  string `yaml:"webhook_service_name"`
+	CertRotationDays    int    `yaml:"cert_rotation_days"`
 }
 
 // CertificateRequest represents a certificate request from integration
 type IntegrationCertificateRequest struct {
-	Name           string            `yaml:"name"`
-	Namespace      string            `yaml:"namespace"`
-	CommonName     string            `yaml:"common_name"`
-	DNSNames       []string          `yaml:"dns_names"`
-	IPAddresses    []string          `yaml:"ip_addresses"`
-	TenantID       string            `yaml:"tenant_id"`
-	SecretName     string            `yaml:"secret_name"`
-	Labels         map[string]string `yaml:"labels"`
-	Annotations    map[string]string `yaml:"annotations"`
-	ValidityDays   int              `yaml:"validity_days"`
-	RenewBefore    int              `yaml:"renew_before"`
-	Backend        string           `yaml:"backend"`
-	Template       string           `yaml:"template"`
-	AutoRenew      bool             `yaml:"auto_renew"`
+	Name         string            `yaml:"name"`
+	Namespace    string            `yaml:"namespace"`
+	CommonName   string            `yaml:"common_name"`
+	DNSNames     []string          `yaml:"dns_names"`
+	IPAddresses  []string          `yaml:"ip_addresses"`
+	TenantID     string            `yaml:"tenant_id"`
+	SecretName   string            `yaml:"secret_name"`
+	Labels       map[string]string `yaml:"labels"`
+	Annotations  map[string]string `yaml:"annotations"`
+	ValidityDays int               `yaml:"validity_days"`
+	RenewBefore  int               `yaml:"renew_before"`
+	Backend      string            `yaml:"backend"`
+	Template     string            `yaml:"template"`
+	AutoRenew    bool              `yaml:"auto_renew"`
 }
 
 // NewCAIntegration creates a new CA integration
@@ -178,8 +178,8 @@ func (i *CAIntegration) RequestCertificate(ctx context.Context, req *Integration
 		Metadata: map[string]string{
 			"integration_name":      req.Name,
 			"integration_namespace": req.Namespace,
-			"secret_name":          req.SecretName,
-			"tenant_id":            req.TenantID,
+			"secret_name":           req.SecretName,
+			"tenant_id":             req.TenantID,
 		},
 	}
 
@@ -261,9 +261,9 @@ func (i *CAIntegration) GetOperatorWebhookCertificate(ctx context.Context) (*Cer
 	}
 
 	req := &IntegrationCertificateRequest{
-		Name:         "operator-webhook",
-		Namespace:    namespace,
-		CommonName:   fmt.Sprintf("%s.%s.svc", serviceName, namespace),
+		Name:       "operator-webhook",
+		Namespace:  namespace,
+		CommonName: fmt.Sprintf("%s.%s.svc", serviceName, namespace),
 		DNSNames: []string{
 			serviceName,
 			fmt.Sprintf("%s.%s", serviceName, namespace),
@@ -306,7 +306,7 @@ func (i *CAIntegration) initializeRBACIntegration(ctx context.Context) error {
 	// Set up certificate-based authentication if enabled
 	if i.config.RBACIntegration.CertificateBasedAuth {
 		i.logger.Info("certificate-based authentication integration enabled")
-		
+
 		// This would configure client certificate authentication
 		// for Kubernetes API server access
 	}
@@ -320,7 +320,7 @@ func (i *CAIntegration) initializeOperatorIntegration(ctx context.Context) error
 	// Generate webhook certificates if needed
 	if i.config.OperatorConfig.WebhookCertificates {
 		i.logger.Info("webhook certificate generation enabled")
-		
+
 		// This would be called during operator startup to ensure
 		// webhook certificates are available
 	}
@@ -341,9 +341,9 @@ func (i *CAIntegration) createCertificateSecret(ctx context.Context, req *Integr
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: req.Namespace,
-			Labels:    i.mergeLabels(req.Labels, i.config.SecretIntegration.SecretLabels),
+			Name:        secretName,
+			Namespace:   req.Namespace,
+			Labels:      i.mergeLabels(req.Labels, i.config.SecretIntegration.SecretLabels),
 			Annotations: i.mergeAnnotations(req.Annotations, i.config.SecretIntegration.SecretAnnotations),
 		},
 		Type: corev1.SecretTypeTLS,
@@ -397,7 +397,7 @@ func (i *CAIntegration) updateCertificateSecret(ctx context.Context, cert *Certi
 	// Find secrets associated with this certificate
 	secretName := cert.Metadata["secret_name"]
 	namespace := cert.Metadata["integration_namespace"]
-	
+
 	if secretName == "" || namespace == "" {
 		i.logger.Debug("no secret information in certificate metadata, skipping update")
 		return nil
@@ -455,37 +455,37 @@ func (i *CAIntegration) updateTLSConfiguration(ctx context.Context, cert *Certif
 
 func (i *CAIntegration) mergeLabels(reqLabels, configLabels map[string]string) map[string]string {
 	merged := make(map[string]string)
-	
+
 	// Add config labels first
 	for k, v := range configLabels {
 		merged[k] = v
 	}
-	
+
 	// Add request labels (can override config labels)
 	for k, v := range reqLabels {
 		merged[k] = v
 	}
-	
+
 	// Add standard labels
 	merged["app.kubernetes.io/managed-by"] = "nephoran-intent-operator"
 	merged["nephoran.io/certificate"] = "true"
-	
+
 	return merged
 }
 
 func (i *CAIntegration) mergeAnnotations(reqAnnotations, configAnnotations map[string]string) map[string]string {
 	merged := make(map[string]string)
-	
+
 	// Add config annotations first
 	for k, v := range configAnnotations {
 		merged[k] = v
 	}
-	
+
 	// Add request annotations (can override config annotations)
 	for k, v := range reqAnnotations {
 		merged[k] = v
 	}
-	
+
 	return merged
 }
 
@@ -504,11 +504,11 @@ func (i *CAIntegration) GetCertificateStatus(ctx context.Context) (map[string]in
 		listOpts := client.ListOptions{
 			Namespace: ns,
 		}
-		
+
 		if err := i.client.List(ctx, secrets, &listOpts); err != nil {
 			continue
 		}
-		
+
 		certCount := 0
 		for _, secret := range secrets.Items {
 			if secret.Type == corev1.SecretTypeTLS {
@@ -517,7 +517,7 @@ func (i *CAIntegration) GetCertificateStatus(ctx context.Context) (map[string]in
 				}
 			}
 		}
-		
+
 		status[fmt.Sprintf("certificates_%s", ns)] = certCount
 	}
 

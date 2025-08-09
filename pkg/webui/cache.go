@@ -24,11 +24,11 @@ import (
 
 // Cache provides thread-safe in-memory caching with TTL support
 type Cache struct {
-	items    map[string]*cacheItem
-	mutex    sync.RWMutex
-	maxSize  int
+	items      map[string]*cacheItem
+	mutex      sync.RWMutex
+	maxSize    int
 	defaultTTL time.Duration
-	stats    *CacheStats
+	stats      *CacheStats
 }
 
 // cacheItem represents a cached item with expiration
@@ -42,21 +42,21 @@ type cacheItem struct {
 
 // CacheStats provides cache performance metrics
 type CacheStats struct {
-	Hits              int64
-	Misses            int64
-	Sets              int64
-	Evictions         int64
-	ExpiredItems      int64
-	TotalItems        int64
-	TotalSize         int64
-	AvgItemSize       float64
-	mutex             sync.RWMutex
+	Hits         int64
+	Misses       int64
+	Sets         int64
+	Evictions    int64
+	ExpiredItems int64
+	TotalItems   int64
+	TotalSize    int64
+	AvgItemSize  float64
+	mutex        sync.RWMutex
 }
 
 // CacheConfig holds cache configuration
 type CacheConfig struct {
-	MaxSize    int
-	DefaultTTL time.Duration
+	MaxSize         int
+	DefaultTTL      time.Duration
 	CleanupInterval time.Duration
 	MaxItemSize     int64
 }
@@ -97,7 +97,7 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 		delete(c.items, key)
 		c.mutex.Unlock()
 		c.mutex.RLock()
-		
+
 		c.updateStats(func(s *CacheStats) {
 			s.Misses++
 			s.ExpiredItems++
@@ -135,7 +135,7 @@ func (c *Cache) SetWithTTL(key string, value interface{}, ttl time.Duration) {
 	c.evictIfNecessary(itemSize)
 
 	expiration := time.Now().Add(ttl)
-	
+
 	// Check if item already exists
 	if existingItem, exists := c.items[key]; exists {
 		// Update existing item
@@ -237,7 +237,7 @@ func (c *Cache) Size() int {
 func (c *Cache) Stats() CacheStats {
 	c.stats.mutex.RLock()
 	defer c.stats.mutex.RUnlock()
-	
+
 	stats := *c.stats // Create a copy
 	return stats
 }
@@ -334,7 +334,7 @@ func (c *Cache) cleanupExpiredItems() {
 func (c *Cache) estimateItemSize(key string, value interface{}) int64 {
 	// Rough estimation of item size in bytes
 	size := int64(len(key))
-	
+
 	switch v := value.(type) {
 	case string:
 		size += int64(len(v))
@@ -348,7 +348,7 @@ func (c *Cache) estimateItemSize(key string, value interface{}) int64 {
 		// For complex objects, assume 1KB average size
 		size += 1024
 	}
-	
+
 	return size
 }
 
@@ -399,8 +399,8 @@ func (s *NephoranAPIServer) cacheMiddleware(ttl time.Duration) func(http.Handler
 			// Wrap response writer to capture response
 			wrapper := &cacheResponseWrapper{
 				ResponseWriter: w,
-				body:          make([]byte, 0),
-				statusCode:    http.StatusOK,
+				body:           make([]byte, 0),
+				statusCode:     http.StatusOK,
 			}
 
 			next.ServeHTTP(wrapper, r)

@@ -19,11 +19,11 @@ import (
 type HealthChecker struct {
 	logger *logging.StructuredLogger
 	config *HealthCheckerConfig
-	
+
 	// Health check state
 	activeChecks map[string]*HealthCheckSession
 	mu           sync.RWMutex
-	
+
 	// Control
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -32,31 +32,31 @@ type HealthChecker struct {
 
 // HealthCheckerConfig configures the health checker
 type HealthCheckerConfig struct {
-	Enabled                bool          `yaml:"enabled"`
-	DefaultTimeout         time.Duration `yaml:"default_timeout"`
-	DefaultInterval        time.Duration `yaml:"default_interval"`
-	DefaultHealthyThreshold int          `yaml:"default_healthy_threshold"`
-	DefaultUnhealthyThreshold int        `yaml:"default_unhealthy_threshold"`
-	ConcurrentChecks       int           `yaml:"concurrent_checks"`
-	RetryAttempts          int           `yaml:"retry_attempts"`
-	RetryDelay             time.Duration `yaml:"retry_delay"`
-	TLSVerificationEnabled bool          `yaml:"tls_verification_enabled"`
-	MetricsEnabled         bool          `yaml:"metrics_enabled"`
+	Enabled                   bool          `yaml:"enabled"`
+	DefaultTimeout            time.Duration `yaml:"default_timeout"`
+	DefaultInterval           time.Duration `yaml:"default_interval"`
+	DefaultHealthyThreshold   int           `yaml:"default_healthy_threshold"`
+	DefaultUnhealthyThreshold int           `yaml:"default_unhealthy_threshold"`
+	ConcurrentChecks          int           `yaml:"concurrent_checks"`
+	RetryAttempts             int           `yaml:"retry_attempts"`
+	RetryDelay                time.Duration `yaml:"retry_delay"`
+	TLSVerificationEnabled    bool          `yaml:"tls_verification_enabled"`
+	MetricsEnabled            bool          `yaml:"metrics_enabled"`
 }
 
 // HealthCheckSession represents an active health check session
 type HealthCheckSession struct {
-	ID            string                  `json:"id"`
-	Type          HealthCheckType         `json:"type"`
-	Target        *HealthCheckTarget      `json:"target"`
-	Config        *HealthCheckConfig      `json:"config"`
-	Status        HealthCheckStatus       `json:"status"`
-	Results       []*HealthCheckResult    `json:"results"`
-	StartTime     time.Time               `json:"start_time"`
-	LastCheckTime time.Time               `json:"last_check_time"`
-	TotalChecks   int                     `json:"total_checks"`
-	SuccessCount  int                     `json:"success_count"`
-	FailureCount  int                     `json:"failure_count"`
+	ID            string               `json:"id"`
+	Type          HealthCheckType      `json:"type"`
+	Target        *HealthCheckTarget   `json:"target"`
+	Config        *HealthCheckConfig   `json:"config"`
+	Status        HealthCheckStatus    `json:"status"`
+	Results       []*HealthCheckResult `json:"results"`
+	StartTime     time.Time            `json:"start_time"`
+	LastCheckTime time.Time            `json:"last_check_time"`
+	TotalChecks   int                  `json:"total_checks"`
+	SuccessCount  int                  `json:"success_count"`
+	FailureCount  int                  `json:"failure_count"`
 	mu            sync.RWMutex
 }
 
@@ -73,56 +73,56 @@ const (
 
 // HealthCheckTarget represents the target of a health check
 type HealthCheckTarget struct {
-	Name       string            `json:"name"`
-	Address    string            `json:"address"`
-	Port       int               `json:"port"`
-	Path       string            `json:"path,omitempty"`
-	Headers    map[string]string `json:"headers,omitempty"`
-	TLSConfig  *TLSCheckConfig   `json:"tls_config,omitempty"`
-	GRPCService string           `json:"grpc_service,omitempty"`
+	Name        string            `json:"name"`
+	Address     string            `json:"address"`
+	Port        int               `json:"port"`
+	Path        string            `json:"path,omitempty"`
+	Headers     map[string]string `json:"headers,omitempty"`
+	TLSConfig   *TLSCheckConfig   `json:"tls_config,omitempty"`
+	GRPCService string            `json:"grpc_service,omitempty"`
 }
 
 // TLSCheckConfig configures TLS-specific health checks
 type TLSCheckConfig struct {
-	Enabled              bool     `json:"enabled"`
-	VerifyCertificate   bool     `json:"verify_certificate"`
-	CertificateChain    bool     `json:"certificate_chain"`
-	ExpiresSoon         bool     `json:"expires_soon"`
-	ExpiryThreshold     time.Duration `json:"expiry_threshold"`
-	AllowedSANs         []string `json:"allowed_sans"`
-	RequiredKeyUsages   []string `json:"required_key_usages"`
+	Enabled           bool          `json:"enabled"`
+	VerifyCertificate bool          `json:"verify_certificate"`
+	CertificateChain  bool          `json:"certificate_chain"`
+	ExpiresSoon       bool          `json:"expires_soon"`
+	ExpiryThreshold   time.Duration `json:"expiry_threshold"`
+	AllowedSANs       []string      `json:"allowed_sans"`
+	RequiredKeyUsages []string      `json:"required_key_usages"`
 }
 
 // HealthCheckStatus represents the health check status
 type HealthCheckStatus string
 
 const (
-	HealthCheckStatusHealthy     HealthCheckStatus = "healthy"
-	HealthCheckStatusUnhealthy   HealthCheckStatus = "unhealthy"
-	HealthCheckStatusUnknown     HealthCheckStatus = "unknown"
-	HealthCheckStatusDegraded    HealthCheckStatus = "degraded"
+	HealthCheckStatusHealthy   HealthCheckStatus = "healthy"
+	HealthCheckStatusUnhealthy HealthCheckStatus = "unhealthy"
+	HealthCheckStatusUnknown   HealthCheckStatus = "unknown"
+	HealthCheckStatusDegraded  HealthCheckStatus = "degraded"
 )
 
 // HealthCheckResult represents a single health check result
 type HealthCheckResult struct {
-	Timestamp       time.Time         `json:"timestamp"`
-	Success         bool              `json:"success"`
-	ResponseTime    time.Duration     `json:"response_time"`
-	StatusCode      int               `json:"status_code,omitempty"`
-	ErrorMessage    string            `json:"error_message,omitempty"`
-	TLSInfo         *TLSCheckInfo     `json:"tls_info,omitempty"`
-	Metadata        map[string]string `json:"metadata,omitempty"`
+	Timestamp    time.Time         `json:"timestamp"`
+	Success      bool              `json:"success"`
+	ResponseTime time.Duration     `json:"response_time"`
+	StatusCode   int               `json:"status_code,omitempty"`
+	ErrorMessage string            `json:"error_message,omitempty"`
+	TLSInfo      *TLSCheckInfo     `json:"tls_info,omitempty"`
+	Metadata     map[string]string `json:"metadata,omitempty"`
 }
 
 // TLSCheckInfo contains TLS-specific check information
 type TLSCheckInfo struct {
-	Version            string    `json:"version"`
-	CipherSuite        string    `json:"cipher_suite"`
-	CertificateValid   bool      `json:"certificate_valid"`
-	CertificateExpiry  time.Time `json:"certificate_expiry"`
-	CertificateSubject string    `json:"certificate_subject"`
-	SANs               []string  `json:"sans"`
-	ChainLength        int       `json:"chain_length"`
+	Version            string        `json:"version"`
+	CipherSuite        string        `json:"cipher_suite"`
+	CertificateValid   bool          `json:"certificate_valid"`
+	CertificateExpiry  time.Time     `json:"certificate_expiry"`
+	CertificateSubject string        `json:"certificate_subject"`
+	SANs               []string      `json:"sans"`
+	ChainLength        int           `json:"chain_length"`
 	ExpiresWithin      time.Duration `json:"expires_within,omitempty"`
 }
 
@@ -132,7 +132,7 @@ func NewHealthChecker(
 	config *HealthCheckerConfig,
 ) *HealthChecker {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	return &HealthChecker{
 		logger:       logger,
 		config:       config,
@@ -188,7 +188,7 @@ func (hc *HealthChecker) StartHealthCheck(
 	}
 
 	sessionID := fmt.Sprintf("hc-%s-%d", target.Name, time.Now().Unix())
-	
+
 	session := &HealthCheckSession{
 		ID:        sessionID,
 		Type:      hc.determineCheckType(target),
@@ -215,10 +215,10 @@ func (hc *HealthChecker) StartHealthCheck(
 // PerformHealthCheck performs a single health check
 func (hc *HealthChecker) PerformHealthCheck(session *HealthCheckSession) (*HealthCheckResult, error) {
 	startTime := time.Now()
-	
+
 	result := &HealthCheckResult{
-		Timestamp:    startTime,
-		Metadata:     make(map[string]string),
+		Timestamp: startTime,
+		Metadata:  make(map[string]string),
 	}
 
 	var err error
@@ -251,7 +251,7 @@ func (hc *HealthChecker) PerformHealthCheck(session *HealthCheckSession) (*Healt
 	} else {
 		session.FailureCount++
 	}
-	
+
 	// Determine overall health status
 	session.Status = hc.determineHealthStatus(session)
 	session.mu.Unlock()
@@ -319,7 +319,7 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 	}
 
 	url := fmt.Sprintf("%s://%s:%d%s", scheme, session.Target.Address, session.Target.Port, session.Target.Path)
-	
+
 	// Create HTTP client with timeout
 	timeout := hc.config.DefaultTimeout
 	if session.Config != nil && session.Config.TimeoutPerCheck > 0 {
@@ -335,7 +335,7 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 		tlsConfig := &tls.Config{
 			InsecureSkipVerify: !hc.config.TLSVerificationEnabled,
 		}
-		
+
 		if session.Target.TLSConfig != nil && session.Target.TLSConfig.VerifyCertificate {
 			tlsConfig.InsecureSkipVerify = false
 		}
@@ -371,7 +371,7 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 	if session.Type == HealthCheckTypeHTTPS && resp.TLS != nil {
 		tlsInfo := hc.extractTLSInfo(resp.TLS, session.Target.TLSConfig)
 		result.TLSInfo = tlsInfo
-		
+
 		// Perform TLS-specific checks
 		if err := hc.validateTLSInfo(tlsInfo, session.Target.TLSConfig); err != nil {
 			return fmt.Errorf("TLS validation failed: %w", err)
@@ -389,14 +389,14 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 // performGRPCCheck performs gRPC health check
 func (hc *HealthChecker) performGRPCCheck(session *HealthCheckSession, result *HealthCheckResult) error {
 	address := fmt.Sprintf("%s:%d", session.Target.Address, session.Target.Port)
-	
+
 	timeout := hc.config.DefaultTimeout
 	if session.Config != nil && session.Config.TimeoutPerCheck > 0 {
 		timeout = session.Config.TimeoutPerCheck
 	}
 
 	// Create connection
-	conn, err := grpc.Dial(address, 
+	conn, err := grpc.Dial(address,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithTimeout(timeout))
 	if err != nil {
@@ -436,7 +436,7 @@ func (hc *HealthChecker) performGRPCCheck(session *HealthCheckSession, result *H
 // performTCPCheck performs TCP connectivity check
 func (hc *HealthChecker) performTCPCheck(session *HealthCheckSession, result *HealthCheckResult) error {
 	address := fmt.Sprintf("%s:%d", session.Target.Address, session.Target.Port)
-	
+
 	timeout := hc.config.DefaultTimeout
 	if session.Config != nil && session.Config.TimeoutPerCheck > 0 {
 		timeout = session.Config.TimeoutPerCheck
@@ -457,7 +457,7 @@ func (hc *HealthChecker) performTCPCheck(session *HealthCheckSession, result *He
 // performUDPCheck performs UDP connectivity check
 func (hc *HealthChecker) performUDPCheck(session *HealthCheckSession, result *HealthCheckResult) error {
 	address := fmt.Sprintf("%s:%d", session.Target.Address, session.Target.Port)
-	
+
 	timeout := hc.config.DefaultTimeout
 	if session.Config != nil && session.Config.TimeoutPerCheck > 0 {
 		timeout = session.Config.TimeoutPerCheck
@@ -489,14 +489,14 @@ func (hc *HealthChecker) extractTLSInfo(connState *tls.ConnectionState, tlsConfi
 		info.CertificateExpiry = cert.NotAfter
 		info.CertificateSubject = cert.Subject.String()
 		info.SANs = cert.DNSNames
-		
+
 		// Check if certificate expires soon
 		if tlsConfig != nil && tlsConfig.ExpiresSoon {
 			threshold := tlsConfig.ExpiryThreshold
 			if threshold == 0 {
 				threshold = 30 * 24 * time.Hour // Default 30 days
 			}
-			
+
 			if time.Until(cert.NotAfter) < threshold {
 				info.ExpiresWithin = time.Until(cert.NotAfter)
 			}
@@ -531,7 +531,7 @@ func (hc *HealthChecker) validateTLSInfo(tlsInfo *TLSCheckInfo, tlsConfig *TLSCh
 				break
 			}
 		}
-		
+
 		if !foundValidSAN {
 			return fmt.Errorf("certificate SANs do not match allowed values")
 		}
@@ -573,11 +573,11 @@ func (hc *HealthChecker) determineHealthStatus(session *HealthCheckSession) Heal
 	}
 
 	successRate := hc.calculateSuccessRate(session)
-	
+
 	// Use thresholds from config or defaults
 	healthyThreshold := hc.config.DefaultHealthyThreshold
 	unhealthyThreshold := hc.config.DefaultUnhealthyThreshold
-	
+
 	if session.Config != nil {
 		if session.Config.HealthyThreshold > 0 {
 			healthyThreshold = session.Config.HealthyThreshold
@@ -627,7 +627,7 @@ func (hc *HealthChecker) calculateSuccessRate(session *HealthCheckSession) float
 func (hc *HealthChecker) GetHealthCheckSession(sessionID string) (*HealthCheckSession, bool) {
 	hc.mu.RLock()
 	defer hc.mu.RUnlock()
-	
+
 	session, exists := hc.activeChecks[sessionID]
 	return session, exists
 }
@@ -636,12 +636,12 @@ func (hc *HealthChecker) GetHealthCheckSession(sessionID string) (*HealthCheckSe
 func (hc *HealthChecker) GetActiveHealthCheckSessions() []*HealthCheckSession {
 	hc.mu.RLock()
 	defer hc.mu.RUnlock()
-	
+
 	sessions := make([]*HealthCheckSession, 0, len(hc.activeChecks))
 	for _, session := range hc.activeChecks {
 		sessions = append(sessions, session)
 	}
-	
+
 	return sessions
 }
 
@@ -649,10 +649,10 @@ func (hc *HealthChecker) GetActiveHealthCheckSessions() []*HealthCheckSession {
 
 func (hc *HealthChecker) runMetricsCollector() {
 	defer hc.wg.Done()
-	
+
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-hc.ctx.Done():
@@ -667,17 +667,17 @@ func (hc *HealthChecker) collectMetrics() {
 	hc.mu.RLock()
 	activeCount := len(hc.activeChecks)
 	hc.mu.RUnlock()
-	
+
 	hc.logger.Debug("health check metrics",
 		"active_sessions", activeCount)
 }
 
 func (hc *HealthChecker) runSessionCleanup() {
 	defer hc.wg.Done()
-	
+
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-hc.ctx.Done():
@@ -690,10 +690,10 @@ func (hc *HealthChecker) runSessionCleanup() {
 
 func (hc *HealthChecker) cleanupSessions() {
 	cutoff := time.Now().Add(-1 * time.Hour) // Keep sessions for 1 hour
-	
+
 	hc.mu.Lock()
 	defer hc.mu.Unlock()
-	
+
 	for sessionID, session := range hc.activeChecks {
 		if session.LastCheckTime.Before(cutoff) {
 			delete(hc.activeChecks, sessionID)

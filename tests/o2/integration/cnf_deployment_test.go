@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/suite"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -26,11 +26,11 @@ import (
 
 type CNFDeploymentTestSuite struct {
 	suite.Suite
-	o2Adaptor    *o2.O2Adaptor
-	o2Manager    *o2.O2Manager
-	k8sClient    client.Client
-	k8sClientset *fake.Clientset
-	testLogger   *logging.StructuredLogger
+	o2Adaptor     *o2.O2Adaptor
+	o2Manager     *o2.O2Manager
+	k8sClient     client.Client
+	k8sClientset  *fake.Clientset
+	testLogger    *logging.StructuredLogger
 	testNamespace string
 }
 
@@ -208,11 +208,11 @@ func (suite *CNFDeploymentTestSuite) TestAMFCNFDeployment() {
 				},
 			},
 			Metadata: map[string]string{
-				"cnf.nephoran.com/type":       "5g-core",
-				"cnf.nephoran.com/function":   "amf",
-				"cnf.nephoran.com/vendor":     "nephoran",
-				"cnf.nephoran.com/version":    "1.2.0",
-				"cnf.nephoran.com/standard":   "3gpp-rel16",
+				"cnf.nephoran.com/type":     "5g-core",
+				"cnf.nephoran.com/function": "amf",
+				"cnf.nephoran.com/vendor":   "nephoran",
+				"cnf.nephoran.com/version":  "1.2.0",
+				"cnf.nephoran.com/standard": "3gpp-rel16",
 			},
 		}
 
@@ -421,7 +421,7 @@ func (suite *CNFDeploymentTestSuite) TestSMFCNFDeployment() {
 
 		// Validate SMF-specific configuration
 		container := deployment.Spec.Template.Spec.Containers[0]
-		
+
 		// Validate environment variables include database connection
 		envVars := make(map[string]string)
 		for _, env := range container.Env {
@@ -469,7 +469,7 @@ func (suite *CNFDeploymentTestSuite) TestUPFCNFDeployment() {
 			Name:        "test-upf-cnf",
 			Type:        "upf",
 			Version:     "2.0.0",
-			Vendor:      "Nephoran", 
+			Vendor:      "Nephoran",
 			Description: "5G User Plane Function with DPDK acceleration",
 			Image:       "registry.nephoran.com/5g/upf:2.0.0",
 			Replicas:    2,
@@ -626,10 +626,10 @@ func (suite *CNFDeploymentTestSuite) TestUPFCNFDeployment() {
 		nodeAffinity := deployment.Spec.Template.Spec.Affinity.NodeAffinity
 		suite.Assert().NotNil(nodeAffinity)
 		suite.Assert().NotNil(nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution)
-		
+
 		requirements := nodeAffinity.RequiredDuringSchedulingIgnoredDuringExecution.NodeSelectorTerms[0].MatchExpressions
 		suite.Assert().Len(requirements, 2)
-		
+
 		// Check for DPDK label requirement
 		dpdkReq := requirements[0]
 		suite.Assert().Equal("node.nephoran.com/dpdk", dpdkReq.Key)
@@ -704,7 +704,7 @@ func (suite *CNFDeploymentTestSuite) TestCNFResourceDiscovery() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "worker-node-1",
 					Labels: map[string]string{
-						"node-role.kubernetes.io/worker": "",
+						"node-role.kubernetes.io/worker":  "",
 						"node.nephoran.com/dpdk":          "enabled",
 						"node.nephoran.com/hugepages-1gi": "available",
 					},
@@ -733,18 +733,18 @@ func (suite *CNFDeploymentTestSuite) TestCNFResourceDiscovery() {
 					Name: "worker-node-2",
 					Labels: map[string]string{
 						"node-role.kubernetes.io/worker": "",
-						"node.nephoran.com/sriov":         "enabled",
+						"node.nephoran.com/sriov":        "enabled",
 					},
 				},
 				Status: corev1.NodeStatus{
 					Capacity: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("16"),
-						corev1.ResourceMemory: resource.MustParse("64Gi"),
+						corev1.ResourceCPU:           resource.MustParse("16"),
+						corev1.ResourceMemory:        resource.MustParse("64Gi"),
 						"intel.com/sriov_net_device": resource.MustParse("8"),
 					},
 					Allocatable: corev1.ResourceList{
-						corev1.ResourceCPU:    resource.MustParse("15800m"),
-						corev1.ResourceMemory: resource.MustParse("60Gi"),
+						corev1.ResourceCPU:           resource.MustParse("15800m"),
+						corev1.ResourceMemory:        resource.MustParse("60Gi"),
 						"intel.com/sriov_net_device": resource.MustParse("8"),
 					},
 					Conditions: []corev1.NodeCondition{
@@ -868,8 +868,6 @@ func (suite *CNFDeploymentTestSuite) TestCNFHealthMonitoring() {
 		suite.Assert().Equal("INSTANTIATED", vnfInstance.Status.State)
 	})
 }
-
-
 
 func TestCNFDeployment(t *testing.T) {
 	suite.Run(t, new(CNFDeploymentTestSuite))

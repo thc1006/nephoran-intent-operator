@@ -46,14 +46,14 @@ func TestCircuitBreakerHealthIntegration(t *testing.T) {
 // with multiple circuit breakers in various states
 func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 	tests := []struct {
-		name           string
+		name            string
 		circuitBreakers map[string]string // name -> state
-		expectedStatus int
-		expectedMsg    string
-		checkAllOpen   bool // whether all open breakers should be in message
+		expectedStatus  int
+		expectedMsg     string
+		checkAllOpen    bool // whether all open breakers should be in message
 	}{
 		{
-			name:           "all_closed_breakers",
+			name: "all_closed_breakers",
 			circuitBreakers: map[string]string{
 				"service-a": "closed",
 				"service-b": "closed",
@@ -63,7 +63,7 @@ func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 			expectedMsg:    "All circuit breakers operational",
 		},
 		{
-			name:           "single_open_breaker",
+			name: "single_open_breaker",
 			circuitBreakers: map[string]string{
 				"service-a": "closed",
 				"service-b": "open",
@@ -74,7 +74,7 @@ func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 			checkAllOpen:   true,
 		},
 		{
-			name:           "multiple_open_breakers",
+			name: "multiple_open_breakers",
 			circuitBreakers: map[string]string{
 				"service-a": "open",
 				"service-b": "closed",
@@ -92,7 +92,7 @@ func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 			expectedMsg:     "No circuit breakers registered",
 		},
 		{
-			name:           "all_half_open_breakers",
+			name: "all_half_open_breakers",
 			circuitBreakers: map[string]string{
 				"service-a": "half-open",
 				"service-b": "half-open",
@@ -106,11 +106,11 @@ func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create circuit breaker manager with test breakers
 			cbMgr := llm.NewCircuitBreakerManager(nil)
-			
+
 			// Create circuit breakers in specified states
 			for name, state := range tt.circuitBreakers {
 				cb := cbMgr.GetOrCreate(name, nil)
-				
+
 				// Force circuit breaker into desired state
 				switch state {
 				case "open":
@@ -132,7 +132,7 @@ func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 			sm := NewServiceManager(config, logger)
 			sm.circuitBreakerMgr = cbMgr
 			sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
-			
+
 			// Register health checks (this is what we're testing)
 			sm.registerHealthChecks()
 			sm.MarkReady()
@@ -177,7 +177,7 @@ func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 				assert.Contains(t, cbCheck.Message, tt.expectedMsg)
 				for name, state := range tt.circuitBreakers {
 					if state == "open" {
-						assert.Contains(t, cbCheck.Message, name, 
+						assert.Contains(t, cbCheck.Message, name,
 							"Open breaker %s should be in message: %s", name, cbCheck.Message)
 					}
 				}
@@ -199,7 +199,7 @@ func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 func testConcurrentStateChanges(t *testing.T, logger *slog.Logger) {
 	t.Run("concurrent_health_checks_with_state_changes", func(t *testing.T) {
 		cbMgr := llm.NewCircuitBreakerManager(nil)
-		
+
 		// Create multiple circuit breakers
 		const numBreakers = 10
 		breakers := make([]*llm.CircuitBreaker, numBreakers)
@@ -218,7 +218,7 @@ func testConcurrentStateChanges(t *testing.T, logger *slog.Logger) {
 		// Test concurrent health checks while changing states
 		const numGoroutines = 20
 		const testDuration = 2 * time.Second
-		
+
 		var wg sync.WaitGroup
 		results := make(chan health.Check, numGoroutines*10) // Buffer for results
 		stopChan := make(chan struct{})
@@ -230,7 +230,7 @@ func testConcurrentStateChanges(t *testing.T, logger *slog.Logger) {
 				defer wg.Done()
 				ticker := time.NewTicker(50 * time.Millisecond)
 				defer ticker.Stop()
-				
+
 				for {
 					select {
 					case <-stopChan:
@@ -259,7 +259,7 @@ func testConcurrentStateChanges(t *testing.T, logger *slog.Logger) {
 				defer wg.Done()
 				ticker := time.NewTicker(100 * time.Millisecond)
 				defer ticker.Stop()
-				
+
 				for {
 					select {
 					case <-stopChan:
@@ -285,15 +285,15 @@ func testConcurrentStateChanges(t *testing.T, logger *slog.Logger) {
 		// Collect and validate results
 		var healthyCount, unhealthyCount int
 		var lastUnhealthyMessage string
-		
+
 		for result := range results {
 			switch result.Status {
 			case health.StatusHealthy:
 				healthyCount++
 				// Healthy should have appropriate message
-				assert.True(t, 
+				assert.True(t,
 					result.Message == "All circuit breakers operational" ||
-					result.Message == "No circuit breakers registered",
+						result.Message == "No circuit breakers registered",
 					"Unexpected healthy message: %s", result.Message)
 			case health.StatusUnhealthy:
 				unhealthyCount++
@@ -307,7 +307,7 @@ func testConcurrentStateChanges(t *testing.T, logger *slog.Logger) {
 		// We should have received multiple health check results
 		totalResults := healthyCount + unhealthyCount
 		assert.Greater(t, totalResults, 10, "Should have multiple health check results")
-		
+
 		t.Logf("Health check results: %d healthy, %d unhealthy", healthyCount, unhealthyCount)
 		if lastUnhealthyMessage != "" {
 			t.Logf("Last unhealthy message: %s", lastUnhealthyMessage)
@@ -317,7 +317,7 @@ func testConcurrentStateChanges(t *testing.T, logger *slog.Logger) {
 	t.Run("thread_safety_validation", func(t *testing.T) {
 		// Test for race conditions and data races
 		cbMgr := llm.NewCircuitBreakerManager(nil)
-		
+
 		const numBreakers = 5
 		for i := 0; i < numBreakers; i++ {
 			name := fmt.Sprintf("race-test-service-%d", i)
@@ -333,7 +333,7 @@ func testConcurrentStateChanges(t *testing.T, logger *slog.Logger) {
 		// Run concurrent operations
 		var wg sync.WaitGroup
 		const numConcurrent = 100
-		
+
 		// Concurrent health checks
 		for i := 0; i < numConcurrent; i++ {
 			wg.Add(1)
@@ -364,7 +364,7 @@ func testConcurrentStateChanges(t *testing.T, logger *slog.Logger) {
 		}
 
 		wg.Wait()
-		
+
 		// Final health check to ensure system is still stable
 		ctx := context.Background()
 		finalResponse := sm.healthChecker.Check(ctx)
@@ -376,17 +376,17 @@ func testConcurrentStateChanges(t *testing.T, logger *slog.Logger) {
 // testPerformanceWithManyBreakers benchmarks health check performance with many circuit breakers
 func testPerformanceWithManyBreakers(t *testing.T, logger *slog.Logger) {
 	breakerCounts := []int{10, 50, 100, 200}
-	
+
 	for _, count := range breakerCounts {
 		t.Run(fmt.Sprintf("performance_with_%d_breakers", count), func(t *testing.T) {
 			cbMgr := llm.NewCircuitBreakerManager(nil)
-			
+
 			// Create many circuit breakers with mixed states
 			openBreakers := make([]string, 0)
 			for i := 0; i < count; i++ {
 				name := fmt.Sprintf("perf-service-%d", i)
 				cb := cbMgr.GetOrCreate(name, nil)
-				
+
 				// Make some breakers open (every 5th one)
 				if i%5 == 0 {
 					cb.ForceOpen()
@@ -403,15 +403,15 @@ func testPerformanceWithManyBreakers(t *testing.T, logger *slog.Logger) {
 			// Measure health check performance
 			const iterations = 100
 			ctx := context.Background()
-			
+
 			start := time.Now()
 			for i := 0; i < iterations; i++ {
 				response := sm.healthChecker.Check(ctx)
-				
+
 				// Validate response structure
 				assert.Equal(t, "llm-processor", response.Service)
 				assert.Greater(t, len(response.Checks), 0)
-				
+
 				// Find and validate circuit breaker check
 				var cbCheck *health.Check
 				for _, check := range response.Checks {
@@ -420,13 +420,13 @@ func testPerformanceWithManyBreakers(t *testing.T, logger *slog.Logger) {
 						break
 					}
 				}
-				
+
 				require.NotNil(t, cbCheck)
-				
+
 				if len(openBreakers) > 0 {
 					assert.Equal(t, health.StatusUnhealthy, cbCheck.Status)
 					assert.Contains(t, cbCheck.Message, "Circuit breakers in open state:")
-					
+
 					// Verify all open breakers are reported (this tests the fix)
 					for _, openName := range openBreakers {
 						assert.Contains(t, cbCheck.Message, openName,
@@ -437,14 +437,14 @@ func testPerformanceWithManyBreakers(t *testing.T, logger *slog.Logger) {
 				}
 			}
 			duration := time.Since(start)
-			
+
 			avgDuration := duration / iterations
 			maxAcceptableDuration := 50 * time.Millisecond // Performance requirement
-			
+
 			assert.Less(t, avgDuration, maxAcceptableDuration,
-				"Average health check duration %v should be less than %v with %d breakers", 
+				"Average health check duration %v should be less than %v with %d breakers",
 				avgDuration, maxAcceptableDuration, count)
-			
+
 			t.Logf("Performance with %d breakers (%d open): %d iterations in %v (avg: %v per check)",
 				count, len(openBreakers), iterations, duration, avgDuration)
 		})
@@ -456,25 +456,25 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 	t.Run("backward_compatibility", func(t *testing.T) {
 		// Test that existing health check functionality still works
 		cbMgr := llm.NewCircuitBreakerManager(nil)
-		
+
 		config := &Config{ServiceVersion: "test-1.0.0"}
 		sm := NewServiceManager(config, logger)
 		sm.circuitBreakerMgr = cbMgr
 		sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
-		
+
 		// Register all health checks like in production
 		sm.registerHealthChecks()
 		sm.MarkReady()
 
 		ctx := context.Background()
 		response := sm.healthChecker.Check(ctx)
-		
+
 		// Verify standard health response structure
 		assert.Equal(t, "llm-processor", response.Service)
 		assert.Equal(t, config.ServiceVersion, response.Version)
 		assert.NotEmpty(t, response.Uptime)
 		assert.True(t, len(response.Checks) >= 1) // Should have service_status at minimum
-		
+
 		// Should have summary
 		assert.NotNil(t, response.Summary)
 		assert.Greater(t, response.Summary.Total, 0)
@@ -486,16 +486,16 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 		sm := NewServiceManager(config, logger)
 		sm.circuitBreakerMgr = nil // Explicitly nil
 		sm.healthChecker = health.NewHealthChecker("llm-processor", config.ServiceVersion, logger)
-		
+
 		sm.registerHealthChecks()
-		
+
 		ctx := context.Background()
 		response := sm.healthChecker.Check(ctx)
-		
+
 		// Should work fine without circuit breaker checks
 		assert.Equal(t, "llm-processor", response.Service)
 		assert.NotNil(t, response.Checks)
-		
+
 		// Circuit breaker check should not be present
 		for _, check := range response.Checks {
 			assert.NotEqual(t, "circuit_breaker", check.Name)
@@ -505,11 +505,11 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 	t.Run("malformed_circuit_breaker_stats", func(t *testing.T) {
 		// Test with malformed circuit breaker stats (edge case)
 		cbMgr := llm.NewCircuitBreakerManager(nil)
-		
+
 		// Create a breaker and manually corrupt its state for testing
 		cb := cbMgr.GetOrCreate("test-service", nil)
 		_ = cb // We'll test through the manager interface
-		
+
 		config := &Config{ServiceVersion: "test-1.0.0"}
 		sm := NewServiceManager(config, logger)
 		sm.circuitBreakerMgr = cbMgr
@@ -518,10 +518,10 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 
 		ctx := context.Background()
 		response := sm.healthChecker.Check(ctx)
-		
+
 		// Should handle malformed stats gracefully
 		assert.Equal(t, "llm-processor", response.Service)
-		
+
 		// Find circuit breaker check
 		var cbCheck *health.Check
 		for _, check := range response.Checks {
@@ -530,7 +530,7 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 				break
 			}
 		}
-		
+
 		require.NotNil(t, cbCheck)
 		// Should default to healthy when stats are valid
 		assert.Equal(t, health.StatusHealthy, cbCheck.Status)
@@ -539,11 +539,11 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 	t.Run("http_endpoint_integration", func(t *testing.T) {
 		// Test that HTTP endpoints work correctly with the fix
 		cbMgr := llm.NewCircuitBreakerManager(nil)
-		
+
 		// Create some breakers with mixed states
 		cbMgr.GetOrCreate("service-healthy", nil).Reset()
 		cbMgr.GetOrCreate("service-open", nil).ForceOpen()
-		
+
 		config := &Config{ServiceVersion: "test-1.0.0"}
 		sm := NewServiceManager(config, logger)
 		sm.circuitBreakerMgr = cbMgr
@@ -557,19 +557,19 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 
 		// Test both /healthz and /readyz endpoints
 		endpoints := []string{"/healthz", "/readyz"}
-		
+
 		for _, endpoint := range endpoints {
 			resp, err := http.Get(server.URL + endpoint)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			
+
 			// Should return 503 due to open circuit breaker
 			assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
-			
+
 			var healthResp health.HealthResponse
 			err = json.NewDecoder(resp.Body).Decode(&healthResp)
 			require.NoError(t, err)
-			
+
 			// Find circuit breaker check in response
 			var cbCheck *health.Check
 			for _, check := range healthResp.Checks {
@@ -578,7 +578,7 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 					break
 				}
 			}
-			
+
 			require.NotNil(t, cbCheck, "Circuit breaker check missing in %s", endpoint)
 			assert.Equal(t, health.StatusUnhealthy, cbCheck.Status)
 			assert.Contains(t, cbCheck.Message, "service-open",
@@ -590,10 +590,10 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 // BenchmarkCircuitBreakerHealthCheckFix benchmarks the specific fix implementation
 func BenchmarkCircuitBreakerHealthCheckFix(b *testing.B) {
 	logger := slog.Default()
-	
+
 	// Test scenarios with different numbers of circuit breakers
 	scenarios := []struct {
-		name         string
+		name          string
 		totalBreakers int
 		openBreakers  int
 	}{
@@ -606,12 +606,12 @@ func BenchmarkCircuitBreakerHealthCheckFix(b *testing.B) {
 	for _, scenario := range scenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			cbMgr := llm.NewCircuitBreakerManager(nil)
-			
+
 			// Create circuit breakers
 			for i := 0; i < scenario.totalBreakers; i++ {
 				name := fmt.Sprintf("bench-service-%d", i)
 				cb := cbMgr.GetOrCreate(name, nil)
-				
+
 				// Make some breakers open
 				if i < scenario.openBreakers {
 					cb.ForceOpen()
@@ -625,12 +625,12 @@ func BenchmarkCircuitBreakerHealthCheckFix(b *testing.B) {
 			sm.registerHealthChecks()
 
 			ctx := context.Background()
-			
+
 			b.ResetTimer()
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
 					response := sm.healthChecker.Check(ctx)
-					
+
 					// Find circuit breaker check to ensure it completes
 					for _, check := range response.Checks {
 						if check.Name == "circuit_breaker" {
@@ -653,7 +653,7 @@ func BenchmarkCircuitBreakerHealthCheckFix(b *testing.B) {
 // to ensure the fix produces the correct output format
 func TestCircuitBreakerHealthMessageFormatting(t *testing.T) {
 	logger := slog.Default()
-	
+
 	tests := []struct {
 		name            string
 		openBreakers    []string
@@ -683,13 +683,13 @@ func TestCircuitBreakerHealthMessageFormatting(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cbMgr := llm.NewCircuitBreakerManager(nil)
-			
+
 			// Create open breakers
 			for _, name := range tt.openBreakers {
 				cb := cbMgr.GetOrCreate(name, nil)
 				cb.ForceOpen()
 			}
-			
+
 			// Create some closed breakers too
 			cbMgr.GetOrCreate("closed-service-1", nil).Reset()
 			cbMgr.GetOrCreate("closed-service-2", nil).Reset()
@@ -702,7 +702,7 @@ func TestCircuitBreakerHealthMessageFormatting(t *testing.T) {
 
 			ctx := context.Background()
 			response := sm.healthChecker.Check(ctx)
-			
+
 			// Find circuit breaker check
 			var cbCheck *health.Check
 			for _, check := range response.Checks {
@@ -711,10 +711,10 @@ func TestCircuitBreakerHealthMessageFormatting(t *testing.T) {
 					break
 				}
 			}
-			
+
 			require.NotNil(t, cbCheck)
 			assert.Equal(t, health.StatusUnhealthy, cbCheck.Status)
-			
+
 			if tt.exactMatch {
 				assert.Equal(t, tt.expectedPattern, cbCheck.Message)
 			} else {
@@ -725,7 +725,7 @@ func TestCircuitBreakerHealthMessageFormatting(t *testing.T) {
 						"Open breaker %s should be in message: %s", openName, cbCheck.Message)
 				}
 			}
-			
+
 			t.Logf("Message format for %d open breakers: %s", len(tt.openBreakers), cbCheck.Message)
 		})
 	}

@@ -139,10 +139,10 @@ func setupTestSessionManager(t *testing.T) (*SessionManager, *JWTManager, *RBACM
 		DefaultTTL: 1 * time.Hour,
 		RefreshTTL: 24 * time.Hour,
 	}
-	
+
 	mockStore := &mockTokenStore{tokens: make(map[string]*TokenInfo)}
 	mockBlacklist := &mockTokenBlacklist{blacklisted: make(map[string]time.Time)}
-	
+
 	jwtManager, err := NewJWTManager(jwtConfig, mockStore, mockBlacklist, logger)
 	if err != nil {
 		t.Fatalf("Failed to create JWT manager: %v", err)
@@ -187,7 +187,7 @@ func setupTestSessionManager(t *testing.T) (*SessionManager, *JWTManager, *RBACM
 
 func TestNewSessionManager(t *testing.T) {
 	sessionManager, _, _ := setupTestSessionManager(t)
-	
+
 	if sessionManager == nil {
 		t.Fatal("Expected SessionManager to be created")
 	}
@@ -302,7 +302,7 @@ func TestSessionValidation(t *testing.T) {
 	}
 
 	loginResponse, _ := sessionManager.InitiateLogin(ctx, loginRequest)
-	
+
 	callbackRequest := &CallbackRequest{
 		Provider:  "mock",
 		Code:      "test-code",

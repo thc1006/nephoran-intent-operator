@@ -104,7 +104,7 @@ func TestWebhookSecurityValidator(t *testing.T) {
 					t.Errorf("Expected error but got none")
 					return
 				}
-				
+
 				if secErr, ok := err.(*WebhookSecurityError); ok {
 					if secErr.Code != tt.errorCode {
 						t.Errorf("Expected error code %s, got %s", tt.errorCode, secErr.Code)

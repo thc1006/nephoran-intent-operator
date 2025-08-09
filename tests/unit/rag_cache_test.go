@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/suite"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
@@ -108,11 +108,11 @@ type ContextAssemblerTestSuite struct {
 func (suite *ContextAssemblerTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
 	suite.assembler = rag.NewContextAssembler(&rag.ContextAssemblerConfig{
-		MaxContextLength:   4000,
-		MaxDocuments:       10,
-		PriorityWeighting:  true,
-		RemoveDuplicates:   true,
-		IncludeMetadata:    true,
+		MaxContextLength:  4000,
+		MaxDocuments:      10,
+		PriorityWeighting: true,
+		RemoveDuplicates:  true,
+		IncludeMetadata:   true,
 	})
 }
 
@@ -120,7 +120,7 @@ func (suite *ContextAssemblerTestSuite) SetupSuite() {
 func (suite *ContextAssemblerTestSuite) TestAssembleContext() {
 	documents := []rag.RetrievedDocument{
 		{
-			DocumentID:      "doc1",
+			DocumentID:     "doc1",
 			Title:          "5G Network Architecture",
 			Content:        "5G networks utilize a service-based architecture with network functions.",
 			Score:          0.95,
@@ -132,7 +132,7 @@ func (suite *ContextAssemblerTestSuite) TestAssembleContext() {
 			},
 		},
 		{
-			DocumentID:      "doc2",
+			DocumentID:     "doc2",
 			Title:          "Network Slicing",
 			Content:        "Network slicing enables multiple virtual networks to run on shared infrastructure.",
 			Score:          0.87,
@@ -189,8 +189,8 @@ func (suite *ContextAssemblerTestSuite) TestRemoveDuplicateContent() {
 	}
 
 	context, err := suite.assembler.AssembleContext(suite.ctx, documents, &rag.ContextAssemblyRequest{
-		Query:      "5G features",
-		MaxLength:  1000,
+		Query:     "5G features",
+		MaxLength: 1000,
 	})
 
 	suite.NoError(err)
@@ -208,19 +208,19 @@ func (suite *ContextAssemblerTestSuite) TestRemoveDuplicateContent() {
 func (suite *ContextAssemblerTestSuite) TestPriorityWeighting() {
 	documents := []rag.RetrievedDocument{
 		{
-			DocumentID:      "low_score",
+			DocumentID:     "low_score",
 			Content:        "Low relevance content about networks.",
 			Score:          0.6,
 			RelevanceScore: 0.6,
 		},
 		{
-			DocumentID:      "high_score",
+			DocumentID:     "high_score",
 			Content:        "High relevance content about 5G network architecture.",
 			Score:          0.95,
 			RelevanceScore: 0.95,
 		},
 		{
-			DocumentID:      "medium_score",
+			DocumentID:     "medium_score",
 			Content:        "Medium relevance content about network slicing.",
 			Score:          0.8,
 			RelevanceScore: 0.8,
@@ -228,8 +228,8 @@ func (suite *ContextAssemblerTestSuite) TestPriorityWeighting() {
 	}
 
 	context, err := suite.assembler.AssembleContext(suite.ctx, documents, &rag.ContextAssemblyRequest{
-		Query:      "5G network",
-		MaxLength:  200, // Limited length to test prioritization
+		Query:     "5G network",
+		MaxLength: 200, // Limited length to test prioritization
 	})
 
 	suite.NoError(err)
@@ -256,7 +256,7 @@ type SemanticRerankerTestSuite struct {
 // SetupSuite initializes the semantic reranker test suite
 func (suite *SemanticRerankerTestSuite) SetupSuite() {
 	suite.ctx = context.Background()
-	
+
 	mockEmbedding := &MockEmbeddingService{}
 	mockEmbedding.On("GenerateEmbeddings", mock.Anything, mock.AnythingOfType("[]string")).Return(
 		func(ctx context.Context, texts []string) [][]float32 {
@@ -270,9 +270,9 @@ func (suite *SemanticRerankerTestSuite) SetupSuite() {
 
 	suite.reranker = rag.NewSemanticReranker(&rag.SemanticRerankerConfig{
 		EmbeddingService: mockEmbedding,
-		ModelName:       "test-reranker",
-		BatchSize:       32,
-		MockMode:        true,
+		ModelName:        "test-reranker",
+		BatchSize:        32,
+		MockMode:         true,
 	})
 }
 
@@ -353,11 +353,11 @@ func (suite *SemanticRerankerTestSuite) TestRerankSingleDocument() {
 func generateMockEmbedding(text string) []float32 {
 	// Simple deterministic embedding generation for testing
 	embedding := make([]float32, 384)
-	
+
 	// Use text characteristics to generate somewhat realistic embeddings
 	textLen := len(text)
 	wordCount := len(strings.Fields(text))
-	
+
 	for i := range embedding {
 		// Create patterns based on text content
 		val := float32(0.0)
@@ -367,27 +367,27 @@ func generateMockEmbedding(text string) []float32 {
 		if i < wordCount*10 {
 			val += float32(wordCount) / 100.0
 		}
-		
+
 		// Add some deterministic "randomness"
 		val += float32((i*textLen)%100) / 100.0
-		
+
 		// Normalize to [-1, 1]
 		embedding[i] = (val - 0.5) * 2.0
 	}
-	
+
 	// Normalize to unit vector
 	var magnitude float32
 	for _, val := range embedding {
 		magnitude += val * val
 	}
 	magnitude = float32(math.Sqrt(float64(magnitude)))
-	
+
 	if magnitude > 0 {
 		for i := range embedding {
 			embedding[i] /= magnitude
 		}
 	}
-	
+
 	return embedding
 }
 

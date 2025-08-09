@@ -17,8 +17,8 @@ limitations under the License.
 package porch
 
 import (
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // DeepCopy implementations for all Porch types
@@ -630,7 +630,7 @@ func deepCopyInterface(v interface{}) interface{} {
 	if v == nil {
 		return nil
 	}
-	
+
 	switch val := v.(type) {
 	case map[string]interface{}:
 		copy := make(map[string]interface{}, len(val))

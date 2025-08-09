@@ -63,12 +63,12 @@ var _ = Describe("Integration Tests - End-to-End Workflows", func() {
 
 			// Set up mock LLM client for successful processing
 			mockResponse := map[string]interface{}{
-				"action":       "scale",
-				"target_type":  "E2NodeSet",
-				"target_name":  "test-e2nodeset",
-				"replicas":     5,
-				"reason":       "capacity_increase",
-				"priority":     "high",
+				"action":      "scale",
+				"target_type": "E2NodeSet",
+				"target_name": "test-e2nodeset",
+				"replicas":    5,
+				"reason":      "capacity_increase",
+				"priority":    "high",
 			}
 			mockResponseBytes, _ := json.Marshal(mockResponse)
 			networkIntentReconciler.LLMClient = &MockLLMClient{

@@ -1,8 +1,8 @@
 package nephio
 
 import (
-	"encoding/json"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -29,37 +29,37 @@ func NewPackageGenerator() (*PackageGenerator, error) {
 	pg := &PackageGenerator{
 		templates: make(map[string]*template.Template),
 	}
-	
+
 	// Initialize templates
 	if err := pg.initTemplates(); err != nil {
 		return nil, fmt.Errorf("failed to initialize templates: %w", err)
 	}
-	
+
 	return pg, nil
 }
 
 // GeneratePackage generates a complete Nephio package from a NetworkIntent
 func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[string]string, error) {
 	files := make(map[string]string)
-	
+
 	// Generate package structure
 	packageName := fmt.Sprintf("%s-package", intent.Name)
 	packagePath := filepath.Join("packages", intent.Namespace, packageName)
-	
+
 	// Generate Kptfile
 	kptfile, err := pg.generateKptfile(intent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate Kptfile: %w", err)
 	}
 	files[filepath.Join(packagePath, "Kptfile")] = kptfile
-	
+
 	// Generate package resources based on intent type
 	// Use the IntentType from the spec, defaulting to "deployment" if empty
 	intentType := intent.Spec.IntentType
 	if intentType == "" {
 		intentType = "deployment"
 	}
-	
+
 	switch intentType {
 	case "deployment":
 		resources, err := pg.generateDeploymentResources(intent)
@@ -88,21 +88,21 @@ func (pg *PackageGenerator) GeneratePackage(intent *v1.NetworkIntent) (map[strin
 	default:
 		return nil, fmt.Errorf("unsupported intent type: %s", intentType)
 	}
-	
+
 	// Generate README
 	readme, err := pg.generateReadme(intent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate README: %w", err)
 	}
 	files[filepath.Join(packagePath, "README.md")] = readme
-	
+
 	// Generate function configuration
 	fnConfig, err := pg.generateFunctionConfig(intent)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate function config: %w", err)
 	}
 	files[filepath.Join(packagePath, "fn-config.yaml")] = fnConfig
-	
+
 	return files, nil
 }
 
@@ -132,13 +132,13 @@ pipeline:
   validators:
   - image: gcr.io/kpt-fn/kubeval:v0.3.0
 `
-	
+
 	tmpl, err := template.New("kptfile").Parse(kptfileTmpl)
 	if err != nil {
 		return fmt.Errorf("failed to parse kptfile template: %w", err)
 	}
 	pg.templates["kptfile"] = tmpl
-	
+
 	// Deployment template
 	deploymentTmpl := `
 apiVersion: apps/v1
@@ -183,13 +183,13 @@ spec:
             cpu: {{ .Resources.Limits.CPU }}
             memory: {{ .Resources.Limits.Memory }}
 `
-	
+
 	tmpl, err = template.New("deployment").Parse(deploymentTmpl)
 	if err != nil {
 		return fmt.Errorf("failed to parse deployment template: %w", err)
 	}
 	pg.templates["deployment"] = tmpl
-	
+
 	// Service template
 	serviceTmpl := `
 apiVersion: v1
@@ -212,13 +212,13 @@ spec:
     protocol: {{ .Protocol }}
   {{- end }}
 `
-	
+
 	tmpl, err = template.New("service").Parse(serviceTmpl)
 	if err != nil {
 		return fmt.Errorf("failed to parse service template: %w", err)
 	}
 	pg.templates["service"] = tmpl
-	
+
 	// ConfigMap template for O-RAN configuration
 	configMapTmpl := `
 apiVersion: v1
@@ -235,13 +235,13 @@ data:
     {{ $value | indent 4 }}
   {{- end }}
 `
-	
+
 	tmpl, err = template.New("configmap").Parse(configMapTmpl)
 	if err != nil {
 		return fmt.Errorf("failed to parse configmap template: %w", err)
 	}
 	pg.templates["configmap"] = tmpl
-	
+
 	// README template
 	readmeTmpl := `
 # {{ .Name }} Package
@@ -271,7 +271,7 @@ data:
 ## Network Slice Configuration
 {{ .NetworkSliceDetails }}
 `
-	
+
 	tmpl, err = template.New("readme").Funcs(template.FuncMap{
 		"indent": func(n int, s string) string {
 			pad := strings.Repeat(" ", n)
@@ -282,7 +282,7 @@ data:
 		return fmt.Errorf("failed to parse readme template: %w", err)
 	}
 	pg.templates["readme"] = tmpl
-	
+
 	return nil
 }
 
@@ -294,21 +294,19 @@ func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, e
 		"Description": fmt.Sprintf("Network function package for %s", intent.Name),
 		"Intent":      intent.Spec.Intent,
 	}
-	
+
 	var buf bytes.Buffer
 	if err := pg.templates["kptfile"].Execute(&buf, data); err != nil {
 		return "", fmt.Errorf("failed to execute kptfile template: %w", err)
 	}
-	
+
 	return strings.TrimSpace(buf.String()), nil
 }
-
-
 
 // generateDeploymentResources generates resources for deployment intents
 func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
-	
+
 	// Parse structured parameters from RawExtension
 	var params map[string]interface{}
 	if intent.Spec.Parameters.Raw != nil {
@@ -319,17 +317,17 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 	if params == nil {
 		return nil, fmt.Errorf("no parameters found in intent")
 	}
-	
+
 	// Extract deployment details from parameters
 	deploymentData := extractDeploymentData(params)
-	
+
 	// Generate deployment YAML
 	var buf bytes.Buffer
 	if err := pg.templates["deployment"].Execute(&buf, deploymentData); err != nil {
 		return nil, fmt.Errorf("failed to execute deployment template: %w", err)
 	}
 	resources["deployment.yaml"] = strings.TrimSpace(buf.String())
-	
+
 	// Generate service YAML
 	buf.Reset()
 	serviceData := extractServiceData(params)
@@ -337,7 +335,7 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 		return nil, fmt.Errorf("failed to execute service template: %w", err)
 	}
 	resources["service.yaml"] = strings.TrimSpace(buf.String())
-	
+
 	// Generate ConfigMap for O-RAN configuration if present
 	if oranConfig := extractORANConfig(params); oranConfig != nil {
 		buf.Reset()
@@ -346,18 +344,18 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 		}
 		resources["oran-config.yaml"] = strings.TrimSpace(buf.String())
 	}
-	
+
 	// Generate setters configuration
 	setters := generateSetters(params)
 	resources["setters.yaml"] = setters
-	
+
 	return resources, nil
 }
 
 // generateScalingResources generates resources for scaling intents
 func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
-	
+
 	// Parse structured parameters from RawExtension
 	var params map[string]interface{}
 	if intent.Spec.Parameters.Raw != nil {
@@ -368,22 +366,22 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 	if params == nil {
 		return nil, fmt.Errorf("no parameters found in intent")
 	}
-	
+
 	// Generate scaling patch
 	patch := generateScalingPatch(params)
 	resources["scaling-patch.yaml"] = patch
-	
+
 	// Generate setters for scaling parameters
 	setters := generateScalingSetters(params)
 	resources["setters.yaml"] = setters
-	
+
 	return resources, nil
 }
 
 // generatePolicyResources generates resources for policy intents
 func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
-	
+
 	// Parse structured parameters from RawExtension
 	var params map[string]interface{}
 	if intent.Spec.Parameters.Raw != nil {
@@ -394,11 +392,11 @@ func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (m
 	if params == nil {
 		return nil, fmt.Errorf("no parameters found in intent")
 	}
-	
+
 	// Generate NetworkPolicy or other policy resources
 	policy := generatePolicyResource(params)
 	resources["policy.yaml"] = policy
-	
+
 	// Generate A1 policy configuration if applicable
 	if a1Policy := extractA1Policy(params); a1Policy != nil {
 		a1Yaml, err := yaml.Marshal(a1Policy)
@@ -407,7 +405,7 @@ func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (m
 		}
 		resources["a1-policy.yaml"] = string(a1Yaml)
 	}
-	
+
 	return resources, nil
 }
 
@@ -422,12 +420,12 @@ func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, er
 		"ORANDetails":         pg.extractORANDetailsFromRaw(intent.Spec.Parameters),
 		"NetworkSliceDetails": pg.extractNetworkSliceDetailsFromRaw(intent.Spec.Parameters),
 	}
-	
+
 	var buf bytes.Buffer
 	if err := pg.templates["readme"].Execute(&buf, data); err != nil {
 		return "", fmt.Errorf("failed to execute readme template: %w", err)
 	}
-	
+
 	return strings.TrimSpace(buf.String()), nil
 }
 
@@ -468,12 +466,12 @@ func (pg *PackageGenerator) generateFunctionConfig(intent *v1.NetworkIntent) (st
 			"namespace": intent.Namespace,
 		},
 	}
-	
+
 	yamlData, err := yaml.Marshal(fnConfig)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal function config: %w", err)
 	}
-	
+
 	return string(yamlData), nil
 }
 
@@ -539,7 +537,7 @@ func generateSetters(params map[string]interface{}) string {
 			"image":     params["image"],
 		},
 	}
-	
+
 	yamlData, _ := yaml.Marshal(setters)
 	return string(yamlData)
 }
@@ -556,7 +554,7 @@ func generateScalingPatch(params map[string]interface{}) string {
 			"replicas": params["replicas"],
 		},
 	}
-	
+
 	yamlData, _ := yaml.Marshal(patch)
 	return string(yamlData)
 }
@@ -576,7 +574,7 @@ func generateScalingSetters(params map[string]interface{}) string {
 			"replicas": fmt.Sprintf("%v", params["replicas"]),
 		},
 	}
-	
+
 	yamlData, _ := yaml.Marshal(setters)
 	return string(yamlData)
 }
@@ -592,7 +590,7 @@ func generatePolicyResource(params map[string]interface{}) string {
 		},
 		"spec": params["policy_spec"],
 	}
-	
+
 	yamlData, _ := yaml.Marshal(policy)
 	return string(yamlData)
 }
@@ -606,7 +604,7 @@ func extractA1Policy(params map[string]interface{}) map[string]interface{} {
 
 func extractORANDetails(params map[string]interface{}) string {
 	details := []string{}
-	
+
 	if _, ok := params["o1_config"]; ok {
 		details = append(details, "- O1 Interface: Configured for FCAPS management")
 	}
@@ -616,11 +614,11 @@ func extractORANDetails(params map[string]interface{}) string {
 	if _, ok := params["e2_config"]; ok {
 		details = append(details, "- E2 Interface: RAN control configured")
 	}
-	
+
 	if len(details) == 0 {
 		return "No O-RAN specific configuration in this package"
 	}
-	
+
 	return strings.Join(details, "\n")
 }
 

@@ -129,7 +129,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 			totalSuccess := atomic.LoadInt64(&successCount)
 			totalFailures := atomic.LoadInt64(&failureCount)
 
-			fmt.Printf("Total requests: %d, Success: %d, Failures: %d\n", 
+			fmt.Printf("Total requests: %d, Success: %d, Failures: %d\n",
 				totalRequests, totalSuccess, totalFailures)
 
 			Expect(totalRequests).To(BeNumerically(">", 0))
@@ -364,7 +364,7 @@ var _ = Describe("Advanced Circuit Breaker Tests", func() {
 				float64(failureCalls)/float64(totalCalls)*100)
 
 			Expect(successCalls + failureCalls).To(Equal(totalCalls))
-			
+
 			// With 30% failure rate and threshold of 3, circuit should be open
 			Eventually(func() CircuitState {
 				return circuitBreaker.getState()

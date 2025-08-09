@@ -23,25 +23,25 @@ import (
 type ComplianceFramework string
 
 const (
-	SOX         ComplianceFramework = "sox"
-	PCIDSS      ComplianceFramework = "pci-dss"
-	ISO27001    ComplianceFramework = "iso-27001"
-	HIPAA       ComplianceFramework = "hipaa"
-	GDPR        ComplianceFramework = "gdpr"
-	NIST        ComplianceFramework = "nist"
-	FedRAMP     ComplianceFramework = "fedramp"
-	SOC2        ComplianceFramework = "soc2"
+	SOX      ComplianceFramework = "sox"
+	PCIDSS   ComplianceFramework = "pci-dss"
+	ISO27001 ComplianceFramework = "iso-27001"
+	HIPAA    ComplianceFramework = "hipaa"
+	GDPR     ComplianceFramework = "gdpr"
+	NIST     ComplianceFramework = "nist"
+	FedRAMP  ComplianceFramework = "fedramp"
+	SOC2     ComplianceFramework = "soc2"
 )
 
 // ComplianceConfig contains compliance reporting configuration
 type ComplianceConfig struct {
-	Frameworks      []ComplianceFramework `yaml:"frameworks"`
-	AuditRetention  time.Duration         `yaml:"audit_retention"`
-	ReportSchedule  ReportScheduleConfig  `yaml:"report_schedule"`
-	Attestation     AttestationConfig     `yaml:"attestation"`
-	DataRetention   DataRetentionConfig   `yaml:"data_retention"`
-	Encryption      EncryptionConfig      `yaml:"encryption"`
-	AccessControl   AccessControlConfig   `yaml:"access_control"`
+	Frameworks     []ComplianceFramework `yaml:"frameworks"`
+	AuditRetention time.Duration         `yaml:"audit_retention"`
+	ReportSchedule ReportScheduleConfig  `yaml:"report_schedule"`
+	Attestation    AttestationConfig     `yaml:"attestation"`
+	DataRetention  DataRetentionConfig   `yaml:"data_retention"`
+	Encryption     EncryptionConfig      `yaml:"encryption"`
+	AccessControl  AccessControlConfig   `yaml:"access_control"`
 }
 
 // ReportScheduleConfig contains report scheduling configuration
@@ -55,9 +55,9 @@ type ReportScheduleConfig struct {
 
 // AttestationConfig contains attestation configuration
 type AttestationConfig struct {
-	Enabled         bool          `yaml:"enabled"`
-	SigningKey      string        `yaml:"signing_key"`
-	ValidityPeriod  time.Duration `yaml:"validity_period"`
+	Enabled          bool          `yaml:"enabled"`
+	SigningKey       string        `yaml:"signing_key"`
+	ValidityPeriod   time.Duration `yaml:"validity_period"`
 	RenewalThreshold time.Duration `yaml:"renewal_threshold"`
 }
 
@@ -74,9 +74,9 @@ type DataRetentionConfig struct {
 
 // EncryptionConfig contains encryption configuration
 type EncryptionConfig struct {
-	AtRest    EncryptionAtRestConfig    `yaml:"at_rest"`
-	InTransit EncryptionInTransitConfig `yaml:"in_transit"`
-	KeyManagement KeyManagementConfig    `yaml:"key_management"`
+	AtRest        EncryptionAtRestConfig    `yaml:"at_rest"`
+	InTransit     EncryptionInTransitConfig `yaml:"in_transit"`
+	KeyManagement KeyManagementConfig       `yaml:"key_management"`
 }
 
 // EncryptionAtRestConfig contains encryption at rest configuration
@@ -88,8 +88,8 @@ type EncryptionAtRestConfig struct {
 
 // EncryptionInTransitConfig contains encryption in transit configuration
 type EncryptionInTransitConfig struct {
-	Enabled    bool   `yaml:"enabled"`
-	TLSVersion string `yaml:"tls_version"`
+	Enabled    bool     `yaml:"enabled"`
+	TLSVersion string   `yaml:"tls_version"`
 	Protocols  []string `yaml:"protocols"`
 }
 
@@ -102,39 +102,39 @@ type KeyManagementConfig struct {
 
 // AccessControlConfig contains access control configuration
 type AccessControlConfig struct {
-	RBAC        bool                  `yaml:"rbac"`
-	MFA         bool                  `yaml:"mfa"`
-	SessionTimeout time.Duration      `yaml:"session_timeout"`
-	Permissions map[string][]string   `yaml:"permissions"`
+	RBAC           bool                `yaml:"rbac"`
+	MFA            bool                `yaml:"mfa"`
+	SessionTimeout time.Duration       `yaml:"session_timeout"`
+	Permissions    map[string][]string `yaml:"permissions"`
 }
 
 // ComplianceRequirement represents a specific compliance requirement
 type ComplianceRequirement struct {
-	ID           string                 `json:"id"`
-	Framework    ComplianceFramework    `json:"framework"`
-	Title        string                 `json:"title"`
-	Description  string                 `json:"description"`
-	Category     string                 `json:"category"`
-	Severity     string                 `json:"severity"` // critical, high, medium, low
-	Status       ComplianceStatus       `json:"status"`
-	Evidence     []Evidence             `json:"evidence"`
-	Controls     []Control              `json:"controls"`
-	LastAssessed time.Time              `json:"last_assessed"`
-	NextAssessment time.Time            `json:"next_assessment"`
-	Remediation  *RemediationPlan       `json:"remediation,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata"`
+	ID             string                 `json:"id"`
+	Framework      ComplianceFramework    `json:"framework"`
+	Title          string                 `json:"title"`
+	Description    string                 `json:"description"`
+	Category       string                 `json:"category"`
+	Severity       string                 `json:"severity"` // critical, high, medium, low
+	Status         ComplianceStatus       `json:"status"`
+	Evidence       []Evidence             `json:"evidence"`
+	Controls       []Control              `json:"controls"`
+	LastAssessed   time.Time              `json:"last_assessed"`
+	NextAssessment time.Time              `json:"next_assessment"`
+	Remediation    *RemediationPlan       `json:"remediation,omitempty"`
+	Metadata       map[string]interface{} `json:"metadata"`
 }
 
 // ComplianceStatus represents the status of compliance
 type ComplianceStatus string
 
 const (
-	StatusCompliant     ComplianceStatus = "compliant"
-	StatusNonCompliant  ComplianceStatus = "non_compliant"
+	StatusCompliant          ComplianceStatus = "compliant"
+	StatusNonCompliant       ComplianceStatus = "non_compliant"
 	StatusPartiallyCompliant ComplianceStatus = "partially_compliant"
-	StatusNotAssessed   ComplianceStatus = "not_assessed"
-	StatusInProgress    ComplianceStatus = "in_progress"
-	StatusExempt        ComplianceStatus = "exempt"
+	StatusNotAssessed        ComplianceStatus = "not_assessed"
+	StatusInProgress         ComplianceStatus = "in_progress"
+	StatusExempt             ComplianceStatus = "exempt"
 )
 
 // Evidence represents evidence for compliance
@@ -153,85 +153,85 @@ type Evidence struct {
 
 // Control represents a security control
 type Control struct {
-	ID            string                 `json:"id"`
-	Name          string                 `json:"name"`
-	Description   string                 `json:"description"`
-	Implementation string                `json:"implementation"`
-	Status        string                 `json:"status"` // active, inactive, disabled
-	Effectiveness string                 `json:"effectiveness"` // effective, partially_effective, ineffective
-	LastTested    time.Time              `json:"last_tested"`
-	NextTest      time.Time              `json:"next_test"`
-	TestResults   []TestResult           `json:"test_results"`
-	Metadata      map[string]interface{} `json:"metadata"`
+	ID             string                 `json:"id"`
+	Name           string                 `json:"name"`
+	Description    string                 `json:"description"`
+	Implementation string                 `json:"implementation"`
+	Status         string                 `json:"status"`        // active, inactive, disabled
+	Effectiveness  string                 `json:"effectiveness"` // effective, partially_effective, ineffective
+	LastTested     time.Time              `json:"last_tested"`
+	NextTest       time.Time              `json:"next_test"`
+	TestResults    []TestResult           `json:"test_results"`
+	Metadata       map[string]interface{} `json:"metadata"`
 }
 
 // TestResult represents control test results
 type TestResult struct {
-	ID         string                 `json:"id"`
-	Timestamp  time.Time              `json:"timestamp"`
-	Tester     string                 `json:"tester"`
-	Method     string                 `json:"method"` // manual, automated, hybrid
-	Result     string                 `json:"result"` // pass, fail, partial
-	Score      float64                `json:"score"`
-	Notes      string                 `json:"notes"`
-	Evidence   []string               `json:"evidence"`
-	Metadata   map[string]interface{} `json:"metadata"`
+	ID        string                 `json:"id"`
+	Timestamp time.Time              `json:"timestamp"`
+	Tester    string                 `json:"tester"`
+	Method    string                 `json:"method"` // manual, automated, hybrid
+	Result    string                 `json:"result"` // pass, fail, partial
+	Score     float64                `json:"score"`
+	Notes     string                 `json:"notes"`
+	Evidence  []string               `json:"evidence"`
+	Metadata  map[string]interface{} `json:"metadata"`
 }
 
 // RemediationPlan represents a plan to address non-compliance
 type RemediationPlan struct {
-	ID           string                 `json:"id"`
-	Title        string                 `json:"title"`
-	Description  string                 `json:"description"`
-	Priority     string                 `json:"priority"` // critical, high, medium, low
-	Owner        string                 `json:"owner"`
-	DueDate      time.Time              `json:"due_date"`
-	Status       string                 `json:"status"` // planned, in_progress, completed, cancelled
-	Progress     float64                `json:"progress"`
-	Tasks        []RemediationTask      `json:"tasks"`
-	Cost         float64                `json:"cost"`
-	Risk         string                 `json:"risk"`
-	Metadata     map[string]interface{} `json:"metadata"`
+	ID          string                 `json:"id"`
+	Title       string                 `json:"title"`
+	Description string                 `json:"description"`
+	Priority    string                 `json:"priority"` // critical, high, medium, low
+	Owner       string                 `json:"owner"`
+	DueDate     time.Time              `json:"due_date"`
+	Status      string                 `json:"status"` // planned, in_progress, completed, cancelled
+	Progress    float64                `json:"progress"`
+	Tasks       []RemediationTask      `json:"tasks"`
+	Cost        float64                `json:"cost"`
+	Risk        string                 `json:"risk"`
+	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 // RemediationTask represents a task in a remediation plan
 type RemediationTask struct {
-	ID          string                 `json:"id"`
-	Title       string                 `json:"title"`
-	Description string                 `json:"description"`
-	Assignee    string                 `json:"assignee"`
-	DueDate     time.Time              `json:"due_date"`
-	Status      string                 `json:"status"`
-	Effort      float64                `json:"effort"`
-	Dependencies []string              `json:"dependencies"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	ID           string                 `json:"id"`
+	Title        string                 `json:"title"`
+	Description  string                 `json:"description"`
+	Assignee     string                 `json:"assignee"`
+	DueDate      time.Time              `json:"due_date"`
+	Status       string                 `json:"status"`
+	Effort       float64                `json:"effort"`
+	Dependencies []string               `json:"dependencies"`
+	Metadata     map[string]interface{} `json:"metadata"`
 }
 
 // ComplianceReport represents a comprehensive compliance report
 type ComplianceReport struct {
-	ID               string                    `json:"id"`
-	GeneratedAt      time.Time                 `json:"generated_at"`
-	Period           Period                    `json:"period"`
-	Framework        ComplianceFramework       `json:"framework"`
-	OverallStatus    ComplianceStatus          `json:"overall_status"`
-	ComplianceScore  float64                   `json:"compliance_score"`
-	Requirements     []ComplianceRequirement   `json:"requirements"`
-	Summary          ComplianceSummary         `json:"summary"`
-	AuditTrail       []AuditEvent              `json:"audit_trail"`
-	Attestation      *Attestation              `json:"attestation,omitempty"`
-	Recommendations  []ComplianceRecommendation `json:"recommendations"`
-	Metadata         map[string]interface{}     `json:"metadata"`
+	ID              string                     `json:"id"`
+	GeneratedAt     time.Time                  `json:"generated_at"`
+	Period          Period                     `json:"period"`
+	Framework       ComplianceFramework        `json:"framework"`
+	OverallStatus   ComplianceStatus           `json:"overall_status"`
+	ComplianceScore float64                    `json:"compliance_score"`
+	Requirements    []ComplianceRequirement    `json:"requirements"`
+	Summary         ComplianceSummary          `json:"summary"`
+	AuditTrail      []AuditEvent               `json:"audit_trail"`
+	Attestation     *Attestation               `json:"attestation,omitempty"`
+	Recommendations []ComplianceRecommendation `json:"recommendations"`
+	Metadata        map[string]interface{}     `json:"metadata"`
 }
 
 // ComplianceSummary provides high-level compliance summary
 type ComplianceSummary struct {
-	TotalRequirements     int                           `json:"total_requirements"`
-	CompliantRequirements int                           `json:"compliant_requirements"`
-	NonCompliantRequirements int                        `json:"non_compliant_requirements"`
-	ExemptRequirements    int                           `json:"exempt_requirements"`
-	ComplianceByCategory  map[string]ComplianceMetrics  `json:"compliance_by_category"`
-	ComplianceTrend       []ComplianceDataPoint         `json:"compliance_trend"`
-	RiskAssessment        RiskAssessment                `json:"risk_assessment"`
+	TotalRequirements        int                          `json:"total_requirements"`
+	CompliantRequirements    int                          `json:"compliant_requirements"`
+	NonCompliantRequirements int                          `json:"non_compliant_requirements"`
+	ExemptRequirements       int                          `json:"exempt_requirements"`
+	ComplianceByCategory     map[string]ComplianceMetrics `json:"compliance_by_category"`
+	ComplianceTrend          []ComplianceDataPoint        `json:"compliance_trend"`
+	RiskAssessment           RiskAssessment               `json:"risk_assessment"`
 }
 
 // ComplianceMetrics contains compliance metrics
@@ -243,19 +243,19 @@ type ComplianceMetrics struct {
 
 // ComplianceDataPoint represents a compliance data point over time
 type ComplianceDataPoint struct {
-	Timestamp time.Time `json:"timestamp"`
-	Score     float64   `json:"score"`
+	Timestamp time.Time        `json:"timestamp"`
+	Score     float64          `json:"score"`
 	Status    ComplianceStatus `json:"status"`
 }
 
 // RiskAssessment contains risk assessment information
 type RiskAssessment struct {
-	OverallRisk    string                  `json:"overall_risk"` // low, medium, high, critical
-	RiskFactors    []RiskFactor            `json:"risk_factors"`
-	Mitigation     []MitigationMeasure     `json:"mitigation"`
-	ResidualRisk   string                  `json:"residual_risk"`
-	LastAssessment time.Time               `json:"last_assessment"`
-	NextAssessment time.Time               `json:"next_assessment"`
+	OverallRisk    string              `json:"overall_risk"` // low, medium, high, critical
+	RiskFactors    []RiskFactor        `json:"risk_factors"`
+	Mitigation     []MitigationMeasure `json:"mitigation"`
+	ResidualRisk   string              `json:"residual_risk"`
+	LastAssessment time.Time           `json:"last_assessment"`
+	NextAssessment time.Time           `json:"next_assessment"`
 }
 
 // RiskFactor represents a risk factor
@@ -271,13 +271,13 @@ type RiskFactor struct {
 
 // MitigationMeasure represents a risk mitigation measure
 type MitigationMeasure struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
-	Status       string    `json:"status"` // planned, implemented, verified
-	Effectiveness float64  `json:"effectiveness"`
-	Owner        string    `json:"owner"`
-	DueDate      time.Time `json:"due_date"`
+	ID            string    `json:"id"`
+	Name          string    `json:"name"`
+	Description   string    `json:"description"`
+	Status        string    `json:"status"` // planned, implemented, verified
+	Effectiveness float64   `json:"effectiveness"`
+	Owner         string    `json:"owner"`
+	DueDate       time.Time `json:"due_date"`
 }
 
 // AuditEvent represents an audit trail event
@@ -296,15 +296,15 @@ type AuditEvent struct {
 
 // Attestation represents a compliance attestation
 type Attestation struct {
-	ID           string    `json:"id"`
-	Timestamp    time.Time `json:"timestamp"`
-	Attestor     string    `json:"attestor"`
-	Framework    ComplianceFramework `json:"framework"`
-	Period       Period    `json:"period"`
-	Statement    string    `json:"statement"`
-	Signature    string    `json:"signature"`
-	ValidUntil   time.Time `json:"valid_until"`
-	CertificateChain []string `json:"certificate_chain"`
+	ID               string              `json:"id"`
+	Timestamp        time.Time           `json:"timestamp"`
+	Attestor         string              `json:"attestor"`
+	Framework        ComplianceFramework `json:"framework"`
+	Period           Period              `json:"period"`
+	Statement        string              `json:"statement"`
+	Signature        string              `json:"signature"`
+	ValidUntil       time.Time           `json:"valid_until"`
+	CertificateChain []string            `json:"certificate_chain"`
 }
 
 // ComplianceRecommendation provides actionable compliance recommendations
@@ -518,13 +518,13 @@ func (cr *ComplianceReporter) GenerateComplianceReport(framework ComplianceFrame
 	}
 
 	report := &ComplianceReport{
-		ID:          fmt.Sprintf("compliance-report-%s-%d", framework, time.Now().Unix()),
-		GeneratedAt: time.Now(),
-		Period:      period,
-		Framework:   framework,
+		ID:           fmt.Sprintf("compliance-report-%s-%d", framework, time.Now().Unix()),
+		GeneratedAt:  time.Now(),
+		Period:       period,
+		Framework:    framework,
 		Requirements: frameworkRequirements,
-		AuditTrail:  cr.getAuditTrailForPeriod(period),
-		Metadata:    make(map[string]interface{}),
+		AuditTrail:   cr.getAuditTrailForPeriod(period),
+		Metadata:     make(map[string]interface{}),
 	}
 
 	// Calculate overall status and score
@@ -648,32 +648,32 @@ func (cr *ComplianceReporter) getRequirementsForFramework(framework ComplianceFr
 func (cr *ComplianceReporter) getSOXRequirements() []ComplianceRequirement {
 	return []ComplianceRequirement{
 		{
-			ID:           "sox-302",
-			Framework:    SOX,
-			Title:        "Corporate Responsibility for Financial Reports",
-			Description:  "Management must certify the accuracy of financial reports",
-			Category:     "Financial Reporting",
-			Severity:     "critical",
-			Status:       StatusNotAssessed,
-			Evidence:     make([]Evidence, 0),
-			Controls:     make([]Control, 0),
-			LastAssessed: time.Time{},
+			ID:             "sox-302",
+			Framework:      SOX,
+			Title:          "Corporate Responsibility for Financial Reports",
+			Description:    "Management must certify the accuracy of financial reports",
+			Category:       "Financial Reporting",
+			Severity:       "critical",
+			Status:         StatusNotAssessed,
+			Evidence:       make([]Evidence, 0),
+			Controls:       make([]Control, 0),
+			LastAssessed:   time.Time{},
 			NextAssessment: time.Now().AddDate(0, 3, 0), // Quarterly
-			Metadata:     make(map[string]interface{}),
+			Metadata:       make(map[string]interface{}),
 		},
 		{
-			ID:           "sox-404",
-			Framework:    SOX,
-			Title:        "Management Assessment of Internal Controls",
-			Description:  "Management must assess internal control over financial reporting",
-			Category:     "Internal Controls",
-			Severity:     "critical",
-			Status:       StatusNotAssessed,
-			Evidence:     make([]Evidence, 0),
-			Controls:     make([]Control, 0),
-			LastAssessed: time.Time{},
+			ID:             "sox-404",
+			Framework:      SOX,
+			Title:          "Management Assessment of Internal Controls",
+			Description:    "Management must assess internal control over financial reporting",
+			Category:       "Internal Controls",
+			Severity:       "critical",
+			Status:         StatusNotAssessed,
+			Evidence:       make([]Evidence, 0),
+			Controls:       make([]Control, 0),
+			LastAssessed:   time.Time{},
 			NextAssessment: time.Now().AddDate(1, 0, 0), // Annual
-			Metadata:     make(map[string]interface{}),
+			Metadata:       make(map[string]interface{}),
 		},
 	}
 }
@@ -682,32 +682,32 @@ func (cr *ComplianceReporter) getSOXRequirements() []ComplianceRequirement {
 func (cr *ComplianceReporter) getPCIDSSRequirements() []ComplianceRequirement {
 	return []ComplianceRequirement{
 		{
-			ID:           "pci-dss-1",
-			Framework:    PCIDSS,
-			Title:        "Install and maintain a firewall configuration",
-			Description:  "Firewalls are devices that control computer traffic allowed between untrusted networks",
-			Category:     "Network Security",
-			Severity:     "high",
-			Status:       StatusNotAssessed,
-			Evidence:     make([]Evidence, 0),
-			Controls:     make([]Control, 0),
-			LastAssessed: time.Time{},
+			ID:             "pci-dss-1",
+			Framework:      PCIDSS,
+			Title:          "Install and maintain a firewall configuration",
+			Description:    "Firewalls are devices that control computer traffic allowed between untrusted networks",
+			Category:       "Network Security",
+			Severity:       "high",
+			Status:         StatusNotAssessed,
+			Evidence:       make([]Evidence, 0),
+			Controls:       make([]Control, 0),
+			LastAssessed:   time.Time{},
 			NextAssessment: time.Now().AddDate(0, 3, 0),
-			Metadata:     make(map[string]interface{}),
+			Metadata:       make(map[string]interface{}),
 		},
 		{
-			ID:           "pci-dss-2",
-			Framework:    PCIDSS,
-			Title:        "Do not use vendor-supplied defaults for system passwords",
-			Description:  "Change default passwords and remove unnecessary default accounts",
-			Category:     "Access Control",
-			Severity:     "high",
-			Status:       StatusNotAssessed,
-			Evidence:     make([]Evidence, 0),
-			Controls:     make([]Control, 0),
-			LastAssessed: time.Time{},
+			ID:             "pci-dss-2",
+			Framework:      PCIDSS,
+			Title:          "Do not use vendor-supplied defaults for system passwords",
+			Description:    "Change default passwords and remove unnecessary default accounts",
+			Category:       "Access Control",
+			Severity:       "high",
+			Status:         StatusNotAssessed,
+			Evidence:       make([]Evidence, 0),
+			Controls:       make([]Control, 0),
+			LastAssessed:   time.Time{},
 			NextAssessment: time.Now().AddDate(0, 3, 0),
-			Metadata:     make(map[string]interface{}),
+			Metadata:       make(map[string]interface{}),
 		},
 	}
 }
@@ -716,32 +716,32 @@ func (cr *ComplianceReporter) getPCIDSSRequirements() []ComplianceRequirement {
 func (cr *ComplianceReporter) getISO27001Requirements() []ComplianceRequirement {
 	return []ComplianceRequirement{
 		{
-			ID:           "iso-27001-a5",
-			Framework:    ISO27001,
-			Title:        "Information Security Policies",
-			Description:  "Management direction and support for information security",
-			Category:     "Policy",
-			Severity:     "high",
-			Status:       StatusNotAssessed,
-			Evidence:     make([]Evidence, 0),
-			Controls:     make([]Control, 0),
-			LastAssessed: time.Time{},
+			ID:             "iso-27001-a5",
+			Framework:      ISO27001,
+			Title:          "Information Security Policies",
+			Description:    "Management direction and support for information security",
+			Category:       "Policy",
+			Severity:       "high",
+			Status:         StatusNotAssessed,
+			Evidence:       make([]Evidence, 0),
+			Controls:       make([]Control, 0),
+			LastAssessed:   time.Time{},
 			NextAssessment: time.Now().AddDate(1, 0, 0),
-			Metadata:     make(map[string]interface{}),
+			Metadata:       make(map[string]interface{}),
 		},
 		{
-			ID:           "iso-27001-a6",
-			Framework:    ISO27001,
-			Title:        "Organization of Information Security",
-			Description:  "Organization and responsibilities for information security",
-			Category:     "Organization",
-			Severity:     "high",
-			Status:       StatusNotAssessed,
-			Evidence:     make([]Evidence, 0),
-			Controls:     make([]Control, 0),
-			LastAssessed: time.Time{},
+			ID:             "iso-27001-a6",
+			Framework:      ISO27001,
+			Title:          "Organization of Information Security",
+			Description:    "Organization and responsibilities for information security",
+			Category:       "Organization",
+			Severity:       "high",
+			Status:         StatusNotAssessed,
+			Evidence:       make([]Evidence, 0),
+			Controls:       make([]Control, 0),
+			LastAssessed:   time.Time{},
 			NextAssessment: time.Now().AddDate(1, 0, 0),
-			Metadata:     make(map[string]interface{}),
+			Metadata:       make(map[string]interface{}),
 		},
 	}
 }
@@ -750,18 +750,18 @@ func (cr *ComplianceReporter) getISO27001Requirements() []ComplianceRequirement 
 func (cr *ComplianceReporter) getHIPAARequirements() []ComplianceRequirement {
 	return []ComplianceRequirement{
 		{
-			ID:           "hipaa-164.308",
-			Framework:    HIPAA,
-			Title:        "Administrative Safeguards",
-			Description:  "Assigned security responsibility and workforce training",
-			Category:     "Administrative",
-			Severity:     "critical",
-			Status:       StatusNotAssessed,
-			Evidence:     make([]Evidence, 0),
-			Controls:     make([]Control, 0),
-			LastAssessed: time.Time{},
+			ID:             "hipaa-164.308",
+			Framework:      HIPAA,
+			Title:          "Administrative Safeguards",
+			Description:    "Assigned security responsibility and workforce training",
+			Category:       "Administrative",
+			Severity:       "critical",
+			Status:         StatusNotAssessed,
+			Evidence:       make([]Evidence, 0),
+			Controls:       make([]Control, 0),
+			LastAssessed:   time.Time{},
 			NextAssessment: time.Now().AddDate(1, 0, 0),
-			Metadata:     make(map[string]interface{}),
+			Metadata:       make(map[string]interface{}),
 		},
 	}
 }
@@ -770,18 +770,18 @@ func (cr *ComplianceReporter) getHIPAARequirements() []ComplianceRequirement {
 func (cr *ComplianceReporter) getGDPRRequirements() []ComplianceRequirement {
 	return []ComplianceRequirement{
 		{
-			ID:           "gdpr-art-25",
-			Framework:    GDPR,
-			Title:        "Data Protection by Design and by Default",
-			Description:  "Implement appropriate technical and organizational measures",
-			Category:     "Data Protection",
-			Severity:     "critical",
-			Status:       StatusNotAssessed,
-			Evidence:     make([]Evidence, 0),
-			Controls:     make([]Control, 0),
-			LastAssessed: time.Time{},
+			ID:             "gdpr-art-25",
+			Framework:      GDPR,
+			Title:          "Data Protection by Design and by Default",
+			Description:    "Implement appropriate technical and organizational measures",
+			Category:       "Data Protection",
+			Severity:       "critical",
+			Status:         StatusNotAssessed,
+			Evidence:       make([]Evidence, 0),
+			Controls:       make([]Control, 0),
+			LastAssessed:   time.Time{},
 			NextAssessment: time.Now().AddDate(1, 0, 0),
-			Metadata:     make(map[string]interface{}),
+			Metadata:       make(map[string]interface{}),
 		},
 	}
 }
@@ -790,18 +790,18 @@ func (cr *ComplianceReporter) getGDPRRequirements() []ComplianceRequirement {
 func (cr *ComplianceReporter) getNISTRequirements() []ComplianceRequirement {
 	return []ComplianceRequirement{
 		{
-			ID:           "nist-ac-1",
-			Framework:    NIST,
-			Title:        "Access Control Policy and Procedures",
-			Description:  "Develop, document, and disseminate access control policy",
-			Category:     "Access Control",
-			Severity:     "high",
-			Status:       StatusNotAssessed,
-			Evidence:     make([]Evidence, 0),
-			Controls:     make([]Control, 0),
-			LastAssessed: time.Time{},
+			ID:             "nist-ac-1",
+			Framework:      NIST,
+			Title:          "Access Control Policy and Procedures",
+			Description:    "Develop, document, and disseminate access control policy",
+			Category:       "Access Control",
+			Severity:       "high",
+			Status:         StatusNotAssessed,
+			Evidence:       make([]Evidence, 0),
+			Controls:       make([]Control, 0),
+			LastAssessed:   time.Time{},
 			NextAssessment: time.Now().AddDate(1, 0, 0),
-			Metadata:     make(map[string]interface{}),
+			Metadata:       make(map[string]interface{}),
 		},
 	}
 }
@@ -810,18 +810,18 @@ func (cr *ComplianceReporter) getNISTRequirements() []ComplianceRequirement {
 func (cr *ComplianceReporter) getFedRAMPRequirements() []ComplianceRequirement {
 	return []ComplianceRequirement{
 		{
-			ID:           "fedramp-ac-2",
-			Framework:    FedRAMP,
-			Title:        "Account Management",
-			Description:  "Manage information system accounts",
-			Category:     "Access Control",
-			Severity:     "high",
-			Status:       StatusNotAssessed,
-			Evidence:     make([]Evidence, 0),
-			Controls:     make([]Control, 0),
-			LastAssessed: time.Time{},
+			ID:             "fedramp-ac-2",
+			Framework:      FedRAMP,
+			Title:          "Account Management",
+			Description:    "Manage information system accounts",
+			Category:       "Access Control",
+			Severity:       "high",
+			Status:         StatusNotAssessed,
+			Evidence:       make([]Evidence, 0),
+			Controls:       make([]Control, 0),
+			LastAssessed:   time.Time{},
 			NextAssessment: time.Now().AddDate(1, 0, 0),
-			Metadata:     make(map[string]interface{}),
+			Metadata:       make(map[string]interface{}),
 		},
 	}
 }
@@ -830,18 +830,18 @@ func (cr *ComplianceReporter) getFedRAMPRequirements() []ComplianceRequirement {
 func (cr *ComplianceReporter) getSOC2Requirements() []ComplianceRequirement {
 	return []ComplianceRequirement{
 		{
-			ID:           "soc2-cc1",
-			Framework:    SOC2,
-			Title:        "Control Environment",
-			Description:  "Commitment to integrity and ethical values",
-			Category:     "Common Criteria",
-			Severity:     "high",
-			Status:       StatusNotAssessed,
-			Evidence:     make([]Evidence, 0),
-			Controls:     make([]Control, 0),
-			LastAssessed: time.Time{},
+			ID:             "soc2-cc1",
+			Framework:      SOC2,
+			Title:          "Control Environment",
+			Description:    "Commitment to integrity and ethical values",
+			Category:       "Common Criteria",
+			Severity:       "high",
+			Status:         StatusNotAssessed,
+			Evidence:       make([]Evidence, 0),
+			Controls:       make([]Control, 0),
+			LastAssessed:   time.Time{},
 			NextAssessment: time.Now().AddDate(1, 0, 0),
-			Metadata:     make(map[string]interface{}),
+			Metadata:       make(map[string]interface{}),
 		},
 	}
 }
@@ -850,7 +850,7 @@ func (cr *ComplianceReporter) getSOC2Requirements() []ComplianceRequirement {
 func (cr *ComplianceReporter) performComplianceAssessment(requirement *ComplianceRequirement) ComplianceStatus {
 	// Simplified assessment logic
 	// In practice, this would involve complex rule evaluation
-	
+
 	if len(requirement.Evidence) == 0 {
 		return StatusNotAssessed
 	}
@@ -858,7 +858,7 @@ func (cr *ComplianceReporter) performComplianceAssessment(requirement *Complianc
 	// Check if controls are effective
 	effectiveControls := 0
 	totalControls := len(requirement.Controls)
-	
+
 	for _, control := range requirement.Controls {
 		if control.Status == "active" && control.Effectiveness == "effective" {
 			effectiveControls++
@@ -870,7 +870,7 @@ func (cr *ComplianceReporter) performComplianceAssessment(requirement *Complianc
 	}
 
 	effectivenessRatio := float64(effectiveControls) / float64(totalControls)
-	
+
 	if effectivenessRatio >= 1.0 {
 		return StatusCompliant
 	} else if effectivenessRatio >= 0.5 {
@@ -941,10 +941,10 @@ func (cr *ComplianceReporter) calculateOverallCompliance(requirements []Complian
 // generateComplianceSummary generates compliance summary
 func (cr *ComplianceReporter) generateComplianceSummary(requirements []ComplianceRequirement) ComplianceSummary {
 	summary := ComplianceSummary{
-		TotalRequirements:         len(requirements),
-		ComplianceByCategory:      make(map[string]ComplianceMetrics),
-		ComplianceTrend:          make([]ComplianceDataPoint, 0),
-		RiskAssessment:           RiskAssessment{},
+		TotalRequirements:    len(requirements),
+		ComplianceByCategory: make(map[string]ComplianceMetrics),
+		ComplianceTrend:      make([]ComplianceDataPoint, 0),
+		RiskAssessment:       RiskAssessment{},
 	}
 
 	// Count by status
@@ -1105,10 +1105,10 @@ func (cr *ComplianceReporter) enforceDataRetention(ctx context.Context) {
 				filtered = append(filtered, event)
 			}
 		}
-		
+
 		purged := len(cr.auditTrail) - len(filtered)
 		cr.auditTrail = filtered
-		
+
 		if purged > 0 {
 			cr.logger.WithField("purged_count", purged).Info("Purged old audit events")
 		}
@@ -1167,7 +1167,7 @@ func (cr *ComplianceReporter) checkScheduledReports(ctx context.Context) {
 func (cr *ComplianceReporter) generateScheduledReports(ctx context.Context, schedule string) {
 	for _, framework := range cr.config.Frameworks {
 		period := cr.getPeriodForSchedule(schedule)
-		
+
 		report, err := cr.GenerateComplianceReport(framework, period)
 		if err != nil {
 			cr.logger.WithError(err).WithFields(logrus.Fields{
@@ -1189,7 +1189,7 @@ func (cr *ComplianceReporter) generateScheduledReports(ctx context.Context, sche
 // getPeriodForSchedule returns the appropriate period for a schedule
 func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 	now := time.Now()
-	
+
 	switch schedule {
 	case "daily":
 		return Period{
@@ -1234,6 +1234,6 @@ func (cr *ComplianceReporter) getPeriodForSchedule(schedule string) Period {
 func isFirstDayOfQuarter(t time.Time) bool {
 	month := t.Month()
 	day := t.Day()
-	
+
 	return day == 1 && (month == time.January || month == time.April || month == time.July || month == time.October)
 }

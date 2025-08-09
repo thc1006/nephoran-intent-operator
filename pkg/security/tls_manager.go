@@ -197,21 +197,21 @@ func (tm *TLSManager) loadCertificates() error {
 
 	// Configure TLS settings
 	tm.tlsConfig = &tls.Config{
-		Certificates: []tls.Certificate{serverCert},
-		ClientCAs:    tm.certPool,
-		RootCAs:      tm.certPool,
-		MinVersion:   tm.config.MinVersion,
-		MaxVersion:   tm.config.MaxVersion,
-		CipherSuites: tm.config.CipherSuites,
-		ClientAuth:   tm.config.ClientAuthType,
-		VerifyConnection: tm.verifyConnection,
+		Certificates:       []tls.Certificate{serverCert},
+		ClientCAs:          tm.certPool,
+		RootCAs:            tm.certPool,
+		MinVersion:         tm.config.MinVersion,
+		MaxVersion:         tm.config.MaxVersion,
+		CipherSuites:       tm.config.CipherSuites,
+		ClientAuth:         tm.config.ClientAuthType,
+		VerifyConnection:   tm.verifyConnection,
 		GetConfigForClient: tm.getConfigForClient,
 	}
 
 	// Set client authentication based on mTLS configuration
 	if tm.config.MTLSEnabled {
 		tm.tlsConfig.ClientAuth = tls.RequireAndVerifyClientCert
-		
+
 		// Load client certificate for outbound connections
 		if tm.config.ClientCertFile != "" && tm.config.ClientKeyFile != "" {
 			clientCert, err := tls.LoadX509KeyPair(tm.config.ClientCertFile, tm.config.ClientKeyFile)
@@ -231,7 +231,7 @@ func (tm *TLSManager) loadCertificates() error {
 
 	// Create gRPC credentials
 	tm.serverCreds = credentials.NewTLS(tm.tlsConfig)
-	
+
 	clientTLSConfig := tm.tlsConfig.Clone()
 	clientTLSConfig.ServerName = tm.config.ServiceName
 	tm.clientCreds = credentials.NewTLS(clientTLSConfig)
@@ -266,7 +266,7 @@ func (tm *TLSManager) verifyConnection(cs tls.ConnectionState) error {
 	// Verify client certificate for mTLS
 	if tm.config.MTLSEnabled && len(cs.PeerCertificates) > 0 {
 		clientCert := cs.PeerCertificates[0]
-		
+
 		// Validate certificate chain
 		opts := x509.VerifyOptions{
 			Roots:         tm.certPool,
@@ -328,7 +328,7 @@ func (tm *TLSManager) verifyConnection(cs tls.ConnectionState) error {
 func (tm *TLSManager) getConfigForClient(hello *tls.ClientHelloInfo) (*tls.Config, error) {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
-	
+
 	// Return current configuration
 	// This allows for dynamic configuration updates
 	return tm.tlsConfig, nil
@@ -426,7 +426,7 @@ func (tm *TLSManager) checkCertificateExpiry() {
 				zap.String("subject", x509Cert.Subject.String()),
 				zap.Time("expiryTime", x509Cert.NotAfter),
 				zap.Float64("daysRemaining", daysUntilExpiry))
-			
+
 			// Trigger certificate renewal notification
 			// This would typically integrate with cert-manager or similar
 			tm.notifyCertificateRenewalRequired(x509Cert)
@@ -467,7 +467,7 @@ func (tm *TLSManager) GetClientCredentials() credentials.TransportCredentials {
 func (tm *TLSManager) CreateHTTPClient() *http.Client {
 	return &http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: tm.GetTLSConfig(),
+			TLSClientConfig:   tm.GetTLSConfig(),
 			ForceAttemptHTTP2: true,
 		},
 		Timeout: 30 * time.Second,

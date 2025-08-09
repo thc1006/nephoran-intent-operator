@@ -392,8 +392,8 @@ var _ = Describe("CRD Validation and Schema Tests", func() {
 					Name:      GetUniqueName("integration-e2nodeset"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
-						"test-resource":    "true",
-						"managed-element":  managedElement.Name,
+						"test-resource":   "true",
+						"managed-element": managedElement.Name,
 					},
 				},
 				Spec: nephoranv1.E2NodeSetSpec{
@@ -408,7 +408,7 @@ var _ = Describe("CRD Validation and Schema Tests", func() {
 					Name:      GetUniqueName("integration-intent"),
 					Namespace: namespaceName,
 					Labels: map[string]string{
-						"test-resource": "true",
+						"test-resource":    "true",
 						"target-e2nodeset": e2nodeSet.Name,
 					},
 				},
@@ -443,7 +443,7 @@ var _ = Describe("CRD Validation and Schema Tests", func() {
 
 		It("Should handle resource dependencies and cleanup", func() {
 			By("Creating resources with owner references")
-			
+
 			// Create parent ManagedElement
 			managedElement := &nephoranv1.ManagedElement{
 				ObjectMeta: metav1.ObjectMeta{
@@ -523,9 +523,9 @@ var _ = Describe("CRD Validation and Schema Tests", func() {
 						{"name": "metrics", "port": 9090, "targetPort": 9090},
 					},
 					"ingress": map[string]interface{}{
-						"enabled":   true,
-						"hostname":  "api.example.com",
-						"tls":       true,
+						"enabled":  true,
+						"hostname": "api.example.com",
+						"tls":      true,
 						"annotations": map[string]string{
 							"nginx.ingress.kubernetes.io/rewrite-target": "/",
 						},

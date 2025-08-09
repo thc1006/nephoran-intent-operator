@@ -55,16 +55,16 @@ type LoadRequest struct {
 
 // LoadMetricsCollector collects detailed load test metrics
 type LoadMetricsCollector struct {
-	requests      int64
-	successes     int64
-	failures      int64
-	totalBytes    int64
-	latencies     []time.Duration
-	errorTypes    map[string]int64
-	statusCodes   map[int]int64
-	timestamps    []time.Time
-	mu            sync.RWMutex
-	startTime     time.Time
+	requests    int64
+	successes   int64
+	failures    int64
+	totalBytes  int64
+	latencies   []time.Duration
+	errorTypes  map[string]int64
+	statusCodes map[int]int64
+	timestamps  []time.Time
+	mu          sync.RWMutex
+	startTime   time.Time
 }
 
 // LoadTestReport contains comprehensive load test results
@@ -74,38 +74,38 @@ type LoadTestReport struct {
 	TotalRequests      int64
 	SuccessfulRequests int64
 	FailedRequests     int64
-	
+
 	// Latency metrics
-	MinLatency         time.Duration
-	MaxLatency         time.Duration
-	MeanLatency        time.Duration
-	MedianLatency      time.Duration
-	P50Latency         time.Duration
-	P75Latency         time.Duration
-	P90Latency         time.Duration
-	P95Latency         time.Duration
-	P99Latency         time.Duration
-	StdDevLatency      time.Duration
-	
+	MinLatency    time.Duration
+	MaxLatency    time.Duration
+	MeanLatency   time.Duration
+	MedianLatency time.Duration
+	P50Latency    time.Duration
+	P75Latency    time.Duration
+	P90Latency    time.Duration
+	P95Latency    time.Duration
+	P99Latency    time.Duration
+	StdDevLatency time.Duration
+
 	// Throughput metrics
-	RequestsPerSecond  float64
-	BytesPerSecond     float64
-	
+	RequestsPerSecond float64
+	BytesPerSecond    float64
+
 	// Error analysis
-	ErrorRate          float64
-	ErrorsByType       map[string]int64
-	StatusCodeDist     map[int]int64
-	
+	ErrorRate      float64
+	ErrorsByType   map[string]int64
+	StatusCodeDist map[int]int64
+
 	// Advanced metrics
-	ApdexScore         float64  // Application Performance Index
-	TimeToFirstByte    time.Duration
-	ConnectionErrors   int64
-	TimeoutErrors      int64
-	
+	ApdexScore       float64 // Application Performance Index
+	TimeToFirstByte  time.Duration
+	ConnectionErrors int64
+	TimeoutErrors    int64
+
 	// Resource metrics
-	CPUUsage           []float64
-	MemoryUsage        []float64
-	NetworkLatency     []time.Duration
+	CPUUsage       []float64
+	MemoryUsage    []float64
+	NetworkLatency []time.Duration
 }
 
 // NewAdvancedLoadGenerator creates an advanced load generator
@@ -149,27 +149,27 @@ func (alg *AdvancedLoadGenerator) RunScenario(ctx context.Context, scenarioName 
 	alg.mu.RLock()
 	scenario, exists := alg.scenarios[scenarioName]
 	alg.mu.RUnlock()
-	
+
 	if !exists {
 		return nil, fmt.Errorf("scenario '%s' not found", scenarioName)
 	}
-	
+
 	ginkgo.By(fmt.Sprintf("Running load scenario: %s", scenario.GetDescription()))
-	
+
 	// Reset metrics collector
 	alg.metricsCollector = NewLoadMetricsCollector()
-	
+
 	// Create context with timeout
 	testCtx, cancel := context.WithTimeout(ctx, duration)
 	defer cancel()
-	
+
 	// Generate load
 	requestChan := scenario.Generate(testCtx)
-	
+
 	// Process requests concurrently
 	var wg sync.WaitGroup
 	workers := 50 // Number of concurrent workers
-	
+
 	for i := 0; i < workers; i++ {
 		wg.Add(1)
 		go func(workerID int) {
@@ -177,10 +177,10 @@ func (alg *AdvancedLoadGenerator) RunScenario(ctx context.Context, scenarioName 
 			alg.processRequests(testCtx, requestChan, workerID)
 		}(i)
 	}
-	
+
 	// Wait for completion
 	wg.Wait()
-	
+
 	// Generate report
 	return alg.generateReport(scenario.GetName(), duration), nil
 }
@@ -203,33 +203,33 @@ func (alg *AdvancedLoadGenerator) processRequests(ctx context.Context, requests 
 // executeRequest executes a single load test request
 func (alg *AdvancedLoadGenerator) executeRequest(ctx context.Context, req *LoadRequest) {
 	startTime := time.Now()
-	
+
 	// Create HTTP request
 	httpReq, err := http.NewRequestWithContext(ctx, req.Method, req.URL, bytes.NewReader(req.Body))
 	if err != nil {
 		alg.metricsCollector.recordError("request_creation", err)
 		return
 	}
-	
+
 	// Set headers
 	for key, value := range req.Headers {
 		httpReq.Header.Set(key, value)
 	}
-	
+
 	// Execute request
 	resp, err := alg.httpClient.Do(httpReq)
 	latency := time.Since(startTime)
-	
+
 	if err != nil {
 		alg.metricsCollector.recordError("http_error", err)
 		alg.metricsCollector.recordFailure(latency)
 		return
 	}
 	defer resp.Body.Close()
-	
+
 	// Read response body
 	body, _ := io.ReadAll(resp.Body)
-	
+
 	// Record metrics
 	alg.metricsCollector.recordSuccess(latency, resp.StatusCode, int64(len(body)))
 }
@@ -237,27 +237,27 @@ func (alg *AdvancedLoadGenerator) executeRequest(ctx context.Context, req *LoadR
 // RunVegetaTest runs a load test using Vegeta library
 func (alg *AdvancedLoadGenerator) RunVegetaTest(ctx context.Context, rate uint64, duration time.Duration) (*LoadTestReport, error) {
 	ginkgo.By(fmt.Sprintf("Running Vegeta load test: %d req/s for %v", rate, duration))
-	
+
 	// Create targeter
 	targeter := vegeta.NewStaticTargeter(alg.generateVegetaTargets()...)
-	
+
 	// Create attacker
 	attacker := vegeta.NewAttacker(
 		vegeta.Workers(uint64(rate/10)),
 		vegeta.MaxWorkers(100),
 		vegeta.Timeout(10*time.Second),
 	)
-	
+
 	// Metrics to collect results
 	var metrics vegeta.Metrics
-	
+
 	// Run attack
 	for res := range attacker.Attack(targeter, vegeta.Rate{Freq: int(rate), Per: time.Second}, duration, "Load Test") {
 		metrics.Add(res)
 	}
-	
+
 	metrics.Close()
-	
+
 	// Convert Vegeta metrics to our report format
 	return alg.convertVegetaMetrics(&metrics), nil
 }
@@ -265,7 +265,7 @@ func (alg *AdvancedLoadGenerator) RunVegetaTest(ctx context.Context, rate uint64
 // generateVegetaTargets generates targets for Vegeta
 func (alg *AdvancedLoadGenerator) generateVegetaTargets() []vegeta.Target {
 	targets := []vegeta.Target{}
-	
+
 	// Generate various intent types
 	intents := []string{
 		"Deploy AMF with high availability",
@@ -274,7 +274,7 @@ func (alg *AdvancedLoadGenerator) generateVegetaTargets() []vegeta.Target {
 		"Create network slice for IoT",
 		"Deploy Near-RT RIC",
 	}
-	
+
 	for i, intent := range intents {
 		body := map[string]interface{}{
 			"apiVersion": "nephoran.io/v1",
@@ -287,9 +287,9 @@ func (alg *AdvancedLoadGenerator) generateVegetaTargets() []vegeta.Target {
 				"intent": intent,
 			},
 		}
-		
+
 		bodyBytes, _ := json.Marshal(body)
-		
+
 		targets = append(targets, vegeta.Target{
 			Method: "POST",
 			URL:    fmt.Sprintf("%s/api/v1/namespaces/default/networkintents", alg.baseURL),
@@ -299,7 +299,7 @@ func (alg *AdvancedLoadGenerator) generateVegetaTargets() []vegeta.Target {
 			},
 		})
 	}
-	
+
 	return targets
 }
 
@@ -311,20 +311,20 @@ func (alg *AdvancedLoadGenerator) convertVegetaMetrics(metrics *vegeta.Metrics) 
 		TotalRequests:      int64(metrics.Requests),
 		SuccessfulRequests: int64(float64(metrics.Requests) * metrics.Success),
 		FailedRequests:     int64(float64(metrics.Requests) * (1 - metrics.Success)),
-		
-		MinLatency:        metrics.Latencies.Min,
-		MaxLatency:        metrics.Latencies.Max,
-		MeanLatency:       metrics.Latencies.Mean,
-		P50Latency:        metrics.Latencies.P50,
-		P90Latency:        metrics.Latencies.P90,
-		P95Latency:        metrics.Latencies.P95,
-		P99Latency:        metrics.Latencies.P99,
-		
+
+		MinLatency:  metrics.Latencies.Min,
+		MaxLatency:  metrics.Latencies.Max,
+		MeanLatency: metrics.Latencies.Mean,
+		P50Latency:  metrics.Latencies.P50,
+		P90Latency:  metrics.Latencies.P90,
+		P95Latency:  metrics.Latencies.P95,
+		P99Latency:  metrics.Latencies.P99,
+
 		RequestsPerSecond: metrics.Rate,
 		BytesPerSecond:    metrics.Throughput,
 		ErrorRate:         1 - metrics.Success,
-		
-		StatusCodeDist:    alg.convertStatusCodes(metrics.StatusCodes),
+
+		StatusCodeDist: alg.convertStatusCodes(metrics.StatusCodes),
 	}
 }
 
@@ -343,7 +343,7 @@ func (alg *AdvancedLoadGenerator) convertStatusCodes(codes map[string]int) map[i
 func (alg *AdvancedLoadGenerator) generateReport(scenario string, duration time.Duration) *LoadTestReport {
 	alg.metricsCollector.mu.RLock()
 	defer alg.metricsCollector.mu.RUnlock()
-	
+
 	report := &LoadTestReport{
 		Scenario:           scenario,
 		Duration:           duration,
@@ -353,57 +353,57 @@ func (alg *AdvancedLoadGenerator) generateReport(scenario string, duration time.
 		ErrorsByType:       alg.metricsCollector.errorTypes,
 		StatusCodeDist:     alg.metricsCollector.statusCodes,
 	}
-	
+
 	// Calculate latency statistics
 	if len(alg.metricsCollector.latencies) > 0 {
 		latencies := alg.metricsCollector.latencies
 		sort.Slice(latencies, func(i, j int) bool {
 			return latencies[i] < latencies[j]
 		})
-		
+
 		report.MinLatency = latencies[0]
 		report.MaxLatency = latencies[len(latencies)-1]
 		report.MedianLatency = latencies[len(latencies)/2]
-		
+
 		// Calculate percentiles
 		report.P50Latency = alg.calculatePercentile(latencies, 50)
 		report.P75Latency = alg.calculatePercentile(latencies, 75)
 		report.P90Latency = alg.calculatePercentile(latencies, 90)
 		report.P95Latency = alg.calculatePercentile(latencies, 95)
 		report.P99Latency = alg.calculatePercentile(latencies, 99)
-		
+
 		// Calculate mean and standard deviation
 		var sum time.Duration
 		for _, l := range latencies {
 			sum += l
 		}
 		report.MeanLatency = sum / time.Duration(len(latencies))
-		
+
 		// Convert to float64 for stats calculation
 		floatLatencies := make([]float64, len(latencies))
 		for i, l := range latencies {
 			floatLatencies[i] = float64(l.Nanoseconds())
 		}
-		
+
 		if stdDev, err := stats.StandardDeviation(floatLatencies); err == nil {
 			report.StdDevLatency = time.Duration(stdDev)
 		}
 	}
-	
+
 	// Calculate throughput
 	if duration > 0 {
 		report.RequestsPerSecond = float64(report.TotalRequests) / duration.Seconds()
 		report.BytesPerSecond = float64(atomic.LoadInt64(&alg.metricsCollector.totalBytes)) / duration.Seconds()
 	}
-	
+
 	// Calculate error rate
 	if report.TotalRequests > 0 {
 		report.ErrorRate = float64(report.FailedRequests) / float64(report.TotalRequests)
 	}
-	
+
 	// Calculate Apdex score (Application Performance Index)
 	report.ApdexScore = alg.calculateApdex(alg.metricsCollector.latencies, 2*time.Second)
-	
+
 	return report
 }
 
@@ -412,7 +412,7 @@ func (alg *AdvancedLoadGenerator) calculatePercentile(latencies []time.Duration,
 	if len(latencies) == 0 {
 		return 0
 	}
-	
+
 	index := int(math.Ceil(float64(percentile)/100.0*float64(len(latencies)))) - 1
 	if index < 0 {
 		index = 0
@@ -420,7 +420,7 @@ func (alg *AdvancedLoadGenerator) calculatePercentile(latencies []time.Duration,
 	if index >= len(latencies) {
 		index = len(latencies) - 1
 	}
-	
+
 	return latencies[index]
 }
 
@@ -429,10 +429,10 @@ func (alg *AdvancedLoadGenerator) calculateApdex(latencies []time.Duration, thre
 	if len(latencies) == 0 {
 		return 0
 	}
-	
+
 	satisfied := 0
 	tolerating := 0
-	
+
 	for _, latency := range latencies {
 		if latency <= threshold {
 			satisfied++
@@ -440,7 +440,7 @@ func (alg *AdvancedLoadGenerator) calculateApdex(latencies []time.Duration, thre
 			tolerating++
 		}
 	}
-	
+
 	return float64(satisfied+tolerating/2) / float64(len(latencies))
 }
 
@@ -450,13 +450,13 @@ func (lmc *LoadMetricsCollector) recordSuccess(latency time.Duration, statusCode
 	atomic.AddInt64(&lmc.requests, 1)
 	atomic.AddInt64(&lmc.successes, 1)
 	atomic.AddInt64(&lmc.totalBytes, bytes)
-	
+
 	lmc.mu.Lock()
 	defer lmc.mu.Unlock()
-	
+
 	lmc.latencies = append(lmc.latencies, latency)
 	lmc.timestamps = append(lmc.timestamps, time.Now())
-	
+
 	if lmc.statusCodes == nil {
 		lmc.statusCodes = make(map[int]int64)
 	}
@@ -466,10 +466,10 @@ func (lmc *LoadMetricsCollector) recordSuccess(latency time.Duration, statusCode
 func (lmc *LoadMetricsCollector) recordFailure(latency time.Duration) {
 	atomic.AddInt64(&lmc.requests, 1)
 	atomic.AddInt64(&lmc.failures, 1)
-	
+
 	lmc.mu.Lock()
 	defer lmc.mu.Unlock()
-	
+
 	lmc.latencies = append(lmc.latencies, latency)
 	lmc.timestamps = append(lmc.timestamps, time.Now())
 }
@@ -477,7 +477,7 @@ func (lmc *LoadMetricsCollector) recordFailure(latency time.Duration) {
 func (lmc *LoadMetricsCollector) recordError(errorType string, err error) {
 	lmc.mu.Lock()
 	defer lmc.mu.Unlock()
-	
+
 	if lmc.errorTypes == nil {
 		lmc.errorTypes = make(map[string]int64)
 	}
@@ -508,13 +508,13 @@ func (crs *ConstantRateScenario) GetDescription() string { return crs.descriptio
 
 func (crs *ConstantRateScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 	requests := make(chan *LoadRequest, 100)
-	
+
 	go func() {
 		defer close(requests)
-		
+
 		ticker := time.NewTicker(time.Second / time.Duration(crs.rate))
 		defer ticker.Stop()
-		
+
 		requestID := 0
 		for {
 			select {
@@ -529,7 +529,7 @@ func (crs *ConstantRateScenario) Generate(ctx context.Context) <-chan *LoadReque
 					Timestamp:   time.Now(),
 					ScenarioTag: crs.name,
 				}
-				
+
 				select {
 				case requests <- req:
 					requestID++
@@ -539,7 +539,7 @@ func (crs *ConstantRateScenario) Generate(ctx context.Context) <-chan *LoadReque
 			}
 		}
 	}()
-	
+
 	return requests
 }
 
@@ -555,7 +555,7 @@ func (crs *ConstantRateScenario) generateIntentBody(id int) []byte {
 			"intent": fmt.Sprintf("Deploy test function %d", id),
 		},
 	}
-	
+
 	body, _ := json.Marshal(intent)
 	return body
 }
@@ -584,13 +584,13 @@ func (rus *RampUpScenario) GetDescription() string { return rus.description }
 
 func (rus *RampUpScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 	requests := make(chan *LoadRequest, 100)
-	
+
 	go func() {
 		defer close(requests)
-		
+
 		startTime := time.Now()
 		requestID := 0
-		
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -601,10 +601,10 @@ func (rus *RampUpScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 				if progress > 1.0 {
 					progress = 1.0
 				}
-				
+
 				currentRate := rus.startRate + int(float64(rus.endRate-rus.startRate)*progress)
 				sleepDuration := time.Second / time.Duration(currentRate)
-				
+
 				req := &LoadRequest{
 					Method:      "POST",
 					URL:         "http://localhost:8080/api/v1/intents",
@@ -613,7 +613,7 @@ func (rus *RampUpScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 					Timestamp:   time.Now(),
 					ScenarioTag: rus.name,
 				}
-				
+
 				select {
 				case requests <- req:
 					requestID++
@@ -624,7 +624,7 @@ func (rus *RampUpScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 			}
 		}
 	}()
-	
+
 	return requests
 }
 
@@ -640,17 +640,17 @@ func (rus *RampUpScenario) generateIntentBody(id int) []byte {
 			"intent": fmt.Sprintf("Deploy function during ramp %d", id),
 		},
 	}
-	
+
 	body, _ := json.Marshal(intent)
 	return body
 }
 
 // SpikeScenario generates spike traffic patterns
 type SpikeScenario struct {
-	name         string
-	description  string
-	baseRate     int
-	spikeRate    int
+	name          string
+	description   string
+	baseRate      int
+	spikeRate     int
 	spikeDuration time.Duration
 	restDuration  time.Duration
 }
@@ -671,10 +671,10 @@ func (ss *SpikeScenario) GetDescription() string { return ss.description }
 
 func (ss *SpikeScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 	requests := make(chan *LoadRequest, 100)
-	
+
 	go func() {
 		defer close(requests)
-		
+
 		requestID := 0
 		for {
 			// Rest period
@@ -694,7 +694,7 @@ func (ss *SpikeScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 					}
 				}
 			}
-			
+
 			// Spike period
 			spikeEnd := time.Now().Add(ss.spikeDuration)
 			for time.Now().Before(spikeEnd) {
@@ -714,7 +714,7 @@ func (ss *SpikeScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 			}
 		}
 	}()
-	
+
 	return requests
 }
 
@@ -730,9 +730,9 @@ func (ss *SpikeScenario) generateRequest(id int, rate int) *LoadRequest {
 			"intent": fmt.Sprintf("Deploy function during spike %d", id),
 		},
 	}
-	
+
 	body, _ := json.Marshal(intent)
-	
+
 	return &LoadRequest{
 		Method:      "POST",
 		URL:         "http://localhost:8080/api/v1/intents",
@@ -761,13 +761,13 @@ func (rts *RealisticTelecomScenario) GetDescription() string { return rts.descri
 
 func (rts *RealisticTelecomScenario) Generate(ctx context.Context) <-chan *LoadRequest {
 	requests := make(chan *LoadRequest, 100)
-	
+
 	go func() {
 		defer close(requests)
-		
+
 		requestID := 0
 		startTime := time.Now()
-		
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -776,7 +776,7 @@ func (rts *RealisticTelecomScenario) Generate(ctx context.Context) <-chan *LoadR
 				// Simulate daily traffic pattern
 				elapsed := time.Since(startTime)
 				hour := int(elapsed.Hours()) % 24
-				
+
 				// Traffic varies by hour of day
 				var rate int
 				switch {
@@ -795,13 +795,13 @@ func (rts *RealisticTelecomScenario) Generate(ctx context.Context) <-chan *LoadR
 				default:
 					rate = 20 // Late evening
 				}
-				
+
 				// Add some randomness
 				rate = rate + rand.Intn(10) - 5
 				if rate < 5 {
 					rate = 5
 				}
-				
+
 				req := rts.generateRealisticRequest(requestID)
 				select {
 				case requests <- req:
@@ -813,7 +813,7 @@ func (rts *RealisticTelecomScenario) Generate(ctx context.Context) <-chan *LoadR
 			}
 		}
 	}()
-	
+
 	return requests
 }
 
@@ -831,9 +831,9 @@ func (rts *RealisticTelecomScenario) generateRealisticRequest(id int) *LoadReque
 		"Deploy UDM with geographical redundancy",
 		"Configure AUSF with enhanced security for roaming users",
 	}
-	
+
 	intent := intents[id%len(intents)]
-	
+
 	body := map[string]interface{}{
 		"apiVersion": "nephoran.io/v1",
 		"kind":       "NetworkIntent",
@@ -849,9 +849,9 @@ func (rts *RealisticTelecomScenario) generateRealisticRequest(id int) *LoadReque
 			"intent": intent,
 		},
 	}
-	
+
 	bodyBytes, _ := json.Marshal(body)
-	
+
 	return &LoadRequest{
 		Method:      "POST",
 		URL:         "http://localhost:8080/api/v1/intents",

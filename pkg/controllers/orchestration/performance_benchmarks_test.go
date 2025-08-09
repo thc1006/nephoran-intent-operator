@@ -45,53 +45,53 @@ type BenchmarkSuite struct {
 	fakeClient client.Client
 	scheme     *runtime.Scheme
 	recorder   *record.FakeRecorder
-	
+
 	// Controllers
 	intentController   *SpecializedIntentProcessingController
 	resourceController *SpecializedResourcePlanningController
 	manifestController *SpecializedManifestGenerationController
-	
+
 	// Mock services
-	mockLLMClient         *MockLLMClient
-	mockRAGService        *MockRAGService
+	mockLLMClient          *MockLLMClient
+	mockRAGService         *MockRAGService
 	mockResourceCalculator *MockTelecomResourceCalculator
-	mockTemplateEngine    *MockKubernetesTemplateEngine
-	
+	mockTemplateEngine     *MockKubernetesTemplateEngine
+
 	// Performance tracking
-	metrics          *PerformanceMetrics
-	memoryProfiler   *MemoryProfiler
+	metrics        *PerformanceMetrics
+	memoryProfiler *MemoryProfiler
 }
 
 // PerformanceMetrics tracks performance data
 type PerformanceMetrics struct {
-	StartTime     time.Time
-	EndTime       time.Time
-	Duration      time.Duration
-	Operations    int64
-	Throughput    float64 // operations per second
-	
+	StartTime  time.Time
+	EndTime    time.Time
+	Duration   time.Duration
+	Operations int64
+	Throughput float64 // operations per second
+
 	// Latency statistics
-	MinLatency    time.Duration
-	MaxLatency    time.Duration
-	AvgLatency    time.Duration
-	P50Latency    time.Duration
-	P95Latency    time.Duration
-	P99Latency    time.Duration
-	
+	MinLatency time.Duration
+	MaxLatency time.Duration
+	AvgLatency time.Duration
+	P50Latency time.Duration
+	P95Latency time.Duration
+	P99Latency time.Duration
+
 	// Memory statistics
 	InitialMemory uint64
 	PeakMemory    uint64
 	FinalMemory   uint64
 	MemoryGrowth  uint64
-	
+
 	// Error statistics
-	SuccessCount  int64
-	ErrorCount    int64
-	ErrorRate     float64
-	
+	SuccessCount int64
+	ErrorCount   int64
+	ErrorRate    float64
+
 	// Concurrency
 	MaxConcurrency int
-	
+
 	mutex sync.RWMutex
 }
 
@@ -119,16 +119,16 @@ type LatencyTracker struct {
 func NewBenchmarkSuite() *BenchmarkSuite {
 	ctx := context.Background()
 	logger := zap.New(zap.WriteTo(testing.Verbose()), zap.UseDevMode(true))
-	
+
 	// Create scheme and add types
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
 	nephoranv1.AddToScheme(scheme)
-	
+
 	// Create fake client and recorder
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	recorder := record.NewFakeRecorder(1000)
-	
+
 	suite := &BenchmarkSuite{
 		ctx:            ctx,
 		logger:         logger.WithName("benchmark-suite"),
@@ -138,10 +138,10 @@ func NewBenchmarkSuite() *BenchmarkSuite {
 		metrics:        NewPerformanceMetrics(),
 		memoryProfiler: NewMemoryProfiler(),
 	}
-	
+
 	suite.initializeMockServices()
 	suite.initializeControllers()
-	
+
 	return suite
 }
 
@@ -150,13 +150,13 @@ func (s *BenchmarkSuite) initializeMockServices() {
 	// Configure mocks for high performance
 	s.mockLLMClient = NewMockLLMClient()
 	s.mockLLMClient.SetResponseDelay(5 * time.Millisecond) // Fast response
-	
+
 	s.mockRAGService = NewMockRAGService()
 	s.mockRAGService.SetQueryDelay(2 * time.Millisecond)
-	
+
 	s.mockResourceCalculator = NewMockTelecomResourceCalculator()
 	s.mockResourceCalculator.SetCalculationDelay(3 * time.Millisecond)
-	
+
 	s.mockTemplateEngine = NewMockKubernetesTemplateEngine()
 	s.mockTemplateEngine.SetProcessingDelay(1 * time.Millisecond)
 }
@@ -166,26 +166,26 @@ func (s *BenchmarkSuite) initializeControllers() {
 	// Intent Processing Controller
 	intentConfig := IntentProcessingConfig{
 		LLMEndpoint:           "http://mock-llm:8080",
-		LLMAPIKey:            "benchmark-key",
-		LLMModel:             "gpt-4o-mini",
-		MaxTokens:            1000,
-		Temperature:          0.7,
-		RAGEndpoint:          "http://mock-rag:8080",
-		MaxContextChunks:     5,
-		SimilarityThreshold:  0.7,
-		StreamingEnabled:     false, // Disable for benchmarks
-		CacheEnabled:         true,
-		CacheTTL:            5 * time.Minute,
-		MaxRetries:           1, // Reduce retries for benchmark
-		Timeout:             5 * time.Second,
+		LLMAPIKey:             "benchmark-key",
+		LLMModel:              "gpt-4o-mini",
+		MaxTokens:             1000,
+		Temperature:           0.7,
+		RAGEndpoint:           "http://mock-rag:8080",
+		MaxContextChunks:      5,
+		SimilarityThreshold:   0.7,
+		StreamingEnabled:      false, // Disable for benchmarks
+		CacheEnabled:          true,
+		CacheTTL:              5 * time.Minute,
+		MaxRetries:            1, // Reduce retries for benchmark
+		Timeout:               5 * time.Second,
 		CircuitBreakerEnabled: false, // Disable for benchmarks
 	}
-	
+
 	s.intentController = &SpecializedIntentProcessingController{
-		Client:                s.fakeClient,
-		Scheme:                s.scheme,
+		Client:               s.fakeClient,
+		Scheme:               s.scheme,
 		Recorder:             s.recorder,
-		Logger:                s.logger.WithName("intent-benchmark"),
+		Logger:               s.logger.WithName("intent-benchmark"),
 		LLMClient:            s.mockLLMClient,
 		RAGService:           s.mockRAGService,
 		PromptEngine:         NewMockPromptEngine(),
@@ -194,50 +194,94 @@ func (s *BenchmarkSuite) initializeControllers() {
 		Config:               intentConfig,
 		SupportedIntents:     []string{"5g-deployment", "network-slice", "cnf-deployment"},
 		ConfidenceThreshold:  0.7,
-		metrics:             NewIntentProcessingMetrics(),
-		stopChan:            make(chan struct{}),
+		metrics:              NewIntentProcessingMetrics(),
+		stopChan:             make(chan struct{}),
 		healthStatus: interfaces.HealthStatus{
 			Status:      "Healthy",
 			Message:     "Controller ready for benchmarking",
 			LastChecked: time.Now(),
 		},
 	}
-	
+
 	s.intentController.cache = &IntentProcessingCache{
 		entries:    make(map[string]*CacheEntry),
 		ttl:        intentConfig.CacheTTL,
 		maxEntries: 10000, // Large cache for benchmarks
 	}
-	
+
 	// Resource Planning Controller
 	resourceConfig := ResourcePlanningConfig{
-		DefaultCPURequest:        "500m",
-		DefaultMemoryRequest:     "1Gi",
-		DefaultStorageRequest:    "10Gi",
-		CPUOvercommitRatio:       1.2,
-		MemoryOvercommitRatio:    1.1,
-		OptimizationEnabled:      false, // Disable for benchmark speed
-		ConstraintCheckEnabled:   false, // Disable for benchmark speed
-		MaxPlanningTime:         30 * time.Second,
-		ParallelPlanning:        false,
+		DefaultCPURequest:      "500m",
+		DefaultMemoryRequest:   "1Gi",
+		DefaultStorageRequest:  "10Gi",
+		CPUOvercommitRatio:     1.2,
+		MemoryOvercommitRatio:  1.1,
+		OptimizationEnabled:    false, // Disable for benchmark speed
+		ConstraintCheckEnabled: false, // Disable for benchmark speed
+		MaxPlanningTime:        30 * time.Second,
+		ParallelPlanning:       false,
 		CacheEnabled:           true,
-		CacheTTL:              5 * time.Minute,
+		CacheTTL:               5 * time.Minute,
 		MaxCacheEntries:        10000,
 	}
-	
+
 	s.resourceController = &SpecializedResourcePlanningController{
-		Client:              s.fakeClient,
-		Scheme:              s.scheme,
+		Client:             s.fakeClient,
+		Scheme:             s.scheme,
 		Recorder:           s.recorder,
-		Logger:              s.logger.WithName("resource-benchmark"),
-		ResourceCalculator:  s.mockResourceCalculator,
+		Logger:             s.logger.WithName("resource-benchmark"),
+		ResourceCalculator: s.mockResourceCalculator,
 		OptimizationEngine: NewMockResourceOptimizationEngine(),
 		ConstraintSolver:   NewMockResourceConstraintSolver(),
 		CostEstimator:      NewMockTelecomCostEstimator(),
 		Config:             resourceConfig,
 		ResourceTemplates:  initializeResourceTemplates(),
 		ConstraintRules:    initializeConstraintRules(),
-		metrics:           NewResourcePlanningMetrics(),
+		metrics:            NewResourcePlanningMetrics(),
+		stopChan:           make(chan struct{}),
+		healthStatus: interfaces.HealthStatus{
+			Status:      "Healthy",
+			Message:     "Controller ready for benchmarking",
+			LastChecked: time.Now(),
+		},
+	}
+
+	s.resourceController.planningCache = &ResourcePlanCache{
+		entries:    make(map[string]*PlanCacheEntry),
+		ttl:        resourceConfig.CacheTTL,
+		maxEntries: resourceConfig.MaxCacheEntries,
+	}
+
+	// Manifest Generation Controller
+	manifestConfig := ManifestGenerationConfig{
+		TemplateDirectory:   "/templates",
+		DefaultNamespace:    "nephoran-system",
+		EnableHelm:          false,
+		EnableKustomize:     false,
+		ValidateManifests:   false, // Disable for benchmark speed
+		OptimizeManifests:   false, // Disable for benchmark speed
+		EnforcePolicies:     false, // Disable for benchmark speed
+		CacheEnabled:        true,
+		CacheTTL:            5 * time.Minute,
+		MaxCacheEntries:     10000,
+		MaxGenerationTime:   30 * time.Second,
+		ParallelGeneration:  false,
+		ConcurrentTemplates: 1,
+	}
+
+	s.manifestController = &SpecializedManifestGenerationController{
+		Client:            s.fakeClient,
+		Scheme:            s.scheme,
+		Recorder:          s.recorder,
+		Logger:            s.logger.WithName("manifest-benchmark"),
+		TemplateEngine:    s.mockTemplateEngine,
+		ManifestValidator: NewMockManifestValidator(),
+		PolicyEnforcer:    NewMockManifestPolicyEnforcer(),
+		ManifestOptimizer: NewMockManifestOptimizer(),
+		Config:            manifestConfig,
+		Templates:         initializeManifestTemplates(),
+		PolicyRules:       initializeManifestPolicyRules(),
+		metrics:           NewManifestGenerationMetrics(),
 		stopChan:          make(chan struct{}),
 		healthStatus: interfaces.HealthStatus{
 			Status:      "Healthy",
@@ -245,51 +289,7 @@ func (s *BenchmarkSuite) initializeControllers() {
 			LastChecked: time.Now(),
 		},
 	}
-	
-	s.resourceController.planningCache = &ResourcePlanCache{
-		entries:    make(map[string]*PlanCacheEntry),
-		ttl:        resourceConfig.CacheTTL,
-		maxEntries: resourceConfig.MaxCacheEntries,
-	}
-	
-	// Manifest Generation Controller
-	manifestConfig := ManifestGenerationConfig{
-		TemplateDirectory:    "/templates",
-		DefaultNamespace:     "nephoran-system",
-		EnableHelm:          false,
-		EnableKustomize:     false,
-		ValidateManifests:   false, // Disable for benchmark speed
-		OptimizeManifests:   false, // Disable for benchmark speed
-		EnforcePolicies:     false, // Disable for benchmark speed
-		CacheEnabled:       true,
-		CacheTTL:          5 * time.Minute,
-		MaxCacheEntries:   10000,
-		MaxGenerationTime: 30 * time.Second,
-		ParallelGeneration: false,
-		ConcurrentTemplates: 1,
-	}
-	
-	s.manifestController = &SpecializedManifestGenerationController{
-		Client:            s.fakeClient,
-		Scheme:            s.scheme,
-		Recorder:         s.recorder,
-		Logger:            s.logger.WithName("manifest-benchmark"),
-		TemplateEngine:    s.mockTemplateEngine,
-		ManifestValidator: NewMockManifestValidator(),
-		PolicyEnforcer:   NewMockManifestPolicyEnforcer(),
-		ManifestOptimizer: NewMockManifestOptimizer(),
-		Config:           manifestConfig,
-		Templates:        initializeManifestTemplates(),
-		PolicyRules:      initializeManifestPolicyRules(),
-		metrics:          NewManifestGenerationMetrics(),
-		stopChan:         make(chan struct{}),
-		healthStatus: interfaces.HealthStatus{
-			Status:      "Healthy",
-			Message:     "Controller ready for benchmarking",
-			LastChecked: time.Now(),
-		},
-	}
-	
+
 	s.manifestController.manifestCache = &ManifestCache{
 		entries:    make(map[string]*ManifestCacheEntry),
 		ttl:        manifestConfig.CacheTTL,
@@ -302,38 +302,38 @@ func (s *BenchmarkSuite) StartControllers() error {
 	if err := s.intentController.Start(s.ctx); err != nil {
 		return fmt.Errorf("failed to start intent controller: %w", err)
 	}
-	
+
 	if err := s.resourceController.Start(s.ctx); err != nil {
 		return fmt.Errorf("failed to start resource controller: %w", err)
 	}
-	
+
 	if err := s.manifestController.Start(s.ctx); err != nil {
 		return fmt.Errorf("failed to start manifest controller: %w", err)
 	}
-	
+
 	return nil
 }
 
 // StopControllers stops all controllers
 func (s *BenchmarkSuite) StopControllers() error {
 	var errors []error
-	
+
 	if err := s.manifestController.Stop(s.ctx); err != nil {
 		errors = append(errors, err)
 	}
-	
+
 	if err := s.resourceController.Stop(s.ctx); err != nil {
 		errors = append(errors, err)
 	}
-	
+
 	if err := s.intentController.Stop(s.ctx); err != nil {
 		errors = append(errors, err)
 	}
-	
+
 	if len(errors) > 0 {
 		return fmt.Errorf("errors stopping controllers: %v", errors)
 	}
-	
+
 	return nil
 }
 
@@ -362,9 +362,9 @@ func NewLatencyTracker() *LatencyTracker {
 func (m *PerformanceMetrics) StartTracking() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	m.StartTime = time.Now()
-	
+
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
 	m.InitialMemory = ms.HeapAlloc
@@ -374,10 +374,10 @@ func (m *PerformanceMetrics) StartTracking() {
 func (m *PerformanceMetrics) RecordOperation(latency time.Duration) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	m.Operations++
 	m.SuccessCount++
-	
+
 	// Update latency statistics
 	if latency < m.MinLatency {
 		m.MinLatency = latency
@@ -391,7 +391,7 @@ func (m *PerformanceMetrics) RecordOperation(latency time.Duration) {
 func (m *PerformanceMetrics) RecordError() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	m.Operations++
 	m.ErrorCount++
 }
@@ -400,18 +400,18 @@ func (m *PerformanceMetrics) RecordError() {
 func (m *PerformanceMetrics) FinishTracking() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	m.EndTime = time.Now()
 	m.Duration = m.EndTime.Sub(m.StartTime)
-	
+
 	if m.Duration > 0 {
 		m.Throughput = float64(m.Operations) / m.Duration.Seconds()
 	}
-	
+
 	if m.Operations > 0 {
 		m.ErrorRate = float64(m.ErrorCount) / float64(m.Operations)
 	}
-	
+
 	// Update memory statistics
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
@@ -425,17 +425,17 @@ func (m *PerformanceMetrics) FinishTracking() {
 func (mp *MemoryProfiler) TakeSample() {
 	mp.mutex.Lock()
 	defer mp.mutex.Unlock()
-	
+
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)
-	
+
 	sample := MemorySample{
 		Timestamp: time.Now(),
 		HeapAlloc: ms.HeapAlloc,
 		HeapSys:   ms.HeapSys,
 		NumGC:     ms.NumGC,
 	}
-	
+
 	mp.samples = append(mp.samples, sample)
 }
 
@@ -443,7 +443,7 @@ func (mp *MemoryProfiler) TakeSample() {
 func (mp *MemoryProfiler) GetPeakMemory() uint64 {
 	mp.mutex.RLock()
 	defer mp.mutex.RUnlock()
-	
+
 	var peak uint64
 	for _, sample := range mp.samples {
 		if sample.HeapAlloc > peak {
@@ -457,7 +457,7 @@ func (mp *MemoryProfiler) GetPeakMemory() uint64 {
 func (mp *MemoryProfiler) StartProfiling(interval time.Duration, stop <-chan struct{}) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -472,7 +472,7 @@ func (mp *MemoryProfiler) StartProfiling(interval time.Duration, stop <-chan str
 func (lt *LatencyTracker) AddMeasurement(latency time.Duration) {
 	lt.mutex.Lock()
 	defer lt.mutex.Unlock()
-	
+
 	lt.measurements = append(lt.measurements, latency)
 }
 
@@ -480,15 +480,15 @@ func (lt *LatencyTracker) AddMeasurement(latency time.Duration) {
 func (lt *LatencyTracker) GetPercentile(percentile float64) time.Duration {
 	lt.mutex.RLock()
 	defer lt.mutex.RUnlock()
-	
+
 	if len(lt.measurements) == 0 {
 		return 0
 	}
-	
+
 	// Make a copy and sort
 	measurements := make([]time.Duration, len(lt.measurements))
 	copy(measurements, lt.measurements)
-	
+
 	// Simple bubble sort for demo (use proper sort in production)
 	for i := 0; i < len(measurements)-1; i++ {
 		for j := 0; j < len(measurements)-i-1; j++ {
@@ -497,12 +497,12 @@ func (lt *LatencyTracker) GetPercentile(percentile float64) time.Duration {
 			}
 		}
 	}
-	
+
 	index := int(float64(len(measurements)) * percentile / 100.0)
 	if index >= len(measurements) {
 		index = len(measurements) - 1
 	}
-	
+
 	return measurements[index]
 }
 
@@ -516,7 +516,7 @@ func BenchmarkIntentProcessingController(b *testing.B) {
 		b.Fatalf("Failed to start controllers: %v", err)
 	}
 	defer suite.StopControllers()
-	
+
 	// Create test intent
 	intent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
@@ -529,26 +529,26 @@ func BenchmarkIntentProcessingController(b *testing.B) {
 			IntentType: "5g-deployment",
 		},
 	}
-	
+
 	b.ResetTimer()
 	suite.metrics.StartTracking()
-	
+
 	// Start memory profiling
 	stopProfiler := make(chan struct{})
 	go suite.memoryProfiler.StartProfiling(100*time.Millisecond, stopProfiler)
-	
+
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			start := time.Now()
-			
+
 			// Create unique intent for each iteration
 			testIntent := intent.DeepCopy()
 			testIntent.Name = fmt.Sprintf("benchmark-intent-%d", b.N)
 			testIntent.UID = nephoranv1.UID(fmt.Sprintf("benchmark-uid-%d", b.N))
-			
+
 			_, err := suite.intentController.ProcessIntent(suite.ctx, testIntent)
 			latency := time.Since(start)
-			
+
 			if err != nil {
 				suite.metrics.RecordError()
 			} else {
@@ -556,11 +556,11 @@ func BenchmarkIntentProcessingController(b *testing.B) {
 			}
 		}
 	})
-	
+
 	close(stopProfiler)
 	suite.metrics.FinishTracking()
 	suite.metrics.PeakMemory = suite.memoryProfiler.GetPeakMemory()
-	
+
 	// Report results
 	b.ReportMetric(suite.metrics.Throughput, "ops/sec")
 	b.ReportMetric(float64(suite.metrics.MinLatency.Microseconds()), "min-latency-μs")
@@ -577,7 +577,7 @@ func BenchmarkResourcePlanningController(b *testing.B) {
 		b.Fatalf("Failed to start controllers: %v", err)
 	}
 	defer suite.StopControllers()
-	
+
 	// Create sample LLM response
 	sampleLLMResponse := map[string]interface{}{
 		"network_functions": []interface{}{
@@ -594,20 +594,20 @@ func BenchmarkResourcePlanningController(b *testing.B) {
 			},
 		},
 		"deployment_pattern": "standard",
-		"confidence":        0.9,
+		"confidence":         0.9,
 	}
-	
+
 	b.ResetTimer()
 	suite.metrics.StartTracking()
-	
+
 	// Start memory profiling
 	stopProfiler := make(chan struct{})
 	go suite.memoryProfiler.StartProfiling(100*time.Millisecond, stopProfiler)
-	
+
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			start := time.Now()
-			
+
 			// Create unique intent for each iteration
 			intent := &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
@@ -620,10 +620,10 @@ func BenchmarkResourcePlanningController(b *testing.B) {
 					LLMResponse:     sampleLLMResponse,
 				},
 			}
-			
+
 			_, err := suite.resourceController.ProcessPhase(suite.ctx, intent, interfaces.PhaseResourcePlanning)
 			latency := time.Since(start)
-			
+
 			if err != nil {
 				suite.metrics.RecordError()
 			} else {
@@ -631,11 +631,11 @@ func BenchmarkResourcePlanningController(b *testing.B) {
 			}
 		}
 	})
-	
+
 	close(stopProfiler)
 	suite.metrics.FinishTracking()
 	suite.metrics.PeakMemory = suite.memoryProfiler.GetPeakMemory()
-	
+
 	// Report results
 	b.ReportMetric(suite.metrics.Throughput, "ops/sec")
 	b.ReportMetric(float64(suite.metrics.MinLatency.Microseconds()), "min-latency-μs")
@@ -652,7 +652,7 @@ func BenchmarkManifestGenerationController(b *testing.B) {
 		b.Fatalf("Failed to start controllers: %v", err)
 	}
 	defer suite.StopControllers()
-	
+
 	// Create sample resource plan
 	sampleResourcePlan := &interfaces.ResourcePlan{
 		NetworkFunctions: []interfaces.PlannedNetworkFunction{
@@ -673,21 +673,21 @@ func BenchmarkManifestGenerationController(b *testing.B) {
 		},
 		DeploymentPattern: "standard",
 	}
-	
+
 	b.ResetTimer()
 	suite.metrics.StartTracking()
-	
+
 	// Start memory profiling
 	stopProfiler := make(chan struct{})
 	go suite.memoryProfiler.StartProfiling(100*time.Millisecond, stopProfiler)
-	
+
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			start := time.Now()
-			
+
 			_, err := suite.manifestController.GenerateManifests(suite.ctx, sampleResourcePlan)
 			latency := time.Since(start)
-			
+
 			if err != nil {
 				suite.metrics.RecordError()
 			} else {
@@ -695,11 +695,11 @@ func BenchmarkManifestGenerationController(b *testing.B) {
 			}
 		}
 	})
-	
+
 	close(stopProfiler)
 	suite.metrics.FinishTracking()
 	suite.metrics.PeakMemory = suite.memoryProfiler.GetPeakMemory()
-	
+
 	// Report results
 	b.ReportMetric(suite.metrics.Throughput, "ops/sec")
 	b.ReportMetric(float64(suite.metrics.MinLatency.Microseconds()), "min-latency-μs")
@@ -716,7 +716,7 @@ func BenchmarkEndToEndWorkflow(b *testing.B) {
 		b.Fatalf("Failed to start controllers: %v", err)
 	}
 	defer suite.StopControllers()
-	
+
 	// Create test intent
 	baseIntent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
@@ -729,24 +729,24 @@ func BenchmarkEndToEndWorkflow(b *testing.B) {
 			IntentType: "5g-deployment",
 		},
 	}
-	
+
 	b.ResetTimer()
 	suite.metrics.StartTracking()
-	
+
 	// Start memory profiling
 	stopProfiler := make(chan struct{})
 	go suite.memoryProfiler.StartProfiling(100*time.Millisecond, stopProfiler)
-	
+
 	latencyTracker := NewLatencyTracker()
-	
+
 	for i := 0; i < b.N; i++ {
 		start := time.Now()
-		
+
 		// Create unique intent for each iteration
 		intent := baseIntent.DeepCopy()
 		intent.Name = fmt.Sprintf("e2e-benchmark-%d", i)
 		intent.UID = nephoranv1.UID(fmt.Sprintf("e2e-uid-%d", i))
-		
+
 		// Step 1: Intent Processing
 		intent.Status.ProcessingPhase = interfaces.PhaseLLMProcessing
 		llmResult, err := suite.intentController.ProcessIntent(suite.ctx, intent)
@@ -754,7 +754,7 @@ func BenchmarkEndToEndWorkflow(b *testing.B) {
 			suite.metrics.RecordError()
 			continue
 		}
-		
+
 		// Step 2: Resource Planning
 		intent.Status.LLMResponse = llmResult.Data
 		intent.Status.ProcessingPhase = interfaces.PhaseResourcePlanning
@@ -763,7 +763,7 @@ func BenchmarkEndToEndWorkflow(b *testing.B) {
 			suite.metrics.RecordError()
 			continue
 		}
-		
+
 		// Step 3: Manifest Generation
 		intent.Status.ResourcePlan = resourceResult.Data
 		intent.Status.ProcessingPhase = interfaces.PhaseManifestGeneration
@@ -772,19 +772,19 @@ func BenchmarkEndToEndWorkflow(b *testing.B) {
 			suite.metrics.RecordError()
 			continue
 		}
-		
+
 		latency := time.Since(start)
 		latencyTracker.AddMeasurement(latency)
 		suite.metrics.RecordOperation(latency)
 	}
-	
+
 	close(stopProfiler)
 	suite.metrics.FinishTracking()
 	suite.metrics.PeakMemory = suite.memoryProfiler.GetPeakMemory()
 	suite.metrics.P50Latency = latencyTracker.GetPercentile(50)
 	suite.metrics.P95Latency = latencyTracker.GetPercentile(95)
 	suite.metrics.P99Latency = latencyTracker.GetPercentile(99)
-	
+
 	// Report detailed results
 	b.ReportMetric(suite.metrics.Throughput, "ops/sec")
 	b.ReportMetric(float64(suite.metrics.MinLatency.Microseconds()), "min-latency-μs")
@@ -794,7 +794,7 @@ func BenchmarkEndToEndWorkflow(b *testing.B) {
 	b.ReportMetric(float64(suite.metrics.P99Latency.Microseconds()), "p99-latency-μs")
 	b.ReportMetric(float64(suite.metrics.PeakMemory)/1024/1024, "peak-memory-MB")
 	b.ReportMetric(suite.metrics.ErrorRate*100, "error-rate-%")
-	
+
 	b.Logf("End-to-end benchmark results:")
 	b.Logf("  Total operations: %d", suite.metrics.Operations)
 	b.Logf("  Duration: %v", suite.metrics.Duration)
@@ -816,26 +816,26 @@ func BenchmarkConcurrentIntentProcessing(b *testing.B) {
 		b.Fatalf("Failed to start controllers: %v", err)
 	}
 	defer suite.StopControllers()
-	
+
 	concurrencyLevels := []int{1, 2, 5, 10, 20, 50}
-	
+
 	for _, concurrency := range concurrencyLevels {
 		b.Run(fmt.Sprintf("Concurrency-%d", concurrency), func(b *testing.B) {
 			suite.metrics = NewPerformanceMetrics() // Reset metrics
 			suite.metrics.MaxConcurrency = concurrency
-			
+
 			b.ResetTimer()
 			suite.metrics.StartTracking()
-			
+
 			// Start memory profiling
 			stopProfiler := make(chan struct{})
 			go suite.memoryProfiler.StartProfiling(100*time.Millisecond, stopProfiler)
-			
+
 			b.SetParallelism(concurrency)
 			b.RunParallel(func(pb *testing.PB) {
 				for pb.Next() {
 					start := time.Now()
-					
+
 					intent := &nephoranv1.NetworkIntent{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      fmt.Sprintf("concurrent-intent-%d", b.N),
@@ -847,10 +847,10 @@ func BenchmarkConcurrentIntentProcessing(b *testing.B) {
 							IntentType: "5g-deployment",
 						},
 					}
-					
+
 					_, err := suite.intentController.ProcessIntent(suite.ctx, intent)
 					latency := time.Since(start)
-					
+
 					if err != nil {
 						suite.metrics.RecordError()
 					} else {
@@ -858,16 +858,16 @@ func BenchmarkConcurrentIntentProcessing(b *testing.B) {
 					}
 				}
 			})
-			
+
 			close(stopProfiler)
 			suite.metrics.FinishTracking()
 			suite.metrics.PeakMemory = suite.memoryProfiler.GetPeakMemory()
-			
+
 			// Report results for this concurrency level
 			b.ReportMetric(suite.metrics.Throughput, "ops/sec")
 			b.ReportMetric(float64(suite.metrics.PeakMemory)/1024/1024, "peak-memory-MB")
 			b.ReportMetric(suite.metrics.ErrorRate*100, "error-rate-%")
-			
+
 			b.Logf("Concurrency %d: %.2f ops/sec, %.2f MB peak memory, %.2f%% errors",
 				concurrency,
 				suite.metrics.Throughput,
@@ -885,7 +885,7 @@ func BenchmarkCachePerformance(b *testing.B) {
 		b.Fatalf("Failed to start controllers: %v", err)
 	}
 	defer suite.StopControllers()
-	
+
 	// Create test intent that will be reused to trigger cache hits
 	intent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
@@ -898,59 +898,59 @@ func BenchmarkCachePerformance(b *testing.B) {
 			IntentType: "5g-deployment",
 		},
 	}
-	
+
 	b.Run("WithCache", func(b *testing.B) {
 		suite.intentController.Config.CacheEnabled = true
 		suite.metrics = NewPerformanceMetrics()
-		
+
 		b.ResetTimer()
 		suite.metrics.StartTracking()
-		
+
 		for i := 0; i < b.N; i++ {
 			start := time.Now()
-			
+
 			testIntent := intent.DeepCopy()
 			testIntent.Name = fmt.Sprintf("cache-intent-%d", i)
-			
+
 			_, err := suite.intentController.ProcessIntent(suite.ctx, testIntent)
 			latency := time.Since(start)
-			
+
 			if err != nil {
 				suite.metrics.RecordError()
 			} else {
 				suite.metrics.RecordOperation(latency)
 			}
 		}
-		
+
 		suite.metrics.FinishTracking()
 		b.ReportMetric(suite.metrics.Throughput, "ops/sec")
 	})
-	
+
 	b.Run("WithoutCache", func(b *testing.B) {
 		// Disable cache and create new controller
 		suite.intentController.Config.CacheEnabled = false
 		suite.intentController.cache = nil
 		suite.metrics = NewPerformanceMetrics()
-		
+
 		b.ResetTimer()
 		suite.metrics.StartTracking()
-		
+
 		for i := 0; i < b.N; i++ {
 			start := time.Now()
-			
+
 			testIntent := intent.DeepCopy()
 			testIntent.Name = fmt.Sprintf("no-cache-intent-%d", i)
-			
+
 			_, err := suite.intentController.ProcessIntent(suite.ctx, testIntent)
 			latency := time.Since(start)
-			
+
 			if err != nil {
 				suite.metrics.RecordError()
 			} else {
 				suite.metrics.RecordOperation(latency)
 			}
 		}
-		
+
 		suite.metrics.FinishTracking()
 		b.ReportMetric(suite.metrics.Throughput, "ops/sec")
 	})
@@ -964,15 +964,15 @@ func BenchmarkMemoryUsage(b *testing.B) {
 		b.Fatalf("Failed to start controllers: %v", err)
 	}
 	defer suite.StopControllers()
-	
+
 	// Force garbage collection before benchmark
 	runtime.GC()
-	
+
 	var startMemStats, endMemStats runtime.MemStats
 	runtime.ReadMemStats(&startMemStats)
-	
+
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		intent := &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
@@ -985,28 +985,28 @@ func BenchmarkMemoryUsage(b *testing.B) {
 				IntentType: "5g-deployment",
 			},
 		}
-		
+
 		_, err := suite.intentController.ProcessIntent(suite.ctx, intent)
 		if err != nil {
 			b.Errorf("Intent processing failed: %v", err)
 		}
-		
+
 		// Periodic garbage collection
 		if i%100 == 0 {
 			runtime.GC()
 		}
 	}
-	
+
 	runtime.GC() // Final garbage collection
 	runtime.ReadMemStats(&endMemStats)
-	
+
 	// Report memory metrics
 	memoryGrowth := endMemStats.HeapAlloc - startMemStats.HeapAlloc
 	b.ReportMetric(float64(startMemStats.HeapAlloc)/1024/1024, "start-memory-MB")
 	b.ReportMetric(float64(endMemStats.HeapAlloc)/1024/1024, "end-memory-MB")
 	b.ReportMetric(float64(memoryGrowth)/1024/1024, "memory-growth-MB")
 	b.ReportMetric(float64(endMemStats.NumGC-startMemStats.NumGC), "gc-cycles")
-	
+
 	b.Logf("Memory usage: start=%.2fMB, end=%.2fMB, growth=%.2fMB, GC cycles=%d",
 		float64(startMemStats.HeapAlloc)/1024/1024,
 		float64(endMemStats.HeapAlloc)/1024/1024,
@@ -1022,14 +1022,14 @@ func BenchmarkLatencyDistribution(b *testing.B) {
 		b.Fatalf("Failed to start controllers: %v", err)
 	}
 	defer suite.StopControllers()
-	
+
 	latencyTracker := NewLatencyTracker()
-	
+
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		start := time.Now()
-		
+
 		intent := &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      fmt.Sprintf("latency-test-%d", i),
@@ -1041,15 +1041,15 @@ func BenchmarkLatencyDistribution(b *testing.B) {
 				IntentType: "5g-deployment",
 			},
 		}
-		
+
 		_, err := suite.intentController.ProcessIntent(suite.ctx, intent)
 		latency := time.Since(start)
-		
+
 		if err == nil {
 			latencyTracker.AddMeasurement(latency)
 		}
 	}
-	
+
 	// Calculate and report latency percentiles
 	p10 := latencyTracker.GetPercentile(10)
 	p25 := latencyTracker.GetPercentile(25)
@@ -1058,7 +1058,7 @@ func BenchmarkLatencyDistribution(b *testing.B) {
 	p90 := latencyTracker.GetPercentile(90)
 	p95 := latencyTracker.GetPercentile(95)
 	p99 := latencyTracker.GetPercentile(99)
-	
+
 	b.ReportMetric(float64(p10.Microseconds()), "p10-latency-μs")
 	b.ReportMetric(float64(p25.Microseconds()), "p25-latency-μs")
 	b.ReportMetric(float64(p50.Microseconds()), "p50-latency-μs")
@@ -1066,7 +1066,7 @@ func BenchmarkLatencyDistribution(b *testing.B) {
 	b.ReportMetric(float64(p90.Microseconds()), "p90-latency-μs")
 	b.ReportMetric(float64(p95.Microseconds()), "p95-latency-μs")
 	b.ReportMetric(float64(p99.Microseconds()), "p99-latency-μs")
-	
+
 	b.Logf("Latency distribution:")
 	b.Logf("  P10: %v", p10)
 	b.Logf("  P25: %v", p25)

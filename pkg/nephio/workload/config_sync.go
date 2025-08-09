@@ -31,33 +31,33 @@ import (
 
 // ConfigSyncManager manages GitOps-based configuration synchronization
 type ConfigSyncManager struct {
-	client          client.Client
-	registry        *ClusterRegistry
-	repositories    map[string]*GitRepository
-	syncStatus      map[string]*SyncStatus
-	policyManager   *PolicyManager
-	driftDetector   *DriftDetector
+	client            client.Client
+	registry          *ClusterRegistry
+	repositories      map[string]*GitRepository
+	syncStatus        map[string]*SyncStatus
+	policyManager     *PolicyManager
+	driftDetector     *DriftDetector
 	complianceTracker *ComplianceTracker
-	logger          logr.Logger
-	metrics         *configSyncMetrics
-	mu              sync.RWMutex
-	stopCh          chan struct{}
+	logger            logr.Logger
+	metrics           *configSyncMetrics
+	mu                sync.RWMutex
+	stopCh            chan struct{}
 }
 
 // GitRepository represents a Git repository configuration
 type GitRepository struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	URL          string            `json:"url"`
-	Branch       string            `json:"branch"`
-	Path         string            `json:"path"`
-	Auth         GitAuth           `json:"auth"`
-	SyncPolicy   SyncPolicy        `json:"sync_policy"`
-	Clusters     []string          `json:"clusters"`
-	LastSync     time.Time         `json:"last_sync"`
-	LastCommit   string            `json:"last_commit"`
-	Status       RepoStatus        `json:"status"`
-	Metadata     map[string]string `json:"metadata"`
+	ID         string            `json:"id"`
+	Name       string            `json:"name"`
+	URL        string            `json:"url"`
+	Branch     string            `json:"branch"`
+	Path       string            `json:"path"`
+	Auth       GitAuth           `json:"auth"`
+	SyncPolicy SyncPolicy        `json:"sync_policy"`
+	Clusters   []string          `json:"clusters"`
+	LastSync   time.Time         `json:"last_sync"`
+	LastCommit string            `json:"last_commit"`
+	Status     RepoStatus        `json:"status"`
+	Metadata   map[string]string `json:"metadata"`
 }
 
 // GitAuth contains Git authentication information
@@ -72,49 +72,49 @@ type GitAuth struct {
 
 // SyncPolicy defines how repositories are synchronized
 type SyncPolicy struct {
-	AutoSync      bool          `json:"auto_sync"`
-	SyncInterval  time.Duration `json:"sync_interval"`
-	RetryLimit    int           `json:"retry_limit"`
-	RetryBackoff  time.Duration `json:"retry_backoff"`
-	PruneOrphans  bool          `json:"prune_orphans"`
-	ValidateManifests bool      `json:"validate_manifests"`
-	DryRun        bool          `json:"dry_run"`
-	Timeout       time.Duration `json:"timeout"`
+	AutoSync          bool          `json:"auto_sync"`
+	SyncInterval      time.Duration `json:"sync_interval"`
+	RetryLimit        int           `json:"retry_limit"`
+	RetryBackoff      time.Duration `json:"retry_backoff"`
+	PruneOrphans      bool          `json:"prune_orphans"`
+	ValidateManifests bool          `json:"validate_manifests"`
+	DryRun            bool          `json:"dry_run"`
+	Timeout           time.Duration `json:"timeout"`
 }
 
 // RepoStatus represents the status of a repository
 type RepoStatus string
 
 const (
-	RepoStatusHealthy    RepoStatus = "healthy"
-	RepoStatusSyncing    RepoStatus = "syncing"
-	RepoStatusFailed     RepoStatus = "failed"
-	RepoStatusOutOfSync  RepoStatus = "out-of-sync"
-	RepoStatusUnknown    RepoStatus = "unknown"
+	RepoStatusHealthy   RepoStatus = "healthy"
+	RepoStatusSyncing   RepoStatus = "syncing"
+	RepoStatusFailed    RepoStatus = "failed"
+	RepoStatusOutOfSync RepoStatus = "out-of-sync"
+	RepoStatusUnknown   RepoStatus = "unknown"
 )
 
 // SyncStatus tracks the sync status for a cluster-repository pair
 type SyncStatus struct {
-	ClusterID       string                    `json:"cluster_id"`
-	RepositoryID    string                    `json:"repository_id"`
-	Status          SyncState                 `json:"status"`
-	LastSyncTime    time.Time                 `json:"last_sync_time"`
-	LastSuccessTime time.Time                 `json:"last_success_time"`
-	CommitHash      string                    `json:"commit_hash"`
-	SyncedResources []SyncedResource          `json:"synced_resources"`
-	Errors          []SyncError               `json:"errors"`
-	Metrics         SyncMetrics               `json:"metrics"`
+	ClusterID       string           `json:"cluster_id"`
+	RepositoryID    string           `json:"repository_id"`
+	Status          SyncState        `json:"status"`
+	LastSyncTime    time.Time        `json:"last_sync_time"`
+	LastSuccessTime time.Time        `json:"last_success_time"`
+	CommitHash      string           `json:"commit_hash"`
+	SyncedResources []SyncedResource `json:"synced_resources"`
+	Errors          []SyncError      `json:"errors"`
+	Metrics         SyncMetrics      `json:"metrics"`
 }
 
 // SyncState represents the state of synchronization
 type SyncState string
 
 const (
-	SyncStateInSync     SyncState = "in-sync"
-	SyncStateOutOfSync  SyncState = "out-of-sync"
-	SyncStateSyncing    SyncState = "syncing"
-	SyncStateFailed     SyncState = "failed"
-	SyncStateUnknown    SyncState = "unknown"
+	SyncStateInSync    SyncState = "in-sync"
+	SyncStateOutOfSync SyncState = "out-of-sync"
+	SyncStateSyncing   SyncState = "syncing"
+	SyncStateFailed    SyncState = "failed"
+	SyncStateUnknown   SyncState = "unknown"
 )
 
 // SyncedResource represents a resource that has been synced
@@ -139,20 +139,20 @@ type SyncError struct {
 
 // SyncMetrics contains sync operation metrics
 type SyncMetrics struct {
-	Duration        time.Duration `json:"duration"`
-	ResourcesTotal  int           `json:"resources_total"`
-	ResourcesApplied int          `json:"resources_applied"`
-	ResourcesFailed int           `json:"resources_failed"`
-	RetryCount      int           `json:"retry_count"`
+	Duration         time.Duration `json:"duration"`
+	ResourcesTotal   int           `json:"resources_total"`
+	ResourcesApplied int           `json:"resources_applied"`
+	ResourcesFailed  int           `json:"resources_failed"`
+	RetryCount       int           `json:"retry_count"`
 }
 
 // PolicyManager manages policies as code
 type PolicyManager struct {
-	policies      map[string]*Policy
-	violations    map[string][]*PolicyViolation
-	templates     map[string]*PolicyTemplate
-	logger        logr.Logger
-	mu            sync.RWMutex
+	policies   map[string]*Policy
+	violations map[string][]*PolicyViolation
+	templates  map[string]*PolicyTemplate
+	logger     logr.Logger
+	mu         sync.RWMutex
 }
 
 // Policy represents a policy configuration
@@ -171,23 +171,23 @@ type Policy struct {
 
 // PolicyRule represents a single policy rule
 type PolicyRule struct {
-	Name        string      `json:"name"`
-	Condition   string      `json:"condition"`
-	Action      string      `json:"action"`
-	Parameters  interface{} `json:"parameters"`
-	Severity    string      `json:"severity"`
+	Name       string      `json:"name"`
+	Condition  string      `json:"condition"`
+	Action     string      `json:"action"`
+	Parameters interface{} `json:"parameters"`
+	Severity   string      `json:"severity"`
 }
 
 // PolicyViolation represents a policy violation
 type PolicyViolation struct {
-	PolicyID    string    `json:"policy_id"`
-	ClusterID   string    `json:"cluster_id"`
-	Resource    string    `json:"resource"`
-	Violation   string    `json:"violation"`
-	Severity    string    `json:"severity"`
-	DetectedAt  time.Time `json:"detected_at"`
-	ResolvedAt  time.Time `json:"resolved_at,omitempty"`
-	Status      string    `json:"status"`
+	PolicyID   string    `json:"policy_id"`
+	ClusterID  string    `json:"cluster_id"`
+	Resource   string    `json:"resource"`
+	Violation  string    `json:"violation"`
+	Severity   string    `json:"severity"`
+	DetectedAt time.Time `json:"detected_at"`
+	ResolvedAt time.Time `json:"resolved_at,omitempty"`
+	Status     string    `json:"status"`
 }
 
 // PolicyTemplate represents a policy template
@@ -202,40 +202,40 @@ type PolicyTemplate struct {
 // DriftDetector detects configuration drift
 type DriftDetector struct {
 	detectionRules map[string]*DriftRule
-	drift         map[string][]*DriftDetection
-	logger        logr.Logger
-	mu            sync.RWMutex
+	drift          map[string][]*DriftDetection
+	logger         logr.Logger
+	mu             sync.RWMutex
 }
 
 // DriftRule defines a rule for drift detection
 type DriftRule struct {
-	Name        string        `json:"name"`
-	Resource    string        `json:"resource"`
-	Fields      []string      `json:"fields"`
-	Threshold   time.Duration `json:"threshold"`
-	Severity    string        `json:"severity"`
-	Action      string        `json:"action"`
+	Name      string        `json:"name"`
+	Resource  string        `json:"resource"`
+	Fields    []string      `json:"fields"`
+	Threshold time.Duration `json:"threshold"`
+	Severity  string        `json:"severity"`
+	Action    string        `json:"action"`
 }
 
 // DriftDetection represents detected configuration drift
 type DriftDetection struct {
-	ClusterID    string            `json:"cluster_id"`
-	Resource     string            `json:"resource"`
-	Field        string            `json:"field"`
-	ExpectedValue interface{}      `json:"expected_value"`
-	ActualValue  interface{}      `json:"actual_value"`
-	DetectedAt   time.Time        `json:"detected_at"`
-	Severity     string           `json:"severity"`
-	Status       string           `json:"status"`
+	ClusterID     string      `json:"cluster_id"`
+	Resource      string      `json:"resource"`
+	Field         string      `json:"field"`
+	ExpectedValue interface{} `json:"expected_value"`
+	ActualValue   interface{} `json:"actual_value"`
+	DetectedAt    time.Time   `json:"detected_at"`
+	Severity      string      `json:"severity"`
+	Status        string      `json:"status"`
 }
 
 // ComplianceTracker tracks compliance status
 type ComplianceTracker struct {
-	standards    map[string]*ComplianceStandard
-	assessments  map[string]*ComplianceAssessment
-	reports      map[string]*ComplianceReport
-	logger       logr.Logger
-	mu           sync.RWMutex
+	standards   map[string]*ComplianceStandard
+	assessments map[string]*ComplianceAssessment
+	reports     map[string]*ComplianceReport
+	logger      logr.Logger
+	mu          sync.RWMutex
 }
 
 // ComplianceStandard represents a compliance standard
@@ -258,45 +258,45 @@ type ComplianceControl struct {
 
 // ComplianceAssessment represents a compliance assessment
 type ComplianceAssessment struct {
-	ID          string                  `json:"id"`
-	ClusterID   string                  `json:"cluster_id"`
-	Standard    string                  `json:"standard"`
-	Results     []ComplianceResult      `json:"results"`
-	Score       float64                 `json:"score"`
-	Status      string                  `json:"status"`
-	CreatedAt   time.Time               `json:"created_at"`
+	ID        string             `json:"id"`
+	ClusterID string             `json:"cluster_id"`
+	Standard  string             `json:"standard"`
+	Results   []ComplianceResult `json:"results"`
+	Score     float64            `json:"score"`
+	Status    string             `json:"status"`
+	CreatedAt time.Time          `json:"created_at"`
 }
 
 // ComplianceResult represents a compliance check result
 type ComplianceResult struct {
-	ControlID   string    `json:"control_id"`
-	Status      string    `json:"status"`
-	Message     string    `json:"message"`
-	Evidence    string    `json:"evidence"`
-	Timestamp   time.Time `json:"timestamp"`
+	ControlID string    `json:"control_id"`
+	Status    string    `json:"status"`
+	Message   string    `json:"message"`
+	Evidence  string    `json:"evidence"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // ComplianceReport represents a compliance report
 type ComplianceReport struct {
-	ID           string                   `json:"id"`
-	Title        string                   `json:"title"`
-	Period       string                   `json:"period"`
-	Clusters     []string                 `json:"clusters"`
-	Standards    []string                 `json:"standards"`
-	Summary      ComplianceSummary        `json:"summary"`
-	Details      []ComplianceAssessment   `json:"details"`
-	GeneratedAt  time.Time                `json:"generated_at"`
+	ID          string                 `json:"id"`
+	Title       string                 `json:"title"`
+	Period      string                 `json:"period"`
+	Clusters    []string               `json:"clusters"`
+	Standards   []string               `json:"standards"`
+	Summary     ComplianceSummary      `json:"summary"`
+	Details     []ComplianceAssessment `json:"details"`
+	GeneratedAt time.Time              `json:"generated_at"`
 }
 
 // ComplianceSummary provides a summary of compliance status
 type ComplianceSummary struct {
-	TotalClusters   int     `json:"total_clusters"`
-	CompliantClusters int   `json:"compliant_clusters"`
-	OverallScore    float64 `json:"overall_score"`
-	CriticalFindings int    `json:"critical_findings"`
-	HighFindings     int    `json:"high_findings"`
-	MediumFindings   int    `json:"medium_findings"`
-	LowFindings      int    `json:"low_findings"`
+	TotalClusters     int     `json:"total_clusters"`
+	CompliantClusters int     `json:"compliant_clusters"`
+	OverallScore      float64 `json:"overall_score"`
+	CriticalFindings  int     `json:"critical_findings"`
+	HighFindings      int     `json:"high_findings"`
+	MediumFindings    int     `json:"medium_findings"`
+	LowFindings       int     `json:"low_findings"`
 }
 
 // configSyncMetrics contains Prometheus metrics
@@ -692,10 +692,10 @@ func (csm *ConfigSyncManager) syncToCluster(ctx context.Context, repo *GitReposi
 	repo.LastSync = time.Now()
 	csm.mu.Unlock()
 
-	csm.logger.Info("Successfully synced repository to cluster", 
-		"repo", repo.ID, 
-		"cluster", clusterID, 
-		"applied", appliedCount, 
+	csm.logger.Info("Successfully synced repository to cluster",
+		"repo", repo.ID,
+		"cluster", clusterID,
+		"applied", appliedCount,
 		"failed", failedCount)
 
 	return nil
@@ -972,7 +972,7 @@ func (csm *ConfigSyncManager) runDriftDetection(ctx context.Context) {
 
 func (csm *ConfigSyncManager) performDriftDetection(ctx context.Context) {
 	clusters := csm.registry.ListClusters()
-	
+
 	for _, cluster := range clusters {
 		drifts, err := csm.driftDetector.DetectDrift(ctx, cluster.Metadata.ID)
 		if err != nil {
@@ -1009,7 +1009,7 @@ func (csm *ConfigSyncManager) runPolicyValidation(ctx context.Context) {
 func (csm *ConfigSyncManager) performPolicyValidation(ctx context.Context) {
 	clusters := csm.registry.ListClusters()
 	policies := csm.policyManager.ListPolicies()
-	
+
 	for _, cluster := range clusters {
 		for _, policy := range policies {
 			violations, err := csm.policyManager.ValidatePolicy(ctx, policy.ID, cluster.Metadata.ID)
@@ -1048,7 +1048,7 @@ func (csm *ConfigSyncManager) runComplianceAssessment(ctx context.Context) {
 func (csm *ConfigSyncManager) performComplianceAssessment(ctx context.Context) {
 	clusters := csm.registry.ListClusters()
 	standards := csm.complianceTracker.ListStandards()
-	
+
 	for _, cluster := range clusters {
 		for _, standard := range standards {
 			assessment, err := csm.complianceTracker.AssessCompliance(ctx, cluster.Metadata.ID, standard.Name)

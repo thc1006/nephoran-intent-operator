@@ -24,54 +24,54 @@ import (
 // ComprehensiveSecurityManager provides complete O-RAN security management
 // following O-RAN.WG10.O1-Interface.0-v07.00 specification
 type ComprehensiveSecurityManager struct {
-	config                *SecurityManagerConfig
-	certificateManager    *CertificateLifecycleManager
-	authenticationMgr     *AuthenticationManager
-	authorizationMgr      *AuthorizationManager
-	encryptionMgr         *EncryptionManager
-	intrusionDetection    *IntrusionDetectionSystem
-	securityAuditMgr      *SecurityAuditManager
-	threatDetectionMgr    *ThreatDetectionManager
-	complianceMonitor     *ComplianceMonitor
-	keyManagementService  *KeyManagementService
-	secureChannelMgr      *SecureChannelManager
-	securityPolicyEngine  *SecurityPolicyEngine
-	vulnerabilityScanner  *VulnerabilityScanner
-	incidentResponseMgr   *IncidentResponseManager
-	securityMetrics       *SecurityMetrics
-	running               bool
-	stopChan              chan struct{}
-	mutex                 sync.RWMutex
+	config               *SecurityManagerConfig
+	certificateManager   *CertificateLifecycleManager
+	authenticationMgr    *AuthenticationManager
+	authorizationMgr     *AuthorizationManager
+	encryptionMgr        *EncryptionManager
+	intrusionDetection   *IntrusionDetectionSystem
+	securityAuditMgr     *SecurityAuditManager
+	threatDetectionMgr   *ThreatDetectionManager
+	complianceMonitor    *ComplianceMonitor
+	keyManagementService *KeyManagementService
+	secureChannelMgr     *SecureChannelManager
+	securityPolicyEngine *SecurityPolicyEngine
+	vulnerabilityScanner *VulnerabilityScanner
+	incidentResponseMgr  *IncidentResponseManager
+	securityMetrics      *SecurityMetrics
+	running              bool
+	stopChan             chan struct{}
+	mutex                sync.RWMutex
 }
 
 // SecurityManagerConfig holds security manager configuration
 type SecurityManagerConfig struct {
 	CertificateAuthority      *CAConfig
 	AuthenticationMethods     []string // password, certificate, oauth2, saml
-	SessionTimeout           time.Duration
-	MaxFailedAttempts        int
-	LockoutDuration          time.Duration
-	EncryptionStandards      *EncryptionConfig
-	AuditLogRetention        time.Duration
-	ThreatDetectionEnabled   bool
-	ComplianceModes          []string // FIPS, CommonCriteria, SOC2
+	SessionTimeout            time.Duration
+	MaxFailedAttempts         int
+	LockoutDuration           time.Duration
+	EncryptionStandards       *EncryptionConfig
+	AuditLogRetention         time.Duration
+	ThreatDetectionEnabled    bool
+	ComplianceModes           []string // FIPS, CommonCriteria, SOC2
 	IntrusionDetectionEnabled bool
 	VulnerabilityScanInterval time.Duration
-	SecurityPolicyFile       string
-	IncidentResponsePlan     string
+	SecurityPolicyFile        string
+	IncidentResponsePlan      string
 }
 
 // CAConfig holds Certificate Authority configuration
 type CAConfig struct {
-	RootCACert        string
-	RootCAKey         string
-	IntermediateCACert string
-	IntermediateCAKey  string
-	CertValidityPeriod time.Duration
-	KeySize            int
-	HashAlgorithm      string
+	RootCACert            string
+	RootCAKey             string
+	IntermediateCACert    string
+	IntermediateCAKey     string
+	CertValidityPeriod    time.Duration
+	KeySize               int
+	HashAlgorithm         string
 	CRLDistributionPoints []string
-	OCSPServers        []string
+	OCSPServers           []string
 }
 
 // EncryptionConfig defines encryption standards and algorithms
@@ -101,33 +101,33 @@ type CertificateLifecycleManager struct {
 
 // CertificateAuthority represents a certificate authority
 type CertificateAuthority struct {
-	Certificate   *x509.Certificate
-	PrivateKey    interface{}
-	CRLNumber     *big.Int
-	NextUpdate    time.Time
-	IssuedCerts   map[string]*x509.Certificate
-	RevokedCerts  map[string]*RevokedCertificate
-	mutex         sync.RWMutex
+	Certificate  *x509.Certificate
+	PrivateKey   interface{}
+	CRLNumber    *big.Int
+	NextUpdate   time.Time
+	IssuedCerts  map[string]*x509.Certificate
+	RevokedCerts map[string]*RevokedCertificate
+	mutex        sync.RWMutex
 }
 
 // ManagedCertificate represents a certificate under management
 type ManagedCertificate struct {
-	ID            string
-	Certificate   *x509.Certificate
-	PrivateKey    interface{}
+	ID               string
+	Certificate      *x509.Certificate
+	PrivateKey       interface{}
 	CertificateChain []*x509.Certificate
-	Usage         []string // authentication, encryption, signing
-	Subject       pkix.Name
+	Usage            []string // authentication, encryption, signing
+	Subject          pkix.Name
 	AlternativeNames []string
-	ValidFrom     time.Time
-	ValidUntil    time.Time
-	Status        string // ACTIVE, EXPIRED, REVOKED, PENDING_RENEWAL
-	AutoRenew     bool
-	RenewalWindow time.Duration
-	KeyEscrow     bool
-	Metadata      map[string]interface{}
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ValidFrom        time.Time
+	ValidUntil       time.Time
+	Status           string // ACTIVE, EXPIRED, REVOKED, PENDING_RENEWAL
+	AutoRenew        bool
+	RenewalWindow    time.Duration
+	KeyEscrow        bool
+	Metadata         map[string]interface{}
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 // CertificateStore interface for certificate storage
@@ -179,11 +179,11 @@ type OCSPResponder struct {
 
 // CachedOCSPResponse represents a cached OCSP response
 type CachedOCSPResponse struct {
-	SerialNumber  *big.Int
-	Status        int // Good, Revoked, Unknown
-	Response      []byte
-	ProducedAt    time.Time
-	NextUpdate    time.Time
+	SerialNumber *big.Int
+	Status       int // Good, Revoked, Unknown
+	Response     []byte
+	ProducedAt   time.Time
+	NextUpdate   time.Time
 }
 
 // AutoRenewalService automatically renews certificates
@@ -214,30 +214,30 @@ type RenewalStatus struct {
 
 // RenewalPolicy defines automatic renewal policies
 type RenewalPolicy struct {
-	ID                string
-	Name              string
-	CertificatePattern string
-	RenewalWindow     time.Duration
-	RenewalConditions []string
+	ID                   string
+	Name                 string
+	CertificatePattern   string
+	RenewalWindow        time.Duration
+	RenewalConditions    []string
 	NotificationChannels []string
-	Enabled           bool
+	Enabled              bool
 }
 
 // CertificateValidationService validates certificates
 type CertificateValidationService struct {
-	trustStore    *TrustStore
-	validators    []CertificateValidator
-	crlCache      map[string]*CRLCache
-	ocspCache     map[string]*OCSPCache
-	mutex         sync.RWMutex
+	trustStore *TrustStore
+	validators []CertificateValidator
+	crlCache   map[string]*CRLCache
+	ocspCache  map[string]*OCSPCache
+	mutex      sync.RWMutex
 }
 
 // TrustStore manages trusted certificate authorities
 type TrustStore struct {
-	TrustedCAs    map[string]*x509.Certificate
-	TrustedRoots  *x509.CertPool
+	TrustedCAs      map[string]*x509.Certificate
+	TrustedRoots    *x509.CertPool
 	IntermediateCAs *x509.CertPool
-	mutex         sync.RWMutex
+	mutex           sync.RWMutex
 }
 
 // CertificateValidator interface for certificate validation
@@ -248,21 +248,21 @@ type CertificateValidator interface {
 
 // CRLCache caches Certificate Revocation Lists
 type CRLCache struct {
-	URL           string
-	CRL           *pkix.CertificateList
-	LastUpdate    time.Time
-	NextUpdate    time.Time
-	FetchError    error
+	URL        string
+	CRL        *pkix.CertificateList
+	LastUpdate time.Time
+	NextUpdate time.Time
+	FetchError error
 }
 
 // OCSPCache caches OCSP responses
 type OCSPCache struct {
-	URL           string
-	SerialNumber  *big.Int
-	Status        int
-	Response      []byte
-	LastUpdate    time.Time
-	NextUpdate    time.Time
+	URL          string
+	SerialNumber *big.Int
+	Status       int
+	Response     []byte
+	LastUpdate   time.Time
+	NextUpdate   time.Time
 }
 
 // AuthenticationManager handles user authentication
@@ -286,57 +286,57 @@ type AuthenticationMethod interface {
 
 // AuthCredentials contains authentication credentials
 type AuthCredentials struct {
-	Username    string
-	Password    string
-	Certificate *x509.Certificate
-	Token       string
-	OTPCode     string
+	Username      string
+	Password      string
+	Certificate   *x509.Certificate
+	Token         string
+	OTPCode       string
 	BiometricData []byte
-	Metadata    map[string]interface{}
+	Metadata      map[string]interface{}
 }
 
 // AuthResult contains authentication results
 type AuthResult struct {
-	Success       bool
-	UserID        string
-	Username      string
-	Roles         []string
-	Permissions   []string
-	SessionToken  string
-	RefreshToken  string
-	ExpiresAt     time.Time
-	MFARequired   bool
-	MFAMethods    []string
-	Metadata      map[string]interface{}
-	Error         string
+	Success      bool
+	UserID       string
+	Username     string
+	Roles        []string
+	Permissions  []string
+	SessionToken string
+	RefreshToken string
+	ExpiresAt    time.Time
+	MFARequired  bool
+	MFAMethods   []string
+	Metadata     map[string]interface{}
+	Error        string
 }
 
 // AuthSession represents an authenticated session
 type AuthSession struct {
-	SessionID     string
-	UserID        string
-	Username      string
-	Roles         []string
-	Permissions   []string
-	CreatedAt     time.Time
-	LastActivity  time.Time
-	ExpiresAt     time.Time
-	RemoteAddr    string
-	UserAgent     string
-	MFAVerified   bool
-	Active        bool
-	Metadata      map[string]interface{}
+	SessionID    string
+	UserID       string
+	Username     string
+	Roles        []string
+	Permissions  []string
+	CreatedAt    time.Time
+	LastActivity time.Time
+	ExpiresAt    time.Time
+	RemoteAddr   string
+	UserAgent    string
+	MFAVerified  bool
+	Active       bool
+	Metadata     map[string]interface{}
 }
 
 // FailedAttemptTracker tracks failed authentication attempts
 type FailedAttemptTracker struct {
-	Username      string
-	IPAddress     string
-	FailureCount  int
-	FirstFailure  time.Time
-	LastFailure   time.Time
-	LockedUntil   time.Time
-	Attempts      []*FailedAttempt
+	Username     string
+	IPAddress    string
+	FailureCount int
+	FirstFailure time.Time
+	LastFailure  time.Time
+	LockedUntil  time.Time
+	Attempts     []*FailedAttempt
 }
 
 // FailedAttempt represents a single failed authentication attempt
@@ -373,22 +373,22 @@ type PasswordPolicy struct {
 
 // TokenService manages authentication tokens
 type TokenService struct {
-	signingKey     []byte
-	verifyingKey   []byte
-	tokenLifetime  time.Duration
+	signingKey      []byte
+	verifyingKey    []byte
+	tokenLifetime   time.Duration
 	refreshLifetime time.Duration
-	issuer         string
-	algorithm      string
+	issuer          string
+	algorithm       string
 }
 
 // MultiFactorAuthService provides MFA capabilities
 type MultiFactorAuthService struct {
-	totpService    *TOTPService
-	smsService     *SMSService
-	emailService   *EmailService
-	pushService    *PushNotificationService
-	backupCodes    map[string][]string
-	mutex          sync.RWMutex
+	totpService  *TOTPService
+	smsService   *SMSService
+	emailService *EmailService
+	pushService  *PushNotificationService
+	backupCodes  map[string][]string
+	mutex        sync.RWMutex
 }
 
 // TOTPService provides Time-based One-Time Password functionality
@@ -401,20 +401,20 @@ type TOTPService struct {
 
 // SMSService sends SMS-based authentication codes
 type SMSService struct {
-	provider   string
-	apiKey     string
-	templates  map[string]string
-	rateLimit  *RateLimiter
+	provider  string
+	apiKey    string
+	templates map[string]string
+	rateLimit *RateLimiter
 }
 
 // EmailService sends email-based authentication codes
 type EmailService struct {
-	smtpServer   string
-	smtpPort     int
-	username     string
-	password     string
-	templates    map[string]*EmailTemplate
-	rateLimit    *RateLimiter
+	smtpServer string
+	smtpPort   int
+	username   string
+	password   string
+	templates  map[string]*EmailTemplate
+	rateLimit  *RateLimiter
 }
 
 // PushNotificationService sends push notifications for MFA
@@ -478,10 +478,10 @@ type RoleHierarchy struct {
 
 // AttributeBasedAccessControl implements ABAC
 type AttributeBasedAccessControl struct {
-	policies    []*ABACPolicy
-	evaluator   *PolicyEvaluator
-	attributes  *AttributeStore
-	mutex       sync.RWMutex
+	policies   []*ABACPolicy
+	evaluator  *PolicyEvaluator
+	attributes *AttributeStore
+	mutex      sync.RWMutex
 }
 
 // ABACPolicy represents an ABAC policy
@@ -507,27 +507,27 @@ type PolicyRule struct {
 
 // PolicyEngine evaluates authorization policies
 type PolicyEngine struct {
-	policies    map[string]*SecurityPolicy
-	evaluators  []PolicyEvaluator
-	cache       *PolicyCache
-	mutex       sync.RWMutex
+	policies   map[string]*SecurityPolicy
+	evaluators []PolicyEvaluator
+	cache      *PolicyCache
+	mutex      sync.RWMutex
 }
 
 // SecurityPolicy represents a security policy
 type SecurityPolicy struct {
-	ID              string
-	Name            string
-	Type            string // ACCESS_CONTROL, ENCRYPTION, AUDIT
-	Rules           []*PolicyRule
-	Enforcement     string // STRICT, PERMISSIVE, DISABLED
-	AppliesTo       []string
-	Exceptions      []string
-	ValidFrom       time.Time
-	ValidUntil      time.Time
-	CreatedBy       string
-	ApprovedBy      string
-	Version         string
-	Metadata        map[string]interface{}
+	ID          string
+	Name        string
+	Type        string // ACCESS_CONTROL, ENCRYPTION, AUDIT
+	Rules       []*PolicyRule
+	Enforcement string // STRICT, PERMISSIVE, DISABLED
+	AppliesTo   []string
+	Exceptions  []string
+	ValidFrom   time.Time
+	ValidUntil  time.Time
+	CreatedBy   string
+	ApprovedBy  string
+	Version     string
+	Metadata    map[string]interface{}
 }
 
 // PolicyEvaluator interface for policy evaluation
@@ -538,11 +538,11 @@ type PolicyEvaluator interface {
 
 // AccessRequest represents an access request
 type AccessRequest struct {
-	Subject    *Subject
-	Resource   *Resource
-	Action     string
-	Context    *RequestContext
-	Timestamp  time.Time
+	Subject   *Subject
+	Resource  *Resource
+	Action    string
+	Context   *RequestContext
+	Timestamp time.Time
 }
 
 // Subject represents the entity making the request
@@ -561,13 +561,13 @@ type Resource struct {
 
 // RequestContext provides additional request context
 type RequestContext struct {
-	IPAddress     string
-	UserAgent     string
-	Time          time.Time
-	Location      string
-	NetworkZone   string
-	TLSVersion    string
-	Attributes    map[string]interface{}
+	IPAddress   string
+	UserAgent   string
+	Time        time.Time
+	Location    string
+	NetworkZone string
+	TLSVersion  string
+	Attributes  map[string]interface{}
 }
 
 // AccessDecision represents an access control decision
@@ -629,13 +629,13 @@ type Encryptor interface {
 
 // KeyManagementService manages encryption keys
 type KeyManagementService struct {
-	keys          map[string]*CryptographicKey
-	keyPolicies   map[string]*KeyPolicy
-	keyStore      KeyStore
-	keyRotation   *KeyRotationService
-	keyEscrow     *KeyEscrowService
-	hsm           *HardwareSecurityModule
-	mutex         sync.RWMutex
+	keys        map[string]*CryptographicKey
+	keyPolicies map[string]*KeyPolicy
+	keyStore    KeyStore
+	keyRotation *KeyRotationService
+	keyEscrow   *KeyEscrowService
+	hsm         *HardwareSecurityModule
+	mutex       sync.RWMutex
 }
 
 // CryptographicKey represents a cryptographic key
@@ -658,14 +658,14 @@ type CryptographicKey struct {
 
 // KeyPolicy defines key usage policies
 type KeyPolicy struct {
-	KeyID              string
-	AllowedOperations  []string
+	KeyID               string
+	AllowedOperations   []string
 	AllowedApplications []string
-	AccessControlRules []*AccessControlRule
-	RotationPolicy     *RotationPolicy
-	EscrowPolicy       *EscrowPolicy
-	AuditPolicy        *AuditPolicy
-	ExpirationPolicy   *ExpirationPolicy
+	AccessControlRules  []*AccessControlRule
+	RotationPolicy      *RotationPolicy
+	EscrowPolicy        *EscrowPolicy
+	AuditPolicy         *AuditPolicy
+	ExpirationPolicy    *ExpirationPolicy
 }
 
 // KeyStore interface for key storage
@@ -679,10 +679,10 @@ type KeyStore interface {
 
 // KeyFilter defines filtering criteria for keys
 type KeyFilter struct {
-	Type      string
-	Algorithm string
-	Usage     []string
-	Status    []string
+	Type          string
+	Algorithm     string
+	Usage         []string
+	Status        []string
 	CreatedAfter  time.Time
 	CreatedBefore time.Time
 	ExpiresAfter  time.Time
@@ -691,11 +691,11 @@ type KeyFilter struct {
 
 // KeyRotationService handles automatic key rotation
 type KeyRotationService struct {
-	rotationQueue   chan *RotationRequest
-	rotationStatus  map[string]*RotationStatus
-	policies        []*KeyRotationPolicy
-	scheduler       *RotationScheduler
-	mutex           sync.RWMutex
+	rotationQueue  chan *RotationRequest
+	rotationStatus map[string]*RotationStatus
+	policies       []*KeyRotationPolicy
+	scheduler      *RotationScheduler
+	mutex          sync.RWMutex
 }
 
 // RotationRequest represents a key rotation request
@@ -718,31 +718,31 @@ type RotationStatus struct {
 
 // KeyRotationPolicy defines automatic key rotation policies
 type KeyRotationPolicy struct {
-	ID                 string
-	Name               string
-	KeyPattern         string
-	RotationInterval   time.Duration
-	RotationConditions []string
+	ID                   string
+	Name                 string
+	KeyPattern           string
+	RotationInterval     time.Duration
+	RotationConditions   []string
 	NotificationChannels []string
-	Enabled            bool
+	Enabled              bool
 }
 
 // RotationScheduler schedules key rotations
 type RotationScheduler struct {
-	schedule     map[string]*ScheduledRotation
-	ticker       *time.Ticker
-	running      bool
-	stopChan     chan struct{}
+	schedule map[string]*ScheduledRotation
+	ticker   *time.Ticker
+	running  bool
+	stopChan chan struct{}
 }
 
 // ScheduledRotation represents a scheduled key rotation
 type ScheduledRotation struct {
-	KeyID     string
-	NextRun   time.Time
-	Interval  time.Duration
-	Enabled   bool
-	LastRun   time.Time
-	RunCount  int64
+	KeyID    string
+	NextRun  time.Time
+	Interval time.Duration
+	Enabled  bool
+	LastRun  time.Time
+	RunCount int64
 }
 
 // KeyEscrowService provides key escrow functionality
@@ -756,24 +756,24 @@ type KeyEscrowService struct {
 
 // EscrowAgent represents a key escrow agent
 type EscrowAgent struct {
-	ID           string
-	Name         string
-	Certificate  *x509.Certificate
-	PublicKey    interface{}
-	Threshold    int
-	Weight       int
-	Active       bool
+	ID          string
+	Name        string
+	Certificate *x509.Certificate
+	PublicKey   interface{}
+	Threshold   int
+	Weight      int
+	Active      bool
 }
 
 // EscrowedKey represents an escrowed key
 type EscrowedKey struct {
-	KeyID         string
-	EscrowID      string
-	EncryptedKey  []byte
-	Agents        []string
-	Threshold     int
-	CreatedAt     time.Time
-	AccessLog     []*EscrowAccess
+	KeyID        string
+	EscrowID     string
+	EncryptedKey []byte
+	Agents       []string
+	Threshold    int
+	CreatedAt    time.Time
+	AccessLog    []*EscrowAccess
 }
 
 // EscrowAccess represents an escrow access event
@@ -800,20 +800,20 @@ type EscrowPolicy struct {
 
 // EscrowAccessControl manages escrow access control
 type EscrowAccessControl struct {
-	accessRules   []*EscrowAccessRule
-	approvers     map[string]*EscrowApprover
+	accessRules    []*EscrowAccessRule
+	approvers      map[string]*EscrowApprover
 	accessRequests map[string]*EscrowAccessRequest
-	mutex         sync.RWMutex
+	mutex          sync.RWMutex
 }
 
 // HardwareSecurityModule provides HSM integration
 type HardwareSecurityModule struct {
-	provider    string
-	connection  HSMConnection
-	slots       map[int]*HSMSlot
-	sessions    map[string]*HSMSession
-	config      *HSMConfig
-	mutex       sync.RWMutex
+	provider   string
+	connection HSMConnection
+	slots      map[int]*HSMSlot
+	sessions   map[string]*HSMSession
+	config     *HSMConfig
+	mutex      sync.RWMutex
 }
 
 // HSMConnection interface for HSM connectivity
@@ -826,18 +826,18 @@ type HSMConnection interface {
 
 // HSMSlot represents an HSM slot
 type HSMSlot struct {
-	ID          int
-	Description string
+	ID           int
+	Description  string
 	TokenPresent bool
-	TokenInfo   *HSMTokenInfo
+	TokenInfo    *HSMTokenInfo
 }
 
 // HSMTokenInfo represents HSM token information
 type HSMTokenInfo struct {
-	Label         string
-	Manufacturer  string
-	Model         string
-	SerialNumber  string
+	Label           string
+	Manufacturer    string
+	Model           string
+	SerialNumber    string
 	FirmwareVersion string
 }
 
@@ -862,24 +862,24 @@ type HSMOperation struct {
 
 // HSMConfig holds HSM configuration
 type HSMConfig struct {
-	Provider     string
-	LibraryPath  string
-	SlotID       int
-	PIN          string
-	MaxSessions  int
-	Timeout      time.Duration
+	Provider    string
+	LibraryPath string
+	SlotID      int
+	PIN         string
+	MaxSessions int
+	Timeout     time.Duration
 }
 
 // IntrusionDetectionSystem detects security intrusions
 type IntrusionDetectionSystem struct {
-	sensors       map[string]*IDSSensor
-	rules         []*IDSRule
-	alerts        chan *SecurityAlert
-	analyzer      *ThreatAnalyzer
+	sensors        map[string]*IDSSensor
+	rules          []*IDSRule
+	alerts         chan *SecurityAlert
+	analyzer       *ThreatAnalyzer
 	responseEngine *AutomatedResponseEngine
-	config        *IDSConfig
-	running       bool
-	mutex         sync.RWMutex
+	config         *IDSConfig
+	running        bool
+	mutex          sync.RWMutex
 }
 
 // IDSSensor represents an intrusion detection sensor
@@ -896,16 +896,16 @@ type IDSSensor struct {
 
 // IDSRule represents an intrusion detection rule
 type IDSRule struct {
-	ID          string
-	Name        string
-	Type        string // SIGNATURE, ANOMALY, BEHAVIORAL
-	Pattern     string
-	Severity    string // LOW, MEDIUM, HIGH, CRITICAL
-	Action      string // ALERT, BLOCK, LOG
-	Enabled     bool
+	ID                string
+	Name              string
+	Type              string // SIGNATURE, ANOMALY, BEHAVIORAL
+	Pattern           string
+	Severity          string // LOW, MEDIUM, HIGH, CRITICAL
+	Action            string // ALERT, BLOCK, LOG
+	Enabled           bool
 	FalsePositiveRate float64
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // SecurityAlert represents a security alert
@@ -924,26 +924,26 @@ type SecurityAlert struct {
 
 // ThreatAnalyzer analyzes security threats
 type ThreatAnalyzer struct {
-	threatIntel   *ThreatIntelligenceService
-	mlModels      map[string]*SecurityMLModel
-	behaviorProfiles map[string]*BehaviorProfile
+	threatIntel       *ThreatIntelligenceService
+	mlModels          map[string]*SecurityMLModel
+	behaviorProfiles  map[string]*BehaviorProfile
 	correlationEngine *AlertCorrelationEngine
 }
 
 // ThreatIntelligenceService provides threat intelligence
 type ThreatIntelligenceService struct {
-	feeds       map[string]*ThreatFeed
-	indicators  map[string]*ThreatIndicator
-	lastUpdate  time.Time
+	feeds          map[string]*ThreatFeed
+	indicators     map[string]*ThreatIndicator
+	lastUpdate     time.Time
 	updateInterval time.Duration
 }
 
 // ThreatFeed represents a threat intelligence feed
 type ThreatFeed struct {
-	ID       string
-	Name     string
-	URL      string
-	Format   string
+	ID          string
+	Name        string
+	URL         string
+	Format      string
 	Reliability float64
 	LastUpdate  time.Time
 }
@@ -973,19 +973,19 @@ type SecurityMLModel struct {
 
 // BehaviorProfile represents normal behavior patterns
 type BehaviorProfile struct {
-	EntityID      string
-	EntityType    string // USER, HOST, APPLICATION
-	BaselineData  *StatisticalSummary
-	AnomalyScore  float64
-	LastUpdate    time.Time
-	ProfileData   map[string]interface{}
+	EntityID     string
+	EntityType   string // USER, HOST, APPLICATION
+	BaselineData *StatisticalSummary
+	AnomalyScore float64
+	LastUpdate   time.Time
+	ProfileData  map[string]interface{}
 }
 
 // AlertCorrelationEngine correlates security alerts
 type AlertCorrelationEngine struct {
 	correlationRules []*CorrelationRule
-	incidents       map[string]*SecurityIncident
-	mutex           sync.RWMutex
+	incidents        map[string]*SecurityIncident
+	mutex            sync.RWMutex
 }
 
 // SecurityIncident represents a security incident
@@ -1005,66 +1005,66 @@ type SecurityIncident struct {
 
 // Evidence represents security incident evidence
 type Evidence struct {
-	ID          string
-	Type        string // LOG, FILE, NETWORK_CAPTURE, SCREENSHOT
-	Source      string
-	Description string
-	DataHash    string
+	ID             string
+	Type           string // LOG, FILE, NETWORK_CAPTURE, SCREENSHOT
+	Source         string
+	Description    string
+	DataHash       string
 	ChainOfCustody []*CustodyRecord
-	CollectedAt time.Time
+	CollectedAt    time.Time
 }
 
 // CustodyRecord represents a chain of custody record
 type CustodyRecord struct {
-	Handler     string
-	Action      string
-	Timestamp   time.Time
-	Location    string
-	Notes       string
-	Signature   string
+	Handler   string
+	Action    string
+	Timestamp time.Time
+	Location  string
+	Notes     string
+	Signature string
 }
 
 // AutomatedResponseEngine provides automated incident response
 type AutomatedResponseEngine struct {
-	playbooks     map[string]*ResponsePlaybook
+	playbooks       map[string]*ResponsePlaybook
 	activeResponses map[string]*ActiveResponse
 	escalationRules []*EscalationRule
-	mutex         sync.RWMutex
+	mutex           sync.RWMutex
 }
 
 // ResponsePlaybook defines automated response procedures
 type ResponsePlaybook struct {
-	ID          string
-	Name        string
-	Description string
+	ID                string
+	Name              string
+	Description       string
 	TriggerConditions []string
-	Actions     []*ResponseAction
-	Enabled     bool
-	Version     string
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	Actions           []*ResponseAction
+	Enabled           bool
+	Version           string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // ResponseAction represents an automated response action
 type ResponseAction struct {
-	ID          string
-	Type        string // BLOCK_IP, DISABLE_USER, QUARANTINE_HOST, NOTIFY
-	Parameters  map[string]interface{}
-	Timeout     time.Duration
-	RetryCount  int
-	OnFailure   string
+	ID         string
+	Type       string // BLOCK_IP, DISABLE_USER, QUARANTINE_HOST, NOTIFY
+	Parameters map[string]interface{}
+	Timeout    time.Duration
+	RetryCount int
+	OnFailure  string
 }
 
 // ActiveResponse represents an active response execution
 type ActiveResponse struct {
-	ID            string
-	PlaybookID    string
-	TriggerAlert  string
-	Status        string // RUNNING, COMPLETED, FAILED, CANCELLED
-	StartedAt     time.Time
-	CompletedAt   time.Time
-	Actions       []*ActionExecution
-	Results       map[string]interface{}
+	ID           string
+	PlaybookID   string
+	TriggerAlert string
+	Status       string // RUNNING, COMPLETED, FAILED, CANCELLED
+	StartedAt    time.Time
+	CompletedAt  time.Time
+	Actions      []*ActionExecution
+	Results      map[string]interface{}
 }
 
 // ActionExecution represents the execution of a response action
@@ -1079,32 +1079,32 @@ type ActionExecution struct {
 
 // IDSConfig holds IDS configuration
 type IDSConfig struct {
-	EnabledSensors      []string
-	AlertThreshold      int
-	AnalysisWindow      time.Duration
-	ResponseEnabled     bool
-	ThreatIntelEnabled  bool
-	MLModelsEnabled     bool
-	CorrelationEnabled  bool
+	EnabledSensors     []string
+	AlertThreshold     int
+	AnalysisWindow     time.Duration
+	ResponseEnabled    bool
+	ThreatIntelEnabled bool
+	MLModelsEnabled    bool
+	CorrelationEnabled bool
 }
 
 // SecurityAuditManager manages security auditing
 type SecurityAuditManager struct {
-	auditLog        *AuditLog
-	auditPolicies   []*AuditPolicy
-	logRetention    *LogRetentionPolicy
-	logShipping     *LogShippingService
+	auditLog          *AuditLog
+	auditPolicies     []*AuditPolicy
+	logRetention      *LogRetentionPolicy
+	logShipping       *LogShippingService
 	complianceReports *ComplianceReportGenerator
-	mutex           sync.RWMutex
+	mutex             sync.RWMutex
 }
 
 // AuditLog manages audit log entries
 type AuditLog struct {
-	entries      []*AuditEntry
-	storage      AuditStorage
-	encryption   *LogEncryption
-	integrity    *LogIntegrityService
-	mutex        sync.RWMutex
+	entries    []*AuditEntry
+	storage    AuditStorage
+	encryption *LogEncryption
+	integrity  *LogIntegrityService
+	mutex      sync.RWMutex
 }
 
 // AuditEntry represents a single audit log entry
@@ -1136,40 +1136,40 @@ type AuditStorage interface {
 
 // AuditFilter defines filtering criteria for audit logs
 type AuditFilter struct {
-	StartTime   time.Time
-	EndTime     time.Time
-	EventTypes  []string
-	Subjects    []string
-	Actions     []string
-	Results     []string
-	RiskLevels  []string
-	Limit       int
-	Offset      int
+	StartTime  time.Time
+	EndTime    time.Time
+	EventTypes []string
+	Subjects   []string
+	Actions    []string
+	Results    []string
+	RiskLevels []string
+	Limit      int
+	Offset     int
 }
 
 // AuditStatistics provides audit log statistics
 type AuditStatistics struct {
-	TotalEntries    int64
-	EntriesPerHour  float64
-	TopEventTypes   map[string]int64
-	TopSubjects     map[string]int64
-	FailureRate     float64
+	TotalEntries     int64
+	EntriesPerHour   float64
+	TopEventTypes    map[string]int64
+	TopSubjects      map[string]int64
+	FailureRate      float64
 	RiskDistribution map[string]int64
-	StorageSize     int64
+	StorageSize      int64
 }
 
 // AuditPolicy defines what events to audit
 type AuditPolicy struct {
-	ID            string
-	Name          string
-	EventTypes    []string
-	Objects       []string
-	Actions       []string
-	Conditions    []string
-	RiskLevel     string
-	Enabled       bool
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID         string
+	Name       string
+	EventTypes []string
+	Objects    []string
+	Actions    []string
+	Conditions []string
+	RiskLevel  string
+	Enabled    bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // LogRetentionPolicy defines log retention policies
@@ -1186,32 +1186,32 @@ type LogShippingService struct {
 
 // LogDestination represents a log shipping destination
 type LogDestination struct {
-	ID       string
-	Type     string // SIEM, ELASTICSEARCH, SPLUNK, SYSLOG
-	Endpoint string
-	Format   string
-	Encryption bool
+	ID          string
+	Type        string // SIEM, ELASTICSEARCH, SPLUNK, SYSLOG
+	Endpoint    string
+	Format      string
+	Encryption  bool
 	Compression bool
-	BatchSize int
+	BatchSize   int
 }
 
 // LogShipper handles log shipping to destinations
 type LogShipper struct {
-	Destination *LogDestination
-	Buffer      chan *AuditEntry
-	BatchBuffer []*AuditEntry
-	LastShip    time.Time
-	ErrorCount  int64
+	Destination  *LogDestination
+	Buffer       chan *AuditEntry
+	BatchBuffer  []*AuditEntry
+	LastShip     time.Time
+	ErrorCount   int64
 	SuccessCount int64
 }
 
 // LogShippingConfig holds log shipping configuration
 type LogShippingConfig struct {
-	BatchSize      int
-	ShipInterval   time.Duration
-	RetryAttempts  int
-	RetryInterval  time.Duration
-	BufferSize     int
+	BatchSize        int
+	ShipInterval     time.Duration
+	RetryAttempts    int
+	RetryInterval    time.Duration
+	BufferSize       int
 	CompressionLevel int
 }
 
@@ -1231,13 +1231,13 @@ type LogIntegrityService struct {
 
 // ThreatDetectionManager detects and analyzes threats
 type ThreatDetectionManager struct {
-	detectors       map[string]*ThreatDetector
-	threatDatabase  *ThreatDatabase
-	riskAssessment  *RiskAssessmentEngine
-	mitigation      *ThreatMitigationService
-	config          *ThreatDetectionConfig
-	running         bool
-	mutex           sync.RWMutex
+	detectors      map[string]*ThreatDetector
+	threatDatabase *ThreatDatabase
+	riskAssessment *RiskAssessmentEngine
+	mitigation     *ThreatMitigationService
+	config         *ThreatDetectionConfig
+	running        bool
+	mutex          sync.RWMutex
 }
 
 // ThreatDetector interface for threat detection
@@ -1249,55 +1249,55 @@ type ThreatDetector interface {
 
 // DetectedThreat represents a detected security threat
 type DetectedThreat struct {
-	ID            string
-	Type          string
-	Severity      string
-	Confidence    float64
-	Source        string
-	Target        string
-	Description   string
-	Indicators    []string
+	ID              string
+	Type            string
+	Severity        string
+	Confidence      float64
+	Source          string
+	Target          string
+	Description     string
+	Indicators      []string
 	Recommendations []string
-	DetectedAt    time.Time
-	TTL           time.Duration
-	Metadata      map[string]interface{}
+	DetectedAt      time.Time
+	TTL             time.Duration
+	Metadata        map[string]interface{}
 }
 
 // ThreatDatabase stores threat information
 type ThreatDatabase struct {
-	threats       map[string]*ThreatEntry
-	signatures    map[string]*ThreatSignature
-	campaigns     map[string]*ThreatCampaign
-	lastUpdate    time.Time
-	mutex         sync.RWMutex
+	threats    map[string]*ThreatEntry
+	signatures map[string]*ThreatSignature
+	campaigns  map[string]*ThreatCampaign
+	lastUpdate time.Time
+	mutex      sync.RWMutex
 }
 
 // ThreatEntry represents a threat database entry
 type ThreatEntry struct {
-	ID           string
-	Name         string
-	Type         string
-	Family       string
-	Description  string
-	Severity     string
-	FirstSeen    time.Time
-	LastSeen     time.Time
-	Indicators   []*ThreatIndicator
-	Attribution  string
-	References   []string
-	Mitigations  []string
+	ID          string
+	Name        string
+	Type        string
+	Family      string
+	Description string
+	Severity    string
+	FirstSeen   time.Time
+	LastSeen    time.Time
+	Indicators  []*ThreatIndicator
+	Attribution string
+	References  []string
+	Mitigations []string
 }
 
 // ThreatSignature represents a threat detection signature
 type ThreatSignature struct {
-	ID          string
-	Name        string
-	Pattern     string
-	Algorithm   string
-	Confidence  float64
+	ID                string
+	Name              string
+	Pattern           string
+	Algorithm         string
+	Confidence        float64
 	FalsePositiveRate float64
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
 }
 
 // ThreatCampaign represents a threat campaign
@@ -1315,24 +1315,24 @@ type ThreatCampaign struct {
 
 // RiskAssessmentEngine assesses security risks
 type RiskAssessmentEngine struct {
-	riskModels    map[string]*RiskModel
-	assessments   map[string]*RiskAssessment
-	mitigations   map[string][]*RiskMitigation
-	config        *RiskAssessmentConfig
-	mutex         sync.RWMutex
+	riskModels  map[string]*RiskModel
+	assessments map[string]*RiskAssessment
+	mitigations map[string][]*RiskMitigation
+	config      *RiskAssessmentConfig
+	mutex       sync.RWMutex
 }
 
 // RiskModel defines risk assessment models
 type RiskModel struct {
-	ID          string
-	Name        string
-	Type        string // QUALITATIVE, QUANTITATIVE, HYBRID
-	Factors     []*RiskFactor
-	Algorithm   string
-	Weights     map[string]float64
-	Thresholds  map[string]float64
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID         string
+	Name       string
+	Type       string // QUALITATIVE, QUANTITATIVE, HYBRID
+	Factors    []*RiskFactor
+	Algorithm  string
+	Weights    map[string]float64
+	Thresholds map[string]float64
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // RiskFactor represents a risk factor
@@ -1348,41 +1348,41 @@ type RiskFactor struct {
 
 // RiskAssessment represents a risk assessment result
 type RiskAssessment struct {
-	ID            string
-	AssetID       string
-	ThreatID      string
+	ID              string
+	AssetID         string
+	ThreatID        string
 	VulnerabilityID string
-	Likelihood    float64
-	Impact        float64
-	RiskScore     float64
-	RiskLevel     string // LOW, MEDIUM, HIGH, CRITICAL
-	Justification string
-	Mitigations   []string
-	AssessedAt    time.Time
-	AssessedBy    string
-	ValidUntil    time.Time
+	Likelihood      float64
+	Impact          float64
+	RiskScore       float64
+	RiskLevel       string // LOW, MEDIUM, HIGH, CRITICAL
+	Justification   string
+	Mitigations     []string
+	AssessedAt      time.Time
+	AssessedBy      string
+	ValidUntil      time.Time
 }
 
 // RiskMitigation represents a risk mitigation measure
 type RiskMitigation struct {
-	ID              string
-	Name            string
-	Description     string
-	Type            string // PREVENTIVE, DETECTIVE, CORRECTIVE
-	Effectiveness   float64
-	Cost            float64
-	Implementation  string
-	Status          string // PLANNED, IN_PROGRESS, IMPLEMENTED, VERIFIED
-	Owner           string
-	DueDate         time.Time
+	ID             string
+	Name           string
+	Description    string
+	Type           string // PREVENTIVE, DETECTIVE, CORRECTIVE
+	Effectiveness  float64
+	Cost           float64
+	Implementation string
+	Status         string // PLANNED, IN_PROGRESS, IMPLEMENTED, VERIFIED
+	Owner          string
+	DueDate        time.Time
 }
 
 // ThreatMitigationService provides threat mitigation
 type ThreatMitigationService struct {
-	strategies    map[string]*MitigationStrategy
+	strategies        map[string]*MitigationStrategy
 	activeMitigations map[string]*ActiveMitigation
-	playbooks     map[string]*MitigationPlaybook
-	mutex         sync.RWMutex
+	playbooks         map[string]*MitigationPlaybook
+	mutex             sync.RWMutex
 }
 
 // MitigationStrategy defines threat mitigation strategies
@@ -1399,12 +1399,12 @@ type MitigationStrategy struct {
 
 // MitigationAction represents a mitigation action
 type MitigationAction struct {
-	ID          string
-	Type        string
-	Parameters  map[string]interface{}
-	Duration    time.Duration
-	Reversible  bool
-	Impact      string
+	ID         string
+	Type       string
+	Parameters map[string]interface{}
+	Duration   time.Duration
+	Reversible bool
+	Impact     string
 }
 
 // ActiveMitigation represents an active threat mitigation
@@ -1421,52 +1421,52 @@ type ActiveMitigation struct {
 
 // MitigationPlaybook defines automated mitigation procedures
 type MitigationPlaybook struct {
-	ID            string
-	Name          string
-	ThreatTypes   []string
+	ID                string
+	Name              string
+	ThreatTypes       []string
 	TriggerConditions []string
-	Strategies    []string
-	Escalation    []*EscalationRule
-	Approval      *ApprovalRequirement
-	Enabled       bool
+	Strategies        []string
+	Escalation        []*EscalationRule
+	Approval          *ApprovalRequirement
+	Enabled           bool
 }
 
 // ApprovalRequirement defines approval requirements
 type ApprovalRequirement struct {
-	Required    bool
-	Approvers   []string
-	Threshold   int
-	Timeout     time.Duration
+	Required        bool
+	Approvers       []string
+	Threshold       int
+	Timeout         time.Duration
 	EscalationLevel int
 }
 
 // ThreatDetectionConfig holds threat detection configuration
 type ThreatDetectionConfig struct {
-	EnabledDetectors    []string
-	UpdateInterval      time.Duration
-	ConfidenceThreshold float64
-	AutoMitigation      bool
+	EnabledDetectors     []string
+	UpdateInterval       time.Duration
+	ConfidenceThreshold  float64
+	AutoMitigation       bool
 	NotificationChannels []string
 }
 
 // RiskAssessmentConfig holds risk assessment configuration
 type RiskAssessmentConfig struct {
-	DefaultModel        string
-	AssessmentInterval  time.Duration
-	AutoAssessment      bool
-	RiskThresholds      map[string]float64
-	ReportingInterval   time.Duration
+	DefaultModel       string
+	AssessmentInterval time.Duration
+	AutoAssessment     bool
+	RiskThresholds     map[string]float64
+	ReportingInterval  time.Duration
 }
 
 // ComplianceMonitor monitors security compliance
 type ComplianceMonitor struct {
-	frameworks    map[string]*ComplianceFramework
-	assessments   map[string]*ComplianceAssessment
-	controls      map[string]*ComplianceControl
-	scanner       *ComplianceScanner
-	reporter      *ComplianceReporter
-	config        *ComplianceConfig
-	mutex         sync.RWMutex
+	frameworks  map[string]*ComplianceFramework
+	assessments map[string]*ComplianceAssessment
+	controls    map[string]*ComplianceControl
+	scanner     *ComplianceScanner
+	reporter    *ComplianceReporter
+	config      *ComplianceConfig
+	mutex       sync.RWMutex
 }
 
 // ComplianceFramework represents a compliance framework
@@ -1495,90 +1495,90 @@ type ComplianceDomain struct {
 
 // ComplianceControl represents a compliance control
 type ComplianceControl struct {
-	ID            string
-	Framework     string
-	Number        string
-	Title         string
-	Description   string
-	Type          string // PREVENTIVE, DETECTIVE, CORRECTIVE
-	Category      string // TECHNICAL, ADMINISTRATIVE, PHYSICAL
+	ID             string
+	Framework      string
+	Number         string
+	Title          string
+	Description    string
+	Type           string // PREVENTIVE, DETECTIVE, CORRECTIVE
+	Category       string // TECHNICAL, ADMINISTRATIVE, PHYSICAL
 	Implementation string
-	Evidence      []string
+	Evidence       []string
 	TestProcedures []string
-	Frequency     string
-	Owner         string
-	Status        string // NOT_IMPLEMENTED, PARTIALLY_IMPLEMENTED, IMPLEMENTED, NOT_APPLICABLE
-	LastAssessed  time.Time
+	Frequency      string
+	Owner          string
+	Status         string // NOT_IMPLEMENTED, PARTIALLY_IMPLEMENTED, IMPLEMENTED, NOT_APPLICABLE
+	LastAssessed   time.Time
 	NextAssessment time.Time
 }
 
 // ComplianceAssessment represents a compliance assessment
 type ComplianceAssessment struct {
-	ID            string
-	Framework     string
+	ID             string
+	Framework      string
 	AssessmentType string // SELF, THIRD_PARTY, REGULATORY
-	Assessor      string
-	StartDate     time.Time
-	EndDate       time.Time
-	Status        string // PLANNED, IN_PROGRESS, COMPLETED, REMEDIATION
-	OverallScore  float64
+	Assessor       string
+	StartDate      time.Time
+	EndDate        time.Time
+	Status         string // PLANNED, IN_PROGRESS, COMPLETED, REMEDIATION
+	OverallScore   float64
 	ControlResults map[string]*ControlResult
-	Findings      []*ComplianceFinding
-	Remediation   []*RemediationItem
-	Evidence      []*ComplianceEvidence
-	Report        *ComplianceReport
+	Findings       []*ComplianceFinding
+	Remediation    []*RemediationItem
+	Evidence       []*ComplianceEvidence
+	Report         *ComplianceReport
 }
 
 // ControlResult represents the result of a control assessment
 type ControlResult struct {
-	ControlID     string
-	Status        string // COMPLIANT, NON_COMPLIANT, PARTIALLY_COMPLIANT, NOT_APPLICABLE
-	Score         float64
-	Evidence      []string
-	Findings      []string
+	ControlID       string
+	Status          string // COMPLIANT, NON_COMPLIANT, PARTIALLY_COMPLIANT, NOT_APPLICABLE
+	Score           float64
+	Evidence        []string
+	Findings        []string
 	Recommendations []string
-	TestResults   []*TestResult
+	TestResults     []*TestResult
 }
 
 // TestResult represents the result of a control test
 type TestResult struct {
-	TestID      string
-	Status      string
-	Score       float64
-	Evidence    []string
-	Notes       string
-	TestedAt    time.Time
-	TestedBy    string
+	TestID   string
+	Status   string
+	Score    float64
+	Evidence []string
+	Notes    string
+	TestedAt time.Time
+	TestedBy string
 }
 
 // ComplianceFinding represents a compliance finding
 type ComplianceFinding struct {
-	ID          string
-	Type        string // DEFICIENCY, WEAKNESS, VIOLATION
-	Severity    string // LOW, MEDIUM, HIGH, CRITICAL
-	Control     string
-	Description string
-	Impact      string
-	Likelihood  string
-	Risk        string
-	Evidence    []string
+	ID              string
+	Type            string // DEFICIENCY, WEAKNESS, VIOLATION
+	Severity        string // LOW, MEDIUM, HIGH, CRITICAL
+	Control         string
+	Description     string
+	Impact          string
+	Likelihood      string
+	Risk            string
+	Evidence        []string
 	Recommendations []string
-	Status      string // OPEN, IN_REMEDIATION, CLOSED
-	IdentifiedAt time.Time
-	DueDate     time.Time
-	Owner       string
+	Status          string // OPEN, IN_REMEDIATION, CLOSED
+	IdentifiedAt    time.Time
+	DueDate         time.Time
+	Owner           string
 }
 
 // RemediationItem represents a remediation action
 type RemediationItem struct {
-	ID          string
-	FindingID   string
-	Action      string
-	Description string
-	Priority    string
-	Owner       string
-	DueDate     time.Time
-	Status      string // PLANNED, IN_PROGRESS, COMPLETED, VERIFIED
+	ID            string
+	FindingID     string
+	Action        string
+	Description   string
+	Priority      string
+	Owner         string
+	DueDate       time.Time
+	Status        string // PLANNED, IN_PROGRESS, COMPLETED, VERIFIED
 	EstimatedCost float64
 	ActualCost    float64
 	Evidence      []string
@@ -1598,30 +1598,30 @@ type ComplianceEvidence struct {
 
 // ComplianceReport represents a compliance report
 type ComplianceReport struct {
-	ID              string
-	AssessmentID    string
-	ReportType      string
-	Framework       string
-	GeneratedAt     time.Time
-	ReportPeriod    *TimeRange
+	ID               string
+	AssessmentID     string
+	ReportType       string
+	Framework        string
+	GeneratedAt      time.Time
+	ReportPeriod     *TimeRange
 	ExecutiveSummary string
-	OverallScore    float64
-	ComplianceLevel string
-	KeyFindings     []string
-	Recommendations []string
-	Trends          map[string]interface{}
-	Content         []byte
-	Format          string // PDF, HTML, JSON
+	OverallScore     float64
+	ComplianceLevel  string
+	KeyFindings      []string
+	Recommendations  []string
+	Trends           map[string]interface{}
+	Content          []byte
+	Format           string // PDF, HTML, JSON
 }
 
 // ComplianceScanner performs automated compliance scanning
 type ComplianceScanner struct {
-	scanners    map[string]*Scanner
-	schedules   map[string]*ScanSchedule
-	results     map[string]*ScanResult
-	config      *ScannerConfig
-	running     bool
-	mutex       sync.RWMutex
+	scanners  map[string]*Scanner
+	schedules map[string]*ScanSchedule
+	results   map[string]*ScanResult
+	config    *ScannerConfig
+	running   bool
+	mutex     sync.RWMutex
 }
 
 // Scanner represents a compliance scanner
@@ -1651,14 +1651,14 @@ type ScanRule struct {
 
 // ScanSchedule represents a scan schedule
 type ScanSchedule struct {
-	ScannerID   string
-	Frequency   string // DAILY, WEEKLY, MONTHLY
-	Time        string
-	Timezone    string
-	Enabled     bool
-	LastRun     time.Time
-	NextRun     time.Time
-	RunCount    int64
+	ScannerID string
+	Frequency string // DAILY, WEEKLY, MONTHLY
+	Time      string
+	Timezone  string
+	Enabled   bool
+	LastRun   time.Time
+	NextRun   time.Time
+	RunCount  int64
 }
 
 // ScanResult represents scan results
@@ -1688,54 +1688,54 @@ type ScanFinding struct {
 
 // ComplianceReporter generates compliance reports
 type ComplianceReporter struct {
-	templates   map[string]*ReportTemplate
-	generators  map[string]*ReportGenerator
-	schedulers  map[string]*ReportScheduler
+	templates    map[string]*ReportTemplate
+	generators   map[string]*ReportGenerator
+	schedulers   map[string]*ReportScheduler
 	distributors map[string]*ReportDistributor
 }
 
 // ComplianceConfig holds compliance monitoring configuration
 type ComplianceConfig struct {
-	EnabledFrameworks []string
-	AssessmentSchedule map[string]string
-	ScanningEnabled   bool
-	ReportingEnabled  bool
+	EnabledFrameworks    []string
+	AssessmentSchedule   map[string]string
+	ScanningEnabled      bool
+	ReportingEnabled     bool
 	NotificationChannels []string
-	EvidenceRetention time.Duration
+	EvidenceRetention    time.Duration
 }
 
 // ScannerConfig holds scanner configuration
 type ScannerConfig struct {
 	MaxConcurrentScans int
-	ScanTimeout       time.Duration
-	RetryAttempts     int
-	ResultRetention   time.Duration
+	ScanTimeout        time.Duration
+	RetryAttempts      int
+	ResultRetention    time.Duration
 }
 
 // SecureChannelManager manages secure communications
 type SecureChannelManager struct {
-	channels    map[string]*SecureChannel
-	tlsConfig   *tls.Config
-	vpnManager  *VPNManager
-	tunnelMgr   *TunnelManager
-	config      *SecureChannelConfig
-	mutex       sync.RWMutex
+	channels   map[string]*SecureChannel
+	tlsConfig  *tls.Config
+	vpnManager *VPNManager
+	tunnelMgr  *TunnelManager
+	config     *SecureChannelConfig
+	mutex      sync.RWMutex
 }
 
 // SecureChannel represents a secure communication channel
 type SecureChannel struct {
-	ID          string
-	Type        string // TLS, VPN, SSH, IPSEC
+	ID             string
+	Type           string // TLS, VPN, SSH, IPSEC
 	LocalEndpoint  string
 	RemoteEndpoint string
-	Status      string // ACTIVE, INACTIVE, ERROR
-	Encryption  string
-	KeyExchange string
+	Status         string // ACTIVE, INACTIVE, ERROR
+	Encryption     string
+	KeyExchange    string
 	Authentication string
-	CreatedAt   time.Time
-	LastActivity time.Time
-	BytesSent   uint64
-	BytesReceived uint64
+	CreatedAt      time.Time
+	LastActivity   time.Time
+	BytesSent      uint64
+	BytesReceived  uint64
 }
 
 // VPNManager manages VPN connections
@@ -1748,32 +1748,32 @@ type VPNManager struct {
 
 // VPNConnection represents a VPN connection
 type VPNConnection struct {
-	ID            string
-	ProfileID     string
-	Status        string
-	LocalIP       net.IP
-	RemoteIP      net.IP
-	Tunnel        string
-	Encryption    string
-	ConnectedAt   time.Time
-	LastActivity  time.Time
+	ID               string
+	ProfileID        string
+	Status           string
+	LocalIP          net.IP
+	RemoteIP         net.IP
+	Tunnel           string
+	Encryption       string
+	ConnectedAt      time.Time
+	LastActivity     time.Time
 	BytesTransferred uint64
 }
 
 // VPNProfile represents a VPN profile
 type VPNProfile struct {
-	ID            string
-	Name          string
-	Type          string // OPENVPN, IPSEC, WIREGUARD
-	ServerAddress string
-	Port          int
-	Protocol      string
-	Encryption    string
+	ID             string
+	Name           string
+	Type           string // OPENVPN, IPSEC, WIREGUARD
+	ServerAddress  string
+	Port           int
+	Protocol       string
+	Encryption     string
 	Authentication string
-	Routes        []string
-	DNS           []string
-	Credentials   *VPNCredentials
-	Enabled       bool
+	Routes         []string
+	DNS            []string
+	Credentials    *VPNCredentials
+	Enabled        bool
 }
 
 // VPNCredentials represents VPN credentials
@@ -1787,130 +1787,130 @@ type VPNCredentials struct {
 
 // TunnelManager manages secure tunnels
 type TunnelManager struct {
-	tunnels     map[string]*SecureTunnel
-	config      *TunnelConfig
-	mutex       sync.RWMutex
+	tunnels map[string]*SecureTunnel
+	config  *TunnelConfig
+	mutex   sync.RWMutex
 }
 
 // SecureTunnel represents a secure tunnel
 type SecureTunnel struct {
-	ID            string
-	Type          string // SSH, SSL, STUNNEL
-	LocalPort     int
-	RemoteHost    string
-	RemotePort    int
-	Status        string
-	CreatedAt     time.Time
-	LastActivity  time.Time
-	Connections   int64
+	ID           string
+	Type         string // SSH, SSL, STUNNEL
+	LocalPort    int
+	RemoteHost   string
+	RemotePort   int
+	Status       string
+	CreatedAt    time.Time
+	LastActivity time.Time
+	Connections  int64
 }
 
 // VulnerabilityScanner scans for security vulnerabilities
 type VulnerabilityScanner struct {
-	scanners    map[string]*VulnScanner
-	database    *VulnerabilityDatabase
-	scheduler   *ScanScheduler
-	reporter    *VulnerabilityReporter
-	config      *VulnerabilityScanConfig
-	running     bool
-	mutex       sync.RWMutex
+	scanners  map[string]*VulnScanner
+	database  *VulnerabilityDatabase
+	scheduler *ScanScheduler
+	reporter  *VulnerabilityReporter
+	config    *VulnerabilityScanConfig
+	running   bool
+	mutex     sync.RWMutex
 }
 
 // VulnScanner represents a vulnerability scanner
 type VulnScanner struct {
-	ID          string
-	Type        string // NETWORK, WEB, DATABASE, CONFIG
-	Name        string
-	Version     string
-	Enabled     bool
-	LastUpdate  time.Time
+	ID           string
+	Type         string // NETWORK, WEB, DATABASE, CONFIG
+	Name         string
+	Version      string
+	Enabled      bool
+	LastUpdate   time.Time
 	ScanProfiles map[string]*ScanProfile
 }
 
 // ScanProfile represents a scan profile
 type ScanProfile struct {
-	ID          string
-	Name        string
-	Type        string
-	Targets     []string
-	Excludes    []string
-	Intensity   string // LOW, MEDIUM, HIGH, AGGRESSIVE
-	Schedule    string
+	ID            string
+	Name          string
+	Type          string
+	Targets       []string
+	Excludes      []string
+	Intensity     string // LOW, MEDIUM, HIGH, AGGRESSIVE
+	Schedule      string
 	Notifications []string
-	Enabled     bool
+	Enabled       bool
 }
 
 // VulnerabilityDatabase manages vulnerability information
 type VulnerabilityDatabase struct {
 	vulnerabilities map[string]*Vulnerability
-	patches        map[string]*SecurityPatch
-	advisories     map[string]*SecurityAdvisory
-	cveDatabase    *CVEDatabase
-	lastUpdate     time.Time
-	mutex          sync.RWMutex
+	patches         map[string]*SecurityPatch
+	advisories      map[string]*SecurityAdvisory
+	cveDatabase     *CVEDatabase
+	lastUpdate      time.Time
+	mutex           sync.RWMutex
 }
 
 // Vulnerability represents a security vulnerability
 type Vulnerability struct {
-	ID            string
-	CVE           string
-	Title         string
-	Description   string
-	Severity      string
-	CVSSScore     float64
-	CVSSVector    string
+	ID              string
+	CVE             string
+	Title           string
+	Description     string
+	Severity        string
+	CVSSScore       float64
+	CVSSVector      string
 	AffectedSystems []string
-	Exploitability string
-	Impact        string
-	Published     time.Time
-	Modified      time.Time
-	References    []string
-	Solutions     []string
-	Workarounds   []string
-	Status        string // NEW, ASSIGNED, MODIFIED, ANALYZED, CLOSED
+	Exploitability  string
+	Impact          string
+	Published       time.Time
+	Modified        time.Time
+	References      []string
+	Solutions       []string
+	Workarounds     []string
+	Status          string // NEW, ASSIGNED, MODIFIED, ANALYZED, CLOSED
 }
 
 // SecurityPatch represents a security patch
 type SecurityPatch struct {
-	ID            string
+	ID              string
 	VulnerabilityID string
-	Title         string
-	Description   string
-	Vendor        string
-	Product       string
-	Version       string
-	PatchLevel    string
-	ReleaseDate   time.Time
-	InstallDate   time.Time
-	Status        string // AVAILABLE, INSTALLED, SUPERSEDED, WITHDRAWN
-	DownloadURL   string
-	Checksum      string
-	Prerequisites []string
+	Title           string
+	Description     string
+	Vendor          string
+	Product         string
+	Version         string
+	PatchLevel      string
+	ReleaseDate     time.Time
+	InstallDate     time.Time
+	Status          string // AVAILABLE, INSTALLED, SUPERSEDED, WITHDRAWN
+	DownloadURL     string
+	Checksum        string
+	Prerequisites   []string
 	RestartRequired bool
 }
 
 // SecurityAdvisory represents a security advisory
 type SecurityAdvisory struct {
-	ID            string
-	Title         string
-	Description   string
-	Severity      string
-	Vendor        string
-	Products      []string
+	ID              string
+	Title           string
+	Description     string
+	Severity        string
+	Vendor          string
+	Products        []string
 	Vulnerabilities []string
-	Patches       []string
-	Workarounds   []string
-	Published     time.Time
-	References    []string
-	Status        string
+	Patches         []string
+	Workarounds     []string
+	Published       time.Time
+	References      []string
+	Status          string
 }
 
 // CVEDatabase manages CVE information
 type CVEDatabase struct {
-	entries     map[string]*CVEEntry
-	lastUpdate  time.Time
-	updateURL   string
-	mutex       sync.RWMutex
+	entries    map[string]*CVEEntry
+	lastUpdate time.Time
+	updateURL  string
+	mutex      sync.RWMutex
 }
 
 // CVEEntry represents a CVE database entry
@@ -1927,15 +1927,15 @@ type CVEEntry struct {
 
 // CVSSv2Score represents CVSS v2 scoring
 type CVSSv2Score struct {
-	BaseScore           float64
-	TemporalScore       float64
-	EnvironmentalScore  float64
-	AccessVector        string
-	AccessComplexity    string
-	Authentication      string
+	BaseScore             float64
+	TemporalScore         float64
+	EnvironmentalScore    float64
+	AccessVector          string
+	AccessComplexity      string
+	Authentication        string
 	ConfidentialityImpact string
-	IntegrityImpact     string
-	AvailabilityImpact  string
+	IntegrityImpact       string
+	AvailabilityImpact    string
 }
 
 // CVSSv3Score represents CVSS v3 scoring
@@ -1955,33 +1955,33 @@ type CVSSv3Score struct {
 
 // VulnerabilityReporter generates vulnerability reports
 type VulnerabilityReporter struct {
-	templates   map[string]*VulnReportTemplate
-	generators  map[string]*VulnReportGenerator
+	templates    map[string]*VulnReportTemplate
+	generators   map[string]*VulnReportGenerator
 	distributors map[string]*VulnReportDistributor
 }
 
 // VulnerabilityScanConfig holds vulnerability scanning configuration
 type VulnerabilityScanConfig struct {
-	EnabledScanners   []string
-	ScanSchedule      map[string]string
+	EnabledScanners        []string
+	ScanSchedule           map[string]string
 	DatabaseUpdateInterval time.Duration
-	ReportingEnabled  bool
-	NotificationChannels []string
-	MaxConcurrentScans int
-	ScanTimeout       time.Duration
+	ReportingEnabled       bool
+	NotificationChannels   []string
+	MaxConcurrentScans     int
+	ScanTimeout            time.Duration
 }
 
 // IncidentResponseManager manages security incident response
 type IncidentResponseManager struct {
-	incidents       map[string]*SecurityIncident
-	playbooks       map[string]*IncidentPlaybook
-	responders      map[string]*IncidentResponder
-	workflows       map[string]*ResponseWorkflow
-	escalation      *IncidentEscalation
-	communication   *IncidentCommunication
-	forensics       *DigitalForensics
-	config          *IncidentResponseConfig
-	mutex           sync.RWMutex
+	incidents     map[string]*SecurityIncident
+	playbooks     map[string]*IncidentPlaybook
+	responders    map[string]*IncidentResponder
+	workflows     map[string]*ResponseWorkflow
+	escalation    *IncidentEscalation
+	communication *IncidentCommunication
+	forensics     *DigitalForensics
+	config        *IncidentResponseConfig
+	mutex         sync.RWMutex
 }
 
 // IncidentPlaybook defines incident response procedures
@@ -2003,69 +2003,69 @@ type IncidentPlaybook struct {
 
 // ResponsePhase represents a phase in incident response
 type ResponsePhase struct {
-	ID          string
-	Name        string
-	Description string
-	Objectives  []string
-	Activities  []*ResponseActivity
-	Duration    time.Duration
+	ID            string
+	Name          string
+	Description   string
+	Objectives    []string
+	Activities    []*ResponseActivity
+	Duration      time.Duration
 	Prerequisites []string
-	Deliverables []string
-	ExitCriteria []string
+	Deliverables  []string
+	ExitCriteria  []string
 }
 
 // ResponseActivity represents an activity in incident response
 type ResponseActivity struct {
-	ID          string
-	Name        string
-	Description string
-	Type        string // MANUAL, AUTOMATED, DECISION
-	Assignee    string
-	Tools       []string
-	Duration    time.Duration
+	ID           string
+	Name         string
+	Description  string
+	Type         string // MANUAL, AUTOMATED, DECISION
+	Assignee     string
+	Tools        []string
+	Duration     time.Duration
 	Dependencies []string
-	Outputs     []string
-	Checklist   []string
+	Outputs      []string
+	Checklist    []string
 }
 
 // IncidentRole represents a role in incident response
 type IncidentRole struct {
-	ID            string
-	Name          string
-	Description   string
+	ID               string
+	Name             string
+	Description      string
 	Responsibilities []string
-	Skills        []string
-	Authority     string
-	ContactInfo   string
-	Backup        string
+	Skills           []string
+	Authority        string
+	ContactInfo      string
+	Backup           string
 }
 
 // IncidentResponder represents a person involved in incident response
 type IncidentResponder struct {
-	ID          string
-	Name        string
-	Email       string
-	Phone       string
-	Roles       []string
-	Skills      []string
+	ID           string
+	Name         string
+	Email        string
+	Phone        string
+	Roles        []string
+	Skills       []string
 	Availability string
-	OnCall      bool
-	LastActive  time.Time
+	OnCall       bool
+	LastActive   time.Time
 }
 
 // ResponseWorkflow represents an incident response workflow
 type ResponseWorkflow struct {
-	ID          string
-	IncidentID  string
-	PlaybookID  string
-	Status      string // INITIATED, IN_PROGRESS, COMPLETED, ABORTED
+	ID           string
+	IncidentID   string
+	PlaybookID   string
+	Status       string // INITIATED, IN_PROGRESS, COMPLETED, ABORTED
 	CurrentPhase string
-	Phases      map[string]*WorkflowPhase
-	Assignments map[string]string // activity -> assignee
-	StartedAt   time.Time
-	CompletedAt time.Time
-	Escalated   bool
-	Notes       []string
+	Phases       map[string]*WorkflowPhase
+	Assignments  map[string]string // activity -> assignee
+	StartedAt    time.Time
+	CompletedAt  time.Time
+	Escalated    bool
+	Notes        []string
 }
 
 // WorkflowPhase represents a workflow phase execution
@@ -2092,21 +2092,21 @@ type ActivityExecution struct {
 
 // IncidentEscalation manages incident escalation
 type IncidentEscalation struct {
-	rules       []*EscalationRule
-	matrix      *EscalationMatrix
+	rules         []*EscalationRule
+	matrix        *EscalationMatrix
 	notifications *EscalationNotifications
 }
 
 // EscalationRule defines escalation conditions
 type EscalationRule struct {
-	ID          string
-	Name        string
-	Conditions  []string
-	Severity    string
+	ID            string
+	Name          string
+	Conditions    []string
+	Severity      string
 	TimeThreshold time.Duration
-	Target      string
-	Action      string
-	Enabled     bool
+	Target        string
+	Action        string
+	Enabled       bool
 }
 
 // EscalationMatrix defines escalation paths
@@ -2116,18 +2116,18 @@ type EscalationMatrix struct {
 
 // EscalationLevel represents an escalation level
 type EscalationLevel struct {
-	Level       int
-	Name        string
-	Contacts    []string
-	TimeLimit   time.Duration
-	Authority   []string
-	NextLevel   int
+	Level     int
+	Name      string
+	Contacts  []string
+	TimeLimit time.Duration
+	Authority []string
+	NextLevel int
 }
 
 // EscalationNotifications manages escalation notifications
 type EscalationNotifications struct {
-	channels    map[string]NotificationChannel
-	templates   map[string]*EscalationTemplate
+	channels  map[string]NotificationChannel
+	templates map[string]*EscalationTemplate
 }
 
 // EscalationTemplate defines escalation notification templates
@@ -2159,15 +2159,15 @@ type CommunicationChannel struct {
 
 // IncidentMessage represents an incident communication message
 type IncidentMessage struct {
-	ID          string
-	IncidentID  string
-	Type        string // UPDATE, NOTIFICATION, RESOLUTION
-	Subject     string
-	Content     string
-	Channels    []string
-	Recipients  []string
-	SentAt      time.Time
-	SentBy      string
+	ID             string
+	IncidentID     string
+	Type           string // UPDATE, NOTIFICATION, RESOLUTION
+	Subject        string
+	Content        string
+	Channels       []string
+	Recipients     []string
+	SentAt         time.Time
+	SentBy         string
 	DeliveryStatus map[string]string
 }
 
@@ -2201,11 +2201,11 @@ type CommunicationSubscriber struct {
 
 // NotificationPreferences represents notification preferences
 type NotificationPreferences struct {
-	Channels    []string
-	Severity    []string
-	Types       []string
-	Frequency   string
-	QuietHours  *QuietHours
+	Channels   []string
+	Severity   []string
+	Types      []string
+	Frequency  string
+	QuietHours *QuietHours
 }
 
 // QuietHours represents quiet hours for notifications
@@ -2219,23 +2219,23 @@ type QuietHours struct {
 
 // DigitalForensics provides digital forensics capabilities
 type DigitalForensics struct {
-	tools       map[string]*ForensicTool
-	evidence    map[string]*DigitalEvidence
+	tools          map[string]*ForensicTool
+	evidence       map[string]*DigitalEvidence
 	chainOfCustody *ChainOfCustodyManager
-	analysis    *ForensicAnalysis
-	reporting   *ForensicReporting
+	analysis       *ForensicAnalysis
+	reporting      *ForensicReporting
 }
 
 // ForensicTool represents a digital forensics tool
 type ForensicTool struct {
-	ID          string
-	Name        string
-	Type        string // IMAGING, ANALYSIS, RECOVERY, TIMELINE
-	Version     string
-	Description string
+	ID           string
+	Name         string
+	Type         string // IMAGING, ANALYSIS, RECOVERY, TIMELINE
+	Version      string
+	Description  string
 	Capabilities []string
-	Licensed    bool
-	Available   bool
+	Licensed     bool
+	Available    bool
 }
 
 // DigitalEvidence represents digital evidence
@@ -2263,12 +2263,12 @@ type ChainOfCustodyManager struct {
 
 // Custodian represents a person in the chain of custody
 type Custodian struct {
-	ID          string
-	Name        string
-	Role        string
+	ID           string
+	Name         string
+	Role         string
 	Organization string
-	ContactInfo string
-	Authorized  bool
+	ContactInfo  string
+	Authorized   bool
 }
 
 // CustodyTransfer represents a custody transfer
@@ -2286,125 +2286,125 @@ type CustodyTransfer struct {
 
 // ForensicAnalysis provides forensic analysis capabilities
 type ForensicAnalysis struct {
-	analyzers   map[string]*ForensicAnalyzer
-	workflows   map[string]*AnalysisWorkflow
-	results     map[string]*AnalysisResult
-	timelines   map[string]*ForensicTimeline
+	analyzers map[string]*ForensicAnalyzer
+	workflows map[string]*AnalysisWorkflow
+	results   map[string]*AnalysisResult
+	timelines map[string]*ForensicTimeline
 }
 
 // ForensicAnalyzer represents a forensic analyzer
 type ForensicAnalyzer struct {
-	ID          string
-	Name        string
-	Type        string
+	ID           string
+	Name         string
+	Type         string
 	Capabilities []string
-	Enabled     bool
-	Config      map[string]interface{}
+	Enabled      bool
+	Config       map[string]interface{}
 }
 
 // AnalysisWorkflow represents a forensic analysis workflow
 type AnalysisWorkflow struct {
-	ID        string
-	Name      string
-	Steps     []*AnalysisStep
-	Status    string
-	StartedAt time.Time
+	ID          string
+	Name        string
+	Steps       []*AnalysisStep
+	Status      string
+	StartedAt   time.Time
 	CompletedAt time.Time
-	Results   []*AnalysisResult
+	Results     []*AnalysisResult
 }
 
 // AnalysisStep represents a step in analysis workflow
 type AnalysisStep struct {
-	ID          string
-	Name        string
-	Type        string
-	Analyzer    string
-	Parameters  map[string]interface{}
+	ID           string
+	Name         string
+	Type         string
+	Analyzer     string
+	Parameters   map[string]interface{}
 	Dependencies []string
-	Status      string
-	Result      *AnalysisResult
+	Status       string
+	Result       *AnalysisResult
 }
 
 // AnalysisResult represents the result of forensic analysis
 type AnalysisResult struct {
-	ID          string
-	AnalyzerID  string
-	EvidenceID  string
-	Type        string
-	Summary     string
-	Findings    []*ForensicFinding
-	Artifacts   []*DigitalArtifact
-	Timeline    *ForensicTimeline
-	Confidence  float64
-	CreatedAt   time.Time
-	CreatedBy   string
+	ID         string
+	AnalyzerID string
+	EvidenceID string
+	Type       string
+	Summary    string
+	Findings   []*ForensicFinding
+	Artifacts  []*DigitalArtifact
+	Timeline   *ForensicTimeline
+	Confidence float64
+	CreatedAt  time.Time
+	CreatedBy  string
 }
 
 // ForensicFinding represents a forensic finding
 type ForensicFinding struct {
-	ID          string
-	Type        string
-	Description string
+	ID           string
+	Type         string
+	Description  string
 	Significance string
-	Evidence    []string
-	Location    string
-	Timestamp   time.Time
-	Confidence  float64
-	Tags        []string
+	Evidence     []string
+	Location     string
+	Timestamp    time.Time
+	Confidence   float64
+	Tags         []string
 }
 
 // DigitalArtifact represents a digital artifact
 type DigitalArtifact struct {
-	ID          string
-	Type        string
-	Name        string
-	Path        string
-	Size        int64
-	Hash        map[string]string
-	Timestamps  map[string]time.Time
-	Metadata    map[string]interface{}
-	Content     []byte
-	Related     []string
+	ID         string
+	Type       string
+	Name       string
+	Path       string
+	Size       int64
+	Hash       map[string]string
+	Timestamps map[string]time.Time
+	Metadata   map[string]interface{}
+	Content    []byte
+	Related    []string
 }
 
 // ForensicTimeline represents a forensic timeline
 type ForensicTimeline struct {
-	ID       string
-	Name     string
-	Events   []*TimelineEvent
+	ID        string
+	Name      string
+	Events    []*TimelineEvent
 	StartTime time.Time
 	EndTime   time.Time
-	Sources  []string
+	Sources   []string
 	CreatedAt time.Time
 }
 
 // TimelineEvent represents an event in a forensic timeline
 type TimelineEvent struct {
-	ID          string
-	Timestamp   time.Time
-	Type        string
-	Source      string
-	Description string
-	Evidence    []string
+	ID           string
+	Timestamp    time.Time
+	Type         string
+	Source       string
+	Description  string
+	Evidence     []string
 	Significance string
-	Tags        []string
+	Tags         []string
 }
 
 // ForensicReporting provides forensic reporting
 type ForensicReporting struct {
-	templates   map[string]*ForensicReportTemplate
-	generators  map[string]*ForensicReportGenerator
-	reports     map[string]*ForensicReport
+	templates  map[string]*ForensicReportTemplate
+	generators map[string]*ForensicReportGenerator
+	reports    map[string]*ForensicReport
 }
 
 // ForensicReportTemplate defines forensic report templates
 type ForensicReportTemplate struct {
-	ID          string
-	Name        string
-	Type        string
-	Sections    []*ReportSection
-	Format      string
-	Template    string
+	ID       string
+	Name     string
+	Type     string
+	Sections []*ReportSection
+	Format   string
+	Template string
 }
 
 // ReportSection represents a section in a forensic report
@@ -2425,20 +2425,20 @@ type ForensicReportGenerator interface {
 
 // ForensicReport represents a generated forensic report
 type ForensicReport struct {
-	ID          string
-	IncidentID  string
-	Type        string
-	Title       string
-	Summary     string
-	Findings    []*ForensicFinding
-	Evidence    []string
-	Conclusions []string
+	ID              string
+	IncidentID      string
+	Type            string
+	Title           string
+	Summary         string
+	Findings        []*ForensicFinding
+	Evidence        []string
+	Conclusions     []string
 	Recommendations []string
-	Appendices  []*ReportAppendix
-	GeneratedAt time.Time
-	GeneratedBy string
-	Content     []byte
-	Format      string
+	Appendices      []*ReportAppendix
+	GeneratedAt     time.Time
+	GeneratedBy     string
+	Content         []byte
+	Format          string
 }
 
 // ReportAppendix represents a report appendix
@@ -2464,16 +2464,16 @@ type IncidentResponseConfig struct {
 
 // SecurityMetrics holds Prometheus metrics for security management
 type SecurityMetrics struct {
-	AuthenticationAttempts  *prometheus.CounterVec
-	AuthenticationFailures  *prometheus.CounterVec
-	CertificatesManaged     prometheus.Gauge
-	CertificatesExpiring    prometheus.Gauge
-	SecurityAlerts          *prometheus.CounterVec
-	ThreatDetections        *prometheus.CounterVec
-	ComplianceScore         *prometheus.GaugeVec
-	VulnerabilitiesFound    *prometheus.CounterVec
-	IncidentsActive         prometheus.Gauge
-	IncidentsResolved       prometheus.Counter
+	AuthenticationAttempts *prometheus.CounterVec
+	AuthenticationFailures *prometheus.CounterVec
+	CertificatesManaged    prometheus.Gauge
+	CertificatesExpiring   prometheus.Gauge
+	SecurityAlerts         *prometheus.CounterVec
+	ThreatDetections       *prometheus.CounterVec
+	ComplianceScore        *prometheus.GaugeVec
+	VulnerabilitiesFound   *prometheus.CounterVec
+	IncidentsActive        prometheus.Gauge
+	IncidentsResolved      prometheus.Counter
 }
 
 // Configuration structures and additional types would continue...
@@ -2483,21 +2483,21 @@ type SecurityMetrics struct {
 func NewComprehensiveSecurityManager(config *SecurityManagerConfig) *ComprehensiveSecurityManager {
 	if config == nil {
 		config = &SecurityManagerConfig{
-			AuthenticationMethods: []string{"password", "certificate"},
-			SessionTimeout:        30 * time.Minute,
-			MaxFailedAttempts:     3,
-			LockoutDuration:       15 * time.Minute,
-			AuditLogRetention:     90 * 24 * time.Hour,
-			ThreatDetectionEnabled: true,
+			AuthenticationMethods:     []string{"password", "certificate"},
+			SessionTimeout:            30 * time.Minute,
+			MaxFailedAttempts:         3,
+			LockoutDuration:           15 * time.Minute,
+			AuditLogRetention:         90 * 24 * time.Hour,
+			ThreatDetectionEnabled:    true,
 			IntrusionDetectionEnabled: true,
 			VulnerabilityScanInterval: 24 * time.Hour,
 		}
 	}
 
 	csm := &ComprehensiveSecurityManager{
-		config:      config,
-		metrics:     initializeSecurityMetrics(),
-		stopChan:    make(chan struct{}),
+		config:   config,
+		metrics:  initializeSecurityMetrics(),
+		stopChan: make(chan struct{}),
 	}
 
 	// Initialize all security components
@@ -2646,11 +2646,11 @@ func (csm *ComprehensiveSecurityManager) GetSecurityStatus(ctx context.Context) 
 		ActiveThreats:   []string{},
 		LastAudit:       time.Now().Add(-24 * time.Hour),
 		Metrics: map[string]interface{}{
-			"active_sessions":       csm.authenticationMgr.GetActiveSessions(),
-			"managed_certificates":  csm.certificateManager.GetCertificateCount(),
-			"security_alerts":       csm.getActiveAlertCount(),
-			"compliance_score":      csm.complianceMonitor.GetOverallScore(),
-			"vulnerability_count":   csm.vulnerabilityScanner.GetVulnerabilityCount(),
+			"active_sessions":      csm.authenticationMgr.GetActiveSessions(),
+			"managed_certificates": csm.certificateManager.GetCertificateCount(),
+			"security_alerts":      csm.getActiveAlertCount(),
+			"compliance_score":     csm.complianceMonitor.GetOverallScore(),
+			"vulnerability_count":  csm.vulnerabilityScanner.GetVulnerabilityCount(),
 		},
 	}
 
@@ -2731,9 +2731,9 @@ func NewCertificateLifecycleManager(caConfig *CAConfig) *CertificateLifecycleMan
 }
 
 func (clm *CertificateLifecycleManager) Start(ctx context.Context) error { return nil }
-func (clm *CertificateLifecycleManager) Stop(ctx context.Context) error { return nil }
-func (clm *CertificateLifecycleManager) IssueCertificate(ctx context.Context, request *CertificateRequest) (*ManagedCertificate, error) { 
-	return &ManagedCertificate{}, nil 
+func (clm *CertificateLifecycleManager) Stop(ctx context.Context) error  { return nil }
+func (clm *CertificateLifecycleManager) IssueCertificate(ctx context.Context, request *CertificateRequest) (*ManagedCertificate, error) {
+	return &ManagedCertificate{}, nil
 }
 func (clm *CertificateLifecycleManager) GetCertificateCount() int { return len(clm.certificates) }
 
@@ -2802,15 +2802,15 @@ func NewSecureChannelManager(config *SecureChannelConfig) *SecureChannelManager 
 
 func NewIntrusionDetectionSystem(config *IDSConfig) *IntrusionDetectionSystem {
 	return &IntrusionDetectionSystem{
-		sensors:  make(map[string]*IDSSensor),
-		rules:    make([]*IDSRule, 0),
-		alerts:   make(chan *SecurityAlert, 1000),
-		config:   config,
+		sensors: make(map[string]*IDSSensor),
+		rules:   make([]*IDSRule, 0),
+		alerts:  make(chan *SecurityAlert, 1000),
+		config:  config,
 	}
 }
 
 func (ids *IntrusionDetectionSystem) Start(ctx context.Context) error { ids.running = true; return nil }
-func (ids *IntrusionDetectionSystem) Stop(ctx context.Context) error { ids.running = false; return nil }
+func (ids *IntrusionDetectionSystem) Stop(ctx context.Context) error  { ids.running = false; return nil }
 
 func NewThreatDetectionManager(config *ThreatDetectionConfig) *ThreatDetectionManager {
 	return &ThreatDetectionManager{
@@ -2821,7 +2821,7 @@ func NewThreatDetectionManager(config *ThreatDetectionConfig) *ThreatDetectionMa
 }
 
 func (tdm *ThreatDetectionManager) Start(ctx context.Context) error { tdm.running = true; return nil }
-func (tdm *ThreatDetectionManager) Stop(ctx context.Context) error { tdm.running = false; return nil }
+func (tdm *ThreatDetectionManager) Stop(ctx context.Context) error  { tdm.running = false; return nil }
 
 func NewComplianceMonitor(config *ComplianceConfig) *ComplianceMonitor {
 	return &ComplianceMonitor{
@@ -2833,8 +2833,8 @@ func NewComplianceMonitor(config *ComplianceConfig) *ComplianceMonitor {
 }
 
 func (cm *ComplianceMonitor) Start(ctx context.Context) error { return nil }
-func (cm *ComplianceMonitor) Stop(ctx context.Context) error { return nil }
-func (cm *ComplianceMonitor) GetOverallScore() float64 { return 85.5 }
+func (cm *ComplianceMonitor) Stop(ctx context.Context) error  { return nil }
+func (cm *ComplianceMonitor) GetOverallScore() float64        { return 85.5 }
 
 func NewVulnerabilityScanner(config *VulnerabilityScanConfig) *VulnerabilityScanner {
 	return &VulnerabilityScanner{
@@ -2845,8 +2845,8 @@ func NewVulnerabilityScanner(config *VulnerabilityScanConfig) *VulnerabilityScan
 }
 
 func (vs *VulnerabilityScanner) Start(ctx context.Context) error { vs.running = true; return nil }
-func (vs *VulnerabilityScanner) Stop(ctx context.Context) error { vs.running = false; return nil }
-func (vs *VulnerabilityScanner) GetVulnerabilityCount() int { return 0 }
+func (vs *VulnerabilityScanner) Stop(ctx context.Context) error  { vs.running = false; return nil }
+func (vs *VulnerabilityScanner) GetVulnerabilityCount() int      { return 0 }
 
 func NewIncidentResponseManager(config *IncidentResponseConfig) *IncidentResponseManager {
 	return &IncidentResponseManager{

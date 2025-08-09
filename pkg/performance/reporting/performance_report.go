@@ -29,13 +29,13 @@ func (rg *ReportGenerator) GenerateJSONReport() ([]byte, error) {
 	outliers := analyzer.OutlierDetection()
 
 	report := struct {
-		Timestamp         time.Time                  `json:"timestamp"`
-		DescriptiveStats  analysis.DescriptiveStats  `json:"descriptive_stats"`
-		Outliers          analysis.OutlierResult     `json:"outliers"`
+		Timestamp        time.Time                 `json:"timestamp"`
+		DescriptiveStats analysis.DescriptiveStats `json:"descriptive_stats"`
+		Outliers         analysis.OutlierResult    `json:"outliers"`
 	}{
-		Timestamp:         time.Now(),
-		DescriptiveStats:  descriptiveStats,
-		Outliers:          outliers,
+		Timestamp:        time.Now(),
+		DescriptiveStats: descriptiveStats,
+		Outliers:         outliers,
 	}
 
 	return json.MarshalIndent(report, "", "  ")

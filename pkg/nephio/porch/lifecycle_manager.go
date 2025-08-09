@@ -36,43 +36,43 @@ type LifecycleManager interface {
 	TransitionToPublished(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
 	TransitionToDraft(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
 	TransitionToDeletable(ctx context.Context, ref *PackageReference, opts *TransitionOptions) (*TransitionResult, error)
-	
+
 	// Lifecycle event handling
 	RegisterEventHandler(eventType LifecycleEventType, handler LifecycleEventHandler) error
 	UnregisterEventHandler(eventType LifecycleEventType, handlerID string) error
 	TriggerEvent(ctx context.Context, event *LifecycleEvent) error
 	GetEventHistory(ctx context.Context, ref *PackageReference, opts *EventHistoryOptions) (*EventHistory, error)
-	
+
 	// Validation gates
 	RegisterValidationGate(stage PackageRevisionLifecycle, gate ValidationGate) error
 	UnregisterValidationGate(stage PackageRevisionLifecycle, gateID string) error
 	ValidateTransition(ctx context.Context, ref *PackageReference, targetStage PackageRevisionLifecycle) (*ValidationResult, error)
-	
+
 	// Rollback capabilities
 	CreateRollbackPoint(ctx context.Context, ref *PackageReference, description string) (*RollbackPoint, error)
 	RollbackToPoint(ctx context.Context, ref *PackageReference, pointID string) (*RollbackResult, error)
 	ListRollbackPoints(ctx context.Context, ref *PackageReference) ([]*RollbackPoint, error)
 	CleanupRollbackPoints(ctx context.Context, ref *PackageReference, olderThan time.Duration) (*CleanupResult, error)
-	
+
 	// Concurrent lifecycle management
 	AcquireLifecycleLock(ctx context.Context, ref *PackageReference, operation string, timeout time.Duration) (*LifecycleLock, error)
 	ReleaseLifecycleLock(ctx context.Context, lockID string) error
 	GetActiveLocks(ctx context.Context) ([]*LifecycleLock, error)
 	ForceReleaseLock(ctx context.Context, lockID string, reason string) error
-	
+
 	// Integration hooks
 	RegisterIntegrationHook(stage PackageRevisionLifecycle, hook IntegrationHook) error
 	UnregisterIntegrationHook(stage PackageRevisionLifecycle, hookID string) error
 	ExecuteHooks(ctx context.Context, ref *PackageReference, stage PackageRevisionLifecycle, action HookAction) (*HookExecutionResult, error)
-	
+
 	// Metrics and monitoring
 	GetLifecycleMetrics(ctx context.Context, ref *PackageReference) (*LifecycleMetrics, error)
 	GetGlobalMetrics(ctx context.Context) (*GlobalLifecycleMetrics, error)
 	GenerateLifecycleReport(ctx context.Context, opts *ReportOptions) (*LifecycleReport, error)
-	
+
 	// Batch operations
 	BatchTransition(ctx context.Context, refs []*PackageReference, targetStage PackageRevisionLifecycle, opts *BatchTransitionOptions) (*BatchTransitionResult, error)
-	
+
 	// Health and maintenance
 	GetManagerHealth(ctx context.Context) (*LifecycleManagerHealth, error)
 	CleanupFailedTransitions(ctx context.Context, olderThan time.Duration) (*CleanupResult, error)
@@ -82,83 +82,83 @@ type LifecycleManager interface {
 // lifecycleManager implements comprehensive package revision lifecycle orchestration
 type lifecycleManager struct {
 	// Core dependencies
-	client                *Client
-	logger                logr.Logger
-	metrics               *LifecycleManagerMetrics
-	
+	client  *Client
+	logger  logr.Logger
+	metrics *LifecycleManagerMetrics
+
 	// State management
-	stateTransitioner     *StateTransitioner
-	validationEngine      *ValidationEngine
-	rollbackManager       *RollbackManager
-	
+	stateTransitioner *StateTransitioner
+	validationEngine  *ValidationEngine
+	rollbackManager   *RollbackManager
+
 	// Event handling
-	eventHandlers         map[LifecycleEventType][]LifecycleEventHandler
-	eventHandlerMutex     sync.RWMutex
-	eventQueue            chan *LifecycleEvent
-	eventWorkers          int
-	
+	eventHandlers     map[LifecycleEventType][]LifecycleEventHandler
+	eventHandlerMutex sync.RWMutex
+	eventQueue        chan *LifecycleEvent
+	eventWorkers      int
+
 	// Validation gates
-	validationGates       map[PackageRevisionLifecycle][]ValidationGate
-	gateMutex             sync.RWMutex
-	
+	validationGates map[PackageRevisionLifecycle][]ValidationGate
+	gateMutex       sync.RWMutex
+
 	// Integration hooks
-	integrationHooks      map[PackageRevisionLifecycle]map[HookAction][]IntegrationHook
-	hookMutex             sync.RWMutex
-	
+	integrationHooks map[PackageRevisionLifecycle]map[HookAction][]IntegrationHook
+	hookMutex        sync.RWMutex
+
 	// Concurrent access control
-	lifecycleLocks        map[string]*LifecycleLock
-	lockMutex             sync.RWMutex
-	lockCleanupInterval   time.Duration
-	
+	lifecycleLocks      map[string]*LifecycleLock
+	lockMutex           sync.RWMutex
+	lockCleanupInterval time.Duration
+
 	// Configuration
-	config                *LifecycleManagerConfig
-	
+	config *LifecycleManagerConfig
+
 	// Background processing
-	shutdown              chan struct{}
-	wg                    sync.WaitGroup
+	shutdown chan struct{}
+	wg       sync.WaitGroup
 }
 
 // Core data structures
 
 // TransitionOptions configures state transitions
 type TransitionOptions struct {
-	SkipValidation        bool
-	SkipHooks            bool
-	CreateRollbackPoint  bool
-	RollbackDescription  string
-	ForceTransition      bool
-	ApprovalBypass       bool
-	Metadata             map[string]string
-	Timeout              time.Duration
-	DryRun               bool
+	SkipValidation      bool
+	SkipHooks           bool
+	CreateRollbackPoint bool
+	RollbackDescription string
+	ForceTransition     bool
+	ApprovalBypass      bool
+	Metadata            map[string]string
+	Timeout             time.Duration
+	DryRun              bool
 }
 
 // TransitionResult contains state transition results
 type TransitionResult struct {
-	Success              bool
-	PreviousStage        PackageRevisionLifecycle
-	NewStage            PackageRevisionLifecycle
-	TransitionTime      time.Time
-	Duration            time.Duration
-	ValidationResults   []*ValidationResult
-	HookResults         *HookExecutionResult
-	RollbackPoint       *RollbackPoint
-	Warnings            []string
-	Metadata            map[string]interface{}
+	Success           bool
+	PreviousStage     PackageRevisionLifecycle
+	NewStage          PackageRevisionLifecycle
+	TransitionTime    time.Time
+	Duration          time.Duration
+	ValidationResults []*ValidationResult
+	HookResults       *HookExecutionResult
+	RollbackPoint     *RollbackPoint
+	Warnings          []string
+	Metadata          map[string]interface{}
 }
 
 // LifecycleEvent represents a lifecycle event
 type LifecycleEvent struct {
-	ID                  string
-	Type                LifecycleEventType
-	PackageRef          *PackageReference
-	PreviousStage       PackageRevisionLifecycle
-	NewStage           PackageRevisionLifecycle
-	Timestamp          time.Time
-	User               string
-	Reason             string
-	Metadata           map[string]interface{}
-	Context            map[string]string
+	ID            string
+	Type          LifecycleEventType
+	PackageRef    *PackageReference
+	PreviousStage PackageRevisionLifecycle
+	NewStage      PackageRevisionLifecycle
+	Timestamp     time.Time
+	User          string
+	Reason        string
+	Metadata      map[string]interface{}
+	Context       map[string]string
 }
 
 // LifecycleEventHandler handles lifecycle events
@@ -190,39 +190,39 @@ type IntegrationHook interface {
 
 // RollbackPoint represents a point in time to rollback to
 type RollbackPoint struct {
-	ID                  string
-	PackageRef          *PackageReference
-	Stage               PackageRevisionLifecycle
-	CreatedAt           time.Time
-	CreatedBy           string
-	Description         string
-	ContentSnapshot     *PackageContent
-	MetadataSnapshot    map[string]interface{}
-	Size                int64
+	ID               string
+	PackageRef       *PackageReference
+	Stage            PackageRevisionLifecycle
+	CreatedAt        time.Time
+	CreatedBy        string
+	Description      string
+	ContentSnapshot  *PackageContent
+	MetadataSnapshot map[string]interface{}
+	Size             int64
 }
 
 // RollbackResult contains rollback operation results
 type RollbackResult struct {
-	Success             bool
-	RollbackPoint       *RollbackPoint
-	PreviousStage       PackageRevisionLifecycle
-	RestoredStage       PackageRevisionLifecycle
-	Duration            time.Duration
-	ContentRestored     bool
-	MetadataRestored    bool
-	Warnings            []string
+	Success          bool
+	RollbackPoint    *RollbackPoint
+	PreviousStage    PackageRevisionLifecycle
+	RestoredStage    PackageRevisionLifecycle
+	Duration         time.Duration
+	ContentRestored  bool
+	MetadataRestored bool
+	Warnings         []string
 }
 
 // LifecycleLock represents a lifecycle operation lock
 type LifecycleLock struct {
-	ID                  string
-	PackageRef          *PackageReference
-	Operation           string
-	AcquiredBy          string
-	AcquiredAt          time.Time
-	ExpiresAt           time.Time
-	Renewable           bool
-	Metadata            map[string]string
+	ID         string
+	PackageRef *PackageReference
+	Operation  string
+	AcquiredBy string
+	AcquiredAt time.Time
+	ExpiresAt  time.Time
+	Renewable  bool
+	Metadata   map[string]string
 }
 
 // Event and metrics types
@@ -256,36 +256,36 @@ const (
 
 // LifecycleMetrics provides lifecycle metrics for a package
 type LifecycleMetrics struct {
-	PackageRef              *PackageReference
-	TotalTransitions        int64
-	TransitionsByStage      map[PackageRevisionLifecycle]int64
-	AverageTransitionTime   time.Duration
-	FailedTransitions       int64
-	RollbacksPerformed      int64
-	CurrentStage            PackageRevisionLifecycle
-	TimeInCurrentStage      time.Duration
-	LastTransitionTime      time.Time
+	PackageRef            *PackageReference
+	TotalTransitions      int64
+	TransitionsByStage    map[PackageRevisionLifecycle]int64
+	AverageTransitionTime time.Duration
+	FailedTransitions     int64
+	RollbacksPerformed    int64
+	CurrentStage          PackageRevisionLifecycle
+	TimeInCurrentStage    time.Duration
+	LastTransitionTime    time.Time
 }
 
 // GlobalLifecycleMetrics provides system-wide lifecycle metrics
 type GlobalLifecycleMetrics struct {
-	TotalPackages           int64
-	PackagesByStage         map[PackageRevisionLifecycle]int64
-	TotalTransitions        int64
-	TransitionsPerHour      float64
-	AverageTransitionTime   time.Duration
-	FailureRate             float64
-	ActiveLocks             int64
-	PendingTransitions      int64
+	TotalPackages         int64
+	PackagesByStage       map[PackageRevisionLifecycle]int64
+	TotalTransitions      int64
+	TransitionsPerHour    float64
+	AverageTransitionTime time.Duration
+	FailureRate           float64
+	ActiveLocks           int64
+	PendingTransitions    int64
 }
 
 // BatchTransitionOptions configures batch transitions
 type BatchTransitionOptions struct {
-	Concurrency           int
-	ContinueOnError       bool
-	ValidateAll           bool
-	CreateRollbackPoints  bool
-	Timeout               time.Duration
+	Concurrency          int
+	ContinueOnError      bool
+	ValidateAll          bool
+	CreateRollbackPoints bool
+	Timeout              time.Duration
 	DryRun               bool
 }
 
@@ -294,16 +294,16 @@ type BatchTransitionResult struct {
 	TotalPackages         int
 	SuccessfulTransitions int
 	FailedTransitions     int
-	Results              []*PackageTransitionResult
-	Duration             time.Duration
-	OverallSuccess       bool
+	Results               []*PackageTransitionResult
+	Duration              time.Duration
+	OverallSuccess        bool
 }
 
 // PackageTransitionResult contains individual package transition result
 type PackageTransitionResult struct {
-	PackageRef    *PackageReference
-	Result        *TransitionResult
-	Error         error
+	PackageRef *PackageReference
+	Result     *TransitionResult
+	Error      error
 }
 
 // Implementation
@@ -382,12 +382,12 @@ func (lm *lifecycleManager) TransitionToDeletable(ctx context.Context, ref *Pack
 
 // Core transition logic
 func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageReference, targetStage PackageRevisionLifecycle, opts *TransitionOptions) (*TransitionResult, error) {
-	lm.logger.Info("Performing lifecycle transition", 
-		"package", ref.GetPackageKey(), 
+	lm.logger.Info("Performing lifecycle transition",
+		"package", ref.GetPackageKey(),
 		"targetStage", targetStage)
 
 	startTime := time.Now()
-	
+
 	if opts == nil {
 		opts = &TransitionOptions{}
 	}
@@ -399,23 +399,23 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 	}
 
 	previousStage := pkg.Spec.Lifecycle
-	
+
 	// Check if transition is valid
 	if !previousStage.CanTransitionTo(targetStage) {
 		return &TransitionResult{
-			Success: false,
+			Success:       false,
 			PreviousStage: previousStage,
-			NewStage: targetStage,
-			Duration: time.Since(startTime),
+			NewStage:      targetStage,
+			Duration:      time.Since(startTime),
 		}, fmt.Errorf("invalid transition from %s to %s", previousStage, targetStage)
 	}
 
 	result := &TransitionResult{
-		PreviousStage: previousStage,
-		NewStage: targetStage,
+		PreviousStage:  previousStage,
+		NewStage:       targetStage,
 		TransitionTime: startTime,
-		Success: true,
-		Metadata: make(map[string]interface{}),
+		Success:        true,
+		Metadata:       make(map[string]interface{}),
 	}
 
 	// Acquire lifecycle lock
@@ -428,12 +428,12 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 
 	// Trigger transition started event
 	startEvent := &LifecycleEvent{
-		ID: fmt.Sprintf("event-%d", time.Now().UnixNano()),
-		Type: LifecycleEventTransitionStarted,
-		PackageRef: ref,
+		ID:            fmt.Sprintf("event-%d", time.Now().UnixNano()),
+		Type:          LifecycleEventTransitionStarted,
+		PackageRef:    ref,
 		PreviousStage: previousStage,
-		NewStage: targetStage,
-		Timestamp: time.Now(),
+		NewStage:      targetStage,
+		Timestamp:     time.Now(),
 	}
 	lm.TriggerEvent(ctx, startEvent)
 
@@ -470,7 +470,7 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 			result.Success = false
 			result.ValidationResults = []*ValidationResult{validationResult}
 			result.Duration = time.Since(startTime)
-			
+
 			if !opts.ForceTransition {
 				return result, fmt.Errorf("validation failed for transition to %s", targetStage)
 			}
@@ -486,12 +486,12 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 		if err != nil {
 			result.Success = false
 			result.Duration = time.Since(startTime)
-			
+
 			// Execute failure hooks
 			if !opts.SkipHooks {
 				lm.ExecuteHooks(ctx, ref, targetStage, HookActionOnFailure)
 			}
-			
+
 			return result, fmt.Errorf("failed to update package revision: %w", err)
 		}
 		result.Metadata["updatedPackage"] = updatedPkg
@@ -516,12 +516,12 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 
 	// Trigger transition completed event
 	completeEvent := &LifecycleEvent{
-		ID: fmt.Sprintf("event-%d", time.Now().UnixNano()),
-		Type: LifecycleEventTransitionCompleted,
-		PackageRef: ref,
+		ID:            fmt.Sprintf("event-%d", time.Now().UnixNano()),
+		Type:          LifecycleEventTransitionCompleted,
+		PackageRef:    ref,
 		PreviousStage: previousStage,
-		NewStage: targetStage,
-		Timestamp: time.Now(),
+		NewStage:      targetStage,
+		Timestamp:     time.Now(),
 	}
 	lm.TriggerEvent(ctx, completeEvent)
 
@@ -531,7 +531,7 @@ func (lm *lifecycleManager) performTransition(ctx context.Context, ref *PackageR
 		lm.metrics.transitionDuration.WithLabelValues(string(targetStage)).Observe(result.Duration.Seconds())
 	}
 
-	lm.logger.Info("Lifecycle transition completed successfully", 
+	lm.logger.Info("Lifecycle transition completed successfully",
 		"package", ref.GetPackageKey(),
 		"from", previousStage,
 		"to", targetStage,
@@ -557,11 +557,11 @@ func (lm *lifecycleManager) RegisterEventHandler(eventType LifecycleEventType, h
 	}
 
 	lm.eventHandlers[eventType] = append(lm.eventHandlers[eventType], handler)
-	
+
 	// Sort by priority (higher priority first)
 	lm.sortEventHandlersByPriority(lm.eventHandlers[eventType])
 
-	lm.logger.Info("Registered event handler", 
+	lm.logger.Info("Registered event handler",
 		"handlerID", handler.GetID(),
 		"eventType", eventType,
 		"priority", handler.GetPriority())
@@ -587,7 +587,7 @@ func (lm *lifecycleManager) AcquireLifecycleLock(ctx context.Context, ref *Packa
 	defer lm.lockMutex.Unlock()
 
 	lockKey := ref.GetPackageKey()
-	
+
 	// Check if already locked
 	if existingLock, exists := lm.lifecycleLocks[lockKey]; exists && !lm.isLockExpired(existingLock) {
 		return nil, fmt.Errorf("package %s is already locked by operation %s", lockKey, existingLock.Operation)
@@ -595,32 +595,32 @@ func (lm *lifecycleManager) AcquireLifecycleLock(ctx context.Context, ref *Packa
 
 	// Create new lock
 	lock := &LifecycleLock{
-		ID: fmt.Sprintf("lock-%s-%d", lockKey, time.Now().UnixNano()),
+		ID:         fmt.Sprintf("lock-%s-%d", lockKey, time.Now().UnixNano()),
 		PackageRef: ref,
-		Operation: operation,
+		Operation:  operation,
 		AcquiredBy: "lifecycle-manager", // This could be configurable
 		AcquiredAt: time.Now(),
-		ExpiresAt: time.Now().Add(timeout),
-		Renewable: true,
-		Metadata: make(map[string]string),
+		ExpiresAt:  time.Now().Add(timeout),
+		Renewable:  true,
+		Metadata:   make(map[string]string),
 	}
 
 	lm.lifecycleLocks[lockKey] = lock
 
 	// Trigger lock acquired event
 	lockEvent := &LifecycleEvent{
-		ID: fmt.Sprintf("event-%d", time.Now().UnixNano()),
-		Type: LifecycleEventLockAcquired,
+		ID:         fmt.Sprintf("event-%d", time.Now().UnixNano()),
+		Type:       LifecycleEventLockAcquired,
 		PackageRef: ref,
-		Timestamp: time.Now(),
+		Timestamp:  time.Now(),
 		Metadata: map[string]interface{}{
-			"lockID": lock.ID,
+			"lockID":    lock.ID,
 			"operation": operation,
 		},
 	}
 	lm.TriggerEvent(ctx, lockEvent)
 
-	lm.logger.V(1).Info("Acquired lifecycle lock", 
+	lm.logger.V(1).Info("Acquired lifecycle lock",
 		"lockID", lock.ID,
 		"package", ref.GetPackageKey(),
 		"operation", operation)
@@ -652,18 +652,18 @@ func (lm *lifecycleManager) ReleaseLifecycleLock(ctx context.Context, lockID str
 
 	// Trigger lock released event
 	releaseEvent := &LifecycleEvent{
-		ID: fmt.Sprintf("event-%d", time.Now().UnixNano()),
-		Type: LifecycleEventLockReleased,
+		ID:         fmt.Sprintf("event-%d", time.Now().UnixNano()),
+		Type:       LifecycleEventLockReleased,
 		PackageRef: lock.PackageRef,
-		Timestamp: time.Now(),
+		Timestamp:  time.Now(),
 		Metadata: map[string]interface{}{
-			"lockID": lockID,
+			"lockID":    lockID,
 			"operation": lock.Operation,
 		},
 	}
 	lm.TriggerEvent(ctx, releaseEvent)
 
-	lm.logger.V(1).Info("Released lifecycle lock", 
+	lm.logger.V(1).Info("Released lifecycle lock",
 		"lockID", lockID,
 		"package", lock.PackageRef.GetPackageKey())
 
@@ -686,8 +686,8 @@ func (lm *lifecycleManager) ValidateTransition(ctx context.Context, ref *Package
 	}
 
 	result := &ValidationResult{
-		Valid: true,
-		Errors: []ValidationError{},
+		Valid:    true,
+		Errors:   []ValidationError{},
 		Warnings: []ValidationError{},
 	}
 
@@ -696,7 +696,7 @@ func (lm *lifecycleManager) ValidateTransition(ctx context.Context, ref *Package
 		if err != nil {
 			result.Valid = false
 			result.Errors = append(result.Errors, ValidationError{
-				Message: fmt.Sprintf("Gate %s failed: %v", gate.GetName(), err),
+				Message:  fmt.Sprintf("Gate %s failed: %v", gate.GetName(), err),
 				Severity: "error",
 			})
 			continue
@@ -735,9 +735,9 @@ func (lm *lifecycleManager) ExecuteHooks(ctx context.Context, ref *PackageRefere
 		if err != nil {
 			result.Success = false
 			hookResult = &HookResult{
-				HookID: hook.GetID(),
+				HookID:  hook.GetID(),
 				Success: false,
-				Error: err.Error(),
+				Error:   err.Error(),
 			}
 		}
 		result.Results = append(result.Results, hookResult)
@@ -782,12 +782,12 @@ func (lm *lifecycleManager) processEvent(event *LifecycleEvent) {
 		cancel()
 
 		if err != nil {
-			lm.logger.Error(err, "Event handler failed", 
+			lm.logger.Error(err, "Event handler failed",
 				"handlerID", handler.GetID(),
 				"eventType", event.Type,
 				"eventID", event.ID)
 		} else {
-			lm.logger.V(1).Info("Event handler completed", 
+			lm.logger.V(1).Info("Event handler completed",
 				"handlerID", handler.GetID(),
 				"eventType", event.Type,
 				"eventID", event.ID,
@@ -821,7 +821,7 @@ func (lm *lifecycleManager) cleanupExpiredLocks() {
 	for key, lock := range lm.lifecycleLocks {
 		if now.After(lock.ExpiresAt) {
 			delete(lm.lifecycleLocks, key)
-			lm.logger.V(1).Info("Cleaned up expired lock", 
+			lm.logger.V(1).Info("Cleaned up expired lock",
 				"lockID", lock.ID,
 				"package", lock.PackageRef.GetPackageKey())
 		}
@@ -855,7 +855,7 @@ func (lm *lifecycleManager) collectMetrics() {
 	lm.lockMutex.RUnlock()
 
 	lm.metrics.activeLocks.Set(float64(activeLocks))
-	
+
 	// Event queue size
 	lm.metrics.eventQueueSize.Set(float64(len(lm.eventQueue)))
 }
@@ -863,10 +863,10 @@ func (lm *lifecycleManager) collectMetrics() {
 // Close gracefully shuts down the lifecycle manager
 func (lm *lifecycleManager) Close() error {
 	lm.logger.Info("Shutting down lifecycle manager")
-	
+
 	close(lm.shutdown)
 	lm.wg.Wait()
-	
+
 	// Close components
 	if lm.stateTransitioner != nil {
 		lm.stateTransitioner.Close()
@@ -877,7 +877,7 @@ func (lm *lifecycleManager) Close() error {
 	if lm.rollbackManager != nil {
 		lm.rollbackManager.Close()
 	}
-	
+
 	lm.logger.Info("Lifecycle manager shutdown complete")
 	return nil
 }
@@ -888,21 +888,21 @@ func (lm *lifecycleManager) Close() error {
 func (lm *lifecycleManager) registerDefaultValidationGates() {
 	// Content validation gate for Proposed stage
 	contentGate := &ContentValidationGate{
-		id: "content-validation",
-		name: "Content Validation Gate",
+		id:       "content-validation",
+		name:     "Content Validation Gate",
 		priority: 100,
 		required: true,
-		client: lm.client,
+		client:   lm.client,
 	}
 	lm.RegisterValidationGate(PackageRevisionLifecycleProposed, contentGate)
 
 	// Approval gate for Published stage
 	approvalGate := &ApprovalValidationGate{
-		id: "approval-required",
-		name: "Approval Required Gate",
+		id:       "approval-required",
+		name:     "Approval Required Gate",
 		priority: 200,
 		required: true,
-		client: lm.client,
+		client:   lm.client,
 	}
 	lm.RegisterValidationGate(PackageRevisionLifecyclePublished, approvalGate)
 }
@@ -924,11 +924,11 @@ func (lm *lifecycleManager) RegisterValidationGate(stage PackageRevisionLifecycl
 	}
 
 	lm.validationGates[stage] = append(lm.validationGates[stage], gate)
-	
+
 	// Sort by priority (higher priority first)
 	lm.sortValidationGatesByPriority(lm.validationGates[stage])
 
-	lm.logger.Info("Registered validation gate", 
+	lm.logger.Info("Registered validation gate",
 		"gateID", gate.GetID(),
 		"stage", stage,
 		"priority", gate.GetPriority())
@@ -961,11 +961,11 @@ func getAllLifecycleStages() []PackageRevisionLifecycle {
 
 func getDefaultLifecycleManagerConfig() *LifecycleManagerConfig {
 	return &LifecycleManagerConfig{
-		EventQueueSize:       1000,
-		EventWorkers:         5,
-		LockCleanupInterval:  5 * time.Minute,
-		DefaultLockTimeout:   30 * time.Minute,
-		EnableMetrics:        true,
+		EventQueueSize:      1000,
+		EventWorkers:        5,
+		LockCleanupInterval: 5 * time.Minute,
+		DefaultLockTimeout:  30 * time.Minute,
+		EnableMetrics:       true,
 	}
 }
 
@@ -980,8 +980,8 @@ func initLifecycleManagerMetrics() *LifecycleManagerMetrics {
 		),
 		transitionDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name: "porch_lifecycle_transition_duration_seconds",
-				Help: "Duration of lifecycle transitions",
+				Name:    "porch_lifecycle_transition_duration_seconds",
+				Help:    "Duration of lifecycle transitions",
 				Buckets: prometheus.DefBuckets,
 			},
 			[]string{"stage"},
@@ -1005,11 +1005,11 @@ func initLifecycleManagerMetrics() *LifecycleManagerMetrics {
 
 // Configuration type
 type LifecycleManagerConfig struct {
-	EventQueueSize         int
-	EventWorkers          int
-	LockCleanupInterval   time.Duration
-	DefaultLockTimeout    time.Duration
-	EnableMetrics         bool
+	EventQueueSize          int
+	EventWorkers            int
+	LockCleanupInterval     time.Duration
+	DefaultLockTimeout      time.Duration
+	EnableMetrics           bool
 	StateTransitionerConfig *StateTransitionerConfig
 	ValidationEngineConfig  *ValidationEngineConfig
 	RollbackManagerConfig   *RollbackManagerConfig
@@ -1062,11 +1062,11 @@ type EventHistoryOptions struct {
 }
 
 type LifecycleManagerHealth struct {
-	Status         string
-	EventWorkers   int
-	ActiveLocks    int
-	QueueSize      int
-	LastActivity   time.Time
+	Status       string
+	EventWorkers int
+	ActiveLocks  int
+	QueueSize    int
+	LastActivity time.Time
 }
 
 type CleanupResult struct {
@@ -1076,11 +1076,11 @@ type CleanupResult struct {
 }
 
 type ReportOptions struct {
-	TimeRange    *TimeRange
-	Packages     []*PackageReference
-	Stages       []PackageRevisionLifecycle
+	TimeRange     *TimeRange
+	Packages      []*PackageReference
+	Stages        []PackageRevisionLifecycle
 	IncludeEvents bool
-	Format       string
+	Format        string
 }
 
 type LifecycleReport struct {
@@ -1091,10 +1091,10 @@ type LifecycleReport struct {
 }
 
 type LifecycleReportSummary struct {
-	TotalPackages     int
-	TransitionsTotal  int64
-	FailuresTotal     int64
-	AverageTime       time.Duration
+	TotalPackages    int
+	TransitionsTotal int64
+	FailuresTotal    int64
+	AverageTime      time.Duration
 }
 
 type PackageLifecycleReport struct {
@@ -1129,8 +1129,8 @@ type ContentValidationGate struct {
 	client   *Client
 }
 
-func (g *ContentValidationGate) GetID() string { return g.id }
-func (g *ContentValidationGate) GetName() string { return g.name }
+func (g *ContentValidationGate) GetID() string    { return g.id }
+func (g *ContentValidationGate) GetName() string  { return g.name }
 func (g *ContentValidationGate) GetPriority() int { return g.priority }
 func (g *ContentValidationGate) IsRequired() bool { return g.required }
 
@@ -1148,8 +1148,8 @@ type ApprovalValidationGate struct {
 	client   *Client
 }
 
-func (g *ApprovalValidationGate) GetID() string { return g.id }
-func (g *ApprovalValidationGate) GetName() string { return g.name }
+func (g *ApprovalValidationGate) GetID() string    { return g.id }
+func (g *ApprovalValidationGate) GetName() string  { return g.name }
 func (g *ApprovalValidationGate) GetPriority() int { return g.priority }
 func (g *ApprovalValidationGate) IsRequired() bool { return g.required }
 
@@ -1164,21 +1164,28 @@ func (g *ApprovalValidationGate) Validate(ctx context.Context, ref *PackageRefer
 
 // Placeholder implementations for referenced components
 type StateTransitioner struct{}
-func NewStateTransitioner(config *StateTransitionerConfig) *StateTransitioner { return &StateTransitioner{} }
+
+func NewStateTransitioner(config *StateTransitionerConfig) *StateTransitioner {
+	return &StateTransitioner{}
+}
 func (st *StateTransitioner) Close() error { return nil }
 
 type ValidationEngine struct{}
-func NewValidationEngine(config *ValidationEngineConfig) *ValidationEngine { return &ValidationEngine{} }
+
+func NewValidationEngine(config *ValidationEngineConfig) *ValidationEngine {
+	return &ValidationEngine{}
+}
 func (ve *ValidationEngine) Close() error { return nil }
 
 type RollbackManager struct{}
+
 func NewRollbackManager(config *RollbackManagerConfig) *RollbackManager { return &RollbackManager{} }
-func (rm *RollbackManager) Close() error { return nil }
+func (rm *RollbackManager) Close() error                                { return nil }
 func (rm *RollbackManager) CreateRollbackPoint(ctx context.Context, ref *PackageReference, description string) (*RollbackPoint, error) {
 	return &RollbackPoint{
-		ID: fmt.Sprintf("rollback-%d", time.Now().UnixNano()),
-		PackageRef: ref,
-		CreatedAt: time.Now(),
+		ID:          fmt.Sprintf("rollback-%d", time.Now().UnixNano()),
+		PackageRef:  ref,
+		CreatedAt:   time.Now(),
 		Description: description,
 	}, nil
 }

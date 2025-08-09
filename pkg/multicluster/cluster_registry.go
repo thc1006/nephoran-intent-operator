@@ -14,21 +14,21 @@ import (
 
 // ClusterRegistry manages registration and lifecycle of workload clusters
 type ClusterRegistry struct {
-	mu               sync.RWMutex
-	clusters         map[string]*WorkloadCluster
-	topology         *NetworkTopology
-	logger           *zap.Logger
+	mu                  sync.RWMutex
+	clusters            map[string]*WorkloadCluster
+	topology            *NetworkTopology
+	logger              *zap.Logger
 	healthCheckInterval time.Duration
-	healthCheckCancel context.CancelFunc
+	healthCheckCancel   context.CancelFunc
 }
 
 // NewClusterRegistry creates a new cluster registry
 func NewClusterRegistry(logger *zap.Logger) *ClusterRegistry {
 	return &ClusterRegistry{
-		clusters:            make(map[string]*WorkloadCluster),
-		topology:            &NetworkTopology{
-			Clusters:       make(map[string]*WorkloadCluster),
-			LatencyMatrix:  make(map[string]map[string]float64),
+		clusters: make(map[string]*WorkloadCluster),
+		topology: &NetworkTopology{
+			Clusters:      make(map[string]*WorkloadCluster),
+			LatencyMatrix: make(map[string]map[string]float64),
 		},
 		logger:              logger,
 		healthCheckInterval: 5 * time.Minute,
@@ -59,8 +59,8 @@ func (cr *ClusterRegistry) RegisterCluster(ctx context.Context, cluster *Workloa
 	cr.clusters[cluster.ID] = cluster
 	cr.topology.Clusters[cluster.ID] = cluster
 
-	cr.logger.Info("Cluster registered successfully", 
-		zap.String("clusterID", cluster.ID), 
+	cr.logger.Info("Cluster registered successfully",
+		zap.String("clusterID", cluster.ID),
 		zap.String("clusterName", cluster.Name))
 
 	return nil
@@ -72,7 +72,7 @@ func (cr *ClusterRegistry) validateClusterConnection(ctx context.Context, cluste
 	if options.ConnectionTimeout == 0 {
 		options.ConnectionTimeout = 30 * time.Second
 	}
-	
+
 	// Create Kubernetes client
 	client, err := kubernetes.NewForConfig(cluster.KubeConfig)
 	if err != nil {
@@ -98,7 +98,7 @@ func (cr *ClusterRegistry) validateClusterConnection(ctx context.Context, cluste
 		time.Sleep(time.Second * time.Duration(attempt+1))
 	}
 
-	return fmt.Errorf("cluster connection failed after %d attempts: %w", 
+	return fmt.Errorf("cluster connection failed after %d attempts: %w",
 		options.ConnectionRetries, lastErr)
 }
 
@@ -162,8 +162,8 @@ func (cr *ClusterRegistry) checkClusterHealth(ctx context.Context, cluster *Work
 	nodes, err := cluster.Client.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		cluster.Status = ClusterStatusUnreachable
-		cr.logger.Warn("Cluster health check failed", 
-			zap.String("clusterID", cluster.ID), 
+		cr.logger.Warn("Cluster health check failed",
+			zap.String("clusterID", cluster.ID),
 			zap.Error(err))
 		return
 	}
@@ -186,8 +186,8 @@ func (cr *ClusterRegistry) checkClusterHealth(ctx context.Context, cluster *Work
 	}
 
 	cluster.LastCheckedAt = time.Now()
-	cr.logger.Info("Cluster health check completed", 
-		zap.String("clusterID", cluster.ID), 
+	cr.logger.Info("Cluster health check completed",
+		zap.String("clusterID", cluster.ID),
 		zap.String("status", string(cluster.Status)))
 }
 

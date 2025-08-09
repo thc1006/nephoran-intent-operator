@@ -20,9 +20,9 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // SharedDeploymentStrategy consolidates deployment strategies across different resource types
 type SharedDeploymentStrategy struct {
-	Type     string `json:"type"`
+	Type     string               `json:"type"`
 	Rolling  *RollingUpdateConfig `json:"rolling,omitempty"`
-	Recreate bool   `json:"recreate,omitempty"`
+	Recreate bool                 `json:"recreate,omitempty"`
 }
 
 // RollingUpdateConfig defines rolling update configuration

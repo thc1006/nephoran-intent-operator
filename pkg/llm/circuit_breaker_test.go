@@ -13,12 +13,12 @@ import (
 
 func TestCircuitBreaker_NewCircuitBreaker(t *testing.T) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     5,
-		FailureRate:          0.5,
-		MinimumRequestCount:  10,
-		Timeout:              30 * time.Second,
-		ResetTimeout:         60 * time.Second,
-		SuccessThreshold:     3,
+		FailureThreshold:    5,
+		FailureRate:         0.5,
+		MinimumRequestCount: 10,
+		Timeout:             30 * time.Second,
+		ResetTimeout:        60 * time.Second,
+		SuccessThreshold:    3,
 	}
 
 	cb := NewCircuitBreaker("test-service", config)
@@ -34,12 +34,12 @@ func TestCircuitBreaker_NewCircuitBreaker(t *testing.T) {
 
 func TestCircuitBreaker_Execute_Success(t *testing.T) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     3,
-		FailureRate:          0.5,
-		MinimumRequestCount:  5,
-		Timeout:              1 * time.Second,
-		ResetTimeout:         10 * time.Second,
-		SuccessThreshold:     2,
+		FailureThreshold:    3,
+		FailureRate:         0.5,
+		MinimumRequestCount: 5,
+		Timeout:             1 * time.Second,
+		ResetTimeout:        10 * time.Second,
+		SuccessThreshold:    2,
 	}
 
 	cb := NewCircuitBreaker("test-service", config)
@@ -59,12 +59,12 @@ func TestCircuitBreaker_Execute_Success(t *testing.T) {
 
 func TestCircuitBreaker_Execute_Failure(t *testing.T) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     2,
-		FailureRate:          0.5,
-		MinimumRequestCount:  3,
-		Timeout:              1 * time.Second,
-		ResetTimeout:         10 * time.Second,
-		SuccessThreshold:     2,
+		FailureThreshold:    2,
+		FailureRate:         0.5,
+		MinimumRequestCount: 3,
+		Timeout:             1 * time.Second,
+		ResetTimeout:        10 * time.Second,
+		SuccessThreshold:    2,
 	}
 
 	cb := NewCircuitBreaker("test-service", config)
@@ -87,12 +87,12 @@ func TestCircuitBreaker_Execute_Failure(t *testing.T) {
 
 func TestCircuitBreaker_StateTransition_ClosedToOpen(t *testing.T) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     2,
-		FailureRate:          0.6,
-		MinimumRequestCount:  3,
-		Timeout:              1 * time.Second,
-		ResetTimeout:         100 * time.Millisecond,
-		SuccessThreshold:     2,
+		FailureThreshold:    2,
+		FailureRate:         0.6,
+		MinimumRequestCount: 3,
+		Timeout:             1 * time.Second,
+		ResetTimeout:        100 * time.Millisecond,
+		SuccessThreshold:    2,
 	}
 
 	cb := NewCircuitBreaker("test-service", config)
@@ -124,12 +124,12 @@ func TestCircuitBreaker_StateTransition_ClosedToOpen(t *testing.T) {
 
 func TestCircuitBreaker_StateTransition_OpenToHalfOpen(t *testing.T) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     1,
-		FailureRate:          0.5,
-		MinimumRequestCount:  2,
-		Timeout:              1 * time.Second,
-		ResetTimeout:         50 * time.Millisecond,
-		SuccessThreshold:     1,
+		FailureThreshold:    1,
+		FailureRate:         0.5,
+		MinimumRequestCount: 2,
+		Timeout:             1 * time.Second,
+		ResetTimeout:        50 * time.Millisecond,
+		SuccessThreshold:    1,
 	}
 
 	cb := NewCircuitBreaker("test-service", config)
@@ -160,12 +160,12 @@ func TestCircuitBreaker_StateTransition_OpenToHalfOpen(t *testing.T) {
 
 func TestCircuitBreaker_StateTransition_HalfOpenToClosed(t *testing.T) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     1,
-		FailureRate:          0.5,
-		MinimumRequestCount:  2,
-		Timeout:              1 * time.Second,
-		ResetTimeout:         50 * time.Millisecond,
-		SuccessThreshold:     2,
+		FailureThreshold:    1,
+		FailureRate:         0.5,
+		MinimumRequestCount: 2,
+		Timeout:             1 * time.Second,
+		ResetTimeout:        50 * time.Millisecond,
+		SuccessThreshold:    2,
 	}
 
 	cb := NewCircuitBreaker("test-service", config)
@@ -199,12 +199,12 @@ func TestCircuitBreaker_StateTransition_HalfOpenToClosed(t *testing.T) {
 
 func TestCircuitBreaker_StateTransition_HalfOpenToOpen(t *testing.T) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     1,
-		FailureRate:          0.5,
-		MinimumRequestCount:  2,
-		Timeout:              1 * time.Second,
-		ResetTimeout:         50 * time.Millisecond,
-		SuccessThreshold:     2,
+		FailureThreshold:    1,
+		FailureRate:         0.5,
+		MinimumRequestCount: 2,
+		Timeout:             1 * time.Second,
+		ResetTimeout:        50 * time.Millisecond,
+		SuccessThreshold:    2,
 	}
 
 	cb := NewCircuitBreaker("test-service", config)
@@ -235,12 +235,12 @@ func TestCircuitBreaker_StateTransition_HalfOpenToOpen(t *testing.T) {
 
 func TestCircuitBreaker_OpenState_RejectsRequests(t *testing.T) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     1,
-		FailureRate:          0.5,
-		MinimumRequestCount:  2,
-		Timeout:              1 * time.Second,
-		ResetTimeout:         1 * time.Hour, // Long timeout to keep open
-		SuccessThreshold:     1,
+		FailureThreshold:    1,
+		FailureRate:         0.5,
+		MinimumRequestCount: 2,
+		Timeout:             1 * time.Second,
+		ResetTimeout:        1 * time.Hour, // Long timeout to keep open
+		SuccessThreshold:    1,
 	}
 
 	cb := NewCircuitBreaker("test-service", config)
@@ -269,12 +269,12 @@ func TestCircuitBreaker_OpenState_RejectsRequests(t *testing.T) {
 
 func TestCircuitBreaker_Timeout(t *testing.T) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     5,
-		FailureRate:          0.5,
-		MinimumRequestCount:  10,
-		Timeout:              100 * time.Millisecond,
-		ResetTimeout:         1 * time.Second,
-		SuccessThreshold:     3,
+		FailureThreshold:    5,
+		FailureRate:         0.5,
+		MinimumRequestCount: 10,
+		Timeout:             100 * time.Millisecond,
+		ResetTimeout:        1 * time.Second,
+		SuccessThreshold:    3,
 	}
 
 	cb := NewCircuitBreaker("test-service", config)
@@ -298,12 +298,12 @@ func TestCircuitBreaker_Timeout(t *testing.T) {
 
 func TestCircuitBreaker_ConcurrentAccess(t *testing.T) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     10,
-		FailureRate:          0.8,
-		MinimumRequestCount:  20,
-		Timeout:              1 * time.Second,
-		ResetTimeout:         100 * time.Millisecond,
-		SuccessThreshold:     5,
+		FailureThreshold:    10,
+		FailureRate:         0.8,
+		MinimumRequestCount: 20,
+		Timeout:             1 * time.Second,
+		ResetTimeout:        100 * time.Millisecond,
+		SuccessThreshold:    5,
 	}
 
 	cb := NewCircuitBreaker("test-service", config)
@@ -320,10 +320,10 @@ func TestCircuitBreaker_ConcurrentAccess(t *testing.T) {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
-			
+
 			_, err := cb.Execute(ctx, func(ctx context.Context) (interface{}, error) {
 				time.Sleep(1 * time.Millisecond) // Small delay
-				if i%5 == 0 { // 20% failure rate
+				if i%5 == 0 {                    // 20% failure rate
 					return nil, errors.New("concurrent failure")
 				}
 				return "success", nil
@@ -355,12 +355,12 @@ func TestCircuitBreaker_ConcurrentAccess(t *testing.T) {
 
 func TestCircuitBreaker_GetMetrics(t *testing.T) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     3,
-		FailureRate:          0.5,
-		MinimumRequestCount:  5,
-		Timeout:              1 * time.Second,
-		ResetTimeout:         100 * time.Millisecond,
-		SuccessThreshold:     2,
+		FailureThreshold:    3,
+		FailureRate:         0.5,
+		MinimumRequestCount: 5,
+		Timeout:             1 * time.Second,
+		ResetTimeout:        100 * time.Millisecond,
+		SuccessThreshold:    2,
 	}
 
 	cb := NewCircuitBreaker("test-service", config)
@@ -387,12 +387,12 @@ func TestCircuitBreaker_GetMetrics(t *testing.T) {
 
 func TestCircuitBreaker_Reset(t *testing.T) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     1,
-		FailureRate:          0.5,
-		MinimumRequestCount:  2,
-		Timeout:              1 * time.Second,
-		ResetTimeout:         1 * time.Hour,
-		SuccessThreshold:     1,
+		FailureThreshold:    1,
+		FailureRate:         0.5,
+		MinimumRequestCount: 2,
+		Timeout:             1 * time.Second,
+		ResetTimeout:        1 * time.Hour,
+		SuccessThreshold:    1,
 	}
 
 	cb := NewCircuitBreaker("test-service", config)
@@ -453,12 +453,12 @@ func TestCircuitBreakerManager(t *testing.T) {
 // Benchmark tests
 func BenchmarkCircuitBreaker_Execute_Success(b *testing.B) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     10,
-		FailureRate:          0.5,
-		MinimumRequestCount:  20,
-		Timeout:              1 * time.Second,
-		ResetTimeout:         100 * time.Millisecond,
-		SuccessThreshold:     5,
+		FailureThreshold:    10,
+		FailureRate:         0.5,
+		MinimumRequestCount: 20,
+		Timeout:             1 * time.Second,
+		ResetTimeout:        100 * time.Millisecond,
+		SuccessThreshold:    5,
 	}
 
 	cb := NewCircuitBreaker("benchmark", config)
@@ -476,12 +476,12 @@ func BenchmarkCircuitBreaker_Execute_Success(b *testing.B) {
 
 func BenchmarkCircuitBreaker_Execute_Failure(b *testing.B) {
 	config := &CircuitBreakerConfig{
-		FailureThreshold:     1000,
-		FailureRate:          0.9,
-		MinimumRequestCount:  2000,
-		Timeout:              1 * time.Second,
-		ResetTimeout:         100 * time.Millisecond,
-		SuccessThreshold:     10,
+		FailureThreshold:    1000,
+		FailureRate:         0.9,
+		MinimumRequestCount: 2000,
+		Timeout:             1 * time.Second,
+		ResetTimeout:        100 * time.Millisecond,
+		SuccessThreshold:    10,
 	}
 
 	cb := NewCircuitBreaker("benchmark", config)

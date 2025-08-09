@@ -8,20 +8,20 @@ import (
 
 // PerformanceValidationConfig defines the performance expectations
 type PerformanceValidationConfig struct {
-	MaxLatency            time.Duration // Sub-2-second P95 latency
-	MaxConcurrentIntents  int           // 200+ concurrent intents
-	MinThroughputPerMin   int           // 45 intents per minute
-	MinAvailabilityRate   float64       // 99.95% availability
-	MaxRetrievalLatency   time.Duration // Sub-200ms retrieval
-	MinCacheHitRate       float64       // 87% cache hit rate
+	MaxLatency           time.Duration // Sub-2-second P95 latency
+	MaxConcurrentIntents int           // 200+ concurrent intents
+	MinThroughputPerMin  int           // 45 intents per minute
+	MinAvailabilityRate  float64       // 99.95% availability
+	MaxRetrievalLatency  time.Duration // Sub-200ms retrieval
+	MinCacheHitRate      float64       // 87% cache hit rate
 }
 
 // PerformanceValidator provides methods to validate performance claims
 type PerformanceValidator struct {
-	config        PerformanceValidationConfig
-	latencyData   []time.Duration
+	config           PerformanceValidationConfig
+	latencyData      []time.Duration
 	availabilityData []float64
-	cacheData     []float64
+	cacheData        []float64
 }
 
 // NewPerformanceValidator creates a new validator instance
@@ -69,12 +69,12 @@ func (pv *PerformanceValidator) ValidateLatency() (bool, string) {
 // ValidateThroughput checks concurrent intent and throughput capabilities
 func (pv *PerformanceValidator) ValidateThroughput(concurrentIntents int, intentsPerMinute int) (bool, string) {
 	if concurrentIntents > pv.config.MaxConcurrentIntents {
-		return false, fmt.Sprintf("Concurrent intents exceed limit: %d > %d", 
+		return false, fmt.Sprintf("Concurrent intents exceed limit: %d > %d",
 			concurrentIntents, pv.config.MaxConcurrentIntents)
 	}
 
 	if intentsPerMinute < pv.config.MinThroughputPerMin {
-		return false, fmt.Sprintf("Throughput below minimum: %d < %d", 
+		return false, fmt.Sprintf("Throughput below minimum: %d < %d",
 			intentsPerMinute, pv.config.MinThroughputPerMin)
 	}
 	return true, "Throughput requirements met"
@@ -93,7 +93,7 @@ func (pv *PerformanceValidator) ValidateAvailability() (bool, string) {
 	avgAvailability /= float64(len(pv.availabilityData))
 
 	if avgAvailability < pv.config.MinAvailabilityRate {
-		return false, fmt.Sprintf("Availability below threshold: %.4f < %.4f", 
+		return false, fmt.Sprintf("Availability below threshold: %.4f < %.4f",
 			avgAvailability, pv.config.MinAvailabilityRate)
 	}
 	return true, "Availability requirements met"
@@ -112,8 +112,8 @@ func (pv *PerformanceValidator) ValidateCachePerformance() (bool, string) {
 	avgCacheHitRate /= float64(len(pv.cacheData))
 
 	if avgCacheHitRate < pv.config.MinCacheHitRate {
-		return false, fmt.Sprintf("Cache hit rate below threshold: %.2f%% < %.2f%%", 
-			avgCacheHitRate * 100, pv.config.MinCacheHitRate * 100)
+		return false, fmt.Sprintf("Cache hit rate below threshold: %.2f%% < %.2f%%",
+			avgCacheHitRate*100, pv.config.MinCacheHitRate*100)
 	}
 	return true, "Cache performance requirements met"
 }
@@ -177,10 +177,10 @@ type ValidationResult struct {
 }
 
 type PerformanceReport struct {
-	ValidationTimestamp   time.Time
-	LatencyValidation     ValidationResult
+	ValidationTimestamp    time.Time
+	LatencyValidation      ValidationResult
 	AvailabilityValidation ValidationResult
-	CacheValidation       ValidationResult
-	OverallValidation     ValidationResult
-	FailureReasons        []string
+	CacheValidation        ValidationResult
+	OverallValidation      ValidationResult
+	FailureReasons         []string
 }

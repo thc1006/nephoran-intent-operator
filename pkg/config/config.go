@@ -26,11 +26,11 @@ type Config struct {
 	RAGAPITimeout     time.Duration
 
 	// Git integration configuration
-	GitRepoURL  string
-	GitToken    string
-	GitTokenPath string  // Path to file containing Git token
-	GitBranch   string
-	GitConcurrentPushLimit int  // Maximum concurrent git operations (default 4 if <= 0)
+	GitRepoURL             string
+	GitToken               string
+	GitTokenPath           string // Path to file containing Git token
+	GitBranch              string
+	GitConcurrentPushLimit int // Maximum concurrent git operations (default 4 if <= 0)
 
 	// Weaviate configuration
 	WeaviateURL   string
@@ -52,37 +52,37 @@ type Config struct {
 // MTLSConfig holds mTLS-specific configuration
 type MTLSConfig struct {
 	// Global mTLS settings
-	Enabled             bool   `yaml:"enabled"`
-	RequireClientCerts  bool   `yaml:"require_client_certs"`
+	Enabled            bool   `yaml:"enabled"`
+	RequireClientCerts bool   `yaml:"require_client_certs"`
 	TenantID           string `yaml:"tenant_id"`
-	
+
 	// Certificate Authority settings
-	CAManagerEnabled    bool   `yaml:"ca_manager_enabled"`
-	AutoProvision      bool   `yaml:"auto_provision"`
-	PolicyTemplate     string `yaml:"policy_template"`
-	
+	CAManagerEnabled bool   `yaml:"ca_manager_enabled"`
+	AutoProvision    bool   `yaml:"auto_provision"`
+	PolicyTemplate   string `yaml:"policy_template"`
+
 	// Certificate paths and settings
 	CertificateBaseDir string        `yaml:"certificate_base_dir"`
 	ValidityDuration   time.Duration `yaml:"validity_duration"`
 	RenewalThreshold   time.Duration `yaml:"renewal_threshold"`
 	RotationEnabled    bool          `yaml:"rotation_enabled"`
 	RotationInterval   time.Duration `yaml:"rotation_interval"`
-	
+
 	// Service-specific configurations
-	Controller    *ServiceMTLSConfig `yaml:"controller"`
-	LLMProcessor  *ServiceMTLSConfig `yaml:"llm_processor"`
-	RAGService    *ServiceMTLSConfig `yaml:"rag_service"`
-	GitClient     *ServiceMTLSConfig `yaml:"git_client"`
-	Database      *ServiceMTLSConfig `yaml:"database"`
-	NephioBridge  *ServiceMTLSConfig `yaml:"nephio_bridge"`
-	ORANAdaptor   *ServiceMTLSConfig `yaml:"oran_adaptor"`
-	Monitoring    *ServiceMTLSConfig `yaml:"monitoring"`
-	
+	Controller   *ServiceMTLSConfig `yaml:"controller"`
+	LLMProcessor *ServiceMTLSConfig `yaml:"llm_processor"`
+	RAGService   *ServiceMTLSConfig `yaml:"rag_service"`
+	GitClient    *ServiceMTLSConfig `yaml:"git_client"`
+	Database     *ServiceMTLSConfig `yaml:"database"`
+	NephioBridge *ServiceMTLSConfig `yaml:"nephio_bridge"`
+	ORANAdaptor  *ServiceMTLSConfig `yaml:"oran_adaptor"`
+	Monitoring   *ServiceMTLSConfig `yaml:"monitoring"`
+
 	// TLS settings
-	MinTLSVersion    string   `yaml:"min_tls_version"`
-	MaxTLSVersion    string   `yaml:"max_tls_version"`
-	CipherSuites     []string `yaml:"cipher_suites"`
-	
+	MinTLSVersion string   `yaml:"min_tls_version"`
+	MaxTLSVersion string   `yaml:"max_tls_version"`
+	CipherSuites  []string `yaml:"cipher_suites"`
+
 	// Security settings
 	AllowedClientCNs  []string `yaml:"allowed_client_cns"`
 	AllowedClientOrgs []string `yaml:"allowed_client_orgs"`
@@ -92,28 +92,28 @@ type MTLSConfig struct {
 
 // ServiceMTLSConfig holds mTLS configuration for a specific service
 type ServiceMTLSConfig struct {
-	Enabled            bool     `yaml:"enabled"`
-	ServiceName        string   `yaml:"service_name"`
-	ServerCertPath     string   `yaml:"server_cert_path"`
-	ServerKeyPath      string   `yaml:"server_key_path"`
-	ClientCertPath     string   `yaml:"client_cert_path"`
-	ClientKeyPath      string   `yaml:"client_key_path"`
-	CACertPath         string   `yaml:"ca_cert_path"`
-	ServerName         string   `yaml:"server_name"`
-	Port               int      `yaml:"port"`
-	InsecureSkipVerify bool     `yaml:"insecure_skip_verify"`
-	
+	Enabled            bool   `yaml:"enabled"`
+	ServiceName        string `yaml:"service_name"`
+	ServerCertPath     string `yaml:"server_cert_path"`
+	ServerKeyPath      string `yaml:"server_key_path"`
+	ClientCertPath     string `yaml:"client_cert_path"`
+	ClientKeyPath      string `yaml:"client_key_path"`
+	CACertPath         string `yaml:"ca_cert_path"`
+	ServerName         string `yaml:"server_name"`
+	Port               int    `yaml:"port"`
+	InsecureSkipVerify bool   `yaml:"insecure_skip_verify"`
+
 	// Connection settings
-	DialTimeout         time.Duration `yaml:"dial_timeout"`
-	KeepAliveTimeout    time.Duration `yaml:"keep_alive_timeout"`
-	MaxIdleConns        int          `yaml:"max_idle_conns"`
-	MaxConnsPerHost     int          `yaml:"max_conns_per_host"`
-	IdleConnTimeout     time.Duration `yaml:"idle_conn_timeout"`
-	
+	DialTimeout      time.Duration `yaml:"dial_timeout"`
+	KeepAliveTimeout time.Duration `yaml:"keep_alive_timeout"`
+	MaxIdleConns     int           `yaml:"max_idle_conns"`
+	MaxConnsPerHost  int           `yaml:"max_conns_per_host"`
+	IdleConnTimeout  time.Duration `yaml:"idle_conn_timeout"`
+
 	// Service-specific settings
-	RequireClientCert   bool     `yaml:"require_client_cert"`
-	AllowedClientCNs    []string `yaml:"allowed_client_cns"`
-	AllowedClientOrgs   []string `yaml:"allowed_client_orgs"`
+	RequireClientCert bool     `yaml:"require_client_cert"`
+	AllowedClientCNs  []string `yaml:"allowed_client_cns"`
+	AllowedClientOrgs []string `yaml:"allowed_client_orgs"`
 }
 
 // DefaultConfig returns a configuration with sensible defaults
@@ -130,8 +130,8 @@ func DefaultConfig() *Config {
 		RAGAPIURLExternal: "http://localhost:5001",
 		RAGAPITimeout:     30 * time.Second,
 
-		GitBranch: "main",
-		GitConcurrentPushLimit: 4,  // Default value
+		GitBranch:              "main",
+		GitConcurrentPushLimit: 4, // Default value
 
 		WeaviateURL:   "http://weaviate.default.svc.cluster.local:8080",
 		WeaviateIndex: "telecom_knowledge",
@@ -149,10 +149,10 @@ func DefaultConfig() *Config {
 // DefaultMTLSConfig returns default mTLS configuration
 func DefaultMTLSConfig() *MTLSConfig {
 	baseDir := "/etc/nephoran/certs"
-	
+
 	return &MTLSConfig{
-		Enabled:             false, // Disabled by default for backward compatibility
-		RequireClientCerts:  true,
+		Enabled:            false, // Disabled by default for backward compatibility
+		RequireClientCerts: true,
 		TenantID:           "default",
 		CAManagerEnabled:   true,
 		AutoProvision:      false,
@@ -162,131 +162,131 @@ func DefaultMTLSConfig() *MTLSConfig {
 		RenewalThreshold:   6 * time.Hour,
 		RotationEnabled:    true,
 		RotationInterval:   1 * time.Hour,
-		
+
 		Controller: &ServiceMTLSConfig{
-			Enabled:            false,
-			ServiceName:        "nephoran-controller",
-			ServerCertPath:     fmt.Sprintf("%s/default/nephoran-controller/tls.crt", baseDir),
-			ServerKeyPath:      fmt.Sprintf("%s/default/nephoran-controller/tls.key", baseDir),
-			ClientCertPath:     fmt.Sprintf("%s/default/nephoran-controller/client.crt", baseDir),
-			ClientKeyPath:      fmt.Sprintf("%s/default/nephoran-controller/client.key", baseDir),
-			CACertPath:         fmt.Sprintf("%s/default/nephoran-controller/ca.crt", baseDir),
-			Port:               8443,
-			DialTimeout:        10 * time.Second,
-			MaxIdleConns:       100,
-			MaxConnsPerHost:    10,
-			IdleConnTimeout:    90 * time.Second,
-			RequireClientCert:  true,
+			Enabled:           false,
+			ServiceName:       "nephoran-controller",
+			ServerCertPath:    fmt.Sprintf("%s/default/nephoran-controller/tls.crt", baseDir),
+			ServerKeyPath:     fmt.Sprintf("%s/default/nephoran-controller/tls.key", baseDir),
+			ClientCertPath:    fmt.Sprintf("%s/default/nephoran-controller/client.crt", baseDir),
+			ClientKeyPath:     fmt.Sprintf("%s/default/nephoran-controller/client.key", baseDir),
+			CACertPath:        fmt.Sprintf("%s/default/nephoran-controller/ca.crt", baseDir),
+			Port:              8443,
+			DialTimeout:       10 * time.Second,
+			MaxIdleConns:      100,
+			MaxConnsPerHost:   10,
+			IdleConnTimeout:   90 * time.Second,
+			RequireClientCert: true,
 		},
-		
+
 		LLMProcessor: &ServiceMTLSConfig{
-			Enabled:            false,
-			ServiceName:        "llm-processor",
-			ServerName:         "llm-processor.default.svc.cluster.local",
-			ServerCertPath:     fmt.Sprintf("%s/default/llm-processor/tls.crt", baseDir),
-			ServerKeyPath:      fmt.Sprintf("%s/default/llm-processor/tls.key", baseDir),
-			ClientCertPath:     fmt.Sprintf("%s/default/llm-processor/client.crt", baseDir),
-			ClientKeyPath:      fmt.Sprintf("%s/default/llm-processor/client.key", baseDir),
-			CACertPath:         fmt.Sprintf("%s/default/llm-processor/ca.crt", baseDir),
-			Port:               8443,
-			DialTimeout:        10 * time.Second,
-			MaxIdleConns:       50,
-			MaxConnsPerHost:    5,
-			IdleConnTimeout:    60 * time.Second,
-			RequireClientCert:  true,
+			Enabled:           false,
+			ServiceName:       "llm-processor",
+			ServerName:        "llm-processor.default.svc.cluster.local",
+			ServerCertPath:    fmt.Sprintf("%s/default/llm-processor/tls.crt", baseDir),
+			ServerKeyPath:     fmt.Sprintf("%s/default/llm-processor/tls.key", baseDir),
+			ClientCertPath:    fmt.Sprintf("%s/default/llm-processor/client.crt", baseDir),
+			ClientKeyPath:     fmt.Sprintf("%s/default/llm-processor/client.key", baseDir),
+			CACertPath:        fmt.Sprintf("%s/default/llm-processor/ca.crt", baseDir),
+			Port:              8443,
+			DialTimeout:       10 * time.Second,
+			MaxIdleConns:      50,
+			MaxConnsPerHost:   5,
+			IdleConnTimeout:   60 * time.Second,
+			RequireClientCert: true,
 		},
-		
+
 		RAGService: &ServiceMTLSConfig{
-			Enabled:            false,
-			ServiceName:        "rag-api",
-			ServerName:         "rag-api.default.svc.cluster.local",
-			ServerCertPath:     fmt.Sprintf("%s/default/rag-api/tls.crt", baseDir),
-			ServerKeyPath:      fmt.Sprintf("%s/default/rag-api/tls.key", baseDir),
-			ClientCertPath:     fmt.Sprintf("%s/default/rag-api/client.crt", baseDir),
-			ClientKeyPath:      fmt.Sprintf("%s/default/rag-api/client.key", baseDir),
-			CACertPath:         fmt.Sprintf("%s/default/rag-api/ca.crt", baseDir),
-			Port:               5443,
-			DialTimeout:        10 * time.Second,
-			MaxIdleConns:       50,
-			MaxConnsPerHost:    5,
-			IdleConnTimeout:    60 * time.Second,
-			RequireClientCert:  true,
+			Enabled:           false,
+			ServiceName:       "rag-api",
+			ServerName:        "rag-api.default.svc.cluster.local",
+			ServerCertPath:    fmt.Sprintf("%s/default/rag-api/tls.crt", baseDir),
+			ServerKeyPath:     fmt.Sprintf("%s/default/rag-api/tls.key", baseDir),
+			ClientCertPath:    fmt.Sprintf("%s/default/rag-api/client.crt", baseDir),
+			ClientKeyPath:     fmt.Sprintf("%s/default/rag-api/client.key", baseDir),
+			CACertPath:        fmt.Sprintf("%s/default/rag-api/ca.crt", baseDir),
+			Port:              5443,
+			DialTimeout:       10 * time.Second,
+			MaxIdleConns:      50,
+			MaxConnsPerHost:   5,
+			IdleConnTimeout:   60 * time.Second,
+			RequireClientCert: true,
 		},
-		
+
 		GitClient: &ServiceMTLSConfig{
-			Enabled:            false,
-			ServiceName:        "git-client",
-			ClientCertPath:     fmt.Sprintf("%s/default/git-client/client.crt", baseDir),
-			ClientKeyPath:      fmt.Sprintf("%s/default/git-client/client.key", baseDir),
-			CACertPath:         fmt.Sprintf("%s/default/git-client/ca.crt", baseDir),
-			DialTimeout:        30 * time.Second,
-			MaxIdleConns:       20,
-			MaxConnsPerHost:    5,
-			IdleConnTimeout:    120 * time.Second,
+			Enabled:         false,
+			ServiceName:     "git-client",
+			ClientCertPath:  fmt.Sprintf("%s/default/git-client/client.crt", baseDir),
+			ClientKeyPath:   fmt.Sprintf("%s/default/git-client/client.key", baseDir),
+			CACertPath:      fmt.Sprintf("%s/default/git-client/ca.crt", baseDir),
+			DialTimeout:     30 * time.Second,
+			MaxIdleConns:    20,
+			MaxConnsPerHost: 5,
+			IdleConnTimeout: 120 * time.Second,
 		},
-		
+
 		Database: &ServiceMTLSConfig{
-			Enabled:            false,
-			ServiceName:        "database-client",
-			ClientCertPath:     fmt.Sprintf("%s/default/database-client/client.crt", baseDir),
-			ClientKeyPath:      fmt.Sprintf("%s/default/database-client/client.key", baseDir),
-			CACertPath:         fmt.Sprintf("%s/default/database-client/ca.crt", baseDir),
-			DialTimeout:        15 * time.Second,
-			MaxIdleConns:       25,
-			MaxConnsPerHost:    5,
-			IdleConnTimeout:    180 * time.Second,
+			Enabled:         false,
+			ServiceName:     "database-client",
+			ClientCertPath:  fmt.Sprintf("%s/default/database-client/client.crt", baseDir),
+			ClientKeyPath:   fmt.Sprintf("%s/default/database-client/client.key", baseDir),
+			CACertPath:      fmt.Sprintf("%s/default/database-client/ca.crt", baseDir),
+			DialTimeout:     15 * time.Second,
+			MaxIdleConns:    25,
+			MaxConnsPerHost: 5,
+			IdleConnTimeout: 180 * time.Second,
 		},
-		
+
 		NephioBridge: &ServiceMTLSConfig{
-			Enabled:            false,
-			ServiceName:        "nephio-bridge",
-			ServerName:         "nephio-bridge.default.svc.cluster.local",
-			ServerCertPath:     fmt.Sprintf("%s/default/nephio-bridge/tls.crt", baseDir),
-			ServerKeyPath:      fmt.Sprintf("%s/default/nephio-bridge/tls.key", baseDir),
-			ClientCertPath:     fmt.Sprintf("%s/default/nephio-bridge/client.crt", baseDir),
-			ClientKeyPath:      fmt.Sprintf("%s/default/nephio-bridge/client.key", baseDir),
-			CACertPath:         fmt.Sprintf("%s/default/nephio-bridge/ca.crt", baseDir),
-			Port:               8443,
-			DialTimeout:        10 * time.Second,
-			MaxIdleConns:       30,
-			MaxConnsPerHost:    5,
-			IdleConnTimeout:    90 * time.Second,
-			RequireClientCert:  true,
+			Enabled:           false,
+			ServiceName:       "nephio-bridge",
+			ServerName:        "nephio-bridge.default.svc.cluster.local",
+			ServerCertPath:    fmt.Sprintf("%s/default/nephio-bridge/tls.crt", baseDir),
+			ServerKeyPath:     fmt.Sprintf("%s/default/nephio-bridge/tls.key", baseDir),
+			ClientCertPath:    fmt.Sprintf("%s/default/nephio-bridge/client.crt", baseDir),
+			ClientKeyPath:     fmt.Sprintf("%s/default/nephio-bridge/client.key", baseDir),
+			CACertPath:        fmt.Sprintf("%s/default/nephio-bridge/ca.crt", baseDir),
+			Port:              8443,
+			DialTimeout:       10 * time.Second,
+			MaxIdleConns:      30,
+			MaxConnsPerHost:   5,
+			IdleConnTimeout:   90 * time.Second,
+			RequireClientCert: true,
 		},
-		
+
 		ORANAdaptor: &ServiceMTLSConfig{
-			Enabled:            false,
-			ServiceName:        "oran-adaptor",
-			ServerName:         "oran-adaptor.default.svc.cluster.local",
-			ServerCertPath:     fmt.Sprintf("%s/default/oran-adaptor/tls.crt", baseDir),
-			ServerKeyPath:      fmt.Sprintf("%s/default/oran-adaptor/tls.key", baseDir),
-			ClientCertPath:     fmt.Sprintf("%s/default/oran-adaptor/client.crt", baseDir),
-			ClientKeyPath:      fmt.Sprintf("%s/default/oran-adaptor/client.key", baseDir),
-			CACertPath:         fmt.Sprintf("%s/default/oran-adaptor/ca.crt", baseDir),
-			Port:               8443,
-			DialTimeout:        10 * time.Second,
-			MaxIdleConns:       30,
-			MaxConnsPerHost:    5,
-			IdleConnTimeout:    90 * time.Second,
-			RequireClientCert:  true,
+			Enabled:           false,
+			ServiceName:       "oran-adaptor",
+			ServerName:        "oran-adaptor.default.svc.cluster.local",
+			ServerCertPath:    fmt.Sprintf("%s/default/oran-adaptor/tls.crt", baseDir),
+			ServerKeyPath:     fmt.Sprintf("%s/default/oran-adaptor/tls.key", baseDir),
+			ClientCertPath:    fmt.Sprintf("%s/default/oran-adaptor/client.crt", baseDir),
+			ClientKeyPath:     fmt.Sprintf("%s/default/oran-adaptor/client.key", baseDir),
+			CACertPath:        fmt.Sprintf("%s/default/oran-adaptor/ca.crt", baseDir),
+			Port:              8443,
+			DialTimeout:       10 * time.Second,
+			MaxIdleConns:      30,
+			MaxConnsPerHost:   5,
+			IdleConnTimeout:   90 * time.Second,
+			RequireClientCert: true,
 		},
-		
+
 		Monitoring: &ServiceMTLSConfig{
-			Enabled:            false,
-			ServiceName:        "monitoring-client",
-			ClientCertPath:     fmt.Sprintf("%s/default/monitoring-client/client.crt", baseDir),
-			ClientKeyPath:      fmt.Sprintf("%s/default/monitoring-client/client.key", baseDir),
-			CACertPath:         fmt.Sprintf("%s/default/monitoring-client/ca.crt", baseDir),
-			DialTimeout:        10 * time.Second,
-			MaxIdleConns:       20,
-			MaxConnsPerHost:    3,
-			IdleConnTimeout:    60 * time.Second,
+			Enabled:         false,
+			ServiceName:     "monitoring-client",
+			ClientCertPath:  fmt.Sprintf("%s/default/monitoring-client/client.crt", baseDir),
+			ClientKeyPath:   fmt.Sprintf("%s/default/monitoring-client/client.key", baseDir),
+			CACertPath:      fmt.Sprintf("%s/default/monitoring-client/ca.crt", baseDir),
+			DialTimeout:     10 * time.Second,
+			MaxIdleConns:    20,
+			MaxConnsPerHost: 3,
+			IdleConnTimeout: 60 * time.Second,
 		},
-		
+
 		MinTLSVersion:     "1.2",
 		MaxTLSVersion:     "1.3",
 		EnableHSTS:        true,
-		HSTSMaxAge:        31536000, // 1 year
+		HSTSMaxAge:        31536000,   // 1 year
 		AllowedClientCNs:  []string{}, // Empty means allow all valid certificates
 		AllowedClientOrgs: []string{}, // Empty means allow all valid certificates
 	}

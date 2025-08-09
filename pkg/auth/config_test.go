@@ -15,7 +15,7 @@ func TestLoadAuthConfig_JWTSecretValidation(t *testing.T) {
 	originalJWTSecret := os.Getenv("JWT_SECRET_KEY")
 	originalGoogleClientID := os.Getenv("GOOGLE_CLIENT_ID")
 	originalGoogleClientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
-	
+
 	defer func() {
 		os.Setenv("AUTH_ENABLED", originalAuthEnabled)
 		os.Setenv("JWT_SECRET_KEY", originalJWTSecret)
@@ -38,7 +38,7 @@ func TestLoadAuthConfig_JWTSecretValidation(t *testing.T) {
 		},
 		{
 			name:        "auth disabled, valid JWT secret - should pass",
-			authEnabled: "false", 
+			authEnabled: "false",
 			jwtSecret:   "test-secret-key-that-is-long-enough-for-jwt",
 			expectError: false,
 		},
@@ -69,7 +69,7 @@ func TestLoadAuthConfig_JWTSecretValidation(t *testing.T) {
 			// Set up environment variables
 			os.Setenv("AUTH_ENABLED", tt.authEnabled)
 			os.Setenv("JWT_SECRET_KEY", tt.jwtSecret)
-			
+
 			// Set up a dummy OAuth2 provider if auth is enabled to pass provider validation
 			if tt.authEnabled == "true" {
 				os.Setenv("GOOGLE_CLIENT_ID", "test-client-id")
@@ -107,7 +107,7 @@ func TestLoadAuthConfig_AuthDisabled(t *testing.T) {
 	// Save original environment
 	originalAuthEnabled := os.Getenv("AUTH_ENABLED")
 	originalJWTSecret := os.Getenv("JWT_SECRET_KEY")
-	
+
 	defer func() {
 		os.Setenv("AUTH_ENABLED", originalAuthEnabled)
 		os.Setenv("JWT_SECRET_KEY", originalJWTSecret)
@@ -138,7 +138,7 @@ func TestLoadAuthConfig_AuthEnabledWithValidSecret(t *testing.T) {
 	originalAuthEnabled := os.Getenv("AUTH_ENABLED")
 	originalJWTSecret := os.Getenv("JWT_SECRET_KEY")
 	originalGoogleClientID := os.Getenv("GOOGLE_CLIENT_ID")
-	
+
 	defer func() {
 		os.Setenv("AUTH_ENABLED", originalAuthEnabled)
 		os.Setenv("JWT_SECRET_KEY", originalJWTSecret)
@@ -183,13 +183,13 @@ func TestGetOAuth2ClientSecret_ErrorScenarios(t *testing.T) {
 	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
 
 	tests := []struct {
-		name              string
-		provider          string
-		setupSecrets      func(t *testing.T) (cleanup func())
-		setupEnvironment  func(t *testing.T) (cleanup func())
-		expectError       bool
-		expectedErrorMsg  string
-		expectAuditLogs   bool
+		name             string
+		provider         string
+		setupSecrets     func(t *testing.T) (cleanup func())
+		setupEnvironment func(t *testing.T) (cleanup func())
+		expectError      bool
+		expectedErrorMsg string
+		expectAuditLogs  bool
 	}{
 		{
 			name:             "empty provider name",
@@ -213,7 +213,7 @@ func TestGetOAuth2ClientSecret_ErrorScenarios(t *testing.T) {
 					os.Setenv("AZURE_CLIENT_SECRET", originalEnv)
 				}
 			},
-			expectError:       false,
+			expectError:     false,
 			expectAuditLogs: true,
 		},
 		{
@@ -252,7 +252,7 @@ func TestGetOAuth2ClientSecret_ErrorScenarios(t *testing.T) {
 					os.Setenv("KEYCLOAK_CLIENT_SECRET", originalEnv)
 				}
 			},
-			expectError:       false,
+			expectError:     false,
 			expectAuditLogs: true,
 		},
 		{
@@ -285,7 +285,7 @@ func TestGetOAuth2ClientSecret_ErrorScenarios(t *testing.T) {
 					os.Setenv("AZURE_CLIENT_SECRET", originalEnv)
 				}
 			},
-			expectError:       false,
+			expectError:     false,
 			expectAuditLogs: true,
 		},
 		{
@@ -328,7 +328,7 @@ func TestGetOAuth2ClientSecret_ErrorScenarios(t *testing.T) {
 			// Setup test environment
 			cleanupSecrets := tt.setupSecrets(t)
 			cleanupEnv := tt.setupEnvironment(t)
-			
+
 			defer cleanupSecrets()
 			defer cleanupEnv()
 
@@ -381,11 +381,11 @@ func TestLoadProviders_ErrorPropagation(t *testing.T) {
 			name: "all providers disabled - should succeed",
 			setupEnvironment: func(t *testing.T) func() {
 				env := map[string]string{
-					"AZURE_CLIENT_ID":     "",
-					"OKTA_CLIENT_ID":      "",
-					"KEYCLOAK_CLIENT_ID":  "",
-					"GOOGLE_CLIENT_ID":    "",
-					"CUSTOM_CLIENT_ID":    "",
+					"AZURE_CLIENT_ID":    "",
+					"OKTA_CLIENT_ID":     "",
+					"KEYCLOAK_CLIENT_ID": "",
+					"GOOGLE_CLIENT_ID":   "",
+					"CUSTOM_CLIENT_ID":   "",
 				}
 				cleanup := setMultipleEnvVars(env)
 				return cleanup
@@ -414,15 +414,15 @@ func TestLoadProviders_ErrorPropagation(t *testing.T) {
 			name: "multiple providers with mixed success/failure",
 			setupEnvironment: func(t *testing.T) func() {
 				env := map[string]string{
-					"AZURE_CLIENT_ID":       "test-azure-client-id",
-					"AZURE_ENABLED":         "true", 
-					"AZURE_CLIENT_SECRET":   "valid-azure-secret-1234567890abcdef",
-					"OKTA_CLIENT_ID":        "test-okta-client-id",
-					"OKTA_ENABLED":          "true",
-					"OKTA_CLIENT_SECRET":    "", // Missing secret - should cause error
-					"KEYCLOAK_CLIENT_ID":    "",
-					"GOOGLE_CLIENT_ID":      "",
-					"CUSTOM_CLIENT_ID":      "",
+					"AZURE_CLIENT_ID":     "test-azure-client-id",
+					"AZURE_ENABLED":       "true",
+					"AZURE_CLIENT_SECRET": "valid-azure-secret-1234567890abcdef",
+					"OKTA_CLIENT_ID":      "test-okta-client-id",
+					"OKTA_ENABLED":        "true",
+					"OKTA_CLIENT_SECRET":  "", // Missing secret - should cause error
+					"KEYCLOAK_CLIENT_ID":  "",
+					"GOOGLE_CLIENT_ID":    "",
+					"CUSTOM_CLIENT_ID":    "",
 				}
 				return setMultipleEnvVars(env)
 			},
@@ -437,7 +437,7 @@ func TestLoadProviders_ErrorPropagation(t *testing.T) {
 					"AZURE_CLIENT_ID":     "test-azure-client-id",
 					"AZURE_ENABLED":       "true",
 					"AZURE_CLIENT_SECRET": "",
-					"OKTA_CLIENT_ID":      "test-okta-client-id", 
+					"OKTA_CLIENT_ID":      "test-okta-client-id",
 					"OKTA_ENABLED":        "true",
 					"OKTA_CLIENT_SECRET":  "",
 					"KEYCLOAK_CLIENT_ID":  "",
@@ -453,15 +453,15 @@ func TestLoadProviders_ErrorPropagation(t *testing.T) {
 			name: "disabled provider doesn't cause errors even with missing secret",
 			setupEnvironment: func(t *testing.T) func() {
 				env := map[string]string{
-					"AZURE_CLIENT_ID":     "test-azure-client-id",
-					"AZURE_ENABLED":       "false", // Disabled
-					"AZURE_CLIENT_SECRET": "", // Missing but disabled
-					"GOOGLE_CLIENT_ID":    "test-google-client-id",
-					"GOOGLE_ENABLED":      "true",
+					"AZURE_CLIENT_ID":      "test-azure-client-id",
+					"AZURE_ENABLED":        "false", // Disabled
+					"AZURE_CLIENT_SECRET":  "",      // Missing but disabled
+					"GOOGLE_CLIENT_ID":     "test-google-client-id",
+					"GOOGLE_ENABLED":       "true",
 					"GOOGLE_CLIENT_SECRET": "valid-google-secret-123456789012345678901234",
-					"OKTA_CLIENT_ID":      "",
-					"KEYCLOAK_CLIENT_ID":  "",
-					"CUSTOM_CLIENT_ID":    "",
+					"OKTA_CLIENT_ID":       "",
+					"KEYCLOAK_CLIENT_ID":   "",
+					"CUSTOM_CLIENT_ID":     "",
 				}
 				return setMultipleEnvVars(env)
 			},
@@ -923,23 +923,23 @@ func TestLoadAuthConfig_IntegrationTests(t *testing.T) {
 	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
 
 	tests := []struct {
-		name              string
-		setupEnvironment  func(t *testing.T) (cleanup func())
-		expectError       bool
+		name                string
+		setupEnvironment    func(t *testing.T) (cleanup func())
+		expectError         bool
 		expectedErrorSubstr string
-		validateResult    func(t *testing.T, config *AuthConfig)
+		validateResult      func(t *testing.T, config *AuthConfig)
 	}{
 		{
 			name: "complete valid configuration",
 			setupEnvironment: func(t *testing.T) func() {
 				env := map[string]string{
-					"AUTH_ENABLED":          "true",
-					"JWT_SECRET_KEY":        "this-is-a-very-strong-jwt-unique-key-for-validation-purposes",
-					"AZURE_CLIENT_ID":       "test-azure-client-id",
-					"AZURE_CLIENT_SECRET":   "valid-azure-secret-1234567890abcdef",
-					"AZURE_TENANT_ID":       "test-tenant-id",
-					"GOOGLE_CLIENT_ID":      "test-google-client-id",
-					"GOOGLE_CLIENT_SECRET":  "valid-google-secret-123456789012345678901234",
+					"AUTH_ENABLED":         "true",
+					"JWT_SECRET_KEY":       "this-is-a-very-strong-jwt-unique-key-for-validation-purposes",
+					"AZURE_CLIENT_ID":      "test-azure-client-id",
+					"AZURE_CLIENT_SECRET":  "valid-azure-secret-1234567890abcdef",
+					"AZURE_TENANT_ID":      "test-tenant-id",
+					"GOOGLE_CLIENT_ID":     "test-google-client-id",
+					"GOOGLE_CLIENT_SECRET": "valid-google-secret-123456789012345678901234",
 				}
 				return setMultipleEnvVars(env)
 			},
@@ -963,11 +963,11 @@ func TestLoadAuthConfig_IntegrationTests(t *testing.T) {
 			name: "provider loading failure causes overall failure",
 			setupEnvironment: func(t *testing.T) func() {
 				env := map[string]string{
-					"AUTH_ENABLED":         "true",
-					"JWT_SECRET_KEY":       "this-is-a-very-strong-jwt-unique-key-for-validation-purposes",
-					"AZURE_CLIENT_ID":      "test-azure-client-id",
-					"AZURE_CLIENT_SECRET":  "", // Missing secret
-					"AZURE_ENABLED":        "true",
+					"AUTH_ENABLED":        "true",
+					"JWT_SECRET_KEY":      "this-is-a-very-strong-jwt-unique-key-for-validation-purposes",
+					"AZURE_CLIENT_ID":     "test-azure-client-id",
+					"AZURE_CLIENT_SECRET": "", // Missing secret
+					"AZURE_ENABLED":       "true",
 				}
 				return setMultipleEnvVars(env)
 			},
@@ -992,8 +992,8 @@ func TestLoadAuthConfig_IntegrationTests(t *testing.T) {
 			name: "auth disabled with invalid providers - should succeed",
 			setupEnvironment: func(t *testing.T) func() {
 				env := map[string]string{
-					"AUTH_ENABLED":         "false",
-					"JWT_SECRET_KEY":       "", // Empty but auth disabled
+					"AUTH_ENABLED":   "false",
+					"JWT_SECRET_KEY": "", // Empty but auth disabled
 					// Don't set any provider config when auth is disabled
 				}
 				return setMultipleEnvVars(env)
@@ -1068,12 +1068,12 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 	security.GlobalAuditLogger, _ = security.NewAuditLogger("", security.AuditLevelInfo)
 
 	tests := []struct {
-		name                  string
-		configPath            string
-		setupEnvironment      func(t *testing.T) (customFile, envFile string, cleanup func())
-		expectError           bool
+		name                   string
+		configPath             string
+		setupEnvironment       func(t *testing.T) (customFile, envFile string, cleanup func())
+		expectError            bool
 		expectedErrorSubstring string
-		validateConfig        func(*testing.T, *AuthConfig)
+		validateConfig         func(*testing.T, *AuthConfig)
 	}{
 		{
 			name:       "custom path takes precedence over environment variable",
@@ -1082,7 +1082,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 				// Create temporary files
 				customFile := filepath.Join(t.TempDir(), "custom-config.json")
 				envFile := filepath.Join(t.TempDir(), "env-config.json")
-				
+
 				customContent := `{
 					"enabled": true,
 					"jwt_secret_key": "custom-jwt-secret-key-from-file-12345678901234567890",
@@ -1102,7 +1102,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 						"default_role": "viewer"
 					}
 				}`
-				
+
 				envContent := `{
 					"enabled": false,
 					"providers": {
@@ -1112,26 +1112,26 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 						}
 					}
 				}`
-				
+
 				// Write custom config file
 				if err := os.WriteFile(customFile, []byte(customContent), 0644); err != nil {
 					t.Fatalf("Failed to create custom config file: %v", err)
 				}
-				
+
 				// Write env config file
 				if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
 					t.Fatalf("Failed to create env config file: %v", err)
 				}
-				
+
 				// Set environment variables
 				os.Setenv("AUTH_CONFIG_FILE", envFile)
 				os.Setenv("AUTH_ENABLED", "false") // Should be overridden by custom file
-				
+
 				cleanup := func() {
 					os.Unsetenv("AUTH_CONFIG_FILE")
 					os.Unsetenv("AUTH_ENABLED")
 				}
-				
+
 				return customFile, envFile, cleanup
 			},
 			expectError: false,
@@ -1152,11 +1152,11 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 			},
 		},
 		{
-			name:          "empty config path falls back to AUTH_CONFIG_FILE environment variable",
-			configPath:    "", // Empty - should use env var
+			name:       "empty config path falls back to AUTH_CONFIG_FILE environment variable",
+			configPath: "", // Empty - should use env var
 			setupEnvironment: func(t *testing.T) (string, string, func()) {
 				envFile := filepath.Join(t.TempDir(), "env-fallback-config.json")
-				
+
 				envContent := `{
 					"enabled": true,
 					"jwt_secret_key": "env-jwt-secret-key-from-file-12345678901234567890",
@@ -1169,19 +1169,19 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 						}
 					}
 				}`
-				
+
 				if err := os.WriteFile(envFile, []byte(envContent), 0644); err != nil {
 					t.Fatalf("Failed to create env config file: %v", err)
 				}
-				
+
 				os.Setenv("AUTH_CONFIG_FILE", envFile)
 				os.Setenv("AUTH_ENABLED", "false") // Should be overridden by file
-				
+
 				cleanup := func() {
 					os.Unsetenv("AUTH_CONFIG_FILE")
 					os.Unsetenv("AUTH_ENABLED")
 				}
-				
+
 				return "", envFile, cleanup
 			},
 			expectError: false,
@@ -1201,8 +1201,8 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 			},
 		},
 		{
-			name:                   "custom path with non-existent file returns error",
-			configPath:             "/absolutely/non/existent/path/config.json",
+			name:       "custom path with non-existent file returns error",
+			configPath: "/absolutely/non/existent/path/config.json",
 			setupEnvironment: func(t *testing.T) (string, string, func()) {
 				os.Setenv("JWT_SECRET_KEY", "fallback-jwt-secret-12345678901234567890")
 				cleanup := func() {
@@ -1218,7 +1218,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 			configPath: "invalid-json-config.json",
 			setupEnvironment: func(t *testing.T) (string, string, func()) {
 				customFile := filepath.Join(t.TempDir(), "invalid-json-config.json")
-				
+
 				invalidContent := `{
 					"enabled": true,
 					"providers": {
@@ -1229,17 +1229,17 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 						}
 					// Missing closing brace
 				}`
-				
+
 				if err := os.WriteFile(customFile, []byte(invalidContent), 0644); err != nil {
 					t.Fatalf("Failed to create custom config file: %v", err)
 				}
-				
+
 				os.Setenv("JWT_SECRET_KEY", "fallback-jwt-secret-12345678901234567890")
-				
+
 				cleanup := func() {
 					os.Unsetenv("JWT_SECRET_KEY")
 				}
-				
+
 				return customFile, "", cleanup
 			},
 			expectError:            true,
@@ -1254,7 +1254,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 				os.Setenv("JWT_SECRET_KEY", "env-only-jwt-secret-12345678901234567890")
 				os.Setenv("GOOGLE_CLIENT_ID", "env-google-client-id")
 				os.Setenv("GOOGLE_CLIENT_SECRET", "env-google-secret-123456789012345678901234")
-				
+
 				cleanup := func() {
 					os.Unsetenv("AUTH_CONFIG_FILE")
 					os.Unsetenv("AUTH_ENABLED")
@@ -1262,7 +1262,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 					os.Unsetenv("GOOGLE_CLIENT_ID")
 					os.Unsetenv("GOOGLE_CLIENT_SECRET")
 				}
-				
+
 				return "", "", cleanup
 			},
 			expectError: false,
@@ -1286,7 +1286,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 			configPath: "override-config.json",
 			setupEnvironment: func(t *testing.T) (string, string, func()) {
 				customFile := filepath.Join(t.TempDir(), "override-config.json")
-				
+
 				overrideContent := `{
 					"enabled": false,
 					"jwt_secret_key": "file-overrides-env-jwt-secret-12345678901234567890",
@@ -1312,24 +1312,24 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 					"admin_users": ["admin@example.com"],
 					"operator_users": ["operator@example.com"]
 				}`
-				
+
 				if err := os.WriteFile(customFile, []byte(overrideContent), 0644); err != nil {
 					t.Fatalf("Failed to create custom config file: %v", err)
 				}
-				
+
 				// Set conflicting environment variables that should be overridden
 				os.Setenv("AUTH_ENABLED", "true")
 				os.Setenv("JWT_SECRET_KEY", "env-jwt-secret-that-should-be-overridden")
 				os.Setenv("GOOGLE_CLIENT_ID", "env-google-client-id")
 				os.Setenv("GOOGLE_CLIENT_SECRET", "env-google-secret-123456789012345678901234")
-				
+
 				cleanup := func() {
 					os.Unsetenv("AUTH_ENABLED")
 					os.Unsetenv("JWT_SECRET_KEY")
 					os.Unsetenv("GOOGLE_CLIENT_ID")
 					os.Unsetenv("GOOGLE_CLIENT_SECRET")
 				}
-				
+
 				return customFile, "", cleanup
 			},
 			expectError: false,
@@ -1371,7 +1371,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 			// Setup test environment
 			customFile, envFile, cleanup := tt.setupEnvironment(t)
 			defer cleanup()
-			
+
 			// Use the actual file paths created by the setup
 			configPath := tt.configPath
 			if customFile != "" {
@@ -1415,123 +1415,123 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 // TestValidateOAuth2ClientSecret_ProviderSpecific tests provider-specific secret validation
 func TestValidateOAuth2ClientSecret_ProviderSpecific(t *testing.T) {
 	tests := []struct {
-		name      string
-		provider  string
-		secret    string
+		name        string
+		provider    string
+		secret      string
 		expectError bool
 		errorSubstr string
 	}{
 		{
-			name:      "empty secret",
-			provider:  "azure",
-			secret:    "",
+			name:        "empty secret",
+			provider:    "azure",
+			secret:      "",
 			expectError: true,
 			errorSubstr: "empty secret",
 		},
 		{
-			name:      "whitespace-only secret",
-			provider:  "azure",
-			secret:    "   \t\n   ",
+			name:        "whitespace-only secret",
+			provider:    "azure",
+			secret:      "   \t\n   ",
 			expectError: true,
 			errorSubstr: "empty secret",
 		},
 		{
-			name:      "azure secret too short",
-			provider:  "azure",
-			secret:    "short",
+			name:        "azure secret too short",
+			provider:    "azure",
+			secret:      "short",
 			expectError: true,
 			errorSubstr: "secret too short",
 		},
 		{
-			name:      "azure valid secret",
-			provider:  "azure",
-			secret:    "valid-azure-secret-1234567890",
+			name:        "azure valid secret",
+			provider:    "azure",
+			secret:      "valid-azure-secret-1234567890",
 			expectError: false,
 		},
 		{
-			name:      "okta secret too short",
-			provider:  "okta",
-			secret:    "too-short-secret",
+			name:        "okta secret too short",
+			provider:    "okta",
+			secret:      "too-short-secret",
 			expectError: true,
 			errorSubstr: "secret too short",
 		},
 		{
-			name:      "okta valid secret",
-			provider:  "okta",
-			secret:    "valid-okta-secret-1234567890abcdef1234567890abcdef1234567890",
+			name:        "okta valid secret",
+			provider:    "okta",
+			secret:      "valid-okta-secret-1234567890abcdef1234567890abcdef1234567890",
 			expectError: false,
 		},
 		{
-			name:      "keycloak secret too short",
-			provider:  "keycloak",
-			secret:    "short-keycloak-secret",
+			name:        "keycloak secret too short",
+			provider:    "keycloak",
+			secret:      "short-keycloak-secret",
 			expectError: true,
 			errorSubstr: "secret too short",
 		},
 		{
-			name:      "keycloak valid secret",
-			provider:  "keycloak",
-			secret:    "valid-keycloak-secret-12345678901234567890123456789012",
+			name:        "keycloak valid secret",
+			provider:    "keycloak",
+			secret:      "valid-keycloak-secret-12345678901234567890123456789012",
 			expectError: false,
 		},
 		{
-			name:      "google secret too short",
-			provider:  "google",
-			secret:    "google-short",
+			name:        "google secret too short",
+			provider:    "google",
+			secret:      "google-short",
 			expectError: true,
 			errorSubstr: "secret too short",
 		},
 		{
-			name:      "google valid secret",
-			provider:  "google",
-			secret:    "valid-google-secret-123456789012345678901234",
+			name:        "google valid secret",
+			provider:    "google",
+			secret:      "valid-google-secret-123456789012345678901234",
 			expectError: false,
 		},
 		{
-			name:      "custom provider secret too short",
-			provider:  "custom",
-			secret:    "custom-short",
+			name:        "custom provider secret too short",
+			provider:    "custom",
+			secret:      "custom-short",
 			expectError: true,
 			errorSubstr: "secret too short",
 		},
 		{
-			name:      "custom provider valid secret",
-			provider:  "custom",
-			secret:    "valid-custom-secret-1234567890",
+			name:        "custom provider valid secret",
+			provider:    "custom",
+			secret:      "valid-custom-secret-1234567890",
 			expectError: false,
 		},
 		{
-			name:      "placeholder secret detected - your-secret",
-			provider:  "azure",
-			secret:    "your-secret-here-changeme-1234567890",
+			name:        "placeholder secret detected - your-secret",
+			provider:    "azure",
+			secret:      "your-secret-here-changeme-1234567890",
 			expectError: true,
 			errorSubstr: "placeholder secret detected",
 		},
 		{
-			name:      "placeholder secret detected - client-secret",
-			provider:  "okta",
-			secret:    "client-secret-placeholder-1234567890abcdef1234567890abcdef1234567890",
+			name:        "placeholder secret detected - client-secret",
+			provider:    "okta",
+			secret:      "client-secret-placeholder-1234567890abcdef1234567890abcdef1234567890",
 			expectError: true,
 			errorSubstr: "placeholder secret detected",
 		},
 		{
-			name:      "placeholder secret detected - changeme",
-			provider:  "keycloak",
-			secret:    "changeme-keycloak-secret-1234567890123456789012",
+			name:        "placeholder secret detected - changeme",
+			provider:    "keycloak",
+			secret:      "changeme-keycloak-secret-1234567890123456789012",
 			expectError: true,
 			errorSubstr: "placeholder secret detected",
 		},
 		{
-			name:      "placeholder secret detected - example",
-			provider:  "google",
-			secret:    "example-google-secret-123456789012345678901234",
+			name:        "placeholder secret detected - example",
+			provider:    "google",
+			secret:      "example-google-secret-123456789012345678901234",
 			expectError: true,
 			errorSubstr: "placeholder secret detected",
 		},
 		{
-			name:      "simple secret placeholder",
-			provider:  "custom",
-			secret:    "secret",
+			name:        "simple secret placeholder",
+			provider:    "custom",
+			secret:      "secret",
 			expectError: true,
 			errorSubstr: "secret too short", // "secret" is only 6 chars, less than 16 minimum for custom
 		},
@@ -1561,84 +1561,84 @@ func TestValidateOAuth2ClientSecret_ProviderSpecific(t *testing.T) {
 // TestValidateJWTSecret_WeakSecrets tests JWT secret validation for weak secrets
 func TestValidateJWTSecret_WeakSecrets(t *testing.T) {
 	tests := []struct {
-		name      string
-		secret    string
+		name        string
+		secret      string
 		expectError bool
 		errorSubstr string
 	}{
 		{
-			name:      "weak secret - secret",
-			secret:    "secret",
+			name:        "weak secret - secret",
+			secret:      "secret",
 			expectError: true,
 			errorSubstr: "weak or default secret detected",
 		},
 		{
-			name:      "weak secret - changeme",
-			secret:    "changeme-but-still-weak-1234567890",
+			name:        "weak secret - changeme",
+			secret:      "changeme-but-still-weak-1234567890",
 			expectError: true,
 			errorSubstr: "weak or default secret detected",
 		},
 		{
-			name:      "weak secret - password",
-			secret:    "password-is-weak-1234567890123456",
+			name:        "weak secret - password",
+			secret:      "password-is-weak-1234567890123456",
 			expectError: true,
 			errorSubstr: "weak or default secret detected",
 		},
 		{
-			name:      "weak secret - 12345678",
-			secret:    "12345678-weak-pattern-1234567890123456",
+			name:        "weak secret - 12345678",
+			secret:      "12345678-weak-pattern-1234567890123456",
 			expectError: true,
 			errorSubstr: "weak or default secret detected",
 		},
 		{
-			name:      "weak secret - default",
-			secret:    "default-jwt-secret-1234567890123456",
+			name:        "weak secret - default",
+			secret:      "default-jwt-secret-1234567890123456",
 			expectError: true,
 			errorSubstr: "weak or default secret detected",
 		},
 		{
-			name:      "weak secret - admin",
-			secret:    "admin-secret-key-1234567890123456",
+			name:        "weak secret - admin",
+			secret:      "admin-secret-key-1234567890123456",
 			expectError: true,
 			errorSubstr: "weak or default secret detected",
 		},
 		{
-			name:      "weak secret - test",
-			secret:    "test-jwt-secret-key-1234567890123456",
+			name:        "weak secret - test",
+			secret:      "test-jwt-secret-key-1234567890123456",
 			expectError: true,
 			errorSubstr: "weak or default secret detected",
 		},
 		{
-			name:      "weak secret - demo",
-			secret:    "demo-application-secret-1234567890123456",
+			name:        "weak secret - demo",
+			secret:      "demo-application-secret-1234567890123456",
 			expectError: true,
 			errorSubstr: "weak or default secret detected",
 		},
 		{
-			name:      "repetitive pattern - all same character",
-			secret:    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+			name:        "repetitive pattern - all same character",
+			secret:      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 			expectError: true,
 			errorSubstr: "repetitive pattern detected",
 		},
 		{
-			name:      "repetitive pattern - all zeros",
-			secret:    "00000000000000000000000000000000000000",
+			name:        "repetitive pattern - all zeros",
+			secret:      "00000000000000000000000000000000000000",
 			expectError: true,
 			errorSubstr: "repetitive pattern detected",
 		},
 		{
-			name:      "strong secret",
-			secret:    "R@nd0m!Str0ng#JWT$S3cr3t%K3y&F0r*T3st1ng+2024",
+			name:        "strong secret",
+			secret:      "R@nd0m!Str0ng#JWT$S3cr3t%K3y&F0r*T3st1ng+2024",
 			expectError: false,
 		},
 		{
-			name:      "UUID-like strong secret",
-			secret:    "a7b8c9d0-e1f2-4a5b-8c9d-0e1f2a3b4c5d-jwt-strong-key",
+			name:        "UUID-like strong secret",
+			secret:      "a7b8c9d0-e1f2-4a5b-8c9d-0e1f2a3b4c5d-jwt-strong-key",
 			expectError: false,
 		},
 		{
-			name:      "base64-like strong secret",
-			secret:    "YWJjZGVmZ2hpams987654321+/ABCDEFGHIJKLmnopqrstuvwxyz",
+			name:        "base64-like strong secret",
+			secret:      "YWJjZGVmZ2hpams987654321+/ABCDEFGHIJKLmnopqrstuvwxyz",
 			expectError: false,
 		},
 	}

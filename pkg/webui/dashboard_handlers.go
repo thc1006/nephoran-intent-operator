@@ -32,88 +32,88 @@ import (
 
 // DashboardMetrics represents comprehensive dashboard metrics
 type DashboardMetrics struct {
-	Overview          *OverviewMetrics          `json:"overview"`
-	IntentMetrics     *IntentMetrics           `json:"intent_metrics"`
-	PackageMetrics    *PackageMetrics          `json:"package_metrics"`
-	ClusterMetrics    *ClusterMetrics          `json:"cluster_metrics"`
-	NetworkMetrics    *NetworkMetrics          `json:"network_metrics"`
-	PerformanceMetrics *PerformanceMetrics     `json:"performance_metrics"`
-	AlertsAndEvents   *AlertsAndEvents         `json:"alerts_and_events"`
-	Timestamp         time.Time                `json:"timestamp"`
+	Overview           *OverviewMetrics    `json:"overview"`
+	IntentMetrics      *IntentMetrics      `json:"intent_metrics"`
+	PackageMetrics     *PackageMetrics     `json:"package_metrics"`
+	ClusterMetrics     *ClusterMetrics     `json:"cluster_metrics"`
+	NetworkMetrics     *NetworkMetrics     `json:"network_metrics"`
+	PerformanceMetrics *PerformanceMetrics `json:"performance_metrics"`
+	AlertsAndEvents    *AlertsAndEvents    `json:"alerts_and_events"`
+	Timestamp          time.Time           `json:"timestamp"`
 }
 
 // OverviewMetrics provides high-level system overview
 type OverviewMetrics struct {
-	TotalIntents         int64   `json:"total_intents"`
-	ActiveIntents        int64   `json:"active_intents"`
-	CompletedIntents     int64   `json:"completed_intents"`
-	FailedIntents        int64   `json:"failed_intents"`
-	TotalPackages        int64   `json:"total_packages"`
-	PublishedPackages    int64   `json:"published_packages"`
-	TotalClusters        int64   `json:"total_clusters"`
-	HealthyClusters      int64   `json:"healthy_clusters"`
-	SystemHealth         string  `json:"system_health"`
-	SuccessRate          float64 `json:"success_rate"`
-	AvgProcessingTime    float64 `json:"avg_processing_time_seconds"`
+	TotalIntents      int64   `json:"total_intents"`
+	ActiveIntents     int64   `json:"active_intents"`
+	CompletedIntents  int64   `json:"completed_intents"`
+	FailedIntents     int64   `json:"failed_intents"`
+	TotalPackages     int64   `json:"total_packages"`
+	PublishedPackages int64   `json:"published_packages"`
+	TotalClusters     int64   `json:"total_clusters"`
+	HealthyClusters   int64   `json:"healthy_clusters"`
+	SystemHealth      string  `json:"system_health"`
+	SuccessRate       float64 `json:"success_rate"`
+	AvgProcessingTime float64 `json:"avg_processing_time_seconds"`
 }
 
 // IntentMetrics provides intent-specific metrics
 type IntentMetrics struct {
-	ByStatus           map[string]int64     `json:"by_status"`
-	ByType             map[string]int64     `json:"by_type"`
-	ByPriority         map[string]int64     `json:"by_priority"`
-	ByComponent        map[string]int64     `json:"by_component"`
-	ProcessingTimes    *ProcessingTimes     `json:"processing_times"`
-	RecentActivity     []*IntentActivity    `json:"recent_activity"`
-	TrendData          []*TrendDataPoint    `json:"trend_data"`
-	SuccessRateByHour  []*HourlySuccessRate `json:"success_rate_by_hour"`
+	ByStatus          map[string]int64     `json:"by_status"`
+	ByType            map[string]int64     `json:"by_type"`
+	ByPriority        map[string]int64     `json:"by_priority"`
+	ByComponent       map[string]int64     `json:"by_component"`
+	ProcessingTimes   *ProcessingTimes     `json:"processing_times"`
+	RecentActivity    []*IntentActivity    `json:"recent_activity"`
+	TrendData         []*TrendDataPoint    `json:"trend_data"`
+	SuccessRateByHour []*HourlySuccessRate `json:"success_rate_by_hour"`
 }
 
 // PackageMetrics provides package-specific metrics
 type PackageMetrics struct {
-	ByLifecycle        map[string]int64         `json:"by_lifecycle"`
-	ByRepository       map[string]int64         `json:"by_repository"`
-	ValidationResults  *ValidationMetrics       `json:"validation_results"`
-	DeploymentMetrics  *DeploymentMetrics       `json:"deployment_metrics"`
-	RecentTransitions  []*PackageTransition     `json:"recent_transitions"`
-	LifecycleTrends    []*LifecycleTrendPoint   `json:"lifecycle_trends"`
+	ByLifecycle       map[string]int64       `json:"by_lifecycle"`
+	ByRepository      map[string]int64       `json:"by_repository"`
+	ValidationResults *ValidationMetrics     `json:"validation_results"`
+	DeploymentMetrics *DeploymentMetrics     `json:"deployment_metrics"`
+	RecentTransitions []*PackageTransition   `json:"recent_transitions"`
+	LifecycleTrends   []*LifecycleTrendPoint `json:"lifecycle_trends"`
 }
 
 // ClusterMetrics provides cluster-specific metrics
 type ClusterMetrics struct {
-	ByStatus           map[string]int64     `json:"by_status"`
-	ByRegion           map[string]int64     `json:"by_region"`
-	ResourceUtilization *ResourceMetrics    `json:"resource_utilization"`
-	HealthDistribution []*HealthDistPoint   `json:"health_distribution"`
-	ConnectivityMatrix []*ConnectivityPoint `json:"connectivity_matrix"`
+	ByStatus            map[string]int64     `json:"by_status"`
+	ByRegion            map[string]int64     `json:"by_region"`
+	ResourceUtilization *ResourceMetrics     `json:"resource_utilization"`
+	HealthDistribution  []*HealthDistPoint   `json:"health_distribution"`
+	ConnectivityMatrix  []*ConnectivityPoint `json:"connectivity_matrix"`
 }
 
 // NetworkMetrics provides network-wide metrics
 type NetworkMetrics struct {
-	TotalDeployments     int64                `json:"total_deployments"`
-	ActiveDeployments    int64                `json:"active_deployments"`
-	NetworkFunctions     map[string]int64     `json:"network_functions"`
-	ServiceMeshMetrics   *ServiceMeshMetrics  `json:"service_mesh_metrics"`
-	LatencyMetrics       *LatencyMetrics      `json:"latency_metrics"`
-	ThroughputMetrics    *ThroughputMetrics   `json:"throughput_metrics"`
+	TotalDeployments   int64               `json:"total_deployments"`
+	ActiveDeployments  int64               `json:"active_deployments"`
+	NetworkFunctions   map[string]int64    `json:"network_functions"`
+	ServiceMeshMetrics *ServiceMeshMetrics `json:"service_mesh_metrics"`
+	LatencyMetrics     *LatencyMetrics     `json:"latency_metrics"`
+	ThroughputMetrics  *ThroughputMetrics  `json:"throughput_metrics"`
 }
 
 // PerformanceMetrics provides system performance metrics
 type PerformanceMetrics struct {
-	APIResponseTimes     *ResponseTimeMetrics `json:"api_response_times"`
-	CachePerformance     *CacheStats          `json:"cache_performance"`
-	RateLimitStats       *RateLimitStats      `json:"rate_limit_stats"`
-	ConnectionStats      *ConnectionStats     `json:"connection_stats"`
-	ResourceUsage        *SystemResourceUsage `json:"resource_usage"`
+	APIResponseTimes *ResponseTimeMetrics `json:"api_response_times"`
+	CachePerformance *CacheStats          `json:"cache_performance"`
+	RateLimitStats   *RateLimitStats      `json:"rate_limit_stats"`
+	ConnectionStats  *ConnectionStats     `json:"connection_stats"`
+	ResourceUsage    *SystemResourceUsage `json:"resource_usage"`
 }
 
 // AlertsAndEvents provides alerts and recent events
 type AlertsAndEvents struct {
-	ActiveAlerts       []*Alert       `json:"active_alerts"`
-	RecentEvents       []*SystemEvent `json:"recent_events"`
-	AlertsSummary      *AlertsSummary `json:"alerts_summary"`
-	EventsByType       map[string]int64 `json:"events_by_type"`
-	EventsByLevel      map[string]int64 `json:"events_by_level"`
+	ActiveAlerts  []*Alert         `json:"active_alerts"`
+	RecentEvents  []*SystemEvent   `json:"recent_events"`
+	AlertsSummary *AlertsSummary   `json:"alerts_summary"`
+	EventsByType  map[string]int64 `json:"events_by_type"`
+	EventsByLevel map[string]int64 `json:"events_by_level"`
 }
 
 // Supporting data structures
@@ -127,11 +127,11 @@ type ProcessingTimes struct {
 }
 
 type IntentActivity struct {
-	IntentName      string    `json:"intent_name"`
-	Status          string    `json:"status"`
-	Component       string    `json:"component"`
-	Timestamp       time.Time `json:"timestamp"`
-	ProcessingTime  int64     `json:"processing_time_ms"`
+	IntentName     string    `json:"intent_name"`
+	Status         string    `json:"status"`
+	Component      string    `json:"component"`
+	Timestamp      time.Time `json:"timestamp"`
+	ProcessingTime int64     `json:"processing_time_ms"`
 }
 
 type TrendDataPoint struct {
@@ -148,11 +148,11 @@ type HourlySuccessRate struct {
 }
 
 type ValidationMetrics struct {
-	TotalValidations    int64   `json:"total_validations"`
-	PassedValidations   int64   `json:"passed_validations"`
-	FailedValidations   int64   `json:"failed_validations"`
-	ValidationRate      float64 `json:"validation_rate"`
-	AvgValidationTime   float64 `json:"avg_validation_time_ms"`
+	TotalValidations  int64   `json:"total_validations"`
+	PassedValidations int64   `json:"passed_validations"`
+	FailedValidations int64   `json:"failed_validations"`
+	ValidationRate    float64 `json:"validation_rate"`
+	AvgValidationTime float64 `json:"avg_validation_time_ms"`
 }
 
 type DeploymentMetrics struct {
@@ -164,12 +164,12 @@ type DeploymentMetrics struct {
 }
 
 type PackageTransition struct {
-	PackageName   string    `json:"package_name"`
-	FromStage     string    `json:"from_stage"`
-	ToStage       string    `json:"to_stage"`
-	Timestamp     time.Time `json:"timestamp"`
-	Duration      int64     `json:"duration_ms"`
-	Success       bool      `json:"success"`
+	PackageName string    `json:"package_name"`
+	FromStage   string    `json:"from_stage"`
+	ToStage     string    `json:"to_stage"`
+	Timestamp   time.Time `json:"timestamp"`
+	Duration    int64     `json:"duration_ms"`
+	Success     bool      `json:"success"`
 }
 
 type LifecycleTrendPoint struct {
@@ -180,14 +180,14 @@ type LifecycleTrendPoint struct {
 }
 
 type ResourceMetrics struct {
-	TotalCPU      float64 `json:"total_cpu_cores"`
-	UsedCPU       float64 `json:"used_cpu_cores"`
-	TotalMemory   int64   `json:"total_memory_bytes"`
-	UsedMemory    int64   `json:"used_memory_bytes"`
-	TotalStorage  int64   `json:"total_storage_bytes"`
-	UsedStorage   int64   `json:"used_storage_bytes"`
-	CPUUtilization    float64 `json:"cpu_utilization_percent"`
-	MemoryUtilization float64 `json:"memory_utilization_percent"`
+	TotalCPU           float64 `json:"total_cpu_cores"`
+	UsedCPU            float64 `json:"used_cpu_cores"`
+	TotalMemory        int64   `json:"total_memory_bytes"`
+	UsedMemory         int64   `json:"used_memory_bytes"`
+	TotalStorage       int64   `json:"total_storage_bytes"`
+	UsedStorage        int64   `json:"used_storage_bytes"`
+	CPUUtilization     float64 `json:"cpu_utilization_percent"`
+	MemoryUtilization  float64 `json:"memory_utilization_percent"`
 	StorageUtilization float64 `json:"storage_utilization_percent"`
 }
 
@@ -204,18 +204,18 @@ type ConnectivityPoint struct {
 }
 
 type ServiceMeshMetrics struct {
-	TotalServices     int64   `json:"total_services"`
-	HealthyServices   int64   `json:"healthy_services"`
-	RequestRate       float64 `json:"requests_per_second"`
-	ErrorRate         float64 `json:"error_rate_percent"`
-	P99Latency        float64 `json:"p99_latency_ms"`
+	TotalServices   int64   `json:"total_services"`
+	HealthyServices int64   `json:"healthy_services"`
+	RequestRate     float64 `json:"requests_per_second"`
+	ErrorRate       float64 `json:"error_rate_percent"`
+	P99Latency      float64 `json:"p99_latency_ms"`
 }
 
 type LatencyMetrics struct {
-	AvgLatency    float64 `json:"avg_latency_ms"`
-	P50Latency    float64 `json:"p50_latency_ms"`
-	P95Latency    float64 `json:"p95_latency_ms"`
-	P99Latency    float64 `json:"p99_latency_ms"`
+	AvgLatency float64 `json:"avg_latency_ms"`
+	P50Latency float64 `json:"p50_latency_ms"`
+	P95Latency float64 `json:"p95_latency_ms"`
+	P99Latency float64 `json:"p99_latency_ms"`
 }
 
 type ThroughputMetrics struct {
@@ -232,30 +232,30 @@ type ResponseTimeMetrics struct {
 }
 
 type ConnectionStats struct {
-	ActiveWSConnections  int64 `json:"active_ws_connections"`
-	ActiveSSEConnections int64 `json:"active_sse_connections"`
-	TotalConnections     int64 `json:"total_connections"`
+	ActiveWSConnections  int64   `json:"active_ws_connections"`
+	ActiveSSEConnections int64   `json:"active_sse_connections"`
+	TotalConnections     int64   `json:"total_connections"`
 	ConnectionsPerSecond float64 `json:"connections_per_second"`
 }
 
 type SystemResourceUsage struct {
-	CPUUsage    float64 `json:"cpu_usage_percent"`
-	MemoryUsage float64 `json:"memory_usage_percent"`
-	DiskUsage   float64 `json:"disk_usage_percent"`
+	CPUUsage    float64    `json:"cpu_usage_percent"`
+	MemoryUsage float64    `json:"memory_usage_percent"`
+	DiskUsage   float64    `json:"disk_usage_percent"`
 	NetworkIO   *NetworkIO `json:"network_io"`
-	Uptime      int64   `json:"uptime_seconds"`
+	Uptime      int64      `json:"uptime_seconds"`
 }
 
 type Alert struct {
-	ID          string                 `json:"id"`
-	Level       string                 `json:"level"`
-	Title       string                 `json:"title"`
-	Message     string                 `json:"message"`
-	Component   string                 `json:"component"`
-	CreatedAt   time.Time             `json:"created_at"`
-	UpdatedAt   time.Time             `json:"updated_at"`
-	Status      string                `json:"status"` // active, acknowledged, resolved
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	ID        string                 `json:"id"`
+	Level     string                 `json:"level"`
+	Title     string                 `json:"title"`
+	Message   string                 `json:"message"`
+	Component string                 `json:"component"`
+	CreatedAt time.Time              `json:"created_at"`
+	UpdatedAt time.Time              `json:"updated_at"`
+	Status    string                 `json:"status"` // active, acknowledged, resolved
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 type AlertsSummary struct {
@@ -408,11 +408,11 @@ func (s *NephoranAPIServer) healthCheck(w http.ResponseWriter, r *http.Request) 
 	health := map[string]interface{}{
 		"status":    "healthy",
 		"timestamp": time.Now(),
-		"version":   "1.0.0", // Would come from build info
+		"version":   "1.0.0",                          // Would come from build info
 		"uptime":    time.Since(time.Now()).Seconds(), // Would track actual uptime
 		"checks": map[string]interface{}{
-			"api_server":       "healthy",
-			"database":         "healthy",
+			"api_server":      "healthy",
+			"database":        "healthy",
 			"cache":           s.checkCacheHealth(),
 			"rate_limiter":    s.checkRateLimiterHealth(),
 			"intent_manager":  "healthy",
@@ -424,7 +424,7 @@ func (s *NephoranAPIServer) healthCheck(w http.ResponseWriter, r *http.Request) 
 	s.writeJSONResponse(w, http.StatusOK, health)
 }
 
-// readinessCheck handles GET /readiness  
+// readinessCheck handles GET /readiness
 func (s *NephoranAPIServer) readinessCheck(w http.ResponseWriter, r *http.Request) {
 	ready := true
 	checks := make(map[string]string)
@@ -496,10 +496,10 @@ func (s *NephoranAPIServer) generateIntentMetrics(ctx context.Context) *IntentMe
 			"cancelled":  3,
 		},
 		ByType: map[string]int64{
-			"deployment":    786,
-			"scaling":       234,
-			"optimization":  167,
-			"maintenance":   60,
+			"deployment":   786,
+			"scaling":      234,
+			"optimization": 167,
+			"maintenance":  60,
 		},
 		ByPriority: map[string]int64{
 			"low":      345,
@@ -508,11 +508,11 @@ func (s *NephoranAPIServer) generateIntentMetrics(ctx context.Context) *IntentMe
 			"critical": 35,
 		},
 		ByComponent: map[string]int64{
-			"AMF": 234,
-			"SMF": 198,
-			"UPF": 345,
-			"gNodeB": 156,
-			"O-DU": 89,
+			"AMF":     234,
+			"SMF":     198,
+			"UPF":     345,
+			"gNodeB":  156,
+			"O-DU":    89,
 			"O-CU-CP": 67,
 		},
 		ProcessingTimes: &ProcessingTimes{
@@ -534,9 +534,9 @@ func (s *NephoranAPIServer) generatePackageMetrics(ctx context.Context) *Package
 			"published": 134,
 		},
 		ByRepository: map[string]int64{
-			"default":           89,
-			"production":        45,
-			"development":       22,
+			"default":     89,
+			"production":  45,
+			"development": 22,
 		},
 		ValidationResults: &ValidationMetrics{
 			TotalValidations:  234,
@@ -563,13 +563,13 @@ func (s *NephoranAPIServer) generateClusterMetrics(ctx context.Context) *Cluster
 			"unreachable": 0,
 		},
 		ByRegion: map[string]int64{
-			"us-west-2": 3,
-			"us-east-1": 2,
-			"eu-west-1": 2,
+			"us-west-2":  3,
+			"us-east-1":  2,
+			"eu-west-1":  2,
 			"ap-south-1": 1,
 		},
 		ResourceUtilization: &ResourceMetrics{
-			TotalCPU:           64.0,
+			TotalCPU:          64.0,
 			UsedCPU:           41.6,
 			TotalMemory:       524288000000, // 512GB
 			UsedMemory:        314572800000, // ~300GB
@@ -584,19 +584,19 @@ func (s *NephoranAPIServer) generateNetworkMetrics(ctx context.Context) *Network
 		TotalDeployments:  456,
 		ActiveDeployments: 389,
 		NetworkFunctions: map[string]int64{
-			"AMF":      12,
-			"SMF":      15,
-			"UPF":      28,
-			"gNodeB":   45,
-			"O-DU":     23,
-			"O-CU-CP":  16,
+			"AMF":     12,
+			"SMF":     15,
+			"UPF":     28,
+			"gNodeB":  45,
+			"O-DU":    23,
+			"O-CU-CP": 16,
 		},
 		ServiceMeshMetrics: &ServiceMeshMetrics{
 			TotalServices:   234,
 			HealthyServices: 228,
 			RequestRate:     1247.5,
 			ErrorRate:       0.8,
-			P99Latency:     15.6,
+			P99Latency:      15.6,
 		},
 	}
 }
@@ -699,20 +699,20 @@ func (s *NephoranAPIServer) checkRateLimiterHealth() string {
 // getSystemInfo handles GET /system/info
 func (s *NephoranAPIServer) getSystemInfo(w http.ResponseWriter, r *http.Request) {
 	info := map[string]interface{}{
-		"name":         "Nephoran Intent Operator API",
-		"version":      "1.0.0",
-		"build_time":   "2025-01-01T00:00:00Z", // Would come from build info
-		"git_commit":   "abc123def",              // Would come from build info
-		"go_version":   "go1.24.0",              // Would come from runtime
-		"started_at":   time.Now(),              // Would track actual start time
-		"uptime":       time.Since(time.Now()).Seconds(),
+		"name":       "Nephoran Intent Operator API",
+		"version":    "1.0.0",
+		"build_time": "2025-01-01T00:00:00Z", // Would come from build info
+		"git_commit": "abc123def",            // Would come from build info
+		"go_version": "go1.24.0",             // Would come from runtime
+		"started_at": time.Now(),             // Would track actual start time
+		"uptime":     time.Since(time.Now()).Seconds(),
 		"config": map[string]interface{}{
-			"port":            s.config.Port,
-			"tls_enabled":     s.config.TLSEnabled,
-			"cors_enabled":    s.config.EnableCORS,
-			"metrics_enabled": s.config.EnableMetrics,
-			"auth_enabled":    s.authMiddleware != nil,
-			"cache_enabled":   s.cache != nil,
+			"port":               s.config.Port,
+			"tls_enabled":        s.config.TLSEnabled,
+			"cors_enabled":       s.config.EnableCORS,
+			"metrics_enabled":    s.config.EnableMetrics,
+			"auth_enabled":       s.authMiddleware != nil,
+			"cache_enabled":      s.cache != nil,
 			"rate_limit_enabled": s.rateLimiter != nil,
 		},
 	}

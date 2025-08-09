@@ -16,9 +16,9 @@ import (
 
 func TestA1Interface_String(t *testing.T) {
 	tests := []struct {
-		name      string
+		name       string
 		interface_ A1Interface
-		expected  string
+		expected   string
 	}{
 		{"Policy Interface", A1PolicyInterface, "A1-P"},
 		{"Consumer Interface", A1ConsumerInterface, "A1-C"},
@@ -34,9 +34,9 @@ func TestA1Interface_String(t *testing.T) {
 
 func TestA1Interface_JSON_Serialization(t *testing.T) {
 	tests := []struct {
-		name      string
+		name       string
 		interface_ A1Interface
-		expected  string
+		expected   string
 	}{
 		{"Policy Interface", A1PolicyInterface, `"A1-P"`},
 		{"Consumer Interface", A1ConsumerInterface, `"A1-C"`},
@@ -61,8 +61,8 @@ func TestA1Interface_JSON_Serialization(t *testing.T) {
 
 func TestA1Version_Values(t *testing.T) {
 	tests := []struct {
-		name    string
-		version A1Version
+		name     string
+		version  A1Version
 		expected string
 	}{
 		{"Policy Version", A1PolicyVersion, "v2"},
@@ -81,7 +81,7 @@ func TestA1Version_Values(t *testing.T) {
 
 func TestPolicyType_JSON_Serialization(t *testing.T) {
 	now := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
-	
+
 	policyType := &PolicyType{
 		PolicyTypeID:   123,
 		PolicyTypeName: "Traffic Steering Policy",
@@ -103,7 +103,7 @@ func TestPolicyType_JSON_Serialization(t *testing.T) {
 			"type": "object",
 			"properties": map[string]interface{}{
 				"notification_destination": map[string]interface{}{
-					"type": "string",
+					"type":   "string",
 					"format": "uri",
 				},
 			},
@@ -172,7 +172,7 @@ func TestPolicyType_Validation_Tags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateStruct(&tt.policyType)
-			
+
 			if tt.expectValid {
 				assert.NoError(t, err)
 			} else {
@@ -231,7 +231,7 @@ func TestPolicyInstance_JSON_Serialization(t *testing.T) {
 		},
 		PolicyInfo: PolicyInstanceInfo{
 			NotificationDestination: "http://callback.example.com/policy-notifications",
-			RequestID:              "req-789",
+			RequestID:               "req-789",
 			AdditionalParams: map[string]interface{}{
 				"priority": "high",
 				"owner":    "network-operator",
@@ -260,10 +260,10 @@ func TestPolicyInstance_JSON_Serialization(t *testing.T) {
 
 func TestPolicyInstance_Validation_Tags(t *testing.T) {
 	tests := []struct {
-		name         string
-		instance     PolicyInstance
-		expectValid  bool
-		fieldErrors  []string
+		name        string
+		instance    PolicyInstance
+		expectValid bool
+		fieldErrors []string
 	}{
 		{
 			name: "valid policy instance",
@@ -305,7 +305,7 @@ func TestPolicyInstance_Validation_Tags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateStruct(&tt.instance)
-			
+
 			if tt.expectValid {
 				assert.NoError(t, err)
 			} else {
@@ -365,7 +365,7 @@ func TestPolicyInstance_ComplexPolicyData(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, instance.PolicyData, unmarshaled.PolicyData)
-	
+
 	// Verify complex nested structures
 	scope := unmarshaled.PolicyData["scope"].(map[string]interface{})
 	ueIds := scope["ue_ids"].([]interface{})
@@ -374,7 +374,7 @@ func TestPolicyInstance_ComplexPolicyData(t *testing.T) {
 
 	cellIds := scope["cell_ids"].([]interface{})
 	assert.Len(t, cellIds, 2)
-	
+
 	firstCell := cellIds[0].(map[string]interface{})
 	assert.Equal(t, "cell-123", firstCell["id"])
 	assert.Equal(t, 0.8, firstCell["weight"])
@@ -467,7 +467,7 @@ func TestPolicyStatus_Validation_Tags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateStruct(&tt.status)
-			
+
 			if tt.expectValid {
 				assert.NoError(t, err)
 			} else {
@@ -486,8 +486,8 @@ func TestEnrichmentInfoType_JSON_Serialization(t *testing.T) {
 	now := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
 
 	eiType := &EnrichmentInfoType{
-		EiTypeID:   "throughput-measurement",
-		EiTypeName: "Throughput Measurement EI Type",
+		EiTypeID:    "throughput-measurement",
+		EiTypeName:  "Throughput Measurement EI Type",
 		Description: "Enrichment Information type for measuring cell throughput",
 		EiJobDataSchema: map[string]interface{}{
 			"$schema": "http://json-schema.org/draft-07/schema#",
@@ -579,7 +579,7 @@ func TestEnrichmentInfoType_Validation_Tags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateStruct(&tt.eiType)
-			
+
 			if tt.expectValid {
 				assert.NoError(t, err)
 			} else {
@@ -610,13 +610,13 @@ func TestEnrichmentInfoJob_JSON_Serialization(t *testing.T) {
 				},
 			},
 			"reporting": map[string]interface{}{
-				"format": "json",
+				"format":      "json",
 				"compression": false,
 			},
 		},
-		TargetURI:        "http://ei-consumer.example.com/measurements",
-		JobOwner:         "network-analytics-service",
-		JobStatusURL:     "http://ei-consumer.example.com/job-status/throughput-job-001",
+		TargetURI:    "http://ei-consumer.example.com/measurements",
+		JobOwner:     "network-analytics-service",
+		JobStatusURL: "http://ei-consumer.example.com/job-status/throughput-job-001",
 		JobDefinition: EnrichmentJobDef{
 			DeliveryInfo: []DeliveryInfo{
 				{
@@ -739,7 +739,7 @@ func TestEnrichmentInfoJob_Validation_Tags(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateStruct(&tt.job)
-			
+
 			if tt.expectValid {
 				assert.NoError(t, err)
 			} else {
@@ -759,9 +759,9 @@ func TestDeliveryInfo_JSON_Serialization(t *testing.T) {
 		DeliveryURL:    "http://callback.example.com/ei-results",
 		DeliveryMethod: "POST",
 		Headers: map[string]string{
-			"Content-Type":     "application/json",
-			"Authorization":    "Bearer token123",
-			"X-Client-ID":      "ei-consumer-1",
+			"Content-Type":      "application/json",
+			"Authorization":     "Bearer token123",
+			"X-Client-ID":       "ei-consumer-1",
 			"X-Request-Timeout": "30s",
 		},
 		RetryPolicy: RetryPolicy{
@@ -851,10 +851,10 @@ func TestTypes_LargeDataHandling(t *testing.T) {
 	largeData := make(map[string]interface{})
 	for i := 0; i < 1000; i++ {
 		largeData[fmt.Sprintf("field_%d", i)] = map[string]interface{}{
-			"value":       fmt.Sprintf("value_%d", i),
-			"numeric":     i,
-			"boolean":     i%2 == 0,
-			"array":       []interface{}{i, i + 1, i + 2},
+			"value":   fmt.Sprintf("value_%d", i),
+			"numeric": i,
+			"boolean": i%2 == 0,
+			"array":   []interface{}{i, i + 1, i + 2},
 			"nested": map[string]interface{}{
 				"deep_field": fmt.Sprintf("deep_value_%d", i),
 			},
@@ -945,12 +945,12 @@ func TestTypes_TimeHandling(t *testing.T) {
 func TestTypes_InterfaceConversion(t *testing.T) {
 	// Test conversion between interface{} and concrete types
 	data := map[string]interface{}{
-		"string_field":  "test",
-		"int_field":     42,
-		"float_field":   3.14,
-		"bool_field":    true,
-		"array_field":   []interface{}{1, 2, 3},
-		"object_field":  map[string]interface{}{"nested": "value"},
+		"string_field": "test",
+		"int_field":    42,
+		"float_field":  3.14,
+		"bool_field":   true,
+		"array_field":  []interface{}{1, 2, 3},
+		"object_field": map[string]interface{}{"nested": "value"},
 	}
 
 	instance := &PolicyInstance{
@@ -969,12 +969,12 @@ func TestTypes_InterfaceConversion(t *testing.T) {
 	// Test type assertions
 	policyData := unmarshaled.PolicyData
 	assert.Equal(t, "test", policyData["string_field"].(string))
-	
+
 	// JSON unmarshaling converts numbers to float64
 	assert.Equal(t, float64(42), policyData["int_field"].(float64))
 	assert.Equal(t, 3.14, policyData["float_field"].(float64))
 	assert.Equal(t, true, policyData["bool_field"].(bool))
-	
+
 	arrayField := policyData["array_field"].([]interface{})
 	assert.Len(t, arrayField, 3)
 	assert.Equal(t, float64(1), arrayField[0].(float64))
@@ -1115,7 +1115,7 @@ type RetryPolicy struct {
 func ValidateStruct(s interface{}) error {
 	// This is a simplified validation function for testing purposes
 	// In real implementation, you would use a proper validation library like go-playground/validator
-	
+
 	switch v := s.(type) {
 	case *PolicyType:
 		if v.PolicyTypeID <= 0 {

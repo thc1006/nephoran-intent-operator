@@ -21,12 +21,12 @@ import (
 
 var _ = Describe("O-RAN Interface Integration Tests", func() {
 	var (
-		namespace       *corev1.Namespace
-		testCtx         context.Context
-		a1Server        *httptest.Server
-		o1Server        *httptest.Server
-		o2Server        *httptest.Server
-		e2Server        *httptest.Server
+		namespace        *corev1.Namespace
+		testCtx          context.Context
+		a1Server         *httptest.Server
+		o1Server         *httptest.Server
+		o2Server         *httptest.Server
+		e2Server         *httptest.Server
 		interfaceTracker *ORANInterfaceTracker
 	)
 
@@ -91,7 +91,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				By("checking created policies")
 				policies := interfaceTracker.GetCreatedPolicies()
 				Expect(policies).To(HaveLen(BeNumerically(">", 0)))
-				
+
 				for _, policy := range policies {
 					Expect(policy.PolicyID).NotTo(BeEmpty())
 					Expect(policy.PolicyType).To(Or(Equal("QoS-Optimization"), Equal("Traffic-Steering")))
@@ -106,9 +106,9 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 						Name:      "a1-policy-update-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/a1-endpoint":      a1Server.URL,
-							"nephoran.com/policy-enabled":   "true",
-							"nephoran.com/policy-type":      "QoS-Optimization",
+							"nephoran.com/a1-endpoint":    a1Server.URL,
+							"nephoran.com/policy-enabled": "true",
+							"nephoran.com/policy-type":    "QoS-Optimization",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
@@ -147,11 +147,11 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				By("checking policy status after update")
 				updatedPolicies := interfaceTracker.GetCreatedPolicies()
 				Expect(len(updatedPolicies)).To(BeNumerically(">=", initialPolicyCount))
-				
+
 				// Verify at least one policy was updated
 				foundUpdated := false
 				for _, policy := range updatedPolicies {
-					if policy.LastModified.After(time.Now().Add(-60*time.Second)) {
+					if policy.LastModified.After(time.Now().Add(-60 * time.Second)) {
 						foundUpdated = true
 						break
 					}
@@ -166,9 +166,9 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 						Name:      "a1-callback-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/a1-endpoint":         a1Server.URL,
-							"nephoran.com/policy-enabled":      "true",
-							"nephoran.com/status-callback":     "true",
+							"nephoran.com/a1-endpoint":     a1Server.URL,
+							"nephoran.com/policy-enabled":  "true",
+							"nephoran.com/status-callback": "true",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
@@ -219,9 +219,9 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 						Name:      "o1-config-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/o1-endpoint":      o1Server.URL,
-							"nephoran.com/fcaps-enabled":    "true",
-							"nephoran.com/config-mgmt":      "true",
+							"nephoran.com/o1-endpoint":   o1Server.URL,
+							"nephoran.com/fcaps-enabled": "true",
+							"nephoran.com/config-mgmt":   "true",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
@@ -248,7 +248,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				By("checking configuration transactions")
 				configs := interfaceTracker.GetConfigurationChanges()
 				Expect(configs).To(HaveLen(BeNumerically(">", 0)))
-				
+
 				for _, config := range configs {
 					Expect(config.Operation).To(Or(Equal("create"), Equal("update")))
 					Expect(config.Target).NotTo(BeEmpty())
@@ -263,9 +263,9 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 						Name:      "o1-perf-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/o1-endpoint":       o1Server.URL,
-							"nephoran.com/perf-monitoring":   "true",
-							"nephoran.com/metrics-interval":  "30s",
+							"nephoran.com/o1-endpoint":      o1Server.URL,
+							"nephoran.com/perf-monitoring":  "true",
+							"nephoran.com/metrics-interval": "30s",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
@@ -319,9 +319,9 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 						Name:      "o1-fault-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/o1-endpoint":     o1Server.URL,
-							"nephoran.com/fault-mgmt":      "true",
-							"nephoran.com/alarm-handling":  "true",
+							"nephoran.com/o1-endpoint":    o1Server.URL,
+							"nephoran.com/fault-mgmt":     "true",
+							"nephoran.com/alarm-handling": "true",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
@@ -341,7 +341,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				}, 60*time.Second, 2*time.Second).Should(BeNumerically(">", 0))
 
 				By("simulating fault condition")
-				interfaceTracker.SimulateFault("O-eNB-001", "communication-loss", "critical", 
+				interfaceTracker.SimulateFault("O-eNB-001", "communication-loss", "critical",
 					"Lost communication with UE in cell sector 1")
 
 				By("verifying alarm generation")
@@ -373,7 +373,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 						Name:      "e2-interface-nodeset",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/e2-endpoint": e2Server.URL,
+							"nephoran.com/e2-endpoint":  e2Server.URL,
 							"nephoran.com/ric-endpoint": e2Server.URL + "/ric",
 						},
 					},
@@ -422,7 +422,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				By("checking connected E2 nodes")
 				connectedNodes := interfaceTracker.GetConnectedE2Nodes()
 				Expect(connectedNodes).To(HaveLen(BeNumerically(">", 0)))
-				
+
 				for _, node := range connectedNodes {
 					Expect(node.NodeID).To(ContainSubstring("e2-interface-node"))
 					Expect(node.E2InterfaceVersion).To(Equal("v3.0"))
@@ -438,8 +438,8 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 						Name:      "e2-subscription-nodeset",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/e2-endpoint":        e2Server.URL,
-							"nephoran.com/subscription-test":  "true",
+							"nephoran.com/e2-endpoint":       e2Server.URL,
+							"nephoran.com/subscription-test": "true",
 						},
 					},
 					Spec: nephoranv1.E2NodeSetSpec{
@@ -504,7 +504,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				By("checking indication data")
 				indications := interfaceTracker.GetReceivedIndications()
 				Expect(indications).To(HaveLen(BeNumerically(">", 0)))
-				
+
 				if len(indications) > 0 {
 					indication := indications[0]
 					Expect(indication.NodeID).NotTo(BeEmpty())
@@ -523,7 +523,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 						Name:      "o2-infra-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/o2-endpoint":       o2Server.URL,
+							"nephoran.com/o2-endpoint":        o2Server.URL,
 							"nephoran.com/infra-provisioning": "true",
 							"nephoran.com/cloud-provider":     "kubernetes",
 						},
@@ -554,7 +554,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				By("checking provisioned infrastructure")
 				infraResources := interfaceTracker.GetProvisionedResources()
 				Expect(infraResources).To(HaveLen(BeNumerically(">", 0)))
-				
+
 				for _, resource := range infraResources {
 					Expect(resource.Type).To(Or(Equal("compute"), Equal("network"), Equal("storage")))
 					Expect(resource.Status).To(Equal("provisioned"))
@@ -569,9 +569,9 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 						Name:      "o2-scaling-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/o2-endpoint":      o2Server.URL,
-							"nephoran.com/auto-scaling":     "true",
-							"nephoran.com/scale-policy":     "cpu-based",
+							"nephoran.com/o2-endpoint":  o2Server.URL,
+							"nephoran.com/auto-scaling": "true",
+							"nephoran.com/scale-policy": "cpu-based",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
@@ -601,7 +601,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				By("checking scaling history")
 				scalingEvents := interfaceTracker.GetScalingEvents()
 				Expect(scalingEvents).To(HaveLen(BeNumerically(">", 0)))
-				
+
 				foundScaleOut := false
 				for _, event := range scalingEvents {
 					if event.Action == "scale-out" && event.Reason == "cpu-threshold-exceeded" {
@@ -624,9 +624,9 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 						Name:      "multi-interface-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/a1-endpoint":       a1Server.URL,
-							"nephoran.com/e2-endpoint":       e2Server.URL,
-							"nephoran.com/interface-coord":   "true",
+							"nephoran.com/a1-endpoint":     a1Server.URL,
+							"nephoran.com/e2-endpoint":     e2Server.URL,
+							"nephoran.com/interface-coord": "true",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
@@ -719,12 +719,12 @@ type O1Alarm struct {
 
 // E2Node represents a connected E2 node
 type E2Node struct {
-	NodeID               string
-	E2InterfaceVersion   string
-	ConnectionStatus     string
-	SupportedFunctions   []RANFunctionInfo
-	LastHeartbeat        time.Time
-	ConnectionTimestamp  time.Time
+	NodeID              string
+	E2InterfaceVersion  string
+	ConnectionStatus    string
+	SupportedFunctions  []RANFunctionInfo
+	LastHeartbeat       time.Time
+	ConnectionTimestamp time.Time
 }
 
 // RANFunctionInfo represents RAN function information
@@ -805,7 +805,7 @@ func (oit *ORANInterfaceTracker) GetOperationCount(operation string) int {
 func (oit *ORANInterfaceTracker) CreatePolicy(policyType string) A1Policy {
 	oit.mu.Lock()
 	defer oit.mu.Unlock()
-	
+
 	policy := A1Policy{
 		PolicyID:     fmt.Sprintf("policy-%d", len(oit.createdPolicies)+1),
 		PolicyType:   policyType,
@@ -813,7 +813,7 @@ func (oit *ORANInterfaceTracker) CreatePolicy(policyType string) A1Policy {
 		CreatedAt:    time.Now(),
 		LastModified: time.Now(),
 	}
-	
+
 	oit.createdPolicies = append(oit.createdPolicies, policy)
 	return policy
 }
@@ -827,7 +827,7 @@ func (oit *ORANInterfaceTracker) GetCreatedPolicies() []A1Policy {
 func (oit *ORANInterfaceTracker) GetPolicy(policyID string) *A1Policy {
 	oit.mu.RLock()
 	defer oit.mu.RUnlock()
-	
+
 	for i, policy := range oit.createdPolicies {
 		if policy.PolicyID == policyID {
 			return &oit.createdPolicies[i]
@@ -839,7 +839,7 @@ func (oit *ORANInterfaceTracker) GetPolicy(policyID string) *A1Policy {
 func (oit *ORANInterfaceTracker) UpdatePolicyStatus(policyID, status, message string) {
 	oit.mu.Lock()
 	defer oit.mu.Unlock()
-	
+
 	for i, policy := range oit.createdPolicies {
 		if policy.PolicyID == policyID {
 			oit.createdPolicies[i].Status = status
@@ -854,7 +854,7 @@ func (oit *ORANInterfaceTracker) UpdatePolicyStatus(policyID, status, message st
 func (oit *ORANInterfaceTracker) AddConfigurationChange(target, operation string) {
 	oit.mu.Lock()
 	defer oit.mu.Unlock()
-	
+
 	config := O1Configuration{
 		ConfigID:  fmt.Sprintf("config-%d", len(oit.configChanges)+1),
 		Target:    target,
@@ -862,7 +862,7 @@ func (oit *ORANInterfaceTracker) AddConfigurationChange(target, operation string
 		Status:    "committed",
 		Timestamp: time.Now(),
 	}
-	
+
 	oit.configChanges = append(oit.configChanges, config)
 }
 
@@ -881,7 +881,7 @@ func (oit *ORANInterfaceTracker) SimulateMetricCollection(component string, metr
 func (oit *ORANInterfaceTracker) GetCollectedMetrics() map[string]map[string]float64 {
 	oit.mu.RLock()
 	defer oit.mu.RUnlock()
-	
+
 	result := make(map[string]map[string]float64)
 	for k, v := range oit.collectedMetrics {
 		componentMetrics := make(map[string]float64)
@@ -896,7 +896,7 @@ func (oit *ORANInterfaceTracker) GetCollectedMetrics() map[string]map[string]flo
 func (oit *ORANInterfaceTracker) SimulateFault(source, alarmType, severity, message string) {
 	oit.mu.Lock()
 	defer oit.mu.Unlock()
-	
+
 	alarm := O1Alarm{
 		AlarmID:   fmt.Sprintf("alarm-%d", len(oit.activeAlarms)+1),
 		Source:    source,
@@ -906,7 +906,7 @@ func (oit *ORANInterfaceTracker) SimulateFault(source, alarmType, severity, mess
 		Message:   message,
 		Timestamp: time.Now(),
 	}
-	
+
 	oit.activeAlarms = append(oit.activeAlarms, alarm)
 }
 
@@ -920,16 +920,16 @@ func (oit *ORANInterfaceTracker) GetActiveAlarms() []O1Alarm {
 func (oit *ORANInterfaceTracker) ConnectE2Node(nodeID, version string, functions []RANFunctionInfo) {
 	oit.mu.Lock()
 	defer oit.mu.Unlock()
-	
+
 	node := E2Node{
-		NodeID:               nodeID,
-		E2InterfaceVersion:   version,
-		ConnectionStatus:     "connected",
-		SupportedFunctions:   functions,
-		LastHeartbeat:        time.Now(),
-		ConnectionTimestamp:  time.Now(),
+		NodeID:              nodeID,
+		E2InterfaceVersion:  version,
+		ConnectionStatus:    "connected",
+		SupportedFunctions:  functions,
+		LastHeartbeat:       time.Now(),
+		ConnectionTimestamp: time.Now(),
 	}
-	
+
 	oit.connectedE2Nodes = append(oit.connectedE2Nodes, node)
 }
 
@@ -942,7 +942,7 @@ func (oit *ORANInterfaceTracker) GetConnectedE2Nodes() []E2Node {
 func (oit *ORANInterfaceTracker) CreateE2Subscription(nodeID string, functionID int, serviceModel string, reportPeriod time.Duration) {
 	oit.mu.Lock()
 	defer oit.mu.Unlock()
-	
+
 	subscription := E2Subscription{
 		SubscriptionID: fmt.Sprintf("sub-%d", len(oit.activeSubscriptions)+1),
 		NodeID:         nodeID,
@@ -952,7 +952,7 @@ func (oit *ORANInterfaceTracker) CreateE2Subscription(nodeID string, functionID 
 		Status:         "active",
 		CreatedAt:      time.Now(),
 	}
-	
+
 	oit.activeSubscriptions = append(oit.activeSubscriptions, subscription)
 }
 
@@ -965,16 +965,16 @@ func (oit *ORANInterfaceTracker) GetActiveSubscriptions() []E2Subscription {
 func (oit *ORANInterfaceTracker) SimulateE2Indication(nodeID, subscriptionID string, data map[string]interface{}) {
 	oit.mu.Lock()
 	defer oit.mu.Unlock()
-	
+
 	indication := E2Indication{
 		NodeID:         nodeID,
 		SubscriptionID: subscriptionID,
 		Data:           data,
 		Timestamp:      time.Now(),
 	}
-	
+
 	oit.receivedIndications = append(oit.receivedIndications, indication)
-	
+
 	// Update coordination metrics if this triggers cross-interface coordination
 	oit.coordinationMetrics["a1_e2_coordination_events"]++
 }
@@ -989,7 +989,7 @@ func (oit *ORANInterfaceTracker) GetReceivedIndications() []E2Indication {
 func (oit *ORANInterfaceTracker) ProvisionResource(resourceType, region string, specs map[string]interface{}) {
 	oit.mu.Lock()
 	defer oit.mu.Unlock()
-	
+
 	resource := O2Resource{
 		ResourceID: fmt.Sprintf("resource-%d", len(oit.provisionedResources)+1),
 		Type:       resourceType,
@@ -998,7 +998,7 @@ func (oit *ORANInterfaceTracker) ProvisionResource(resourceType, region string, 
 		Specs:      specs,
 		CreatedAt:  time.Now(),
 	}
-	
+
 	oit.provisionedResources = append(oit.provisionedResources, resource)
 }
 
@@ -1011,7 +1011,7 @@ func (oit *ORANInterfaceTracker) GetProvisionedResources() []O2Resource {
 func (oit *ORANInterfaceTracker) TriggerScalingEvent(action, reason string, triggerValue float64) {
 	oit.mu.Lock()
 	defer oit.mu.Unlock()
-	
+
 	event := O2ScalingEvent{
 		EventID:      fmt.Sprintf("scale-%d", len(oit.scalingEvents)+1),
 		Action:       action,
@@ -1019,7 +1019,7 @@ func (oit *ORANInterfaceTracker) TriggerScalingEvent(action, reason string, trig
 		TriggerValue: triggerValue,
 		Timestamp:    time.Now(),
 	}
-	
+
 	oit.scalingEvents = append(oit.scalingEvents, event)
 }
 
@@ -1032,7 +1032,7 @@ func (oit *ORANInterfaceTracker) GetScalingEvents() []O2ScalingEvent {
 func (oit *ORANInterfaceTracker) GetCoordinationMetrics() map[string]float64 {
 	oit.mu.RLock()
 	defer oit.mu.RUnlock()
-	
+
 	result := make(map[string]float64)
 	for k, v := range oit.coordinationMetrics {
 		result[k] = v
@@ -1167,13 +1167,13 @@ func handleO2Scaling(w http.ResponseWriter, r *http.Request, tracker *ORANInterf
 func handleE2Setup(w http.ResponseWriter, r *http.Request, tracker *ORANInterfaceTracker) {
 	tracker.IncrementOperation("e2-setup-request")
 	tracker.IncrementOperation("e2-setup-response")
-	
+
 	functions := []RANFunctionInfo{
 		{FunctionID: 1, Revision: 1, Description: "KPM Service Model", OID: "1.3.6.1.4.1.53148.1.1.2.2"},
 		{FunctionID: 2, Revision: 1, Description: "RC Service Model", OID: "1.3.6.1.4.1.53148.1.1.2.3"},
 	}
 	tracker.ConnectE2Node("test-node-1", "v3.0", functions)
-	
+
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "connected"})
 }

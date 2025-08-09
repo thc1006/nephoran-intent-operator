@@ -81,7 +81,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			By("Creating NetworkIntent with maximum length names")
 			longName := strings.Repeat("a", 63) // Maximum DNS label length
 			longNamespace := strings.Repeat("b", 63)
-			
+
 			networkIntent.Name = longName
 			networkIntent.Namespace = longNamespace
 
@@ -89,7 +89,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", longNamespace, longName)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", longNamespace, longName)
-			
+
 			mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(nil)
 			mockGitClient.On("CommitAndPushChanges", expectedMessage).Return(nil)
 
@@ -110,7 +110,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
-			
+
 			mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(nil)
 			mockGitClient.On("CommitAndPushChanges", expectedMessage).Return(nil)
 
@@ -141,7 +141,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
-			
+
 			mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(errors.New("context cancelled"))
 
 			By("Calling cleanupGitOpsPackages with cancelled context")
@@ -158,7 +158,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
-			
+
 			lockError := errors.New("fatal: Unable to create '/path/to/repo/.git/refs/heads/main.lock': File exists")
 			mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(lockError)
 
@@ -344,7 +344,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 					return false
 				}
 				return !containsFinalizer(updated.Finalizers, NetworkIntentFinalizer) &&
-					   containsFinalizer(updated.Finalizers, "other.controller/finalizer")
+					containsFinalizer(updated.Finalizers, "other.controller/finalizer")
 			}, timeout, interval).Should(BeTrue())
 
 			mockGitClient.AssertExpectations(GinkgoT())
@@ -360,7 +360,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Edge Cases", func() {
 			mockGitClient := mockDeps.gitClient.(*MockGitClientInterface)
 			expectedPath := fmt.Sprintf("networkintents/%s-%s", networkIntent.Namespace, networkIntent.Name)
 			expectedMessage := fmt.Sprintf("Remove NetworkIntent package: %s-%s", networkIntent.Namespace, networkIntent.Name)
-			
+
 			// Simulate that the directory doesn't exist (already cleaned)
 			notFoundError := errors.New("directory not found")
 			mockGitClient.On("RemoveDirectory", expectedPath, expectedMessage).Return(notFoundError)

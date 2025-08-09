@@ -14,24 +14,24 @@ import (
 	"sync/atomic"
 	"time"
 
+	metrics "github.com/prometheus/client_golang/api/prometheus/v1"
 	"golang.org/x/net/http2"
 	"golang.org/x/sync/singleflight"
-	metrics "github.com/prometheus/client_golang/api/prometheus/v1"
 	"k8s.io/klog/v2"
 )
 
 // OptimizedHTTPClient provides high-performance HTTP operations with Go 1.24+ optimizations
 type OptimizedHTTPClient struct {
-	client            *http.Client
-	connectionPool    *DynamicConnectionPool
-	pushTargets       map[string][]string
-	requestDeduper    *singleflight.Group
-	bufferPool        *BufferPool
-	healthChecker     *ConnectionHealthChecker
-	metrics          *HTTPMetrics
-	config           *HTTPConfig
-	tlsConfig        *tls.Config
-	mu               sync.RWMutex
+	client         *http.Client
+	connectionPool *DynamicConnectionPool
+	pushTargets    map[string][]string
+	requestDeduper *singleflight.Group
+	bufferPool     *BufferPool
+	healthChecker  *ConnectionHealthChecker
+	metrics        *HTTPMetrics
+	config         *HTTPConfig
+	tlsConfig      *tls.Config
+	mu             sync.RWMutex
 }
 
 // HTTPConfig contains HTTP optimization configuration
@@ -65,20 +65,20 @@ type DynamicConnectionPool struct {
 
 // ConnectionHealthChecker monitors connection health
 type ConnectionHealthChecker struct {
-	interval      time.Duration
-	timeout       time.Duration
-	healthChecks  map[string]*HealthCheckResult
-	mu            sync.RWMutex
-	cancel        context.CancelFunc
+	interval     time.Duration
+	timeout      time.Duration
+	healthChecks map[string]*HealthCheckResult
+	mu           sync.RWMutex
+	cancel       context.CancelFunc
 }
 
 // HealthCheckResult contains connection health information
 type HealthCheckResult struct {
-	LastCheck    time.Time
-	Latency      time.Duration
-	Errors       int64
-	Successes    int64
-	Healthy      bool
+	LastCheck time.Time
+	Latency   time.Duration
+	Errors    int64
+	Successes int64
+	Healthy   bool
 }
 
 // BufferPool provides optimized buffer management
@@ -98,14 +98,14 @@ type HTTPMetrics struct {
 	ConnectionsActive  int64
 	ConnectionsCreated int64
 	ConnectionsReused  int64
-	CacheHits         int64
-	CacheMisses       int64
-	BytesTransferred  int64
-	CompressionRatio  float64
-	HTTP2Connections  int64
-	HTTP3Connections  int64
-	TLSHandshakes     int64
-	ZeroRTTSuccess    int64
+	CacheHits          int64
+	CacheMisses        int64
+	BytesTransferred   int64
+	CompressionRatio   float64
+	HTTP2Connections   int64
+	HTTP3Connections   int64
+	TLSHandshakes      int64
+	ZeroRTTSuccess     int64
 }
 
 // NewOptimizedHTTPClient creates a new optimized HTTP client with Go 1.24+ features
@@ -116,12 +116,12 @@ func NewOptimizedHTTPClient(config *HTTPConfig) *OptimizedHTTPClient {
 
 	// Enhanced TLS configuration with Go 1.24 optimizations
 	tlsConfig := &tls.Config{
-		MinVersion:         tls.VersionTLS13,
+		MinVersion:             tls.VersionTLS13,
 		SessionTicketsDisabled: false,
-		ClientSessionCache: tls.NewLRUClientSessionCache(256),
-		InsecureSkipVerify: false,
-		Renegotiation:      tls.RenegotiateNever,
-		NextProtos:         []string{"h2", "http/1.1"},
+		ClientSessionCache:     tls.NewLRUClientSessionCache(256),
+		InsecureSkipVerify:     false,
+		Renegotiation:          tls.RenegotiateNever,
+		NextProtos:             []string{"h2", "http/1.1"},
 	}
 
 	if config.ZeroRTTEnabled {
@@ -184,9 +184,9 @@ func NewOptimizedHTTPClient(config *HTTPConfig) *OptimizedHTTPClient {
 		requestDeduper: &singleflight.Group{},
 		bufferPool:     NewBufferPool(),
 		healthChecker:  healthChecker,
-		metrics:       &HTTPMetrics{},
-		config:        config,
-		tlsConfig:     tlsConfig,
+		metrics:        &HTTPMetrics{},
+		config:         config,
+		tlsConfig:      tlsConfig,
 	}
 
 	// Pre-populate connection pool
@@ -207,8 +207,8 @@ func DefaultHTTPConfig() *HTTPConfig {
 		HTTP2Enabled:        true,
 		HTTP3Enabled:        false, // Enable when widely supported
 		ConnectionPoolSize:  100,
-		ReadBufferSize:      32 * 1024,  // 32KB
-		WriteBufferSize:     32 * 1024,  // 32KB
+		ReadBufferSize:      32 * 1024, // 32KB
+		WriteBufferSize:     32 * 1024, // 32KB
 		CompressionEnabled:  true,
 		ServerPushEnabled:   true,
 		ZeroRTTEnabled:      true,
@@ -546,14 +546,14 @@ func (c *OptimizedHTTPClient) GetMetrics() HTTPMetrics {
 		ConnectionsActive:  atomic.LoadInt64(&c.metrics.ConnectionsActive),
 		ConnectionsCreated: atomic.LoadInt64(&c.metrics.ConnectionsCreated),
 		ConnectionsReused:  atomic.LoadInt64(&c.metrics.ConnectionsReused),
-		CacheHits:         atomic.LoadInt64(&c.metrics.CacheHits),
-		CacheMisses:       atomic.LoadInt64(&c.metrics.CacheMisses),
-		BytesTransferred:  atomic.LoadInt64(&c.metrics.BytesTransferred),
-		CompressionRatio:  c.metrics.CompressionRatio,
-		HTTP2Connections:  atomic.LoadInt64(&c.metrics.HTTP2Connections),
-		HTTP3Connections:  atomic.LoadInt64(&c.metrics.HTTP3Connections),
-		TLSHandshakes:     atomic.LoadInt64(&c.metrics.TLSHandshakes),
-		ZeroRTTSuccess:    atomic.LoadInt64(&c.metrics.ZeroRTTSuccess),
+		CacheHits:          atomic.LoadInt64(&c.metrics.CacheHits),
+		CacheMisses:        atomic.LoadInt64(&c.metrics.CacheMisses),
+		BytesTransferred:   atomic.LoadInt64(&c.metrics.BytesTransferred),
+		CompressionRatio:   c.metrics.CompressionRatio,
+		HTTP2Connections:   atomic.LoadInt64(&c.metrics.HTTP2Connections),
+		HTTP3Connections:   atomic.LoadInt64(&c.metrics.HTTP3Connections),
+		TLSHandshakes:      atomic.LoadInt64(&c.metrics.TLSHandshakes),
+		ZeroRTTSuccess:     atomic.LoadInt64(&c.metrics.ZeroRTTSuccess),
 	}
 }
 

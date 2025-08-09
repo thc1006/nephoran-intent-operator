@@ -12,11 +12,11 @@ import (
 // PrometheusMetrics provides comprehensive Prometheus metrics for RAG system
 type PrometheusMetrics struct {
 	// Cache metrics - Redis
-	redisCacheHits         *prometheus.CounterVec
-	redisCacheMisses       *prometheus.CounterVec
-	redisCacheLatency      *prometheus.HistogramVec
-	redisCacheSize         *prometheus.GaugeVec
-	redisCacheEvictions    *prometheus.CounterVec
+	redisCacheHits      *prometheus.CounterVec
+	redisCacheMisses    *prometheus.CounterVec
+	redisCacheLatency   *prometheus.HistogramVec
+	redisCacheSize      *prometheus.GaugeVec
+	redisCacheEvictions *prometheus.CounterVec
 
 	// Cache metrics - Memory
 	memoryCacheHits        *prometheus.CounterVec
@@ -33,34 +33,34 @@ type PrometheusMetrics struct {
 	weaviatePoolErrors           *prometheus.CounterVec
 
 	// Query performance metrics
-	queryLatency           *prometheus.HistogramVec
-	queryThroughput        *prometheus.CounterVec
-	queryErrors            *prometheus.CounterVec
-	queryComplexity        *prometheus.HistogramVec
+	queryLatency    *prometheus.HistogramVec
+	queryThroughput *prometheus.CounterVec
+	queryErrors     *prometheus.CounterVec
+	queryComplexity *prometheus.HistogramVec
 
 	// Embedding metrics
-	embeddingLatency       *prometheus.HistogramVec
-	embeddingThroughput    *prometheus.CounterVec
-	embeddingCost          *prometheus.CounterVec
-	embeddingTokens        *prometheus.CounterVec
+	embeddingLatency    *prometheus.HistogramVec
+	embeddingThroughput *prometheus.CounterVec
+	embeddingCost       *prometheus.CounterVec
+	embeddingTokens     *prometheus.CounterVec
 
 	// Document processing metrics
 	documentProcessingLatency *prometheus.HistogramVec
 	documentProcessingSize    *prometheus.HistogramVec
-	chunkingLatency          *prometheus.HistogramVec
-	chunkingThroughput       *prometheus.CounterVec
+	chunkingLatency           *prometheus.HistogramVec
+	chunkingThroughput        *prometheus.CounterVec
 
 	// System resource metrics
-	systemCPU              prometheus.Gauge
-	systemMemory           prometheus.Gauge
-	systemDisk             prometheus.Gauge
-	systemGoroutines       prometheus.Gauge
-	systemHeapSize         prometheus.Gauge
+	systemCPU        prometheus.Gauge
+	systemMemory     prometheus.Gauge
+	systemDisk       prometheus.Gauge
+	systemGoroutines prometheus.Gauge
+	systemHeapSize   prometheus.Gauge
 
 	// Business metrics
-	intentTypes            *prometheus.CounterVec
-	userSessions           *prometheus.GaugeVec
-	responseQuality        *prometheus.HistogramVec
+	intentTypes     *prometheus.CounterVec
+	userSessions    *prometheus.GaugeVec
+	responseQuality *prometheus.HistogramVec
 }
 
 // NewPrometheusMetrics creates and registers all Prometheus metrics
@@ -421,7 +421,7 @@ func (pm *PrometheusMetrics) registerMetrics() {
 	// System metrics
 	prometheus.MustRegister(
 		pm.systemCPU,
-		pm. systemMemory,
+		pm.systemMemory,
 		pm.systemDisk,
 		pm.systemGoroutines,
 		pm.systemHeapSize,
@@ -595,12 +595,12 @@ func (pm *PrometheusMetrics) RecordResponseQuality(intentType, enhancementUsed s
 
 func (pm *PrometheusMetrics) UpdateRedisCacheMetrics(metrics *RedisCacheMetrics) {
 	categories := []string{"embedding", "document", "query_result", "context"}
-	
+
 	for _, category := range categories {
 		if stats, exists := metrics.CategoryStats[category]; exists {
 			// Update hits/misses
 			pm.UpdateRedisCacheSize(category, stats.SizeBytes)
-			
+
 			// Calculate and update hit rate
 			if stats.Hits+stats.Misses > 0 {
 				hitRate := float64(stats.Hits) / float64(stats.Hits+stats.Misses)
@@ -616,7 +616,7 @@ func (pm *PrometheusMetrics) UpdateMemoryCacheMetrics(metrics *MemoryCacheMetric
 		itemUtilization := float64(metrics.CurrentItems) / float64(metrics.MaxItems)
 		pm.UpdateMemoryCacheUtilization("items", itemUtilization)
 	}
-	
+
 	if metrics.MaxSizeBytes > 0 {
 		sizeUtilization := float64(metrics.CurrentSizeBytes) / float64(metrics.MaxSizeBytes)
 		pm.UpdateMemoryCacheUtilization("size", sizeUtilization)
@@ -654,7 +654,7 @@ func (pm *PrometheusMetrics) getBatchSizeRange(batchSize int) string {
 func (pm *PrometheusMetrics) calculateComplexity(query string, intentType string, filtersCount int) float64 {
 	// Simplified complexity calculation
 	complexity := 0.0
-	
+
 	// Base complexity by intent type
 	switch intentType {
 	case "configuration":
@@ -668,7 +668,7 @@ func (pm *PrometheusMetrics) calculateComplexity(query string, intentType string
 	default:
 		complexity += 0.2
 	}
-	
+
 	// Add complexity based on query length
 	queryLength := len(query)
 	if queryLength > 500 {
@@ -678,37 +678,37 @@ func (pm *PrometheusMetrics) calculateComplexity(query string, intentType string
 	} else if queryLength > 100 {
 		complexity += 0.1
 	}
-	
+
 	// Add complexity based on filters
 	complexity += float64(filtersCount) * 0.1
-	
+
 	// Cap at 1.0
 	if complexity > 1.0 {
 		complexity = 1.0
 	}
-	
+
 	return complexity
 }
 
 // MetricsCollector provides a centralized way to collect and update all metrics
 type MetricsCollector struct {
-	prometheus     *PrometheusMetrics
-	memoryCache    *MemoryCache
-	redisCache     *RedisCache
-	weaviatePool   *WeaviateConnectionPool
+	prometheus         *PrometheusMetrics
+	memoryCache        *MemoryCache
+	redisCache         *RedisCache
+	weaviatePool       *WeaviateConnectionPool
 	collectionInterval time.Duration
-	stopChan       chan struct{}
+	stopChan           chan struct{}
 }
 
 // NewMetricsCollector creates a new metrics collector
 func NewMetricsCollector(memoryCache *MemoryCache, redisCache *RedisCache, weaviatePool *WeaviateConnectionPool) *MetricsCollector {
 	return &MetricsCollector{
-		prometheus:     NewPrometheusMetrics(),
-		memoryCache:    memoryCache,
-		redisCache:     redisCache,
-		weaviatePool:   weaviatePool,
+		prometheus:         NewPrometheusMetrics(),
+		memoryCache:        memoryCache,
+		redisCache:         redisCache,
+		weaviatePool:       weaviatePool,
 		collectionInterval: 30 * time.Second,
-		stopChan:       make(chan struct{}),
+		stopChan:           make(chan struct{}),
 	}
 }
 

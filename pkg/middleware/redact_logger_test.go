@@ -38,12 +38,12 @@ func (h *mockLogHandler) Handle(ctx context.Context, r slog.Record) error {
 		Message: r.Message,
 		Attrs:   make(map[string]interface{}),
 	}
-	
+
 	r.Attrs(func(a slog.Attr) bool {
 		entry.Attrs[a.Key] = a.Value.Any()
 		return true
 	})
-	
+
 	h.entries = append(h.entries, entry)
 	return nil
 }
@@ -89,9 +89,9 @@ func TestRedactLogger_HeaderRedaction(t *testing.T) {
 		{
 			name: "redacts API key headers",
 			headers: map[string]string{
-				"X-API-Key":     "secret-key",
-				"X-Auth-Token":  "auth-token",
-				"X-Request-ID":  "req-123",
+				"X-API-Key":    "secret-key",
+				"X-Auth-Token": "auth-token",
+				"X-Request-ID": "req-123",
 			},
 			expectedRedact: map[string]bool{
 				"X-API-Key":    true,
@@ -119,7 +119,7 @@ func TestRedactLogger_HeaderRedaction(t *testing.T) {
 			config := DefaultRedactLoggerConfig()
 			mockHandler := &mockLogHandler{}
 			logger := slog.New(mockHandler)
-			
+
 			rl, err := NewRedactLogger(config, logger)
 			require.NoError(t, err)
 
@@ -193,7 +193,7 @@ func TestRedactLogger_QueryParamRedaction(t *testing.T) {
 			config := DefaultRedactLoggerConfig()
 			mockHandler := &mockLogHandler{}
 			logger := slog.New(mockHandler)
-			
+
 			rl, err := NewRedactLogger(config, logger)
 			require.NoError(t, err)
 
@@ -203,7 +203,7 @@ func TestRedactLogger_QueryParamRedaction(t *testing.T) {
 
 			// Redact query params
 			redacted := rl.redactQueryParams(params)
-			
+
 			// Parse redacted query
 			redactedParams, err := url.ParseQuery(redacted)
 			require.NoError(t, err)
@@ -265,7 +265,7 @@ func TestRedactLogger_BodyRedaction(t *testing.T) {
 			config := DefaultRedactLoggerConfig()
 			mockHandler := &mockLogHandler{}
 			logger := slog.New(mockHandler)
-			
+
 			rl, err := NewRedactLogger(config, logger)
 			require.NoError(t, err)
 
@@ -292,15 +292,15 @@ func TestRedactLogger_BodyRedaction(t *testing.T) {
 
 func TestRedactLogger_Middleware(t *testing.T) {
 	tests := []struct {
-		name               string
-		method             string
-		path               string
-		headers            map[string]string
-		query              string
-		body               string
-		expectedStatus     int
-		expectLogged       bool
-		expectCorrelation  bool
+		name              string
+		method            string
+		path              string
+		headers           map[string]string
+		query             string
+		body              string
+		expectedStatus    int
+		expectLogged      bool
+		expectCorrelation bool
 	}{
 		{
 			name:           "logs normal request",
@@ -317,12 +317,12 @@ func TestRedactLogger_Middleware(t *testing.T) {
 			expectLogged:   false,
 		},
 		{
-			name:           "logs with correlation ID",
-			method:         "POST",
-			path:           "/api/login",
-			headers:        map[string]string{"X-Request-ID": "test-123"},
-			expectedStatus: http.StatusOK,
-			expectLogged:   true,
+			name:              "logs with correlation ID",
+			method:            "POST",
+			path:              "/api/login",
+			headers:           map[string]string{"X-Request-ID": "test-123"},
+			expectedStatus:    http.StatusOK,
+			expectLogged:      true,
 			expectCorrelation: true,
 		},
 		{
@@ -352,7 +352,7 @@ func TestRedactLogger_Middleware(t *testing.T) {
 			config.LogLevel = slog.LevelDebug
 			mockHandler := &mockLogHandler{}
 			logger := slog.New(mockHandler)
-			
+
 			rl, err := NewRedactLogger(config, logger)
 			require.NoError(t, err)
 
@@ -370,12 +370,12 @@ func TestRedactLogger_Middleware(t *testing.T) {
 			if tt.query != "" {
 				url += "?" + tt.query
 			}
-			
+
 			var body io.Reader
 			if tt.body != "" {
 				body = strings.NewReader(tt.body)
 			}
-			
+
 			req := httptest.NewRequest(tt.method, url, body)
 			for k, v := range tt.headers {
 				req.Header.Set(k, v)
@@ -393,25 +393,25 @@ func TestRedactLogger_Middleware(t *testing.T) {
 			// Check logging
 			if tt.expectLogged {
 				assert.NotEmpty(t, mockHandler.entries, "Expected log entries")
-				
+
 				// Check for completion log
 				found := false
 				for _, entry := range mockHandler.entries {
 					if strings.Contains(entry.Message, "completed") {
 						found = true
-						
+
 						// Check correlation ID if expected
 						if tt.expectCorrelation {
 							correlationID, ok := entry.Attrs["correlation_id"].(string)
 							assert.True(t, ok, "Expected correlation_id in log")
 							assert.Equal(t, "test-123", correlationID)
 						}
-						
+
 						// Check status code
 						status, ok := entry.Attrs["status"].(int)
 						assert.True(t, ok, "Expected status in log")
 						assert.Equal(t, tt.expectedStatus, status)
-						
+
 						break
 					}
 				}
@@ -428,7 +428,7 @@ func TestRedactLogger_SlowRequests(t *testing.T) {
 	config.SlowRequestThreshold = 100 * time.Millisecond
 	mockHandler := &mockLogHandler{}
 	logger := slog.New(mockHandler)
-	
+
 	rl, err := NewRedactLogger(config, logger)
 	require.NoError(t, err)
 
@@ -462,10 +462,10 @@ func TestRedactLogger_SlowRequests(t *testing.T) {
 
 func TestRedactLogger_ErrorStatus(t *testing.T) {
 	tests := []struct {
-		name           string
-		statusCode     int
-		expectedLevel  slog.Level
-		expectedMsg    string
+		name          string
+		statusCode    int
+		expectedLevel slog.Level
+		expectedMsg   string
 	}{
 		{
 			name:          "client error",
@@ -492,7 +492,7 @@ func TestRedactLogger_ErrorStatus(t *testing.T) {
 			config := DefaultRedactLoggerConfig()
 			mockHandler := &mockLogHandler{}
 			logger := slog.New(mockHandler)
-			
+
 			rl, err := NewRedactLogger(config, logger)
 			require.NoError(t, err)
 
@@ -527,7 +527,7 @@ func TestRedactLogger_UpdateConfig(t *testing.T) {
 	config := DefaultRedactLoggerConfig()
 	mockHandler := &mockLogHandler{}
 	logger := slog.New(mockHandler)
-	
+
 	rl, err := NewRedactLogger(config, logger)
 	require.NoError(t, err)
 
@@ -535,7 +535,7 @@ func TestRedactLogger_UpdateConfig(t *testing.T) {
 	newConfig := DefaultRedactLoggerConfig()
 	newConfig.SensitiveHeaders = append(newConfig.SensitiveHeaders, "X-Custom-Secret")
 	newConfig.SkipPaths = append(newConfig.SkipPaths, "/custom/*")
-	
+
 	err = rl.UpdateConfig(newConfig)
 	require.NoError(t, err)
 
@@ -594,7 +594,7 @@ func TestRedactLogger_ClientIPExtraction(t *testing.T) {
 			config := DefaultRedactLoggerConfig()
 			mockHandler := &mockLogHandler{}
 			logger := slog.New(mockHandler)
-			
+
 			rl, err := NewRedactLogger(config, logger)
 			require.NoError(t, err)
 

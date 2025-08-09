@@ -14,7 +14,7 @@ func main() {
 
 	// Create a ContextBuilder without a connection pool to test graceful handling
 	cb := llm.NewContextBuilder()
-	
+
 	// Test BuildContext with no pool (should return empty context)
 	ctx := context.Background()
 	intent := "Deploy a 5G AMF function with high availability"
@@ -34,7 +34,7 @@ func main() {
 	// Test with connection pool (would require actual Weaviate instance)
 	poolConfig := rag.DefaultPoolConfig()
 	poolConfig.URL = "http://localhost:8080" // This would need a real Weaviate instance
-	
+
 	// This would work if Weaviate was running:
 	// pool := rag.NewWeaviateConnectionPool(poolConfig)
 	// cbWithPool := llm.NewContextBuilderWithPool(pool)

@@ -40,7 +40,7 @@ func TestNewGitHubProvider(t *testing.T) {
 
 			assert.NotNil(t, provider)
 			assert.Equal(t, tt.wantName, provider.GetProviderName())
-			
+
 			config := provider.GetConfiguration()
 			assert.Equal(t, tt.clientID, config.ClientID)
 			assert.Equal(t, tt.clientSecret, config.ClientSecret)
@@ -302,7 +302,7 @@ func TestGitHubProvider_GetUserInfo(t *testing.T) {
 		} else if r.URL.Path == "/user/emails" {
 			authHeader := r.Header.Get("Authorization")
 			token := strings.TrimPrefix(authHeader, "Bearer ")
-			
+
 			if token == "no-email-token" {
 				emails := []map[string]interface{}{
 					{
@@ -385,7 +385,7 @@ func TestGitHubProvider_ValidateToken(t *testing.T) {
 		if r.URL.Path == "/user" {
 			authHeader := r.Header.Get("Authorization")
 			token := strings.TrimPrefix(authHeader, "Bearer ")
-			
+
 			switch token {
 			case "valid-token":
 				userInfo := map[string]interface{}{
@@ -453,18 +453,18 @@ func TestGitHubProvider_RevokeToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/applications/test-id/token" {
 			assert.Equal(t, "DELETE", r.Method)
-			
+
 			// GitHub requires basic auth for token revocation
 			username, password, ok := r.BasicAuth()
 			assert.True(t, ok)
 			assert.Equal(t, "test-id", username)
 			assert.Equal(t, "test-secret", password)
-			
+
 			// Parse request body
 			var body map[string]string
 			err := json.NewDecoder(r.Body).Decode(&body)
 			require.NoError(t, err)
-			
+
 			token := body["access_token"]
 			if token == "valid-token" {
 				w.WriteHeader(http.StatusNoContent)
@@ -514,7 +514,7 @@ func TestGitHubProvider_GetOrganizations(t *testing.T) {
 		if r.URL.Path == "/user/orgs" {
 			authHeader := r.Header.Get("Authorization")
 			token := strings.TrimPrefix(authHeader, "Bearer ")
-			
+
 			switch token {
 			case "valid-token":
 				orgs := []GitHubOrganization{
@@ -548,11 +548,11 @@ func TestGitHubProvider_GetOrganizations(t *testing.T) {
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
 
 	tests := []struct {
-		name          string
-		token         string
-		wantError     bool
-		wantOrgCount  int
-		wantFirstOrg  string
+		name         string
+		token        string
+		wantError    bool
+		wantOrgCount int
+		wantFirstOrg string
 	}{
 		{
 			name:         "Valid organizations",
@@ -577,7 +577,7 @@ func TestGitHubProvider_GetOrganizations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
-			
+
 			// Check if provider implements EnterpriseProvider
 			if ep, ok := provider.(EnterpriseProvider); ok {
 				orgs, err := ep.GetOrganizations(ctx, tt.token)
@@ -589,7 +589,7 @@ func TestGitHubProvider_GetOrganizations(t *testing.T) {
 
 				assert.NoError(t, err)
 				assert.Len(t, orgs, tt.wantOrgCount)
-				
+
 				if tt.wantOrgCount > 0 {
 					assert.Equal(t, tt.wantFirstOrg, orgs[0].Name)
 				}
@@ -632,7 +632,7 @@ func TestGitHubProvider_GetConfiguration(t *testing.T) {
 // Benchmark tests
 func BenchmarkGitHubProvider_GetAuthorizationURL(b *testing.B) {
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _, _ = provider.GetAuthorizationURL("test-state", "http://localhost:8080/callback")
@@ -641,7 +641,7 @@ func BenchmarkGitHubProvider_GetAuthorizationURL(b *testing.B) {
 
 func BenchmarkGitHubProvider_GetAuthorizationURL_WithPKCE(b *testing.B) {
 	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _, _ = provider.GetAuthorizationURL("test-state", "http://localhost:8080/callback", WithPKCE())

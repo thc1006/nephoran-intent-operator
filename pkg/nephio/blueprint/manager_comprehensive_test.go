@@ -30,18 +30,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // MockManager implements the controller-runtime manager interface for testing
 type MockManager struct {
-	client  client.Client
-	config  *rest.Config
-	scheme  *runtime.Scheme
-	logger  logr.Logger
+	client client.Client
+	config *rest.Config
+	scheme *runtime.Scheme
+	logger logr.Logger
 }
 
 func (m *MockManager) GetClient() client.Client {
@@ -61,18 +61,20 @@ func (m *MockManager) GetLogger() logr.Logger {
 }
 
 // Implement other manager.Manager interface methods as no-ops for testing
-func (m *MockManager) Add(manager.Runnable) error { return nil }
+func (m *MockManager) Add(manager.Runnable) error                        { return nil }
 func (m *MockManager) AddMetricsExtraHandler(string, http.Handler) error { return nil }
-func (m *MockManager) AddHealthzCheck(string, healthz.Checker) error { return nil }
-func (m *MockManager) AddReadyzCheck(string, healthz.Checker) error { return nil }
-func (m *MockManager) Start(context.Context) error { return nil }
-func (m *MockManager) GetWebhookServer() *webhook.Server { return nil }
-func (m *MockManager) GetAPIReader() client.Reader { return m.client }
-func (m *MockManager) GetCache() cache.Cache { return nil }
-func (m *MockManager) GetFieldIndexer() client.FieldIndexer { return nil }
-func (m *MockManager) GetEventRecorderFor(string) record.EventRecorder { return nil }
-func (m *MockManager) GetRESTMapper() meta.RESTMapper { return nil }
-func (m *MockManager) GetControllerOptions() v1alpha1.ControllerConfigurationSpec { return v1alpha1.ControllerConfigurationSpec{} }
+func (m *MockManager) AddHealthzCheck(string, healthz.Checker) error     { return nil }
+func (m *MockManager) AddReadyzCheck(string, healthz.Checker) error      { return nil }
+func (m *MockManager) Start(context.Context) error                       { return nil }
+func (m *MockManager) GetWebhookServer() *webhook.Server                 { return nil }
+func (m *MockManager) GetAPIReader() client.Reader                       { return m.client }
+func (m *MockManager) GetCache() cache.Cache                             { return nil }
+func (m *MockManager) GetFieldIndexer() client.FieldIndexer              { return nil }
+func (m *MockManager) GetEventRecorderFor(string) record.EventRecorder   { return nil }
+func (m *MockManager) GetRESTMapper() meta.RESTMapper                    { return nil }
+func (m *MockManager) GetControllerOptions() v1alpha1.ControllerConfigurationSpec {
+	return v1alpha1.ControllerConfigurationSpec{}
+}
 
 // Helper function to create a mock manager
 func newMockManager() *MockManager {
@@ -81,7 +83,7 @@ func newMockManager() *MockManager {
 	_ = corev1.AddToScheme(scheme)
 
 	client := clientfake.NewClientBuilder().WithScheme(scheme).Build()
-	
+
 	return &MockManager{
 		client: client,
 		config: &rest.Config{},
@@ -91,10 +93,10 @@ func newMockManager() *MockManager {
 
 // MockCatalog provides mock implementation for testing
 type MockCatalog struct {
-	templates map[string]*BlueprintTemplate
-	cacheHits int
+	templates   map[string]*BlueprintTemplate
+	cacheHits   int
 	cacheMisses int
-	mutex sync.RWMutex
+	mutex       sync.RWMutex
 }
 
 func NewMockCatalog() *MockCatalog {
@@ -106,12 +108,12 @@ func NewMockCatalog() *MockCatalog {
 func (c *MockCatalog) GetTemplate(templateName string) (*BlueprintTemplate, error) {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	
+
 	if template, exists := c.templates[templateName]; exists {
 		c.cacheHits++
 		return template, nil
 	}
-	
+
 	c.cacheMisses++
 	return nil, fmt.Errorf("template %s not found", templateName)
 }
@@ -152,16 +154,16 @@ func (g *MockGenerator) GenerateFromNetworkIntent(ctx context.Context, intent *v
 	if g.shouldFail {
 		return nil, fmt.Errorf("generator failed")
 	}
-	
+
 	g.generatedCount++
-	
+
 	files := map[string]string{
-		"Kptfile": generateKptfile(intent),
+		"Kptfile":         generateKptfile(intent),
 		"deployment.yaml": generateDeployment(intent),
-		"service.yaml": generateService(intent),
-		"configmap.yaml": generateConfigMap(intent),
+		"service.yaml":    generateService(intent),
+		"configmap.yaml":  generateConfigMap(intent),
 	}
-	
+
 	return files, nil
 }
 
@@ -191,9 +193,9 @@ func (c *MockCustomizer) CustomizeBlueprint(ctx context.Context, intent *v1.Netw
 	if c.shouldFail {
 		return nil, fmt.Errorf("customizer failed")
 	}
-	
+
 	c.customizedCount++
-	
+
 	// Simulate customization by adding custom labels
 	customizedFiles := make(map[string]string)
 	for filename, content := range files {
@@ -204,7 +206,7 @@ func (c *MockCustomizer) CustomizeBlueprint(ctx context.Context, intent *v1.Netw
 			customizedFiles[filename] = content
 		}
 	}
-	
+
 	return customizedFiles, nil
 }
 
@@ -235,17 +237,17 @@ func (v *MockValidator) ValidateBlueprint(ctx context.Context, intent *v1.Networ
 	if v.shouldFail {
 		return nil, fmt.Errorf("validator failed")
 	}
-	
+
 	v.validatedCount++
-	
+
 	result := &ValidationResult{
 		IsValid: !v.shouldReject,
 	}
-	
+
 	if v.shouldReject {
 		result.Errors = []string{"validation failed: missing required field"}
 	}
-	
+
 	return result, nil
 }
 
@@ -290,12 +292,12 @@ func generateDeployment(intent *v1.NetworkIntent) string {
 	if len(intent.Spec.TargetComponents) > 0 {
 		component = string(intent.Spec.TargetComponents[0])
 	}
-	
+
 	replicas := "1"
 	if r, exists := intent.Spec.Parameters["replicas"]; exists {
 		replicas = r
 	}
-	
+
 	return fmt.Sprintf(`apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -325,7 +327,7 @@ func generateService(intent *v1.NetworkIntent) string {
 	if len(intent.Spec.TargetComponents) > 0 {
 		component = string(intent.Spec.TargetComponents[0])
 	}
-	
+
 	return fmt.Sprintf(`apiVersion: v1
 kind: Service
 metadata:
@@ -431,7 +433,7 @@ func TestManagerCreation(t *testing.T) {
 				assert.NotNil(t, manager)
 				assert.NotNil(t, manager.config)
 				assert.NotNil(t, manager.metrics)
-				
+
 				// Cleanup
 				defer manager.Stop()
 			}
@@ -444,19 +446,19 @@ func TestProcessNetworkIntent(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
 	config := DefaultBlueprintConfig()
-	
+
 	// Create manager with mock components
 	manager := &Manager{
-		client:      mockMgr.GetClient(),
-		k8sClient:   fake.NewSimpleClientset(),
-		config:      config,
-		logger:      logger,
-		metrics:     NewBlueprintMetrics(),
-		catalog:     NewMockCatalog(),
-		generator:   NewMockGenerator(),
-		customizer:  NewMockCustomizer(),
-		validator:   NewMockValidator(),
-		ctx:         context.Background(),
+		client:       mockMgr.GetClient(),
+		k8sClient:    fake.NewSimpleClientset(),
+		config:       config,
+		logger:       logger,
+		metrics:      NewBlueprintMetrics(),
+		catalog:      NewMockCatalog(),
+		generator:    NewMockGenerator(),
+		customizer:   NewMockCustomizer(),
+		validator:    NewMockValidator(),
+		ctx:          context.Background(),
 		healthStatus: make(map[string]bool),
 	}
 
@@ -533,7 +535,7 @@ func TestProcessNetworkIntent(t *testing.T) {
 			manager.generator = NewMockGenerator()
 			manager.customizer = NewMockCustomizer()
 			manager.validator = NewMockValidator()
-			
+
 			// Setup test-specific mock behavior
 			tc.setupMocks()
 
@@ -562,18 +564,18 @@ func TestConcurrentProcessing(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 	config := DefaultBlueprintConfig()
 	config.MaxConcurrency = 5
-	
+
 	manager := &Manager{
-		client:      mockMgr.GetClient(),
-		k8sClient:   fake.NewSimpleClientset(),
-		config:      config,
-		logger:      logger,
-		metrics:     NewBlueprintMetrics(),
-		catalog:     NewMockCatalog(),
-		generator:   NewMockGenerator(),
-		customizer:  NewMockCustomizer(),
-		validator:   NewMockValidator(),
-		ctx:         context.Background(),
+		client:       mockMgr.GetClient(),
+		k8sClient:    fake.NewSimpleClientset(),
+		config:       config,
+		logger:       logger,
+		metrics:      NewBlueprintMetrics(),
+		catalog:      NewMockCatalog(),
+		generator:    NewMockGenerator(),
+		customizer:   NewMockCustomizer(),
+		validator:    NewMockValidator(),
+		ctx:          context.Background(),
 		healthStatus: make(map[string]bool),
 	}
 
@@ -595,7 +597,7 @@ func TestConcurrentProcessing(t *testing.T) {
 		wg.Add(1)
 		go func(startIdx int) {
 			defer wg.Done()
-			
+
 			for j := startIdx; j < numIntents; j += numGoroutines {
 				result, err := manager.ProcessNetworkIntent(context.Background(), intents[j])
 				if err != nil {
@@ -716,18 +718,18 @@ func TestBlueprintTemplates(t *testing.T) {
 func TestHealthChecks(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
-	
+
 	manager := &Manager{
-		client:      mockMgr.GetClient(),
-		k8sClient:   fake.NewSimpleClientset(),
-		config:      DefaultBlueprintConfig(),
-		logger:      logger,
-		metrics:     NewBlueprintMetrics(),
-		catalog:     NewMockCatalog(),
-		generator:   NewMockGenerator(),
-		customizer:  NewMockCustomizer(),
-		validator:   NewMockValidator(),
-		ctx:         context.Background(),
+		client:       mockMgr.GetClient(),
+		k8sClient:    fake.NewSimpleClientset(),
+		config:       DefaultBlueprintConfig(),
+		logger:       logger,
+		metrics:      NewBlueprintMetrics(),
+		catalog:      NewMockCatalog(),
+		generator:    NewMockGenerator(),
+		customizer:   NewMockCustomizer(),
+		validator:    NewMockValidator(),
+		ctx:          context.Background(),
 		healthStatus: make(map[string]bool),
 	}
 
@@ -746,7 +748,7 @@ func TestHealthChecks(t *testing.T) {
 	// Test with failing component
 	manager.generator.(*MockGenerator).SetShouldFail(true)
 	manager.performHealthCheck()
-	
+
 	healthStatus = manager.GetHealthStatus()
 	assert.False(t, healthStatus["generator"])
 	assert.True(t, healthStatus["catalog"]) // Others should still be healthy
@@ -756,18 +758,18 @@ func TestHealthChecks(t *testing.T) {
 func TestMetricsCollection(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
-	
+
 	manager := &Manager{
-		client:      mockMgr.GetClient(),
-		k8sClient:   fake.NewSimpleClientset(),
-		config:      DefaultBlueprintConfig(),
-		logger:      logger,
-		metrics:     NewBlueprintMetrics(),
-		catalog:     NewMockCatalog(),
-		generator:   NewMockGenerator(),
-		customizer:  NewMockCustomizer(),
-		validator:   NewMockValidator(),
-		ctx:         context.Background(),
+		client:       mockMgr.GetClient(),
+		k8sClient:    fake.NewSimpleClientset(),
+		config:       DefaultBlueprintConfig(),
+		logger:       logger,
+		metrics:      NewBlueprintMetrics(),
+		catalog:      NewMockCatalog(),
+		generator:    NewMockGenerator(),
+		customizer:   NewMockCustomizer(),
+		validator:    NewMockValidator(),
+		ctx:          context.Background(),
 		healthStatus: make(map[string]bool),
 	}
 
@@ -803,41 +805,41 @@ func TestMetricsCollection(t *testing.T) {
 func TestPackageRevisionCreation(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
-	
+
 	manager := &Manager{
-		client:      mockMgr.GetClient(),
-		k8sClient:   fake.NewSimpleClientset(),
-		config:      DefaultBlueprintConfig(),
-		logger:      logger,
-		metrics:     NewBlueprintMetrics(),
-		ctx:         context.Background(),
+		client:    mockMgr.GetClient(),
+		k8sClient: fake.NewSimpleClientset(),
+		config:    DefaultBlueprintConfig(),
+		logger:    logger,
+		metrics:   NewBlueprintMetrics(),
+		ctx:       context.Background(),
 	}
 
 	intent := createTestNetworkIntent("package-creation-test")
 	files := map[string]string{
-		"Kptfile":        generateKptfile(intent),
+		"Kptfile":         generateKptfile(intent),
 		"deployment.yaml": generateDeployment(intent),
 		"service.yaml":    generateService(intent),
 	}
 
 	packageRevision, err := manager.createPackageRevision(context.Background(), intent, files)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, packageRevision)
 	assert.Equal(t, "porch.kpt.dev/v1alpha1", packageRevision.APIVersion)
 	assert.Equal(t, "PackageRevision", packageRevision.Kind)
 	assert.Contains(t, packageRevision.Name, intent.Name)
 	assert.Equal(t, intent.Namespace, packageRevision.Namespace)
-	
+
 	// Check annotations
 	assert.Contains(t, packageRevision.Annotations, AnnotationBlueprintType)
 	assert.Contains(t, packageRevision.Annotations, AnnotationIntentID)
 	assert.Contains(t, packageRevision.Annotations, AnnotationORANCompliant)
-	
+
 	// Check labels
 	assert.Contains(t, packageRevision.Labels, "nephoran.com/blueprint")
 	assert.Contains(t, packageRevision.Labels, "nephoran.com/intent")
-	
+
 	// Check spec
 	assert.Equal(t, len(files), len(packageRevision.Spec.Resources))
 }
@@ -846,36 +848,36 @@ func TestPackageRevisionCreation(t *testing.T) {
 func TestComponentExtraction(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
-	
+
 	manager := &Manager{
 		config: DefaultBlueprintConfig(),
 		logger: logger,
 	}
 
 	testCases := []struct {
-		name               string
-		targetComponents   []v1.ComponentType
-		expectedComponent  string
+		name              string
+		targetComponents  []v1.ComponentType
+		expectedComponent string
 	}{
 		{
-			name:               "amf_component",
-			targetComponents:   []v1.ComponentType{v1.ComponentTypeAMF},
-			expectedComponent:  "amf",
+			name:              "amf_component",
+			targetComponents:  []v1.ComponentType{v1.ComponentTypeAMF},
+			expectedComponent: "amf",
 		},
 		{
-			name:               "smf_component",
-			targetComponents:   []v1.ComponentType{v1.ComponentTypeSMF},
-			expectedComponent:  "smf",
+			name:              "smf_component",
+			targetComponents:  []v1.ComponentType{v1.ComponentTypeSMF},
+			expectedComponent: "smf",
 		},
 		{
-			name:               "multiple_components",
-			targetComponents:   []v1.ComponentType{v1.ComponentTypeAMF, v1.ComponentTypeSMF},
-			expectedComponent:  "amf", // Should return first component
+			name:              "multiple_components",
+			targetComponents:  []v1.ComponentType{v1.ComponentTypeAMF, v1.ComponentTypeSMF},
+			expectedComponent: "amf", // Should return first component
 		},
 		{
-			name:               "no_components",
-			targetComponents:   []v1.ComponentType{},
-			expectedComponent:  "unknown",
+			name:              "no_components",
+			targetComponents:  []v1.ComponentType{},
+			expectedComponent: "unknown",
 		},
 	}
 
@@ -897,14 +899,14 @@ func TestComponentExtraction(t *testing.T) {
 func TestErrorHandling(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
-	
+
 	manager := &Manager{
-		client:      mockMgr.GetClient(),
-		k8sClient:   fake.NewSimpleClientset(),
-		config:      DefaultBlueprintConfig(),
-		logger:      logger,
-		metrics:     NewBlueprintMetrics(),
-		ctx:         context.Background(),
+		client:       mockMgr.GetClient(),
+		k8sClient:    fake.NewSimpleClientset(),
+		config:       DefaultBlueprintConfig(),
+		logger:       logger,
+		metrics:      NewBlueprintMetrics(),
+		ctx:          context.Background(),
 		healthStatus: make(map[string]bool),
 	}
 
@@ -912,7 +914,7 @@ func TestErrorHandling(t *testing.T) {
 		// This test would require modifying the actual method to handle nil intents
 		// For now, we'll test with an empty intent
 		intent := &v1.NetworkIntent{}
-		
+
 		manager.catalog = NewMockCatalog()
 		generator := NewMockGenerator()
 		generator.SetShouldFail(true)
@@ -926,7 +928,7 @@ func TestErrorHandling(t *testing.T) {
 
 	t.Run("context_cancellation", func(t *testing.T) {
 		intent := createTestNetworkIntent("context-cancel-test")
-		
+
 		// Create cancelled context
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel()
@@ -939,7 +941,7 @@ func TestErrorHandling(t *testing.T) {
 		// The actual implementation would need to check context cancellation
 		// For this mock, we'll just verify it handles the cancelled context gracefully
 		result, err := manager.ProcessNetworkIntent(ctx, intent)
-		
+
 		// In a real implementation, this might return an error due to context cancellation
 		// For the mock, we'll just ensure it doesn't panic
 		_ = result
@@ -951,15 +953,15 @@ func TestErrorHandling(t *testing.T) {
 func TestCacheOperations(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
-	
+
 	manager := &Manager{
-		client:      mockMgr.GetClient(),
-		k8sClient:   fake.NewSimpleClientset(),
-		config:      DefaultBlueprintConfig(),
-		logger:      logger,
-		metrics:     NewBlueprintMetrics(),
-		cache:       sync.Map{},
-		ctx:         context.Background(),
+		client:    mockMgr.GetClient(),
+		k8sClient: fake.NewSimpleClientset(),
+		config:    DefaultBlueprintConfig(),
+		logger:    logger,
+		metrics:   NewBlueprintMetrics(),
+		cache:     sync.Map{},
+		ctx:       context.Background(),
 	}
 
 	// Test cache operations
@@ -1001,7 +1003,7 @@ func TestCacheOperations(t *testing.T) {
 func TestManagerLifecycle(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
-	
+
 	// Create manager
 	manager, err := NewManager(mockMgr, DefaultBlueprintConfig(), logger)
 	require.NoError(t, err)
@@ -1028,18 +1030,18 @@ func TestManagerLifecycle(t *testing.T) {
 func BenchmarkBlueprintProcessing(b *testing.B) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(b)
-	
+
 	manager := &Manager{
-		client:      mockMgr.GetClient(),
-		k8sClient:   fake.NewSimpleClientset(),
-		config:      DefaultBlueprintConfig(),
-		logger:      logger,
-		metrics:     NewBlueprintMetrics(),
-		catalog:     NewMockCatalog(),
-		generator:   NewMockGenerator(),
-		customizer:  NewMockCustomizer(),
-		validator:   NewMockValidator(),
-		ctx:         context.Background(),
+		client:       mockMgr.GetClient(),
+		k8sClient:    fake.NewSimpleClientset(),
+		config:       DefaultBlueprintConfig(),
+		logger:       logger,
+		metrics:      NewBlueprintMetrics(),
+		catalog:      NewMockCatalog(),
+		generator:    NewMockGenerator(),
+		customizer:   NewMockCustomizer(),
+		validator:    NewMockValidator(),
+		ctx:          context.Background(),
 		healthStatus: make(map[string]bool),
 	}
 
@@ -1069,7 +1071,7 @@ func TestValidationScenarios(t *testing.T) {
 			name:   "valid_blueprint",
 			intent: createTestNetworkIntent("valid-test"),
 			files: map[string]string{
-				"Kptfile":        "valid kptfile content",
+				"Kptfile":         "valid kptfile content",
 				"deployment.yaml": "valid deployment content",
 			},
 			shouldReject: false,
@@ -1084,9 +1086,9 @@ func TestValidationScenarios(t *testing.T) {
 			expectedErrors: []string{"validation failed: missing required field"},
 		},
 		{
-			name:   "empty_blueprint",
-			intent: createTestNetworkIntent("empty-test"),
-			files:  map[string]string{},
+			name:           "empty_blueprint",
+			intent:         createTestNetworkIntent("empty-test"),
+			files:          map[string]string{},
 			shouldReject:   true,
 			expectedErrors: []string{"validation failed: missing required field"},
 		},
@@ -1117,18 +1119,18 @@ func TestValidationScenarios(t *testing.T) {
 func TestComplexScenarios(t *testing.T) {
 	mockMgr := newMockManager()
 	logger := zaptest.NewLogger(t)
-	
+
 	manager := &Manager{
-		client:      mockMgr.GetClient(),
-		k8sClient:   fake.NewSimpleClientset(),
-		config:      DefaultBlueprintConfig(),
-		logger:      logger,
-		metrics:     NewBlueprintMetrics(),
-		catalog:     NewMockCatalog(),
-		generator:   NewMockGenerator(),
-		customizer:  NewMockCustomizer(),
-		validator:   NewMockValidator(),
-		ctx:         context.Background(),
+		client:       mockMgr.GetClient(),
+		k8sClient:    fake.NewSimpleClientset(),
+		config:       DefaultBlueprintConfig(),
+		logger:       logger,
+		metrics:      NewBlueprintMetrics(),
+		catalog:      NewMockCatalog(),
+		generator:    NewMockGenerator(),
+		customizer:   NewMockCustomizer(),
+		validator:    NewMockValidator(),
+		ctx:          context.Background(),
 		healthStatus: make(map[string]bool),
 	}
 
@@ -1146,7 +1148,7 @@ func TestComplexScenarios(t *testing.T) {
 		}
 
 		results := make([]*BlueprintResult, len(components))
-		
+
 		for i, comp := range components {
 			intent := &v1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1158,8 +1160,8 @@ func TestComplexScenarios(t *testing.T) {
 					Priority:         v1.PriorityHigh,
 					TargetComponents: []v1.ComponentType{comp.component},
 					Parameters: map[string]string{
-						"replicas": comp.replicas,
-						"region":   "us-east-1",
+						"replicas":    comp.replicas,
+						"region":      "us-east-1",
 						"environment": "production",
 					},
 				},
@@ -1183,7 +1185,7 @@ func TestComplexScenarios(t *testing.T) {
 
 	t.Run("multi_region_deployment", func(t *testing.T) {
 		regions := []string{"us-east-1", "us-west-2", "eu-central-1"}
-		
+
 		for _, region := range regions {
 			intent := &v1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{

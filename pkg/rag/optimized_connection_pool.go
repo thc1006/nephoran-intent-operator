@@ -34,43 +34,43 @@ type OptimizedConnectionPool struct {
 // ConnectionPoolConfig holds connection pool configuration
 type ConnectionPoolConfig struct {
 	// HTTP connection settings
-	MaxIdleConnections        int           `json:"max_idle_connections"`
-	MaxConnectionsPerHost     int           `json:"max_connections_per_host"`
-	MaxConnsPerHost           int           `json:"max_conns_per_host"`
-	IdleConnectionTimeout     time.Duration `json:"idle_connection_timeout"`
-	ConnectionTimeout         time.Duration `json:"connection_timeout"`
-	ResponseHeaderTimeout     time.Duration `json:"response_header_timeout"`
-	TLSHandshakeTimeout       time.Duration `json:"tls_handshake_timeout"`
-	ExpectContinueTimeout     time.Duration `json:"expect_continue_timeout"`
-	
+	MaxIdleConnections    int           `json:"max_idle_connections"`
+	MaxConnectionsPerHost int           `json:"max_connections_per_host"`
+	MaxConnsPerHost       int           `json:"max_conns_per_host"`
+	IdleConnectionTimeout time.Duration `json:"idle_connection_timeout"`
+	ConnectionTimeout     time.Duration `json:"connection_timeout"`
+	ResponseHeaderTimeout time.Duration `json:"response_header_timeout"`
+	TLSHandshakeTimeout   time.Duration `json:"tls_handshake_timeout"`
+	ExpectContinueTimeout time.Duration `json:"expect_continue_timeout"`
+
 	// Connection pool management
-	PoolSize                  int           `json:"pool_size"`
-	HealthCheckInterval       time.Duration `json:"health_check_interval"`
-	ConnectionRetryAttempts   int           `json:"connection_retry_attempts"`
-	ConnectionRetryDelay      time.Duration `json:"connection_retry_delay"`
-	
+	PoolSize                int           `json:"pool_size"`
+	HealthCheckInterval     time.Duration `json:"health_check_interval"`
+	ConnectionRetryAttempts int           `json:"connection_retry_attempts"`
+	ConnectionRetryDelay    time.Duration `json:"connection_retry_delay"`
+
 	// Performance optimizations
-	EnableFastHTTP            bool          `json:"enable_fast_http"`
-	EnableHTTP2               bool          `json:"enable_http2"`
-	EnableCompression         bool          `json:"enable_compression"`
-	DisableCompression        bool          `json:"disable_compression"`
-	EnableKeepalive           bool          `json:"enable_keepalive"`
-	KeepaliveTimeout          time.Duration `json:"keepalive_timeout"`
-	
+	EnableFastHTTP     bool          `json:"enable_fast_http"`
+	EnableHTTP2        bool          `json:"enable_http2"`
+	EnableCompression  bool          `json:"enable_compression"`
+	DisableCompression bool          `json:"disable_compression"`
+	EnableKeepalive    bool          `json:"enable_keepalive"`
+	KeepaliveTimeout   time.Duration `json:"keepalive_timeout"`
+
 	// JSON optimization settings
-	UseOptimizedJSON          bool          `json:"use_optimized_json"`
-	EnableJSONStreaming       bool          `json:"enable_json_streaming"`
-	JSONBufferSize            int           `json:"json_buffer_size"`
-	EnableJSONValidation      bool          `json:"enable_json_validation"`
-	
+	UseOptimizedJSON     bool `json:"use_optimized_json"`
+	EnableJSONStreaming  bool `json:"enable_json_streaming"`
+	JSONBufferSize       int  `json:"json_buffer_size"`
+	EnableJSONValidation bool `json:"enable_json_validation"`
+
 	// Circuit breaker settings
-	EnableCircuitBreaker      bool          `json:"enable_circuit_breaker"`
-	CircuitBreakerThreshold   int           `json:"circuit_breaker_threshold"`
-	CircuitBreakerTimeout     time.Duration `json:"circuit_breaker_timeout"`
-	
+	EnableCircuitBreaker    bool          `json:"enable_circuit_breaker"`
+	CircuitBreakerThreshold int           `json:"circuit_breaker_threshold"`
+	CircuitBreakerTimeout   time.Duration `json:"circuit_breaker_timeout"`
+
 	// Load balancing
-	LoadBalancingStrategy     string        `json:"load_balancing_strategy"`
-	EnableConnectionAffinity  bool          `json:"enable_connection_affinity"`
+	LoadBalancingStrategy    string `json:"load_balancing_strategy"`
+	EnableConnectionAffinity bool   `json:"enable_connection_affinity"`
 }
 
 // HTTPConnectionPool manages HTTP connections with optimization
@@ -92,55 +92,55 @@ type FastHTTPConnectionPool struct {
 
 // OptimizedJSONCodec provides high-performance JSON encoding/decoding
 type OptimizedJSONCodec struct {
-	encoderPool    sync.Pool
-	decoderPool    sync.Pool
-	bufferPool     sync.Pool
-	config         *ConnectionPoolConfig
-	useSonic       bool
+	encoderPool     sync.Pool
+	decoderPool     sync.Pool
+	bufferPool      sync.Pool
+	config          *ConnectionPoolConfig
+	useSonic        bool
 	enableStreaming bool
-	metrics        *JSONCodecMetrics
+	metrics         *JSONCodecMetrics
 }
 
 // JSONCodecMetrics tracks JSON codec performance
 type JSONCodecMetrics struct {
-	TotalEncodes         int64         `json:"total_encodes"`
-	TotalDecodes         int64         `json:"total_decodes"`
-	AverageEncodeTime    time.Duration `json:"average_encode_time"`
-	AverageDecodeTime    time.Duration `json:"average_decode_time"`
-	BytesEncoded         int64         `json:"bytes_encoded"`
-	BytesDecoded         int64         `json:"bytes_decoded"`
-	CompressionSavings   float64       `json:"compression_savings"`
-	PoolHitRate          float64       `json:"pool_hit_rate"`
-	StreamingOperations  int64         `json:"streaming_operations"`
-	ValidationErrors     int64         `json:"validation_errors"`
-	mutex                sync.RWMutex
+	TotalEncodes        int64         `json:"total_encodes"`
+	TotalDecodes        int64         `json:"total_decodes"`
+	AverageEncodeTime   time.Duration `json:"average_encode_time"`
+	AverageDecodeTime   time.Duration `json:"average_decode_time"`
+	BytesEncoded        int64         `json:"bytes_encoded"`
+	BytesDecoded        int64         `json:"bytes_decoded"`
+	CompressionSavings  float64       `json:"compression_savings"`
+	PoolHitRate         float64       `json:"pool_hit_rate"`
+	StreamingOperations int64         `json:"streaming_operations"`
+	ValidationErrors    int64         `json:"validation_errors"`
+	mutex               sync.RWMutex
 }
 
 // ConnectionPoolMetrics tracks connection pool performance
 type ConnectionPoolMetrics struct {
-	ActiveConnections     int32         `json:"active_connections"`
-	IdleConnections       int32         `json:"idle_connections"`
-	TotalConnections      int64         `json:"total_connections"`
-	FailedConnections     int64         `json:"failed_connections"`
-	ConnectionsCreated    int64         `json:"connections_created"`
-	ConnectionsDestroyed  int64         `json:"connections_destroyed"`
-	AverageResponseTime   time.Duration `json:"average_response_time"`
-	ConnectionPoolHits    int64         `json:"connection_pool_hits"`
-	ConnectionPoolMisses  int64         `json:"connection_pool_misses"`
-	CircuitBreakerTrips   int64         `json:"circuit_breaker_trips"`
-	LoadBalancerSwitches  int64         `json:"load_balancer_switches"`
-	mutex                 sync.RWMutex
+	ActiveConnections    int32         `json:"active_connections"`
+	IdleConnections      int32         `json:"idle_connections"`
+	TotalConnections     int64         `json:"total_connections"`
+	FailedConnections    int64         `json:"failed_connections"`
+	ConnectionsCreated   int64         `json:"connections_created"`
+	ConnectionsDestroyed int64         `json:"connections_destroyed"`
+	AverageResponseTime  time.Duration `json:"average_response_time"`
+	ConnectionPoolHits   int64         `json:"connection_pool_hits"`
+	ConnectionPoolMisses int64         `json:"connection_pool_misses"`
+	CircuitBreakerTrips  int64         `json:"circuit_breaker_trips"`
+	LoadBalancerSwitches int64         `json:"load_balancer_switches"`
+	mutex                sync.RWMutex
 }
 
 // PooledConnection represents a connection from the pool
 type PooledConnection struct {
-	HTTPClient    *http.Client
+	HTTPClient     *http.Client
 	FastHTTPClient *fasthttp.Client
 	WeaviateClient *weaviate.Client
-	CreatedAt     time.Time
-	LastUsed      time.Time
-	UseCount      int64
-	IsHealthy     bool
+	CreatedAt      time.Time
+	LastUsed       time.Time
+	UseCount       int64
+	IsHealthy      bool
 }
 
 // NewOptimizedConnectionPool creates a new optimized connection pool
@@ -196,36 +196,36 @@ func NewOptimizedConnectionPool(config *ConnectionPoolConfig) (*OptimizedConnect
 // getDefaultConnectionPoolConfig returns default configuration
 func getDefaultConnectionPoolConfig() *ConnectionPoolConfig {
 	return &ConnectionPoolConfig{
-		MaxIdleConnections:        100,
-		MaxConnectionsPerHost:     50,
-		MaxConnsPerHost:          50,
-		IdleConnectionTimeout:     90 * time.Second,
-		ConnectionTimeout:        30 * time.Second,
-		ResponseHeaderTimeout:    30 * time.Second,
-		TLSHandshakeTimeout:      10 * time.Second,
-		ExpectContinueTimeout:    1 * time.Second,
-		
-		PoolSize:                 10,
-		HealthCheckInterval:      30 * time.Second,
-		ConnectionRetryAttempts:  3,
-		ConnectionRetryDelay:     time.Second,
-		
-		EnableFastHTTP:           true,
-		EnableHTTP2:              true,
-		EnableCompression:        true,
-		DisableCompression:       false,
-		EnableKeepalive:          true,
-		KeepaliveTimeout:         30 * time.Second,
-		
-		UseOptimizedJSON:         true,
-		EnableJSONStreaming:      true,
-		JSONBufferSize:           64 * 1024, // 64KB
-		EnableJSONValidation:     false, // Disable for performance
-		
-		EnableCircuitBreaker:     true,
-		CircuitBreakerThreshold:  10,
-		CircuitBreakerTimeout:    60 * time.Second,
-		
+		MaxIdleConnections:    100,
+		MaxConnectionsPerHost: 50,
+		MaxConnsPerHost:       50,
+		IdleConnectionTimeout: 90 * time.Second,
+		ConnectionTimeout:     30 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+
+		PoolSize:                10,
+		HealthCheckInterval:     30 * time.Second,
+		ConnectionRetryAttempts: 3,
+		ConnectionRetryDelay:    time.Second,
+
+		EnableFastHTTP:     true,
+		EnableHTTP2:        true,
+		EnableCompression:  true,
+		DisableCompression: false,
+		EnableKeepalive:    true,
+		KeepaliveTimeout:   30 * time.Second,
+
+		UseOptimizedJSON:     true,
+		EnableJSONStreaming:  true,
+		JSONBufferSize:       64 * 1024, // 64KB
+		EnableJSONValidation: false,     // Disable for performance
+
+		EnableCircuitBreaker:    true,
+		CircuitBreakerThreshold: 10,
+		CircuitBreakerTimeout:   60 * time.Second,
+
 		LoadBalancingStrategy:    "round_robin",
 		EnableConnectionAffinity: true,
 	}
@@ -243,11 +243,11 @@ func newHTTPConnectionPool(config *ConnectionPoolConfig, logger *slog.Logger) (*
 		TLSHandshakeTimeout:   config.TLSHandshakeTimeout,
 		ExpectContinueTimeout: config.ExpectContinueTimeout,
 		DisableCompression:    config.DisableCompression,
-		
+
 		// Advanced optimizations
-		ForceAttemptHTTP2:     config.EnableHTTP2,
-		DisableKeepAlives:     !config.EnableKeepalive,
-		
+		ForceAttemptHTTP2: config.EnableHTTP2,
+		DisableKeepAlives: !config.EnableKeepalive,
+
 		// Custom dialer for connection optimization
 		DialContext: (&net.Dialer{
 			Timeout:   config.ConnectionTimeout,
@@ -289,9 +289,9 @@ func newFastHTTPConnectionPool(config *ConnectionPoolConfig, logger *slog.Logger
 		ReadTimeout:                   config.ResponseHeaderTimeout,
 		WriteTimeout:                  config.ResponseHeaderTimeout,
 		MaxResponseBodySize:           10 * 1024 * 1024, // 10MB max response
-		DisableHeaderNamesNormalizing: true, // Performance optimization
-		DisablePathNormalizing:        true, // Performance optimization
-		NoDefaultUserAgentHeader:      true, // Reduce header size
+		DisableHeaderNamesNormalizing: true,             // Performance optimization
+		DisablePathNormalizing:        true,             // Performance optimization
+		NoDefaultUserAgentHeader:      true,             // Reduce header size
 	}
 
 	pool := &FastHTTPConnectionPool{
@@ -347,7 +347,7 @@ func newOptimizedJSONCodec(config *ConnectionPoolConfig) *OptimizedJSONCodec {
 func (p *OptimizedConnectionPool) GetConnection() (*PooledConnection, error) {
 	// Use round-robin to select a Weaviate client
 	index := atomic.AddInt64(&p.clientIndex, 1) % int64(len(p.weaviateClients))
-	
+
 	connection := &PooledConnection{
 		WeaviateClient: p.weaviateClients[index],
 		CreatedAt:      time.Now(),
@@ -421,10 +421,10 @@ func (c *OptimizedJSONCodec) OptimizedEncode(v interface{}) ([]byte, error) {
 		// Fall back to standard JSON encoder with pooling
 		encoder := c.encoderPool.Get()
 		defer c.encoderPool.Put(encoder)
-		
+
 		buffer := c.bufferPool.Get().([]byte)
 		defer c.bufferPool.Put(buffer[:0])
-		
+
 		data, err = json.Marshal(v)
 	}
 
@@ -512,12 +512,12 @@ func (p *OptimizedConnectionPool) performFastHTTPRequest(ctx context.Context, cl
 	// Set up request
 	req.SetRequestURI(url)
 	req.Header.SetMethod(method)
-	
+
 	// Set headers
 	for k, v := range headers {
 		req.Header.Set(k, v)
 	}
-	
+
 	// Set body
 	if body != nil {
 		req.SetBody(body)
@@ -548,13 +548,13 @@ func (p *OptimizedConnectionPool) performHTTPRequest(ctx context.Context, client
 // initializeWeaviateClients creates a pool of Weaviate clients
 func (p *OptimizedConnectionPool) initializeWeaviateClients() error {
 	p.weaviateClients = make([]*weaviate.Client, p.config.PoolSize)
-	
+
 	for i := 0; i < p.config.PoolSize; i++ {
 		// This would create actual Weaviate clients
 		// For now, just create placeholder clients
 		p.weaviateClients[i] = nil // Placeholder
 	}
-	
+
 	return nil
 }
 
@@ -588,7 +588,7 @@ func (p *OptimizedConnectionPool) cleanupIdleConnections() {
 func (p *OptimizedConnectionPool) updateConnectionMetrics(success bool) {
 	p.metrics.mutex.Lock()
 	defer p.metrics.mutex.Unlock()
-	
+
 	if success {
 		p.metrics.ConnectionPoolHits++
 	} else {
@@ -600,30 +600,30 @@ func (p *OptimizedConnectionPool) updateConnectionMetrics(success bool) {
 func (p *OptimizedConnectionPool) updateRequestMetrics(duration time.Duration, success bool) {
 	p.metrics.mutex.Lock()
 	defer p.metrics.mutex.Unlock()
-	
+
 	// Update average response time
 	if p.metrics.TotalConnections == 0 {
 		p.metrics.AverageResponseTime = duration
 	} else {
-		p.metrics.AverageResponseTime = (p.metrics.AverageResponseTime*time.Duration(p.metrics.TotalConnections) + 
+		p.metrics.AverageResponseTime = (p.metrics.AverageResponseTime*time.Duration(p.metrics.TotalConnections) +
 			duration) / time.Duration(p.metrics.TotalConnections+1)
 	}
-	
+
 	p.metrics.TotalConnections++
 }
 
 func (c *OptimizedJSONCodec) updateEncodeMetrics(duration time.Duration, bytes int) {
 	c.metrics.mutex.Lock()
 	defer c.metrics.mutex.Unlock()
-	
+
 	c.metrics.TotalEncodes++
 	c.metrics.BytesEncoded += int64(bytes)
-	
+
 	// Update average encode time
 	if c.metrics.TotalEncodes == 1 {
 		c.metrics.AverageEncodeTime = duration
 	} else {
-		c.metrics.AverageEncodeTime = (c.metrics.AverageEncodeTime*time.Duration(c.metrics.TotalEncodes-1) + 
+		c.metrics.AverageEncodeTime = (c.metrics.AverageEncodeTime*time.Duration(c.metrics.TotalEncodes-1) +
 			duration) / time.Duration(c.metrics.TotalEncodes)
 	}
 }
@@ -631,15 +631,15 @@ func (c *OptimizedJSONCodec) updateEncodeMetrics(duration time.Duration, bytes i
 func (c *OptimizedJSONCodec) updateDecodeMetrics(duration time.Duration, bytes int) {
 	c.metrics.mutex.Lock()
 	defer c.metrics.mutex.Unlock()
-	
+
 	c.metrics.TotalDecodes++
 	c.metrics.BytesDecoded += int64(bytes)
-	
+
 	// Update average decode time
 	if c.metrics.TotalDecodes == 1 {
 		c.metrics.AverageDecodeTime = duration
 	} else {
-		c.metrics.AverageDecodeTime = (c.metrics.AverageDecodeTime*time.Duration(c.metrics.TotalDecodes-1) + 
+		c.metrics.AverageDecodeTime = (c.metrics.AverageDecodeTime*time.Duration(c.metrics.TotalDecodes-1) +
 			duration) / time.Duration(c.metrics.TotalDecodes)
 	}
 }
@@ -648,7 +648,7 @@ func (c *OptimizedJSONCodec) updateDecodeMetrics(duration time.Duration, bytes i
 func (p *OptimizedConnectionPool) GetMetrics() *ConnectionPoolMetrics {
 	p.metrics.mutex.RLock()
 	defer p.metrics.mutex.RUnlock()
-	
+
 	metrics := *p.metrics
 	return &metrics
 }
@@ -657,7 +657,7 @@ func (p *OptimizedConnectionPool) GetMetrics() *ConnectionPoolMetrics {
 func (p *OptimizedConnectionPool) GetJSONCodecMetrics() *JSONCodecMetrics {
 	p.jsonCodec.metrics.mutex.RLock()
 	defer p.jsonCodec.metrics.mutex.RUnlock()
-	
+
 	metrics := *p.jsonCodec.metrics
 	return &metrics
 }
@@ -665,11 +665,11 @@ func (p *OptimizedConnectionPool) GetJSONCodecMetrics() *JSONCodecMetrics {
 // Close closes the connection pool and all connections
 func (p *OptimizedConnectionPool) Close() error {
 	p.logger.Info("Closing optimized connection pool")
-	
+
 	// Close HTTP clients
 	if p.httpPool != nil && p.httpPool.transport != nil {
 		p.httpPool.transport.CloseIdleConnections()
 	}
-	
+
 	return nil
 }

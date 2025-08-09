@@ -14,15 +14,15 @@ import (
 
 // OptimizationEngine provides performance optimization capabilities
 type OptimizationEngine struct {
-	httpPool         *HTTPConnectionPool
-	dbPool           *DatabaseConnectionPool
-	cache            *MultiLevelCache
-	batchProcessor   *BatchProcessor
-	circuitBreakers  map[string]*gobreaker.CircuitBreaker
-	goroutinePool    *GoroutinePool
-	rateLimiters     map[string]workqueue.RateLimiter
-	metrics          *MetricsCollector
-	mu               sync.RWMutex
+	httpPool        *HTTPConnectionPool
+	dbPool          *DatabaseConnectionPool
+	cache           *MultiLevelCache
+	batchProcessor  *BatchProcessor
+	circuitBreakers map[string]*gobreaker.CircuitBreaker
+	goroutinePool   *GoroutinePool
+	rateLimiters    map[string]workqueue.RateLimiter
+	metrics         *MetricsCollector
+	mu              sync.RWMutex
 }
 
 // HTTPConnectionPool manages HTTP client connections
@@ -43,41 +43,41 @@ type DatabaseConnectionPool struct {
 
 // MultiLevelCache provides hierarchical caching
 type MultiLevelCache struct {
-	l1Cache      *MemoryCache      // In-memory cache (fastest)
-	l2Cache      *DistributedCache // Redis cache (shared)
-	l3Cache      *DiskCache        // Disk cache (persistent)
-	hitRates     map[string]float64
-	mu           sync.RWMutex
+	l1Cache  *MemoryCache      // In-memory cache (fastest)
+	l2Cache  *DistributedCache // Redis cache (shared)
+	l3Cache  *DiskCache        // Disk cache (persistent)
+	hitRates map[string]float64
+	mu       sync.RWMutex
 }
 
 // BatchProcessor handles batch operations
 type BatchProcessor struct {
-	batchSize    int
+	batchSize     int
 	flushInterval time.Duration
-	processor    func([]interface{}) error
-	buffer       []interface{}
-	mu           sync.Mutex
-	ticker       *time.Ticker
-	done         chan bool
+	processor     func([]interface{}) error
+	buffer        []interface{}
+	mu            sync.Mutex
+	ticker        *time.Ticker
+	done          chan bool
 }
 
 // GoroutinePool manages goroutine resources
 type GoroutinePool struct {
-	maxWorkers   int
-	workQueue    chan func()
-	workerWG     sync.WaitGroup
-	shutdown     chan struct{}
-	metrics      *PoolMetrics
+	maxWorkers int
+	workQueue  chan func()
+	workerWG   sync.WaitGroup
+	shutdown   chan struct{}
+	metrics    *PoolMetrics
 }
 
 // PoolMetrics tracks goroutine pool performance
 type PoolMetrics struct {
-	ActiveWorkers   int64
-	QueuedTasks     int64
-	CompletedTasks  int64
-	FailedTasks     int64
-	AvgProcessTime  time.Duration
-	mu              sync.RWMutex
+	ActiveWorkers  int64
+	QueuedTasks    int64
+	CompletedTasks int64
+	FailedTasks    int64
+	AvgProcessTime time.Duration
+	mu             sync.RWMutex
 }
 
 // NewOptimizationEngine creates a new optimization engine
@@ -95,7 +95,7 @@ func NewOptimizationEngine() *OptimizationEngine {
 
 	// Initialize default circuit breakers
 	engine.initializeCircuitBreakers()
-	
+
 	// Initialize default rate limiters
 	engine.initializeRateLimiters()
 
@@ -222,19 +222,19 @@ func NewMultiLevelCache() *MultiLevelCache {
 
 // MemoryCache provides in-memory caching
 type MemoryCache struct {
-	cache    map[string]CacheEntry
-	maxSize  int
-	ttl      time.Duration
-	mu       sync.RWMutex
-	hits     int64
-	misses   int64
+	cache   map[string]CacheEntry
+	maxSize int
+	ttl     time.Duration
+	mu      sync.RWMutex
+	hits    int64
+	misses  int64
 }
 
 // CacheEntry represents a cache entry
 type CacheEntry struct {
-	Value      interface{}
-	Expiration time.Time
-	Size       int
+	Value       interface{}
+	Expiration  time.Time
+	Size        int
 	AccessCount int
 }
 
@@ -245,10 +245,10 @@ func NewMemoryCache(maxSize int, ttl time.Duration) *MemoryCache {
 		maxSize: maxSize,
 		ttl:     ttl,
 	}
-	
+
 	// Start cleanup goroutine
 	go cache.cleanup()
-	
+
 	return cache
 }
 
@@ -285,9 +285,9 @@ func (c *MemoryCache) Set(key string, value interface{}, size int) {
 	}
 
 	c.cache[key] = CacheEntry{
-		Value:      value,
-		Expiration: time.Now().Add(c.ttl),
-		Size:       size,
+		Value:       value,
+		Expiration:  time.Now().Add(c.ttl),
+		Size:        size,
 		AccessCount: 0,
 	}
 }
@@ -377,10 +377,10 @@ func (c *MultiLevelCache) Get(key string) (interface{}, bool) {
 
 	// Check L2 (distributed)
 	// In real implementation, check Redis
-	
+
 	// Check L3 (disk)
 	// In real implementation, check disk
-	
+
 	return nil, false
 }
 
@@ -398,7 +398,7 @@ func (c *MultiLevelCache) updateHitRate(level string, hit bool) {
 
 	key := fmt.Sprintf("%s_total", level)
 	c.hitRates[key]++
-	
+
 	if hit {
 		hitKey := fmt.Sprintf("%s_hits", level)
 		c.hitRates[hitKey]++
@@ -478,7 +478,7 @@ func (bp *BatchProcessor) flushPeriodically() {
 func (bp *BatchProcessor) Stop() {
 	bp.ticker.Stop()
 	close(bp.done)
-	
+
 	// Final flush
 	bp.mu.Lock()
 	bp.flush()
@@ -539,7 +539,7 @@ func (p *GoroutinePool) worker() {
 				}()
 				task()
 			}()
-			
+
 			duration := time.Since(start)
 
 			p.metrics.mu.Lock()
@@ -562,7 +562,7 @@ func (p *GoroutinePool) worker() {
 // Shutdown gracefully shuts down the pool
 func (p *GoroutinePool) Shutdown(ctx context.Context) error {
 	close(p.shutdown)
-	
+
 	done := make(chan struct{})
 	go func() {
 		p.workerWG.Wait()
@@ -629,8 +629,8 @@ func (e *OptimizationEngine) initializeCircuitBreakers() {
 func (e *OptimizationEngine) initializeRateLimiters() {
 	// API rate limiter - 100 requests per second
 	e.rateLimiters["api"] = workqueue.NewItemExponentialFailureRateLimiter(
-		time.Millisecond*10,  // base delay
-		time.Second*10,       // max delay
+		time.Millisecond*10, // base delay
+		time.Second*10,      // max delay
 	)
 
 	// Database rate limiter - 50 queries per second
@@ -723,16 +723,16 @@ func (e *OptimizationEngine) OptimizeBatchOperation(items []interface{}) error {
 	for _, item := range items {
 		wg.Add(1)
 		itemCopy := item // Capture for goroutine
-		
+
 		err := e.goroutinePool.Submit(func() {
 			defer wg.Done()
-			
+
 			// Process item
 			if err := e.processItem(itemCopy); err != nil {
 				errors <- err
 			}
 		})
-		
+
 		if err != nil {
 			wg.Done()
 			return err

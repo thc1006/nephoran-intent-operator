@@ -17,14 +17,14 @@ import (
 // TestTLSVerificationBehavior tests the comprehensive TLS verification behavior
 func TestTLSVerificationBehavior(t *testing.T) {
 	tests := []struct {
-		name                   string
-		skipTLSVerification    bool
-		envValue               string
-		expectedPanic          bool
-		expectedInsecure       bool
-		expectedWarningLog     bool
-		expectedSecurityLog    bool
-		description            string
+		name                string
+		skipTLSVerification bool
+		envValue            string
+		expectedPanic       bool
+		expectedInsecure    bool
+		expectedWarningLog  bool
+		expectedSecurityLog bool
+		description         string
 	}{
 		{
 			name:                "Default_Secure_NoEnv",
@@ -163,9 +163,9 @@ func TestTLSVerificationBehavior(t *testing.T) {
 // TestEnvironmentVariableValidation tests environment variable validation
 func TestEnvironmentVariableValidation(t *testing.T) {
 	tests := []struct {
-		name       string
-		envValue   string
-		expected   bool
+		name        string
+		envValue    string
+		expected    bool
 		description string
 	}{
 		{
@@ -265,13 +265,13 @@ func TestEnvironmentVariableValidation(t *testing.T) {
 // TestTLSIntegrationWithMockServer tests TLS behavior with actual connections
 func TestTLSIntegrationWithMockServer(t *testing.T) {
 	tests := []struct {
-		name                string
-		serverTLS           bool
-		clientSkipTLS       bool
-		envValue            string
-		expectConnectionOK  bool
-		expectTLSError      bool
-		description         string
+		name               string
+		serverTLS          bool
+		clientSkipTLS      bool
+		envValue           string
+		expectConnectionOK bool
+		expectTLSError     bool
+		description        string
 	}{
 		{
 			name:               "HTTPS_Server_Secure_Client",
@@ -389,12 +389,12 @@ func TestTLSCertificateValidation(t *testing.T) {
 	defer server.Close()
 
 	tests := []struct {
-		name              string
-		skipTLS           bool
-		envValue          string
-		expectSuccess     bool
-		expectCertError   bool
-		description       string
+		name            string
+		skipTLS         bool
+		envValue        string
+		expectSuccess   bool
+		expectCertError bool
+		description     string
 	}{
 		{
 			name:            "Self_Signed_Cert_Secure_Client",
@@ -536,12 +536,12 @@ func TestTLSSecurityConfiguration(t *testing.T) {
 // TestTLSErrorHandling tests error handling in TLS scenarios
 func TestTLSErrorHandling(t *testing.T) {
 	tests := []struct {
-		name            string
-		setupFunc       func() (*httptest.Server, func())
-		clientSkipTLS   bool
-		envValue        string
-		expectedErrors  []string
-		description     string
+		name           string
+		setupFunc      func() (*httptest.Server, func())
+		clientSkipTLS  bool
+		envValue       string
+		expectedErrors []string
+		description    string
 	}{
 		{
 			name: "Connection_Refused",
@@ -723,9 +723,9 @@ func BenchmarkAllowInsecureClient(b *testing.B) {
 // BenchmarkTLSClientCreation benchmarks client creation with different TLS configurations
 func BenchmarkTLSClientCreation(b *testing.B) {
 	scenarios := []struct {
-		name      string
-		skipTLS   bool
-		envValue  string
+		name     string
+		skipTLS  bool
+		envValue string
 	}{
 		{"Secure", false, ""},
 		{"Insecure", true, "true"},
@@ -954,13 +954,13 @@ func TestTLSWithDifferentCertificateTypes(t *testing.T) {
 	}
 
 	tests := []struct {
-		name                string
-		certSetupFunc       func() (*httptest.Server, func())
-		clientSkipTLS       bool
-		envValue            string
-		expectSuccess       bool
-		expectedErrorTypes  []string
-		description         string
+		name               string
+		certSetupFunc      func() (*httptest.Server, func())
+		clientSkipTLS      bool
+		envValue           string
+		expectSuccess      bool
+		expectedErrorTypes []string
+		description        string
 	}{
 		{
 			name: "Valid_Certificate_Secure_Client",

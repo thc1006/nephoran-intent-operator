@@ -12,14 +12,14 @@ import (
 
 // MockProvider implements EmbeddingProvider for testing
 type MockProvider struct {
-	name           string
-	config         ProviderConfig
-	failureRate    float64
-	latency        time.Duration
-	costPerToken   float64
-	healthStatus   bool
-	callCount      int
-	mu             sync.Mutex
+	name         string
+	config       ProviderConfig
+	failureRate  float64
+	latency      time.Duration
+	costPerToken float64
+	healthStatus bool
+	callCount    int
+	mu           sync.Mutex
 }
 
 func NewMockProvider(name string, costPerToken float64, latency time.Duration) *MockProvider {
@@ -44,37 +44,37 @@ func (m *MockProvider) GenerateEmbeddings(ctx context.Context, texts []string) (
 	m.callCount++
 	callNum := m.callCount
 	m.mu.Unlock()
-	
+
 	// Simulate latency
 	select {
 	case <-time.After(m.latency):
 	case <-ctx.Done():
 		return nil, TokenUsage{}, ctx.Err()
 	}
-	
+
 	// Simulate failures
 	if m.failureRate > 0 && float64(callNum%100)/100.0 < m.failureRate {
 		return nil, TokenUsage{}, fmt.Errorf("provider %s failed", m.name)
 	}
-	
+
 	// Generate mock embeddings
 	embeddings := make([][]float32, len(texts))
 	for i := range embeddings {
 		embeddings[i] = []float32{0.1, 0.2, 0.3} // Simple mock embedding
 	}
-	
+
 	// Calculate token usage
 	totalTokens := 0
 	for _, text := range texts {
 		totalTokens += len(text) / 4 // Rough estimation
 	}
-	
+
 	usage := TokenUsage{
 		PromptTokens:  totalTokens,
 		TotalTokens:   totalTokens,
 		EstimatedCost: float64(totalTokens) * m.costPerToken / 1000,
 	}
-	
+
 	return embeddings, usage, nil
 }
 
@@ -87,11 +87,11 @@ func (m *MockProvider) GetConfig() ProviderConfig {
 func (m *MockProvider) HealthCheck(ctx context.Context) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if !m.healthStatus {
 		return fmt.Errorf("provider %s is unhealthy", m.name)
 	}
-	
+
 	m.config.Healthy = true
 	m.config.LastCheck = time.Now()
 	return nil
@@ -138,7 +138,7 @@ func TestCostAwareEmbeddingService_ProviderSelection(t *testing.T) {
 		CacheTTL:           1 * time.Hour,
 		L1CacheSize:        100,
 	}
-	
+
 	baseService := &EmbeddingService{
 		config:      baseConfig,
 		logger:      slog.Default(),
@@ -150,16 +150,16 @@ func TestCostAwareEmbeddingService_ProviderSelection(t *testing.T) {
 			ModelStats: make(map[string]ModelUsageStats),
 		},
 	}
-	
+
 	// Add mock providers with different characteristics
 	expensiveProvider := NewMockProvider("expensive", 0.001, 100*time.Millisecond)
 	cheapProvider := NewMockProvider("cheap", 0.0001, 200*time.Millisecond)
 	fastProvider := NewMockProvider("fast", 0.0005, 50*time.Millisecond)
-	
+
 	baseService.providers["expensive"] = expensiveProvider
 	baseService.providers["cheap"] = cheapProvider
 	baseService.providers["fast"] = fastProvider
-	
+
 	// Create cost-aware service
 	costConfig := &CostOptimizerConfig{
 		OptimizationStrategy:    "balanced",
@@ -173,9 +173,9 @@ func TestCostAwareEmbeddingService_ProviderSelection(t *testing.T) {
 		CircuitBreakerThreshold: 3,
 		CircuitBreakerTimeout:   5 * time.Second,
 	}
-	
+
 	costAwareService := NewCostAwareEmbeddingService(baseService, costConfig)
-	
+
 	// Test provider selection
 	tests := []struct {
 		name             string
@@ -214,24 +214,24 @@ func TestCostAwareEmbeddingService_ProviderSelection(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.setupFunc != nil {
 				tt.setupFunc()
 			}
-			
+
 			ctx := context.Background()
 			request := &EmbeddingRequest{
 				Texts:    []string{"Test text for embedding"},
 				UseCache: false,
 			}
-			
+
 			provider, err := costAwareService.selectOptimalProvider(ctx, request)
 			if err != nil {
 				t.Fatalf("Failed to select provider: %v", err)
 			}
-			
+
 			if provider.GetName() != tt.expectedProvider {
 				t.Errorf("Expected provider %s, got %s", tt.expectedProvider, provider.GetName())
 			}
@@ -254,16 +254,16 @@ func TestCostAwareEmbeddingService_Fallback(t *testing.T) {
 			ModelStats: make(map[string]ModelUsageStats),
 		},
 	}
-	
+
 	// Add providers
 	primaryProvider := NewMockProvider("primary", 0.001, 100*time.Millisecond)
 	primaryProvider.SetFailureRate(1.0) // Always fails
-	
+
 	fallbackProvider := NewMockProvider("fallback", 0.0005, 150*time.Millisecond)
-	
+
 	baseService.providers["primary"] = primaryProvider
 	baseService.providers["fallback"] = fallbackProvider
-	
+
 	// Create cost-aware service
 	costConfig := &CostOptimizerConfig{
 		OptimizationStrategy:    "balanced",
@@ -272,29 +272,29 @@ func TestCostAwareEmbeddingService_Fallback(t *testing.T) {
 		CircuitBreakerThreshold: 3,
 		CircuitBreakerTimeout:   5 * time.Second,
 	}
-	
+
 	costAwareService := NewCostAwareEmbeddingService(baseService, costConfig)
-	
+
 	// Configure fallback chain
 	costAwareService.fallbackManager.fallbackChains["primary"] = []string{"fallback"}
-	
+
 	// Test fallback behavior
 	ctx := context.Background()
 	request := &EmbeddingRequest{
 		Texts:    []string{"Test text"},
 		UseCache: false,
 	}
-	
+
 	response, err := costAwareService.GenerateEmbeddingsOptimized(ctx, request)
 	if err != nil {
 		t.Fatalf("Failed to generate embeddings with fallback: %v", err)
 	}
-	
+
 	// Should have used fallback provider
 	if response.ModelUsed != "fallback" {
 		t.Errorf("Expected fallback provider to be used, got %s", response.ModelUsed)
 	}
-	
+
 	// Check fallback metrics
 	fallbackHistory := costAwareService.fallbackManager.fallbackHistory["primary"]
 	if fallbackHistory == nil || fallbackHistory.FallbackCount == 0 {
@@ -315,34 +315,34 @@ func TestCostAwareEmbeddingService_BudgetConstraints(t *testing.T) {
 			ModelStats: make(map[string]ModelUsageStats),
 		},
 	}
-	
+
 	// Add expensive provider
 	expensiveProvider := NewMockProvider("expensive", 10.0, 100*time.Millisecond) // Very expensive
 	baseService.providers["expensive"] = expensiveProvider
-	
+
 	// Create cost-aware service with tight budget
 	costConfig := &CostOptimizerConfig{
 		OptimizationStrategy:    "balanced",
 		EnableBudgetTracking:    true,
-		HourlyBudget:            0.01,  // Very low budget
+		HourlyBudget:            0.01, // Very low budget
 		DailyBudget:             0.10,
 		CircuitBreakerThreshold: 3,
 	}
-	
+
 	costAwareService := NewCostAwareEmbeddingService(baseService, costConfig)
-	
+
 	// Try to generate embeddings that would exceed budget
 	ctx := context.Background()
 	request := &EmbeddingRequest{
 		Texts:    []string{strings.Repeat("Large text ", 1000)}, // Large text = many tokens
 		UseCache: false,
 	}
-	
+
 	_, err := costAwareService.GenerateEmbeddingsOptimized(ctx, request)
 	if err == nil {
 		t.Error("Expected budget constraint error")
 	}
-	
+
 	if !strings.Contains(err.Error(), "budget") {
 		t.Errorf("Expected budget-related error, got: %v", err)
 	}
@@ -361,31 +361,31 @@ func TestCostAwareEmbeddingService_CircuitBreaker(t *testing.T) {
 			ModelStats: make(map[string]ModelUsageStats),
 		},
 	}
-	
+
 	// Add flaky provider
 	flakyProvider := NewMockProvider("flaky", 0.001, 100*time.Millisecond)
 	flakyProvider.SetFailureRate(0.8) // 80% failure rate
-	
+
 	baseService.providers["flaky"] = flakyProvider
-	
+
 	// Create cost-aware service
 	costConfig := &CostOptimizerConfig{
-		OptimizationStrategy:       "balanced",
-		CircuitBreakerThreshold:    2, // Open after 2 failures
-		CircuitBreakerTimeout:      1 * time.Second,
-		CircuitBreakerMaxRetries:   1,
-		EnableBudgetTracking:       true,
-		DailyBudget:                10.0,
+		OptimizationStrategy:     "balanced",
+		CircuitBreakerThreshold:  2, // Open after 2 failures
+		CircuitBreakerTimeout:    1 * time.Second,
+		CircuitBreakerMaxRetries: 1,
+		EnableBudgetTracking:     true,
+		DailyBudget:              10.0,
 	}
-	
+
 	costAwareService := NewCostAwareEmbeddingService(baseService, costConfig)
-	
+
 	ctx := context.Background()
 	request := &EmbeddingRequest{
 		Texts:    []string{"Test"},
 		UseCache: false,
 	}
-	
+
 	// Make requests until circuit breaker opens
 	failureCount := 0
 	for i := 0; i < 5; i++ {
@@ -393,7 +393,7 @@ func TestCostAwareEmbeddingService_CircuitBreaker(t *testing.T) {
 		if err != nil {
 			failureCount++
 		}
-		
+
 		// Check circuit breaker state after threshold
 		if i >= costConfig.CircuitBreakerThreshold {
 			cb := costAwareService.circuitBreakers["flaky"]
@@ -402,10 +402,10 @@ func TestCostAwareEmbeddingService_CircuitBreaker(t *testing.T) {
 			}
 		}
 	}
-	
+
 	// Wait for circuit breaker timeout
 	time.Sleep(costConfig.CircuitBreakerTimeout + 100*time.Millisecond)
-	
+
 	// Circuit should be half-open now
 	cb := costAwareService.circuitBreakers["flaky"]
 	if cb.GetState() != CircuitHalfOpen {
@@ -426,23 +426,23 @@ func TestCostAwareEmbeddingService_ConcurrentRequests(t *testing.T) {
 			ModelStats: make(map[string]ModelUsageStats),
 		},
 	}
-	
+
 	// Add multiple providers
 	providers := []struct {
-		name     string
-		cost     float64
-		latency  time.Duration
+		name    string
+		cost    float64
+		latency time.Duration
 	}{
 		{"provider1", 0.001, 50 * time.Millisecond},
 		{"provider2", 0.0005, 75 * time.Millisecond},
 		{"provider3", 0.0008, 60 * time.Millisecond},
 	}
-	
+
 	for _, p := range providers {
 		provider := NewMockProvider(p.name, p.cost, p.latency)
 		baseService.providers[p.name] = provider
 	}
-	
+
 	// Create cost-aware service
 	costConfig := &CostOptimizerConfig{
 		OptimizationStrategy:    "balanced",
@@ -451,27 +451,27 @@ func TestCostAwareEmbeddingService_ConcurrentRequests(t *testing.T) {
 		CircuitBreakerThreshold: 5,
 		RebalanceInterval:       1 * time.Minute,
 	}
-	
+
 	costAwareService := NewCostAwareEmbeddingService(baseService, costConfig)
-	
+
 	// Run concurrent requests
 	numRequests := 20
 	var wg sync.WaitGroup
 	results := make(chan *EmbeddingResponse, numRequests)
 	errors := make(chan error, numRequests)
-	
+
 	for i := 0; i < numRequests; i++ {
 		wg.Add(1)
 		go func(idx int) {
 			defer wg.Done()
-			
+
 			ctx := context.Background()
 			request := &EmbeddingRequest{
 				Texts:     []string{fmt.Sprintf("Test text %d", idx)},
 				UseCache:  false,
 				RequestID: fmt.Sprintf("req_%d", idx),
 			}
-			
+
 			response, err := costAwareService.GenerateEmbeddingsOptimized(ctx, request)
 			if err != nil {
 				errors <- err
@@ -480,37 +480,37 @@ func TestCostAwareEmbeddingService_ConcurrentRequests(t *testing.T) {
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
 	close(results)
 	close(errors)
-	
+
 	// Check results
 	successCount := 0
 	providerUsage := make(map[string]int)
 	totalCost := 0.0
-	
+
 	for response := range results {
 		successCount++
 		providerUsage[response.ModelUsed]++
 		totalCost += response.TokenUsage.EstimatedCost
 	}
-	
+
 	// Check errors
 	errorCount := 0
 	for range errors {
 		errorCount++
 	}
-	
+
 	t.Logf("Concurrent test results: %d success, %d errors", successCount, errorCount)
 	t.Logf("Provider usage: %v", providerUsage)
 	t.Logf("Total cost: $%.4f", totalCost)
-	
+
 	// Verify load distribution
 	if len(providerUsage) == 1 {
 		t.Error("Expected requests to be distributed across multiple providers")
 	}
-	
+
 	// Verify cost tracking
 	metrics := costAwareService.budgetManager.currentSpend
 	if metrics.DailySpend == 0 {
@@ -527,17 +527,17 @@ func TestCostAwareEmbeddingService_ProviderScoring(t *testing.T) {
 		QualityWeight:        0.3,
 		DailyBudget:          10.0,
 	}
-	
+
 	baseService := &EmbeddingService{
 		config: &EmbeddingConfig{},
 		logger: slog.Default(),
 	}
-	
+
 	costAwareService := NewCostAwareEmbeddingService(baseService, costConfig)
-	
+
 	// Create mock provider
 	provider := NewMockProvider("test", 0.001, 100*time.Millisecond)
-	
+
 	// Create provider metrics
 	metrics := &ProviderMetrics{
 		AverageCostPerToken: 0.001,
@@ -548,43 +548,43 @@ func TestCostAwareEmbeddingService_ProviderScoring(t *testing.T) {
 		ConsecutiveFailures: 0,
 		LastUsed:            time.Now(),
 	}
-	
+
 	// Update provider monitor
 	costAwareService.providerMonitor.metrics["test"] = metrics
-	
+
 	// Set budget manager state
 	costAwareService.budgetManager.currentSpend = &BudgetSpend{
 		DailySpend: 1.0, // $1 spent out of $10 budget
 	}
-	
+
 	// Calculate provider score
 	request := &EmbeddingRequest{
 		Texts: []string{"Test text for scoring"},
 	}
-	
+
 	score := costAwareService.calculateProviderScore("test", provider, request)
-	
+
 	// Verify score components
 	if score.CostScore < 0 || score.CostScore > 1 {
 		t.Errorf("Cost score out of range: %f", score.CostScore)
 	}
-	
+
 	if score.PerformanceScore < 0 || score.PerformanceScore > 1 {
 		t.Errorf("Performance score out of range: %f", score.PerformanceScore)
 	}
-	
+
 	if score.QualityScore < 0 || score.QualityScore > 1 {
 		t.Errorf("Quality score out of range: %f", score.QualityScore)
 	}
-	
+
 	// Total score should be weighted sum
 	expectedTotal := score.CostScore*0.4 + score.PerformanceScore*0.3 + score.QualityScore*0.3
 	expectedTotal *= score.HealthScore // Health score is a multiplier
-	
+
 	if math.Abs(float64(score.TotalScore-expectedTotal)) > 0.01 {
 		t.Errorf("Total score calculation error: got %f, expected %f", score.TotalScore, expectedTotal)
 	}
-	
+
 	t.Logf("Provider score breakdown: Total=%.3f, Cost=%.3f, Performance=%.3f, Quality=%.3f, Health=%.3f",
 		score.TotalScore, score.CostScore, score.PerformanceScore, score.QualityScore, score.HealthScore)
 }
@@ -602,7 +602,7 @@ func BenchmarkCostAwareEmbeddingService(b *testing.B) {
 			ModelStats: make(map[string]ModelUsageStats),
 		},
 	}
-	
+
 	// Add providers
 	for i := 0; i < 3; i++ {
 		provider := NewMockProvider(
@@ -612,38 +612,37 @@ func BenchmarkCostAwareEmbeddingService(b *testing.B) {
 		)
 		baseService.providers[provider.GetName()] = provider
 	}
-	
+
 	// Create cost-aware service
 	costConfig := &CostOptimizerConfig{
 		OptimizationStrategy:    "balanced",
 		EnableBudgetTracking:    false, // Disable for benchmark
 		CircuitBreakerThreshold: 10,
 	}
-	
+
 	costAwareService := NewCostAwareEmbeddingService(baseService, costConfig)
-	
+
 	// Prepare request
 	request := &EmbeddingRequest{
 		Texts:    []string{"Benchmark text for embedding generation"},
 		UseCache: true,
 	}
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		_, err := costAwareService.GenerateEmbeddingsOptimized(ctx, request)
 		if err != nil {
 			b.Fatalf("Benchmark error: %v", err)
 		}
 	}
-	
+
 	b.StopTimer()
-	
+
 	// Report metrics
 	metrics := costAwareService.costOptimizer.costHistory
 	b.Logf("Total requests: %d", b.N)
 	b.Logf("Provider usage: %v", costAwareService.providerMonitor.metrics)
 }
-

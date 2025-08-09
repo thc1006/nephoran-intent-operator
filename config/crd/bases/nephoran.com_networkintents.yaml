@@ -1,0 +1,74 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: networkintents.nephoran.com
+spec:
+  group: nephoran.com
+  names:
+    kind: NetworkIntent
+    listKind: NetworkIntentList
+    plural: networkintents
+    shortNames:
+    - ni
+    singular: networkintent
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: NetworkIntent is the Schema for the networkintents API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: NetworkIntentSpec defines the desired state of NetworkIntent
+            properties:
+              intent:
+                description: Intent is the natural language intent from the user
+                type: string
+            required:
+            - intent
+            type: object
+          status:
+            description: NetworkIntentStatus defines the observed state of NetworkIntent
+            properties:
+              lastMessage:
+                description: LastMessage contains the last status message
+                type: string
+              lastUpdateTime:
+                description: LastUpdateTime indicates when the status was last updated
+                format: date-time
+                type: string
+              observedGeneration:
+                description: ObservedGeneration reflects the generation of the most
+                  recently observed NetworkIntent
+                format: int64
+                type: integer
+              phase:
+                description: Phase represents the current phase of the NetworkIntent
+                  processing
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

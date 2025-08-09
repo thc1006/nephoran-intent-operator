@@ -14,16 +14,16 @@ import (
 
 // SimpleRelevanceScorer provides a simple implementation of relevance scoring
 // This implementation focuses on the core requirements:
-// 1. Use rag.EmbeddingServiceInterface to compute embeddings and cosine similarity 
+// 1. Use rag.EmbeddingServiceInterface to compute embeddings and cosine similarity
 // 2. Handle error cases gracefully
 // 3. Add comprehensive metrics tracking
 // 4. Follow existing patterns from ContextBuilder
 type SimpleRelevanceScorer struct {
-	embeddingService    rag.EmbeddingServiceInterface // New interface-based field
-	legacyEmbedding     *rag.EmbeddingService        // Legacy field for backward compatibility
-	logger              *slog.Logger
-	metrics             *SimpleRelevanceScorerMetrics
-	mutex               sync.RWMutex
+	embeddingService rag.EmbeddingServiceInterface // New interface-based field
+	legacyEmbedding  *rag.EmbeddingService         // Legacy field for backward compatibility
+	logger           *slog.Logger
+	metrics          *SimpleRelevanceScorerMetrics
+	mutex            sync.RWMutex
 }
 
 // SimpleRelevanceScorerMetrics tracks scoring performance
@@ -56,7 +56,7 @@ func NewSimpleRelevanceScorerWithEmbeddingService(embeddingService *rag.Embeddin
 	if embeddingService != nil {
 		embeddingInterface = rag.NewEmbeddingServiceAdapter(embeddingService)
 	}
-	
+
 	return &SimpleRelevanceScorer{
 		embeddingService: embeddingInterface,
 		legacyEmbedding:  embeddingService,
@@ -336,18 +336,18 @@ func (srs *SimpleRelevanceScorer) GetMetrics() map[string]interface{} {
 
 	return map[string]interface{}{
 		"relevance_scorer_enabled":    true,
-		"status":                     "active",
-		"implementation":             "simple",
+		"status":                      "active",
+		"implementation":              "simple",
 		"embedding_service_available": srs.embeddingService != nil,
 		"using_interface_abstraction": true,
 		"legacy_compatibility":        srs.legacyEmbedding != nil,
-		"total_scores":               srs.metrics.TotalScores,
-		"successful_scores":          srs.metrics.SuccessfulScores,
-		"failed_scores":              srs.metrics.FailedScores,
-		"success_rate":               fmt.Sprintf("%.2f%%", successRate),
-		"embedding_calls":            srs.metrics.EmbeddingCalls,
-		"fallback_uses":              srs.metrics.FallbackUses,
-		"average_processing_time_ms": srs.metrics.AverageLatency.Milliseconds(),
-		"last_updated":               srs.metrics.LastUpdated.Format(time.RFC3339),
+		"total_scores":                srs.metrics.TotalScores,
+		"successful_scores":           srs.metrics.SuccessfulScores,
+		"failed_scores":               srs.metrics.FailedScores,
+		"success_rate":                fmt.Sprintf("%.2f%%", successRate),
+		"embedding_calls":             srs.metrics.EmbeddingCalls,
+		"fallback_uses":               srs.metrics.FallbackUses,
+		"average_processing_time_ms":  srs.metrics.AverageLatency.Milliseconds(),
+		"last_updated":                srs.metrics.LastUpdated.Format(time.RFC3339),
 	}
 }

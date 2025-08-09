@@ -30,41 +30,41 @@ import (
 
 // ExporterConfig contains configuration for metrics export
 type ExporterConfig struct {
-	Prometheus PrometheusConfig   `yaml:"prometheus"`
-	InfluxDB   InfluxDBConfig     `yaml:"influxdb"`
-	DataDog    DataDogConfig      `yaml:"datadog"`
-	NewRelic   NewRelicConfig     `yaml:"newrelic"`
-	Custom     []CustomConfig     `yaml:"custom"`
-	Streaming  StreamingConfig    `yaml:"streaming"`
-	Batch      BatchConfig        `yaml:"batch"`
-	Transform  TransformConfig    `yaml:"transform"`
+	Prometheus  PrometheusConfig  `yaml:"prometheus"`
+	InfluxDB    InfluxDBConfig    `yaml:"influxdb"`
+	DataDog     DataDogConfig     `yaml:"datadog"`
+	NewRelic    NewRelicConfig    `yaml:"newrelic"`
+	Custom      []CustomConfig    `yaml:"custom"`
+	Streaming   StreamingConfig   `yaml:"streaming"`
+	Batch       BatchConfig       `yaml:"batch"`
+	Transform   TransformConfig   `yaml:"transform"`
 	Compression CompressionConfig `yaml:"compression"`
 }
 
 // PrometheusConfig contains Prometheus-specific configuration
 type PrometheusConfig struct {
-	Enabled    bool   `yaml:"enabled"`
-	URL        string `yaml:"url"`
+	Enabled     bool   `yaml:"enabled"`
+	URL         string `yaml:"url"`
 	RemoteWrite string `yaml:"remote_write"`
-	Format     string `yaml:"format"` // openmetrics, prometheus
+	Format      string `yaml:"format"` // openmetrics, prometheus
 }
 
 // InfluxDBConfig contains InfluxDB-specific configuration
 type InfluxDBConfig struct {
-	Enabled      bool   `yaml:"enabled"`
-	URL          string `yaml:"url"`
-	Database     string `yaml:"database"`
-	Measurement  string `yaml:"measurement"`
-	Precision    string `yaml:"precision"`
+	Enabled         bool   `yaml:"enabled"`
+	URL             string `yaml:"url"`
+	Database        string `yaml:"database"`
+	Measurement     string `yaml:"measurement"`
+	Precision       string `yaml:"precision"`
 	RetentionPolicy string `yaml:"retention_policy"`
 }
 
 // DataDogConfig contains DataDog-specific configuration
 type DataDogConfig struct {
-	Enabled bool   `yaml:"enabled"`
-	APIKey  string `yaml:"api_key"`
-	AppKey  string `yaml:"app_key"`
-	Site    string `yaml:"site"`
+	Enabled bool     `yaml:"enabled"`
+	APIKey  string   `yaml:"api_key"`
+	AppKey  string   `yaml:"app_key"`
+	Site    string   `yaml:"site"`
 	Tags    []string `yaml:"tags"`
 }
 
@@ -136,10 +136,10 @@ type MappingConfig struct {
 
 // CompressionConfig contains compression configuration
 type CompressionConfig struct {
-	Enabled     bool   `yaml:"enabled"`
-	Algorithm   string `yaml:"algorithm"` // gzip, snappy, lz4
-	Level       int    `yaml:"level"`
-	MinSize     int    `yaml:"min_size"`
+	Enabled   bool   `yaml:"enabled"`
+	Algorithm string `yaml:"algorithm"` // gzip, snappy, lz4
+	Level     int    `yaml:"level"`
+	MinSize   int    `yaml:"min_size"`
 }
 
 // MetricPoint represents a single metric data point
@@ -164,13 +164,13 @@ type MetricBatch struct {
 
 // ExportResult represents the result of an export operation
 type ExportResult struct {
-	Exporter     string                 `json:"exporter"`
-	Success      bool                   `json:"success"`
-	MetricCount  int                    `json:"metric_count"`
-	BytesExported int64                 `json:"bytes_exported"`
-	Duration     time.Duration          `json:"duration"`
-	Error        string                 `json:"error,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Exporter      string                 `json:"exporter"`
+	Success       bool                   `json:"success"`
+	MetricCount   int                    `json:"metric_count"`
+	BytesExported int64                  `json:"bytes_exported"`
+	Duration      time.Duration          `json:"duration"`
+	Error         string                 `json:"error,omitempty"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // StreamMetric represents a streaming metric
@@ -204,10 +204,10 @@ type Exporter interface {
 
 // Aggregator handles metric aggregation
 type Aggregator struct {
-	config   AggregationConfig
-	buffer   []MetricPoint
+	config    AggregationConfig
+	buffer    []MetricPoint
 	lastFlush time.Time
-	mu       sync.Mutex
+	mu        sync.Mutex
 }
 
 // NewMetricsExporter creates a new metrics exporter
@@ -274,8 +274,8 @@ func (me *MetricsExporter) StreamMetric(point MetricPoint, targets []string) err
 	}
 
 	metric := StreamMetric{
-		Point:   point,
-		Targets: targets,
+		Point:    point,
+		Targets:  targets,
 		Priority: 1,
 	}
 
@@ -754,7 +754,7 @@ type PrometheusExporter struct {
 // Export exports metrics to Prometheus
 func (pe *PrometheusExporter) Export(ctx context.Context, batch MetricBatch) (*ExportResult, error) {
 	startTime := time.Now()
-	
+
 	// Convert to Prometheus format
 	data, err := pe.convertToPrometheusFormat(batch)
 	if err != nil {
@@ -764,7 +764,7 @@ func (pe *PrometheusExporter) Export(ctx context.Context, batch MetricBatch) (*E
 	// Compress if enabled
 	var body io.Reader = bytes.NewReader(data)
 	contentEncoding := ""
-	
+
 	if len(data) > 1000 { // Compress if data is larger than 1KB
 		var buf bytes.Buffer
 		gz := gzip.NewWriter(&buf)
@@ -829,11 +829,11 @@ func (pe *PrometheusExporter) HealthCheck(ctx context.Context) error {
 // convertToPrometheusFormat converts metrics to Prometheus format
 func (pe *PrometheusExporter) convertToPrometheusFormat(batch MetricBatch) ([]byte, error) {
 	var buf bytes.Buffer
-	
+
 	for _, metric := range batch.Metrics {
 		// Write metric in Prometheus text format
 		line := fmt.Sprintf("%s", metric.Name)
-		
+
 		if len(metric.Labels) > 0 {
 			labels := make([]string, 0, len(metric.Labels))
 			for k, v := range metric.Labels {
@@ -842,11 +842,11 @@ func (pe *PrometheusExporter) convertToPrometheusFormat(batch MetricBatch) ([]by
 			sort.Strings(labels)
 			line += "{" + strings.Join(labels, ",") + "}"
 		}
-		
+
 		line += fmt.Sprintf(" %g %d\n", metric.Value, metric.Timestamp.UnixMilli())
 		buf.WriteString(line)
 	}
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -860,10 +860,10 @@ type InfluxDBExporter struct {
 // Export exports metrics to InfluxDB
 func (ie *InfluxDBExporter) Export(ctx context.Context, batch MetricBatch) (*ExportResult, error) {
 	startTime := time.Now()
-	
+
 	// Convert to InfluxDB line protocol
 	data := ie.convertToInfluxFormat(batch)
-	
+
 	// Build URL with query parameters
 	url := fmt.Sprintf("%s/write?db=%s", ie.config.URL, ie.config.Database)
 	if ie.config.Precision != "" {
@@ -924,13 +924,13 @@ func (ie *InfluxDBExporter) HealthCheck(ctx context.Context) error {
 // convertToInfluxFormat converts metrics to InfluxDB line protocol
 func (ie *InfluxDBExporter) convertToInfluxFormat(batch MetricBatch) []byte {
 	var buf bytes.Buffer
-	
+
 	for _, metric := range batch.Metrics {
 		line := ie.config.Measurement
 		if line == "" {
 			line = metric.Name
 		}
-		
+
 		// Add tags
 		if len(metric.Labels) > 0 {
 			tags := make([]string, 0, len(metric.Labels))
@@ -940,16 +940,16 @@ func (ie *InfluxDBExporter) convertToInfluxFormat(batch MetricBatch) []byte {
 			sort.Strings(tags)
 			line += "," + strings.Join(tags, ",")
 		}
-		
+
 		// Add fields
 		line += fmt.Sprintf(" value=%g", metric.Value)
-		
+
 		// Add timestamp
 		line += fmt.Sprintf(" %d\n", metric.Timestamp.UnixNano())
-		
+
 		buf.WriteString(line)
 	}
-	
+
 	return buf.Bytes()
 }
 
@@ -963,10 +963,10 @@ type DataDogExporter struct {
 // Export exports metrics to DataDog
 func (de *DataDogExporter) Export(ctx context.Context, batch MetricBatch) (*ExportResult, error) {
 	startTime := time.Now()
-	
+
 	// Convert to DataDog format
 	payload := de.convertToDataDogFormat(batch)
-	
+
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -1031,20 +1031,20 @@ func (de *DataDogExporter) HealthCheck(ctx context.Context) error {
 // convertToDataDogFormat converts metrics to DataDog format
 func (de *DataDogExporter) convertToDataDogFormat(batch MetricBatch) map[string]interface{} {
 	series := make([]map[string]interface{}, len(batch.Metrics))
-	
+
 	for i, metric := range batch.Metrics {
 		tags := make([]string, 0, len(metric.Labels)+len(de.config.Tags))
-		
+
 		// Add configured tags
 		tags = append(tags, de.config.Tags...)
-		
+
 		// Add metric labels as tags
 		for k, v := range metric.Labels {
 			tags = append(tags, fmt.Sprintf("%s:%s", k, v))
 		}
-		
+
 		points := [][]float64{{float64(metric.Timestamp.Unix()), metric.Value}}
-		
+
 		series[i] = map[string]interface{}{
 			"metric": metric.Name,
 			"points": points,
@@ -1052,7 +1052,7 @@ func (de *DataDogExporter) convertToDataDogFormat(batch MetricBatch) map[string]
 			"type":   "gauge",
 		}
 	}
-	
+
 	return map[string]interface{}{
 		"series": series,
 	}
@@ -1068,10 +1068,10 @@ type NewRelicExporter struct {
 // Export exports metrics to New Relic
 func (nr *NewRelicExporter) Export(ctx context.Context, batch MetricBatch) (*ExportResult, error) {
 	startTime := time.Now()
-	
+
 	// Convert to New Relic format
 	payload := nr.convertToNewRelicFormat(batch)
-	
+
 	data, err := json.Marshal(payload)
 	if err != nil {
 		return nil, err
@@ -1120,7 +1120,7 @@ func (nr *NewRelicExporter) HealthCheck(ctx context.Context) error {
 // convertToNewRelicFormat converts metrics to New Relic format
 func (nr *NewRelicExporter) convertToNewRelicFormat(batch MetricBatch) []map[string]interface{} {
 	events := make([]map[string]interface{}, len(batch.Metrics))
-	
+
 	for i, metric := range batch.Metrics {
 		event := map[string]interface{}{
 			"eventType": "NephoranMetric",
@@ -1129,15 +1129,15 @@ func (nr *NewRelicExporter) convertToNewRelicFormat(batch MetricBatch) []map[str
 			"timestamp": metric.Timestamp.Unix(),
 			"source":    batch.Source,
 		}
-		
+
 		// Add labels as attributes
 		for k, v := range metric.Labels {
 			event[k] = v
 		}
-		
+
 		events[i] = event
 	}
-	
+
 	return events
 }
 
@@ -1151,10 +1151,10 @@ type CustomExporter struct {
 // Export exports metrics to custom endpoint
 func (ce *CustomExporter) Export(ctx context.Context, batch MetricBatch) (*ExportResult, error) {
 	startTime := time.Now()
-	
+
 	var data []byte
 	var err error
-	
+
 	switch ce.config.Format {
 	case "json":
 		data, err = json.Marshal(batch)
@@ -1163,7 +1163,7 @@ func (ce *CustomExporter) Export(ctx context.Context, batch MetricBatch) (*Expor
 	default:
 		data, err = json.Marshal(batch)
 	}
-	
+
 	if err != nil {
 		return nil, err
 	}
@@ -1240,12 +1240,12 @@ func (ce *CustomExporter) convertToCSV(batch MetricBatch) ([]byte, error) {
 			metric.Type,
 			metric.Unit,
 		}
-		
+
 		// Add label columns
 		for k, v := range metric.Labels {
 			record = append(record, fmt.Sprintf("%s=%s", k, v))
 		}
-		
+
 		if err := writer.Write(record); err != nil {
 			return nil, err
 		}

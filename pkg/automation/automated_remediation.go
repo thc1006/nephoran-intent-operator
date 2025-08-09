@@ -43,17 +43,17 @@ var (
 
 // AutomatedRemediation handles automated remediation of system issues
 type AutomatedRemediation struct {
-	mu                sync.RWMutex
-	config            *SelfHealingConfig
-	k8sClient         kubernetes.Interface
-	ctrlClient        client.Client
-	logger            *slog.Logger
-	activeSessions    map[string]*RemediationSession
-	learningEngine    *LearningEngine
-	rollbackManager   *RollbackManager
-	strategies        map[string]*RemediationStrategy
-	running           bool
-	stopCh            chan struct{}
+	mu              sync.RWMutex
+	config          *SelfHealingConfig
+	k8sClient       kubernetes.Interface
+	ctrlClient      client.Client
+	logger          *slog.Logger
+	activeSessions  map[string]*RemediationSession
+	learningEngine  *LearningEngine
+	rollbackManager *RollbackManager
+	strategies      map[string]*RemediationStrategy
+	running         bool
+	stopCh          chan struct{}
 }
 
 // NewAutomatedRemediation creates a new automated remediation system
@@ -63,15 +63,15 @@ func NewAutomatedRemediation(config *SelfHealingConfig, k8sClient kubernetes.Int
 	}
 
 	ar := &AutomatedRemediation{
-		config:         config,
-		logger:         logger,
-		k8sClient:      k8sClient,
-		ctrlClient:     ctrlClient,
-		activeSessions: make(map[string]*RemediationSession),
-		strategies:     make(map[string]*RemediationStrategy),
-		learningEngine: NewLearningEngine(logger),
+		config:          config,
+		logger:          logger,
+		k8sClient:       k8sClient,
+		ctrlClient:      ctrlClient,
+		activeSessions:  make(map[string]*RemediationSession),
+		strategies:      make(map[string]*RemediationStrategy),
+		learningEngine:  NewLearningEngine(logger),
 		rollbackManager: NewRollbackManager(logger),
-		stopCh:         make(chan struct{}),
+		stopCh:          make(chan struct{}),
 	}
 
 	// Initialize default remediation strategies
@@ -159,13 +159,13 @@ func (ar *AutomatedRemediation) InitiateRemediation(ctx context.Context, compone
 
 // InitiatePreventiveRemediation initiates preventive remediation based on predictions
 func (ar *AutomatedRemediation) InitiatePreventiveRemediation(ctx context.Context, component string, failureProbability float64) error {
-	ar.logger.Info("Initiating preventive remediation", 
-		"component", component, 
+	ar.logger.Info("Initiating preventive remediation",
+		"component", component,
 		"failure_probability", failureProbability)
 
 	// Select preventive strategy based on probability
 	reason := fmt.Sprintf("preventive_action_probability_%.2f", failureProbability)
-	
+
 	// Use lighter remediation strategies for preventive actions
 	return ar.InitiateRemediation(ctx, component, reason)
 }
@@ -201,7 +201,7 @@ func (ar *AutomatedRemediation) executeRemediation(ctx context.Context, session 
 			action.Error = err.Error()
 			success = false
 
-			ar.logger.Error("Remediation action failed", 
+			ar.logger.Error("Remediation action failed",
 				"session", session.ID,
 				"action", i+1,
 				"type", action.Type,
@@ -277,7 +277,7 @@ func (ar *AutomatedRemediation) executeActionWithRetry(ctx context.Context, acti
 		}
 
 		lastError = err
-		ar.logger.Warn("Remediation action attempt failed", 
+		ar.logger.Warn("Remediation action attempt failed",
 			"attempt", attempt,
 			"max_attempts", attempts,
 			"error", err)
@@ -613,21 +613,21 @@ func (ar *AutomatedRemediation) shouldAbortRemediation(session *RemediationSessi
 func (ar *AutomatedRemediation) createBackup(ctx context.Context, component string) (string, error) {
 	// Create a backup before remediation
 	backupID := fmt.Sprintf("pre-remediation-%s-%d", component, time.Now().Unix())
-	
+
 	// Implementation would create actual backup
 	ar.logger.Info("Creating backup", "component", component, "backup_id", backupID)
-	
+
 	return backupID, nil
 }
 
 func (ar *AutomatedRemediation) performRollback(ctx context.Context, session *RemediationSession) {
 	ar.logger.Info("Performing rollback", "session", session.ID, "component", session.Component)
-	
+
 	if session.RollbackPlan == nil {
 		ar.logger.Error("No rollback plan available", "session", session.ID)
 		return
 	}
-	
+
 	err := ar.rollbackManager.ExecuteRollback(session.RollbackPlan.ID)
 	if err != nil {
 		ar.logger.Error("Rollback failed", "session", session.ID, "error", err)
@@ -640,7 +640,7 @@ func (ar *AutomatedRemediation) performRollback(ctx context.Context, session *Re
 func (ar *AutomatedRemediation) GetActiveRemediations() map[string]*RemediationSession {
 	ar.mu.RLock()
 	defer ar.mu.RUnlock()
-	
+
 	sessions := make(map[string]*RemediationSession)
 	for k, v := range ar.activeSessions {
 		sessions[k] = v
@@ -684,8 +684,8 @@ func (ar *AutomatedRemediation) monitorActiveSessions(ctx context.Context) {
 	for component, session := range ar.activeSessions {
 		// Check for stuck sessions
 		if session.Status == "RUNNING" && time.Since(session.StartTime) > 30*time.Minute {
-			ar.logger.Warn("Remediation session appears stuck", 
-				"session", session.ID, 
+			ar.logger.Warn("Remediation session appears stuck",
+				"session", session.ID,
 				"component", component,
 				"duration", time.Since(session.StartTime))
 		}
@@ -694,7 +694,7 @@ func (ar *AutomatedRemediation) monitorActiveSessions(ctx context.Context) {
 
 func (ar *AutomatedRemediation) optimizeStrategies() {
 	ar.logger.Info("Optimizing remediation strategies")
-	
+
 	// Update strategy priorities based on success rates
 	for _, strategy := range ar.strategies {
 		if strategy.Total > 10 {
@@ -774,4 +774,3 @@ func (ar *AutomatedRemediation) initializeDefaultStrategies() {
 }
 
 // Supporting types and components - implementations moved to specialized files
-

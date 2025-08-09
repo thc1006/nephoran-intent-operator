@@ -42,7 +42,7 @@ func ExampleUsage() {
 	}
 
 	// Environment-specific configuration
-	environment, err := GetEnvWithValidation("ENVIRONMENT", "development", 
+	environment, err := GetEnvWithValidation("ENVIRONMENT", "development",
 		ValidateOneOfIgnoreCase([]string{"development", "staging", "production"}))
 	if err != nil {
 		log.Printf("Environment validation error: %v", err)
@@ -56,7 +56,7 @@ func ExampleUsage() {
 			fmt.Printf("Recovered from panic: %v\n", r)
 		}
 	}()
-	
+
 	// This would panic if API_KEY is not set
 	// apiKey := MustGetEnv("API_KEY")
 	// fmt.Printf("API Key loaded: %s\n", apiKey[:8]+"...") // Only show first 8 chars
@@ -69,14 +69,14 @@ func ExampleLLMProcessorConfig() {
 	// cfg.Port = getEnvOrDefault("PORT", cfg.Port)
 	// With:
 	port := GetEnvOrDefault("PORT", "8080")
-	
+
 	// Replace boolean parsing patterns like:
 	// if val := os.Getenv("ENABLE_STREAMING"); val != "" {
 	//     cfg.StreamingEnabled = val == "true" || val == "1"
 	// }
 	// With:
 	streamingEnabled := GetBoolEnv("ENABLE_STREAMING", false)
-	
+
 	// Replace duration parsing patterns like:
 	// if val := os.Getenv("TIMEOUT"); val != "" {
 	//     if d, err := time.ParseDuration(val); err == nil {
@@ -85,7 +85,7 @@ func ExampleLLMProcessorConfig() {
 	// }
 	// With:
 	timeout := GetDurationEnv("TIMEOUT", 30*time.Second)
-	
+
 	// Replace integer parsing patterns like:
 	// if val := os.Getenv("MAX_TOKENS"); val != "" {
 	//     if i, err := strconv.Atoi(val); err == nil {
@@ -94,7 +94,7 @@ func ExampleLLMProcessorConfig() {
 	// }
 	// With:
 	maxTokens := GetIntEnv("MAX_TOKENS", 2048)
-	
+
 	// Replace string slice parsing patterns like:
 	// if val := os.Getenv("ALLOWED_ORIGINS"); val != "" {
 	//     result := []string{}
@@ -107,7 +107,7 @@ func ExampleLLMProcessorConfig() {
 	// }
 	// With:
 	allowedOrigins := GetStringSliceEnv("ALLOWED_ORIGINS", []string{"http://localhost:3000"})
-	
+
 	fmt.Printf("LLM Config - Port: %s, Streaming: %v, Timeout: %v, MaxTokens: %d, Origins: %v\n",
 		port, streamingEnabled, timeout, maxTokens, allowedOrigins)
 }
@@ -124,7 +124,7 @@ func ExampleAuthConfig() {
 	// With:
 	authEnabled := GetBoolEnv("AUTH_ENABLED", false)
 	rbacEnabled := GetBoolEnv("RBAC_ENABLED", true)
-	
+
 	// Replace duration patterns like:
 	// func getDurationEnv(key string, defaultValue time.Duration) time.Duration {
 	//     if value := os.Getenv(key); value != "" {
@@ -137,7 +137,7 @@ func ExampleAuthConfig() {
 	// With:
 	tokenTTL := GetDurationEnv("TOKEN_TTL", 24*time.Hour)
 	refreshTTL := GetDurationEnv("REFRESH_TTL", 7*24*time.Hour)
-	
+
 	// Replace string slice patterns like:
 	// func getStringSliceEnv(key string, defaultValue []string) []string {
 	//     if value := os.Getenv(key); value != "" {
@@ -156,7 +156,7 @@ func ExampleAuthConfig() {
 	// With:
 	adminUsers := GetStringSliceEnv("ADMIN_USERS", []string{})
 	operatorUsers := GetStringSliceEnv("OPERATOR_USERS", []string{})
-	
+
 	fmt.Printf("Auth Config - Enabled: %v, RBAC: %v, Token TTL: %v, Refresh TTL: %v\n",
 		authEnabled, rbacEnabled, tokenTTL, refreshTTL)
 	fmt.Printf("Admin users: %v, Operator users: %v\n", adminUsers, operatorUsers)
@@ -169,39 +169,39 @@ func ExampleValidationUsage() {
 	if err != nil {
 		log.Printf("RAG URL validation error: %v", err)
 	}
-	
+
 	// Port validation
 	metricsPort, err := GetEnvWithValidation("METRICS_PORT", "9090", ValidatePort)
 	if err != nil {
 		log.Printf("Metrics port validation error: %v", err)
 	}
-	
+
 	// Log level validation
 	logLevel, err := GetEnvWithValidation("LOG_LEVEL", "info", ValidateLogLevel)
 	if err != nil {
 		log.Printf("Log level validation error: %v", err)
 	}
-	
+
 	// Custom validation with ranges
 	maxRetries, err := GetIntEnvWithValidation("MAX_RETRIES", 3, ValidateIntRange(0, 10))
 	if err != nil {
 		log.Printf("Max retries validation error: %v", err)
 	}
-	
+
 	// Duration validation with ranges
-	circuitBreakerTimeout, err := GetDurationEnvWithValidation("CIRCUIT_BREAKER_TIMEOUT", 
+	circuitBreakerTimeout, err := GetDurationEnvWithValidation("CIRCUIT_BREAKER_TIMEOUT",
 		30*time.Second, ValidateDurationRange(1*time.Second, 5*time.Minute))
 	if err != nil {
 		log.Printf("Circuit breaker timeout validation error: %v", err)
 	}
-	
+
 	// Custom validation for specific values
 	backendType, err := GetEnvWithValidation("LLM_BACKEND_TYPE", "rag",
 		ValidateOneOf([]string{"openai", "mistral", "rag", "mock"}))
 	if err != nil {
 		log.Printf("Backend type validation error: %v", err)
 	}
-	
+
 	fmt.Printf("Validated config - RAG URL: %s, Metrics port: %s, Log level: %s\n",
 		ragURL, metricsPort, logLevel)
 	fmt.Printf("Max retries: %d, CB timeout: %v, Backend: %s\n",
@@ -211,7 +211,7 @@ func ExampleValidationUsage() {
 // ExampleMigrationPattern shows how to migrate existing code
 func ExampleMigrationPattern() {
 	fmt.Println("=== Migration Examples ===")
-	
+
 	// BEFORE: Duplicate helper functions in each file
 	// func getEnvOrDefault(key, defaultValue string) string {
 	//     if value := os.Getenv(key); value != "" {
@@ -219,19 +219,19 @@ func ExampleMigrationPattern() {
 	//     }
 	//     return defaultValue
 	// }
-	
+
 	// AFTER: Use centralized helper
 	llmProcessorURL := GetEnvOrDefault("LLM_PROCESSOR_URL", "http://llm-processor:8080")
-	
+
 	// BEFORE: Manual boolean parsing with inconsistent logic
 	// enabled := false
 	// if val := os.Getenv("FEATURE_ENABLED"); val != "" {
 	//     enabled = val == "true" || val == "1"
 	// }
-	
+
 	// AFTER: Consistent boolean parsing
 	featureEnabled := GetBoolEnv("FEATURE_ENABLED", false)
-	
+
 	// BEFORE: Error-prone duration parsing
 	// var timeout time.Duration = 30 * time.Second
 	// if val := os.Getenv("TIMEOUT"); val != "" {
@@ -239,10 +239,10 @@ func ExampleMigrationPattern() {
 	//         timeout = d
 	//     }
 	// }
-	
+
 	// AFTER: Safe duration parsing
 	timeout := GetDurationEnv("TIMEOUT", 30*time.Second)
-	
+
 	fmt.Printf("Migrated config - URL: %s, Enabled: %v, Timeout: %v\n",
 		llmProcessorURL, featureEnabled, timeout)
 }
@@ -250,14 +250,14 @@ func ExampleMigrationPattern() {
 // ExampleErrorHandling demonstrates proper error handling patterns
 func ExampleErrorHandling() {
 	fmt.Println("=== Error Handling Examples ===")
-	
+
 	// Validation with error handling
 	if port, err := GetEnvWithValidation("API_PORT", "8080", ValidatePort); err != nil {
 		log.Printf("Invalid port configuration: %v, using default", err)
 		// Use default or handle error appropriately
 		_ = port
 	}
-	
+
 	// Required configuration with panic recovery
 	func() {
 		defer func() {
@@ -266,12 +266,12 @@ func ExampleErrorHandling() {
 				// Handle gracefully or exit
 			}
 		}()
-		
+
 		// This will panic if not set
 		// secretKey := MustGetEnv("SECRET_KEY")
 		// Use secretKey...
 	}()
-	
+
 	// Conditional validation
 	if IsSet("OPTIONAL_FEATURE") {
 		featureConfig, err := GetEnvWithValidation("OPTIONAL_FEATURE", "", ValidateNonEmpty)
@@ -286,27 +286,27 @@ func ExampleErrorHandling() {
 // ExamplePerformancePatterns demonstrates efficient usage patterns
 func ExamplePerformancePatterns() {
 	fmt.Println("=== Performance Examples ===")
-	
+
 	// Load configuration once at startup
 	type Config struct {
-		Port            string
-		DebugEnabled    bool
-		RequestTimeout  time.Duration
-		MaxConnections  int
-		AllowedOrigins  []string
+		Port           string
+		DebugEnabled   bool
+		RequestTimeout time.Duration
+		MaxConnections int
+		AllowedOrigins []string
 	}
-	
+
 	config := Config{
-		Port:            GetEnvOrDefault("PORT", "8080"),
-		DebugEnabled:    GetBoolEnv("DEBUG", false),
-		RequestTimeout:  GetDurationEnv("REQUEST_TIMEOUT", 30*time.Second),
-		MaxConnections:  GetIntEnv("MAX_CONNECTIONS", 100),
-		AllowedOrigins:  GetStringSliceEnv("CORS_ORIGINS", []string{"*"}),
+		Port:           GetEnvOrDefault("PORT", "8080"),
+		DebugEnabled:   GetBoolEnv("DEBUG", false),
+		RequestTimeout: GetDurationEnv("REQUEST_TIMEOUT", 30*time.Second),
+		MaxConnections: GetIntEnv("MAX_CONNECTIONS", 100),
+		AllowedOrigins: GetStringSliceEnv("CORS_ORIGINS", []string{"*"}),
 	}
-	
+
 	// Use throughout application without re-parsing
 	fmt.Printf("Loaded config: %+v\n", config)
-	
+
 	// For debugging: show all environment keys with specific prefix
 	fmt.Println("App-specific environment variables:")
 	for _, key := range GetEnvKeys() {

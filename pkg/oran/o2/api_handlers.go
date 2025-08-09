@@ -30,18 +30,18 @@ type ProblemDetail struct {
 // handleGetServiceInfo returns service information
 func (s *O2APIServer) handleGetServiceInfo(w http.ResponseWriter, r *http.Request) {
 	serviceInfo := map[string]interface{}{
-		"name":        "Nephoran O2 IMS",
-		"version":     "1.0.0",
-		"description": "O-RAN Infrastructure Management Service",
-		"apiVersion":  "v1",
+		"name":          "Nephoran O2 IMS",
+		"version":       "1.0.0",
+		"description":   "O-RAN Infrastructure Management Service",
+		"apiVersion":    "v1",
 		"specification": "O-RAN.WG6.O2ims-Interface-v01.01",
 		"capabilities": []string{
 			"InfrastructureInventory",
-			"InfrastructureMonitoring", 
+			"InfrastructureMonitoring",
 			"InfrastructureProvisioning",
 		},
 		"supported_providers": s.providerRegistry.GetSupportedProviders(),
-		"timestamp":          time.Now().Format(time.RFC3339),
+		"timestamp":           time.Now().Format(time.RFC3339),
 	}
 
 	s.writeJSONResponse(w, r, StatusOK, serviceInfo)
@@ -50,7 +50,7 @@ func (s *O2APIServer) handleGetServiceInfo(w http.ResponseWriter, r *http.Reques
 // handleHealthCheck returns health status
 func (s *O2APIServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	health := s.healthChecker.GetHealthStatus()
-	
+
 	status := StatusOK
 	if health.Status == "DOWN" {
 		status = StatusServiceUnavailable
@@ -64,10 +64,10 @@ func (s *O2APIServer) handleHealthCheck(w http.ResponseWriter, r *http.Request) 
 // handleReadinessCheck returns readiness status
 func (s *O2APIServer) handleReadinessCheck(w http.ResponseWriter, r *http.Request) {
 	ready := map[string]interface{}{
-		"status": "READY",
+		"status":    "READY",
 		"timestamp": time.Now().Format(time.RFC3339),
 		"checks": map[string]string{
-			"database": "OK",
+			"database":  "OK",
 			"providers": "OK",
 		},
 	}
@@ -80,7 +80,7 @@ func (s *O2APIServer) handleReadinessCheck(w http.ResponseWriter, r *http.Reques
 // handleGetResourcePools retrieves resource pools with filtering
 func (s *O2APIServer) handleGetResourcePools(w http.ResponseWriter, r *http.Request) {
 	filter := s.parseResourcePoolFilter(r)
-	
+
 	pools, err := s.imsService.GetResourcePools(r.Context(), filter)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve resource pools", err)
@@ -171,7 +171,7 @@ func (s *O2APIServer) handleDeleteResourcePool(w http.ResponseWriter, r *http.Re
 // handleGetResourceTypes retrieves resource types
 func (s *O2APIServer) handleGetResourceTypes(w http.ResponseWriter, r *http.Request) {
 	filter := s.parseResourceTypeFilter(r)
-	
+
 	resourceTypes, err := s.imsService.GetResourceTypes(r.Context(), filter)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve resource types", err)
@@ -262,7 +262,7 @@ func (s *O2APIServer) handleDeleteResourceType(w http.ResponseWriter, r *http.Re
 // handleGetResources retrieves resources with filtering
 func (s *O2APIServer) handleGetResources(w http.ResponseWriter, r *http.Request) {
 	filter := s.parseResourceFilter(r)
-	
+
 	resources, err := s.imsService.GetResources(r.Context(), filter)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve resources", err)
@@ -408,7 +408,7 @@ func (s *O2APIServer) handleGetResourceMetrics(w http.ResponseWriter, r *http.Re
 // handleGetDeploymentTemplates retrieves deployment templates
 func (s *O2APIServer) handleGetDeploymentTemplates(w http.ResponseWriter, r *http.Request) {
 	filter := s.parseDeploymentTemplateFilter(r)
-	
+
 	templates, err := s.imsService.GetDeploymentTemplates(r.Context(), filter)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve deployment templates", err)
@@ -499,7 +499,7 @@ func (s *O2APIServer) handleDeleteDeploymentTemplate(w http.ResponseWriter, r *h
 // handleGetDeployments retrieves deployments
 func (s *O2APIServer) handleGetDeployments(w http.ResponseWriter, r *http.Request) {
 	filter := s.parseDeploymentFilter(r)
-	
+
 	deployments, err := s.imsService.GetDeployments(r.Context(), filter)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve deployments", err)
@@ -607,7 +607,7 @@ func (s *O2APIServer) handleCreateSubscription(w http.ResponseWriter, r *http.Re
 // handleGetSubscriptions retrieves subscriptions
 func (s *O2APIServer) handleGetSubscriptions(w http.ResponseWriter, r *http.Request) {
 	filter := s.parseSubscriptionFilter(r)
-	
+
 	subscriptions, err := s.imsService.GetSubscriptions(r.Context(), filter)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to retrieve subscriptions", err)

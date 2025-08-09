@@ -57,7 +57,7 @@ func TestNewGoogleProvider(t *testing.T) {
 
 			assert.NotNil(t, provider)
 			assert.Equal(t, tt.wantName, provider.GetProviderName())
-			
+
 			config := provider.GetConfiguration()
 			assert.Equal(t, tt.clientID, config.ClientID)
 			assert.Equal(t, tt.clientSecret, config.ClientSecret)
@@ -85,7 +85,7 @@ func TestGoogleProvider_SupportsFeature(t *testing.T) {
 		{FeatureUserInfo, true},
 		{FeatureJWTTokens, true},
 		{FeatureDiscovery, true},
-		{FeatureGroups, false},      // Google doesn't provide groups in standard claims
+		{FeatureGroups, false},        // Google doesn't provide groups in standard claims
 		{FeatureOrganizations, false}, // Google doesn't provide orgs
 	}
 
@@ -242,12 +242,12 @@ func TestGoogleProvider_ExchangeCodeForToken(t *testing.T) {
 	}
 
 	tests := []struct {
-		name         string
-		code         string
-		wantError    bool
-		wantToken    string
-		wantRefresh  string
-		wantIDToken  bool
+		name        string
+		code        string
+		wantError   bool
+		wantToken   string
+		wantRefresh string
+		wantIDToken bool
 	}{
 		{
 			name:        "Valid code exchange",
@@ -286,7 +286,7 @@ func TestGoogleProvider_ExchangeCodeForToken(t *testing.T) {
 			assert.Equal(t, tt.wantRefresh, tokenResp.RefreshToken)
 			assert.Equal(t, "Bearer", tokenResp.TokenType)
 			assert.Equal(t, int64(3600), tokenResp.ExpiresIn)
-			
+
 			if tt.wantIDToken {
 				assert.NotEmpty(t, tokenResp.IDToken)
 			}
@@ -463,14 +463,14 @@ func TestGoogleProvider_GetUserInfo(t *testing.T) {
 	provider.config.Endpoints.UserInfoURL = server.URL + "/oauth2/v2/userinfo"
 
 	tests := []struct {
-		name          string
-		token         string
-		wantError     bool
-		wantSubject   string
-		wantEmail     string
-		wantName      string
-		wantVerified  bool
-		wantDomain    string
+		name         string
+		token        string
+		wantError    bool
+		wantSubject  string
+		wantEmail    string
+		wantName     string
+		wantVerified bool
+		wantDomain   string
 	}{
 		{
 			name:         "Valid user info",
@@ -530,7 +530,7 @@ func TestGoogleProvider_GetUserInfo(t *testing.T) {
 			assert.Equal(t, tt.wantName, userInfo.Name)
 			assert.Equal(t, tt.wantVerified, userInfo.EmailVerified)
 			assert.Equal(t, "google", userInfo.Provider)
-			
+
 			if tt.wantDomain != "" {
 				assert.Contains(t, userInfo.Attributes, "hosted_domain")
 				assert.Equal(t, tt.wantDomain, userInfo.Attributes["hosted_domain"])
@@ -544,7 +544,7 @@ func TestGoogleProvider_ValidateToken(t *testing.T) {
 		if r.URL.Path == "/oauth2/v2/userinfo" {
 			authHeader := r.Header.Get("Authorization")
 			token := strings.TrimPrefix(authHeader, "Bearer ")
-			
+
 			switch token {
 			case "valid-token":
 				userInfo := map[string]interface{}{
@@ -612,10 +612,10 @@ func TestGoogleProvider_RevokeToken(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/o/oauth2/revoke" {
 			assert.Equal(t, "POST", r.Method)
-			
+
 			err := r.ParseForm()
 			require.NoError(t, err)
-			
+
 			token := r.FormValue("token")
 			if token == "valid-token" {
 				w.WriteHeader(http.StatusOK)
@@ -673,7 +673,7 @@ func TestGoogleProvider_DiscoverConfiguration(t *testing.T) {
 				AuthorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
 				TokenEndpoint:         "https://oauth2.googleapis.com/token",
 				UserInfoEndpoint:      "https://openidconnect.googleapis.com/v1/userinfo",
-				JWKSUri:              "https://www.googleapis.com/oauth2/v3/certs",
+				JWKSUri:               "https://www.googleapis.com/oauth2/v3/certs",
 				ScopesSupported: []string{
 					"openid", "email", "profile",
 				},
@@ -752,7 +752,7 @@ func TestGoogleProvider_WithHostedDomain(t *testing.T) {
 // Benchmark tests
 func BenchmarkGoogleProvider_GetAuthorizationURL(b *testing.B) {
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _, _ = provider.GetAuthorizationURL("test-state", "http://localhost:8080/callback")
@@ -761,7 +761,7 @@ func BenchmarkGoogleProvider_GetAuthorizationURL(b *testing.B) {
 
 func BenchmarkGoogleProvider_GetAuthorizationURL_WithPKCE(b *testing.B) {
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, _, _ = provider.GetAuthorizationURL("test-state", "http://localhost:8080/callback", WithPKCE())
@@ -806,7 +806,7 @@ func createMockGoogleServer() *httptest.Server {
 				AuthorizationEndpoint: "https://accounts.google.com/o/oauth2/v2/auth",
 				TokenEndpoint:         "https://oauth2.googleapis.com/token",
 				UserInfoEndpoint:      "https://openidconnect.googleapis.com/v1/userinfo",
-				JWKSUri:              "https://www.googleapis.com/oauth2/v3/certs",
+				JWKSUri:               "https://www.googleapis.com/oauth2/v3/certs",
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(config)
@@ -821,7 +821,7 @@ func TestGoogleProvider_EdgeCases(t *testing.T) {
 	t.Run("Empty client credentials", func(t *testing.T) {
 		provider := NewGoogleProvider("", "", "http://localhost:8080/callback")
 		assert.NotNil(t, provider)
-		
+
 		config := provider.GetConfiguration()
 		assert.Empty(t, config.ClientID)
 		assert.Empty(t, config.ClientSecret)
@@ -830,7 +830,7 @@ func TestGoogleProvider_EdgeCases(t *testing.T) {
 	t.Run("Invalid redirect URI", func(t *testing.T) {
 		provider := NewGoogleProvider("test-id", "test-secret", "invalid-uri")
 		assert.NotNil(t, provider)
-		
+
 		config := provider.GetConfiguration()
 		assert.Equal(t, "invalid-uri", config.RedirectURL)
 	})

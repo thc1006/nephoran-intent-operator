@@ -16,132 +16,132 @@ import (
 // IntelligentCache provides advanced caching with intelligent invalidation strategies
 type IntelligentCache struct {
 	// Multi-level cache architecture
-	l1Cache         *L1Cache         // In-memory, ultra-fast
-	l2Cache         *L2Cache         // Distributed cache (Redis-like)
-	l3Cache         *L3Cache         // Persistent storage cache
-	
+	l1Cache *L1Cache // In-memory, ultra-fast
+	l2Cache *L2Cache // Distributed cache (Redis-like)
+	l3Cache *L3Cache // Persistent storage cache
+
 	// Cache policies and strategies
-	policies        *CachePolicies
-	invalidator     *CacheInvalidator
-	warmer          *CacheWarmer
-	
+	policies    *CachePolicies
+	invalidator *CacheInvalidator
+	warmer      *CacheWarmer
+
 	// Analytics and optimization
-	analyzer        *CacheAnalyzer
-	optimizer       *CacheOptimizer
-	
+	analyzer  *CacheAnalyzer
+	optimizer *CacheOptimizer
+
 	// Configuration
-	config          *IntelligentCacheConfig
-	logger          *slog.Logger
-	
+	config *IntelligentCacheConfig
+	logger *slog.Logger
+
 	// Metrics and monitoring
-	metrics         *CacheMetrics
-	tracer          CacheTracer
-	
+	metrics *CacheMetrics
+	tracer  CacheTracer
+
 	// State management
-	state           CacheState
-	stateMutex      sync.RWMutex
+	state      CacheState
+	stateMutex sync.RWMutex
 }
 
 // L1Cache represents ultra-fast in-memory cache
 type L1Cache struct {
 	// Segmented cache for better concurrency
-	segments        []*CacheSegment
-	segmentCount    int
-	segmentMask     uint64
-	
+	segments     []*CacheSegment
+	segmentCount int
+	segmentMask  uint64
+
 	// Cache configuration
-	maxSize         int64
-	ttl             time.Duration
-	
+	maxSize int64
+	ttl     time.Duration
+
 	// Advanced features
-	lru             *LRUManager
-	bloomFilter     *BloomFilter
-	
+	lru         *LRUManager
+	bloomFilter *BloomFilter
+
 	// Metrics
-	stats           *L1CacheStats
-	mutex           sync.RWMutex
+	stats *L1CacheStats
+	mutex sync.RWMutex
 }
 
 // CacheSegment provides lock-free cache operations for a subset of keys
 type CacheSegment struct {
-	entries         map[string]*CacheEntry
-	accessOrder     *AccessOrderManager
-	size            int64
-	lastAccess      time.Time
-	mutex           sync.RWMutex
-	
+	entries     map[string]*CacheEntry
+	accessOrder *AccessOrderManager
+	size        int64
+	lastAccess  time.Time
+	mutex       sync.RWMutex
+
 	// Lock-free optimization
-	readOptimized   bool
-	writeBuffer     chan *CacheOperation
+	readOptimized bool
+	writeBuffer   chan *CacheOperation
 }
 
 // CacheEntry represents a cached item with comprehensive metadata
 type CacheEntry struct {
 	// Data
-	Key             string
-	Value           []byte
-	OriginalValue   interface{} // Keep reference to avoid re-serialization
-	
+	Key           string
+	Value         []byte
+	OriginalValue interface{} // Keep reference to avoid re-serialization
+
 	// Metadata
-	CreatedAt       time.Time
-	LastAccessed    time.Time
-	LastModified    time.Time
-	ExpiresAt       time.Time
-	
+	CreatedAt    time.Time
+	LastAccessed time.Time
+	LastModified time.Time
+	ExpiresAt    time.Time
+
 	// Access patterns
 	AccessCount     int64
 	AccessFrequency float64
 	AccessPattern   AccessPattern
-	
+
 	// Dependency tracking
-	Dependencies    []string
-	DependentKeys   []string
-	
+	Dependencies  []string
+	DependentKeys []string
+
 	// Semantic information
-	IntentType      string
-	Parameters      map[string]interface{}
-	Similarity      float64
-	
+	IntentType string
+	Parameters map[string]interface{}
+	Similarity float64
+
 	// Cache optimization
-	Size            int64
-	CompressionType CompressionType
+	Size              int64
+	CompressionType   CompressionType
 	SerializationType SerializationType
-	
+
 	// Quality metrics
-	HitProbability  float64
-	CostBenefit     float64
-	
-	mutex           sync.RWMutex
+	HitProbability float64
+	CostBenefit    float64
+
+	mutex sync.RWMutex
 }
 
 // IntelligentCacheConfig holds configuration for the intelligent cache
 type IntelligentCacheConfig struct {
 	// Cache levels configuration
-	L1Config        L1CacheConfig        `json:"l1_config"`
-	L2Config        L2CacheConfig        `json:"l2_config"`
-	L3Config        L3CacheConfig        `json:"l3_config"`
-	
+	L1Config L1CacheConfig `json:"l1_config"`
+	L2Config L2CacheConfig `json:"l2_config"`
+	L3Config L3CacheConfig `json:"l3_config"`
+
 	// Cache policies
-	EvictionPolicy  EvictionPolicy       `json:"eviction_policy"`
-	ReplicationPolicy ReplicationPolicy  `json:"replication_policy"`
-	ConsistencyLevel ConsistencyLevel    `json:"consistency_level"`
-	
+	EvictionPolicy    EvictionPolicy    `json:"eviction_policy"`
+	ReplicationPolicy ReplicationPolicy `json:"replication_policy"`
+	ConsistencyLevel  ConsistencyLevel  `json:"consistency_level"`
+
 	// Intelligence features
-	SemanticCaching bool                 `json:"semantic_caching"`
-	PredictiveCaching bool               `json:"predictive_caching"`
-	AdaptiveTTL     bool                 `json:"adaptive_ttl"`
-	
+	SemanticCaching   bool `json:"semantic_caching"`
+	PredictiveCaching bool `json:"predictive_caching"`
+	AdaptiveTTL       bool `json:"adaptive_ttl"`
+
 	// Performance tuning
-	PrewarmEnabled  bool                 `json:"prewarm_enabled"`
-	PrewarmPatterns []string             `json:"prewarm_patterns"`
-	
+	PrewarmEnabled  bool     `json:"prewarm_enabled"`
+	PrewarmPatterns []string `json:"prewarm_patterns"`
+
 	// Analytics
-	AnalyticsEnabled bool                `json:"analytics_enabled"`
-	OptimizationEnabled bool             `json:"optimization_enabled"`
-	
+	AnalyticsEnabled    bool `json:"analytics_enabled"`
+	OptimizationEnabled bool `json:"optimization_enabled"`
+
 	// Compression and serialization
-	CompressionThreshold int             `json:"compression_threshold"`
-	DefaultCompression   CompressionType `json:"default_compression"`
+	CompressionThreshold int               `json:"compression_threshold"`
+	DefaultCompression   CompressionType   `json:"default_compression"`
 	DefaultSerialization SerializationType `json:"default_serialization"`
 }
 
@@ -158,18 +158,18 @@ type L1CacheConfig struct {
 // CachePolicies defines intelligent caching strategies
 type CachePolicies struct {
 	// Semantic-based policies
-	SemanticSimilarity  *SemanticPolicy
-	ParameterSimilarity *ParameterPolicy
+	SemanticSimilarity   *SemanticPolicy
+	ParameterSimilarity  *ParameterPolicy
 	IntentClassification *ClassificationPolicy
-	
+
 	// Time-based policies
-	AdaptiveTTL         *AdaptiveTTLPolicy
-	TimeOfDayPolicy     *TimePolicy
-	
+	AdaptiveTTL     *AdaptiveTTLPolicy
+	TimeOfDayPolicy *TimePolicy
+
 	// Usage-based policies
-	AccessFrequency     *FrequencyPolicy
-	CostBenefitPolicy   *CostBenefitPolicy
-	
+	AccessFrequency   *FrequencyPolicy
+	CostBenefitPolicy *CostBenefitPolicy
+
 	// Dependency policies
 	DependencyTracking  *DependencyPolicy
 	InvalidationCascade *CascadePolicy
@@ -181,49 +181,49 @@ type SemanticPolicy struct {
 	SimilarityThreshold float64 `json:"similarity_threshold"`
 	EmbeddingModel      string  `json:"embedding_model"`
 	VectorDimension     int     `json:"vector_dimension"`
-	
+
 	// Embedding cache
-	embeddings          map[string][]float32
-	embeddingsMutex     sync.RWMutex
+	embeddings      map[string][]float32
+	embeddingsMutex sync.RWMutex
 }
 
 // CacheInvalidator manages intelligent cache invalidation
 type CacheInvalidator struct {
 	// Invalidation strategies
-	strategies      []InvalidationStrategy
-	
+	strategies []InvalidationStrategy
+
 	// Dependency graph
 	dependencyGraph *DependencyGraph
-	
+
 	// Pattern-based invalidation
-	patterns        []InvalidationPattern
-	
+	patterns []InvalidationPattern
+
 	// Predictive invalidation
-	predictor       *InvalidationPredictor
-	
+	predictor *InvalidationPredictor
+
 	// Event-driven invalidation
 	eventSubscriber *EventSubscriber
-	
-	config          *InvalidationConfig
-	logger          *slog.Logger
+
+	config *InvalidationConfig
+	logger *slog.Logger
 }
 
 // CacheWarmer handles intelligent cache warming
 type CacheWarmer struct {
 	// Warming strategies
-	strategies      []WarmingStrategy
-	
+	strategies []WarmingStrategy
+
 	// Pattern analysis
 	patternAnalyzer *PatternAnalyzer
-	
+
 	// Predictive warming
-	predictor       *WarmingPredictor
-	
+	predictor *WarmingPredictor
+
 	// Scheduler
-	scheduler       *WarmingScheduler
-	
-	config          *WarmingConfig
-	logger          *slog.Logger
+	scheduler *WarmingScheduler
+
+	config *WarmingConfig
+	logger *slog.Logger
 }
 
 // NewIntelligentCache creates a new intelligent cache
@@ -231,15 +231,15 @@ func NewIntelligentCache(config *IntelligentCacheConfig) (*IntelligentCache, err
 	if config == nil {
 		config = getDefaultIntelligentCacheConfig()
 	}
-	
+
 	logger := slog.Default().With("component", "intelligent-cache")
-	
+
 	// Create L1 cache with optimized segments
 	l1Cache, err := NewL1Cache(config.L1Config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create L1 cache: %w", err)
 	}
-	
+
 	// Initialize cache policies
 	policies := &CachePolicies{
 		SemanticSimilarity: &SemanticPolicy{
@@ -250,14 +250,14 @@ func NewIntelligentCache(config *IntelligentCacheConfig) (*IntelligentCache, err
 			embeddings:          make(map[string][]float32),
 		},
 		AdaptiveTTL: &AdaptiveTTLPolicy{
-			Enabled:             config.AdaptiveTTL,
-			BaselineTTL:         config.L1Config.TTL,
-			MinTTL:              time.Minute,
-			MaxTTL:              24 * time.Hour,
-			AccessThreshold:     10,
+			Enabled:         config.AdaptiveTTL,
+			BaselineTTL:     config.L1Config.TTL,
+			MinTTL:          time.Minute,
+			MaxTTL:          24 * time.Hour,
+			AccessThreshold: 10,
 		},
 	}
-	
+
 	// Create invalidator
 	invalidator := &CacheInvalidator{
 		strategies:      []InvalidationStrategy{},
@@ -266,7 +266,7 @@ func NewIntelligentCache(config *IntelligentCacheConfig) (*IntelligentCache, err
 		config:          &InvalidationConfig{},
 		logger:          logger,
 	}
-	
+
 	// Create warmer
 	warmer := &CacheWarmer{
 		strategies:      []WarmingStrategy{},
@@ -274,7 +274,7 @@ func NewIntelligentCache(config *IntelligentCacheConfig) (*IntelligentCache, err
 		config:          &WarmingConfig{},
 		logger:          logger,
 	}
-	
+
 	cache := &IntelligentCache{
 		l1Cache:     l1Cache,
 		policies:    policies,
@@ -285,27 +285,27 @@ func NewIntelligentCache(config *IntelligentCacheConfig) (*IntelligentCache, err
 		metrics:     NewCacheMetrics(),
 		state:       CacheStateActive,
 	}
-	
+
 	// Start background processes
 	if config.PrewarmEnabled {
 		go cache.warmingRoutine()
 	}
-	
+
 	if config.AnalyticsEnabled {
 		go cache.analyticsRoutine()
 	}
-	
+
 	if config.OptimizationEnabled {
 		go cache.optimizationRoutine()
 	}
-	
+
 	logger.Info("Intelligent cache initialized",
 		"l1_segments", config.L1Config.SegmentCount,
 		"semantic_caching", config.SemanticCaching,
 		"predictive_caching", config.PredictiveCaching,
 		"adaptive_ttl", config.AdaptiveTTL,
 	)
-	
+
 	return cache, nil
 }
 
@@ -315,13 +315,13 @@ func (ic *IntelligentCache) Get(ctx context.Context, key string) (interface{}, b
 	defer func() {
 		ic.metrics.RecordOperation("get", time.Since(start))
 	}()
-	
+
 	// Try exact match first (L1 cache)
 	if value, found := ic.l1Cache.Get(key); found {
 		ic.metrics.RecordHit("l1")
 		return value, true, nil
 	}
-	
+
 	// Try semantic similarity matching if enabled
 	if ic.config.SemanticCaching {
 		if value, similarity, found := ic.getSemanticMatch(ctx, key); found {
@@ -330,13 +330,13 @@ func (ic *IntelligentCache) Get(ctx context.Context, key string) (interface{}, b
 				"key", key,
 				"similarity", similarity,
 			)
-			
+
 			// Cache the result for exact future matches
 			ic.l1Cache.Set(key, value, ic.calculateAdaptiveTTL(key, similarity))
 			return value, true, nil
 		}
 	}
-	
+
 	ic.metrics.RecordMiss()
 	return nil, false, nil
 }
@@ -347,13 +347,13 @@ func (ic *IntelligentCache) Set(ctx context.Context, key string, value interface
 	defer func() {
 		ic.metrics.RecordOperation("set", time.Since(start))
 	}()
-	
+
 	// Apply cache options
 	opts := &CacheOptions{}
 	for _, option := range options {
 		option(opts)
 	}
-	
+
 	// Create cache entry with comprehensive metadata
 	entry := &CacheEntry{
 		Key:           key,
@@ -366,13 +366,13 @@ func (ic *IntelligentCache) Set(ctx context.Context, key string, value interface
 		Parameters:    opts.Parameters,
 		Dependencies:  opts.Dependencies,
 	}
-	
+
 	// Serialize value for storage
 	serializedValue, err := ic.serializeValue(value, opts.Serialization)
 	if err != nil {
 		return fmt.Errorf("serialization failed: %w", err)
 	}
-	
+
 	// Compress if beneficial
 	if len(serializedValue) > ic.config.CompressionThreshold {
 		compressedValue, err := ic.compressValue(serializedValue, opts.Compression)
@@ -385,30 +385,30 @@ func (ic *IntelligentCache) Set(ctx context.Context, key string, value interface
 	} else {
 		entry.Value = serializedValue
 	}
-	
+
 	entry.Size = int64(len(entry.Value))
 	entry.SerializationType = opts.Serialization
-	
+
 	// Calculate TTL with adaptive policy
 	ttl := ic.calculateAdaptiveTTL(key, 1.0)
 	if opts.TTL > 0 {
 		ttl = opts.TTL
 	}
 	entry.ExpiresAt = time.Now().Add(ttl)
-	
+
 	// Store in L1 cache
 	ic.l1Cache.SetEntry(entry)
-	
+
 	// Update semantic embeddings if enabled
 	if ic.config.SemanticCaching {
 		go ic.updateSemanticEmbedding(key, value)
 	}
-	
+
 	// Update dependency graph
 	if len(opts.Dependencies) > 0 {
 		ic.invalidator.dependencyGraph.AddDependencies(key, opts.Dependencies)
 	}
-	
+
 	ic.metrics.RecordSet()
 	return nil
 }
@@ -418,22 +418,22 @@ func (ic *IntelligentCache) getSemanticMatch(ctx context.Context, key string) (i
 	if !ic.policies.SemanticSimilarity.Enabled {
 		return nil, 0, false
 	}
-	
+
 	// Get embedding for the key
 	embedding, err := ic.getEmbedding(ctx, key)
 	if err != nil {
 		ic.logger.Debug("Failed to get embedding", "error", err)
 		return nil, 0, false
 	}
-	
+
 	bestSimilarity := 0.0
 	var bestMatch *CacheEntry
-	
+
 	// Compare with cached embeddings
 	ic.policies.SemanticSimilarity.embeddingsMutex.RLock()
 	for cachedKey, cachedEmbedding := range ic.policies.SemanticSimilarity.embeddings {
 		similarity := ic.calculateCosineSimilarity(embedding, cachedEmbedding)
-		
+
 		if similarity > bestSimilarity && similarity >= ic.policies.SemanticSimilarity.SimilarityThreshold {
 			if entry, found := ic.l1Cache.GetEntry(cachedKey); found {
 				bestSimilarity = similarity
@@ -442,11 +442,11 @@ func (ic *IntelligentCache) getSemanticMatch(ctx context.Context, key string) (i
 		}
 	}
 	ic.policies.SemanticSimilarity.embeddingsMutex.RUnlock()
-	
+
 	if bestMatch != nil {
 		return bestMatch.OriginalValue, bestSimilarity, true
 	}
-	
+
 	return nil, 0, false
 }
 
@@ -455,13 +455,13 @@ func (ic *IntelligentCache) calculateAdaptiveTTL(key string, similarity float64)
 	if !ic.policies.AdaptiveTTL.Enabled {
 		return ic.config.L1Config.TTL
 	}
-	
+
 	policy := ic.policies.AdaptiveTTL
 	baseTTL := policy.BaselineTTL
-	
+
 	// Adjust based on similarity (higher similarity = longer TTL)
 	similarityFactor := similarity
-	
+
 	// Adjust based on access frequency
 	accessFactor := 1.0
 	if entry, found := ic.l1Cache.GetEntry(key); found {
@@ -469,10 +469,10 @@ func (ic *IntelligentCache) calculateAdaptiveTTL(key string, similarity float64)
 			accessFactor = 1.5 // Increase TTL for frequently accessed items
 		}
 	}
-	
+
 	// Calculate adaptive TTL
 	adaptiveTTL := time.Duration(float64(baseTTL) * similarityFactor * accessFactor)
-	
+
 	// Apply bounds
 	if adaptiveTTL < policy.MinTTL {
 		adaptiveTTL = policy.MinTTL
@@ -480,7 +480,7 @@ func (ic *IntelligentCache) calculateAdaptiveTTL(key string, similarity float64)
 	if adaptiveTTL > policy.MaxTTL {
 		adaptiveTTL = policy.MaxTTL
 	}
-	
+
 	return adaptiveTTL
 }
 
@@ -521,18 +521,18 @@ func (ic *IntelligentCache) getEmbedding(ctx context.Context, text string) ([]fl
 		return embedding, nil
 	}
 	ic.policies.SemanticSimilarity.embeddingsMutex.RUnlock()
-	
+
 	// Generate new embedding (this would call an embedding service)
 	embedding, err := ic.generateEmbedding(ctx, text)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Cache the embedding
 	ic.policies.SemanticSimilarity.embeddingsMutex.Lock()
 	ic.policies.SemanticSimilarity.embeddings[text] = embedding
 	ic.policies.SemanticSimilarity.embeddingsMutex.Unlock()
-	
+
 	return embedding, nil
 }
 
@@ -541,19 +541,19 @@ func (ic *IntelligentCache) calculateCosineSimilarity(a, b []float32) float64 {
 	if len(a) != len(b) {
 		return 0.0
 	}
-	
+
 	var dotProduct, normA, normB float64
-	
+
 	for i := 0; i < len(a); i++ {
 		dotProduct += float64(a[i] * b[i])
 		normA += float64(a[i] * a[i])
 		normB += float64(b[i] * b[i])
 	}
-	
+
 	if normA == 0.0 || normB == 0.0 {
 		return 0.0
 	}
-	
+
 	return dotProduct / (normA * normB)
 }
 
@@ -562,7 +562,7 @@ func (ic *IntelligentCache) generateCacheKey(intent string, params map[string]in
 	// Create deterministic key from intent and parameters
 	h := sha256.New()
 	h.Write([]byte(intent))
-	
+
 	// Sort parameters for consistent key generation
 	if params != nil {
 		keys := make([]string, 0, len(params))
@@ -570,12 +570,12 @@ func (ic *IntelligentCache) generateCacheKey(intent string, params map[string]in
 			keys = append(keys, k)
 		}
 		sort.Strings(keys)
-		
+
 		for _, k := range keys {
 			h.Write([]byte(fmt.Sprintf("%s:%v", k, params[k])))
 		}
 	}
-	
+
 	return hex.EncodeToString(h.Sum(nil))[:32] // Use first 32 characters
 }
 
@@ -584,7 +584,7 @@ func (ic *IntelligentCache) generateCacheKey(intent string, params map[string]in
 func (ic *IntelligentCache) warmingRoutine() {
 	ticker := time.NewTicker(time.Minute * 5) // Run every 5 minutes
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -596,7 +596,7 @@ func (ic *IntelligentCache) warmingRoutine() {
 func (ic *IntelligentCache) analyticsRoutine() {
 	ticker := time.NewTicker(time.Minute * 1) // Analyze every minute
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -608,7 +608,7 @@ func (ic *IntelligentCache) analyticsRoutine() {
 func (ic *IntelligentCache) optimizationRoutine() {
 	ticker := time.NewTicker(time.Minute * 10) // Optimize every 10 minutes
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -619,36 +619,38 @@ func (ic *IntelligentCache) optimizationRoutine() {
 
 // Placeholder implementations for compilation
 
-func NewL1Cache(config L1CacheConfig) (*L1Cache, error) { return nil, nil }
-func (l1 *L1Cache) Get(key string) (interface{}, bool) { return nil, false }
+func NewL1Cache(config L1CacheConfig) (*L1Cache, error)                  { return nil, nil }
+func (l1 *L1Cache) Get(key string) (interface{}, bool)                   { return nil, false }
 func (l1 *L1Cache) Set(key string, value interface{}, ttl time.Duration) {}
-func (l1 *L1Cache) SetEntry(entry *CacheEntry) {}
-func (l1 *L1Cache) GetEntry(key string) (*CacheEntry, bool) { return nil, false }
+func (l1 *L1Cache) SetEntry(entry *CacheEntry)                           {}
+func (l1 *L1Cache) GetEntry(key string) (*CacheEntry, bool)              { return nil, false }
 
-func NewDependencyGraph() *DependencyGraph { return &DependencyGraph{} }
+func NewDependencyGraph() *DependencyGraph                            { return &DependencyGraph{} }
 func (dg *DependencyGraph) AddDependencies(key string, deps []string) {}
 
 func NewPatternAnalyzer() *PatternAnalyzer { return &PatternAnalyzer{} }
-func NewCacheMetrics() *CacheMetrics { return &CacheMetrics{} }
+func NewCacheMetrics() *CacheMetrics       { return &CacheMetrics{} }
 
 func (cm *CacheMetrics) RecordOperation(op string, duration time.Duration) {}
-func (cm *CacheMetrics) RecordHit(level string) {}
-func (cm *CacheMetrics) RecordMiss() {}
-func (cm *CacheMetrics) RecordSet() {}
+func (cm *CacheMetrics) RecordHit(level string)                            {}
+func (cm *CacheMetrics) RecordMiss()                                       {}
+func (cm *CacheMetrics) RecordSet()                                        {}
 
-func (ic *IntelligentCache) serializeJSON(v interface{}) ([]byte, error) { return nil, nil }
+func (ic *IntelligentCache) serializeJSON(v interface{}) ([]byte, error)    { return nil, nil }
 func (ic *IntelligentCache) serializeMsgPack(v interface{}) ([]byte, error) { return nil, nil }
-func (ic *IntelligentCache) serializeGob(v interface{}) ([]byte, error) { return nil, nil }
+func (ic *IntelligentCache) serializeGob(v interface{}) ([]byte, error)     { return nil, nil }
 
 func (ic *IntelligentCache) compressGzip(data []byte) ([]byte, error) { return data, nil }
-func (ic *IntelligentCache) compressLZ4(data []byte) ([]byte, error) { return data, nil }
+func (ic *IntelligentCache) compressLZ4(data []byte) ([]byte, error)  { return data, nil }
 func (ic *IntelligentCache) compressZstd(data []byte) ([]byte, error) { return data, nil }
 
-func (ic *IntelligentCache) generateEmbedding(ctx context.Context, text string) ([]float32, error) { return nil, nil }
+func (ic *IntelligentCache) generateEmbedding(ctx context.Context, text string) ([]float32, error) {
+	return nil, nil
+}
 func (ic *IntelligentCache) updateSemanticEmbedding(key string, value interface{}) {}
 
 func (ic *IntelligentCache) performCacheWarming() {}
-func (ic *IntelligentCache) performAnalytics() {}
+func (ic *IntelligentCache) performAnalytics()    {}
 func (ic *IntelligentCache) performOptimization() {}
 
 func getDefaultIntelligentCacheConfig() *IntelligentCacheConfig {
@@ -663,10 +665,10 @@ func getDefaultIntelligentCacheConfig() *IntelligentCacheConfig {
 		},
 		SemanticCaching:      true,
 		PredictiveCaching:    true,
-		AdaptiveTTL:         true,
-		PrewarmEnabled:      true,
-		AnalyticsEnabled:    true,
-		OptimizationEnabled: true,
+		AdaptiveTTL:          true,
+		PrewarmEnabled:       true,
+		AnalyticsEnabled:     true,
+		OptimizationEnabled:  true,
 		CompressionThreshold: 1024,
 		DefaultCompression:   CompressionLZ4,
 		DefaultSerialization: SerializationMsgPack,
@@ -740,11 +742,11 @@ type CacheOption func(*CacheOptions)
 
 const (
 	CacheStateActive CacheState = iota
-	
+
 	CompressionGzip CompressionType = iota
 	CompressionLZ4
 	CompressionZstd
-	
+
 	SerializationJSON SerializationType = iota
 	SerializationMsgPack
 	SerializationGob

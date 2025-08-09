@@ -18,11 +18,11 @@ import (
 
 // ValidationFramework provides comprehensive certificate validation capabilities
 type ValidationFramework struct {
-	config      *ValidationConfig
-	logger      *logging.StructuredLogger
-	ctClient    *CTClient
-	validators  map[string]CertificateValidator
-	mu          sync.RWMutex
+	config     *ValidationConfig
+	logger     *logging.StructuredLogger
+	ctClient   *CTClient
+	validators map[string]CertificateValidator
+	mu         sync.RWMutex
 }
 
 // ValidationConfig configures certificate validation
@@ -33,28 +33,28 @@ type ValidationConfig struct {
 	CustomValidators       []string      `yaml:"custom_validators"`
 	ValidationTimeout      time.Duration `yaml:"validation_timeout"`
 	MaxChainDepth          int           `yaml:"max_chain_depth"`
-	TrustedRoots          []string      `yaml:"trusted_roots"`
-	CTLogEndpoints        []string      `yaml:"ct_log_endpoints"`
-	PolicyRules           []PolicyRule  `yaml:"policy_rules"`
+	TrustedRoots           []string      `yaml:"trusted_roots"`
+	CTLogEndpoints         []string      `yaml:"ct_log_endpoints"`
+	PolicyRules            []PolicyRule  `yaml:"policy_rules"`
 }
 
 // PolicyRule defines validation policy rules
 type PolicyRule struct {
-	Name        string      `yaml:"name"`
-	Type        string      `yaml:"type"` // subject, san, key_usage, extension, etc.
-	Pattern     string      `yaml:"pattern"`
-	Required    bool        `yaml:"required"`
+	Name        string       `yaml:"name"`
+	Type        string       `yaml:"type"` // subject, san, key_usage, extension, etc.
+	Pattern     string       `yaml:"pattern"`
+	Required    bool         `yaml:"required"`
 	Severity    RuleSeverity `yaml:"severity"`
-	Description string      `yaml:"description"`
+	Description string       `yaml:"description"`
 }
 
 // RuleSeverity represents the severity of policy rule violations
 type RuleSeverity string
 
 const (
-	SeverityInfo    RuleSeverity = "info"
-	SeverityWarning RuleSeverity = "warning"
-	SeverityError   RuleSeverity = "error"
+	SeverityInfo     RuleSeverity = "info"
+	SeverityWarning  RuleSeverity = "warning"
+	SeverityError    RuleSeverity = "error"
 	SeverityCritical RuleSeverity = "critical"
 )
 
@@ -74,12 +74,12 @@ type CTClient struct {
 
 // CTLogEntry represents a Certificate Transparency log entry
 type CTLogEntry struct {
-	LogID         string    `json:"log_id"`
-	Index         int64     `json:"index"`
-	Timestamp     time.Time `json:"timestamp"`
-	Certificate   string    `json:"certificate"`
-	PrecertEntry  bool      `json:"precert_entry"`
-	SignedEntry   string    `json:"signed_entry"`
+	LogID        string    `json:"log_id"`
+	Index        int64     `json:"index"`
+	Timestamp    time.Time `json:"timestamp"`
+	Certificate  string    `json:"certificate"`
+	PrecertEntry bool      `json:"precert_entry"`
+	SignedEntry  string    `json:"signed_entry"`
 }
 
 // ChainValidationResult represents chain validation results
@@ -95,43 +95,43 @@ type ChainValidationResult struct {
 
 // ChainValidationDetails provides detailed chain validation information
 type ChainValidationDetails struct {
-	PathLength      int                   `json:"path_length"`
-	KeyUsageValid   bool                  `json:"key_usage_valid"`
-	BasicConstraints bool                 `json:"basic_constraints"`
-	NameConstraints bool                  `json:"name_constraints"`
-	CertificateInfo []CertificateInfo     `json:"certificate_info"`
+	PathLength       int               `json:"path_length"`
+	KeyUsageValid    bool              `json:"key_usage_valid"`
+	BasicConstraints bool              `json:"basic_constraints"`
+	NameConstraints  bool              `json:"name_constraints"`
+	CertificateInfo  []CertificateInfo `json:"certificate_info"`
 }
 
 // CertificateInfo represents information about a certificate in the chain
 type CertificateInfo struct {
-	Subject       string    `json:"subject"`
-	Issuer        string    `json:"issuer"`
-	SerialNumber  string    `json:"serial_number"`
-	NotBefore     time.Time `json:"not_before"`
-	NotAfter      time.Time `json:"not_after"`
-	KeyUsage      []string  `json:"key_usage"`
-	ExtKeyUsage   []string  `json:"ext_key_usage"`
-	IsCA          bool      `json:"is_ca"`
-	SelfSigned    bool      `json:"self_signed"`
+	Subject      string    `json:"subject"`
+	Issuer       string    `json:"issuer"`
+	SerialNumber string    `json:"serial_number"`
+	NotBefore    time.Time `json:"not_before"`
+	NotAfter     time.Time `json:"not_after"`
+	KeyUsage     []string  `json:"key_usage"`
+	ExtKeyUsage  []string  `json:"ext_key_usage"`
+	IsCA         bool      `json:"is_ca"`
+	SelfSigned   bool      `json:"self_signed"`
 }
 
 // PolicyValidationResult represents policy validation results
 type PolicyValidationResult struct {
-	Valid       bool                    `json:"valid"`
-	Violations  []PolicyViolation       `json:"violations"`
-	Warnings    []PolicyWarning         `json:"warnings"`
-	Score       float64                 `json:"score"`
-	Details     *PolicyValidationDetails `json:"details,omitempty"`
+	Valid      bool                     `json:"valid"`
+	Violations []PolicyViolation        `json:"violations"`
+	Warnings   []PolicyWarning          `json:"warnings"`
+	Score      float64                  `json:"score"`
+	Details    *PolicyValidationDetails `json:"details,omitempty"`
 }
 
 // PolicyViolation represents a policy rule violation
 type PolicyViolation struct {
-	Rule        *PolicyRule `json:"rule"`
+	Rule        *PolicyRule  `json:"rule"`
 	Severity    RuleSeverity `json:"severity"`
-	Field       string      `json:"field"`
-	Value       string      `json:"value"`
-	Expected    string      `json:"expected"`
-	Description string      `json:"description"`
+	Field       string       `json:"field"`
+	Value       string       `json:"value"`
+	Expected    string       `json:"expected"`
+	Description string       `json:"description"`
 }
 
 // PolicyWarning represents a policy warning
@@ -145,12 +145,12 @@ type PolicyWarning struct {
 
 // PolicyValidationDetails provides detailed policy validation information
 type PolicyValidationDetails struct {
-	RulesEvaluated int                     `json:"rules_evaluated"`
-	RulesPassed    int                     `json:"rules_passed"`
-	RulesFailed    int                     `json:"rules_failed"`
-	RulesWarning   int                     `json:"rules_warning"`
-	Categories     map[string]int          `json:"categories"`
-	Recommendations []string              `json:"recommendations"`
+	RulesEvaluated  int            `json:"rules_evaluated"`
+	RulesPassed     int            `json:"rules_passed"`
+	RulesFailed     int            `json:"rules_failed"`
+	RulesWarning    int            `json:"rules_warning"`
+	Categories      map[string]int `json:"categories"`
+	Recommendations []string       `json:"recommendations"`
 }
 
 // NewValidationFramework creates a new validation framework
@@ -197,7 +197,7 @@ func NewValidationFramework(config *ValidationConfig, logger *logging.Structured
 // ValidateCertificate performs comprehensive certificate validation
 func (vf *ValidationFramework) ValidateCertificate(ctx context.Context, cert *x509.Certificate) (*ValidationResult, error) {
 	start := time.Now()
-	
+
 	result := &ValidationResult{
 		SerialNumber:   cert.SerialNumber.String(),
 		ValidationTime: start,
@@ -345,9 +345,9 @@ func (vf *ValidationFramework) validateBasicCertificate(cert *x509.Certificate, 
 // Certificate chain validation
 func (vf *ValidationFramework) validateCertificateChain(ctx context.Context, cert *x509.Certificate) (*ChainValidationResult, error) {
 	result := &ChainValidationResult{
-		Valid:       true,
-		Errors:      []string{},
-		Warnings:    []string{},
+		Valid:    true,
+		Errors:   []string{},
+		Warnings: []string{},
 	}
 
 	// Create root certificate pool
@@ -460,7 +460,7 @@ func (vf *ValidationFramework) validateCertificateChain(ctx context.Context, cer
 // Validate certificate chain constraints
 func (vf *ValidationFramework) validateChainConstraints(chain []*x509.Certificate, result *ChainValidationResult) {
 	if len(chain) > vf.config.MaxChainDepth {
-		result.Warnings = append(result.Warnings, 
+		result.Warnings = append(result.Warnings,
 			fmt.Sprintf("certificate chain depth (%d) exceeds maximum (%d)", len(chain), vf.config.MaxChainDepth))
 	}
 
@@ -469,7 +469,7 @@ func (vf *ValidationFramework) validateChainConstraints(chain []*x509.Certificat
 		// CA certificates (except leaf) should have CertSign key usage
 		if i > 0 && cert.IsCA {
 			if cert.KeyUsage&x509.KeyUsageCertSign == 0 {
-				result.Warnings = append(result.Warnings, 
+				result.Warnings = append(result.Warnings,
 					fmt.Sprintf("CA certificate in chain missing CertSign key usage: %s", cert.Subject.String()))
 			}
 		}
@@ -479,7 +479,7 @@ func (vf *ValidationFramework) validateChainConstraints(chain []*x509.Certificat
 			remainingDepth := len(chain) - i - 2 // -2 because we don't count current cert and leaf
 			if remainingDepth > cert.MaxPathLen {
 				result.Valid = false
-				result.Errors = append(result.Errors, 
+				result.Errors = append(result.Errors,
 					fmt.Sprintf("path length constraint violated: %d > %d", remainingDepth, cert.MaxPathLen))
 			}
 		}
@@ -522,9 +522,9 @@ func (vf *ValidationFramework) validateCTLog(ctx context.Context, cert *x509.Cer
 func (ct *CTClient) searchCertificate(ctx context.Context, endpoint, certHash string) (bool, error) {
 	// This is a simplified implementation
 	// Real CT log search would use the CT API to search for the certificate
-	
+
 	searchURL := fmt.Sprintf("%s/ct/v1/get-entries?start=0&end=100", strings.TrimSuffix(endpoint, "/"))
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", searchURL, nil)
 	if err != nil {
 		return false, fmt.Errorf("failed to create request: %w", err)
@@ -626,7 +626,7 @@ func (vf *ValidationFramework) evaluatePolicyRule(cert *x509.Certificate, rule *
 
 func (vf *ValidationFramework) evaluateSubjectRule(cert *x509.Certificate, rule *PolicyRule) (*PolicyViolation, *PolicyWarning) {
 	subject := cert.Subject.String()
-	
+
 	// Simple pattern matching (real implementation would use regex)
 	if !strings.Contains(subject, rule.Pattern) {
 		if rule.Required {
@@ -707,7 +707,7 @@ func (vf *ValidationFramework) registerCustomValidator(name string) error {
 func (vf *ValidationFramework) AddValidator(validator CertificateValidator) {
 	vf.mu.Lock()
 	defer vf.mu.Unlock()
-	
+
 	vf.validators[validator.Name()] = validator
 	vf.logger.Info("validator registered", "name", validator.Name())
 }
@@ -716,7 +716,7 @@ func (vf *ValidationFramework) AddValidator(validator CertificateValidator) {
 func (vf *ValidationFramework) RemoveValidator(name string) {
 	vf.mu.Lock()
 	defer vf.mu.Unlock()
-	
+
 	delete(vf.validators, name)
 	vf.logger.Info("validator removed", "name", name)
 }
@@ -725,11 +725,11 @@ func (vf *ValidationFramework) RemoveValidator(name string) {
 func (vf *ValidationFramework) GetValidators() []string {
 	vf.mu.RLock()
 	defer vf.mu.RUnlock()
-	
+
 	validators := make([]string, 0, len(vf.validators))
 	for name := range vf.validators {
 		validators = append(validators, name)
 	}
-	
+
 	return validators
 }

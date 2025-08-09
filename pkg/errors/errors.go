@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"runtime"
+	"sync"
 	"time"
 )
 
@@ -20,13 +22,13 @@ const (
 	ErrorTypeFormat     ErrorType = "format"
 	ErrorTypeRange      ErrorType = "range"
 
-	// Infrastructure errors  
-	ErrorTypeNetwork    ErrorType = "network"
-	ErrorTypeDatabase   ErrorType = "database"
-	ErrorTypeExternal   ErrorType = "external"
-	ErrorTypeTimeout    ErrorType = "timeout"
-	ErrorTypeRateLimit  ErrorType = "rate_limit"
-	ErrorTypeQuota      ErrorType = "quota"
+	// Infrastructure errors
+	ErrorTypeNetwork   ErrorType = "network"
+	ErrorTypeDatabase  ErrorType = "database"
+	ErrorTypeExternal  ErrorType = "external"
+	ErrorTypeTimeout   ErrorType = "timeout"
+	ErrorTypeRateLimit ErrorType = "rate_limit"
+	ErrorTypeQuota     ErrorType = "quota"
 
 	// Authentication/Authorization errors
 	ErrorTypeAuth         ErrorType = "authentication"
@@ -35,10 +37,10 @@ const (
 	ErrorTypeExpired      ErrorType = "expired"
 
 	// Business logic errors
-	ErrorTypeBusiness    ErrorType = "business"
-	ErrorTypeConflict    ErrorType = "conflict"
-	ErrorTypeNotFound    ErrorType = "not_found"
-	ErrorTypeDuplicate   ErrorType = "duplicate"
+	ErrorTypeBusiness     ErrorType = "business"
+	ErrorTypeConflict     ErrorType = "conflict"
+	ErrorTypeNotFound     ErrorType = "not_found"
+	ErrorTypeDuplicate    ErrorType = "duplicate"
 	ErrorTypePrecondition ErrorType = "precondition"
 
 	// System errors
@@ -72,20 +74,56 @@ const (
 
 // ServiceError represents a standardized error with context
 type ServiceError struct {
-	Type         ErrorType              `json:"type"`
-	Code         string                 `json:"code"`
-	Message      string                 `json:"message"`
-	Details      string                 `json:"details,omitempty"`
-	Service      string                 `json:"service"`
-	Operation    string                 `json:"operation"`
-	Timestamp    time.Time              `json:"timestamp"`
-	RequestID    string                 `json:"request_id,omitempty"`
-	UserID       string                 `json:"user_id,omitempty"`
-	Cause        error                  `json:"-"`
-	StackTrace   []string               `json:"stack_trace,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
-	Retryable    bool                   `json:"retryable"`
-	HTTPStatus   int                    `json:"http_status,omitempty"`
+	mu sync.RWMutex // Mutex for thread safety
+
+	Type          ErrorType `json:"type"`
+	Code          string    `json:"code"`
+	Message       string    `json:"message"`
+	Details       string    `json:"details,omitempty"`
+	Service       string    `json:"service"`
+	Operation     string    `json:"operation"`
+	Component     string    `json:"component,omitempty"`
+	Timestamp     time.Time `json:"timestamp"`
+	RequestID     string    `json:"request_id,omitempty"`
+	UserID        string    `json:"user_id,omitempty"`
+	CorrelationID string    `json:"correlation_id,omitempty"`
+	SessionID     string    `json:"session_id,omitempty"`
+
+	// Error classification
+	Category  ErrorCategory `json:"category"`
+	Severity  ErrorSeverity `json:"severity"`
+	Impact    ErrorImpact   `json:"impact"`
+	Retryable bool          `json:"retryable"`
+	Temporary bool          `json:"temporary"`
+
+	// Error context
+	Cause      error                  `json:"-"`
+	CauseChain []*ServiceError        `json:"cause_chain,omitempty"`
+	StackTrace []string               `json:"stack_trace,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Tags       []string               `json:"tags,omitempty"`
+
+	// Recovery information
+	RetryCount     int           `json:"retry_count,omitempty"`
+	RetryAfter     time.Duration `json:"retry_after,omitempty"`
+	CircuitBreaker string        `json:"circuit_breaker,omitempty"`
+
+	// Performance information
+	Latency   time.Duration     `json:"latency,omitempty"`
+	Resources map[string]string `json:"resources,omitempty"`
+
+	// HTTP information
+	HTTPStatus int    `json:"http_status,omitempty"`
+	HTTPMethod string `json:"http_method,omitempty"`
+	HTTPPath   string `json:"http_path,omitempty"`
+	RemoteAddr string `json:"remote_addr,omitempty"`
+	UserAgent  string `json:"user_agent,omitempty"`
+
+	// System information
+	Hostname    string                 `json:"hostname,omitempty"`
+	PID         int                    `json:"pid,omitempty"`
+	GoroutineID string                 `json:"goroutine_id,omitempty"`
+	DebugInfo   map[string]interface{} `json:"debug_info,omitempty"`
 }
 
 // Error implements the error interface
@@ -106,11 +144,11 @@ func (e *ServiceError) Is(target error) bool {
 	if target == nil {
 		return false
 	}
-	
+
 	if se, ok := target.(*ServiceError); ok {
 		return e.Type == se.Type && e.Code == se.Code
 	}
-	
+
 	return errors.Is(e.Cause, target)
 }
 
@@ -137,7 +175,7 @@ func (eb *ErrorBuilder) ValidationError(code, message string) *ServiceError {
 
 // RequiredFieldError creates a required field error
 func (eb *ErrorBuilder) RequiredFieldError(field string) *ServiceError {
-	return eb.newError(ErrorTypeRequired, "required_field", 
+	return eb.newError(ErrorTypeRequired, "required_field",
 		fmt.Sprintf("Required field '%s' is missing", field), 400, false)
 }
 
@@ -196,7 +234,7 @@ func (eb *ErrorBuilder) ContextCancelledError(ctx context.Context) *ServiceError
 	} else {
 		message = "Operation cancelled by client"
 	}
-	
+
 	err := eb.newError(ErrorTypeTimeout, "context_cancelled", message, 499, false)
 	err.Cause = ctx.Err()
 	return err
@@ -207,14 +245,14 @@ func (eb *ErrorBuilder) WrapError(cause error, message string) *ServiceError {
 	errorType := categorizeError(cause)
 	httpStatus := getHTTPStatusForErrorType(errorType)
 	retryable := isRetryableError(errorType, cause)
-	
+
 	err := eb.newError(errorType, "wrapped_error", message, httpStatus, retryable)
 	err.Cause = cause
-	
+
 	if errorType == ErrorTypeInternal {
 		err.StackTrace = getStackTrace(3)
 	}
-	
+
 	return err
 }
 
@@ -231,14 +269,14 @@ func (eb *ErrorBuilder) newError(errType ErrorType, code, message string, httpSt
 		Retryable:  retryable,
 		Metadata:   make(map[string]interface{}),
 	}
-	
+
 	// Log the error
 	if eb.logger != nil {
 		logLevel := slog.LevelError
 		if retryable || errType == ErrorTypeValidation {
 			logLevel = slog.LevelWarn
 		}
-		
+
 		eb.logger.Log(context.Background(), logLevel, "Service error created",
 			"error_type", errType,
 			"error_code", code,
@@ -248,7 +286,7 @@ func (eb *ErrorBuilder) newError(errType ErrorType, code, message string, httpSt
 			"retryable", retryable,
 		)
 	}
-	
+
 	return err
 }
 
@@ -259,7 +297,7 @@ func categorizeError(err error) ErrorType {
 	if err == nil {
 		return ErrorTypeInternal
 	}
-	
+
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
 		return ErrorTypeTimeout
@@ -318,12 +356,12 @@ func getStackTrace(skip int) []string {
 		if !ok {
 			break
 		}
-		
+
 		fn := runtime.FuncForPC(pc)
 		if fn == nil {
 			continue
 		}
-		
+
 		stack = append(stack, fmt.Sprintf("%s:%d %s", file, line, fn.Name()))
 	}
 	return stack
@@ -365,19 +403,19 @@ func (e *ServiceError) ToLogAttributes() []slog.Attr {
 		slog.String("operation", e.Operation),
 		slog.Bool("retryable", e.Retryable),
 	}
-	
+
 	if e.RequestID != "" {
 		attrs = append(attrs, slog.String("request_id", e.RequestID))
 	}
-	
+
 	if e.UserID != "" {
 		attrs = append(attrs, slog.String("user_id", e.UserID))
 	}
-	
+
 	if e.Cause != nil {
 		attrs = append(attrs, slog.String("cause", e.Cause.Error()))
 	}
-	
+
 	return attrs
 }
 
@@ -386,10 +424,51 @@ func (e *ServiceError) IsRetryable() bool {
 	return e.Retryable
 }
 
+// IsTemporary returns whether this error is temporary
+func (e *ServiceError) IsTemporary() bool {
+	return e.Temporary
+}
+
+// AddTag adds a tag to the error
+func (e *ServiceError) AddTag(tag string) {
+	// Check if tag already exists
+	for _, t := range e.Tags {
+		if t == tag {
+			return
+		}
+	}
+	e.Tags = append(e.Tags, tag)
+}
+
 // GetHTTPStatus returns the appropriate HTTP status code for this error
 func (e *ServiceError) GetHTTPStatus() int {
 	if e.HTTPStatus > 0 {
 		return e.HTTPStatus
 	}
 	return getHTTPStatusForErrorType(e.Type)
+}
+
+// Helper functions for system information
+func getCurrentHostname() string {
+	if hostname, err := os.Hostname(); err == nil {
+		return hostname
+	}
+	return "unknown"
+}
+
+func getCurrentPID() int {
+	return os.Getpid()
+}
+
+func getCurrentGoroutineID() string {
+	buf := make([]byte, 64)
+	buf = buf[:runtime.Stack(buf, false)]
+	// Parse goroutine ID from stack trace
+	// Format: "goroutine 1 [running]:"
+	for i, b := range buf {
+		if b == ' ' {
+			return string(buf[10:i]) // Skip "goroutine "
+		}
+	}
+	return "unknown"
 }

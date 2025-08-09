@@ -7,36 +7,36 @@ import (
 // TestConfig provides configuration constants for test suites
 type TestConfig struct {
 	// Test timeouts
-	DefaultTimeout        time.Duration
-	ReconcileTimeout      time.Duration
-	EventuallyTimeout     time.Duration
-	ConsistentlyDuration  time.Duration
-	
+	DefaultTimeout       time.Duration
+	ReconcileTimeout     time.Duration
+	EventuallyTimeout    time.Duration
+	ConsistentlyDuration time.Duration
+
 	// Polling intervals
-	DefaultInterval       time.Duration
-	ReconcileInterval     time.Duration
-	
+	DefaultInterval   time.Duration
+	ReconcileInterval time.Duration
+
 	// Controller-specific settings
-	E2NodeSetConfig       E2NodeSetTestConfig
-	NetworkIntentConfig   NetworkIntentTestConfig
-	OranControllerConfig  OranControllerTestConfig
-	EdgeControllerConfig  EdgeControllerTestConfig
+	E2NodeSetConfig         E2NodeSetTestConfig
+	NetworkIntentConfig     NetworkIntentTestConfig
+	OranControllerConfig    OranControllerTestConfig
+	EdgeControllerConfig    EdgeControllerTestConfig
 	TrafficControllerConfig TrafficControllerTestConfig
 }
 
 // E2NodeSetTestConfig provides test configuration for E2NodeSet controller
 type E2NodeSetTestConfig struct {
-	DefaultReplicas       int32
-	MaxReplicas          int32
-	DefaultRicEndpoint   string
-	ScaleUpTimeout       time.Duration
-	ScaleDownTimeout     time.Duration
-	HealthCheckInterval  time.Duration
+	DefaultReplicas     int32
+	MaxReplicas         int32
+	DefaultRicEndpoint  string
+	ScaleUpTimeout      time.Duration
+	ScaleDownTimeout    time.Duration
+	HealthCheckInterval time.Duration
 }
 
 // NetworkIntentTestConfig provides test configuration for NetworkIntent controller
 type NetworkIntentTestConfig struct {
-	MaxRetries           int
+	MaxRetries          int
 	RetryDelay          time.Duration
 	ProcessingTimeout   time.Duration
 	DeploymentTimeout   time.Duration
@@ -46,28 +46,28 @@ type NetworkIntentTestConfig struct {
 
 // OranControllerTestConfig provides test configuration for ORAN controller
 type OranControllerTestConfig struct {
-	DeploymentReadyTimeout    time.Duration
-	O1ConfigurationTimeout    time.Duration
-	A1PolicyTimeout          time.Duration
-	HealthCheckInterval      time.Duration
+	DeploymentReadyTimeout time.Duration
+	O1ConfigurationTimeout time.Duration
+	A1PolicyTimeout        time.Duration
+	HealthCheckInterval    time.Duration
 }
 
 // EdgeControllerTestConfig provides test configuration for Edge controller
 type EdgeControllerTestConfig struct {
-	NodeDiscoveryInterval    time.Duration
-	HealthCheckInterval      time.Duration
-	DeploymentTimeout        time.Duration
-	MaxLatencyMs            int
-	ResourceThreshold       float64
+	NodeDiscoveryInterval time.Duration
+	HealthCheckInterval   time.Duration
+	DeploymentTimeout     time.Duration
+	MaxLatencyMs          int
+	ResourceThreshold     float64
 }
 
 // TrafficControllerTestConfig provides test configuration for Traffic controller
 type TrafficControllerTestConfig struct {
-	HealthCheckInterval      time.Duration
-	RoutingDecisionInterval  time.Duration
+	HealthCheckInterval       time.Duration
+	RoutingDecisionInterval   time.Duration
 	MetricsCollectionInterval time.Duration
-	FailoverThreshold       float64
-	RecoveryThreshold       float64
+	FailoverThreshold         float64
+	RecoveryThreshold         float64
 }
 
 // GetDefaultTestConfig returns the default test configuration
@@ -78,51 +78,51 @@ func GetDefaultTestConfig() *TestConfig {
 		ReconcileTimeout:     10 * time.Second,
 		EventuallyTimeout:    30 * time.Second,
 		ConsistentlyDuration: 5 * time.Second,
-		
+
 		// Global polling intervals
-		DefaultInterval:      100 * time.Millisecond,
-		ReconcileInterval:    1 * time.Second,
-		
+		DefaultInterval:   100 * time.Millisecond,
+		ReconcileInterval: 1 * time.Second,
+
 		// Controller-specific configurations
 		E2NodeSetConfig: E2NodeSetTestConfig{
-			DefaultReplicas:      3,
+			DefaultReplicas:     3,
 			MaxReplicas:         10,
 			DefaultRicEndpoint:  "http://test-ric:38080",
 			ScaleUpTimeout:      60 * time.Second,
 			ScaleDownTimeout:    30 * time.Second,
 			HealthCheckInterval: 5 * time.Second,
 		},
-		
+
 		NetworkIntentConfig: NetworkIntentTestConfig{
-			MaxRetries:           3,
+			MaxRetries:          3,
 			RetryDelay:          1 * time.Second,
 			ProcessingTimeout:   30 * time.Second,
 			DeploymentTimeout:   60 * time.Second,
 			GitOperationTimeout: 10 * time.Second,
 			LLMTimeout:          15 * time.Second,
 		},
-		
+
 		OranControllerConfig: OranControllerTestConfig{
 			DeploymentReadyTimeout: 30 * time.Second,
 			O1ConfigurationTimeout: 15 * time.Second,
-			A1PolicyTimeout:       15 * time.Second,
-			HealthCheckInterval:   10 * time.Second,
+			A1PolicyTimeout:        15 * time.Second,
+			HealthCheckInterval:    10 * time.Second,
 		},
-		
+
 		EdgeControllerConfig: EdgeControllerTestConfig{
 			NodeDiscoveryInterval: 10 * time.Second,
 			HealthCheckInterval:   5 * time.Second,
 			DeploymentTimeout:     45 * time.Second,
-			MaxLatencyMs:         5,
-			ResourceThreshold:    0.8,
+			MaxLatencyMs:          5,
+			ResourceThreshold:     0.8,
 		},
-		
+
 		TrafficControllerConfig: TrafficControllerTestConfig{
 			HealthCheckInterval:       10 * time.Second,
 			RoutingDecisionInterval:   30 * time.Second,
 			MetricsCollectionInterval: 15 * time.Second,
-			FailoverThreshold:        0.95,
-			RecoveryThreshold:        0.98,
+			FailoverThreshold:         0.95,
+			RecoveryThreshold:         0.98,
 		},
 	}
 }
@@ -130,35 +130,35 @@ func GetDefaultTestConfig() *TestConfig {
 // GetCITestConfig returns configuration optimized for CI environments
 func GetCITestConfig() *TestConfig {
 	config := GetDefaultTestConfig()
-	
+
 	// Reduce timeouts for faster CI runs
 	config.DefaultTimeout = 20 * time.Second
 	config.EventuallyTimeout = 20 * time.Second
 	config.ConsistentlyDuration = 3 * time.Second
-	
+
 	// Reduce controller-specific timeouts
 	config.E2NodeSetConfig.ScaleUpTimeout = 30 * time.Second
 	config.E2NodeSetConfig.ScaleDownTimeout = 15 * time.Second
-	
+
 	config.NetworkIntentConfig.ProcessingTimeout = 20 * time.Second
 	config.NetworkIntentConfig.DeploymentTimeout = 30 * time.Second
-	
+
 	return config
 }
 
 // GetDevelopmentTestConfig returns configuration optimized for development
 func GetDevelopmentTestConfig() *TestConfig {
 	config := GetDefaultTestConfig()
-	
+
 	// Increase timeouts for debugging
 	config.DefaultTimeout = 60 * time.Second
 	config.EventuallyTimeout = 60 * time.Second
 	config.ConsistentlyDuration = 10 * time.Second
-	
+
 	// Increase polling intervals for less aggressive testing
 	config.DefaultInterval = 200 * time.Millisecond
 	config.ReconcileInterval = 2 * time.Second
-	
+
 	return config
 }
 
@@ -182,7 +182,7 @@ func GetScenarioConfigs() map[string]TestScenarioConfig {
 			Tags:        []string{"happy-path", "fast"},
 		},
 		"error-handling": {
-			Name:            "Error Handling Tests", 
+			Name:            "Error Handling Tests",
 			Description:     "Tests for error conditions and recovery",
 			TimeoutOverride: timePtr(45 * time.Second),
 			RetryCount:      intPtr(2),
@@ -222,12 +222,12 @@ func GetScenarioConfigs() map[string]TestScenarioConfig {
 
 // Coverage configuration
 type CoverageConfig struct {
-	Enabled           bool
-	MinimumThreshold  float64
-	OutputFormat      string
-	OutputPath        string
-	IncludePatterns   []string
-	ExcludePatterns   []string
+	Enabled          bool
+	MinimumThreshold float64
+	OutputFormat     string
+	OutputPath       string
+	IncludePatterns  []string
+	ExcludePatterns  []string
 }
 
 // GetCoverageConfig returns the default coverage configuration
@@ -253,11 +253,11 @@ func GetCoverageConfig() *CoverageConfig {
 
 // Benchmark configuration
 type BenchmarkConfig struct {
-	Enabled      bool
-	Duration     time.Duration
-	MemProfile   bool
-	CPUProfile   bool
-	OutputPath   string
+	Enabled    bool
+	Duration   time.Duration
+	MemProfile bool
+	CPUProfile bool
+	OutputPath string
 }
 
 // GetBenchmarkConfig returns the default benchmark configuration

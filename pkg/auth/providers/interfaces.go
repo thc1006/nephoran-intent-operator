@@ -13,28 +13,28 @@ import (
 type OAuthProvider interface {
 	// GetProviderName returns the unique identifier for this provider
 	GetProviderName() string
-	
+
 	// GetAuthorizationURL generates the OAuth2 authorization URL with PKCE support
 	GetAuthorizationURL(state, redirectURI string, options ...AuthOption) (string, *PKCEChallenge, error)
-	
+
 	// ExchangeCodeForToken exchanges authorization code for access token
 	ExchangeCodeForToken(ctx context.Context, code, redirectURI string, challenge *PKCEChallenge) (*TokenResponse, error)
-	
+
 	// RefreshToken refreshes an access token using refresh token
 	RefreshToken(ctx context.Context, refreshToken string) (*TokenResponse, error)
-	
+
 	// GetUserInfo retrieves user information using access token
 	GetUserInfo(ctx context.Context, accessToken string) (*UserInfo, error)
-	
+
 	// ValidateToken validates an access token
 	ValidateToken(ctx context.Context, accessToken string) (*TokenValidation, error)
-	
+
 	// RevokeToken revokes an access token
 	RevokeToken(ctx context.Context, token string) error
-	
+
 	// SupportsFeature checks if provider supports specific features
 	SupportsFeature(feature ProviderFeature) bool
-	
+
 	// GetConfiguration returns provider configuration
 	GetConfiguration() *ProviderConfig
 }
@@ -42,16 +42,16 @@ type OAuthProvider interface {
 // OIDCProvider extends OAuthProvider with OpenID Connect specific functionality
 type OIDCProvider interface {
 	OAuthProvider
-	
+
 	// DiscoverConfiguration discovers OIDC configuration from well-known endpoint
 	DiscoverConfiguration(ctx context.Context) (*OIDCConfiguration, error)
-	
+
 	// ValidateIDToken validates an OpenID Connect ID token
 	ValidateIDToken(ctx context.Context, idToken string) (*IDTokenClaims, error)
-	
+
 	// GetJWKS retrieves JSON Web Key Set for token validation
 	GetJWKS(ctx context.Context) (*JWKS, error)
-	
+
 	// GetUserInfoFromIDToken extracts user info from ID token claims
 	GetUserInfoFromIDToken(idToken string) (*UserInfo, error)
 }
@@ -59,19 +59,19 @@ type OIDCProvider interface {
 // EnterpriseProvider extends OAuthProvider for enterprise-specific features
 type EnterpriseProvider interface {
 	OAuthProvider
-	
+
 	// GetGroups retrieves user groups from the provider
 	GetGroups(ctx context.Context, accessToken string) ([]string, error)
-	
+
 	// GetRoles retrieves user roles from the provider
 	GetRoles(ctx context.Context, accessToken string) ([]string, error)
-	
+
 	// CheckGroupMembership checks if user belongs to specific groups
 	CheckGroupMembership(ctx context.Context, accessToken string, groups []string) ([]string, error)
-	
+
 	// GetOrganizations retrieves user's organizations
 	GetOrganizations(ctx context.Context, accessToken string) ([]Organization, error)
-	
+
 	// ValidateUserAccess validates if user has required access level
 	ValidateUserAccess(ctx context.Context, accessToken string, requiredLevel AccessLevel) error
 }
@@ -80,22 +80,22 @@ type EnterpriseProvider interface {
 type LDAPProvider interface {
 	// Connect establishes connection to LDAP server
 	Connect(ctx context.Context) error
-	
+
 	// Authenticate authenticates user with LDAP
 	Authenticate(ctx context.Context, username, password string) (*UserInfo, error)
-	
+
 	// SearchUser searches for user in LDAP directory
 	SearchUser(ctx context.Context, username string) (*UserInfo, error)
-	
+
 	// GetUserGroups retrieves groups for user
 	GetUserGroups(ctx context.Context, username string) ([]string, error)
-	
+
 	// GetUserRoles retrieves roles for user
 	GetUserRoles(ctx context.Context, username string) ([]string, error)
-	
+
 	// ValidateUserAttributes validates user attributes
 	ValidateUserAttributes(ctx context.Context, username string, requiredAttrs map[string]string) error
-	
+
 	// Close closes LDAP connection
 	Close() error
 }
@@ -109,7 +109,7 @@ type TokenResponse struct {
 	ExpiresIn    int64     `json:"expires_in"`
 	Scope        string    `json:"scope,omitempty"`
 	IssuedAt     time.Time `json:"issued_at"`
-	
+
 	// Provider-specific fields
 	Extra map[string]interface{} `json:"extra,omitempty"`
 }
@@ -133,26 +133,26 @@ type UserInfo struct {
 	Zoneinfo      string `json:"zoneinfo"`
 	Locale        string `json:"locale"`
 	UpdatedAt     int64  `json:"updated_at"`
-	
+
 	// Provider-specific fields
-	Username      string   `json:"username"`
-	Groups        []string `json:"groups"`
-	Roles         []string `json:"roles"`
-	Permissions   []string `json:"permissions"`
+	Username      string         `json:"username"`
+	Groups        []string       `json:"groups"`
+	Roles         []string       `json:"roles"`
+	Permissions   []string       `json:"permissions"`
 	Organizations []Organization `json:"organizations"`
-	
+
 	// Metadata
-	Provider      string                 `json:"provider"`
-	ProviderID    string                 `json:"provider_id"`
-	Attributes    map[string]interface{} `json:"attributes,omitempty"`
+	Provider   string                 `json:"provider"`
+	ProviderID string                 `json:"provider_id"`
+	Attributes map[string]interface{} `json:"attributes,omitempty"`
 }
 
 // Organization represents user's organization
 type Organization struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	DisplayName string `json:"display_name"`
-	Role        string `json:"role"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	DisplayName string   `json:"display_name"`
+	Role        string   `json:"role"`
 	Permissions []string `json:"permissions"`
 }
 
@@ -180,13 +180,13 @@ func GeneratePKCEChallenge() (*PKCEChallenge, error) {
 	if _, err := rand.Read(verifier); err != nil {
 		return nil, fmt.Errorf("failed to generate code verifier: %w", err)
 	}
-	
+
 	codeVerifier := base64.RawURLEncoding.EncodeToString(verifier)
-	
+
 	// Generate code challenge using S256 method
 	hash := sha256.Sum256([]byte(codeVerifier))
 	codeChallenge := base64.RawURLEncoding.EncodeToString(hash[:])
-	
+
 	return &PKCEChallenge{
 		CodeVerifier:  codeVerifier,
 		CodeChallenge: codeChallenge,
@@ -200,17 +200,17 @@ type OIDCConfiguration struct {
 	AuthorizationEndpoint             string   `json:"authorization_endpoint"`
 	TokenEndpoint                     string   `json:"token_endpoint"`
 	UserInfoEndpoint                  string   `json:"userinfo_endpoint"`
-	JWKSUri                          string   `json:"jwks_uri"`
-	RegistrationEndpoint             string   `json:"registration_endpoint,omitempty"`
-	ScopesSupported                  []string `json:"scopes_supported"`
-	ResponseTypesSupported           []string `json:"response_types_supported"`
-	ResponseModesSupported           []string `json:"response_modes_supported,omitempty"`
-	GrantTypesSupported              []string `json:"grant_types_supported"`
+	JWKSUri                           string   `json:"jwks_uri"`
+	RegistrationEndpoint              string   `json:"registration_endpoint,omitempty"`
+	ScopesSupported                   []string `json:"scopes_supported"`
+	ResponseTypesSupported            []string `json:"response_types_supported"`
+	ResponseModesSupported            []string `json:"response_modes_supported,omitempty"`
+	GrantTypesSupported               []string `json:"grant_types_supported"`
 	TokenEndpointAuthMethodsSupported []string `json:"token_endpoint_auth_methods_supported"`
-	SubjectTypesSupported            []string `json:"subject_types_supported"`
-	IDTokenSigningAlgValuesSupported []string `json:"id_token_signing_alg_values_supported"`
-	ClaimsSupported                  []string `json:"claims_supported"`
-	CodeChallengeMethodsSupported    []string `json:"code_challenge_methods_supported,omitempty"`
+	SubjectTypesSupported             []string `json:"subject_types_supported"`
+	IDTokenSigningAlgValuesSupported  []string `json:"id_token_signing_alg_values_supported"`
+	ClaimsSupported                   []string `json:"claims_supported"`
+	CodeChallengeMethodsSupported     []string `json:"code_challenge_methods_supported,omitempty"`
 }
 
 // IDTokenClaims represents OpenID Connect ID token claims
@@ -223,7 +223,7 @@ type IDTokenClaims struct {
 	IssuedAt  int64  `json:"iat"`
 	AuthTime  int64  `json:"auth_time,omitempty"`
 	Nonce     string `json:"nonce,omitempty"`
-	
+
 	// Profile claims
 	Name              string `json:"name,omitempty"`
 	GivenName         string `json:"given_name,omitempty"`
@@ -233,11 +233,11 @@ type IDTokenClaims struct {
 	PreferredUsername string `json:"preferred_username,omitempty"`
 	Picture           string `json:"picture,omitempty"`
 	Website           string `json:"website,omitempty"`
-	
+
 	// Email claims
 	Email         string `json:"email,omitempty"`
 	EmailVerified bool   `json:"email_verified,omitempty"`
-	
+
 	// Additional claims
 	Groups []string               `json:"groups,omitempty"`
 	Roles  []string               `json:"roles,omitempty"`
@@ -270,26 +270,26 @@ type JWK struct {
 
 // ProviderConfig represents provider configuration
 type ProviderConfig struct {
-	Name         string            `json:"name"`
-	Type         string            `json:"type"`
-	ClientID     string            `json:"client_id"`
-	ClientSecret string            `json:"client_secret"`
-	RedirectURL  string            `json:"redirect_url"`
-	Scopes       []string          `json:"scopes"`
-	Endpoints    ProviderEndpoints `json:"endpoints"`
-	Features     []ProviderFeature `json:"features"`
+	Name         string                 `json:"name"`
+	Type         string                 `json:"type"`
+	ClientID     string                 `json:"client_id"`
+	ClientSecret string                 `json:"client_secret"`
+	RedirectURL  string                 `json:"redirect_url"`
+	Scopes       []string               `json:"scopes"`
+	Endpoints    ProviderEndpoints      `json:"endpoints"`
+	Features     []ProviderFeature      `json:"features"`
 	Metadata     map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ProviderEndpoints represents OAuth2/OIDC endpoints
 type ProviderEndpoints struct {
-	AuthURL      string `json:"auth_url"`
-	TokenURL     string `json:"token_url"`
-	UserInfoURL  string `json:"userinfo_url"`
-	JWKSURL      string `json:"jwks_url,omitempty"`
-	RevokeURL    string `json:"revoke_url,omitempty"`
+	AuthURL       string `json:"auth_url"`
+	TokenURL      string `json:"token_url"`
+	UserInfoURL   string `json:"userinfo_url"`
+	JWKSURL       string `json:"jwks_url,omitempty"`
+	RevokeURL     string `json:"revoke_url,omitempty"`
 	IntrospectURL string `json:"introspect_url,omitempty"`
-	DiscoveryURL string `json:"discovery_url,omitempty"`
+	DiscoveryURL  string `json:"discovery_url,omitempty"`
 }
 
 // ProviderFeature represents supported provider features
@@ -326,14 +326,14 @@ type AuthOption func(*AuthOptions)
 type AuthOptions struct {
 	// PKCE options
 	UsePKCE bool
-	
+
 	// Additional parameters
-	Prompt      string
-	LoginHint   string
-	DomainHint  string
-	MaxAge      int
-	UILocales   []string
-	
+	Prompt     string
+	LoginHint  string
+	DomainHint string
+	MaxAge     int
+	UILocales  []string
+
 	// Custom parameters
 	CustomParams map[string]string
 }

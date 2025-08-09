@@ -31,22 +31,22 @@ type TelecomContext struct {
 
 // NetworkFunction represents a 5G Core network function
 type NetworkFunction struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"` // AMF, SMF, UPF, etc.
-	Status   string `json:"status"`
+	Name     string  `json:"name"`
+	Type     string  `json:"type"` // AMF, SMF, UPF, etc.
+	Status   string  `json:"status"`
 	Load     float64 `json:"load"`
-	Location string `json:"location"`
+	Location string  `json:"location"`
 }
 
 // NetworkSlice represents a network slice configuration
 type NetworkSlice struct {
-	ID              string  `json:"id"`
-	Type            string  `json:"type"` // eMBB, URLLC, mMTC
-	Status          string  `json:"status"`
-	Throughput      float64 `json:"throughput"`
-	Latency         float64 `json:"latency"`
-	Reliability     float64 `json:"reliability"`
-	ConnectedUEs    int     `json:"connected_ues"`
+	ID           string  `json:"id"`
+	Type         string  `json:"type"` // eMBB, URLLC, mMTC
+	Status       string  `json:"status"`
+	Throughput   float64 `json:"throughput"`
+	Latency      float64 `json:"latency"`
+	Reliability  float64 `json:"reliability"`
+	ConnectedUEs int     `json:"connected_ues"`
 }
 
 // E2Node represents an E2 interface node
@@ -550,7 +550,7 @@ spec:
 		},
 	}
 
-	// RAN Optimization Examples  
+	// RAN Optimization Examples
 	t.examples["ran_optimization_intent"] = []PromptExample{
 		{
 			Input: "Optimize handover parameters to reduce call drops in high mobility scenario",

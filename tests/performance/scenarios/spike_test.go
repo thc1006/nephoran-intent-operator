@@ -20,14 +20,14 @@ func TestSpikeLoad(t *testing.T) {
 
 	// Define spike patterns
 	spikePatterns := []struct {
-		Name           string
-		BaseLoad       int    // Base concurrent users
-		SpikeLoad      int    // Peak concurrent users during spike
-		RampUpTime     time.Duration
-		SustainTime    time.Duration
-		RampDownTime   time.Duration
-		MaxLatency     time.Duration
-		RecoveryTime   time.Duration
+		Name         string
+		BaseLoad     int // Base concurrent users
+		SpikeLoad    int // Peak concurrent users during spike
+		RampUpTime   time.Duration
+		SustainTime  time.Duration
+		RampDownTime time.Duration
+		MaxLatency   time.Duration
+		RecoveryTime time.Duration
 	}{
 		{
 			Name:         "Moderate Spike",
@@ -74,23 +74,23 @@ func TestSpikeLoad(t *testing.T) {
 	for _, pattern := range spikePatterns {
 		t.Run(pattern.Name, func(t *testing.T) {
 			result := runSpikeTest(ctx, suite, pattern)
-			
+
 			// Validate spike handling
 			if result.MaxLatency > pattern.MaxLatency {
-				t.Errorf("%s: Max latency %v exceeded limit %v", 
+				t.Errorf("%s: Max latency %v exceeded limit %v",
 					pattern.Name, result.MaxLatency, pattern.MaxLatency)
 			}
-			
+
 			if result.RecoveryTime > pattern.RecoveryTime {
-				t.Errorf("%s: Recovery time %v exceeded limit %v", 
+				t.Errorf("%s: Recovery time %v exceeded limit %v",
 					pattern.Name, result.RecoveryTime, pattern.RecoveryTime)
 			}
-			
+
 			if result.ErrorRate > 0.05 { // 5% error rate threshold
-				t.Errorf("%s: Error rate %.2f%% exceeded 5%% threshold", 
+				t.Errorf("%s: Error rate %.2f%% exceeded 5%% threshold",
 					pattern.Name, result.ErrorRate*100)
 			}
-			
+
 			t.Logf("%s Results:", pattern.Name)
 			t.Logf("  Max Latency During Spike: %v", result.MaxLatency)
 			t.Logf("  Recovery Time: %v", result.RecoveryTime)
@@ -104,7 +104,7 @@ func TestSpikeLoad(t *testing.T) {
 // TestCascadingFailure tests system resilience to cascading failures
 func TestCascadingFailure(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Simulate component failures
 	failures := []struct {
 		Name        string
@@ -150,22 +150,22 @@ func TestCascadingFailure(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, failure := range failures {
 		t.Run(failure.Name, func(t *testing.T) {
 			result := testFailureResilience(ctx, failure)
-			
+
 			// System should maintain partial functionality
 			if result.AvailabilityDuringFailure < 0.5 {
-				t.Errorf("%s: Availability %.2f%% below 50%% threshold", 
+				t.Errorf("%s: Availability %.2f%% below 50%% threshold",
 					failure.Name, result.AvailabilityDuringFailure*100)
 			}
-			
+
 			// Should recover after failure clears
 			if !result.Recovered {
 				t.Errorf("%s: System did not recover after failure", failure.Name)
 			}
-			
+
 			t.Logf("%s Results:", failure.Name)
 			t.Logf("  Availability During Failure: %.2f%%", result.AvailabilityDuringFailure*100)
 			t.Logf("  Recovery Time: %v", result.RecoveryTime)
@@ -179,7 +179,7 @@ func TestCascadingFailure(t *testing.T) {
 func TestBurstPattern(t *testing.T) {
 	suite := performance.NewBenchmarkSuite()
 	ctx := context.Background()
-	
+
 	// Define burst patterns
 	patterns := []struct {
 		Name          string
@@ -210,20 +210,20 @@ func TestBurstPattern(t *testing.T) {
 			TestDuration:  30 * time.Second,
 		},
 	}
-	
+
 	for _, pattern := range patterns {
 		t.Run(pattern.Name, func(t *testing.T) {
 			result := runBurstTest(ctx, suite, pattern)
-			
+
 			// Validate burst handling
 			if result.DroppedRequests > 0 {
 				t.Logf("%s: Warning - %d requests dropped", pattern.Name, result.DroppedRequests)
 			}
-			
+
 			if result.MaxQueueDepth > 1000 {
 				t.Errorf("%s: Queue depth %d exceeded limit", pattern.Name, result.MaxQueueDepth)
 			}
-			
+
 			t.Logf("%s Results:", pattern.Name)
 			t.Logf("  Bursts Handled: %d", result.BurstsHandled)
 			t.Logf("  Avg Burst Latency: %v", result.AvgBurstLatency)
@@ -262,34 +262,34 @@ type BurstTestResult struct {
 
 // runSpikeTest executes a spike load test
 func runSpikeTest(ctx context.Context, suite *performance.BenchmarkSuite, pattern struct {
-	Name           string
-	BaseLoad       int
-	SpikeLoad      int
-	RampUpTime     time.Duration
-	SustainTime    time.Duration
-	RampDownTime   time.Duration
-	MaxLatency     time.Duration
-	RecoveryTime   time.Duration
+	Name         string
+	BaseLoad     int
+	SpikeLoad    int
+	RampUpTime   time.Duration
+	SustainTime  time.Duration
+	RampDownTime time.Duration
+	MaxLatency   time.Duration
+	RecoveryTime time.Duration
 }) SpikeTestResult {
-	
+
 	result := SpikeTestResult{
 		MetricsSnapshot: make(map[string]interface{}),
 	}
-	
+
 	var wg sync.WaitGroup
 	var maxLatency int64 // Use atomic for thread safety
 	var totalRequests int64
 	var errorCount int64
 	var queueDepth int32
-	
+
 	// Metrics collection
 	metricsChan := make(chan time.Duration, 10000)
 	errorChan := make(chan error, 1000)
-	
+
 	// Start with base load
 	currentLoad := pattern.BaseLoad
 	stopChan := make(chan struct{})
-	
+
 	// Worker function
 	worker := func(id int) {
 		defer wg.Done()
@@ -300,21 +300,21 @@ func runSpikeTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 			default:
 				atomic.AddInt32(&queueDepth, 1)
 				start := time.Now()
-				
+
 				// Simulate work
 				err := processRequest(ctx)
-				
+
 				latency := time.Since(start)
 				atomic.AddInt32(&queueDepth, -1)
-				
+
 				// Update max latency
 				currentMax := atomic.LoadInt64(&maxLatency)
 				if int64(latency) > currentMax {
 					atomic.CompareAndSwapInt64(&maxLatency, currentMax, int64(latency))
 				}
-				
+
 				atomic.AddInt64(&totalRequests, 1)
-				
+
 				if err != nil {
 					atomic.AddInt64(&errorCount, 1)
 					select {
@@ -322,37 +322,37 @@ func runSpikeTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 					default:
 					}
 				}
-				
+
 				select {
 				case metricsChan <- latency:
 				default:
 				}
-				
+
 				// Small delay between requests
 				time.Sleep(time.Duration(rand.Intn(100)) * time.Millisecond)
 			}
 		}
 	}
-	
+
 	// Phase 1: Base load
 	klog.Infof("Starting base load phase with %d workers", pattern.BaseLoad)
 	for i := 0; i < pattern.BaseLoad; i++ {
 		wg.Add(1)
 		go worker(i)
 	}
-	
+
 	baselineStart := time.Now()
 	time.Sleep(10 * time.Second) // Establish baseline
-	
+
 	// Capture baseline metrics
 	baselineThroughput := float64(atomic.LoadInt64(&totalRequests)) / time.Since(baselineStart).Seconds()
-	
+
 	// Phase 2: Ramp up to spike
 	klog.Infof("Ramping up to spike load: %d workers", pattern.SpikeLoad)
 	rampUpSteps := 10
 	stepDuration := pattern.RampUpTime / time.Duration(rampUpSteps)
 	workersPerStep := (pattern.SpikeLoad - pattern.BaseLoad) / rampUpSteps
-	
+
 	for step := 0; step < rampUpSteps; step++ {
 		for i := 0; i < workersPerStep; i++ {
 			wg.Add(1)
@@ -361,27 +361,27 @@ func runSpikeTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 		currentLoad += workersPerStep
 		time.Sleep(stepDuration)
 	}
-	
+
 	// Phase 3: Sustain spike
 	klog.Infof("Sustaining spike load for %v", pattern.SustainTime)
 	spikeStart := time.Now()
 	time.Sleep(pattern.SustainTime)
-	
+
 	// Capture spike metrics
 	spikeThroughput := float64(atomic.LoadInt64(&totalRequests)) / time.Since(spikeStart).Seconds()
 	result.ThroughputDrop = (baselineThroughput - spikeThroughput) / baselineThroughput
 	result.MaxQueueDepth = int(atomic.LoadInt32(&queueDepth))
-	
+
 	// Phase 4: Ramp down
 	klog.Infof("Ramping down from spike")
 	close(stopChan) // Signal all workers to stop
-	
+
 	recoveryStart := time.Now()
-	
+
 	// Wait for recovery
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
@@ -395,28 +395,28 @@ func runSpikeTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 			goto recovered
 		}
 	}
-	
+
 recovered:
 	wg.Wait()
-	
+
 	// Calculate final metrics
 	result.MaxLatency = time.Duration(atomic.LoadInt64(&maxLatency))
 	result.ErrorRate = float64(atomic.LoadInt64(&errorCount)) / float64(atomic.LoadInt64(&totalRequests))
-	
+
 	// Collect latency distribution
 	close(metricsChan)
 	latencies := []time.Duration{}
 	for latency := range metricsChan {
 		latencies = append(latencies, latency)
 	}
-	
+
 	if len(latencies) > 0 {
 		analyzer := performance.NewMetricsAnalyzer()
 		result.MetricsSnapshot["p50_latency"] = analyzer.CalculatePercentile(latencies, 50)
 		result.MetricsSnapshot["p95_latency"] = analyzer.CalculatePercentile(latencies, 95)
 		result.MetricsSnapshot["p99_latency"] = analyzer.CalculatePercentile(latencies, 99)
 	}
-	
+
 	return result
 }
 
@@ -428,16 +428,16 @@ func testFailureResilience(ctx context.Context, failure struct {
 	Duration    time.Duration
 	Impact      func() error
 }) FailureTestResult {
-	
+
 	result := FailureTestResult{
 		DegradedOperations: []string{},
 	}
-	
+
 	// Start normal operations
 	var successCount int64
 	var totalCount int64
 	stopChan := make(chan struct{})
-	
+
 	go func() {
 		for {
 			select {
@@ -452,37 +452,37 @@ func testFailureResilience(ctx context.Context, failure struct {
 			}
 		}
 	}()
-	
+
 	// Baseline measurement
 	time.Sleep(5 * time.Second)
 	baselineSuccess := atomic.LoadInt64(&successCount)
 	baselineTotal := atomic.LoadInt64(&totalCount)
-	
+
 	// Inject failure
 	klog.Infof("Injecting failure: %s", failure.Name)
 	failureStart := time.Now()
 	go failure.Impact()
-	
+
 	// Monitor during failure
 	time.Sleep(failure.Duration)
-	
+
 	duringFailureSuccess := atomic.LoadInt64(&successCount) - baselineSuccess
 	duringFailureTotal := atomic.LoadInt64(&totalCount) - baselineTotal
-	
+
 	if duringFailureTotal > 0 {
 		result.AvailabilityDuringFailure = float64(duringFailureSuccess) / float64(duringFailureTotal)
 	}
-	
+
 	// Wait for recovery
 	recoveryStart := time.Now()
 	recovered := false
-	
+
 	for i := 0; i < 60; i++ { // Wait up to 60 seconds
 		time.Sleep(1 * time.Second)
-		
+
 		recentSuccess := atomic.LoadInt64(&successCount)
 		recentTotal := atomic.LoadInt64(&totalCount)
-		
+
 		if recentTotal-baselineTotal > 0 {
 			recentRate := float64(recentSuccess-baselineSuccess) / float64(recentTotal-baselineTotal)
 			if recentRate > 0.95 { // 95% success rate
@@ -492,18 +492,18 @@ func testFailureResilience(ctx context.Context, failure struct {
 			}
 		}
 	}
-	
+
 	result.Recovered = recovered
 	close(stopChan)
-	
+
 	// Check degraded operations (simplified)
 	if result.AvailabilityDuringFailure < 1.0 {
 		result.DegradedOperations = append(result.DegradedOperations, "intent_processing")
 	}
-	
+
 	// Count circuit breakers (simplified)
 	result.CircuitBreakersTriggered = rand.Intn(3) // Placeholder
-	
+
 	return result
 }
 
@@ -515,59 +515,59 @@ func runBurstTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 	BurstDuration time.Duration
 	TestDuration  time.Duration
 }) BurstTestResult {
-	
+
 	result := BurstTestResult{}
-	
+
 	var totalLatency int64
 	var burstCount int32
 	var droppedRequests int32
 	var maxQueueDepth int32
-	
+
 	endTime := time.Now().Add(pattern.TestDuration)
-	
+
 	for time.Now().Before(endTime) {
 		// Generate burst
 		atomic.AddInt32(&burstCount, 1)
-		
+
 		var wg sync.WaitGroup
 		burstStart := time.Now()
-		
+
 		for i := 0; i < pattern.BurstSize; i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				
+
 				// Try to process request
 				queueDepth := atomic.AddInt32(&maxQueueDepth, 1)
 				defer atomic.AddInt32(&maxQueueDepth, -1)
-				
+
 				if queueDepth > 1000 { // Queue limit
 					atomic.AddInt32(&droppedRequests, 1)
 					return
 				}
-				
+
 				start := time.Now()
 				processRequest(ctx)
 				latency := time.Since(start)
-				
+
 				atomic.AddInt64(&totalLatency, int64(latency))
 			}()
 		}
-		
+
 		// Wait for burst to complete or timeout
 		done := make(chan struct{})
 		go func() {
 			wg.Wait()
 			close(done)
 		}()
-		
+
 		select {
 		case <-done:
 			// Burst completed
 		case <-time.After(pattern.BurstDuration * 2):
 			// Burst timeout
 		}
-		
+
 		// Wait for next burst
 		if pattern.BurstInterval > 0 {
 			time.Sleep(pattern.BurstInterval)
@@ -576,16 +576,16 @@ func runBurstTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 			time.Sleep(time.Duration(rand.Intn(10)+1) * time.Second)
 		}
 	}
-	
+
 	result.BurstsHandled = int(atomic.LoadInt32(&burstCount))
 	result.DroppedRequests = int(atomic.LoadInt32(&droppedRequests))
 	result.MaxQueueDepth = int(atomic.LoadInt32(&maxQueueDepth))
-	
+
 	if result.BurstsHandled > 0 {
 		avgLatencyNanos := atomic.LoadInt64(&totalLatency) / int64(result.BurstsHandled*pattern.BurstSize)
 		result.AvgBurstLatency = time.Duration(avgLatencyNanos)
 	}
-	
+
 	return result
 }
 
@@ -594,7 +594,7 @@ func runBurstTest(ctx context.Context, suite *performance.BenchmarkSuite, patter
 func processRequest(ctx context.Context) error {
 	// Simulate request processing with variable latency
 	latency := time.Duration(rand.Intn(100)+50) * time.Millisecond
-	
+
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
@@ -634,11 +634,11 @@ func simulateNetworkPartition(ctx context.Context) error {
 func simulateMemoryPressure(ctx context.Context, usage float64) error {
 	// Simulate high memory usage
 	klog.Infof("Simulating memory pressure at %.0f%% usage", usage*100)
-	
+
 	// Allocate memory to simulate pressure
 	// In real test, would allocate actual memory
 	time.Sleep(45 * time.Second)
-	
+
 	klog.Info("Memory pressure relieved")
 	return nil
 }

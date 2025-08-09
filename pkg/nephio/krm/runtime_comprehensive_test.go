@@ -76,8 +76,8 @@ type ExecConfig struct {
 
 // FunctionRequest represents a function execution request
 type FunctionRequest struct {
-	FunctionConfig FunctionConfig `json:"functionConfig"`
-	Resources      []KRMResource  `json:"resources"`
+	FunctionConfig FunctionConfig   `json:"functionConfig"`
+	Resources      []KRMResource    `json:"resources"`
 	Context        *FunctionContext `json:"context,omitempty"`
 }
 
@@ -114,15 +114,15 @@ type FunctionContext struct {
 
 // Pipeline defines a sequence of KRM functions
 type Pipeline struct {
-	Name      string           `json:"name"`
-	Functions []FunctionConfig `json:"functions"`
+	Name      string                 `json:"name"`
+	Functions []FunctionConfig       `json:"functions"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // PipelineRequest represents a pipeline execution request
 type PipelineRequest struct {
-	Pipeline  Pipeline      `json:"pipeline"`
-	Resources []KRMResource `json:"resources"`
+	Pipeline  Pipeline         `json:"pipeline"`
+	Resources []KRMResource    `json:"resources"`
 	Context   *FunctionContext `json:"context,omitempty"`
 }
 
@@ -168,19 +168,19 @@ type FunctionSchema struct {
 
 // SchemaProperty defines a schema property
 type SchemaProperty struct {
-	Type        string      `json:"type"`
-	Description string      `json:"description,omitempty"`
-	Default     interface{} `json:"default,omitempty"`
+	Type        string        `json:"type"`
+	Description string        `json:"description,omitempty"`
+	Default     interface{}   `json:"default,omitempty"`
 	Examples    []interface{} `json:"examples,omitempty"`
 }
 
 // FunctionExample contains function usage examples
 type FunctionExample struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description,omitempty"`
+	Name        string          `json:"name"`
+	Description string          `json:"description,omitempty"`
 	Config      *FunctionConfig `json:"config"`
-	Input       []KRMResource  `json:"input"`
-	Output      []KRMResource  `json:"output"`
+	Input       []KRMResource   `json:"input"`
+	Output      []KRMResource   `json:"output"`
 }
 
 // ExecutionEvent records function execution history
@@ -203,17 +203,17 @@ func NewMockKRMRuntime() *MockKRMRuntime {
 	k8sClient := fake.NewSimpleClientset()
 
 	runtime := &MockKRMRuntime{
-		client:           client,
-		k8sClient:        k8sClient,
-		logger:           zaptest.NewLogger(&testing.T{}),
-		functions:        make(map[string]*RegisteredFunction),
-		executionHistory: []ExecutionEvent{},
+		client:            client,
+		k8sClient:         k8sClient,
+		logger:            zaptest.NewLogger(&testing.T{}),
+		functions:         make(map[string]*RegisteredFunction),
+		executionHistory:  []ExecutionEvent{},
 		validationEnabled: true,
 	}
 
 	// Register standard functions
 	runtime.registerStandardFunctions()
-	
+
 	return runtime
 }
 
@@ -337,15 +337,15 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 func (r *MockKRMRuntime) RegisterFunction(function *RegisteredFunction) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	
+
 	if function.Name == "" {
 		return fmt.Errorf("function name is required")
 	}
-	
+
 	if function.Handler == nil {
 		return fmt.Errorf("function handler is required")
 	}
-	
+
 	r.functions[function.Name] = function
 	return nil
 }
@@ -353,15 +353,15 @@ func (r *MockKRMRuntime) RegisterFunction(function *RegisteredFunction) error {
 // ExecuteFunction executes a single KRM function
 func (r *MockKRMRuntime) ExecuteFunction(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 	start := time.Now()
-	
+
 	if r.simulateLatency > 0 {
 		time.Sleep(r.simulateLatency)
 	}
-	
+
 	if r.simulateFailure {
 		return nil, fmt.Errorf("simulated function execution failure")
 	}
-	
+
 	// Find function by image
 	var function *RegisteredFunction
 	r.mutex.RLock()
@@ -372,21 +372,21 @@ func (r *MockKRMRuntime) ExecuteFunction(ctx context.Context, req *FunctionReque
 		}
 	}
 	r.mutex.RUnlock()
-	
+
 	if function == nil {
 		return nil, fmt.Errorf("function not found: %s", req.FunctionConfig.Image)
 	}
-	
+
 	// Validate function configuration if validation is enabled
 	if r.validationEnabled {
 		if err := r.validateFunctionConfig(function, &req.FunctionConfig); err != nil {
 			return nil, fmt.Errorf("function configuration validation failed: %w", err)
 		}
 	}
-	
+
 	// Execute function
 	response, err := function.Handler(ctx, req)
-	
+
 	// Record execution history
 	event := ExecutionEvent{
 		FunctionName: function.Name,
@@ -396,11 +396,11 @@ func (r *MockKRMRuntime) ExecuteFunction(ctx context.Context, req *FunctionReque
 		Timestamp:    start,
 		Duration:     time.Since(start),
 	}
-	
+
 	r.mutex.Lock()
 	r.executionHistory = append(r.executionHistory, event)
 	r.mutex.Unlock()
-	
+
 	return response, err
 }
 
@@ -408,19 +408,19 @@ func (r *MockKRMRuntime) ExecuteFunction(ctx context.Context, req *FunctionReque
 func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineRequest) (*PipelineResponse, error) {
 	resources := req.Resources
 	var allResults []*FunctionResult
-	
+
 	r.logger.Info("Executing pipeline", zap.String("name", req.Pipeline.Name), zap.Int("functions", len(req.Pipeline.Functions)))
-	
+
 	// Execute each function in sequence
 	for i, funcConfig := range req.Pipeline.Functions {
 		r.logger.Info("Executing function in pipeline", zap.Int("step", i+1), zap.String("image", funcConfig.Image))
-		
+
 		funcReq := &FunctionRequest{
 			FunctionConfig: funcConfig,
 			Resources:      resources,
 			Context:        req.Context,
 		}
-		
+
 		funcResp, err := r.ExecuteFunction(ctx, funcReq)
 		if err != nil {
 			return &PipelineResponse{
@@ -433,15 +433,15 @@ func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineReque
 				},
 			}, nil
 		}
-		
+
 		// Update resources for next function
 		resources = funcResp.Resources
-		
+
 		// Collect results
 		if funcResp.Results != nil {
 			allResults = append(allResults, funcResp.Results...)
 		}
-		
+
 		// Check for function errors
 		if funcResp.Error != nil {
 			return &PipelineResponse{
@@ -451,7 +451,7 @@ func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineReque
 			}, nil
 		}
 	}
-	
+
 	return &PipelineResponse{
 		Resources: resources,
 		Results:   allResults,
@@ -462,7 +462,7 @@ func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineReque
 func (r *MockKRMRuntime) GetExecutionHistory() []ExecutionEvent {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	
+
 	history := make([]ExecutionEvent, len(r.executionHistory))
 	copy(history, r.executionHistory)
 	return history
@@ -472,7 +472,7 @@ func (r *MockKRMRuntime) GetExecutionHistory() []ExecutionEvent {
 func (r *MockKRMRuntime) ClearExecutionHistory() {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
-	
+
 	r.executionHistory = []ExecutionEvent{}
 }
 
@@ -505,7 +505,7 @@ func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *FunctionRequ
 			},
 		}, nil
 	}
-	
+
 	// Convert to string map
 	stringLabels := make(map[string]string)
 	for k, v := range labels {
@@ -513,7 +513,7 @@ func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *FunctionRequ
 			stringLabels[k] = str
 		}
 	}
-	
+
 	// Apply labels to all resources
 	modifiedResources := make([]KRMResource, len(req.Resources))
 	for i, resource := range req.Resources {
@@ -521,7 +521,7 @@ func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *FunctionRequ
 		if modifiedResource.Metadata == nil {
 			modifiedResource.Metadata = make(map[string]interface{})
 		}
-		
+
 		resourceLabels, exists := modifiedResource.Metadata["labels"]
 		if !exists {
 			modifiedResource.Metadata["labels"] = stringLabels
@@ -533,10 +533,10 @@ func (r *MockKRMRuntime) setLabelsHandler(ctx context.Context, req *FunctionRequ
 				}
 			}
 		}
-		
+
 		modifiedResources[i] = modifiedResource
 	}
-	
+
 	return &FunctionResponse{
 		Resources: modifiedResources,
 		Results: []*FunctionResult{
@@ -560,7 +560,7 @@ func (r *MockKRMRuntime) setNamespaceHandler(ctx context.Context, req *FunctionR
 			},
 		}, nil
 	}
-	
+
 	modifiedResources := make([]KRMResource, len(req.Resources))
 	for i, resource := range req.Resources {
 		modifiedResource := resource
@@ -570,7 +570,7 @@ func (r *MockKRMRuntime) setNamespaceHandler(ctx context.Context, req *FunctionR
 		modifiedResource.Metadata["namespace"] = namespace
 		modifiedResources[i] = modifiedResource
 	}
-	
+
 	return &FunctionResponse{
 		Resources: modifiedResources,
 		Results: []*FunctionResult{
@@ -622,7 +622,7 @@ func (r *MockKRMRuntime) ensureNameSubstringHandler(ctx context.Context, req *Fu
 			},
 		}, nil
 	}
-	
+
 	modifiedResources := make([]KRMResource, len(req.Resources))
 	for i, resource := range req.Resources {
 		modifiedResource := resource
@@ -635,7 +635,7 @@ func (r *MockKRMRuntime) ensureNameSubstringHandler(ctx context.Context, req *Fu
 		}
 		modifiedResources[i] = modifiedResource
 	}
-	
+
 	return &FunctionResponse{
 		Resources: modifiedResources,
 		Results: []*FunctionResult{
@@ -659,10 +659,10 @@ func (r *MockKRMRuntime) oranInterfaceConfigHandler(ctx context.Context, req *Fu
 			},
 		}, nil
 	}
-	
+
 	// Process O-RAN interface configuration
 	modifiedResources := req.Resources
-	
+
 	for _, iface := range interfaces {
 		if ifaceMap, ok := iface.(map[string]interface{}); ok {
 			// Add O-RAN specific annotations and labels
@@ -670,7 +670,7 @@ func (r *MockKRMRuntime) oranInterfaceConfigHandler(ctx context.Context, req *Fu
 				if resource.Metadata == nil {
 					resource.Metadata = make(map[string]interface{})
 				}
-				
+
 				// Add O-RAN annotations
 				annotations := make(map[string]interface{})
 				if existing, exists := resource.Metadata["annotations"]; exists {
@@ -678,20 +678,20 @@ func (r *MockKRMRuntime) oranInterfaceConfigHandler(ctx context.Context, req *Fu
 						annotations = existingMap
 					}
 				}
-				
+
 				if ifaceName, exists := ifaceMap["name"]; exists {
 					annotations["oran.nephoran.com/interface"] = ifaceName
 				}
 				if ifaceType, exists := ifaceMap["type"]; exists {
 					annotations["oran.nephoran.com/interface-type"] = ifaceType
 				}
-				
+
 				resource.Metadata["annotations"] = annotations
 				modifiedResources[i] = resource
 			}
 		}
 	}
-	
+
 	return &FunctionResponse{
 		Resources: modifiedResources,
 		Results: []*FunctionResult{
@@ -715,20 +715,20 @@ func (r *MockKRMRuntime) networkSliceConfigHandler(ctx context.Context, req *Fun
 			},
 		}, nil
 	}
-	
+
 	modifiedResources := make([]KRMResource, len(req.Resources))
 	for i, resource := range req.Resources {
 		modifiedResource := resource
-		
+
 		// Add network slice configuration
 		if modifiedResource.Spec == nil {
 			modifiedResource.Spec = make(map[string]interface{})
 		}
 		modifiedResource.Spec["networkSlice"] = sliceConfig
-		
+
 		modifiedResources[i] = modifiedResource
 	}
-	
+
 	return &FunctionResponse{
 		Resources: modifiedResources,
 		Results: []*FunctionResult{
@@ -747,14 +747,14 @@ func (r *MockKRMRuntime) validateFunctionConfig(function *RegisteredFunction, co
 	if function.Schema == nil {
 		return nil // No schema to validate against
 	}
-	
+
 	// Check required fields
 	for _, required := range function.Schema.Required {
 		if _, exists := config.ConfigMap[required]; !exists {
 			return fmt.Errorf("required field '%s' is missing", required)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -785,7 +785,7 @@ func generateTestResourceWithLabels(apiVersion, kind, name, namespace string, la
 // TestKRMRuntimeCreation tests KRM runtime creation
 func TestKRMRuntimeCreation(t *testing.T) {
 	runtime := NewMockKRMRuntime()
-	
+
 	assert.NotNil(t, runtime)
 	assert.NotNil(t, runtime.client)
 	assert.NotNil(t, runtime.k8sClient)
@@ -797,7 +797,7 @@ func TestKRMRuntimeCreation(t *testing.T) {
 // TestFunctionRegistration tests function registration
 func TestFunctionRegistration(t *testing.T) {
 	runtime := NewMockKRMRuntime()
-	
+
 	testFunction := &RegisteredFunction{
 		Name:        "test-function",
 		Image:       "test/test-function:v1.0.0",
@@ -811,15 +811,15 @@ func TestFunctionRegistration(t *testing.T) {
 			}, nil
 		},
 	}
-	
+
 	err := runtime.RegisterFunction(testFunction)
 	assert.NoError(t, err)
-	
+
 	// Verify function was registered
 	runtime.mutex.RLock()
 	registeredFunc, exists := runtime.functions["test-function"]
 	runtime.mutex.RUnlock()
-	
+
 	assert.True(t, exists)
 	assert.Equal(t, testFunction.Name, registeredFunc.Name)
 	assert.Equal(t, testFunction.Image, registeredFunc.Image)
@@ -828,7 +828,7 @@ func TestFunctionRegistration(t *testing.T) {
 // TestFunctionRegistrationValidation tests function registration validation
 func TestFunctionRegistrationValidation(t *testing.T) {
 	runtime := NewMockKRMRuntime()
-	
+
 	testCases := []struct {
 		name        string
 		function    *RegisteredFunction
@@ -865,11 +865,11 @@ func TestFunctionRegistrationValidation(t *testing.T) {
 			expectError: false,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			err := runtime.RegisterFunction(tc.function)
-			
+
 			if tc.expectError {
 				assert.Error(t, err)
 				if tc.errorMsg != "" {
@@ -886,13 +886,13 @@ func TestFunctionRegistrationValidation(t *testing.T) {
 func TestStandardFunctions(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
-	
+
 	t.Run("set_labels", func(t *testing.T) {
 		resources := []KRMResource{
 			generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 			generateTestResource("v1", "Service", "test-service", "default"),
 		}
-		
+
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
@@ -905,30 +905,30 @@ func TestStandardFunctions(t *testing.T) {
 			},
 			Resources: resources,
 		}
-		
+
 		resp, err := runtime.ExecuteFunction(ctx, req)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 		assert.Equal(t, len(resources), len(resp.Resources))
 		assert.True(t, len(resp.Results) > 0)
-		
+
 		// Verify labels were added
 		for _, resource := range resp.Resources {
 			labels, exists := resource.Metadata["labels"]
 			assert.True(t, exists)
-			
+
 			if labelMap, ok := labels.(map[string]interface{}); ok {
 				assert.Equal(t, "test-app", labelMap["app"])
 				assert.Equal(t, "production", labelMap["env"])
 			}
 		}
 	})
-	
+
 	t.Run("set_namespace", func(t *testing.T) {
 		resources := []KRMResource{
 			generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 		}
-		
+
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-namespace:v0.4.1",
@@ -938,12 +938,12 @@ func TestStandardFunctions(t *testing.T) {
 			},
 			Resources: resources,
 		}
-		
+
 		resp, err := runtime.ExecuteFunction(ctx, req)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 		assert.Equal(t, len(resources), len(resp.Resources))
-		
+
 		// Verify namespace was set
 		for _, resource := range resp.Resources {
 			namespace, exists := resource.Metadata["namespace"]
@@ -951,12 +951,12 @@ func TestStandardFunctions(t *testing.T) {
 			assert.Equal(t, "production", namespace)
 		}
 	})
-	
+
 	t.Run("ensure_name_substring", func(t *testing.T) {
 		resources := []KRMResource{
 			generateTestResource("apps/v1", "Deployment", "deployment", "default"),
 		}
-		
+
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/ensure-name-substring:v0.1.1",
@@ -966,11 +966,11 @@ func TestStandardFunctions(t *testing.T) {
 			},
 			Resources: resources,
 		}
-		
+
 		resp, err := runtime.ExecuteFunction(ctx, req)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
-		
+
 		// Verify substring was added to name
 		for _, resource := range resp.Resources {
 			name, exists := resource.Metadata["name"]
@@ -984,12 +984,12 @@ func TestStandardFunctions(t *testing.T) {
 func TestORANFunctions(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
-	
+
 	t.Run("oran_interface_config", func(t *testing.T) {
 		resources := []KRMResource{
 			generateTestResource("apps/v1", "Deployment", "amf-deployment", "5g-core"),
 		}
-		
+
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "nephoran.io/kpt-fn/oran-interface-config:v1.0.0",
@@ -1008,29 +1008,29 @@ func TestORANFunctions(t *testing.T) {
 			},
 			Resources: resources,
 		}
-		
+
 		resp, err := runtime.ExecuteFunction(ctx, req)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 		assert.True(t, len(resp.Results) > 0)
-		
+
 		// Verify O-RAN annotations were added
 		for _, resource := range resp.Resources {
 			annotations, exists := resource.Metadata["annotations"]
 			assert.True(t, exists)
-			
+
 			if annotMap, ok := annotations.(map[string]interface{}); ok {
 				assert.Contains(t, annotMap, "oran.nephoran.com/interface")
 				assert.Contains(t, annotMap, "oran.nephoran.com/interface-type")
 			}
 		}
 	})
-	
+
 	t.Run("network_slice_config", func(t *testing.T) {
 		resources := []KRMResource{
 			generateTestResource("apps/v1", "Deployment", "slice-deployment", "5g-core"),
 		}
-		
+
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "nephoran.io/kpt-fn/network-slice-config:v1.0.0",
@@ -1044,16 +1044,16 @@ func TestORANFunctions(t *testing.T) {
 			},
 			Resources: resources,
 		}
-		
+
 		resp, err := runtime.ExecuteFunction(ctx, req)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
-		
+
 		// Verify network slice configuration was added
 		for _, resource := range resp.Resources {
 			networkSlice, exists := resource.Spec["networkSlice"]
 			assert.True(t, exists)
-			
+
 			if sliceMap, ok := networkSlice.(map[string]interface{}); ok {
 				assert.Equal(t, "eMBB", sliceMap["sliceType"])
 				assert.Equal(t, 1, sliceMap["sst"])
@@ -1067,12 +1067,12 @@ func TestORANFunctions(t *testing.T) {
 func TestPipelineExecution(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
-	
+
 	resources := []KRMResource{
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
-	
+
 	pipeline := Pipeline{
 		Name: "standard-pipeline",
 		Functions: []FunctionConfig{
@@ -1093,7 +1093,7 @@ func TestPipelineExecution(t *testing.T) {
 			},
 		},
 	}
-	
+
 	req := &PipelineRequest{
 		Pipeline:  pipeline,
 		Resources: resources,
@@ -1102,25 +1102,25 @@ func TestPipelineExecution(t *testing.T) {
 			Namespace:   "test",
 		},
 	}
-	
+
 	resp, err := runtime.ExecutePipeline(ctx, req)
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 	assert.Equal(t, len(resources), len(resp.Resources))
 	assert.True(t, len(resp.Results) > 0)
 	assert.Nil(t, resp.Error)
-	
+
 	// Verify all functions were applied
 	for _, resource := range resp.Resources {
 		// Check namespace was set
 		namespace, exists := resource.Metadata["namespace"]
 		assert.True(t, exists)
 		assert.Equal(t, "production", namespace)
-		
+
 		// Check labels were set
 		labels, exists := resource.Metadata["labels"]
 		assert.True(t, exists)
-		
+
 		if labelMap, ok := labels.(map[string]interface{}); ok {
 			assert.Equal(t, "test-app", labelMap["app"])
 			assert.Equal(t, "production", labelMap["env"])
@@ -1132,7 +1132,7 @@ func TestPipelineExecution(t *testing.T) {
 func TestPipelineExecutionFailure(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
-	
+
 	// Register a failing function
 	runtime.RegisterFunction(&RegisteredFunction{
 		Name:  "failing-function",
@@ -1141,11 +1141,11 @@ func TestPipelineExecutionFailure(t *testing.T) {
 			return nil, fmt.Errorf("function failed")
 		},
 	})
-	
+
 	resources := []KRMResource{
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 	}
-	
+
 	pipeline := Pipeline{
 		Name: "failing-pipeline",
 		Functions: []FunctionConfig{
@@ -1160,12 +1160,12 @@ func TestPipelineExecutionFailure(t *testing.T) {
 			},
 		},
 	}
-	
+
 	req := &PipelineRequest{
 		Pipeline:  pipeline,
 		Resources: resources,
 	}
-	
+
 	resp, err := runtime.ExecutePipeline(ctx, req)
 	assert.NoError(t, err) // Pipeline execution itself doesn't fail
 	assert.NotNil(t, resp)
@@ -1177,7 +1177,7 @@ func TestPipelineExecutionFailure(t *testing.T) {
 func TestFunctionValidation(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
-	
+
 	t.Run("valid_configuration", func(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
@@ -1192,13 +1192,13 @@ func TestFunctionValidation(t *testing.T) {
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
-		
+
 		resp, err := runtime.ExecuteFunction(ctx, req)
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 		assert.Nil(t, resp.Error)
 	})
-	
+
 	t.Run("invalid_configuration", func(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
@@ -1209,15 +1209,15 @@ func TestFunctionValidation(t *testing.T) {
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
-		
+
 		resp, err := runtime.ExecuteFunction(ctx, req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "required field 'labels' is missing")
 	})
-	
+
 	t.Run("validation_disabled", func(t *testing.T) {
 		runtime.SetValidationEnabled(false)
-		
+
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image:     "gcr.io/kpt-fn/set-labels:v0.2.0",
@@ -1227,13 +1227,13 @@ func TestFunctionValidation(t *testing.T) {
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
-		
+
 		resp, err := runtime.ExecuteFunction(ctx, req)
 		// Should fail in the handler, not validation
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
 		assert.NotNil(t, resp.Error) // Function should return error in response
-		
+
 		// Re-enable validation
 		runtime.SetValidationEnabled(true)
 	})
@@ -1243,22 +1243,22 @@ func TestFunctionValidation(t *testing.T) {
 func TestConcurrentExecution(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
-	
+
 	const numGoroutines = 10
 	const operationsPerGoroutine = 5
-	
+
 	resources := []KRMResource{
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 	}
-	
+
 	var wg sync.WaitGroup
 	errors := make(chan error, numGoroutines*operationsPerGoroutine)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			
+
 			for j := 0; j < operationsPerGoroutine; j++ {
 				req := &FunctionRequest{
 					FunctionConfig: FunctionConfig{
@@ -1272,7 +1272,7 @@ func TestConcurrentExecution(t *testing.T) {
 					},
 					Resources: resources,
 				}
-				
+
 				_, err := runtime.ExecuteFunction(ctx, req)
 				if err != nil {
 					errors <- err
@@ -1280,10 +1280,10 @@ func TestConcurrentExecution(t *testing.T) {
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
 	close(errors)
-	
+
 	// Check for errors
 	errorCount := 0
 	for err := range errors {
@@ -1292,9 +1292,9 @@ func TestConcurrentExecution(t *testing.T) {
 			errorCount++
 		}
 	}
-	
+
 	assert.Equal(t, 0, errorCount, "Expected no errors in concurrent execution")
-	
+
 	// Verify execution history
 	history := runtime.GetExecutionHistory()
 	assert.Equal(t, numGoroutines*operationsPerGoroutine, len(history))
@@ -1304,20 +1304,20 @@ func TestConcurrentExecution(t *testing.T) {
 func TestExecutionHistory(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
-	
+
 	// Clear any existing history
 	runtime.ClearExecutionHistory()
-	
+
 	resources := []KRMResource{
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 	}
-	
+
 	// Execute multiple functions
 	functions := []string{
 		"gcr.io/kpt-fn/set-labels:v0.2.0",
 		"gcr.io/kpt-fn/set-namespace:v0.4.1",
 	}
-	
+
 	for i, funcImage := range functions {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
@@ -1329,15 +1329,15 @@ func TestExecutionHistory(t *testing.T) {
 			},
 			Resources: resources,
 		}
-		
+
 		start := time.Now()
 		_, err := runtime.ExecuteFunction(ctx, req)
 		assert.NoError(t, err)
-		
+
 		// Verify execution was recorded
 		history := runtime.GetExecutionHistory()
 		assert.Equal(t, i+1, len(history))
-		
+
 		lastExecution := history[len(history)-1]
 		assert.NotEmpty(t, lastExecution.FunctionName)
 		assert.NotNil(t, lastExecution.Request)
@@ -1345,7 +1345,7 @@ func TestExecutionHistory(t *testing.T) {
 		assert.True(t, lastExecution.Timestamp.After(start) || lastExecution.Timestamp.Equal(start))
 		assert.True(t, lastExecution.Duration > 0)
 	}
-	
+
 	// Test clearing history
 	runtime.ClearExecutionHistory()
 	history := runtime.GetExecutionHistory()
@@ -1356,7 +1356,7 @@ func TestExecutionHistory(t *testing.T) {
 func TestErrorHandling(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
-	
+
 	t.Run("unknown_function", func(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
@@ -1366,15 +1366,15 @@ func TestErrorHandling(t *testing.T) {
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
-		
+
 		_, err := runtime.ExecuteFunction(ctx, req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "function not found")
 	})
-	
+
 	t.Run("simulated_failure", func(t *testing.T) {
 		runtime.SetSimulateFailure(true)
-		
+
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
@@ -1383,19 +1383,19 @@ func TestErrorHandling(t *testing.T) {
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
-		
+
 		_, err := runtime.ExecuteFunction(ctx, req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "simulated function execution failure")
-		
+
 		// Disable failure simulation
 		runtime.SetSimulateFailure(false)
 	})
-	
+
 	t.Run("context_cancellation", func(t *testing.T) {
 		cancelCtx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
-		
+
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
@@ -1407,11 +1407,11 @@ func TestErrorHandling(t *testing.T) {
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
-		
+
 		// The mock doesn't actually check context cancellation,
 		// but in a real implementation it would
 		_, err := runtime.ExecuteFunction(cancelCtx, req)
-		
+
 		// For the mock, we'll just verify it doesn't panic
 		_ = err
 	})
@@ -1421,11 +1421,11 @@ func TestErrorHandling(t *testing.T) {
 func TestPerformanceCharacteristics(t *testing.T) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
-	
+
 	t.Run("latency_simulation", func(t *testing.T) {
 		latency := 100 * time.Millisecond
 		runtime.SetSimulateLatency(latency)
-		
+
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
@@ -1437,14 +1437,14 @@ func TestPerformanceCharacteristics(t *testing.T) {
 				generateTestResource("apps/v1", "Deployment", "test", "default"),
 			},
 		}
-		
+
 		start := time.Now()
 		_, err := runtime.ExecuteFunction(ctx, req)
 		elapsed := time.Since(start)
-		
+
 		assert.NoError(t, err)
 		assert.True(t, elapsed >= latency, "Expected execution to take at least %v, took %v", latency, elapsed)
-		
+
 		// Reset latency
 		runtime.SetSimulateLatency(0)
 	})
@@ -1454,12 +1454,12 @@ func TestPerformanceCharacteristics(t *testing.T) {
 func BenchmarkFunctionExecution(b *testing.B) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
-	
+
 	resources := []KRMResource{
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
-	
+
 	req := &FunctionRequest{
 		FunctionConfig: FunctionConfig{
 			Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
@@ -1472,7 +1472,7 @@ func BenchmarkFunctionExecution(b *testing.B) {
 		},
 		Resources: resources,
 	}
-	
+
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -1488,12 +1488,12 @@ func BenchmarkFunctionExecution(b *testing.B) {
 func BenchmarkPipelineExecution(b *testing.B) {
 	runtime := NewMockKRMRuntime()
 	ctx := context.Background()
-	
+
 	resources := []KRMResource{
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
-	
+
 	pipeline := Pipeline{
 		Name: "benchmark-pipeline",
 		Functions: []FunctionConfig{
@@ -1514,12 +1514,12 @@ func BenchmarkPipelineExecution(b *testing.B) {
 			},
 		},
 	}
-	
+
 	req := &PipelineRequest{
 		Pipeline:  pipeline,
 		Resources: resources,
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := runtime.ExecutePipeline(ctx, req)

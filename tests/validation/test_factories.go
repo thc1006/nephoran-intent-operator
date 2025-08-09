@@ -58,7 +58,7 @@ func (nif *NetworkIntentFactory) CreateBasicNetworkIntent(name, intent string) *
 	if name == "" {
 		name = nif.factory.getUniqueName("basic-intent")
 	}
-	
+
 	return &nephranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -88,7 +88,7 @@ func (nif *NetworkIntentFactory) CreateProcessingNetworkIntent(name, intent stri
 	ni.Labels["test-type"] = "processing"
 	ni.Status.Phase = nephranv1.PhaseProcessing
 	ni.Status.ProcessingStartTime = &metav1.Time{Time: time.Now().Add(-30 * time.Second)}
-	
+
 	return ni
 }
 
@@ -100,18 +100,18 @@ func (nif *NetworkIntentFactory) CreateDeployedNetworkIntent(name, intent string
 	now := metav1.Now()
 	ni.Status.ProcessingStartTime = &metav1.Time{Time: now.Add(-2 * time.Minute)}
 	ni.Status.CompletionTime = &now
-	
+
 	// Add processing results
 	ni.Status.ProcessingResults = &nephranv1.ProcessingResult{
-		LLMResponse: "Successfully processed intent for AMF deployment",
+		LLMResponse:         "Successfully processed intent for AMF deployment",
 		NetworkFunctionType: "AMF",
 		DeploymentParameters: map[string]string{
-			"replicas":    "3",
-			"region":      "us-west-2",
-			"ha-enabled":  "true",
+			"replicas":   "3",
+			"region":     "us-west-2",
+			"ha-enabled": "true",
 		},
 	}
-	
+
 	return ni
 }
 
@@ -124,7 +124,7 @@ func (nif *NetworkIntentFactory) CreateFailedNetworkIntent(name, intent string, 
 	ni.Status.ProcessingStartTime = &metav1.Time{Time: now.Add(-1 * time.Minute)}
 	ni.Status.CompletionTime = &now
 	ni.Status.ErrorMessage = errorMsg
-	
+
 	return ni
 }
 
@@ -134,7 +134,7 @@ func (nif *NetworkIntentFactory) CreateAMFIntent(name string) *nephranv1.Network
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["network-function"] = "amf"
 	ni.Labels["deployment-type"] = "production"
-	
+
 	return ni
 }
 
@@ -144,7 +144,7 @@ func (nif *NetworkIntentFactory) CreateSMFIntent(name string) *nephranv1.Network
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["network-function"] = "smf"
 	ni.Labels["integration"] = "upf"
-	
+
 	return ni
 }
 
@@ -154,7 +154,7 @@ func (nif *NetworkIntentFactory) CreateUPFIntent(name string) *nephranv1.Network
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["network-function"] = "upf"
 	ni.Labels["deployment"] = "edge"
-	
+
 	return ni
 }
 
@@ -164,7 +164,7 @@ func (nif *NetworkIntentFactory) CreateNSSFIntent(name string) *nephranv1.Networ
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["network-function"] = "nssf"
 	ni.Labels["capability"] = "slice-selection"
-	
+
 	return ni
 }
 
@@ -174,7 +174,7 @@ func (nif *NetworkIntentFactory) CreateSliceIntent(name string, sliceType string
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["intent-type"] = "slice"
 	ni.Labels["slice-type"] = sliceType
-	
+
 	return ni
 }
 
@@ -185,17 +185,17 @@ func (nif *NetworkIntentFactory) CreateComplexIntent(name string) *nephranv1.Net
 	ni.Labels["intent-type"] = "complex"
 	ni.Labels["components"] = "multi"
 	ni.Labels["deployment"] = "multi-region"
-	
+
 	return ni
 }
 
 // CreateBatchIntents creates multiple NetworkIntents for batch testing
 func (nif *NetworkIntentFactory) CreateBatchIntents(count int, intentType string) []*nephranv1.NetworkIntent {
 	intents := make([]*nephranv1.NetworkIntent, count)
-	
+
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("batch-%s-%d", intentType, i)
-		
+
 		switch intentType {
 		case "amf":
 			intents[i] = nif.CreateAMFIntent(name)
@@ -208,11 +208,11 @@ func (nif *NetworkIntentFactory) CreateBatchIntents(count int, intentType string
 		default:
 			intents[i] = nif.CreateBasicNetworkIntent(name, fmt.Sprintf("Batch test intent %d", i))
 		}
-		
+
 		intents[i].Labels["batch-test"] = "true"
 		intents[i].Labels["batch-id"] = fmt.Sprintf("batch-%d", time.Now().Unix())
 	}
-	
+
 	return intents
 }
 
@@ -223,7 +223,7 @@ func (enf *E2NodeSetFactory) CreateBasicE2NodeSet(name string, replicas int32) *
 	if name == "" {
 		name = enf.factory.getUniqueName("basic-e2nodeset")
 	}
-	
+
 	return &nephranv1.E2NodeSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -253,7 +253,7 @@ func (enf *E2NodeSetFactory) CreateReadyE2NodeSet(name string, replicas int32) *
 	e2ns := enf.CreateBasicE2NodeSet(name, replicas)
 	e2ns.Labels["test-type"] = "ready"
 	e2ns.Status.ReadyReplicas = replicas
-	
+
 	// Add conditions
 	e2ns.Status.Conditions = []metav1.Condition{
 		{
@@ -264,7 +264,7 @@ func (enf *E2NodeSetFactory) CreateReadyE2NodeSet(name string, replicas int32) *
 			Message:            fmt.Sprintf("All %d replicas are ready", replicas),
 		},
 	}
-	
+
 	return e2ns
 }
 
@@ -273,7 +273,7 @@ func (enf *E2NodeSetFactory) CreateScalingE2NodeSet(name string, currentReplicas
 	e2ns := enf.CreateBasicE2NodeSet(name, targetReplicas)
 	e2ns.Labels["test-type"] = "scaling"
 	e2ns.Status.ReadyReplicas = currentReplicas
-	
+
 	// Add scaling condition
 	e2ns.Status.Conditions = []metav1.Condition{
 		{
@@ -284,7 +284,7 @@ func (enf *E2NodeSetFactory) CreateScalingE2NodeSet(name string, currentReplicas
 			Message:            fmt.Sprintf("Scaling from %d to %d replicas", currentReplicas, targetReplicas),
 		},
 	}
-	
+
 	return e2ns
 }
 
@@ -293,21 +293,21 @@ func (enf *E2NodeSetFactory) CreateLargeE2NodeSet(name string, replicas int32) *
 	e2ns := enf.CreateBasicE2NodeSet(name, replicas)
 	e2ns.Labels["test-type"] = "scalability"
 	e2ns.Labels["scale-test"] = "large"
-	
+
 	return e2ns
 }
 
 // CreateBatchE2NodeSets creates multiple E2NodeSets for batch testing
 func (enf *E2NodeSetFactory) CreateBatchE2NodeSets(count int, replicasPerSet int32) []*nephranv1.E2NodeSet {
 	nodeSets := make([]*nephranv1.E2NodeSet, count)
-	
+
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("batch-e2nodeset-%d", i)
 		nodeSets[i] = enf.CreateBasicE2NodeSet(name, replicasPerSet)
 		nodeSets[i].Labels["batch-test"] = "true"
 		nodeSets[i].Labels["batch-id"] = fmt.Sprintf("batch-%d", time.Now().Unix())
 	}
-	
+
 	return nodeSets
 }
 
@@ -327,13 +327,13 @@ func (tdf *TestDataFactory) GetTestScenarioFactory() *TestScenarioFactory {
 func (tsf *TestScenarioFactory) CreateLatencyTestScenario(numIntents int) []*nephranv1.NetworkIntent {
 	nif := tsf.factory.GetNetworkIntentFactory()
 	intents := make([]*nephranv1.NetworkIntent, numIntents)
-	
+
 	intentTypes := []string{"amf", "smf", "upf", "nssf"}
-	
+
 	for i := 0; i < numIntents; i++ {
 		intentType := intentTypes[i%len(intentTypes)]
 		name := fmt.Sprintf("latency-test-%d", i)
-		
+
 		switch intentType {
 		case "amf":
 			intents[i] = nif.CreateAMFIntent(name)
@@ -344,11 +344,11 @@ func (tsf *TestScenarioFactory) CreateLatencyTestScenario(numIntents int) []*nep
 		case "nssf":
 			intents[i] = nif.CreateNSSFIntent(name)
 		}
-		
+
 		intents[i].Labels["scenario"] = "latency-test"
 		intents[i].Labels["test-order"] = fmt.Sprintf("%d", i)
 	}
-	
+
 	return intents
 }
 
@@ -356,7 +356,7 @@ func (tsf *TestScenarioFactory) CreateLatencyTestScenario(numIntents int) []*nep
 func (tsf *TestScenarioFactory) CreateThroughputTestScenario(numIntents int) []*nephranv1.NetworkIntent {
 	nif := tsf.factory.GetNetworkIntentFactory()
 	intents := make([]*nephranv1.NetworkIntent, numIntents)
-	
+
 	for i := 0; i < numIntents; i++ {
 		name := fmt.Sprintf("throughput-test-%d", i)
 		intent := fmt.Sprintf("Deploy network function %d for throughput testing", i)
@@ -364,7 +364,7 @@ func (tsf *TestScenarioFactory) CreateThroughputTestScenario(numIntents int) []*
 		intents[i].Labels["scenario"] = "throughput-test"
 		intents[i].Labels["batch-size"] = fmt.Sprintf("%d", numIntents)
 	}
-	
+
 	return intents
 }
 
@@ -372,7 +372,7 @@ func (tsf *TestScenarioFactory) CreateThroughputTestScenario(numIntents int) []*
 func (tsf *TestScenarioFactory) CreateScalabilityTestScenario(maxConcurrency int) []*nephranv1.NetworkIntent {
 	nif := tsf.factory.GetNetworkIntentFactory()
 	intents := make([]*nephranv1.NetworkIntent, maxConcurrency)
-	
+
 	for i := 0; i < maxConcurrency; i++ {
 		name := fmt.Sprintf("scale-test-%d", i)
 		intent := fmt.Sprintf("Deploy scalability test function %d", i)
@@ -380,7 +380,7 @@ func (tsf *TestScenarioFactory) CreateScalabilityTestScenario(maxConcurrency int
 		intents[i].Labels["scenario"] = "scalability-test"
 		intents[i].Labels["concurrency-level"] = fmt.Sprintf("%d", maxConcurrency)
 	}
-	
+
 	return intents
 }
 
@@ -388,12 +388,12 @@ func (tsf *TestScenarioFactory) CreateScalabilityTestScenario(maxConcurrency int
 func (tsf *TestScenarioFactory) CreateReliabilityTestScenario() *ReliabilityTestScenario {
 	nif := tsf.factory.GetNetworkIntentFactory()
 	enf := tsf.factory.GetE2NodeSetFactory()
-	
+
 	return &ReliabilityTestScenario{
-		NormalIntent:     nif.CreateAMFIntent("reliability-normal"),
-		RestartIntent:    nif.CreateSMFIntent("reliability-restart"),
-		FailoverIntent:   nif.CreateUPFIntent("reliability-failover"),
-		E2NodeSet:       enf.CreateReadyE2NodeSet("reliability-e2nodes", 5),
+		NormalIntent:   nif.CreateAMFIntent("reliability-normal"),
+		RestartIntent:  nif.CreateSMFIntent("reliability-restart"),
+		FailoverIntent: nif.CreateUPFIntent("reliability-failover"),
+		E2NodeSet:      enf.CreateReadyE2NodeSet("reliability-e2nodes", 5),
 	}
 }
 
@@ -408,24 +408,24 @@ type ReliabilityTestScenario struct {
 // CreateSecurityTestScenario creates objects for security testing
 func (tsf *TestScenarioFactory) CreateSecurityTestScenario() *SecurityTestScenario {
 	nif := tsf.factory.GetNetworkIntentFactory()
-	
+
 	// Create intents with different security implications
-	authIntent := nif.CreateBasicNetworkIntent("security-auth-test", 
+	authIntent := nif.CreateBasicNetworkIntent("security-auth-test",
 		"Deploy network function with OAuth2 authentication")
 	authIntent.Labels["security-test"] = "authentication"
-	
+
 	encryptionIntent := nif.CreateBasicNetworkIntent("security-encryption-test",
 		"Deploy network function with TLS encryption")
 	encryptionIntent.Labels["security-test"] = "encryption"
-	
+
 	rbacIntent := nif.CreateBasicNetworkIntent("security-rbac-test",
 		"Deploy network function with RBAC authorization")
 	rbacIntent.Labels["security-test"] = "rbac"
-	
+
 	return &SecurityTestScenario{
 		AuthenticationIntent: authIntent,
 		EncryptionIntent:     encryptionIntent,
-		RBACIntent:          rbacIntent,
+		RBACIntent:           rbacIntent,
 	}
 }
 
@@ -433,7 +433,7 @@ func (tsf *TestScenarioFactory) CreateSecurityTestScenario() *SecurityTestScenar
 type SecurityTestScenario struct {
 	AuthenticationIntent *nephranv1.NetworkIntent
 	EncryptionIntent     *nephranv1.NetworkIntent
-	RBACIntent          *nephranv1.NetworkIntent
+	RBACIntent           *nephranv1.NetworkIntent
 }
 
 // Utility methods for test data manipulation
@@ -444,11 +444,11 @@ func (tdf *TestDataFactory) ApplyTestLabels(obj metav1.Object, testType string) 
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	
+
 	labels["test.nephoran.io/managed"] = "true"
 	labels["test.nephoran.io/type"] = testType
 	labels["test.nephoran.io/session"] = fmt.Sprintf("session-%d", time.Now().Unix())
-	
+
 	obj.SetLabels(labels)
 }
 
@@ -458,10 +458,10 @@ func (tdf *TestDataFactory) ApplyTestAnnotations(obj metav1.Object) {
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
-	
+
 	annotations["test.nephoran.io/created"] = time.Now().Format(time.RFC3339)
 	annotations["test.nephoran.io/purpose"] = "validation"
-	
+
 	obj.SetAnnotations(annotations)
 }
 

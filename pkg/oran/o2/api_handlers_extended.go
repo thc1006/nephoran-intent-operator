@@ -54,7 +54,7 @@ func (s *O2APIServer) handleConfigureResource(w http.ResponseWriter, r *http.Req
 
 	s.metrics.RecordResourceOperation("configure", "resource", "unknown", "success")
 	s.writeJSONResponse(w, r, StatusAccepted, map[string]string{
-		"status": "configuration_applied",
+		"status":     "configuration_applied",
 		"resourceId": resourceID,
 	})
 }
@@ -80,9 +80,9 @@ func (s *O2APIServer) handleScaleResource(w http.ResponseWriter, r *http.Request
 
 	s.metrics.RecordResourceOperation("scale", "resource", "unknown", "success")
 	s.writeJSONResponse(w, r, StatusAccepted, map[string]interface{}{
-		"status": "scaling_initiated",
-		"resourceId": resourceID,
-		"scaleType": req.ScaleType,
+		"status":         "scaling_initiated",
+		"resourceId":     resourceID,
+		"scaleType":      req.ScaleType,
 		"targetReplicas": req.TargetReplicas,
 	})
 }
@@ -108,8 +108,8 @@ func (s *O2APIServer) handleMigrateResource(w http.ResponseWriter, r *http.Reque
 
 	s.metrics.RecordResourceOperation("migrate", "resource", req.TargetProvider, "success")
 	s.writeJSONResponse(w, r, StatusAccepted, map[string]interface{}{
-		"status": "migration_initiated",
-		"resourceId": resourceID,
+		"status":         "migration_initiated",
+		"resourceId":     resourceID,
 		"sourceProvider": req.SourceProvider,
 		"targetProvider": req.TargetProvider,
 	})
@@ -160,9 +160,9 @@ func (s *O2APIServer) handleRestoreResource(w http.ResponseWriter, r *http.Reque
 
 	s.metrics.RecordResourceOperation("restore", "resource", "unknown", "success")
 	s.writeJSONResponse(w, r, StatusAccepted, map[string]string{
-		"status": "restoration_initiated",
+		"status":     "restoration_initiated",
 		"resourceId": resourceID,
-		"backupId": backupID,
+		"backupId":   backupID,
 	})
 }
 
@@ -181,7 +181,7 @@ func (s *O2APIServer) handleTerminateResource(w http.ResponseWriter, r *http.Req
 
 	s.metrics.RecordResourceOperation("terminate", "resource", "unknown", "success")
 	s.writeJSONResponse(w, r, StatusAccepted, map[string]string{
-		"status": "termination_initiated",
+		"status":     "termination_initiated",
 		"resourceId": resourceID,
 	})
 }
@@ -242,7 +242,7 @@ func (s *O2APIServer) handleSyncInventory(w http.ResponseWriter, r *http.Request
 	}
 
 	s.writeJSONResponse(w, r, StatusAccepted, map[string]interface{}{
-		"status": "inventory_sync_initiated",
+		"status":       "inventory_sync_initiated",
 		"updatesCount": len(updates),
 	})
 }
@@ -355,12 +355,12 @@ func (s *O2APIServer) parseResourceFilter(r *http.Request) *models.ResourceFilte
 // parseAlarmFilter parses alarm filter from query parameters
 func (s *O2APIServer) parseAlarmFilter(r *http.Request) *AlarmFilter {
 	return &AlarmFilter{
-		Severity:   s.getQueryParam(r, "severity"),
-		Status:     s.getQueryParam(r, "status"),
-		StartTime:  s.getQueryParam(r, "startTime"),
-		EndTime:    s.getQueryParam(r, "endTime"),
-		Limit:      s.getQueryParamInt(r, "limit", 100),
-		Offset:     s.getQueryParamInt(r, "offset", 0),
+		Severity:  s.getQueryParam(r, "severity"),
+		Status:    s.getQueryParam(r, "status"),
+		StartTime: s.getQueryParam(r, "startTime"),
+		EndTime:   s.getQueryParam(r, "endTime"),
+		Limit:     s.getQueryParamInt(r, "limit", 100),
+		Offset:    s.getQueryParamInt(r, "offset", 0),
 	}
 }
 
@@ -392,12 +392,12 @@ func (s *O2APIServer) parseDeploymentTemplateFilter(r *http.Request) *Deployment
 // parseDeploymentFilter parses deployment filter from query parameters
 func (s *O2APIServer) parseDeploymentFilter(r *http.Request) *DeploymentFilter {
 	return &DeploymentFilter{
-		Names:         s.parseQueryParamArray(r, "names"),
-		Statuses:      s.parseQueryParamArray(r, "statuses"),
-		TemplateIDs:   s.parseQueryParamArray(r, "templateIds"),
-		Providers:     s.parseQueryParamArray(r, "providers"),
-		Limit:         s.getQueryParamInt(r, "limit", 100),
-		Offset:        s.getQueryParamInt(r, "offset", 0),
+		Names:       s.parseQueryParamArray(r, "names"),
+		Statuses:    s.parseQueryParamArray(r, "statuses"),
+		TemplateIDs: s.parseQueryParamArray(r, "templateIds"),
+		Providers:   s.parseQueryParamArray(r, "providers"),
+		Limit:       s.getQueryParamInt(r, "limit", 100),
+		Offset:      s.getQueryParamInt(r, "offset", 0),
 	}
 }
 
@@ -417,7 +417,7 @@ func (s *O2APIServer) parseQueryParamArray(r *http.Request, param string) []stri
 	if value == "" {
 		return nil
 	}
-	
+
 	// Simple comma-separated parsing - could be enhanced for more complex cases
 	return []string{value}
 }

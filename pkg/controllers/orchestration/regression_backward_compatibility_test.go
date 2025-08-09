@@ -50,28 +50,28 @@ import (
 type RegressionTestSuite struct {
 	// Original controllers for reference
 	originalIntentController *IntentProcessingController
-	
+
 	// New specialized controllers
-	specializedIntentController    *SpecializedIntentProcessingController
-	specializedResourceController  *SpecializedResourcePlanningController
-	specializedManifestController  *SpecializedManifestGenerationController
-	
+	specializedIntentController   *SpecializedIntentProcessingController
+	specializedResourceController *SpecializedResourcePlanningController
+	specializedManifestController *SpecializedManifestGenerationController
+
 	// Shared dependencies
-	client        client.Client
-	scheme        *runtime.Scheme
-	recorder      record.EventRecorder
-	eventBus      *EventBus
-	logger        logr.Logger
-	ctx           context.Context
-	cancel        context.CancelFunc
-	
+	client   client.Client
+	scheme   *runtime.Scheme
+	recorder record.EventRecorder
+	eventBus *EventBus
+	logger   logr.Logger
+	ctx      context.Context
+	cancel   context.CancelFunc
+
 	// Mock services
 	mockLLMService *MockLLMService
 	mockRAGService *MockRAGService
-	
+
 	// Test configuration
 	testConfig *RegressionTestConfig
-	
+
 	// Results tracking
 	originalResults    map[string]*ProcessingResult
 	specializedResults map[string]*ProcessingResult
@@ -82,33 +82,33 @@ type RegressionTestSuite struct {
 type RegressionTestConfig struct {
 	TestTimeout           time.Duration
 	MaxConcurrentTests    int
-	ToleranceThreshold    float64  // Acceptable performance difference
-	CompatibilityRequired bool     // Strict compatibility mode
-	ValidationEnabled     bool     // Enable output validation
-	BenchmarkIterations   int      // Number of benchmark runs
+	ToleranceThreshold    float64 // Acceptable performance difference
+	CompatibilityRequired bool    // Strict compatibility mode
+	ValidationEnabled     bool    // Enable output validation
+	BenchmarkIterations   int     // Number of benchmark runs
 }
 
 // ProcessingResult captures processing results for comparison
 type ProcessingResult struct {
-	Success           bool
-	ProcessingTime    time.Duration
-	OutputData        map[string]interface{}
-	ErrorMessage      string
-	QualityScore      float64
-	TokenUsage        *nephoranv1.TokenUsageInfo
-	RAGMetrics        *nephoranv1.RAGMetrics
-	PhaseResults      map[interfaces.ProcessingPhase]*PhaseResult
-	ValidationErrors  []string
+	Success          bool
+	ProcessingTime   time.Duration
+	OutputData       map[string]interface{}
+	ErrorMessage     string
+	QualityScore     float64
+	TokenUsage       *nephoranv1.TokenUsageInfo
+	RAGMetrics       *nephoranv1.RAGMetrics
+	PhaseResults     map[interfaces.ProcessingPhase]*PhaseResult
+	ValidationErrors []string
 }
 
 // PhaseResult captures individual phase results
 type PhaseResult struct {
-	Phase          interfaces.ProcessingPhase
-	Success        bool
-	Duration       time.Duration
-	Output         interface{}
-	Error          string
-	MetricsData    map[string]interface{}
+	Phase       interfaces.ProcessingPhase
+	Success     bool
+	Duration    time.Duration
+	Output      interface{}
+	Error       string
+	MetricsData map[string]interface{}
 }
 
 // Mock implementations for consistent testing
@@ -121,7 +121,7 @@ type MockLLMService struct {
 
 func (m *MockLLMService) ProcessIntent(ctx context.Context, request *llm.ProcessingRequest) (*llm.ProcessingResponse, error) {
 	args := m.Called(ctx, request)
-	
+
 	// Return predefined response if available
 	m.mutex.RLock()
 	if response, exists := m.responses[request.Intent]; exists {
@@ -129,7 +129,7 @@ func (m *MockLLMService) ProcessIntent(ctx context.Context, request *llm.Process
 		return response, nil
 	}
 	m.mutex.RUnlock()
-	
+
 	// Default mock response
 	response := &llm.ProcessingResponse{
 		ProcessedIntent: fmt.Sprintf("Processed: %s", request.Intent),
@@ -138,12 +138,12 @@ func (m *MockLLMService) ProcessIntent(ctx context.Context, request *llm.Process
 			"deployment_config": map[string]interface{}{
 				"replicas": 3,
 				"resources": map[string]interface{}{
-					"cpu": "500m",
+					"cpu":    "500m",
 					"memory": "1Gi",
 				},
 			},
 			"performance_requirements": map[string]interface{}{
-				"latency": "10ms",
+				"latency":    "10ms",
 				"throughput": "1000 req/s",
 			},
 		},
@@ -154,15 +154,15 @@ func (m *MockLLMService) ProcessIntent(ctx context.Context, request *llm.Process
 			TotalTokens:      300,
 		},
 		TelecomContext: map[string]interface{}{
-			"domain": "5g_core",
+			"domain":   "5g_core",
 			"standard": "3gpp_rel16",
 		},
 		ExtractedEntities: map[string]interface{}{
-			"network_type": "5G",
+			"network_type":           "5G",
 			"deployment_environment": "production",
 		},
 	}
-	
+
 	return response, args.Error(1)
 }
 
@@ -183,7 +183,7 @@ type MockRAGService struct {
 
 func (m *MockRAGService) RetrieveContext(ctx context.Context, request *rag.RetrievalRequest) (*rag.RetrievalResponse, error) {
 	args := m.Called(ctx, request)
-	
+
 	// Return predefined response if available
 	m.mutex.RLock()
 	if response, exists := m.responses[request.Query]; exists {
@@ -191,31 +191,31 @@ func (m *MockRAGService) RetrieveContext(ctx context.Context, request *rag.Retri
 		return response, nil
 	}
 	m.mutex.RUnlock()
-	
+
 	// Default mock response
 	response := &rag.RetrievalResponse{
 		Documents: []map[string]interface{}{
 			{
-				"id": "doc1",
+				"id":      "doc1",
 				"content": "5G Core network architecture documentation",
-				"score": 0.95,
+				"score":   0.95,
 			},
 			{
-				"id": "doc2",
+				"id":      "doc2",
 				"content": "AMF deployment best practices",
-				"score": 0.87,
+				"score":   0.87,
 			},
 		},
-		Duration: 150 * time.Millisecond,
+		Duration:              150 * time.Millisecond,
 		AverageRelevanceScore: 0.91,
-		TopRelevanceScore: 0.95,
-		QueryWasEnhanced: true,
+		TopRelevanceScore:     0.95,
+		QueryWasEnhanced:      true,
 		Metadata: map[string]interface{}{
-			"knowledge_base": "3gpp_specs",
+			"knowledge_base":   "3gpp_specs",
 			"retrieval_method": "vector_similarity",
 		},
 	}
-	
+
 	return response, args.Error(1)
 }
 
@@ -315,24 +315,24 @@ var _ = Describe("Regression Backward Compatibility Tests", func() {
 func setupRegressionTestSuite() *RegressionTestSuite {
 	zapLogger, _ := zap.NewDevelopment()
 	logger := zapr.New(zapLogger)
-	
+
 	// Create scheme and client
 	scheme := runtime.NewScheme()
 	nephoranv1.AddToScheme(scheme)
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
-	
+
 	// Create mock recorder
 	recorder := record.NewFakeRecorder(100)
-	
+
 	// Create event bus
 	eventBus := NewEventBus(logger)
-	
+
 	// Create mock services
 	mockLLMService := &MockLLMService{}
 	mockRAGService := &MockRAGService{}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// Initialize controllers
 	originalIntentConfig := DefaultIntentProcessingConfig()
 	originalIntentController := NewIntentProcessingController(
@@ -340,29 +340,29 @@ func setupRegressionTestSuite() *RegressionTestSuite {
 		mockLLMService, mockRAGService,
 		eventBus, originalIntentConfig,
 	)
-	
+
 	// Create specialized controllers
 	specializedIntentController := NewSpecializedIntentProcessingController(
 		client, scheme, recorder,
 		mockLLMService, mockRAGService,
 		eventBus, logger,
 	)
-	
+
 	specializedResourceController := NewSpecializedResourcePlanningController(
 		client, scheme, recorder,
 		eventBus, logger,
 	)
-	
+
 	specializedManifestController := NewSpecializedManifestGenerationController(
 		client, scheme, recorder,
 		eventBus, logger,
 	)
-	
+
 	return &RegressionTestSuite{
-		originalIntentController:       originalIntentController,
-		specializedIntentController:    specializedIntentController,
-		specializedResourceController:  specializedResourceController,
-		specializedManifestController:  specializedManifestController,
+		originalIntentController:      originalIntentController,
+		specializedIntentController:   specializedIntentController,
+		specializedResourceController: specializedResourceController,
+		specializedManifestController: specializedManifestController,
 		client:                        client,
 		scheme:                        scheme,
 		recorder:                      recorder,
@@ -370,8 +370,8 @@ func setupRegressionTestSuite() *RegressionTestSuite {
 		logger:                        logger,
 		ctx:                           ctx,
 		cancel:                        cancel,
-		mockLLMService:               mockLLMService,
-		mockRAGService:               mockRAGService,
+		mockLLMService:                mockLLMService,
+		mockRAGService:                mockRAGService,
 		testConfig: &RegressionTestConfig{
 			TestTimeout:           30 * time.Second,
 			MaxConcurrentTests:    10,
@@ -391,37 +391,37 @@ func (suite *RegressionTestSuite) cleanup() {
 
 func (suite *RegressionTestSuite) testAPICompatibility() {
 	By("Comparing API interfaces between original and specialized controllers")
-	
+
 	// Test 1: Reconcile method signature compatibility
 	originalType := reflect.TypeOf(suite.originalIntentController)
 	specializedType := reflect.TypeOf(suite.specializedIntentController)
-	
+
 	// Check that both have Reconcile method
 	originalReconcile, hasOriginal := originalType.MethodByName("Reconcile")
 	specializedReconcile, hasSpecialized := specializedType.MethodByName("Reconcile")
-	
+
 	Expect(hasOriginal).To(BeTrue(), "Original controller should have Reconcile method")
 	Expect(hasSpecialized).To(BeTrue(), "Specialized controller should have Reconcile method")
-	
+
 	// Compare method signatures
-	Expect(originalReconcile.Type.String()).To(Equal(specializedReconcile.Type.String()), 
+	Expect(originalReconcile.Type.String()).To(Equal(specializedReconcile.Type.String()),
 		"Reconcile method signatures should be identical")
-	
+
 	// Test 2: SetupWithManager method compatibility
 	originalSetup, hasOriginalSetup := originalType.MethodByName("SetupWithManager")
 	specializedSetup, hasSpecializedSetup := specializedType.MethodByName("SetupWithManager")
-	
+
 	Expect(hasOriginalSetup).To(BeTrue(), "Original controller should have SetupWithManager method")
 	Expect(hasSpecializedSetup).To(BeTrue(), "Specialized controller should have SetupWithManager method")
 	Expect(originalSetup.Type.String()).To(Equal(specializedSetup.Type.String()),
 		"SetupWithManager method signatures should be identical")
-	
+
 	suite.logger.Info("API compatibility test passed")
 }
 
 func (suite *RegressionTestSuite) testDataStructureCompatibility() {
 	By("Verifying data structure compatibility between implementations")
-	
+
 	// Create test NetworkIntent
 	testIntent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
@@ -434,23 +434,23 @@ func (suite *RegressionTestSuite) testDataStructureCompatibility() {
 			Priority:   "high",
 		},
 	}
-	
+
 	// Test input data structure handling
 	originalResult := suite.processWithOriginalController(testIntent)
 	specializedResult := suite.processWithSpecializedControllers(testIntent)
-	
+
 	// Compare output data structures
 	suite.compareDataStructures(originalResult, specializedResult)
-	
+
 	suite.logger.Info("Data structure compatibility test passed")
 }
 
 func (suite *RegressionTestSuite) testConfigurationCompatibility() {
 	By("Testing configuration parameter compatibility")
-	
+
 	// Test that all original configuration options are supported
 	originalConfig := DefaultIntentProcessingConfig()
-	
+
 	// Verify specialized controllers can handle same configuration
 	configTests := []struct {
 		name   string
@@ -466,12 +466,12 @@ func (suite *RegressionTestSuite) testConfigurationCompatibility() {
 			name: "high_concurrency_config",
 			config: &IntentProcessingConfig{
 				MaxConcurrentProcessing: 50,
-				DefaultTimeout:         60 * time.Second,
-				MaxRetries:            5,
-				RetryBackoff:          15 * time.Second,
-				QualityThreshold:      0.8,
-				EnableRAG:             true,
-				ValidationEnabled:     true,
+				DefaultTimeout:          60 * time.Second,
+				MaxRetries:              5,
+				RetryBackoff:            15 * time.Second,
+				QualityThreshold:        0.8,
+				EnableRAG:               true,
+				ValidationEnabled:       true,
 			},
 			valid: true,
 		},
@@ -479,32 +479,32 @@ func (suite *RegressionTestSuite) testConfigurationCompatibility() {
 			name: "rag_disabled_config",
 			config: &IntentProcessingConfig{
 				MaxConcurrentProcessing: 10,
-				DefaultTimeout:         120 * time.Second,
-				MaxRetries:            3,
-				RetryBackoff:          30 * time.Second,
-				QualityThreshold:      0.6,
-				EnableRAG:             false,
-				ValidationEnabled:     false,
+				DefaultTimeout:          120 * time.Second,
+				MaxRetries:              3,
+				RetryBackoff:            30 * time.Second,
+				QualityThreshold:        0.6,
+				EnableRAG:               false,
+				ValidationEnabled:       false,
 			},
 			valid: true,
 		},
 	}
-	
+
 	for _, test := range configTests {
 		suite.logger.Info("Testing configuration", "name", test.name)
-		
+
 		// Test configuration acceptance
 		success := suite.testConfigurationAcceptance(test.config)
-		Expect(success).To(Equal(test.valid), 
+		Expect(success).To(Equal(test.valid),
 			fmt.Sprintf("Configuration %s should be %v", test.name, test.valid))
 	}
-	
+
 	suite.logger.Info("Configuration compatibility test passed")
 }
 
 func (suite *RegressionTestSuite) testFunctionalEquivalence() {
 	By("Testing functional equivalence between original and specialized controllers")
-	
+
 	testCases := []struct {
 		name         string
 		intentType   string
@@ -541,10 +541,10 @@ func (suite *RegressionTestSuite) testFunctionalEquivalence() {
 			expectedFunc: true,
 		},
 	}
-	
+
 	for _, testCase := range testCases {
 		suite.logger.Info("Testing functional equivalence", "case", testCase.name)
-		
+
 		// Create test intent
 		intent := &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
@@ -557,31 +557,31 @@ func (suite *RegressionTestSuite) testFunctionalEquivalence() {
 				Priority:   testCase.priority,
 			},
 		}
-		
+
 		// Process with both implementations
 		originalResult := suite.processWithOriginalController(intent)
 		specializedResult := suite.processWithSpecializedControllers(intent)
-		
+
 		// Compare results
 		suite.compareFunctionalResults(originalResult, specializedResult, testCase.expectedFunc)
 	}
-	
+
 	suite.logger.Info("Functional equivalence test passed")
 }
 
 func (suite *RegressionTestSuite) testIntentTypeCompatibility() {
 	By("Testing all supported intent types")
-	
+
 	intentTypes := []string{
 		"5g_core_deployment",
-		"ran_deployment", 
+		"ran_deployment",
 		"network_slicing",
 		"edge_deployment",
 		"oran_deployment",
 		"mec_deployment",
 		"service_mesh_deployment",
 	}
-	
+
 	for _, intentType := range intentTypes {
 		intent := &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
@@ -594,25 +594,25 @@ func (suite *RegressionTestSuite) testIntentTypeCompatibility() {
 				Priority:   "medium",
 			},
 		}
-		
+
 		// Both implementations should handle all intent types
 		originalResult := suite.processWithOriginalController(intent)
 		specializedResult := suite.processWithSpecializedControllers(intent)
-		
+
 		Expect(originalResult.Success).To(Equal(specializedResult.Success),
 			fmt.Sprintf("Intent type %s should have same success status", intentType))
 	}
-	
+
 	suite.logger.Info("Intent type compatibility test passed")
 }
 
 func (suite *RegressionTestSuite) testErrorHandlingCompatibility() {
 	By("Testing error handling compatibility")
-	
+
 	// Configure mock service to return errors
 	suite.mockLLMService.On("ProcessIntent", mock.Anything, mock.Anything).
 		Return(nil, fmt.Errorf("simulated LLM service error"))
-	
+
 	intent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "error-test-intent",
@@ -624,24 +624,24 @@ func (suite *RegressionTestSuite) testErrorHandlingCompatibility() {
 			Priority:   "medium",
 		},
 	}
-	
+
 	// Process with both implementations
 	originalResult := suite.processWithOriginalController(intent)
 	specializedResult := suite.processWithSpecializedControllers(intent)
-	
+
 	// Both should fail in the same way
 	Expect(originalResult.Success).To(BeFalse())
 	Expect(specializedResult.Success).To(BeFalse())
-	
+
 	// Error messages should be similar
 	Expect(specializedResult.ErrorMessage).To(ContainSubstring("LLM"))
-	
+
 	suite.logger.Info("Error handling compatibility test passed")
 }
 
 func (suite *RegressionTestSuite) testRetryMechanismCompatibility() {
 	By("Testing retry mechanism compatibility")
-	
+
 	// Configure mock to fail first few attempts then succeed
 	callCount := 0
 	suite.mockLLMService.On("ProcessIntent", mock.Anything, mock.Anything).
@@ -658,7 +658,7 @@ func (suite *RegressionTestSuite) testRetryMechanismCompatibility() {
 				NetworkFunctions: []string{"AMF"},
 			}, nil
 		})
-	
+
 	intent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "retry-test-intent",
@@ -670,68 +670,68 @@ func (suite *RegressionTestSuite) testRetryMechanismCompatibility() {
 			Priority:   "medium",
 		},
 	}
-	
+
 	// Process with both implementations
 	originalResult := suite.processWithOriginalController(intent)
 	specializedResult := suite.processWithSpecializedControllers(intent)
-	
+
 	// Both should eventually succeed after retries
 	Expect(originalResult.Success).To(Equal(specializedResult.Success))
-	
+
 	suite.logger.Info("Retry mechanism compatibility test passed")
 }
 
 func (suite *RegressionTestSuite) testPerformanceRegression() {
 	By("Testing performance regression")
-	
+
 	testIntents := suite.generatePerformanceTestIntents()
-	
+
 	// Benchmark original implementation
 	originalBenchmark := suite.benchmarkOriginalController(testIntents)
-	
-	// Benchmark specialized implementation  
+
+	// Benchmark specialized implementation
 	specializedBenchmark := suite.benchmarkSpecializedControllers(testIntents)
-	
+
 	// Compare performance metrics
 	suite.comparePerformanceMetrics(originalBenchmark, specializedBenchmark)
-	
+
 	suite.logger.Info("Performance regression test passed")
 }
 
 func (suite *RegressionTestSuite) testThroughputCompatibility() {
 	By("Testing throughput compatibility")
-	
+
 	// Generate high-volume test data
 	testIntents := suite.generateThroughputTestIntents(100)
-	
+
 	// Measure original throughput
 	originalThroughput := suite.measureThroughput("original", func() {
 		suite.processBatchWithOriginalController(testIntents)
 	})
-	
+
 	// Measure specialized throughput
 	specializedThroughput := suite.measureThroughput("specialized", func() {
 		suite.processBatchWithSpecializedControllers(testIntents)
 	})
-	
+
 	// Specialized implementation should maintain or improve throughput
 	improvementRatio := specializedThroughput / originalThroughput
 	Expect(improvementRatio).To(BeNumerically(">=", 1.0-suite.testConfig.ToleranceThreshold),
-		fmt.Sprintf("Throughput should not regress more than %.1f%%", 
+		fmt.Sprintf("Throughput should not regress more than %.1f%%",
 			suite.testConfig.ToleranceThreshold*100))
-	
-	suite.logger.Info("Throughput compatibility test passed", 
-		"original", originalThroughput, 
+
+	suite.logger.Info("Throughput compatibility test passed",
+		"original", originalThroughput,
 		"specialized", specializedThroughput,
 		"improvement_ratio", improvementRatio)
 }
 
 func (suite *RegressionTestSuite) testResourceUtilizationCompatibility() {
 	By("Testing resource utilization compatibility")
-	
+
 	// This would typically measure memory usage, CPU usage, etc.
 	// For this test, we'll focus on goroutine count and channel usage
-	
+
 	testIntent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "resource-test-intent",
@@ -743,29 +743,29 @@ func (suite *RegressionTestSuite) testResourceUtilizationCompatibility() {
 			Priority:   "medium",
 		},
 	}
-	
+
 	// Measure resource usage for both implementations
 	originalResources := suite.measureResourceUsage("original", func() {
 		suite.processWithOriginalController(testIntent)
 	})
-	
+
 	specializedResources := suite.measureResourceUsage("specialized", func() {
 		suite.processWithSpecializedControllers(testIntent)
 	})
-	
+
 	// Compare resource utilization
 	suite.compareResourceUtilization(originalResources, specializedResources)
-	
+
 	suite.logger.Info("Resource utilization compatibility test passed")
 }
 
 func (suite *RegressionTestSuite) testEventBusCompatibility() {
 	By("Testing event bus integration compatibility")
-	
+
 	// Track events published by both implementations
 	eventCollector := NewEventCollector()
 	suite.eventBus.Subscribe(interfaces.PhaseAll, eventCollector.CollectEvent)
-	
+
 	testIntent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "event-test-intent",
@@ -777,26 +777,26 @@ func (suite *RegressionTestSuite) testEventBusCompatibility() {
 			Priority:   "medium",
 		},
 	}
-	
+
 	// Process with original controller
 	eventCollector.StartCollection("original")
 	suite.processWithOriginalController(testIntent)
 	originalEvents := eventCollector.StopCollection("original")
-	
+
 	// Process with specialized controllers
 	eventCollector.StartCollection("specialized")
 	suite.processWithSpecializedControllers(testIntent)
 	specializedEvents := eventCollector.StopCollection("specialized")
-	
+
 	// Compare event patterns
 	suite.compareEventPatterns(originalEvents, specializedEvents)
-	
+
 	suite.logger.Info("Event bus compatibility test passed")
 }
 
 func (suite *RegressionTestSuite) testMetricsCompatibility() {
 	By("Testing metrics collection compatibility")
-	
+
 	testIntent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "metrics-test-intent",
@@ -808,20 +808,20 @@ func (suite *RegressionTestSuite) testMetricsCompatibility() {
 			Priority:   "medium",
 		},
 	}
-	
+
 	// Process with both implementations and compare metrics
 	originalResult := suite.processWithOriginalController(testIntent)
 	specializedResult := suite.processWithSpecializedControllers(testIntent)
-	
+
 	// Compare metrics structure and content
 	suite.compareMetricsData(originalResult, specializedResult)
-	
+
 	suite.logger.Info("Metrics compatibility test passed")
 }
 
 func (suite *RegressionTestSuite) testStatusReportingCompatibility() {
 	By("Testing status reporting compatibility")
-	
+
 	testIntent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "status-test-intent",
@@ -833,27 +833,27 @@ func (suite *RegressionTestSuite) testStatusReportingCompatibility() {
 			Priority:   "medium",
 		},
 	}
-	
+
 	// Process and compare status updates
 	originalResult := suite.processWithOriginalController(testIntent)
 	specializedResult := suite.processWithSpecializedControllers(testIntent)
-	
+
 	// Status reporting should be equivalent
 	suite.compareStatusReporting(originalResult, specializedResult)
-	
+
 	suite.logger.Info("Status reporting compatibility test passed")
 }
 
 func (suite *RegressionTestSuite) testConcurrencyCompatibility() {
 	By("Testing concurrency handling compatibility")
-	
+
 	// Generate concurrent test intents
 	concurrentIntents := suite.generateConcurrentTestIntents(20)
-	
+
 	var wg sync.WaitGroup
 	originalResults := make([]*ProcessingResult, len(concurrentIntents))
 	specializedResults := make([]*ProcessingResult, len(concurrentIntents))
-	
+
 	// Test original implementation
 	for i, intent := range concurrentIntents {
 		wg.Add(1)
@@ -863,7 +863,7 @@ func (suite *RegressionTestSuite) testConcurrencyCompatibility() {
 		}(i, intent)
 	}
 	wg.Wait()
-	
+
 	// Test specialized implementation
 	for i, intent := range concurrentIntents {
 		wg.Add(1)
@@ -873,16 +873,16 @@ func (suite *RegressionTestSuite) testConcurrencyCompatibility() {
 		}(i, intent)
 	}
 	wg.Wait()
-	
+
 	// Compare concurrent processing results
 	suite.compareConcurrentResults(originalResults, specializedResults)
-	
+
 	suite.logger.Info("Concurrency compatibility test passed")
 }
 
 func (suite *RegressionTestSuite) testThreadSafetyCompatibility() {
 	By("Testing thread safety compatibility")
-	
+
 	// Create shared state that both implementations will access
 	sharedIntent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
@@ -895,11 +895,11 @@ func (suite *RegressionTestSuite) testThreadSafetyCompatibility() {
 			Priority:   "medium",
 		},
 	}
-	
+
 	// Test concurrent access to same resource
 	var wg sync.WaitGroup
 	results := make([]bool, 10)
-	
+
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func(index int) {
@@ -908,9 +908,9 @@ func (suite *RegressionTestSuite) testThreadSafetyCompatibility() {
 			results[index] = result.Success
 		}(i)
 	}
-	
+
 	wg.Wait()
-	
+
 	// Verify no race conditions or data corruption
 	successCount := 0
 	for _, success := range results {
@@ -918,11 +918,11 @@ func (suite *RegressionTestSuite) testThreadSafetyCompatibility() {
 			successCount++
 		}
 	}
-	
+
 	// At least some operations should succeed (exact count depends on timing)
-	Expect(successCount).To(BeNumerically(">", 0), 
+	Expect(successCount).To(BeNumerically(">", 0),
 		"Thread safety test should have some successful operations")
-	
+
 	suite.logger.Info("Thread safety compatibility test passed")
 }
 
@@ -930,7 +930,7 @@ func (suite *RegressionTestSuite) testThreadSafetyCompatibility() {
 
 func (suite *RegressionTestSuite) processWithOriginalController(intent *nephoranv1.NetworkIntent) *ProcessingResult {
 	startTime := time.Now()
-	
+
 	// Create processing request
 	req := ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -938,7 +938,7 @@ func (suite *RegressionTestSuite) processWithOriginalController(intent *nephoran
 			Namespace: intent.Namespace,
 		},
 	}
-	
+
 	// Store intent in fake client
 	err := suite.client.Create(suite.ctx, intent)
 	if err != nil {
@@ -947,38 +947,38 @@ func (suite *RegressionTestSuite) processWithOriginalController(intent *nephoran
 			ErrorMessage: fmt.Sprintf("Failed to create intent: %v", err),
 		}
 	}
-	
+
 	// Process with original controller
 	result, err := suite.originalIntentController.Reconcile(suite.ctx, req)
-	
+
 	processingTime := time.Since(startTime)
-	
+
 	// Create result
 	processingResult := &ProcessingResult{
 		Success:        err == nil,
 		ProcessingTime: processingTime,
 		OutputData:     make(map[string]interface{}),
 	}
-	
+
 	if err != nil {
 		processingResult.ErrorMessage = err.Error()
 	}
-	
+
 	// Add result details
 	if result.RequeueAfter > 0 {
 		processingResult.OutputData["requeue_after"] = result.RequeueAfter.String()
 	}
-	
+
 	return processingResult
 }
 
 func (suite *RegressionTestSuite) processWithSpecializedControllers(intent *nephoranv1.NetworkIntent) *ProcessingResult {
 	startTime := time.Now()
-	
+
 	// Process through specialized controller pipeline
 	var err error
 	var finalResult *ProcessingResult
-	
+
 	// Phase 1: Intent Processing
 	intentResult, err := suite.specializedIntentController.ProcessIntent(suite.ctx, intent)
 	if err != nil {
@@ -988,7 +988,7 @@ func (suite *RegressionTestSuite) processWithSpecializedControllers(intent *neph
 			ErrorMessage:   fmt.Sprintf("Intent processing failed: %v", err),
 		}
 	}
-	
+
 	// Phase 2: Resource Planning
 	resourceResult, err := suite.specializedResourceController.ProcessPhase(suite.ctx, intent, interfaces.PhaseResourcePlanning)
 	if err != nil {
@@ -998,7 +998,7 @@ func (suite *RegressionTestSuite) processWithSpecializedControllers(intent *neph
 			ErrorMessage:   fmt.Sprintf("Resource planning failed: %v", err),
 		}
 	}
-	
+
 	// Phase 3: Manifest Generation
 	manifestResult, err := suite.specializedManifestController.ProcessPhase(suite.ctx, intent, interfaces.PhaseManifestGeneration)
 	if err != nil {
@@ -1008,9 +1008,9 @@ func (suite *RegressionTestSuite) processWithSpecializedControllers(intent *neph
 			ErrorMessage:   fmt.Sprintf("Manifest generation failed: %v", err),
 		}
 	}
-	
+
 	processingTime := time.Since(startTime)
-	
+
 	// Combine results
 	finalResult = &ProcessingResult{
 		Success:        true,
@@ -1018,34 +1018,34 @@ func (suite *RegressionTestSuite) processWithSpecializedControllers(intent *neph
 		OutputData:     make(map[string]interface{}),
 		PhaseResults:   make(map[interfaces.ProcessingPhase]*PhaseResult),
 	}
-	
+
 	// Add phase results
 	finalResult.PhaseResults[interfaces.PhaseIntentProcessing] = &PhaseResult{
 		Phase:   interfaces.PhaseIntentProcessing,
 		Success: intentResult.Success,
 		Output:  intentResult,
 	}
-	
+
 	finalResult.PhaseResults[interfaces.PhaseResourcePlanning] = &PhaseResult{
 		Phase:   interfaces.PhaseResourcePlanning,
 		Success: resourceResult.Success,
 		Output:  resourceResult,
 	}
-	
+
 	finalResult.PhaseResults[interfaces.PhaseManifestGeneration] = &PhaseResult{
 		Phase:   interfaces.PhaseManifestGeneration,
 		Success: manifestResult.Success,
 		Output:  manifestResult,
 	}
-	
+
 	return finalResult
 }
 
 func (suite *RegressionTestSuite) compareDataStructures(original, specialized *ProcessingResult) {
 	// Compare basic result structure
-	Expect(specialized.Success).To(Equal(original.Success), 
+	Expect(specialized.Success).To(Equal(original.Success),
 		"Success status should be identical")
-	
+
 	// Compare output data types and structures
 	if original.OutputData != nil && specialized.OutputData != nil {
 		// Both should have similar data structure
@@ -1055,11 +1055,11 @@ func (suite *RegressionTestSuite) compareDataStructures(original, specialized *P
 }
 
 func (suite *RegressionTestSuite) compareFunctionalResults(original, specialized *ProcessingResult, expectedSuccess bool) {
-	Expect(original.Success).To(Equal(expectedSuccess), 
+	Expect(original.Success).To(Equal(expectedSuccess),
 		"Original controller should match expected success")
 	Expect(specialized.Success).To(Equal(expectedSuccess),
 		"Specialized controller should match expected success")
-	
+
 	// Both should have same success status
 	Expect(specialized.Success).To(Equal(original.Success),
 		"Functional results should be equivalent")
@@ -1068,16 +1068,16 @@ func (suite *RegressionTestSuite) compareFunctionalResults(original, specialized
 func (suite *RegressionTestSuite) testConfigurationAcceptance(config *IntentProcessingConfig) bool {
 	// Test if specialized controllers can handle the configuration
 	// In a real implementation, this would involve creating controllers with the config
-	return config.MaxConcurrentProcessing > 0 && 
-		   config.DefaultTimeout > 0 &&
-		   config.MaxRetries >= 0
+	return config.MaxConcurrentProcessing > 0 &&
+		config.DefaultTimeout > 0 &&
+		config.MaxRetries >= 0
 }
 
 func (suite *RegressionTestSuite) generatePerformanceTestIntents() []*nephoranv1.NetworkIntent {
 	intents := make([]*nephoranv1.NetworkIntent, 20)
-	
+
 	intentTypes := []string{"5g_core", "ran", "edge", "slice"}
-	
+
 	for i := 0; i < len(intents); i++ {
 		intents[i] = &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1091,23 +1091,23 @@ func (suite *RegressionTestSuite) generatePerformanceTestIntents() []*nephoranv1
 			},
 		}
 	}
-	
+
 	return intents
 }
 
 func (suite *RegressionTestSuite) benchmarkOriginalController(intents []*nephoranv1.NetworkIntent) *BenchmarkResult {
 	startTime := time.Now()
 	successCount := 0
-	
+
 	for _, intent := range intents {
 		result := suite.processWithOriginalController(intent)
 		if result.Success {
 			successCount++
 		}
 	}
-	
+
 	totalTime := time.Since(startTime)
-	
+
 	return &BenchmarkResult{
 		TotalTime:    totalTime,
 		SuccessCount: successCount,
@@ -1119,16 +1119,16 @@ func (suite *RegressionTestSuite) benchmarkOriginalController(intents []*nephora
 func (suite *RegressionTestSuite) benchmarkSpecializedControllers(intents []*nephoranv1.NetworkIntent) *BenchmarkResult {
 	startTime := time.Now()
 	successCount := 0
-	
+
 	for _, intent := range intents {
 		result := suite.processWithSpecializedControllers(intent)
 		if result.Success {
 			successCount++
 		}
 	}
-	
+
 	totalTime := time.Since(startTime)
-	
+
 	return &BenchmarkResult{
 		TotalTime:    totalTime,
 		SuccessCount: successCount,
@@ -1140,11 +1140,11 @@ func (suite *RegressionTestSuite) benchmarkSpecializedControllers(intents []*nep
 func (suite *RegressionTestSuite) comparePerformanceMetrics(original, specialized *BenchmarkResult) {
 	// Specialized implementation should not significantly regress performance
 	performanceRatio := specialized.Throughput / original.Throughput
-	
+
 	Expect(performanceRatio).To(BeNumerically(">=", 1.0-suite.testConfig.ToleranceThreshold),
-		fmt.Sprintf("Performance regression should not exceed %.1f%%", 
+		fmt.Sprintf("Performance regression should not exceed %.1f%%",
 			suite.testConfig.ToleranceThreshold*100))
-	
+
 	suite.logger.Info("Performance comparison completed",
 		"original_throughput", original.Throughput,
 		"specialized_throughput", specialized.Throughput,
@@ -1153,7 +1153,7 @@ func (suite *RegressionTestSuite) comparePerformanceMetrics(original, specialize
 
 func (suite *RegressionTestSuite) generateThroughputTestIntents(count int) []*nephoranv1.NetworkIntent {
 	intents := make([]*nephoranv1.NetworkIntent, count)
-	
+
 	for i := 0; i < count; i++ {
 		intents[i] = &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1167,7 +1167,7 @@ func (suite *RegressionTestSuite) generateThroughputTestIntents(count int) []*ne
 			},
 		}
 	}
-	
+
 	return intents
 }
 
@@ -1187,7 +1187,7 @@ func (suite *RegressionTestSuite) measureThroughput(name string, operation func(
 	startTime := time.Now()
 	operation()
 	duration := time.Since(startTime)
-	
+
 	// Return operations per second (assuming 1 operation)
 	return 1.0 / duration.Seconds()
 }
@@ -1195,9 +1195,9 @@ func (suite *RegressionTestSuite) measureThroughput(name string, operation func(
 func (suite *RegressionTestSuite) measureResourceUsage(name string, operation func()) *ResourceUsage {
 	// This is a simplified resource measurement
 	// In a real implementation, you would measure memory, CPU, goroutines, etc.
-	
+
 	operation()
-	
+
 	return &ResourceUsage{
 		MemoryUsage:    1024, // Placeholder
 		GoroutineCount: 10,   // Placeholder
@@ -1208,10 +1208,10 @@ func (suite *RegressionTestSuite) measureResourceUsage(name string, operation fu
 func (suite *RegressionTestSuite) compareResourceUtilization(original, specialized *ResourceUsage) {
 	// Specialized implementation should not significantly increase resource usage
 	memoryRatio := float64(specialized.MemoryUsage) / float64(original.MemoryUsage)
-	
+
 	Expect(memoryRatio).To(BeNumerically("<=", 1.0+suite.testConfig.ToleranceThreshold),
 		"Memory usage should not increase significantly")
-	
+
 	suite.logger.Info("Resource utilization comparison completed",
 		"memory_ratio", memoryRatio,
 		"goroutine_diff", specialized.GoroutineCount-original.GoroutineCount)
@@ -1219,7 +1219,7 @@ func (suite *RegressionTestSuite) compareResourceUtilization(original, specializ
 
 func (suite *RegressionTestSuite) generateConcurrentTestIntents(count int) []*nephoranv1.NetworkIntent {
 	intents := make([]*nephoranv1.NetworkIntent, count)
-	
+
 	for i := 0; i < count; i++ {
 		intents[i] = &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
@@ -1233,26 +1233,26 @@ func (suite *RegressionTestSuite) generateConcurrentTestIntents(count int) []*ne
 			},
 		}
 	}
-	
+
 	return intents
 }
 
 func (suite *RegressionTestSuite) compareConcurrentResults(original, specialized []*ProcessingResult) {
 	originalSuccessCount := 0
 	specializedSuccessCount := 0
-	
+
 	for _, result := range original {
 		if result.Success {
 			originalSuccessCount++
 		}
 	}
-	
+
 	for _, result := range specialized {
 		if result.Success {
 			specializedSuccessCount++
 		}
 	}
-	
+
 	// Success rates should be similar
 	successRateDiff := float64(specializedSuccessCount-originalSuccessCount) / float64(len(original))
 	Expect(math.Abs(successRateDiff)).To(BeNumerically("<=", suite.testConfig.ToleranceThreshold),

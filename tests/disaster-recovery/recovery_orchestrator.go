@@ -13,26 +13,26 @@ import (
 
 // RecoveryOrchestrator coordinates disaster recovery operations
 type RecoveryOrchestrator struct {
-	client        client.Client
-	backupManager *BackupManager
-	scenarios     map[string]*DisasterScenario
+	client           client.Client
+	backupManager    *BackupManager
+	scenarios        map[string]*DisasterScenario
 	activeRecoveries sync.Map
-	mu            sync.RWMutex
+	mu               sync.RWMutex
 }
 
 // RecoveryPlan defines a comprehensive recovery strategy
 type RecoveryPlan struct {
-	ID               string                  `json:"id"`
-	Name             string                  `json:"name"`
-	Description      string                  `json:"description"`
-	DisasterType     DisasterType            `json:"disaster_type"`
-	Steps            []RecoveryStep          `json:"steps"`
-	Rollback         []RecoveryStep          `json:"rollback"`
-	Timeout          time.Duration           `json:"timeout"`
-	MaxRetries       int                     `json:"max_retries"`
-	Prerequisites    []string                `json:"prerequisites"`
-	HealthChecks     []HealthCheck           `json:"health_checks"`
-	NotificationPlan NotificationPlan        `json:"notification_plan"`
+	ID               string           `json:"id"`
+	Name             string           `json:"name"`
+	Description      string           `json:"description"`
+	DisasterType     DisasterType     `json:"disaster_type"`
+	Steps            []RecoveryStep   `json:"steps"`
+	Rollback         []RecoveryStep   `json:"rollback"`
+	Timeout          time.Duration    `json:"timeout"`
+	MaxRetries       int              `json:"max_retries"`
+	Prerequisites    []string         `json:"prerequisites"`
+	HealthChecks     []HealthCheck    `json:"health_checks"`
+	NotificationPlan NotificationPlan `json:"notification_plan"`
 }
 
 // RecoveryStep represents a single step in recovery process
@@ -53,34 +53,34 @@ type RecoveryStep struct {
 type RecoveryStepType string
 
 const (
-	StepTypeBackupRestore     RecoveryStepType = "backup_restore"
-	StepTypeServiceRestart    RecoveryStepType = "service_restart"
-	StepTypeScaleUp           RecoveryStepType = "scale_up"
-	StepTypeScaleDown         RecoveryStepType = "scale_down"
-	StepTypeFailover          RecoveryStepType = "failover"
-	StepTypeHealthCheck       RecoveryStepType = "health_check"
-	StepTypeCustomScript      RecoveryStepType = "custom_script"
-	StepTypeWaitForCondition  RecoveryStepType = "wait_for_condition"
-	StepTypeDataValidation    RecoveryStepType = "data_validation"
-	StepTypeNotification      RecoveryStepType = "notification"
+	StepTypeBackupRestore    RecoveryStepType = "backup_restore"
+	StepTypeServiceRestart   RecoveryStepType = "service_restart"
+	StepTypeScaleUp          RecoveryStepType = "scale_up"
+	StepTypeScaleDown        RecoveryStepType = "scale_down"
+	StepTypeFailover         RecoveryStepType = "failover"
+	StepTypeHealthCheck      RecoveryStepType = "health_check"
+	StepTypeCustomScript     RecoveryStepType = "custom_script"
+	StepTypeWaitForCondition RecoveryStepType = "wait_for_condition"
+	StepTypeDataValidation   RecoveryStepType = "data_validation"
+	StepTypeNotification     RecoveryStepType = "notification"
 )
 
 // RetryPolicy defines retry behavior for recovery steps
 type RetryPolicy struct {
-	MaxRetries      int           `json:"max_retries"`
-	InitialDelay    time.Duration `json:"initial_delay"`
-	BackoffMultiplier float64     `json:"backoff_multiplier"`
-	MaxDelay        time.Duration `json:"max_delay"`
+	MaxRetries        int           `json:"max_retries"`
+	InitialDelay      time.Duration `json:"initial_delay"`
+	BackoffMultiplier float64       `json:"backoff_multiplier"`
+	MaxDelay          time.Duration `json:"max_delay"`
 }
 
 // HealthCheck defines a health validation
 type HealthCheck struct {
-	Name        string        `json:"name"`
-	Type        string        `json:"type"`
-	Target      string        `json:"target"`
-	Timeout     time.Duration `json:"timeout"`
-	Expected    interface{}   `json:"expected"`
-	Critical    bool          `json:"critical"`
+	Name     string        `json:"name"`
+	Type     string        `json:"type"`
+	Target   string        `json:"target"`
+	Timeout  time.Duration `json:"timeout"`
+	Expected interface{}   `json:"expected"`
+	Critical bool          `json:"critical"`
 }
 
 // NotificationPlan defines how to notify stakeholders
@@ -107,38 +107,38 @@ type StepExecutor interface {
 
 // RecoveryExecution tracks the execution of a recovery plan
 type RecoveryExecution struct {
-	ID          string                       `json:"id"`
-	PlanID      string                       `json:"plan_id"`
-	StartTime   time.Time                    `json:"start_time"`
-	EndTime     *time.Time                   `json:"end_time,omitempty"`
-	Status      RecoveryStatus               `json:"status"`
-	Steps       map[string]*StepExecution    `json:"steps"`
-	Errors      []RecoveryError              `json:"errors"`
-	Metrics     RecoveryExecutionMetrics     `json:"metrics"`
-	Context     map[string]interface{}       `json:"context"`
+	ID        string                    `json:"id"`
+	PlanID    string                    `json:"plan_id"`
+	StartTime time.Time                 `json:"start_time"`
+	EndTime   *time.Time                `json:"end_time,omitempty"`
+	Status    RecoveryStatus            `json:"status"`
+	Steps     map[string]*StepExecution `json:"steps"`
+	Errors    []RecoveryError           `json:"errors"`
+	Metrics   RecoveryExecutionMetrics  `json:"metrics"`
+	Context   map[string]interface{}    `json:"context"`
 }
 
 // StepExecution tracks the execution of a single step
 type StepExecution struct {
-	StepID      string        `json:"step_id"`
-	StartTime   time.Time     `json:"start_time"`
-	EndTime     *time.Time    `json:"end_time,omitempty"`
-	Status      StepStatus    `json:"status"`
-	Attempts    int           `json:"attempts"`
-	Duration    time.Duration `json:"duration"`
-	Error       string        `json:"error,omitempty"`
-	Output      interface{}   `json:"output,omitempty"`
+	StepID    string        `json:"step_id"`
+	StartTime time.Time     `json:"start_time"`
+	EndTime   *time.Time    `json:"end_time,omitempty"`
+	Status    StepStatus    `json:"status"`
+	Attempts  int           `json:"attempts"`
+	Duration  time.Duration `json:"duration"`
+	Error     string        `json:"error,omitempty"`
+	Output    interface{}   `json:"output,omitempty"`
 }
 
 // RecoveryStatus represents the status of a recovery operation
 type RecoveryStatus string
 
 const (
-	StatusPending   RecoveryStatus = "pending"
-	StatusRunning   RecoveryStatus = "running"
-	StatusCompleted RecoveryStatus = "completed"
-	StatusFailed    RecoveryStatus = "failed"
-	StatusCancelled RecoveryStatus = "cancelled"
+	StatusPending     RecoveryStatus = "pending"
+	StatusRunning     RecoveryStatus = "running"
+	StatusCompleted   RecoveryStatus = "completed"
+	StatusFailed      RecoveryStatus = "failed"
+	StatusCancelled   RecoveryStatus = "cancelled"
 	StatusRollingBack RecoveryStatus = "rolling_back"
 )
 
@@ -194,7 +194,7 @@ func (ro *RecoveryOrchestrator) RegisterScenario(scenario *DisasterScenario) {
 // ExecuteRecoveryPlan executes a recovery plan
 func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *RecoveryPlan) (*RecoveryExecution, error) {
 	logger := log.FromContext(ctx)
-	
+
 	execution := &RecoveryExecution{
 		ID:        fmt.Sprintf("%s-%d", plan.ID, time.Now().Unix()),
 		PlanID:    plan.ID,
@@ -226,7 +226,7 @@ func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *R
 	// Execute steps
 	if err := ro.executeSteps(ctx, plan.Steps, execution); err != nil {
 		logger.Error(err, "Recovery plan execution failed", "execution", execution.ID)
-		
+
 		// Execute rollback if needed
 		if len(plan.Rollback) > 0 {
 			logger.Info("Starting rollback", "execution", execution.ID)
@@ -235,7 +235,7 @@ func (ro *RecoveryOrchestrator) ExecuteRecoveryPlan(ctx context.Context, plan *R
 				logger.Error(rollbackErr, "Rollback failed", "execution", execution.ID)
 			}
 		}
-		
+
 		execution.Status = StatusFailed
 		go ro.sendNotifications(ctx, plan.NotificationPlan.OnFailure, execution, err)
 		return execution, err
@@ -274,10 +274,10 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 
 	// Execute steps in dependency order
 	executed := make(map[string]bool)
-	
+
 	for len(executed) < len(steps) {
 		progress := false
-		
+
 		for _, step := range steps {
 			if executed[step.ID] {
 				continue
@@ -325,7 +325,7 @@ func (ro *RecoveryOrchestrator) executeSteps(ctx context.Context, steps []Recove
 			now := time.Now()
 			stepExecution.EndTime = &now
 			stepExecution.Duration = now.Sub(stepExecution.StartTime)
-			
+
 			executed[step.ID] = true
 			progress = true
 		}
@@ -364,7 +364,7 @@ func (ro *RecoveryOrchestrator) executeStep(ctx context.Context, step RecoverySt
 		if attempt > 0 {
 			stepExecution.Status = StepStatusRetrying
 			time.Sleep(delay)
-			
+
 			// Increase delay for next attempt
 			delay = time.Duration(float64(delay) * retryPolicy.BackoffMultiplier)
 			if delay > retryPolicy.MaxDelay {

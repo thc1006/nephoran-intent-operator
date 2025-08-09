@@ -15,11 +15,11 @@ import (
 
 // ServerManager manages the lifecycle of the O2 IMS API server
 type ServerManager struct {
-	config    *O2IMSConfig
-	server    *O2APIServer
-	logger    *logging.StructuredLogger
-	ctx       context.Context
-	cancel    context.CancelFunc
+	config *O2IMSConfig
+	server *O2APIServer
+	logger *logging.StructuredLogger
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // NewServerManager creates a new server manager
@@ -110,7 +110,7 @@ func (sm *ServerManager) Shutdown() error {
 // RunServer is a convenience function to run the server with default configuration
 func RunServer() error {
 	config := DefaultO2IMSConfig()
-	
+
 	// Override with environment variables if available
 	config = applyEnvironmentOverrides(config)
 
@@ -175,7 +175,7 @@ func applyEnvironmentOverrides(config *O2IMSConfig) *O2IMSConfig {
 			config.AuthenticationConfig = &AuthenticationConfig{}
 		}
 		config.AuthenticationConfig.Enabled = true
-		
+
 		if jwtSecret := os.Getenv("O2_IMS_JWT_SECRET"); jwtSecret != "" {
 			config.AuthenticationConfig.JWTSecret = jwtSecret
 		}
@@ -208,7 +208,7 @@ func CreateProductionConfig() *O2IMSConfig {
 	// Production defaults
 	config.TLSEnabled = true
 	config.DatabaseType = "postgres"
-	
+
 	// Security hardening
 	config.SecurityConfig.EnableCSRF = true
 	config.SecurityConfig.CORSEnabled = true
@@ -244,7 +244,7 @@ func CreateDevelopmentConfig() *O2IMSConfig {
 	// Development defaults
 	config.TLSEnabled = false
 	config.DatabaseType = "memory"
-	
+
 	// Relaxed security for development
 	config.SecurityConfig.CORSAllowedOrigins = []string{"*"}
 	config.SecurityConfig.RateLimitConfig.Enabled = false
@@ -280,7 +280,7 @@ func ValidateConfiguration(config *O2IMSConfig) error {
 		if config.KeyFile == "" {
 			return fmt.Errorf("TLS enabled but key file not specified")
 		}
-		
+
 		// Check if files exist
 		if _, err := os.Stat(config.CertFile); os.IsNotExist(err) {
 			return fmt.Errorf("certificate file does not exist: %s", config.CertFile)
@@ -352,23 +352,23 @@ func SetupDefaultProviders(config *O2IMSConfig) {
 func ExampleUsage() {
 	// Create configuration
 	config := CreateDevelopmentConfig()
-	
+
 	// Setup default providers
 	SetupDefaultProviders(config)
-	
+
 	// Validate configuration
 	if err := ValidateConfiguration(config); err != nil {
 		fmt.Printf("Configuration validation failed: %v\n", err)
 		return
 	}
-	
+
 	// Create and start server
 	manager, err := NewServerManager(config)
 	if err != nil {
 		fmt.Printf("Failed to create server manager: %v\n", err)
 		return
 	}
-	
+
 	fmt.Println("Starting O2 IMS API server...")
 	if err := manager.Start(); err != nil {
 		fmt.Printf("Server error: %v\n", err)
@@ -378,7 +378,7 @@ func ExampleUsage() {
 // TestConfiguration creates a test configuration for unit tests
 func TestConfiguration() *O2IMSConfig {
 	config := DefaultO2IMSConfig()
-	
+
 	// Test-specific settings
 	config.Port = 0 // Let the OS assign a port
 	config.DatabaseType = "memory"
@@ -388,6 +388,6 @@ func TestConfiguration() *O2IMSConfig {
 	config.MetricsConfig.Enabled = false
 	config.HealthCheckConfig.Enabled = false
 	config.NotificationConfig.Enabled = false
-	
+
 	return config
 }

@@ -59,18 +59,18 @@ type ClientMetrics struct {
 
 // CircuitBreakerConfig holds configuration for circuit breaker (consolidated)
 type CircuitBreakerConfig struct {
-	FailureThreshold      int64         `json:"failure_threshold"`
-	FailureRate           float64       `json:"failure_rate"`
-	MinimumRequestCount   int64         `json:"minimum_request_count"`
-	Timeout               time.Duration `json:"timeout"`
-	HalfOpenTimeout       time.Duration `json:"half_open_timeout"`
-	SuccessThreshold      int64         `json:"success_threshold"`
-	HalfOpenMaxRequests   int64         `json:"half_open_max_requests"`
-	ResetTimeout          time.Duration `json:"reset_timeout"`
-	SlidingWindowSize     int           `json:"sliding_window_size"`
-	EnableHealthCheck     bool          `json:"enable_health_check"`
-	HealthCheckInterval   time.Duration `json:"health_check_interval"`
-	HealthCheckTimeout    time.Duration `json:"health_check_timeout"`
+	FailureThreshold    int64         `json:"failure_threshold"`
+	FailureRate         float64       `json:"failure_rate"`
+	MinimumRequestCount int64         `json:"minimum_request_count"`
+	Timeout             time.Duration `json:"timeout"`
+	HalfOpenTimeout     time.Duration `json:"half_open_timeout"`
+	SuccessThreshold    int64         `json:"success_threshold"`
+	HalfOpenMaxRequests int64         `json:"half_open_max_requests"`
+	ResetTimeout        time.Duration `json:"reset_timeout"`
+	SlidingWindowSize   int           `json:"sliding_window_size"`
+	EnableHealthCheck   bool          `json:"enable_health_check"`
+	HealthCheckInterval time.Duration `json:"health_check_interval"`
+	HealthCheckTimeout  time.Duration `json:"health_check_timeout"`
 }
 
 // TokenTracker tracks token usage and costs
@@ -90,10 +90,10 @@ func NewTokenTracker() *TokenTracker {
 func (tt *TokenTracker) RecordUsage(tokens int) {
 	tt.mutex.Lock()
 	defer tt.mutex.Unlock()
-	
+
 	tt.totalTokens += int64(tokens)
 	tt.requestCount++
-	
+
 	// Simple cost calculation (adjust based on model pricing)
 	costPerToken := 0.0001 // Example: $0.0001 per token
 	tt.totalCost += float64(tokens) * costPerToken
@@ -103,16 +103,16 @@ func (tt *TokenTracker) RecordUsage(tokens int) {
 func (tt *TokenTracker) GetStats() map[string]interface{} {
 	tt.mutex.RLock()
 	defer tt.mutex.RUnlock()
-	
+
 	avgTokensPerRequest := float64(0)
 	if tt.requestCount > 0 {
 		avgTokensPerRequest = float64(tt.totalTokens) / float64(tt.requestCount)
 	}
-	
+
 	return map[string]interface{}{
 		"total_tokens":           tt.totalTokens,
-		"total_cost":            tt.totalCost,
-		"request_count":         tt.requestCount,
+		"total_cost":             tt.totalCost,
+		"request_count":          tt.requestCount,
 		"avg_tokens_per_request": avgTokensPerRequest,
 	}
 }
@@ -139,11 +139,11 @@ type IntentRequest struct {
 
 // IntentResponse represents the response from intent processing (from old interface.go)
 type IntentResponse struct {
-	Response    string                 `json:"response"`
-	Confidence  float64                `json:"confidence"`
-	Tokens      int                    `json:"tokens"`
-	Duration    time.Duration          `json:"duration"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	Response   string                 `json:"response"`
+	Confidence float64                `json:"confidence"`
+	Tokens     int                    `json:"tokens"`
+	Duration   time.Duration          `json:"duration"`
+	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 // STUB IMPLEMENTATIONS - Consolidated from stubs.go
@@ -159,7 +159,7 @@ func NewContextBuilder() *ContextBuilder {
 func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
 		"context_builder_enabled": false,
-		"status":                 "not_implemented",
+		"status":                  "not_implemented",
 	}
 }
 
@@ -173,11 +173,11 @@ func NewRelevanceScorer() *RelevanceScorer {
 func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
 		"relevance_scorer_enabled": false,
-		"status":                  "not_implemented",
+		"status":                   "not_implemented",
 	}
 }
 
-// RAGAwarePromptBuilder stub implementation (consolidated from stubs.go)  
+// RAGAwarePromptBuilder stub implementation (consolidated from stubs.go)
 type RAGAwarePromptBuilder struct{}
 
 func NewRAGAwarePromptBuilder() *RAGAwarePromptBuilder {
@@ -187,7 +187,7 @@ func NewRAGAwarePromptBuilder() *RAGAwarePromptBuilder {
 func (rpb *RAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
 	return map[string]interface{}{
 		"prompt_builder_enabled": false,
-		"status":                "not_implemented",
+		"status":                 "not_implemented",
 	}
 }
 
@@ -196,18 +196,18 @@ func (rpb *RAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
 // getDefaultCircuitBreakerConfig returns default circuit breaker configuration
 func getDefaultCircuitBreakerConfig() *CircuitBreakerConfig {
 	return &CircuitBreakerConfig{
-		FailureThreshold:      5,
-		FailureRate:           0.5,
-		MinimumRequestCount:   10,
-		Timeout:               30 * time.Second,
-		HalfOpenTimeout:       60 * time.Second,
-		SuccessThreshold:      3,
-		HalfOpenMaxRequests:   5,
-		ResetTimeout:          60 * time.Second,
-		SlidingWindowSize:     100,
-		EnableHealthCheck:     false,
-		HealthCheckInterval:   30 * time.Second,
-		HealthCheckTimeout:    10 * time.Second,
+		FailureThreshold:    5,
+		FailureRate:         0.5,
+		MinimumRequestCount: 10,
+		Timeout:             30 * time.Second,
+		HalfOpenTimeout:     60 * time.Second,
+		SuccessThreshold:    3,
+		HalfOpenMaxRequests: 5,
+		ResetTimeout:        60 * time.Second,
+		SlidingWindowSize:   100,
+		EnableHealthCheck:   false,
+		HealthCheckInterval: 30 * time.Second,
+		HealthCheckTimeout:  10 * time.Second,
 	}
 }
 

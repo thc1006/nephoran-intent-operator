@@ -20,7 +20,7 @@ import (
 var (
 	// Metrics registration guard
 	metricsOnce sync.Once
-	
+
 	// Git push in-flight gauge metric
 	gitPushInFlightGauge prometheus.Gauge
 )
@@ -33,7 +33,7 @@ func InitMetrics(registerer prometheus.Registerer) {
 			Name: "nephoran_git_push_in_flight",
 			Help: "Number of git push operations currently in flight",
 		})
-		
+
 		if registerer != nil {
 			registerer.MustRegister(gitPushInFlightGauge)
 		}
@@ -50,12 +50,12 @@ type ClientInterface interface {
 
 // ClientConfig holds configuration for creating a Git client.
 type ClientConfig struct {
-	RepoURL   string
-	Branch    string
-	Token     string   // Token loaded from file or environment
-	TokenPath string   // Optional path to token file
-	RepoPath  string
-	Logger    *slog.Logger
+	RepoURL             string
+	Branch              string
+	Token               string // Token loaded from file or environment
+	TokenPath           string // Optional path to token file
+	RepoPath            string
+	Logger              *slog.Logger
 	ConcurrentPushLimit int // Maximum concurrent git operations (default 4 if <= 0)
 }
 
@@ -67,7 +67,7 @@ type Client struct {
 	RepoPath string
 	logger   *slog.Logger
 	pushSem  chan struct{} // Semaphore for concurrent git operations (buffered channel with capacity 4)
-	
+
 	// Test hooks - only used during testing, unexported
 	// These are nil in production and only set during tests
 	beforePushHook func()
@@ -79,13 +79,13 @@ type Client struct {
 // If file reading fails or tokenPath is empty, it falls back to the provided token.
 func NewGitClientConfig(repoURL, branch, token, tokenPath string) (*ClientConfig, error) {
 	config := &ClientConfig{
-		RepoURL:  repoURL,
-		Branch:   branch,
-		RepoPath: "/tmp/deployment-repo",
-		Logger:   slog.Default().With("component", "git-client"),
+		RepoURL:             repoURL,
+		Branch:              branch,
+		RepoPath:            "/tmp/deployment-repo",
+		Logger:              slog.Default().With("component", "git-client"),
 		ConcurrentPushLimit: 4, // Default value
 	}
-	
+
 	// Override from environment variable if set
 	if val := os.Getenv("GIT_CONCURRENT_PUSH_LIMIT"); val != "" {
 		if limit, err := strconv.Atoi(val); err == nil && limit > 0 {
@@ -124,7 +124,7 @@ func NewClientFromConfig(config *ClientConfig) *Client {
 	if config.Logger == nil {
 		config.Logger = slog.Default().With("component", "git-client")
 	}
-	
+
 	// Use configured limit or default to 4
 	limit := config.ConcurrentPushLimit
 	if limit <= 0 {
@@ -145,7 +145,7 @@ func NewClientFromConfig(config *ClientConfig) *Client {
 func NewClient(repoURL, branch, sshKey string) *Client {
 	// Create a default logger if none provided
 	logger := slog.Default().With("component", "git-client")
-	
+
 	// Read concurrent push limit from environment or use default
 	limit := 4
 	if val := os.Getenv("GIT_CONCURRENT_PUSH_LIMIT"); val != "" {
@@ -154,7 +154,7 @@ func NewClient(repoURL, branch, sshKey string) *Client {
 			logger.Debug("Using custom concurrent push limit from env", "limit", limit)
 		}
 	}
-	
+
 	return &Client{
 		RepoURL:  repoURL,
 		Branch:   branch,
@@ -171,7 +171,7 @@ func NewClientWithLogger(repoURL, branch, sshKey string, logger *slog.Logger) *C
 		logger = slog.Default()
 	}
 	logger = logger.With("component", "git-client")
-	
+
 	// Read concurrent push limit from environment or use default
 	limit := 4
 	if val := os.Getenv("GIT_CONCURRENT_PUSH_LIMIT"); val != "" {
@@ -180,7 +180,7 @@ func NewClientWithLogger(repoURL, branch, sshKey string, logger *slog.Logger) *C
 			logger.Debug("Using custom concurrent push limit from env", "limit", limit)
 		}
 	}
-	
+
 	return &Client{
 		RepoURL:  repoURL,
 		Branch:   branch,
@@ -200,19 +200,19 @@ func (c *Client) acquireSemaphore(operation string) {
 	if c.logger == nil {
 		c.logger = slog.Default().With("component", "git-client")
 	}
-	
+
 	// Try to acquire immediately first
 	select {
 	case c.pushSem <- struct{}{}:
 		// Successfully acquired immediately
 		inFlight := len(c.pushSem)
-		c.logger.Debug("git push: acquired semaphore", 
+		c.logger.Debug("git push: acquired semaphore",
 			"operation", operation,
 			"in_flight", inFlight,
 			"limit", cap(c.pushSem),
 			"acquired_immediately", true,
 			"goroutine", runtime.NumGoroutine())
-		
+
 		// Update metrics if available
 		if gitPushInFlightGauge != nil {
 			gitPushInFlightGauge.Set(float64(inFlight))
@@ -220,23 +220,23 @@ func (c *Client) acquireSemaphore(operation string) {
 		return
 	default:
 		// Would block, log that we're waiting
-		c.logger.Debug("git push: waiting on semaphore", 
+		c.logger.Debug("git push: waiting on semaphore",
 			"operation", operation,
 			"in_flight", len(c.pushSem),
 			"limit", cap(c.pushSem),
 			"goroutine", runtime.NumGoroutine())
 	}
-	
+
 	// Now block and wait for acquisition
 	c.pushSem <- struct{}{}
 	inFlight := len(c.pushSem)
-	c.logger.Debug("git push: acquired semaphore", 
+	c.logger.Debug("git push: acquired semaphore",
 		"operation", operation,
 		"in_flight", inFlight,
 		"limit", cap(c.pushSem),
 		"acquired_immediately", false,
 		"goroutine", runtime.NumGoroutine())
-	
+
 	// Update metrics if available
 	if gitPushInFlightGauge != nil {
 		gitPushInFlightGauge.Set(float64(inFlight))
@@ -249,32 +249,32 @@ func (c *Client) releaseSemaphore(operation string) {
 	if c.pushSem == nil || c.logger == nil {
 		return // No semaphore to release, nothing to do
 	}
-	
+
 	defer func() {
 		if r := recover(); r != nil {
-			c.logger.Error("Panic during semaphore release", 
+			c.logger.Error("Panic during semaphore release",
 				"operation", operation,
 				"panic", r,
 				"goroutine", runtime.NumGoroutine())
 			panic(r) // Re-panic after logging
 		}
 	}()
-	
+
 	select {
 	case <-c.pushSem:
 		inFlight := len(c.pushSem)
-		c.logger.Debug("git push: released semaphore", 
+		c.logger.Debug("git push: released semaphore",
 			"operation", operation,
 			"in_flight", inFlight,
 			"limit", cap(c.pushSem),
 			"goroutine", runtime.NumGoroutine())
-		
+
 		// Update metrics if available
 		if gitPushInFlightGauge != nil {
 			gitPushInFlightGauge.Set(float64(inFlight))
 		}
 	default:
-		c.logger.Warn("git push: attempted to release semaphore when none held", 
+		c.logger.Warn("git push: attempted to release semaphore when none held",
 			"operation", operation,
 			"in_flight", len(c.pushSem),
 			"limit", cap(c.pushSem),
@@ -304,7 +304,7 @@ func (c *Client) InitRepo() error {
 func (c *Client) CommitAndPush(files map[string]string, message string) (string, error) {
 	c.acquireSemaphore("CommitAndPush")
 	defer c.releaseSemaphore("CommitAndPush")
-	
+
 	// Test hook - before push operations
 	if c.beforePushHook != nil {
 		c.beforePushHook()
@@ -327,7 +327,7 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 	for path, content := range files {
 		fullPath := filepath.Join(c.RepoPath, path)
 		if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
-			c.logger.Error("Failed to create directory", 
+			c.logger.Error("Failed to create directory",
 				"directory", filepath.Dir(fullPath),
 				"file_path", path,
 				"error", err,
@@ -335,14 +335,14 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 			return "", fmt.Errorf("failed to create directory for %s: %w", path, err)
 		}
 		if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {
-			c.logger.Error("Failed to write file", 
+			c.logger.Error("Failed to write file",
 				"filename", fullPath,
 				"relative_path", path,
 				"error", err,
 				"operation", "CommitAndPush")
 			return "", fmt.Errorf("failed to write file %s: %w", path, err)
 		}
-		c.logger.Debug("Successfully wrote file", 
+		c.logger.Debug("Successfully wrote file",
 			"filename", fullPath,
 			"relative_path", path,
 			"size_bytes", len(content),
@@ -388,7 +388,7 @@ func (c *Client) CommitAndPush(files map[string]string, message string) (string,
 func (c *Client) CommitAndPushChanges(message string) error {
 	c.acquireSemaphore("CommitAndPushChanges")
 	defer c.releaseSemaphore("CommitAndPushChanges")
-	
+
 	// Test hook - before push operations
 	if c.beforePushHook != nil {
 		c.beforePushHook()
@@ -460,7 +460,7 @@ func (c *Client) CommitAndPushChanges(message string) error {
 func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 	c.acquireSemaphore("RemoveDirectory")
 	defer c.releaseSemaphore("RemoveDirectory")
-	
+
 	// Test hook - before push operations
 	if c.beforePushHook != nil {
 		c.beforePushHook()

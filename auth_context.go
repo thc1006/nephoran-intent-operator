@@ -22,13 +22,13 @@ const (
 
 // ControllerAuthContext holds authentication context for controller operations
 type ControllerAuthContext struct {
-	UserID           string
-	OperationType    string
-	ResourceType     string
-	ResourceName     string
+	UserID            string
+	OperationType     string
+	ResourceType      string
+	ResourceName      string
 	ResourceNamespace string
-	Timestamp        time.Time
-	RequestID        string
+	Timestamp         time.Time
+	RequestID         string
 }
 
 // AuthenticatedReconciler provides authentication context
@@ -70,7 +70,7 @@ func (ar *AuthenticatedReconciler) WithAuthContext(ctx context.Context, operatio
 
 // ValidateNetworkIntentAccess validates access to NetworkIntent
 func (ar *AuthenticatedReconciler) ValidateNetworkIntentAccess(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, operation string) error {
-	if \!ar.requireAuth {
+	if !ar.requireAuth {
 		return nil
 	}
 	return nil
@@ -105,16 +105,16 @@ func NewNetworkIntentAuthDecorator(
 // Reconcile wraps original reconcile with authentication
 func (niad *NetworkIntentAuthDecorator) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	authCtx, err := niad.WithAuthContext(ctx, "reconcile", "networkintents", req.Name, req.Namespace)
-	if err \!= nil {
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 
 	var networkIntent nephoranv1.NetworkIntent
-	if err := niad.Get(authCtx, req.NamespacedName, &networkIntent); err \!= nil {
+	if err := niad.Get(authCtx, req.NamespacedName, &networkIntent); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if err := niad.ValidateNetworkIntentAccess(authCtx, &networkIntent, "update"); err \!= nil {
+	if err := niad.ValidateNetworkIntentAccess(authCtx, &networkIntent, "update"); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -158,9 +158,9 @@ func (aer *AuthenticatedE2NodeSetReconciler) Reconcile(ctx context.Context, req 
 	if aer.requireAuth {
 		// Check if user has permission to manage E2 nodes
 		if err := aer.validateE2NodeAccess(authCtx, req); err != nil {
-			aer.logger.Error("E2NodeSet access denied", 
-				"namespace", req.Namespace, 
-				"name", req.Name, 
+			aer.logger.Error("E2NodeSet access denied",
+				"namespace", req.Namespace,
+				"name", req.Name,
 				"error", err)
 			return ctrl.Result{}, err
 		}
@@ -178,7 +178,7 @@ func (aer *AuthenticatedE2NodeSetReconciler) validateE2NodeAccess(ctx context.Co
 	}
 
 	// Log the access attempt for audit
-	aer.logger.Info("E2NodeSet access validation", 
+	aer.logger.Info("E2NodeSet access validation",
 		"operation", authCtx.OperationType,
 		"resource", authCtx.ResourceType,
 		"name", authCtx.ResourceName,

@@ -26,37 +26,37 @@ type ChunkingService struct {
 // ChunkingConfig holds configuration for the chunking service
 type ChunkingConfig struct {
 	// Basic chunking parameters
-	ChunkSize        int `json:"chunk_size"`         // Target chunk size in characters
-	ChunkOverlap     int `json:"chunk_overlap"`      // Overlap between chunks in characters
-	MinChunkSize     int `json:"min_chunk_size"`     // Minimum viable chunk size
-	MaxChunkSize     int `json:"max_chunk_size"`     // Maximum chunk size before force split
-	
+	ChunkSize    int `json:"chunk_size"`     // Target chunk size in characters
+	ChunkOverlap int `json:"chunk_overlap"`  // Overlap between chunks in characters
+	MinChunkSize int `json:"min_chunk_size"` // Minimum viable chunk size
+	MaxChunkSize int `json:"max_chunk_size"` // Maximum chunk size before force split
+
 	// Hierarchy preservation
 	PreserveHierarchy    bool `json:"preserve_hierarchy"`     // Maintain document structure
 	MaxHierarchyDepth    int  `json:"max_hierarchy_depth"`    // Maximum depth to track
 	IncludeParentContext bool `json:"include_parent_context"` // Include parent section context
-	
+
 	// Semantic chunking
-	UseSemanticBoundaries bool `json:"use_semantic_boundaries"` // Respect semantic boundaries
-	SentenceBoundaryWeight float64 `json:"sentence_boundary_weight"` // Weight for sentence boundaries
+	UseSemanticBoundaries   bool    `json:"use_semantic_boundaries"`   // Respect semantic boundaries
+	SentenceBoundaryWeight  float64 `json:"sentence_boundary_weight"`  // Weight for sentence boundaries
 	ParagraphBoundaryWeight float64 `json:"paragraph_boundary_weight"` // Weight for paragraph boundaries
 	SectionBoundaryWeight   float64 `json:"section_boundary_weight"`   // Weight for section boundaries
-	
+
 	// Telecom-specific chunking
-	PreserveTechnicalTerms bool     `json:"preserve_technical_terms"` // Don't split technical terms
-	TechnicalTermPatterns  []string `json:"technical_term_patterns"`  // Patterns for technical terms
-	PreserveTablesAndFigures bool   `json:"preserve_tables_figures"`  // Keep tables/figures intact
-	PreserveCodeBlocks      bool     `json:"preserve_code_blocks"`     // Keep code blocks intact
-	
+	PreserveTechnicalTerms   bool     `json:"preserve_technical_terms"` // Don't split technical terms
+	TechnicalTermPatterns    []string `json:"technical_term_patterns"`  // Patterns for technical terms
+	PreserveTablesAndFigures bool     `json:"preserve_tables_figures"`  // Keep tables/figures intact
+	PreserveCodeBlocks       bool     `json:"preserve_code_blocks"`     // Keep code blocks intact
+
 	// Quality control
 	MinContentRatio    float64 `json:"min_content_ratio"`    // Minimum content vs metadata ratio
 	MaxEmptyLines      int     `json:"max_empty_lines"`      // Maximum consecutive empty lines
 	FilterNoiseContent bool    `json:"filter_noise_content"` // Remove headers, footers, etc.
-	
+
 	// Performance settings
 	BatchSize      int `json:"batch_size"`      // Documents to process in parallel
 	MaxConcurrency int `json:"max_concurrency"` // Maximum concurrent processing
-	
+
 	// Context enhancement
 	AddSectionHeaders   bool `json:"add_section_headers"`   // Include section headers in chunks
 	AddDocumentMetadata bool `json:"add_document_metadata"` // Include document metadata
@@ -66,96 +66,96 @@ type ChunkingConfig struct {
 // DocumentChunk represents a processed chunk with hierarchy and context
 type DocumentChunk struct {
 	// Basic chunk information
-	ID              string    `json:"id"`
-	DocumentID      string    `json:"document_id"`
-	Content         string    `json:"content"`
-	CleanContent    string    `json:"clean_content"`
-	ChunkIndex      int       `json:"chunk_index"`
-	StartOffset     int       `json:"start_offset"`
-	EndOffset       int       `json:"end_offset"`
-	
+	ID           string `json:"id"`
+	DocumentID   string `json:"document_id"`
+	Content      string `json:"content"`
+	CleanContent string `json:"clean_content"`
+	ChunkIndex   int    `json:"chunk_index"`
+	StartOffset  int    `json:"start_offset"`
+	EndOffset    int    `json:"end_offset"`
+
 	// Size and quality metrics
-	CharacterCount  int     `json:"character_count"`
-	WordCount       int     `json:"word_count"`
-	SentenceCount   int     `json:"sentence_count"`
-	ContentRatio    float64 `json:"content_ratio"`
-	QualityScore    float64 `json:"quality_score"`
-	
+	CharacterCount int     `json:"character_count"`
+	WordCount      int     `json:"word_count"`
+	SentenceCount  int     `json:"sentence_count"`
+	ContentRatio   float64 `json:"content_ratio"`
+	QualityScore   float64 `json:"quality_score"`
+
 	// Hierarchy information
-	HierarchyPath   []string `json:"hierarchy_path"`   // Path from root to this chunk
-	SectionTitle    string   `json:"section_title"`    // Immediate section title
-	ParentSections  []string `json:"parent_sections"`  // All parent section titles
-	HierarchyLevel  int      `json:"hierarchy_level"`  // Depth in document hierarchy
-	
+	HierarchyPath  []string `json:"hierarchy_path"`  // Path from root to this chunk
+	SectionTitle   string   `json:"section_title"`   // Immediate section title
+	ParentSections []string `json:"parent_sections"` // All parent section titles
+	HierarchyLevel int      `json:"hierarchy_level"` // Depth in document hierarchy
+
 	// Context information
-	PreviousContext string   `json:"previous_context"` // Overlap with previous chunk
-	NextContext     string   `json:"next_context"`     // Overlap with next chunk
-	ParentContext   string   `json:"parent_context"`   // Context from parent section
-	
+	PreviousContext string `json:"previous_context"` // Overlap with previous chunk
+	NextContext     string `json:"next_context"`     // Overlap with next chunk
+	ParentContext   string `json:"parent_context"`   // Context from parent section
+
 	// Technical metadata
-	TechnicalTerms    []string `json:"technical_terms"`     // Identified technical terms
-	ContainsTable     bool     `json:"contains_table"`      // Contains table data
-	ContainsFigure    bool     `json:"contains_figure"`     // Contains figure references
-	ContainsCode      bool     `json:"contains_code"`       // Contains code blocks
-	ContainsFormula   bool     `json:"contains_formula"`    // Contains mathematical formulas
-	ContainsReference bool     `json:"contains_reference"`  // Contains references/citations
-	
+	TechnicalTerms    []string `json:"technical_terms"`    // Identified technical terms
+	ContainsTable     bool     `json:"contains_table"`     // Contains table data
+	ContainsFigure    bool     `json:"contains_figure"`    // Contains figure references
+	ContainsCode      bool     `json:"contains_code"`      // Contains code blocks
+	ContainsFormula   bool     `json:"contains_formula"`   // Contains mathematical formulas
+	ContainsReference bool     `json:"contains_reference"` // Contains references/citations
+
 	// Semantic information
-	ChunkType       string   `json:"chunk_type"`       // text, table, figure, code, etc.
-	SemanticTags    []string `json:"semantic_tags"`    // Semantic classification tags
-	KeywordDensity  map[string]float64 `json:"keyword_density"` // Keyword frequency analysis
-	
+	ChunkType      string             `json:"chunk_type"`      // text, table, figure, code, etc.
+	SemanticTags   []string           `json:"semantic_tags"`   // Semantic classification tags
+	KeywordDensity map[string]float64 `json:"keyword_density"` // Keyword frequency analysis
+
 	// Processing metadata
-	ProcessedAt     time.Time `json:"processed_at"`
-	ProcessingTime  time.Duration `json:"processing_time"`
-	ChunkingMethod  string    `json:"chunking_method"`  // Method used for chunking
-	
+	ProcessedAt    time.Time     `json:"processed_at"`
+	ProcessingTime time.Duration `json:"processing_time"`
+	ChunkingMethod string        `json:"chunking_method"` // Method used for chunking
+
 	// Document metadata (inherited)
 	DocumentMetadata *DocumentMetadata `json:"document_metadata,omitempty"`
 }
 
 // ChunkingMetrics tracks chunking performance and quality
 type ChunkingMetrics struct {
-	TotalDocuments     int64         `json:"total_documents"`
-	TotalChunks        int64         `json:"total_chunks"`
-	AverageChunksPerDoc float64      `json:"average_chunks_per_doc"`
-	AverageChunkSize   float64       `json:"average_chunk_size"`
+	TotalDocuments        int64         `json:"total_documents"`
+	TotalChunks           int64         `json:"total_chunks"`
+	AverageChunksPerDoc   float64       `json:"average_chunks_per_doc"`
+	AverageChunkSize      float64       `json:"average_chunk_size"`
 	AverageProcessingTime time.Duration `json:"average_processing_time"`
-	
+
 	QualityMetrics struct {
-		AverageQualityScore  float64 `json:"average_quality_score"`
-		HighQualityChunks    int64   `json:"high_quality_chunks"`
-		MediumQualityChunks  int64   `json:"medium_quality_chunks"`
-		LowQualityChunks     int64   `json:"low_quality_chunks"`
+		AverageQualityScore float64 `json:"average_quality_score"`
+		HighQualityChunks   int64   `json:"high_quality_chunks"`
+		MediumQualityChunks int64   `json:"medium_quality_chunks"`
+		LowQualityChunks    int64   `json:"low_quality_chunks"`
 	} `json:"quality_metrics"`
-	
-	TypeDistribution map[string]int64 `json:"type_distribution"`
-	HierarchyDepthStats map[int]int64 `json:"hierarchy_depth_stats"`
-	
+
+	TypeDistribution    map[string]int64 `json:"type_distribution"`
+	HierarchyDepthStats map[int]int64    `json:"hierarchy_depth_stats"`
+
 	LastProcessedAt time.Time `json:"last_processed_at"`
-	mutex          sync.RWMutex
+	mutex           sync.RWMutex
 }
 
 // DocumentStructure represents the hierarchical structure of a document
 type DocumentStructure struct {
-	Sections      []Section `json:"sections"`
-	TableOfContents []TOCEntry `json:"table_of_contents"`
-	Figures       []Figure  `json:"figures"`
-	Tables        []Table   `json:"tables"`
-	References    []Reference `json:"references"`
+	Sections        []Section   `json:"sections"`
+	TableOfContents []TOCEntry  `json:"table_of_contents"`
+	Figures         []Figure    `json:"figures"`
+	Tables          []Table     `json:"tables"`
+	References      []Reference `json:"references"`
 }
 
 // Section represents a document section with hierarchy
 type Section struct {
-	ID           string    `json:"id"`
-	Title        string    `json:"title"`
-	Level        int       `json:"level"`
-	StartOffset  int       `json:"start_offset"`
-	EndOffset    int       `json:"end_offset"`
-	Content      string    `json:"content"`
-	Parent       *Section  `json:"parent,omitempty"`
-	Children     []Section `json:"children"`
-	SectionNumber string   `json:"section_number"`
+	ID            string    `json:"id"`
+	Title         string    `json:"title"`
+	Level         int       `json:"level"`
+	StartOffset   int       `json:"start_offset"`
+	EndOffset     int       `json:"end_offset"`
+	Content       string    `json:"content"`
+	Parent        *Section  `json:"parent,omitempty"`
+	Children      []Section `json:"children"`
+	SectionNumber string    `json:"section_number"`
 }
 
 // TOCEntry represents a table of contents entry
@@ -178,11 +178,11 @@ type Figure struct {
 
 // Table represents a table with its structure
 type Table struct {
-	ID          string `json:"id"`
-	Caption     string `json:"caption"`
-	Number      int    `json:"number"`
-	StartOffset int    `json:"start_offset"`
-	EndOffset   int    `json:"end_offset"`
+	ID          string   `json:"id"`
+	Caption     string   `json:"caption"`
+	Number      int      `json:"number"`
+	StartOffset int      `json:"start_offset"`
+	EndOffset   int      `json:"end_offset"`
 	Headers     []string `json:"headers"`
 	RowCount    int      `json:"row_count"`
 }
@@ -202,8 +202,8 @@ func NewChunkingService(config *ChunkingConfig) *ChunkingService {
 	}
 
 	return &ChunkingService{
-		config:  config,
-		logger:  slog.Default().With("component", "chunking-service"),
+		config: config,
+		logger: slog.Default().With("component", "chunking-service"),
 		metrics: &ChunkingMetrics{
 			TypeDistribution:    make(map[string]int64),
 			HierarchyDepthStats: make(map[int]int64),
@@ -211,7 +211,6 @@ func NewChunkingService(config *ChunkingConfig) *ChunkingService {
 		},
 	}
 }
-
 
 // ChunkDocument processes a loaded document and returns intelligent chunks
 func (cs *ChunkingService) ChunkDocument(ctx context.Context, doc *LoadedDocument) ([]*DocumentChunk, error) {
@@ -246,7 +245,7 @@ func (cs *ChunkingService) ChunkDocument(ctx context.Context, doc *LoadedDocumen
 		m.AverageChunksPerDoc = float64(m.TotalChunks) / float64(m.TotalDocuments)
 		m.AverageProcessingTime = (m.AverageProcessingTime*time.Duration(m.TotalDocuments-1) + processingTime) / time.Duration(m.TotalDocuments)
 		m.LastProcessedAt = time.Now()
-		
+
 		// Update type distribution
 		for _, chunk := range chunks {
 			m.TypeDistribution[chunk.ChunkType]++
@@ -302,7 +301,7 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 
 	// Pattern for section headers with numbers (e.g., "1.2.3 Section Title")
 	sectionPattern := regexp.MustCompile(`(?m)^(\d+(?:\.\d+)*)\s+(.+)$`)
-	
+
 	// Pattern for unnumbered section headers (e.g., "Introduction", "Abstract")
 	headerPatterns := []*regexp.Regexp{
 		regexp.MustCompile(`(?mi)^(abstract|introduction|summary|conclusion|references?|bibliography|appendix\s*[a-z]?)$`),
@@ -315,7 +314,7 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		// Skip empty lines
 		if line == "" {
 			currentOffset += 1 // for the newline
@@ -357,7 +356,7 @@ func (cs *ChunkingService) extractSections(content string) []Section {
 			if len(sections) > 0 {
 				sections[len(sections)-1].EndOffset = currentOffset
 			}
-			
+
 			sections = append(sections, section)
 		}
 
@@ -393,7 +392,7 @@ func (cs *ChunkingService) buildSectionHierarchy(sections []Section) []Section {
 
 	for i := range sections {
 		section := &sections[i]
-		
+
 		// Find the appropriate parent
 		for len(stack) > 0 && stack[len(stack)-1].Level >= section.Level {
 			stack = stack[:len(stack)-1] // Pop from stack
@@ -422,7 +421,7 @@ func (cs *ChunkingService) extractFigures(content string) []Figure {
 
 	// Pattern for figure references (e.g., "Figure 1: Caption")
 	figurePattern := regexp.MustCompile(`(?i)figure\s+(\d+)(?:\s*[:\-]\s*(.+?))?(?:\n|$)`)
-	
+
 	matches := figurePattern.FindAllStringIndex(content, -1)
 	submatches := figurePattern.FindAllStringSubmatch(content, -1)
 
@@ -433,7 +432,7 @@ func (cs *ChunkingService) extractFigures(content string) []Figure {
 			if len(submatch) > 1 {
 				fmt.Sscanf(submatch[1], "%d", &figureNum)
 			}
-			
+
 			caption := ""
 			if len(submatch) > 2 {
 				caption = strings.TrimSpace(submatch[2])
@@ -459,7 +458,7 @@ func (cs *ChunkingService) extractTables(content string) []Table {
 
 	// Pattern for table headers (e.g., "Table 1: Caption")
 	tablePattern := regexp.MustCompile(`(?i)table\s+(\d+)(?:\s*[:\-]\s*(.+?))?(?:\n|$)`)
-	
+
 	matches := tablePattern.FindAllStringIndex(content, -1)
 	submatches := tablePattern.FindAllStringSubmatch(content, -1)
 
@@ -470,7 +469,7 @@ func (cs *ChunkingService) extractTables(content string) []Table {
 			if len(submatch) > 1 {
 				fmt.Sscanf(submatch[1], "%d", &tableNum)
 			}
-			
+
 			caption := ""
 			if len(submatch) > 2 {
 				caption = strings.TrimSpace(submatch[2])
@@ -509,11 +508,11 @@ func (cs *ChunkingService) extractTableContent(content string, startPos int) str
 	}
 
 	searchText := content[startPos : startPos+searchRange]
-	
+
 	// Simple heuristic: look for lines with multiple columns (separated by tabs or multiple spaces)
 	lines := strings.Split(searchText, "\n")
 	var tableLines []string
-	
+
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if line == "" {
@@ -522,7 +521,7 @@ func (cs *ChunkingService) extractTableContent(content string, startPos int) str
 			}
 			continue
 		}
-		
+
 		// Check if line looks like table data (has multiple columns)
 		if cs.looksLikeTableRow(line) {
 			tableLines = append(tableLines, line)
@@ -540,18 +539,18 @@ func (cs *ChunkingService) looksLikeTableRow(line string) bool {
 	if strings.Count(line, "\t") >= 2 {
 		return true
 	}
-	
+
 	// Check for multiple space separators (3+ spaces)
 	multiSpacePattern := regexp.MustCompile(`\s{3,}`)
 	if len(multiSpacePattern.FindAllString(line, -1)) >= 2 {
 		return true
 	}
-	
+
 	// Check for pipe separators
 	if strings.Count(line, "|") >= 2 {
 		return true
 	}
-	
+
 	return false
 }
 
@@ -565,7 +564,7 @@ func (cs *ChunkingService) analyzeTableStructure(tableContent string) ([]string,
 	// Try to identify headers from the first line
 	firstLine := strings.TrimSpace(lines[0])
 	var headers []string
-	
+
 	if strings.Contains(firstLine, "\t") {
 		headers = strings.Split(firstLine, "\t")
 	} else if strings.Contains(firstLine, "|") {
@@ -596,11 +595,11 @@ func (cs *ChunkingService) extractReferences(content string) []Reference {
 		// Extract references from reference section
 		refStart := refMatches[0][1]
 		refSection := content[refStart:]
-		
+
 		// Pattern for numbered references [1], [2], etc.
 		refPattern := regexp.MustCompile(`(?m)^\s*\[(\d+)\]\s*(.+?)(?=^\s*\[\d+\]|\z)`)
 		refSubmatches := refPattern.FindAllStringSubmatch(refSection, -1)
-		
+
 		for _, submatch := range refSubmatches {
 			if len(submatch) >= 3 {
 				ref := Reference{
@@ -617,7 +616,7 @@ func (cs *ChunkingService) extractReferences(content string) []Reference {
 	// Also look for inline citations throughout the document
 	inlineCitationPattern := regexp.MustCompile(`\[(\d+(?:\s*,\s*\d+)*)\]`)
 	citationMatches := inlineCitationPattern.FindAllStringIndex(content, -1)
-	
+
 	for _, match := range citationMatches {
 		citation := content[match[0]:match[1]]
 		ref := Reference{
@@ -649,20 +648,20 @@ func (cs *ChunkingService) createIntelligentChunks(ctx context.Context, doc *Loa
 		chunk.ChunkIndex = i
 		chunk.ProcessedAt = time.Now()
 		chunk.ChunkingMethod = cs.determineChunkingMethod()
-		
+
 		if cs.config.AddDocumentMetadata {
 			chunk.DocumentMetadata = doc.Metadata
 		}
-		
+
 		// Calculate quality score
 		chunk.QualityScore = cs.calculateChunkQuality(chunk)
-		
+
 		// Add technical analysis
 		cs.analyzeChunkTechnicalContent(chunk)
-		
+
 		// Add semantic tags
 		chunk.SemanticTags = cs.extractSemanticTags(chunk.Content)
-		
+
 		// Calculate keyword density
 		chunk.KeywordDensity = cs.calculateKeywordDensity(chunk.Content)
 	}
@@ -687,11 +686,11 @@ func (cs *ChunkingService) createSectionBasedChunks(doc *LoadedDocument, structu
 func (cs *ChunkingService) processSectionsRecursively(sections []Section, doc *LoadedDocument, parentPath []string, chunks *[]*DocumentChunk) {
 	for _, section := range sections {
 		currentPath := append(parentPath, section.Title)
-		
+
 		// Create chunks for this section
 		sectionChunks := cs.chunkSectionContent(section, doc, currentPath)
 		*chunks = append(*chunks, sectionChunks...)
-		
+
 		// Process child sections
 		if len(section.Children) > 0 {
 			cs.processSectionsRecursively(section.Children, doc, currentPath, chunks)
@@ -792,7 +791,7 @@ func (cs *ChunkingService) calculateBoundaryScore(content string, pos int) float
 	if pos > 0 && pos < len(content)-1 {
 		prevChar := rune(content[pos-1])
 		nextChar := rune(content[pos])
-		
+
 		if (prevChar == '.' || prevChar == '!' || prevChar == '?') && (nextChar == ' ' || nextChar == '\n') {
 			score += cs.config.SentenceBoundaryWeight
 		}
@@ -814,7 +813,7 @@ func (cs *ChunkingService) calculateBoundaryScore(content string, pos int) float
 		} else {
 			lineEnd += lineStart
 		}
-		
+
 		line := strings.TrimSpace(content[lineStart:lineEnd])
 		if cs.looksLikeSectionHeader(line) {
 			score += cs.config.SectionBoundaryWeight
@@ -884,7 +883,7 @@ func (cs *ChunkingService) isInsideTechnicalTerm(content string, pos int) bool {
 	for _, pattern := range cs.config.TechnicalTermPatterns {
 		regex := regexp.MustCompile(pattern)
 		matches := regex.FindAllStringIndex(window, -1)
-		
+
 		for _, match := range matches {
 			if relativePos >= match[0] && relativePos <= match[1] {
 				return true
@@ -933,7 +932,7 @@ func (cs *ChunkingService) splitContentIntoChunks(content, docID string, baseOff
 // createChunk creates a single document chunk with metadata
 func (cs *ChunkingService) createChunk(content, docID string, startOffset, length int, hierarchyPath []string, sectionTitle string, level int) *DocumentChunk {
 	chunkID := fmt.Sprintf("%s_chunk_%d", docID, startOffset)
-	
+
 	chunk := &DocumentChunk{
 		ID:             chunkID,
 		DocumentID:     docID,
@@ -965,15 +964,15 @@ func (cs *ChunkingService) createChunk(content, docID string, startOffset, lengt
 func (cs *ChunkingService) cleanChunkContent(content string) string {
 	// Remove excessive whitespace
 	cleaned := regexp.MustCompile(`\s+`).ReplaceAllString(content, " ")
-	
+
 	// Remove common artifacts if noise filtering is enabled
 	if cs.config.FilterNoiseContent {
 		// Remove page numbers
 		cleaned = regexp.MustCompile(`(?i)page\s+\d+(?:\s+of\s+\d+)?`).ReplaceAllString(cleaned, "")
-		
+
 		// Remove excessive dashes/underscores (likely formatting)
 		cleaned = regexp.MustCompile(`[-_]{5,}`).ReplaceAllString(cleaned, "")
-		
+
 		// Remove copyright notices
 		cleaned = regexp.MustCompile(`(?i)©\s*\d{4}.*?(?:\n|$)`).ReplaceAllString(cleaned, "")
 	}
@@ -992,7 +991,7 @@ func (cs *ChunkingService) countSentences(content string) int {
 	// Simple sentence counting based on sentence-ending punctuation
 	sentencePattern := regexp.MustCompile(`[.!?]+\s+`)
 	sentences := sentencePattern.Split(content, -1)
-	
+
 	// Filter out very short "sentences" (likely abbreviations)
 	count := 0
 	for _, sentence := range sentences {
@@ -1000,7 +999,7 @@ func (cs *ChunkingService) countSentences(content string) int {
 			count++
 		}
 	}
-	
+
 	return count
 }
 
@@ -1111,7 +1110,7 @@ func (cs *ChunkingService) extractTechnicalTermsFromChunk(content string) []stri
 	for _, pattern := range cs.config.TechnicalTermPatterns {
 		regex := regexp.MustCompile(pattern)
 		matches := regex.FindAllString(content, -1)
-		
+
 		for _, match := range matches {
 			term := strings.TrimSpace(match)
 			if !termSet[term] && len(term) > 1 {
@@ -1144,7 +1143,7 @@ func (cs *ChunkingService) determineChunkType(chunk *DocumentChunk) string {
 	if chunk.ContainsReference {
 		return "reference"
 	}
-	
+
 	return "text"
 }
 
@@ -1155,13 +1154,13 @@ func (cs *ChunkingService) extractSemanticTags(content string) []string {
 
 	// Define semantic categories and their keywords
 	semanticCategories := map[string][]string{
-		"architecture": {"architecture", "design", "structure", "component", "interface"},
-		"protocol": {"protocol", "message", "procedure", "signaling", "handshake"},
-		"configuration": {"configuration", "parameter", "setting", "option", "value"},
-		"performance": {"performance", "throughput", "latency", "efficiency", "optimization"},
-		"security": {"security", "authentication", "encryption", "key", "certificate"},
-		"requirements": {"requirement", "shall", "must", "should", "mandatory"},
-		"specification": {"specification", "standard", "defined", "described", "specified"},
+		"architecture":   {"architecture", "design", "structure", "component", "interface"},
+		"protocol":       {"protocol", "message", "procedure", "signaling", "handshake"},
+		"configuration":  {"configuration", "parameter", "setting", "option", "value"},
+		"performance":    {"performance", "throughput", "latency", "efficiency", "optimization"},
+		"security":       {"security", "authentication", "encryption", "key", "certificate"},
+		"requirements":   {"requirement", "shall", "must", "should", "mandatory"},
+		"specification":  {"specification", "standard", "defined", "described", "specified"},
 		"implementation": {"implementation", "algorithm", "method", "approach", "solution"},
 	}
 
@@ -1350,7 +1349,7 @@ func (cs *ChunkingService) updateMetrics(updater func(*ChunkingMetrics)) {
 func (cs *ChunkingService) GetMetrics() *ChunkingMetrics {
 	cs.metrics.mutex.RLock()
 	defer cs.metrics.mutex.RUnlock()
-	
+
 	// Return a copy
 	metrics := *cs.metrics
 	return &metrics

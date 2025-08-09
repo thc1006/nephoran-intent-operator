@@ -20,25 +20,25 @@ import (
 
 // AutomationEngine provides comprehensive certificate automation capabilities
 type AutomationEngine struct {
-	config           *AutomationConfig
-	logger           *logging.StructuredLogger
-	caManager        *CAManager
-	validator        *ValidationFramework
+	config            *AutomationConfig
+	logger            *logging.StructuredLogger
+	caManager         *CAManager
+	validator         *ValidationFramework
 	revocationChecker *RevocationChecker
-	kubeClient       kubernetes.Interface
-	ctrlClient       client.Client
-	
+	kubeClient        kubernetes.Interface
+	ctrlClient        client.Client
+
 	// Internal state
 	provisioningQueue chan *ProvisioningRequest
 	renewalQueue      chan *RenewalRequest
 	validationCache   *ValidationCache
-	
+
 	// Enhanced features
 	rotationCoordinator *RotationCoordinator
 	serviceDiscovery    *ServiceDiscovery
 	performanceCache    *PerformanceCache
-	healthChecker      *HealthChecker
-	
+	healthChecker       *HealthChecker
+
 	// Control channels
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -49,39 +49,39 @@ type AutomationEngine struct {
 // AutomationConfig configures the automation engine
 type AutomationConfig struct {
 	// Provisioning settings
-	ProvisioningEnabled         bool          `yaml:"provisioning_enabled"`
-	AutoInjectCertificates     bool          `yaml:"auto_inject_certificates"`
-	ServiceDiscoveryEnabled    bool          `yaml:"service_discovery_enabled"`
-	ProvisioningWorkers        int           `yaml:"provisioning_workers"`
-	ProvisioningTimeout        time.Duration `yaml:"provisioning_timeout"`
-	
+	ProvisioningEnabled     bool          `yaml:"provisioning_enabled"`
+	AutoInjectCertificates  bool          `yaml:"auto_inject_certificates"`
+	ServiceDiscoveryEnabled bool          `yaml:"service_discovery_enabled"`
+	ProvisioningWorkers     int           `yaml:"provisioning_workers"`
+	ProvisioningTimeout     time.Duration `yaml:"provisioning_timeout"`
+
 	// Renewal settings
-	RenewalEnabled             bool          `yaml:"renewal_enabled"`
-	RenewalThreshold          time.Duration `yaml:"renewal_threshold"`
-	RenewalWorkers            int           `yaml:"renewal_workers"`
-	RenewalWindow             time.Duration `yaml:"renewal_window"`
-	GracefulRenewalEnabled    bool          `yaml:"graceful_renewal_enabled"`
-	
+	RenewalEnabled         bool          `yaml:"renewal_enabled"`
+	RenewalThreshold       time.Duration `yaml:"renewal_threshold"`
+	RenewalWorkers         int           `yaml:"renewal_workers"`
+	RenewalWindow          time.Duration `yaml:"renewal_window"`
+	GracefulRenewalEnabled bool          `yaml:"graceful_renewal_enabled"`
+
 	// Validation settings
-	ValidationEnabled         bool          `yaml:"validation_enabled"`
-	RealtimeValidation       bool          `yaml:"realtime_validation"`
-	ChainValidationEnabled   bool          `yaml:"chain_validation_enabled"`
-	CTLogValidationEnabled   bool          `yaml:"ct_log_validation_enabled"`
-	ValidationCacheSize      int           `yaml:"validation_cache_size"`
-	ValidationCacheTTL       time.Duration `yaml:"validation_cache_ttl"`
-	
+	ValidationEnabled      bool          `yaml:"validation_enabled"`
+	RealtimeValidation     bool          `yaml:"realtime_validation"`
+	ChainValidationEnabled bool          `yaml:"chain_validation_enabled"`
+	CTLogValidationEnabled bool          `yaml:"ct_log_validation_enabled"`
+	ValidationCacheSize    int           `yaml:"validation_cache_size"`
+	ValidationCacheTTL     time.Duration `yaml:"validation_cache_ttl"`
+
 	// Revocation settings
-	RevocationEnabled        bool          `yaml:"revocation_enabled"`
-	CRLCheckEnabled         bool          `yaml:"crl_check_enabled"`
-	OCSPCheckEnabled        bool          `yaml:"ocsp_check_enabled"`
-	RevocationCacheSize     int           `yaml:"revocation_cache_size"`
-	RevocationCacheTTL      time.Duration `yaml:"revocation_cache_ttl"`
-	
+	RevocationEnabled   bool          `yaml:"revocation_enabled"`
+	CRLCheckEnabled     bool          `yaml:"crl_check_enabled"`
+	OCSPCheckEnabled    bool          `yaml:"ocsp_check_enabled"`
+	RevocationCacheSize int           `yaml:"revocation_cache_size"`
+	RevocationCacheTTL  time.Duration `yaml:"revocation_cache_ttl"`
+
 	// Integration settings
-	KubernetesIntegration    *K8sIntegrationConfig `yaml:"kubernetes_integration"`
-	MonitoringIntegration    *MonitoringIntegration `yaml:"monitoring_integration"`
-	AlertingConfig          *AutomationAlertingConfig `yaml:"alerting_config"`
-	
+	KubernetesIntegration *K8sIntegrationConfig     `yaml:"kubernetes_integration"`
+	MonitoringIntegration *MonitoringIntegration    `yaml:"monitoring_integration"`
+	AlertingConfig        *AutomationAlertingConfig `yaml:"alerting_config"`
+
 	// Performance settings
 	BatchSize               int           `yaml:"batch_size"`
 	MaxConcurrentOperations int           `yaml:"max_concurrent_operations"`
@@ -92,56 +92,56 @@ type AutomationConfig struct {
 
 // K8sIntegrationConfig configures Kubernetes integration
 type K8sIntegrationConfig struct {
-	Enabled                bool     `yaml:"enabled"`
-	Namespaces            []string `yaml:"namespaces"`
-	ServiceSelector       string   `yaml:"service_selector"`
-	PodSelector           string   `yaml:"pod_selector"`
-	IngressSelector       string   `yaml:"ingress_selector"`
-	AdmissionWebhook      *AdmissionWebhookConfig `yaml:"admission_webhook"`
-	SecretPrefix          string   `yaml:"secret_prefix"`
-	AnnotationPrefix      string   `yaml:"annotation_prefix"`
+	Enabled          bool                    `yaml:"enabled"`
+	Namespaces       []string                `yaml:"namespaces"`
+	ServiceSelector  string                  `yaml:"service_selector"`
+	PodSelector      string                  `yaml:"pod_selector"`
+	IngressSelector  string                  `yaml:"ingress_selector"`
+	AdmissionWebhook *AdmissionWebhookConfig `yaml:"admission_webhook"`
+	SecretPrefix     string                  `yaml:"secret_prefix"`
+	AnnotationPrefix string                  `yaml:"annotation_prefix"`
 }
 
 // AdmissionWebhookConfig configures admission webhook for certificate injection
 type AdmissionWebhookConfig struct {
-	Enabled           bool   `yaml:"enabled"`
-	WebhookName       string `yaml:"webhook_name"`
-	ServiceName       string `yaml:"service_name"`
-	ServiceNamespace  string `yaml:"service_namespace"`
-	CertDir           string `yaml:"cert_dir"`
-	Port              int    `yaml:"port"`
+	Enabled          bool   `yaml:"enabled"`
+	WebhookName      string `yaml:"webhook_name"`
+	ServiceName      string `yaml:"service_name"`
+	ServiceNamespace string `yaml:"service_namespace"`
+	CertDir          string `yaml:"cert_dir"`
+	Port             int    `yaml:"port"`
 }
 
 // MonitoringIntegration configures monitoring integration
 type MonitoringIntegration struct {
-	PrometheusEnabled    bool   `yaml:"prometheus_enabled"`
-	JaegerEnabled       bool   `yaml:"jaeger_enabled"`
-	GrafanaEnabled      bool   `yaml:"grafana_enabled"`
-	CustomMetricsEnabled bool   `yaml:"custom_metrics_enabled"`
+	PrometheusEnabled    bool `yaml:"prometheus_enabled"`
+	JaegerEnabled        bool `yaml:"jaeger_enabled"`
+	GrafanaEnabled       bool `yaml:"grafana_enabled"`
+	CustomMetricsEnabled bool `yaml:"custom_metrics_enabled"`
 }
 
 // AutomationAlertingConfig configures automation-specific alerting
 type AutomationAlertingConfig struct {
-	Enabled                    bool          `yaml:"enabled"`
-	ProvisioningFailureAlert   bool          `yaml:"provisioning_failure_alert"`
-	RenewalFailureAlert       bool          `yaml:"renewal_failure_alert"`
-	ValidationFailureAlert    bool          `yaml:"validation_failure_alert"`
-	RevocationAlert           bool          `yaml:"revocation_alert"`
-	AlertCooldown             time.Duration `yaml:"alert_cooldown"`
+	Enabled                  bool          `yaml:"enabled"`
+	ProvisioningFailureAlert bool          `yaml:"provisioning_failure_alert"`
+	RenewalFailureAlert      bool          `yaml:"renewal_failure_alert"`
+	ValidationFailureAlert   bool          `yaml:"validation_failure_alert"`
+	RevocationAlert          bool          `yaml:"revocation_alert"`
+	AlertCooldown            time.Duration `yaml:"alert_cooldown"`
 }
 
 // ProvisioningRequest represents a certificate provisioning request
 type ProvisioningRequest struct {
-	ID                string            `json:"id"`
-	ServiceName       string            `json:"service_name"`
-	Namespace         string            `json:"namespace"`
-	Template          string            `json:"template"`
-	DNSNames          []string          `json:"dns_names"`
-	IPAddresses       []string          `json:"ip_addresses"`
-	Metadata          map[string]string `json:"metadata"`
-	Priority          ProvisioningPriority `json:"priority"`
-	CreatedAt         time.Time         `json:"created_at"`
-	Deadline          time.Time         `json:"deadline,omitempty"`
+	ID          string               `json:"id"`
+	ServiceName string               `json:"service_name"`
+	Namespace   string               `json:"namespace"`
+	Template    string               `json:"template"`
+	DNSNames    []string             `json:"dns_names"`
+	IPAddresses []string             `json:"ip_addresses"`
+	Metadata    map[string]string    `json:"metadata"`
+	Priority    ProvisioningPriority `json:"priority"`
+	CreatedAt   time.Time            `json:"created_at"`
+	Deadline    time.Time            `json:"deadline,omitempty"`
 }
 
 // ProvisioningPriority represents the priority of provisioning requests
@@ -156,28 +156,28 @@ const (
 
 // RenewalRequest represents a certificate renewal request
 type RenewalRequest struct {
-	SerialNumber      string            `json:"serial_number"`
-	CurrentExpiry     time.Time         `json:"current_expiry"`
-	ServiceName       string            `json:"service_name"`
-	Namespace         string            `json:"namespace"`
-	RenewalWindow     time.Duration     `json:"renewal_window"`
-	GracefulRenewal   bool              `json:"graceful_renewal"`
-	ZeroDowntime      bool              `json:"zero_downtime"`
-	CoordinatedRotation bool            `json:"coordinated_rotation"`
-	HealthCheckConfig *HealthCheckConfig `json:"health_check_config,omitempty"`
-	Metadata          map[string]string `json:"metadata"`
-	CreatedAt         time.Time         `json:"created_at"`
+	SerialNumber        string             `json:"serial_number"`
+	CurrentExpiry       time.Time          `json:"current_expiry"`
+	ServiceName         string             `json:"service_name"`
+	Namespace           string             `json:"namespace"`
+	RenewalWindow       time.Duration      `json:"renewal_window"`
+	GracefulRenewal     bool               `json:"graceful_renewal"`
+	ZeroDowntime        bool               `json:"zero_downtime"`
+	CoordinatedRotation bool               `json:"coordinated_rotation"`
+	HealthCheckConfig   *HealthCheckConfig `json:"health_check_config,omitempty"`
+	Metadata            map[string]string  `json:"metadata"`
+	CreatedAt           time.Time          `json:"created_at"`
 }
 
 // HealthCheckConfig defines health check configuration for zero-downtime rotation
 type HealthCheckConfig struct {
-	Enabled           bool          `json:"enabled"`
-	HTTPEndpoint      string        `json:"http_endpoint"`
-	GRPCService       string        `json:"grpc_service"`
-	CheckInterval     time.Duration `json:"check_interval"`
-	TimeoutPerCheck   time.Duration `json:"timeout_per_check"`
-	HealthyThreshold  int           `json:"healthy_threshold"`
-	UnhealthyThreshold int          `json:"unhealthy_threshold"`
+	Enabled            bool          `json:"enabled"`
+	HTTPEndpoint       string        `json:"http_endpoint"`
+	GRPCService        string        `json:"grpc_service"`
+	CheckInterval      time.Duration `json:"check_interval"`
+	TimeoutPerCheck    time.Duration `json:"timeout_per_check"`
+	HealthyThreshold   int           `json:"healthy_threshold"`
+	UnhealthyThreshold int           `json:"unhealthy_threshold"`
 }
 
 // ValidationCache caches certificate validation results
@@ -189,24 +189,24 @@ type ValidationCache struct {
 
 // ValidationResult represents a certificate validation result
 type ValidationResult struct {
-	SerialNumber    string            `json:"serial_number"`
-	Valid           bool              `json:"valid"`
-	ChainValid      bool              `json:"chain_valid"`
-	CTLogVerified   bool              `json:"ct_log_verified"`
+	SerialNumber     string           `json:"serial_number"`
+	Valid            bool             `json:"valid"`
+	ChainValid       bool             `json:"chain_valid"`
+	CTLogVerified    bool             `json:"ct_log_verified"`
 	RevocationStatus RevocationStatus `json:"revocation_status"`
-	ValidationTime  time.Time         `json:"validation_time"`
-	ExpiresAt       time.Time         `json:"expires_at"`
-	Errors          []string          `json:"errors,omitempty"`
-	Warnings        []string          `json:"warnings,omitempty"`
+	ValidationTime   time.Time        `json:"validation_time"`
+	ExpiresAt        time.Time        `json:"expires_at"`
+	Errors           []string         `json:"errors,omitempty"`
+	Warnings         []string         `json:"warnings,omitempty"`
 }
 
 // RevocationStatus represents certificate revocation status
 type RevocationStatus string
 
 const (
-	RevocationStatusGood     RevocationStatus = "good"
-	RevocationStatusRevoked  RevocationStatus = "revoked"
-	RevocationStatusUnknown  RevocationStatus = "unknown"
+	RevocationStatusGood    RevocationStatus = "good"
+	RevocationStatusRevoked RevocationStatus = "revoked"
+	RevocationStatusUnknown RevocationStatus = "unknown"
 )
 
 // NewAutomationEngine creates a new certificate automation engine
@@ -241,13 +241,13 @@ func NewAutomationEngine(
 	// Initialize service discovery
 	if config.KubernetesIntegration != nil && config.ServiceDiscoveryEnabled {
 		serviceDiscoveryConfig := &ServiceDiscoveryConfig{
-			Enabled:              true,
-			WatchNamespaces:      config.KubernetesIntegration.Namespaces,
+			Enabled:                 true,
+			WatchNamespaces:         config.KubernetesIntegration.Namespaces,
 			ServiceAnnotationPrefix: config.KubernetesIntegration.AnnotationPrefix,
-			AutoProvisionEnabled: config.AutoInjectCertificates,
+			AutoProvisionEnabled:    config.AutoInjectCertificates,
 			TemplateMatching: &TemplateMatchingConfig{
-				Enabled:         true,
-				DefaultTemplate: "default",
+				Enabled:          true,
+				DefaultTemplate:  "default",
 				FallbackBehavior: "default",
 			},
 			PreProvisioningEnabled: config.ProvisioningEnabled,
@@ -258,17 +258,17 @@ func NewAutomationEngine(
 	// Initialize performance cache
 	performanceCacheConfig := &PerformanceCacheConfig{
 		L1CacheSize:            1000,
-		L1CacheTTL:            5 * time.Minute,
-		L2CacheSize:           5000,
-		L2CacheTTL:            30 * time.Minute,
+		L1CacheTTL:             5 * time.Minute,
+		L2CacheSize:            5000,
+		L2CacheTTL:             30 * time.Minute,
 		PreProvisioningEnabled: true,
-		PreProvisioningSize:   100,
-		PreProvisioningTTL:    24 * time.Hour,
+		PreProvisioningSize:    100,
+		PreProvisioningTTL:     24 * time.Hour,
 		BatchOperationsEnabled: config.BatchSize > 1,
-		BatchSize:             config.BatchSize,
-		BatchTimeout:          config.OperationTimeout,
-		MetricsEnabled:        config.MonitoringIntegration != nil && config.MonitoringIntegration.PrometheusEnabled,
-		CleanupInterval:       1 * time.Hour,
+		BatchSize:              config.BatchSize,
+		BatchTimeout:           config.OperationTimeout,
+		MetricsEnabled:         config.MonitoringIntegration != nil && config.MonitoringIntegration.PrometheusEnabled,
+		CleanupInterval:        1 * time.Hour,
 	}
 	engine.performanceCache = NewPerformanceCache(logger, performanceCacheConfig)
 
@@ -279,11 +279,11 @@ func NewAutomationEngine(
 		DefaultInterval:           10 * time.Second,
 		DefaultHealthyThreshold:   3,
 		DefaultUnhealthyThreshold: 3,
-		ConcurrentChecks:         10,
-		RetryAttempts:            3,
-		RetryDelay:               5 * time.Second,
-		TLSVerificationEnabled:   true,
-		MetricsEnabled:           config.MonitoringIntegration != nil && config.MonitoringIntegration.PrometheusEnabled,
+		ConcurrentChecks:          10,
+		RetryAttempts:             3,
+		RetryDelay:                5 * time.Second,
+		TLSVerificationEnabled:    true,
+		MetricsEnabled:            config.MonitoringIntegration != nil && config.MonitoringIntegration.PrometheusEnabled,
 	}
 	engine.healthChecker = NewHealthChecker(logger, healthCheckerConfig)
 
@@ -299,7 +299,7 @@ func NewAutomationEngine(
 			return nil, fmt.Errorf("failed to initialize validation framework: %w", err)
 		}
 		engine.validator = validator
-		
+
 		// Initialize validation cache
 		engine.validationCache = &ValidationCache{
 			cache: make(map[string]*ValidationResult),
@@ -310,10 +310,10 @@ func NewAutomationEngine(
 	// Initialize revocation checker
 	if config.RevocationEnabled {
 		checker, err := NewRevocationChecker(&RevocationConfig{
-			CRLCheckEnabled:    config.CRLCheckEnabled,
-			OCSPCheckEnabled:   config.OCSPCheckEnabled,
-			CacheSize:          config.RevocationCacheSize,
-			CacheTTL:          config.RevocationCacheTTL,
+			CRLCheckEnabled:  config.CRLCheckEnabled,
+			OCSPCheckEnabled: config.OCSPCheckEnabled,
+			CacheSize:        config.RevocationCacheSize,
+			CacheTTL:         config.RevocationCacheTTL,
 		}, logger)
 		if err != nil {
 			cancel()
@@ -397,9 +397,9 @@ func (e *AutomationEngine) Start(ctx context.Context) error {
 	}
 
 	// Start admission webhook
-	if e.config.KubernetesIntegration != nil && 
-	   e.config.KubernetesIntegration.AdmissionWebhook != nil &&
-	   e.config.KubernetesIntegration.AdmissionWebhook.Enabled {
+	if e.config.KubernetesIntegration != nil &&
+		e.config.KubernetesIntegration.AdmissionWebhook != nil &&
+		e.config.KubernetesIntegration.AdmissionWebhook.Enabled {
 		e.wg.Add(1)
 		go e.runAdmissionWebhook()
 	}
@@ -571,10 +571,10 @@ func (e *AutomationEngine) processProvisioningRequest(workerID int, req *Provisi
 
 		// Send alert if configured
 		e.sendAlert("provisioning_failure", map[string]string{
-			"request_id":   req.ID,
-			"service":      req.ServiceName,
-			"namespace":    req.Namespace,
-			"error":        err.Error(),
+			"request_id": req.ID,
+			"service":    req.ServiceName,
+			"namespace":  req.Namespace,
+			"error":      err.Error(),
 		})
 		return
 	}
@@ -690,13 +690,13 @@ func (e *AutomationEngine) runRenewalScheduler() {
 
 func (e *AutomationEngine) scheduleRenewals() {
 	threshold := time.Now().Add(e.config.RenewalThreshold)
-	
+
 	// Get expiring certificates from CA manager
 	filters := map[string]string{
 		"auto_renew": "true",
 		"status":     string(StatusIssued),
 	}
-	
+
 	certificates, err := e.caManager.ListCertificates(filters)
 	if err != nil {
 		e.logger.Error("failed to list certificates for renewal", "error", err)
@@ -757,7 +757,7 @@ func (e *AutomationEngine) performBatchValidation() {
 	filters := map[string]string{
 		"status": string(StatusIssued),
 	}
-	
+
 	certificates, err := e.caManager.ListCertificates(filters)
 	if err != nil {
 		e.logger.Error("failed to list certificates for validation", "error", err)
@@ -849,7 +849,7 @@ func (e *AutomationEngine) sendAlert(alertType string, labels map[string]string)
 
 func (e *AutomationEngine) storeCertificateInKubernetes(req *ProvisioningRequest, cert *CertificateResponse) error {
 	secretName := fmt.Sprintf("%s-%s-tls", e.config.KubernetesIntegration.SecretPrefix, req.ServiceName)
-	
+
 	secret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      secretName,
@@ -879,7 +879,7 @@ func (e *AutomationEngine) storeCertificateInKubernetes(req *ProvisioningRequest
 
 func (e *AutomationEngine) updateCertificateInKubernetes(req *RenewalRequest, cert *CertificateResponse) error {
 	secretName := fmt.Sprintf("%s-%s-tls", e.config.KubernetesIntegration.SecretPrefix, req.ServiceName)
-	
+
 	secret, err := e.kubeClient.CoreV1().Secrets(req.Namespace).Get(e.ctx, secretName, metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get certificate secret: %w", err)
@@ -921,7 +921,7 @@ func (e *AutomationEngine) performCoordinatedRenewal(workerID int, req *RenewalR
 			"worker_id", workerID,
 			"serial_number", req.SerialNumber,
 			"error", err)
-		
+
 		e.sendAlert("coordinated_renewal_failure", map[string]string{
 			"serial_number": req.SerialNumber,
 			"service":       req.ServiceName,
@@ -954,7 +954,7 @@ func (e *AutomationEngine) performCoordinatedRenewal(workerID int, req *RenewalR
 				Address: strings.Split(instance.Endpoint, ":")[0],
 				Port:    e.parsePort(instance.Endpoint),
 			}
-			
+
 			healthSession, err := e.healthChecker.StartHealthCheck(target, req.HealthCheckConfig)
 			if err != nil {
 				return fmt.Errorf("failed to start health check: %w", err)
@@ -976,7 +976,7 @@ func (e *AutomationEngine) performCoordinatedRenewal(workerID int, req *RenewalR
 			"worker_id", workerID,
 			"session_id", session.ID,
 			"error", err)
-		
+
 		e.sendAlert("coordinated_renewal_failure", map[string]string{
 			"session_id":    session.ID,
 			"serial_number": req.SerialNumber,
@@ -1001,7 +1001,7 @@ func (e *AutomationEngine) parsePort(endpoint string) int {
 	if len(parts) != 2 {
 		return 443 // Default HTTPS port
 	}
-	
+
 	// Simple port parsing - could be enhanced
 	switch parts[1] {
 	case "80":
