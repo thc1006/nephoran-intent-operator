@@ -15,7 +15,6 @@ import (
 
 // CreateIsolatedNamespace creates a unique namespace for test isolation
 func CreateIsolatedNamespace(baseName string) string {
-	rand.Seed(time.Now().UnixNano())
 	return fmt.Sprintf("%s-%d", baseName, rand.Intn(10000))
 }
 

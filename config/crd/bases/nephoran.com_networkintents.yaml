@@ -42,7 +42,18 @@ spec:
             description: NetworkIntentSpec defines the desired state of NetworkIntent
             properties:
               intent:
-                description: Intent is the natural language intent from the user
+                description: |-
+                  Intent is the natural language intent from the user describing the desired network configuration.
+                  The intent must be between 1 and 2000 characters and cannot contain potentially malicious content
+                  such as script tags, SQL injection patterns, or command injection attempts.
+                  Only printable ASCII and common Unicode characters are allowed.
+                  Examples:
+                    - "Deploy a high-availability AMF instance for production with auto-scaling"
+                    - "Create a network slice for URLLC with 1ms latency requirements"
+                    - "Configure QoS policies for enhanced mobile broadband services"
+                maxLength: 2000
+                minLength: 1
+                pattern: ^[a-zA-Z0-9\s\-_.,;:()\[\]{}'"@#$%&*+=?!/\\]*$
                 type: string
             required:
             - intent

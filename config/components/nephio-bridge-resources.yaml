@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephio-bridge
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephio-bridge
+    app.kubernetes.io/component: gitops-bridge
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nephio-bridge
+  template:
+    metadata:
+      labels:
+        app: nephio-bridge
+        app.kubernetes.io/name: nephio-bridge
+        app.kubernetes.io/component: gitops-bridge
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: nephio-bridge
+        image: nephio-bridge:latest
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 8081
+          name: health
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          capabilities:
+            drop:
+            - "ALL"
+        # Moderate resources for GitOps operations
+        resources:
+          limits:
+            cpu: 300m
+            memory: 384Mi
+          requests:
+            cpu: 50m
+            memory: 96Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        env:
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: PORT
+          value: "8080"
+        - name: HEALTH_PORT
+          value: "8081"
+        - name: PORCH_ENDPOINT
+          value: "https://porch-server.nephio-system.svc.cluster.local:3333"
+        - name: CONFIG_SYNC_ENABLED
+          value: "true"
+        - name: PACKAGE_ORCHESTRATION_TIMEOUT
+          value: "300s"
+        - name: MAX_CONCURRENT_PACKAGES
+          value: "5"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: git-credentials
+          mountPath: /etc/git-secret
+          readOnly: true
+      serviceAccountName: nephio-bridge
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: git-credentials
+        secret:
+          secretName: git-credentials
+          optional: true
+      tolerations:
+      - key: "nephoran.com/gitops-workload"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephio-bridge
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephio-bridge
+    app.kubernetes.io/component: gitops-bridge
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 8081
+    targetPort: 8081
+    protocol: TCP
+    name: health
+  selector:
+    app: nephio-bridge
+  type: ClusterIP

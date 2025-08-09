@@ -537,10 +537,10 @@ func (m *MockEmbeddingService) GenerateEmbeddings(ctx context.Context, texts []s
 
 		// Simple deterministic generation based on text content
 		hash := simpleHash(text)
-		rand.Seed(int64(hash))
+		rng := rand.New(rand.NewSource(int64(hash)))
 
 		for i := range embedding {
-			embedding[i] = rand.Float32()*2 - 1 // Values between -1 and 1
+			embedding[i] = rng.Float32()*2 - 1 // Values between -1 and 1
 		}
 
 		// Normalize to unit vector

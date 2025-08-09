@@ -1,0 +1,169 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-processor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: llm-processor
+    app.kubernetes.io/component: ai-processor
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: llm-processor
+  template:
+    metadata:
+      labels:
+        app: llm-processor
+        app.kubernetes.io/name: llm-processor
+        app.kubernetes.io/component: ai-processor
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: llm-processor
+        image: llm-processor:latest
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 8081
+          name: health
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          capabilities:
+            drop:
+            - "ALL"
+        # Higher memory allocation for AI processing
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        env:
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: METRICS_ENABLED
+          value: "true"
+        - name: PORT
+          value: "8080"
+        - name: HEALTH_PORT
+          value: "8081"
+        - name: MAX_CONCURRENT_REQUESTS
+          value: "10"
+        - name: CIRCUIT_BREAKER_ENABLED
+          value: "true"
+        - name: CACHE_TTL_SECONDS
+          value: "300"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: cache
+          mountPath: /cache
+      serviceAccountName: llm-processor
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: cache
+        emptyDir:
+          sizeLimit: 1Gi
+      # Scheduling preferences for AI workloads
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node.kubernetes.io/instance-type
+                operator: In
+                values:
+                - c5.large
+                - c5.xlarge
+                - c5.2xlarge
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - llm-processor
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+      - key: "nephoran.com/ai-workload"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-processor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: llm-processor
+    app.kubernetes.io/component: ai-processor
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 8081
+    targetPort: 8081
+    protocol: TCP
+    name: health
+  selector:
+    app: llm-processor
+  type: ClusterIP
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: llm-processor-pdb
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: llm-processor
+    app.kubernetes.io/component: ai-processor
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: llm-processor

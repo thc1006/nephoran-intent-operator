@@ -22,7 +22,17 @@ import (
 
 // NetworkIntentSpec defines the desired state of NetworkIntent
 type NetworkIntentSpec struct {
-	// Intent is the natural language intent from the user
+	// Intent is the natural language intent from the user describing the desired network configuration.
+	// The intent must be between 1 and 2000 characters and cannot contain potentially malicious content
+	// such as script tags, SQL injection patterns, or command injection attempts.
+	// Only printable ASCII and common Unicode characters are allowed.
+	// Examples:
+	//   - "Deploy a high-availability AMF instance for production with auto-scaling"
+	//   - "Create a network slice for URLLC with 1ms latency requirements"  
+	//   - "Configure QoS policies for enhanced mobile broadband services"
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=2000
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9\s\-_.,;:()\[\]{}'"@#$%&*+=?!/\\]*$`
 	Intent string `json:"intent"`
 }
 
@@ -44,6 +54,7 @@ type NetworkIntentStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:path=networkintents,scope=Namespaced,shortName=ni
+//+kubebuilder:webhook:path=/validate-nephoran-io-v1-networkintent,mutating=false,failurePolicy=fail,sideEffects=None,groups=nephoran.io,resources=networkintents,verbs=create;update,versions=v1,name=vnetworkintent.kb.io,admissionReviewVersions=v1
 
 // NetworkIntent is the Schema for the networkintents API
 type NetworkIntent struct {

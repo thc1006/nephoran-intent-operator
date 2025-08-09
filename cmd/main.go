@@ -19,6 +19,7 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/webhooks"
 )
 
 var (
@@ -50,6 +51,7 @@ func main() {
 	var enableHTTP2 bool
 	var enableNetworkIntent bool
 	var enableLlmIntent bool
+	var enableWebhooks bool
 
 	flag.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -58,6 +60,7 @@ func main() {
 	flag.BoolVar(&enableHTTP2, "enable-http2", false, "If set, HTTP/2 will be enabled for the webhook and metrics servers")
 	flag.BoolVar(&enableNetworkIntent, "enable-network-intent", getEnvAsBool("ENABLE_NETWORK_INTENT", true), "Enable NetworkIntent controller")
 	flag.BoolVar(&enableLlmIntent, "enable-llm-intent", getEnvAsBool("ENABLE_LLM_INTENT", false), "Enable LLM Intent processing")
+	flag.BoolVar(&enableWebhooks, "enable-webhooks", getEnvAsBool("ENABLE_WEBHOOKS", true), "Enable admission webhooks for validation")
 
 	opts := zap.Options{
 		Development: true,
@@ -118,6 +121,17 @@ func main() {
 		setupLog.Info("LLM Intent processing disabled")
 	}
 
+	// Setup webhooks based on feature flags
+	if enableWebhooks {
+		if err = webhooks.SetupNetworkIntentWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "NetworkIntent")
+			os.Exit(1)
+		}
+		setupLog.Info("NetworkIntent validation webhook enabled")
+	} else {
+		setupLog.Info("Admission webhooks disabled")
+	}
+
 	// +kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
@@ -130,7 +144,10 @@ func main() {
 	}
 
 	fmt.Println("Nephoran Intent Operator starting")
-	setupLog.Info("starting manager", "networkIntentEnabled", enableNetworkIntent, "llmIntentEnabled", enableLlmIntent)
+	setupLog.Info("starting manager", 
+		"networkIntentEnabled", enableNetworkIntent, 
+		"llmIntentEnabled", enableLlmIntent,
+		"webhooksEnabled", enableWebhooks)
 
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")

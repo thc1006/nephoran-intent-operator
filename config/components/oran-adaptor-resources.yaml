@@ -1,0 +1,181 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oran-adaptor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: oran-adaptor
+  template:
+    metadata:
+      labels:
+        app: oran-adaptor
+        app.kubernetes.io/name: oran-adaptor
+        app.kubernetes.io/component: oran-interface
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: oran-adaptor
+        image: oran-adaptor:latest
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        - containerPort: 8081
+          name: health
+          protocol: TCP
+        - containerPort: 9090
+          name: oran-a1
+          protocol: TCP
+        - containerPort: 9091
+          name: oran-o1
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          capabilities:
+            drop:
+            - "ALL"
+        # Moderate resources for O-RAN interface operations
+        resources:
+          limits:
+            cpu: 400m
+            memory: 512Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 20
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        env:
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: PORT
+          value: "8080"
+        - name: HEALTH_PORT
+          value: "8081"
+        - name: A1_PORT
+          value: "9090"
+        - name: O1_PORT
+          value: "9091"
+        - name: NEAR_RT_RIC_ENDPOINT
+          value: ""
+        - name: SMO_ENDPOINT
+          value: ""
+        - name: ENABLE_A1_INTERFACE
+          value: "true"
+        - name: ENABLE_O1_INTERFACE
+          value: "true"
+        - name: POLICY_VALIDATION_ENABLED
+          value: "true"
+        - name: NETCONF_TIMEOUT
+          value: "30s"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: oran-certs
+          mountPath: /etc/oran-certs
+          readOnly: true
+      serviceAccountName: oran-adaptor
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: oran-certs
+        secret:
+          secretName: oran-tls-certs
+          optional: true
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - oran-adaptor
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+      - key: "nephoran.com/oran-workload"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oran-adaptor
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+spec:
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  - port: 8081
+    targetPort: 8081
+    protocol: TCP
+    name: health
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: oran-a1
+  - port: 9091
+    targetPort: 9091
+    protocol: TCP
+    name: oran-o1
+  selector:
+    app: oran-adaptor
+  type: ClusterIP
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: oran-adaptor-pdb
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: oran-adaptor

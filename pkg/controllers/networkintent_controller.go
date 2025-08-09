@@ -288,8 +288,7 @@ func (r *NetworkIntentReconciler) setReadyCondition(ctx context.Context, network
 
 // NewNetworkIntentReconciler creates a new NetworkIntentReconciler with dependency injection
 func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, deps Dependencies, config *Config) (*NetworkIntentReconciler, error) {
-	// Initialize random number generator for jitter in exponential backoff
-	rand.Seed(time.Now().UnixNano())
+	// Note: Random number generator is automatically seeded in Go 1.20+
 
 	if client == nil {
 		return nil, fmt.Errorf("client cannot be nil")
