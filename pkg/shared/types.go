@@ -3,8 +3,6 @@ package shared
 import (
 	"context"
 	"time"
-
-	"k8s.io/apimachinery/pkg/types"
 )
 
 // ClientInterface defines the interface for LLM clients

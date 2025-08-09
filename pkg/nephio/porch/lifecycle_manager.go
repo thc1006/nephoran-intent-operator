@@ -1113,10 +1113,6 @@ type TransitionRecord struct {
 	User      string
 }
 
-type TimeRange struct {
-	Start time.Time
-	End   time.Time
-}
 
 // Default validation gate implementations
 

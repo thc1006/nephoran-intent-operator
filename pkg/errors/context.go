@@ -382,13 +382,7 @@ func (b *ContextAwareErrorBuilder) NewErrorWithSources(ctx context.Context, errT
 		opts.MaxDepth = b.config.StackTraceDepth
 		opts.IncludeSource = b.config.SourceCodeEnabled
 		opts.SourceContext = b.config.SourceCodeLines
-		frames := CaptureStackTrace(opts)
-		// Convert StackFrame to strings for ServiceError compatibility
-		stackStrings := make([]string, len(frames))
-		for i, frame := range frames {
-			stackStrings[i] = fmt.Sprintf("%s:%d %s", frame.File, frame.Line, frame.Function)
-		}
-		err.StackTrace = stackStrings
+		err.StackTrace = CaptureStackTrace(opts)
 	}
 
 	// Set system context
@@ -484,6 +478,7 @@ func (b *ContextAwareErrorBuilder) setSystemContext(err *ServiceError) {
 	}
 }
 
+
 // getCallerInfo gets information about the function that created the error
 func (b *ContextAwareErrorBuilder) getCallerInfo() map[string]interface{} {
 	callerInfo := make(map[string]interface{})
@@ -492,8 +487,12 @@ func (b *ContextAwareErrorBuilder) getCallerInfo() map[string]interface{} {
 		callerInfo["file"] = file
 		callerInfo["line"] = line
 
-		if fn := runtime.FuncForPC(pc); fn != nil {
-			callerInfo["function"] = fn.Name()
+		fn := runtime.FuncForPC(pc)
+		funcName := getSafeFunctionName(fn)
+		if funcName != "" {
+			callerInfo["function"] = funcName
+		} else {
+			callerInfo["function"] = "<unknown>"
 		}
 	}
 

@@ -19,17 +19,15 @@ package shared
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -200,8 +198,14 @@ func (sm *StateManager) UpdateIntentState(ctx context.Context, namespacedName ty
 		return fmt.Errorf("failed to apply state update: %w", err)
 	}
 
-	// Increment version
-	state.Version++
+	// Increment version (convert from string to int, increment, convert back)
+	version := 1
+	if state.Version != "" {
+		if v, err := strconv.Atoi(state.Version); err == nil {
+			version = v + 1
+		}
+	}
+	state.Version = strconv.Itoa(version)
 	state.LastModified = time.Now()
 
 	// Validate state if enabled
@@ -398,7 +402,7 @@ func (sm *StateManager) convertToIntentState(intent *nephoranv1.NetworkIntent) *
 		CreationTime:     intent.CreationTimestamp.Time,
 		LastModified:     time.Now(),
 		Version:          intent.ResourceVersion,
-		Conditions:       make([]StateCondition, len(intent.Status.Conditions)),
+		Conditions:       make([]StateCondition, 0),
 		PhaseTransitions: make([]PhaseTransition, 0),
 		PhaseData:        make(map[interfaces.ProcessingPhase]interface{}),
 		PhaseErrors:      make(map[interfaces.ProcessingPhase][]string),
@@ -406,15 +410,15 @@ func (sm *StateManager) convertToIntentState(intent *nephoranv1.NetworkIntent) *
 		Metadata:         make(map[string]interface{}),
 	}
 
-	// Convert conditions
-	for i, cond := range intent.Status.Conditions {
-		state.Conditions[i] = StateCondition{
-			Type:               cond.Type,
-			Status:             string(cond.Status),
-			LastTransitionTime: cond.LastTransitionTime.Time,
-			Reason:             cond.Reason,
-			Message:            cond.Message,
-		}
+	// Initialize basic condition based on phase
+	if intent.Status.Phase != "" {
+		state.Conditions = append(state.Conditions, StateCondition{
+			Type:               "Ready",
+			Status:             "True",
+			LastTransitionTime: intent.Status.LastUpdateTime.Time,
+			Reason:             "PhaseSet",
+			Message:            intent.Status.LastMessage,
+		})
 	}
 
 	// Extract metadata from annotations
@@ -428,9 +432,9 @@ func (sm *StateManager) convertToIntentState(intent *nephoranv1.NetworkIntent) *
 		}
 	}
 
-	// Set phase start time
-	if intent.Status.ProcessingStartTime != nil {
-		state.PhaseStartTime = intent.Status.ProcessingStartTime.Time
+	// Set phase start time based on last update time if available
+	if !intent.Status.LastUpdateTime.IsZero() {
+		state.PhaseStartTime = intent.Status.LastUpdateTime.Time
 	}
 
 	return state
@@ -445,26 +449,19 @@ func (sm *StateManager) updateKubernetesState(ctx context.Context, namespacedNam
 	// Update intent status based on state
 	intent.Status.Phase = string(state.CurrentPhase)
 
-	// Update conditions
-	intent.Status.Conditions = make([]metav1.Condition, len(state.Conditions))
-	for i, cond := range state.Conditions {
-		intent.Status.Conditions[i] = metav1.Condition{
-			Type:               cond.Type,
-			Status:             metav1.ConditionStatus(cond.Status),
-			LastTransitionTime: metav1.NewTime(cond.LastTransitionTime),
-			Reason:             cond.Reason,
-			Message:            cond.Message,
-		}
+	// Update last message from conditions if available
+	if len(state.Conditions) > 0 {
+		intent.Status.LastMessage = state.Conditions[0].Message
 	}
 
-	// Update processing times
+	// Update processing times (use LastUpdateTime as available field)
 	if !state.PhaseStartTime.IsZero() {
-		intent.Status.ProcessingStartTime = &metav1.Time{Time: state.PhaseStartTime}
+		intent.Status.LastUpdateTime = metav1.Time{Time: state.PhaseStartTime}
 	}
 
-	// Update last error
+	// Update last error (using LastUpdateTime as available field)
 	if state.LastError != "" && !state.LastErrorTime.IsZero() {
-		intent.Status.LastRetryTime = &metav1.Time{Time: state.LastErrorTime}
+		intent.Status.LastUpdateTime = metav1.Time{Time: state.LastErrorTime}
 	}
 
 	// Update status
@@ -607,6 +604,6 @@ func (sm *StateManager) runMetricsCollection(ctx context.Context) {
 
 func (sm *StateManager) collectMetrics() {
 	// Collect various metrics
-	sm.metrics.RecordCacheSize(sm.stateCache.Size())
+	sm.metrics.RecordCacheSize(int64(sm.stateCache.Size()))
 	sm.metrics.RecordActiveLocks(sm.stateLocks.ActiveLocks())
 }

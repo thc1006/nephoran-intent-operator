@@ -35,6 +35,42 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// Validation types
+type ValidationIssueType string
+type ValidationSeverity string
+type SuggestionType string
+type KRMIssueType string
+type YAMLIssueType string  
+type JSONIssueType string
+type ConflictType string
+type ConflictSeverity string
+type ResolutionAction string
+type MergeStrategy string
+type DiffFormat string
+type DiffType string
+type DiffSummary string
+type DiffStatistics string
+type ChangeType string
+type PatchFormat string
+type PatchOperation string
+type MergeStatistics string
+type FileMergeStatistics string
+type ConditionType string
+type ComparisonOperator string
+type OptimizationImpact string
+
+const (
+	ValidationIssueTypeSchema    ValidationIssueType = "schema"
+	ValidationIssueTypeSyntax    ValidationIssueType = "syntax"
+	ValidationIssueTypeStructure ValidationIssueType = "structure"
+)
+
+const (
+	ValidationSeverityError   ValidationSeverity = "error"
+	ValidationSeverityWarning ValidationSeverity = "warning"
+	ValidationSeverityInfo    ValidationSeverity = "info"
+)
+
 // ContentManager provides comprehensive package content manipulation and validation
 // Handles CRUD operations, content validation, template processing, conflict resolution,
 // version diffing, content merging, and binary content management for telecommunications packages

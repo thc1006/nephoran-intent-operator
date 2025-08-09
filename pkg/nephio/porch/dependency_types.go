@@ -912,13 +912,6 @@ const (
 	VersionSelectionStrategyNone       VersionSelectionStrategy = "none"
 )
 
-type ConflictResolutionStrategy string
-
-const (
-	ConflictResolutionStrategyAutomatic ConflictResolutionStrategy = "automatic"
-	ConflictResolutionStrategyManual    ConflictResolutionStrategy = "manual"
-	ConflictResolutionStrategyFail      ConflictResolutionStrategy = "fail"
-)
 
 type CircularResolutionStrategy string
 

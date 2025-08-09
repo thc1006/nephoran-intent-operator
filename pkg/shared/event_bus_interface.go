@@ -18,6 +18,7 @@ package shared
 
 import (
 	"context"
+	"time"
 )
 
 // EventBus defines the interface for event communication
@@ -59,4 +60,11 @@ type EventBusMetrics interface {
 	GetFailedHandlers() int64
 	GetAverageProcessingTime() int64 // in milliseconds
 	GetBufferUtilization() float64
+	
+	// Recording methods
+	RecordEventPublished(eventType string)
+	RecordEventProcessed(processingTime time.Duration)
+	RecordHandlerFailure()
+	SetBufferUtilization(utilization float64)
+	SetPartitionCount(count int)
 }

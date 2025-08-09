@@ -19,6 +19,7 @@ package porch
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -131,7 +132,7 @@ type FunctionRegistryConfig struct {
 	DefaultRegistry string `json:"defaultRegistry,omitempty"`
 
 	// Function registries
-	Registries map[string]*FunctionRegistry `json:"registries,omitempty"`
+	Registries map[string]*FunctionRegistrySpec `json:"registries,omitempty"`
 
 	// Function execution configuration
 	Execution *FunctionExecutionConfig `json:"execution,omitempty"`
@@ -348,8 +349,8 @@ type ConnectionPoolConfig struct {
 
 // Function configuration types
 
-// FunctionRegistry defines a function registry
-type FunctionRegistry struct {
+// FunctionRegistrySpec defines a function registry specification
+type FunctionRegistrySpec struct {
 	Name     string            `json:"name"`
 	URL      string            `json:"url"`
 	Type     string            `json:"type"` // docker, oci, git

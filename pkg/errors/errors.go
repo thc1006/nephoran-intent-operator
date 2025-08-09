@@ -99,7 +99,7 @@ type ServiceError struct {
 	// Error context
 	Cause      error                  `json:"-"`
 	CauseChain []*ServiceError        `json:"cause_chain,omitempty"`
-	StackTrace []string               `json:"stack_trace,omitempty"`
+	StackTrace []StackFrame           `json:"stack_trace,omitempty"`
 	Metadata   map[string]interface{} `json:"metadata,omitempty"`
 	Tags       []string               `json:"tags,omitempty"`
 
@@ -349,8 +349,8 @@ func isRetryableError(errType ErrorType, cause error) bool {
 }
 
 // getStackTrace captures the current stack trace
-func getStackTrace(skip int) []string {
-	var stack []string
+func getStackTrace(skip int) []StackFrame {
+	var stack []StackFrame
 	for i := skip; i < skip+10; i++ {
 		pc, file, line, ok := runtime.Caller(i)
 		if !ok {
@@ -358,13 +358,35 @@ func getStackTrace(skip int) []string {
 		}
 
 		fn := runtime.FuncForPC(pc)
-		if fn == nil {
-			continue
+		funcName := getSafeFunctionName(fn)
+		if funcName == "" {
+			funcName = "<unknown>"
 		}
 
-		stack = append(stack, fmt.Sprintf("%s:%d %s", file, line, fn.Name()))
+		// Extract package name from function name
+		packageName := extractPackageName(funcName)
+		
+		stack = append(stack, StackFrame{
+			File:     file,
+			Line:     line,
+			Function: funcName,
+			Package:  packageName,
+		})
 	}
 	return stack
+}
+
+// GetStackTraceStrings returns the stack trace as a slice of strings for backward compatibility
+func (e *ServiceError) GetStackTraceStrings() []string {
+	if e.StackTrace == nil {
+		return nil
+	}
+	
+	result := make([]string, len(e.StackTrace))
+	for i, frame := range e.StackTrace {
+		result[i] = frame.String()
+	}
+	return result
 }
 
 // WithRequestID adds a request ID to the error

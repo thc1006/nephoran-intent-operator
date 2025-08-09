@@ -331,8 +331,8 @@ type RepositoryConfig struct {
 	Capabilities []string    `json:"capabilities,omitempty"`
 }
 
-// AuthConfig defines authentication configuration
-type AuthConfig struct {
+// GitAuthConfig defines Git authentication configuration
+type GitAuthConfig struct {
 	Type       string            `json:"type"` // basic, token, ssh
 	Username   string            `json:"username,omitempty"`
 	Password   string            `json:"password,omitempty"`
@@ -381,12 +381,12 @@ type KptfileContent struct {
 	APIVersion string                 `json:"apiVersion"`
 	Kind       string                 `json:"kind"`
 	Metadata   map[string]interface{} `json:"metadata"`
-	Info       *PackageInfo           `json:"info,omitempty"`
+	Info       *PackageMetadata       `json:"info,omitempty"`
 	Pipeline   *Pipeline              `json:"pipeline,omitempty"`
 }
 
-// PackageInfo contains package information
-type PackageInfo struct {
+// PackageMetadata contains package metadata information
+type PackageMetadata struct {
 	Description string            `json:"description,omitempty"`
 	Keywords    []string          `json:"keywords,omitempty"`
 	Site        string            `json:"site,omitempty"`
@@ -505,8 +505,8 @@ type WorkflowSpec struct {
 	RetryPolicy *RetryPolicy      `json:"retryPolicy,omitempty"`
 }
 
-// WorkflowStatus defines the observed state of a workflow
-type WorkflowStatus struct {
+// GeneralWorkflowStatus defines the general observed state of a workflow
+type GeneralWorkflowStatus struct {
 	Phase      WorkflowPhase      `json:"phase"`
 	Stage      string             `json:"stage,omitempty"`
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -650,16 +650,6 @@ type ComparisonResult struct {
 	Diff     string   `json:"diff,omitempty"`
 }
 
-// PackageMetadata contains package metadata
-type PackageMetadata struct {
-	Name        string            `json:"name"`
-	Version     string            `json:"version,omitempty"`
-	Description string            `json:"description,omitempty"`
-	Author      string            `json:"author,omitempty"`
-	Keywords    []string          `json:"keywords,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
-}
 
 // WorkflowLock represents a workflow lock on a package
 type WorkflowLock struct {
@@ -794,8 +784,8 @@ type ComponentHealth struct {
 	Error  string `json:"error,omitempty"`
 }
 
-// VersionInfo contains version information
-type VersionInfo struct {
+// BuildVersionInfo contains build version information
+type BuildVersionInfo struct {
 	Version   string `json:"version"`
 	GitCommit string `json:"gitCommit,omitempty"`
 	BuildTime string `json:"buildTime,omitempty"`

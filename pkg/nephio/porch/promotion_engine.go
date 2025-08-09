@@ -1397,20 +1397,6 @@ type ClusterPromotionResultStatus string
 type HealthCheckMetrics struct{}
 type PipelineAction struct{}
 type PipelineFailureAction string
-type PipelineRollbackPolicy struct{}
-type PipelineStage struct{}
-type PipelineExecutionResult struct{}
-type RollbackOptions struct{}
-type RollbackResult struct{}
-type RollbackOption struct{}
-type PromotionCheckpoint struct{}
-type CheckpointRollbackResult struct{}
-type HealthWaitResult struct{}
-type ApprovalRequirement struct{}
-type ChainValidationResult struct{}
-type PromotionReport struct{}
-type PromotionReportOptions struct{}
-type PromotionEngineHealth struct{}
 
 const (
 	BlueGreenEnvironmentBlue  BlueGreenEnvironment = "blue"

@@ -130,6 +130,11 @@ type StackFrame struct {
 	Package  string `json:"package"`
 }
 
+// String returns a formatted string representation of the stack frame
+func (sf StackFrame) String() string {
+	return fmt.Sprintf("%s:%d %s", sf.File, sf.Line, sf.Function)
+}
+
 // ErrorContextFunc is a function that can add context to an error
 type ErrorContextFunc func(*ServiceError)
 

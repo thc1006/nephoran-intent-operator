@@ -202,13 +202,6 @@ type SecurityScanResult struct {
 	Approved         bool
 }
 
-// Vulnerability represents a security vulnerability
-type Vulnerability struct {
-	ID          string
-	Severity    string
-	Description string
-	FixVersion  string
-}
 
 // PolicyViolation represents a policy violation
 type PolicyViolation struct {

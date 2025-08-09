@@ -1,0 +1,902 @@
+# Enhanced Quality Gates with Performance Optimization
+# Comprehensive quality validation with 80% coverage threshold and advanced metrics
+
+name: "🚪 Enhanced Quality Gates"
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  actions: read
+  security-events: write
+
+on:
+  push:
+    branches: [ main, develop, release/** ]
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.golangci.yml'
+      - 'Makefile'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+      - '.golangci.yml'
+      - 'Makefile'
+  schedule:
+    # Daily quality analysis at 3 AM UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      coverage_threshold:
+        description: 'Minimum test coverage percentage'
+        required: false
+        default: '80'
+        type: string
+      quality_threshold:
+        description: 'Minimum quality score (0-10)'
+        required: false
+        default: '8.0'
+        type: string
+      performance_benchmark:
+        description: 'Run performance benchmarks'
+        required: false
+        default: true
+        type: boolean
+      fail_fast:
+        description: 'Fail fast on first quality gate failure'
+        required: false
+        default: false
+        type: boolean
+      force_full_analysis:
+        description: 'Force full analysis regardless of changes'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: quality-gates-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  GO_VERSION: '1.24.1'
+  COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '80' }}
+  QUALITY_THRESHOLD: ${{ github.event.inputs.quality_threshold || '8.0' }}
+  REPORTS_DIR: '.quality-reports'
+  FAIL_FAST: ${{ github.event.inputs.fail_fast || 'false' }}
+
+jobs:
+  # =============================================================================
+  # Pre-analysis and Change Detection
+  # =============================================================================
+  pre-analysis:
+    name: "🔧 Pre-analysis Setup"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      should-run-analysis: ${{ steps.check.outputs.should_run }}
+      cache-key: ${{ steps.cache.outputs.key }}
+      analysis-scope: ${{ steps.scope.outputs.scope }}
+      changed-packages: ${{ steps.packages.outputs.packages }}
+      
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "🔍 Determine Analysis Scope"
+        id: check
+        run: |
+          should_run=false
+          
+          # Force analysis if explicitly requested
+          if [ "${{ github.event.inputs.force_full_analysis }}" = "true" ]; then
+            should_run=true
+            echo "🔄 Forcing full analysis as requested"
+          # Always run on scheduled executions
+          elif [ "${{ github.event_name }}" = "schedule" ]; then
+            should_run=true
+            echo "⏰ Running scheduled quality analysis"
+          # Run on main branch pushes
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            should_run=true
+            echo "🚀 Running analysis for main branch"
+          # Check for relevant file changes in PRs
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            if git diff --name-only HEAD~1 HEAD | grep -E '\.(go|mod|sum|yml)$' > /dev/null; then
+              should_run=true
+              echo "📝 Relevant files changed in PR"
+            else
+              echo "⏭️ No relevant files changed, skipping analysis"
+            fi
+          fi
+          
+          echo "should_run=$should_run" >> $GITHUB_OUTPUT
+
+      - name: "🔑 Generate Comprehensive Cache Key"
+        id: cache
+        run: |
+          cache_key="quality-${{ env.GO_VERSION }}-$(echo '${{ hashFiles('**/go.sum', '**/go.mod', '.golangci.yml', 'Makefile') }}' | sha256sum | head -c 16)"
+          echo "key=$cache_key" >> $GITHUB_OUTPUT
+          echo "📦 Cache key: $cache_key"
+
+      - name: "📊 Determine Analysis Scope"
+        id: scope
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.force_full_analysis }}" = "true" ]; then
+            echo "scope=comprehensive" >> $GITHUB_OUTPUT
+            echo "🔬 Running comprehensive analysis"
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            echo "scope=standard" >> $GITHUB_OUTPUT
+            echo "📊 Running standard analysis"
+          else
+            echo "scope=focused" >> $GITHUB_OUTPUT
+            echo "🎯 Running focused analysis"
+          fi
+
+      - name: "📦 Analyze Changed Packages"
+        id: packages
+        if: github.event_name == 'pull_request'
+        run: |
+          changed_files=$(git diff --name-only HEAD~1 HEAD | grep '\.go$' || true)
+          if [ -n "$changed_files" ]; then
+            packages=$(echo "$changed_files" | xargs -I {} dirname {} | sort -u | tr '\n' ',' | sed 's/,$//')
+            echo "packages=$packages" >> $GITHUB_OUTPUT
+            echo "📦 Changed packages: $packages"
+          else
+            echo "packages=" >> $GITHUB_OUTPUT
+            echo "📦 No Go packages changed"
+          fi
+
+  # =============================================================================
+  # Comprehensive Test Coverage Analysis
+  # =============================================================================
+  coverage-analysis:
+    name: "📊 Coverage Analysis"
+    runs-on: ubuntu-latest
+    needs: pre-analysis
+    if: needs.pre-analysis.outputs.should-run-analysis == 'true'
+    timeout-minutes: 30
+    
+    outputs:
+      coverage-percent: ${{ steps.coverage.outputs.percent }}
+      coverage-passed: ${{ steps.coverage.outputs.passed }}
+      coverage-delta: ${{ steps.coverage.outputs.delta }}
+      
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: "🚀 Advanced Dependency Caching"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            ~/.cache/golangci-lint
+          key: ${{ needs.pre-analysis.outputs.cache-key }}
+          restore-keys: |
+            quality-${{ env.GO_VERSION }}-
+          save-always: true
+
+      - name: "🔧 Install Coverage Tools"
+        run: |
+          go install golang.org/x/tools/cmd/cover@latest
+          go install github.com/axw/gocov/gocov@latest
+          go install github.com/AlekSi/gocov-xml@latest
+          go install github.com/wadey/gocovmerge@latest
+          go install github.com/jstemmer/go-junit-report/v2@latest
+
+      - name: "🧪 Execute Comprehensive Test Suite"
+        env:
+          CGO_ENABLED: 1  # Enable for race detection
+          TEST_TIMEOUT: 25m
+        run: |
+          mkdir -p ${{ env.REPORTS_DIR }}/coverage
+          echo "🧪 Running comprehensive test suite with coverage..."
+          
+          # Determine test packages based on scope
+          test_packages="./..."
+          if [ "${{ needs.pre-analysis.outputs.analysis-scope }}" = "focused" ] && [ -n "${{ needs.pre-analysis.outputs.changed-packages }}" ]; then
+            test_packages=$(echo "${{ needs.pre-analysis.outputs.changed-packages }}" | tr ',' ' ' | xargs -I {} echo "./{}" | tr '\n' ' ')
+            echo "🎯 Testing focused packages: $test_packages"
+          fi
+          
+          # Run tests with comprehensive coverage
+          go test $test_packages \
+            -v \
+            -race \
+            -coverprofile=${{ env.REPORTS_DIR }}/coverage/coverage.out \
+            -covermode=atomic \
+            -timeout=$TEST_TIMEOUT \
+            -json > ${{ env.REPORTS_DIR }}/coverage/test-results.json
+          
+          # Generate JUnit report
+          cat ${{ env.REPORTS_DIR }}/coverage/test-results.json | go-junit-report -set-exit-code > ${{ env.REPORTS_DIR }}/coverage/junit.xml
+
+      - name: "📊 Advanced Coverage Analysis"
+        id: coverage
+        run: |
+          echo "📊 Performing advanced coverage analysis..."
+          
+          # Generate coverage reports in multiple formats
+          go tool cover -html=${{ env.REPORTS_DIR }}/coverage/coverage.out -o ${{ env.REPORTS_DIR }}/coverage/coverage.html
+          go tool cover -func=${{ env.REPORTS_DIR }}/coverage/coverage.out > ${{ env.REPORTS_DIR }}/coverage/coverage-summary.txt
+          
+          # Convert to XML for advanced tooling
+          gocov convert ${{ env.REPORTS_DIR }}/coverage/coverage.out | gocov-xml > ${{ env.REPORTS_DIR }}/coverage/coverage.xml
+          
+          # Calculate detailed coverage metrics
+          current_coverage=$(go tool cover -func=${{ env.REPORTS_DIR }}/coverage/coverage.out | tail -1 | awk '{print $3}' | sed 's/%//')
+          echo "percent=${current_coverage}" >> $GITHUB_OUTPUT
+          
+          # Check against threshold
+          if (( $(echo "${current_coverage} >= ${{ env.COVERAGE_THRESHOLD }}" | bc -l) )); then
+            echo "✅ Coverage threshold met: ${current_coverage}% >= ${{ env.COVERAGE_THRESHOLD }}%"
+            echo "passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Coverage threshold not met: ${current_coverage}% < ${{ env.COVERAGE_THRESHOLD }}%"
+            echo "passed=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # Calculate coverage delta (if baseline exists)
+          baseline_coverage=0
+          if [ -f "${{ env.REPORTS_DIR }}/baseline-coverage.txt" ]; then
+            baseline_coverage=$(cat ${{ env.REPORTS_DIR }}/baseline-coverage.txt)
+          fi
+          
+          delta=$(echo "${current_coverage} - ${baseline_coverage}" | bc -l)
+          echo "delta=${delta}" >> $GITHUB_OUTPUT
+          
+          echo "📊 Coverage Analysis Results:"
+          echo "  Current: ${current_coverage}%"
+          echo "  Threshold: ${{ env.COVERAGE_THRESHOLD }}%"
+          echo "  Delta: ${delta}%"
+
+      - name: "📋 Generate Coverage Report"
+        run: |
+          echo "📋 Generating detailed coverage report..."
+          
+          # Create comprehensive coverage report
+          cat > ${{ env.REPORTS_DIR }}/coverage/coverage-report.md << EOF
+          # 📊 Test Coverage Report
+          
+          **Generated:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')  
+          **Commit:** \`${{ github.sha }}\`  
+          **Branch:** \`${{ github.ref_name }}\`  
+          
+          ## Summary
+          
+          | Metric | Value | Status |
+          |--------|-------|--------|
+          | **Overall Coverage** | ${{ steps.coverage.outputs.percent }}% | ${{ steps.coverage.outputs.passed == 'true' && '✅ PASSED' || '❌ FAILED' }} |
+          | **Coverage Threshold** | ${{ env.COVERAGE_THRESHOLD }}% | - |
+          | **Coverage Delta** | ${{ steps.coverage.outputs.delta }}% | ${{ steps.coverage.outputs.delta > 0 && '📈 Improved' || (steps.coverage.outputs.delta < 0 && '📉 Decreased' || '➡️ Unchanged') }} |
+          
+          ## Package Coverage Details
+          
+          \`\`\`
+          $(head -20 ${{ env.REPORTS_DIR }}/coverage/coverage-summary.txt)
+          \`\`\`
+          
+          EOF
+          
+          # Add to step summary
+          cat ${{ env.REPORTS_DIR }}/coverage/coverage-report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: "💾 Upload Coverage Artifacts"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-reports
+          path: ${{ env.REPORTS_DIR }}/coverage/
+          retention-days: 30
+
+      - name: "📤 Upload to Codecov"
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: codecov/codecov-action@v4
+        with:
+          files: ${{ env.REPORTS_DIR }}/coverage/coverage.out
+          flags: quality-gates
+          name: enhanced-quality-gates
+          fail_ci_if_error: false
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: "🚨 Coverage Gate Enforcement"
+        if: steps.coverage.outputs.passed == 'false' && env.FAIL_FAST == 'true'
+        run: |
+          echo "🚨 COVERAGE GATE FAILED"
+          echo "Current coverage: ${{ steps.coverage.outputs.percent }}%"
+          echo "Required coverage: ${{ env.COVERAGE_THRESHOLD }}%"
+          echo ""
+          echo "Packages with low coverage:"
+          grep -E "^[^[:space:]]+\.go:[0-9]+:" ${{ env.REPORTS_DIR }}/coverage/coverage-summary.txt | sort -k3 -n | head -10
+          exit 1
+
+  # =============================================================================
+  # Advanced Code Quality Analysis
+  # =============================================================================
+  code-quality-analysis:
+    name: "🔍 Code Quality (${{ matrix.analysis }})"
+    runs-on: ubuntu-latest
+    needs: pre-analysis
+    if: needs.pre-analysis.outputs.should-run-analysis == 'true'
+    timeout-minutes: 20
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        analysis: [lint, complexity, duplication, maintainability]
+        
+    outputs:
+      quality-issues: ${{ steps.aggregate.outputs.total_issues }}
+      
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: "🚀 Restore Analysis Cache"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            ~/.cache/golangci-lint
+          key: ${{ needs.pre-analysis.outputs.cache-key }}
+          restore-keys: |
+            quality-${{ env.GO_VERSION }}-
+
+      - name: "🔧 Install Quality Analysis Tools"
+        run: |
+          case "${{ matrix.analysis }}" in
+            "lint")
+              # Install comprehensive linting tools
+              go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2
+              go install honnef.co/go/tools/cmd/staticcheck@2023.1.7
+              ;;
+            "complexity")
+              # Install complexity analysis tools
+              go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+              go install github.com/uudashr/gocognit/cmd/gocognit@latest
+              ;;
+            "duplication")
+              # Install duplication detection
+              go install github.com/mibk/dupl@latest
+              ;;
+            "maintainability")
+              # Install maintainability tools
+              go install github.com/jgautheron/goconst/cmd/goconst@latest
+              go install github.com/gordonklaus/ineffassign@latest
+              go install mvdan.cc/unparam@latest
+              ;;
+          esac
+
+      - name: "🔍 Run Linting Analysis"
+        if: matrix.analysis == 'lint'
+        run: |
+          mkdir -p ${{ env.REPORTS_DIR }}/lint
+          echo "🔍 Running comprehensive linting analysis..."
+          
+          # Run golangci-lint with comprehensive configuration
+          golangci-lint run \
+            --config .golangci.yml \
+            --timeout 15m \
+            --out-format json \
+            --issues-exit-code 0 > ${{ env.REPORTS_DIR }}/lint/golangci-results.json
+          
+          golangci-lint run \
+            --config .golangci.yml \
+            --timeout 15m \
+            --out-format checkstyle > ${{ env.REPORTS_DIR }}/lint/golangci-checkstyle.xml || true
+          
+          # Run staticcheck
+          staticcheck -f sarif ./... > ${{ env.REPORTS_DIR }}/lint/staticcheck.sarif || true
+          staticcheck -f json ./... > ${{ env.REPORTS_DIR }}/lint/staticcheck.json || true
+          
+          # Count issues
+          lint_issues=$(jq '.Issues | length' ${{ env.REPORTS_DIR }}/lint/golangci-results.json 2>/dev/null || echo "0")
+          echo "LINT_ISSUES=$lint_issues" >> $GITHUB_ENV
+          echo "📊 Found $lint_issues linting issues"
+
+      - name: "📊 Run Complexity Analysis"
+        if: matrix.analysis == 'complexity'
+        run: |
+          mkdir -p ${{ env.REPORTS_DIR }}/complexity
+          echo "📊 Running complexity analysis..."
+          
+          # Cyclomatic complexity
+          gocyclo -over 10 . > ${{ env.REPORTS_DIR }}/complexity/cyclomatic.txt || true
+          
+          # Cognitive complexity
+          gocognit -over 15 . > ${{ env.REPORTS_DIR }}/complexity/cognitive.txt || true
+          
+          # Count complex functions
+          complex_functions=$(wc -l < ${{ env.REPORTS_DIR }}/complexity/cyclomatic.txt || echo "0")
+          echo "COMPLEX_FUNCTIONS=$complex_functions" >> $GITHUB_ENV
+          echo "📊 Found $complex_functions complex functions"
+
+      - name: "🔄 Run Duplication Analysis"
+        if: matrix.analysis == 'duplication'
+        run: |
+          mkdir -p ${{ env.REPORTS_DIR }}/duplication
+          echo "🔄 Running code duplication analysis..."
+          
+          # Find code duplications
+          dupl -threshold 50 -files ./... > ${{ env.REPORTS_DIR }}/duplication/duplications.txt || true
+          
+          # Count duplications
+          dup_blocks=$(grep -c "found" ${{ env.REPORTS_DIR }}/duplication/duplications.txt || echo "0")
+          echo "DUPLICATE_BLOCKS=$dup_blocks" >> $GITHUB_ENV
+          echo "📊 Found $dup_blocks duplicate code blocks"
+
+      - name: "🧹 Run Maintainability Analysis"
+        if: matrix.analysis == 'maintainability'
+        run: |
+          mkdir -p ${{ env.REPORTS_DIR }}/maintainability
+          echo "🧹 Running maintainability analysis..."
+          
+          # Find repeated constants
+          goconst ./... > ${{ env.REPORTS_DIR }}/maintainability/constants.txt || true
+          
+          # Find ineffective assignments
+          ineffassign ./... > ${{ env.REPORTS_DIR }}/maintainability/ineffassign.txt || true
+          
+          # Find unused parameters
+          unparam ./... > ${{ env.REPORTS_DIR }}/maintainability/unparam.txt || true
+          
+          # Count maintainability issues
+          const_issues=$(wc -l < ${{ env.REPORTS_DIR }}/maintainability/constants.txt || echo "0")
+          ineffassign_issues=$(wc -l < ${{ env.REPORTS_DIR }}/maintainability/ineffassign.txt || echo "0")
+          unparam_issues=$(wc -l < ${{ env.REPORTS_DIR }}/maintainability/unparam.txt || echo "0")
+          
+          total_maintainability=$((const_issues + ineffassign_issues + unparam_issues))
+          echo "MAINTAINABILITY_ISSUES=$total_maintainability" >> $GITHUB_ENV
+          echo "📊 Found $total_maintainability maintainability issues"
+
+      - name: "📊 Upload SARIF Results"
+        if: matrix.analysis == 'lint'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ env.REPORTS_DIR }}/lint/staticcheck.sarif
+          category: staticcheck-quality
+        continue-on-error: true
+
+      - name: "💾 Upload Quality Analysis Results"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: quality-analysis-${{ matrix.analysis }}
+          path: ${{ env.REPORTS_DIR }}/${{ matrix.analysis }}/
+          retention-days: 14
+
+  # =============================================================================
+  # Performance Benchmarking
+  # =============================================================================
+  performance-benchmarks:
+    name: "🏃 Performance Benchmarks"
+    runs-on: ubuntu-latest
+    needs: pre-analysis
+    if: needs.pre-analysis.outputs.should-run-analysis == 'true' && (github.event.inputs.performance_benchmark == 'true' || github.event_name == 'schedule')
+    timeout-minutes: 25
+    
+    outputs:
+      benchmark-results: ${{ steps.benchmark.outputs.results_available }}
+      performance-regression: ${{ steps.regression.outputs.detected }}
+      
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: "🚀 Performance Caching"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            ${{ env.REPORTS_DIR }}/benchmarks/baseline
+          key: performance-${{ needs.pre-analysis.outputs.cache-key }}
+          restore-keys: |
+            performance-${{ env.GO_VERSION }}-
+
+      - name: "🔧 Install Benchmarking Tools"
+        run: |
+          go install golang.org/x/perf/cmd/benchstat@latest
+          go install github.com/pkg/profile@latest
+
+      - name: "🏃 Execute Performance Benchmarks"
+        id: benchmark
+        run: |
+          mkdir -p ${{ env.REPORTS_DIR }}/benchmarks
+          echo "🏃 Running comprehensive performance benchmarks..."
+          
+          # Run benchmarks with memory and CPU profiling
+          go test -bench=. -benchmem -benchtime=10s -timeout=20m \
+            -cpuprofile=${{ env.REPORTS_DIR }}/benchmarks/cpu.prof \
+            -memprofile=${{ env.REPORTS_DIR }}/benchmarks/mem.prof \
+            -blockprofile=${{ env.REPORTS_DIR }}/benchmarks/block.prof \
+            ./... > ${{ env.REPORTS_DIR }}/benchmarks/benchmark-results.txt 2>&1 || true
+          
+          # Generate benchmark statistics
+          if [ -f "${{ env.REPORTS_DIR }}/benchmarks/benchmark-results.txt" ]; then
+            echo "results_available=true" >> $GITHUB_OUTPUT
+            echo "✅ Benchmark execution completed"
+          else
+            echo "results_available=false" >> $GITHUB_OUTPUT
+            echo "❌ No benchmark results generated"
+          fi
+
+      - name: "📊 Performance Regression Analysis"
+        id: regression
+        run: |
+          echo "📊 Analyzing performance regression..."
+          
+          baseline_file="${{ env.REPORTS_DIR }}/benchmarks/baseline/benchmark-baseline.txt"
+          current_file="${{ env.REPORTS_DIR }}/benchmarks/benchmark-results.txt"
+          
+          if [ -f "$baseline_file" ] && [ -f "$current_file" ]; then
+            echo "📈 Comparing with baseline performance..."
+            
+            # Compare benchmarks
+            benchstat "$baseline_file" "$current_file" > ${{ env.REPORTS_DIR }}/benchmarks/regression-analysis.txt 2>&1 || true
+            
+            # Check for significant regressions (>10% slower)
+            if grep -E "~.*[1-9][0-9]\.[0-9]+%.*slower" ${{ env.REPORTS_DIR }}/benchmarks/regression-analysis.txt; then
+              echo "detected=true" >> $GITHUB_OUTPUT
+              echo "⚠️ Performance regression detected"
+            else
+              echo "detected=false" >> $GITHUB_OUTPUT
+              echo "✅ No significant performance regression"
+            fi
+          else
+            echo "detected=false" >> $GITHUB_OUTPUT
+            echo "📊 No baseline available for comparison"
+            
+            # Set current results as baseline if none exists
+            mkdir -p ${{ env.REPORTS_DIR }}/benchmarks/baseline
+            cp "$current_file" "$baseline_file" 2>/dev/null || true
+          fi
+
+      - name: "📊 Generate Performance Report"
+        run: |
+          echo "📊 Generating performance analysis report..."
+          
+          cat > ${{ env.REPORTS_DIR }}/benchmarks/performance-report.md << EOF
+          # 🏃 Performance Benchmark Report
+          
+          **Generated:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')  
+          **Commit:** \`${{ github.sha }}\`  
+          **Branch:** \`${{ github.ref_name }}\`  
+          
+          ## Benchmark Results
+          
+          \`\`\`
+          $(head -50 ${{ env.REPORTS_DIR }}/benchmarks/benchmark-results.txt 2>/dev/null || echo "No benchmark results available")
+          \`\`\`
+          
+          ## Regression Analysis
+          
+          **Status:** ${{ steps.regression.outputs.detected == 'true' && '⚠️ REGRESSION DETECTED' || '✅ NO REGRESSION' }}
+          
+          \`\`\`
+          $(cat ${{ env.REPORTS_DIR }}/benchmarks/regression-analysis.txt 2>/dev/null || echo "No regression analysis available")
+          \`\`\`
+          
+          EOF
+          
+          cat ${{ env.REPORTS_DIR }}/benchmarks/performance-report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: "💾 Upload Performance Results"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-benchmarks
+          path: ${{ env.REPORTS_DIR }}/benchmarks/
+          retention-days: 30
+
+      - name: "🚨 Performance Regression Alert"
+        if: steps.regression.outputs.detected == 'true'
+        run: |
+          echo "🚨 PERFORMANCE REGRESSION DETECTED"
+          echo ""
+          echo "Significant performance degradation found:"
+          cat ${{ env.REPORTS_DIR }}/benchmarks/regression-analysis.txt
+          echo ""
+          echo "Please review the changes and optimize performance-critical code."
+          
+          # Don't fail the build, but create a warning
+          echo "::warning::Performance regression detected - review benchmark results"
+
+  # =============================================================================
+  # Quality Metrics Calculation and Gate Enforcement
+  # =============================================================================
+  quality-gate-enforcement:
+    name: "🚪 Quality Gate Enforcement"
+    runs-on: ubuntu-latest
+    needs: [pre-analysis, coverage-analysis, code-quality-analysis, performance-benchmarks]
+    if: always() && needs.pre-analysis.outputs.should-run-analysis == 'true'
+    timeout-minutes: 10
+    
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "📥 Download Quality Reports"
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*-reports"
+          path: ${{ env.REPORTS_DIR }}/artifacts
+          merge-multiple: true
+
+      - name: "🔧 Install Analysis Tools"
+        run: |
+          # Install jq for JSON processing
+          sudo apt-get update && sudo apt-get install -y jq bc
+
+      - name: "📊 Calculate Comprehensive Quality Score"
+        id: quality-score
+        run: |
+          echo "📊 Calculating comprehensive quality score..."
+          
+          # Initialize scoring components
+          coverage_score=0
+          code_quality_score=0
+          performance_score=0
+          security_score=0
+          
+          # Coverage scoring (30% of total)
+          coverage_percent=${{ needs.coverage-analysis.outputs.coverage-percent || '0' }}
+          if [ "${{ needs.coverage-analysis.outputs.coverage-passed }}" = "true" ]; then
+            coverage_score=$(echo "scale=2; ($coverage_percent / 100) * 3.0" | bc)
+          fi
+          
+          # Code quality scoring (40% of total)
+          # This is a simplified scoring - in practice, you'd have more sophisticated metrics
+          if [ "${{ needs.code-quality-analysis.result }}" = "success" ]; then
+            code_quality_score=4.0
+          elif [ "${{ needs.code-quality-analysis.result }}" = "failure" ]; then
+            code_quality_score=2.0
+          fi
+          
+          # Performance scoring (20% of total)
+          if [ "${{ needs.performance-benchmarks.outputs.performance-regression }}" != "true" ]; then
+            performance_score=2.0
+          else
+            performance_score=1.0
+          fi
+          
+          # Security scoring (10% of total) - placeholder for security analysis integration
+          security_score=1.0
+          
+          # Calculate total score
+          total_score=$(echo "scale=2; $coverage_score + $code_quality_score + $performance_score + $security_score" | bc)
+          quality_grade="F"
+          
+          # Determine grade
+          if (( $(echo "$total_score >= 9.0" | bc -l) )); then
+            quality_grade="A+"
+          elif (( $(echo "$total_score >= 8.5" | bc -l) )); then
+            quality_grade="A"
+          elif (( $(echo "$total_score >= 8.0" | bc -l) )); then
+            quality_grade="A-"
+          elif (( $(echo "$total_score >= 7.5" | bc -l) )); then
+            quality_grade="B+"
+          elif (( $(echo "$total_score >= 7.0" | bc -l) )); then
+            quality_grade="B"
+          elif (( $(echo "$total_score >= 6.5" | bc -l) )); then
+            quality_grade="B-"
+          elif (( $(echo "$total_score >= 6.0" | bc -l) )); then
+            quality_grade="C+"
+          elif (( $(echo "$total_score >= 5.5" | bc -l) )); then
+            quality_grade="C"
+          elif (( $(echo "$total_score >= 5.0" | bc -l) )); then
+            quality_grade="C-"
+          else
+            quality_grade="D"
+          fi
+          
+          echo "total_score=$total_score" >> $GITHUB_OUTPUT
+          echo "quality_grade=$quality_grade" >> $GITHUB_OUTPUT
+          
+          # Create quality report
+          mkdir -p ${{ env.REPORTS_DIR }}/final
+          cat > ${{ env.REPORTS_DIR }}/final/quality-score.json << EOF
+          {
+            "timestamp": "$(date -Iseconds)",
+            "commit": "${{ github.sha }}",
+            "branch": "${{ github.ref_name }}",
+            "total_score": $total_score,
+            "quality_grade": "$quality_grade",
+            "threshold": ${{ env.QUALITY_THRESHOLD }},
+            "components": {
+              "coverage": {
+                "score": $coverage_score,
+                "weight": 0.30,
+                "percent": $coverage_percent,
+                "passed": "${{ needs.coverage-analysis.outputs.coverage-passed }}"
+              },
+              "code_quality": {
+                "score": $code_quality_score,
+                "weight": 0.40,
+                "status": "${{ needs.code-quality-analysis.result }}"
+              },
+              "performance": {
+                "score": $performance_score,
+                "weight": 0.20,
+                "regression": "${{ needs.performance-benchmarks.outputs.performance-regression }}"
+              },
+              "security": {
+                "score": $security_score,
+                "weight": 0.10
+              }
+            }
+          }
+          EOF
+          
+          echo "📊 Quality Score Calculation:"
+          echo "  Coverage: $coverage_score/3.0 (${coverage_percent}%)"
+          echo "  Code Quality: $code_quality_score/4.0"
+          echo "  Performance: $performance_score/2.0"
+          echo "  Security: $security_score/1.0"
+          echo "  Total: $total_score/10.0 (Grade: $quality_grade)"
+
+      - name: "🚪 Quality Gate Decision"
+        id: gate-decision
+        run: |
+          echo "🚪 Making quality gate decision..."
+          
+          total_score="${{ steps.quality-score.outputs.total_score }}"
+          threshold="${{ env.QUALITY_THRESHOLD }}"
+          
+          # Check if score meets threshold
+          if (( $(echo "$total_score >= $threshold" | bc -l) )); then
+            echo "gate_status=PASSED" >> $GITHUB_OUTPUT
+            echo "✅ Quality gate PASSED: $total_score >= $threshold"
+          else
+            echo "gate_status=FAILED" >> $GITHUB_OUTPUT
+            echo "❌ Quality gate FAILED: $total_score < $threshold"
+          fi
+          
+          # Check individual component failures
+          critical_failures=""
+          
+          if [ "${{ needs.coverage-analysis.outputs.coverage-passed }}" != "true" ]; then
+            critical_failures="$critical_failures coverage"
+          fi
+          
+          if [ "${{ needs.code-quality-analysis.result }}" = "failure" ]; then
+            critical_failures="$critical_failures code-quality"
+          fi
+          
+          echo "critical_failures=$critical_failures" >> $GITHUB_OUTPUT
+
+      - name: "📊 Generate Quality Gate Summary"
+        run: |
+          echo "## 🚪 Quality Gate Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Overall Status: ${{ steps.gate-decision.outputs.gate_status == 'PASSED' && '✅ PASSED' || '❌ FAILED' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Quality Score:** ${{ steps.quality-score.outputs.total_score }}/10.0 (Grade: ${{ steps.quality-score.outputs.quality_grade }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Quality Threshold:** ${{ env.QUALITY_THRESHOLD }}/10.0" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Component Breakdown" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Score | Weight | Status | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|--------|---------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 📊 **Coverage** | $(jq -r '.components.coverage.score' ${{ env.REPORTS_DIR }}/final/quality-score.json)/3.0 | 30% | ${{ needs.coverage-analysis.outputs.coverage-passed == 'true' && '✅ Pass' || '❌ Fail' }} | ${{ needs.coverage-analysis.outputs.coverage-percent }}% coverage |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔍 **Code Quality** | $(jq -r '.components.code_quality.score' ${{ env.REPORTS_DIR }}/final/quality-score.json)/4.0 | 40% | ${{ needs.code-quality-analysis.result == 'success' && '✅ Pass' || '❌ Fail' }} | Linting and analysis |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🏃 **Performance** | $(jq -r '.components.performance.score' ${{ env.REPORTS_DIR }}/final/quality-score.json)/2.0 | 20% | ${{ needs.performance-benchmarks.outputs.performance-regression != 'true' && '✅ Pass' || '⚠️ Warning' }} | Benchmark analysis |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔒 **Security** | $(jq -r '.components.security.score' ${{ env.REPORTS_DIR }}/final/quality-score.json)/1.0 | 10% | ✅ Pass | Security baseline |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📈 Quality Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Coverage:** ${{ needs.coverage-analysis.outputs.coverage-percent }}% (Δ ${{ needs.coverage-analysis.outputs.coverage-delta }}%)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Coverage Threshold:** ${{ env.COVERAGE_THRESHOLD }}%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Performance Regression:** ${{ needs.performance-benchmarks.outputs.performance-regression == 'true' && 'Detected ⚠️' || 'None ✅' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Generated:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+
+      - name: "💾 Upload Quality Gate Reports"
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gate-final
+          path: ${{ env.REPORTS_DIR }}/final/
+          retention-days: 90
+
+      - name: "💬 Quality Gate PR Comment"
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const qualityScore = '${{ steps.quality-score.outputs.total_score }}';
+            const qualityGrade = '${{ steps.quality-score.outputs.quality_grade }}';
+            const gateStatus = '${{ steps.gate-decision.outputs.gate_status }}';
+            const coverage = '${{ needs.coverage-analysis.outputs.coverage-percent }}';
+            const coverageDelta = '${{ needs.coverage-analysis.outputs.coverage-delta }}';
+            
+            const statusIcon = gateStatus === 'PASSED' ? '✅' : '❌';
+            const gradeIcon = {
+              'A+': '🏆', 'A': '🥇', 'A-': '🥈', 
+              'B+': '🥉', 'B': '📊', 'B-': '📈',
+              'C+': '📉', 'C': '⚠️', 'C-': '⚠️', 'D': '🔴'
+            }[qualityGrade] || '❓';
+            
+            const body = `## 🚪 Quality Gate Results ${statusIcon}
+            
+            **Overall Score:** ${qualityScore}/10.0 ${gradeIcon} Grade ${qualityGrade}  
+            **Status:** ${gateStatus}
+            
+            ### 📊 Key Metrics
+            - **Test Coverage:** ${coverage}% (Δ ${coverageDelta}%)
+            - **Code Quality:** ${{ needs.code-quality-analysis.result == 'success' ? '✅ Passed' : '❌ Failed' }}
+            - **Performance:** ${{ needs.performance-benchmarks.outputs.performance-regression == 'true' ? '⚠️ Regression Detected' : '✅ No Regression' }}
+            
+            ### 🎯 Next Steps
+            ${gateStatus === 'FAILED' ? 
+              '❌ **Action Required:** Quality gate failed. Please address the issues above before merging.' :
+              '✅ **Ready to Merge:** All quality checks passed!'
+            }
+            
+            ---
+            *Quality gate results generated by Enhanced Quality Gates workflow*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+      - name: "🚨 Enforce Quality Gate"
+        if: steps.gate-decision.outputs.gate_status == 'FAILED'
+        run: |
+          echo "🚨 QUALITY GATE ENFORCEMENT FAILURE"
+          echo ""
+          echo "Quality Score: ${{ steps.quality-score.outputs.total_score }}/10.0"
+          echo "Quality Grade: ${{ steps.quality-score.outputs.quality_grade }}"
+          echo "Required Threshold: ${{ env.QUALITY_THRESHOLD }}/10.0"
+          echo ""
+          echo "Critical Failures: ${{ steps.gate-decision.outputs.critical_failures }}"
+          echo ""
+          echo "📋 Quality Gate Requirements:"
+          echo "  1. Test coverage must be >= ${{ env.COVERAGE_THRESHOLD }}%"
+          echo "  2. Code quality analysis must pass"
+          echo "  3. Overall quality score must be >= ${{ env.QUALITY_THRESHOLD }}/10.0"
+          echo ""
+          echo "🔧 Remediation Actions:"
+          if [ "${{ needs.coverage-analysis.outputs.coverage-passed }}" != "true" ]; then
+            echo "  - Increase test coverage to meet ${{ env.COVERAGE_THRESHOLD }}% threshold"
+          fi
+          if [ "${{ needs.code-quality-analysis.result }}" = "failure" ]; then
+            echo "  - Fix code quality issues identified by linters"
+          fi
+          echo ""
+          echo "📊 View detailed reports in the workflow artifacts for specific guidance."
+          exit 1

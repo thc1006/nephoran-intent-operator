@@ -138,8 +138,8 @@ type StateChangeHandler interface {
 	GetHandlerName() string
 }
 
-// WorkflowEngine manages approval workflows for packages
-type WorkflowEngine interface {
+// PackageWorkflowEngine manages approval workflows for packages
+type PackageWorkflowEngine interface {
 	StartWorkflow(ctx context.Context, pkg *PackageRevision, workflowType string) error
 	ApproveWorkflow(ctx context.Context, pkg *PackageRevision, approver string) error
 	RejectWorkflow(ctx context.Context, pkg *PackageRevision, approver string, reason string) error

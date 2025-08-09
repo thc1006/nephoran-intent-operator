@@ -390,6 +390,30 @@ func FilterStackTrace(frames []StackFrame, predicate func(StackFrame) bool) []St
 	return filtered
 }
 
+// getSafeFunctionName safely extracts function name with proper error handling
+func getSafeFunctionName(fn *runtime.Func) string {
+	if fn == nil {
+		return ""
+	}
+	
+	// Use defer/recover to catch any potential panics from fn.Name()
+	defer func() {
+		if r := recover(); r != nil {
+			// Log the panic but don't propagate it - return empty string instead
+			// This prevents the entire error handling system from crashing
+		}
+	}()
+	
+	// Even though fn is not nil, fn.Name() can still panic in edge cases
+	// where the PC doesn't correspond to a valid function entry point
+	name := fn.Name()
+	if name == "" {
+		return "<unnamed>"
+	}
+	
+	return name
+}
+
 // GetCallerInfo returns information about the caller at the specified skip level
 func GetCallerInfo(skip int) (file string, line int, function string, ok bool) {
 	pc, file, line, ok := runtime.Caller(skip + 1)
@@ -398,8 +422,9 @@ func GetCallerInfo(skip int) (file string, line int, function string, ok bool) {
 	}
 
 	fn := runtime.FuncForPC(pc)
-	if fn != nil {
-		function = fn.Name()
+	function = getSafeFunctionName(fn)
+	if function == "" {
+		function = "<unknown>"
 	}
 
 	return file, line, function, true
@@ -427,7 +452,8 @@ func IsInPackage(packageName string, maxDepth int) bool {
 		}
 
 		fn := runtime.FuncForPC(pc)
-		if fn != nil && strings.Contains(fn.Name(), packageName) {
+		funcName := getSafeFunctionName(fn)
+		if funcName != "" && strings.Contains(funcName, packageName) {
 			return true
 		}
 	}

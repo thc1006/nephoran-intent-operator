@@ -1068,13 +1068,13 @@ func (wr *WorkflowRegistry) RegisterWorkflow(ctx context.Context, workflow *Work
 func (wr *WorkflowRegistry) UnregisterWorkflow(ctx context.Context, name string) error { return nil }
 func (wr *WorkflowRegistry) Close() error                                              { return nil }
 
-type ExecutionEngine struct{}
+type WorkflowExecutionEngine struct{}
 
-func NewExecutionEngine(config *ExecutionEngineConfig) *ExecutionEngine { return &ExecutionEngine{} }
-func (ee *ExecutionEngine) ExecuteWorkflow(ctx context.Context, execution *WorkflowExecution, workflow *Workflow) error {
+func NewExecutionEngine(config *ExecutionEngineConfig) *WorkflowExecutionEngine { return &WorkflowExecutionEngine{} }
+func (ee *WorkflowExecutionEngine) ExecuteWorkflow(ctx context.Context, execution *WorkflowExecution, workflow *Workflow) error {
 	return nil
 }
-func (ee *ExecutionEngine) Close() error { return nil }
+func (ee *WorkflowExecutionEngine) Close() error { return nil }
 
 type WorkflowStateManager struct{}
 
@@ -1207,7 +1207,6 @@ type IntegrationAuth struct{}
 type AuditLogOptions struct{}
 type AuditEventType string
 type AuditResult string
-type ComplianceViolation struct{}
 type ComplianceRecommendation struct{}
 type ComplianceSummary struct{}
 type ComplianceReportOptions struct{}
@@ -1215,4 +1214,3 @@ type AuditExportOptions struct{}
 type AuditExport struct{}
 type StageCondition struct{}
 type FailurePolicy struct{}
-type WorkflowTrigger struct{}

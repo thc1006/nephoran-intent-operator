@@ -1,0 +1,109 @@
+# Codecov Configuration for Nephoran Intent Operator
+# Comprehensive coverage reporting and quality gates
+
+codecov:
+  notify:
+    # Require successful coverage upload
+    require_ci_to_pass: true
+    # Wait for all CI jobs to complete
+    wait_for_ci: true
+  
+  # Repository token (set via GitHub secrets)
+  token: ""
+
+coverage:
+  precision: 2
+  round: down
+  range: "50...90"
+  
+  status:
+    project:
+      default:
+        # Coverage must not decrease by more than 1%
+        threshold: 1%
+        target: 80%
+        base: auto
+        informational: false
+        only_pulls: false
+        flags:
+          - unittests
+        paths:
+          - "pkg/"
+          - "cmd/"
+          - "api/"
+          - "controllers/"
+      
+      core:
+        target: 85%
+        threshold: 2%
+        paths:
+          - "pkg/llm/"
+          - "pkg/rag/"
+          - "pkg/controller/"
+          - "pkg/nephio/"
+        flags:
+          - unittests
+          
+    patch:
+      default:
+        # New code must have at least 70% coverage
+        target: 70%
+        threshold: 5%
+        base: auto
+        only_pulls: true
+        informational: false
+        
+  # Coverage collection flags
+  flags:
+    unittests:
+      carryforward: true
+      paths:
+        - "pkg/"
+        - "cmd/"
+        - "api/"
+        - "controllers/"
+    
+    integration:
+      carryforward: false
+      paths:
+        - "tests/integration/"
+        
+    e2e:
+      carryforward: false
+      paths:
+        - "tests/e2e/"
+        
+    smart-testing:
+      carryforward: true
+      
+    quality-gates:
+      carryforward: true
+
+# Comment configuration for PRs
+comment:
+  layout: "header, diff, flags, components, footer"
+  behavior: default
+  require_changes: false
+  require_base: false
+  require_head: true
+  branches:
+    - "main"
+    - "develop"
+
+# GitHub integration
+github_checks:
+  annotations: true
+
+# Ignore paths that should not count towards coverage
+ignore:
+  - "vendor/"
+  - "**/*_generated.go"
+  - "**/zz_generated.*.go"
+  - "**/*.pb.go"
+  - "**/mock_*.go"
+  - "**/testdata/"
+  - "**/examples/"
+  - "docs/"
+  - "scripts/"
+  - "tools/"
+  - "*.md"
